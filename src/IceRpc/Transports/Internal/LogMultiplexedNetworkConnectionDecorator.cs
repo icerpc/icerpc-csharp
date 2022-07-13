@@ -7,27 +7,36 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogMultiplexedNetworkConnectionDecorator :
-    LogNetworkConnectionDecorator,
-    IMultiplexedNetworkConnection
+internal class LogMultiplexedNetworkConnectionDecorator : LogNetworkConnectionDecorator, IMultiplexedNetworkConnection
 {
     private readonly IMultiplexedNetworkConnection _decoratee;
-
-    public void Abort(Exception exception) => _decoratee.Abort(exception);
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         new LogMultiplexedStreamDecorator(
             await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
             Logger);
 
-    public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
+    public async ValueTask DisposeAsync()
     {
-        await _decoratee.ShutdownAsync(applicationErrorCode, cancel).ConfigureAwait(false);
+        await _decoratee.DisposeAsync().ConfigureAwait(false);
 
+        // We don't emit a log when closing a connection that was not connected.
         if (Information is NetworkConnectionInformation connectionInformation)
         {
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-            Logger.LogMultiplexedNetworkConnectionShutdown(applicationErrorCode);
+            Logger.LogNetworkConnectionDispose();
+        }
+    }
+
+    public async Task ShutdownAsync(Exception exception, CancellationToken cancel)
+    {
+        await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
+
+        // We don't emit a log when closing a connection that was not connected.
+        if (Information is NetworkConnectionInformation connectionInformation)
+        {
+            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            Logger.LogMultiplexedNetworkConnectionShutdown(exception);
         }
     }
 
@@ -68,11 +77,11 @@ internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     private readonly ILogger _logger;
     private PipeWriter? _output;
 
-    public void Abort(Exception exception) => _decoratee.Abort(exception);
-
     public void OnShutdown(Action callback) => _decoratee.OnShutdown(callback);
 
     public void OnPeerInputCompleted(Action callback) => _decoratee.OnPeerInputCompleted(callback);
+
+    public void Abort(Exception exception) => _decoratee.Abort(exception);
 
     public override string? ToString() => _decoratee.ToString();
 

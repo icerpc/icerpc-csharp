@@ -150,23 +150,21 @@ public sealed class Server : IAsyncDisposable
             {
                 PerformListen(
                     _simpleServerTransport,
-                    (networkConnection, options) =>
-                        new IceProtocolConnection(networkConnection, isServer: true, options),
+                    AcceptIceConnectionAsync,
                     LogSimpleNetworkConnectionDecorator.Decorate);
             }
             else
             {
                 PerformListen(
                     _multiplexedServerTransport,
-                    (networkConnection, options) =>
-                        new IceRpcProtocolConnection(networkConnection, options),
+                    AcceptIceRpcConnectionAsync,
                     LogMultiplexedNetworkConnectionDecorator.Decorate);
             }
         }
 
         void PerformListen<T>(
             IServerTransport<T> serverTransport,
-            Func<T, ConnectionOptions, IProtocolConnection> protocolConnectionFactory,
+            Func<IListener<T>, Task<IProtocolConnection>> acceptProtocolConnection,
             LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
                 where T : INetworkConnection
         {
@@ -184,26 +182,38 @@ public sealed class Server : IAsyncDisposable
                 listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
                 _listener = listener;
 
-                Func<T, ConnectionOptions, IProtocolConnection> decoratee = protocolConnectionFactory;
-                protocolConnectionFactory = (T networkConnection, ConnectionOptions options) =>
-                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), isServer: true, logger);
+                Func<IListener<T>, Task<IProtocolConnection>> decoratee = acceptProtocolConnection;
+                acceptProtocolConnection = async listener =>
+                    new LogProtocolConnectionDecorator(
+                        await decoratee(listener).ConfigureAwait(false),
+                        isServer: true,
+                        logger);
             }
 
             // Run task to start accepting new connections.
-            _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
+            _ = Task.Run(() => AcceptAsync(() => acceptProtocolConnection(listener)));
         }
 
-        async Task AcceptAsync<T>(
-            IListener<T> listener,
-            Func<T, ConnectionOptions, IProtocolConnection> protocolConnectionFactory)
-                where T : INetworkConnection
+        async Task<IProtocolConnection> AcceptIceRpcConnectionAsync(IListener<IMultiplexedNetworkConnection> listener)
+        {
+            IMultiplexedNetworkConnection networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
+            return new IceRpcProtocolConnection(networkConnection, _options.ConnectionOptions);
+        }
+
+        async Task<IProtocolConnection> AcceptIceConnectionAsync(IListener<ISimpleNetworkConnection> listener)
+        {
+            ISimpleNetworkConnection networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
+            return new IceProtocolConnection(networkConnection, isServer: true, _options.ConnectionOptions);
+        }
+
+        async Task AcceptAsync(Func<Task<IProtocolConnection>> acceptProtocolConnection)
         {
             while (true)
             {
-                T networkConnection;
+                IProtocolConnection connection;
                 try
                 {
-                    networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
+                    connection = await acceptProtocolConnection().ConfigureAwait(false);
                 }
                 catch
                 {
@@ -221,18 +231,13 @@ public sealed class Server : IAsyncDisposable
                     continue;
                 }
 
-                // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-                IProtocolConnection connection;
                 lock (_mutex)
                 {
                     if (_isReadOnly)
                     {
-                        networkConnection.Dispose();
+                        connection.DisposeAsync().AsTask();
                         return;
                     }
-
-                    connection = protocolConnectionFactory(networkConnection, _options.ConnectionOptions);
-
                     _ = _connections.Add(connection);
                 }
 
@@ -241,10 +246,11 @@ public sealed class Server : IAsyncDisposable
                 connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
                 connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
 
-                // We don't wait for the connection to be activated. This could take a while for some transports
-                // such as TLS based transports where the handshake requires few round trips between the client
-                // and server. Waiting could also cause a security issue if the client doesn't respond to the
-                // connection initialization as we wouldn't be able to accept new connections in the meantime.
+                // We don't wait for the connection to be activated. This could take a while for some transports such as
+                // TLS based transports where the handshake requires few round trips between the client and server.
+                // Waiting could also cause a security issue if the client doesn't respond to the connection
+                // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                // eventually timeout if the ConnectTimeout expires.
                 _ = connection.ConnectAsync(CancellationToken.None);
             }
         }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
@@ -7,6 +8,18 @@ namespace IceRpc.Transports.Internal;
 internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorator, ISimpleNetworkConnection
 {
     private readonly ISimpleNetworkConnection _decoratee;
+
+    public void Dispose()
+    {
+        _decoratee.Dispose();
+
+        if (Information is NetworkConnectionInformation connectionInformation)
+        {
+            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            Logger.LogNetworkConnectionDispose();
+        }
+        // We don't emit a log when closing a connection that was not connected.
+    }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {

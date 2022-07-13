@@ -71,7 +71,7 @@ public class SlicTransportTests
         var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
         Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
@@ -102,7 +102,7 @@ public class SlicTransportTests
         var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
         Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream1, IMultiplexedStream remoteStream1) =
             await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
@@ -145,7 +145,7 @@ public class SlicTransportTests
         var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
         Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: true);
 
