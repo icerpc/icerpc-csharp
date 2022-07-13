@@ -14,8 +14,9 @@ namespace IceRpc;
 public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
-    private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
+    private readonly Dictionary<Endpoint, IProtocolConnection> _activeConnections = new(EndpointComparer.ParameterLess);
 
+    private bool _isDisposed;
     private bool _isReadOnly;
 
     private readonly ILoggerFactory? _loggerFactory;
@@ -26,10 +27,10 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     private readonly ConnectionPoolOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
-    private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
+    private readonly Dictionary<Endpoint, IProtocolConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
 
     // Formerly pending or active connections that are closed but not shutdown yet.
-    private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
+    private readonly HashSet<IProtocolConnection> _shutdownPendingConnections = new();
 
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
@@ -66,11 +67,12 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
+            _isDisposed = true;
             _isReadOnly = true;
         }
 
         // Dispose all connections managed by this pool.
-        IEnumerable<ClientConnection> allConnections =
+        IEnumerable<IProtocolConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
@@ -80,6 +82,8 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
+        CheckIfDisposed();
+
         if (request.Features.Get<IEndpointFeature>() is not IEndpointFeature endpointFeature)
         {
             endpointFeature = new EndpointFeature(request.ServiceAddress);
@@ -95,7 +99,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            ClientConnection connection = await GetClientConnectionAsync(endpointFeature, cancel).ConfigureAwait(false);
+            IProtocolConnection connection = await GetConnectionAsync(endpointFeature, cancel).ConfigureAwait(false);
             return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
     }
@@ -106,28 +110,30 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     /// <returns>A task that completes when the shutdown is complete.</returns>
     public Task ShutdownAsync(CancellationToken cancel = default)
     {
+        CheckIfDisposed();
+
         lock (_mutex)
         {
             _isReadOnly = true;
         }
 
         // Shut down all connections managed by this pool.
-        IEnumerable<ClientConnection> allConnections =
+        IEnumerable<IProtocolConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
             allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
     }
 
-    /// <summary>Returns a client connection to one of the specified endpoints.</summary>
+    /// <summary>Returns a protocol connection to one of the specified endpoints.</summary>
     /// <param name="endpointFeature">The endpoint feature.</param>
     /// <param name="cancel">The cancellation token.</param>
     // TODO: it's internal for now for the tests, pending further refactoring.
-    internal ValueTask<ClientConnection> GetClientConnectionAsync(
+    internal ValueTask<IProtocolConnection> GetConnectionAsync(
         IEndpointFeature endpointFeature,
         CancellationToken cancel)
     {
-        ClientConnection? connection = null;
+        IProtocolConnection? connection = null;
         Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
 
         if (_options.PreferExistingConnection)
@@ -163,9 +169,9 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
         return GetOrCreateAsync();
 
-        ClientConnection? GetActiveConnection(Endpoint endpoint)
+        IProtocolConnection? GetActiveConnection(Endpoint endpoint)
         {
-            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
+            if (_activeConnections.TryGetValue(endpoint, out IProtocolConnection? connection))
             {
                 CheckEndpoint(endpoint);
                 return connection;
@@ -178,7 +184,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
         // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
         // a brand new connection.
-        async ValueTask<ClientConnection> GetOrCreateAsync()
+        async ValueTask<IProtocolConnection> GetOrCreateAsync()
         {
             try
             {
@@ -193,7 +199,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                     Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
                     try
                     {
-                        ClientConnection connection = await ConnectAsync(altEndpoint, cancel)
+                        IProtocolConnection connection = await ConnectAsync(altEndpoint, cancel)
                             .ConfigureAwait(false);
 
                         // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
@@ -237,9 +243,9 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     /// <param name="endpoint">The endpoint of the server.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A connected connection.</returns>
-    private async ValueTask<ClientConnection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+    private async ValueTask<IProtocolConnection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
     {
-        ClientConnection? connection = null;
+        IProtocolConnection? connection = null;
         bool created = false;
 
         lock (_mutex)
@@ -261,7 +267,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             }
             else
             {
-                connection = new ClientConnection(
+                connection = ProtocolConnection.CreateClientConnection(
                     _options.ClientConnectionOptions with { Endpoint = endpoint },
                     _loggerFactory,
                     _multiplexedClientTransport,
@@ -322,8 +328,8 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             {
                 // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
                 // call await ShutdownAsync or DisposeAsync on the connection within this lock.
-                connection.OnAbort(exception => RemoveFromActive(graceful: false));
-                connection.OnShutdown(message => RemoveFromActive(graceful: true));
+                connection.OnAbort(exception => RemoveFromActive(endpoint, graceful: false));
+                connection.OnShutdown(message => RemoveFromActive(endpoint, graceful: true));
             }
         }
         else
@@ -333,7 +339,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
         return connection;
 
-        void RemoveFromActive(bool graceful)
+        void RemoveFromActive(Endpoint endpoint, bool graceful)
         {
             Debug.Assert(connection is not null);
 
@@ -344,7 +350,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                 if (!_isReadOnly)
                 {
                     // "move" from active to shutdown pending
-                    bool removed = _activeConnections.Remove(connection.Endpoint);
+                    bool removed = _activeConnections.Remove(endpoint);
                     Debug.Assert(removed);
                     _ = _shutdownPendingConnections.Add(connection);
                     scheduleRemoveFromClosed = true;
@@ -358,29 +364,37 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         }
 
         // Remove connection from _shutdownPendingConnections once the dispose is complete
-        async Task RemoveFromClosedAsync(ClientConnection clientConnection, bool graceful)
+        async Task RemoveFromClosedAsync(IProtocolConnection protocolConnection, bool graceful)
         {
             if (graceful)
             {
                 // wait for current shutdown to complete
                 try
                 {
-                    await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await protocolConnection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
                 }
             }
 
-            await clientConnection.DisposeAsync().ConfigureAwait(false);
+            await protocolConnection.DisposeAsync().ConfigureAwait(false);
 
             lock (_mutex)
             {
                 if (!_isReadOnly)
                 {
-                    _ = _shutdownPendingConnections.Remove(clientConnection);
+                    _ = _shutdownPendingConnections.Remove(protocolConnection);
                 }
             }
+        }
+    }
+
+    private void CheckIfDisposed()
+    {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(ResumableClientConnection));
         }
     }
 }

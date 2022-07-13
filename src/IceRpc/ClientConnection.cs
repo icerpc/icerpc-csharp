@@ -2,9 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -27,10 +25,33 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
     /// </summary>
-    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
+    public NetworkConnectionInformation? NetworkConnectionInformation
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                return _networkConnectionInformation;
+            }
+        }
+
+        private set
+        {
+            lock (_mutex)
+            {
+                _networkConnectionInformation = value;
+            }
+        }
+    }
 
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => Endpoint.Protocol;
+
+    private bool _isDisposed;
+
+    private readonly object _mutex = new();
+
+    private NetworkConnectionInformation? _networkConnectionInformation;
 
     private readonly IProtocolConnection _protocolConnection;
 
@@ -45,67 +66,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
-    {
-        Endpoint = options.Endpoint ??
-            throw new ArgumentException(
-                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
-                nameof(options));
-
-        // This is the composition root of client Connections, where we install log decorators when logging is enabled.
-
-        multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-        simpleClientTransport ??= DefaultSimpleClientTransport;
-
-        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
-
-        if (Protocol == Protocol.Ice)
-        {
-            ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                Endpoint,
-                options.ClientAuthenticationOptions,
-                logger);
-
-            // TODO: log level
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                networkConnection = new LogSimpleNetworkConnectionDecorator(
-                    networkConnection,
-                    Endpoint,
-                    isServer: false,
-                    logger);
-            }
-
-            _protocolConnection = new IceProtocolConnection(networkConnection, isServer: false, options);
-        }
-        else
-        {
-            IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                Endpoint,
-                options.ClientAuthenticationOptions,
-                logger);
-
-            // TODO: log level
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-#pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
-                networkConnection = new LogMultiplexedNetworkConnectionDecorator(
-                    networkConnection,
-                    Endpoint,
-                    isServer: false,
-                    logger);
-#pragma warning restore CA2000
-            }
-
-            _protocolConnection = new IceRpcProtocolConnection(networkConnection, options);
-        }
-
-        // TODO: log level
-        if (logger.IsEnabled(LogLevel.Error))
-        {
-            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, isServer: false, logger);
-        }
-    }
+        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null) =>
+        _protocolConnection = ProtocolConnection.CreateClientConnection(
+            options,
+            loggerFactory,
+            multiplexedClientTransport ?? DefaultMultiplexedClientTransport,
+            simpleClientTransport ?? DefaultSimpleClientTransport);
 
     /// <summary>Constructs a client connection with the specified endpoint and authentication options.  All other
     /// properties have their default values.</summary>
@@ -133,23 +99,40 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    public async Task ConnectAsync(CancellationToken cancel = default) =>
-        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel: cancel).ConfigureAwait(false);
+    public async Task ConnectAsync(CancellationToken cancel = default)
+    {
+        CheckIfDisposed();
+        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
+    public ValueTask DisposeAsync()
+    {
+        _isDisposed = true;
+        return _protocolConnection.DisposeAsync();
+    }
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-        _protocolConnection.InvokeAsync(request, cancel);
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    {
+        CheckIfDisposed();
+        return _protocolConnection.InvokeAsync(request, cancel);
+    }
 
-    /// <summary>Adds a callback that will be executed when the connection is aborted.</summary>
-    /// TODO: fix doc-comment
-    public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
+    /// <summary>Adds a callback that will be executed when the connection with the peer is aborted.</summary>
+    public void OnAbort(Action<Exception> callback)
+    {
+        CheckIfDisposed();
+        _protocolConnection.OnAbort(callback);
+    }
 
-    /// <summary>Adds a callback that will be executed when the connection is shut down.</summary>
-    /// TODO: fix doc-comment
-    public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
+    /// <summary>Adds a callback that will be executed when the connection is shut down by the peer or the idle
+    /// timeout.</summary>
+    public void OnShutdown(Action<string> callback)
+    {
+        CheckIfDisposed();
+        _protocolConnection.OnShutdown(callback);
+    }
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -165,6 +148,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
-    public Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        _protocolConnection.ShutdownAsync(message, cancel);
+    public Task ShutdownAsync(string message, CancellationToken cancel = default)
+    {
+        CheckIfDisposed();
+        return _protocolConnection.ShutdownAsync(message, cancel);
+    }
+
+    private void CheckIfDisposed()
+    {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(ClientConnection));
+        }
+    }
 }

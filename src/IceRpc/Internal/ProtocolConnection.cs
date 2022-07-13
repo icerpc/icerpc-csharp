@@ -1,6 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc.Internal;
@@ -33,7 +36,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
+                throw new ConnectionClosedException("connection disposed");
             }
             else if (_shutdownTask is not null)
             {
@@ -163,7 +166,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (_shutdownTask is not null)
+        if (_disposeTask is not null)
+        {
+            throw new ConnectionClosedException("connection disposed");
+        }
+        else if (_shutdownTask is not null)
         {
             throw new ConnectionClosedException(
                 _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
@@ -240,7 +247,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
+                throw new ConnectionClosedException("connection disposed");
             }
             else if (_connectTask is null)
             {
@@ -285,6 +292,71 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw;
             }
         }
+    }
+
+    internal static IProtocolConnection CreateClientConnection(
+        ClientConnectionOptions options,
+        ILoggerFactory? loggerFactory,
+        IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport,
+        IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
+    {
+        Endpoint endpoint = options.Endpoint ??
+            throw new ArgumentException(
+                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
+                nameof(options));
+
+        // This is the composition root of client Connections, where we install log decorators when logging is enabled.
+
+        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
+        IProtocolConnection protocolConnection;
+        if (endpoint.Protocol == Protocol.Ice)
+        {
+            ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
+                endpoint,
+                options.ClientAuthenticationOptions,
+                logger);
+
+            // TODO: log level
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                networkConnection = new LogSimpleNetworkConnectionDecorator(
+                    networkConnection,
+                    endpoint,
+                    isServer: false,
+                    logger);
+            }
+
+            protocolConnection = new IceProtocolConnection(networkConnection, isServer: false, options);
+        }
+        else
+        {
+            IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
+                endpoint,
+                options.ClientAuthenticationOptions,
+                logger);
+
+            // TODO: log level
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+#pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
+                networkConnection = new LogMultiplexedNetworkConnectionDecorator(
+                    networkConnection,
+                    endpoint,
+                    isServer: false,
+                    logger);
+#pragma warning restore CA2000
+            }
+
+            protocolConnection = new IceRpcProtocolConnection(networkConnection, options);
+        }
+
+        // TODO: log level
+        if (logger.IsEnabled(LogLevel.Error))
+        {
+            protocolConnection = new LogProtocolConnectionDecorator(protocolConnection, isServer: false, logger);
+        }
+
+        return protocolConnection;
     }
 
     internal ProtocolConnection(ConnectionOptions options)

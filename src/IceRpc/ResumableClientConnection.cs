@@ -1,25 +1,43 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
+/// <summary>Represents a protocol connection used to send and receive requests and responses. This protocol connection is
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
 public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the endpoint of this connection.</summary>
     // TODO: should we remove this property?
-    public Endpoint Endpoint => _clientConnection.Endpoint;
+    public Endpoint Endpoint { get; }
 
     /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
     /// </summary>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                return _networkConnectionInformation;
+            }
+        }
+
+        private set
+        {
+            lock (_mutex)
+            {
+                _networkConnectionInformation = value;
+            }
+        }
+    }
 
     /// <summary>Gets the protocol of this connection.</summary>
-    public Protocol Protocol => _clientConnection.Protocol;
+    public Protocol Protocol => Endpoint.Protocol;
 
     private bool IsResumable
     {
@@ -32,15 +50,17 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    private ClientConnection _clientConnection;
+    private bool _isDisposed;
 
     private bool _isResumable = true;
 
     private readonly ILoggerFactory? _loggerFactory;
 
-    private readonly IClientTransport<IMultiplexedNetworkConnection>? _multiplexedClientTransport;
+    private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
 
     private readonly object _mutex = new();
+
+    private NetworkConnectionInformation? _networkConnectionInformation;
 
     private Action<Exception>? _onAbort;
 
@@ -48,10 +68,12 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ClientConnectionOptions _options;
 
-    private readonly IClientTransport<ISimpleNetworkConnection>? _simpleClientTransport;
+    private IProtocolConnection _protocolConnection;
 
-    /// <summary>Constructs a resumable client connection.</summary>
-    /// <param name="options">The client connection options.</param>
+    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+
+    /// <summary>Constructs a resumable protocol connection.</summary>
+    /// <param name="options">The protocol connection options.</param>
     /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
@@ -64,14 +86,14 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
         _options = options;
-        _multiplexedClientTransport = multiplexedClientTransport;
-        _simpleClientTransport = simpleClientTransport;
         _loggerFactory = loggerFactory;
+        _multiplexedClientTransport = multiplexedClientTransport ?? ClientConnection.DefaultMultiplexedClientTransport;
+        _simpleClientTransport = simpleClientTransport ?? ClientConnection.DefaultSimpleClientTransport;
 
-        _clientConnection = CreateClientConnection();
+        _protocolConnection = CreateProtocolConnection();
     }
 
-    /// <summary>Constructs a resumable client connection with the specified endpoint and client authentication options.
+    /// <summary>Constructs a resumable protocol connection with the specified endpoint and client authentication options.
     /// All other properties have their default values.</summary>
     /// <param name="endpoint">The connection endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
@@ -92,42 +114,50 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
     public async Task ConnectAsync(CancellationToken cancel = default)
     {
-        // make a copy of the client connection we're trying with
-        ClientConnection clientConnection = _clientConnection;
+        CheckIfDisposed();
+
+        // make a copy of the protocol connection we're trying with
+        IProtocolConnection protocolConnection = _protocolConnection;
 
         try
         {
-            await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            NetworkConnectionInformation = await protocolConnection.ConnectAsync(cancel).ConfigureAwait(false);
             return;
         }
         catch (ConnectionClosedException) when (IsResumable)
         {
-            _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+            _ = RefreshConnectionAsync(protocolConnection, graceful: true);
 
-            // try again with the latest _clientConnection
-            await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            // try again with the latest _protocolConnection
+            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() => _clientConnection.DisposeAsync();
+    public ValueTask DisposeAsync()
+    {
+        _isDisposed = true;
+        return _protocolConnection.DisposeAsync();
+    }
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
-        // make a copy of the client connection we're trying with
-        ClientConnection clientConnection = _clientConnection;
+        CheckIfDisposed();
+
+        // make a copy of the protocol connection we're trying with
+        IProtocolConnection protocolConnection = _protocolConnection;
 
         try
         {
-            return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return await protocolConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException) when (IsResumable)
         {
-            _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+            _ = RefreshConnectionAsync(protocolConnection, graceful: true);
 
-            // try again with the latest _clientConnection
-            return await _clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            // try again with the latest _protocolConnection
+            return await _protocolConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         // for retries on other exceptions, the application should use a retry interceptor
     }
@@ -136,29 +166,29 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
     public void OnAbort(Action<Exception> callback)
     {
-        ClientConnection clientConnection;
+        IProtocolConnection protocolConnection;
         lock (_mutex)
         {
             _onAbort += callback; // for future connections
-            clientConnection = _clientConnection;
+            protocolConnection = _protocolConnection;
         }
 
-        clientConnection.OnAbort(callback);
+        protocolConnection.OnAbort(callback);
     }
 
     /// <summary>Adds a callback that will be executed when the underlying connection is shut down.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
     public void OnShutdown(Action<string> callback)
     {
-        ClientConnection clientConnection;
+        IProtocolConnection protocolConnection;
 
         lock (_mutex)
         {
-            _onShutdown += callback; // for future client connections
-            clientConnection = _clientConnection;
+            _onShutdown += callback; // for future protocol connections
+            protocolConnection = _protocolConnection;
         }
 
-        clientConnection.OnShutdown(callback);
+        protocolConnection.OnShutdown(callback);
     }
 
     /// <summary>Gracefully shuts down the connection.</summary>
@@ -175,37 +205,37 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         {
             _isResumable = false;
         }
-        return _clientConnection.ShutdownAsync(message, cancel);
+        return _protocolConnection.ShutdownAsync(message, cancel);
     }
 
-    private ClientConnection CreateClientConnection()
+    private IProtocolConnection CreateProtocolConnection()
     {
-        var clientConnection = new ClientConnection(
+        IProtocolConnection protocolConnection = ProtocolConnection.CreateClientConnection(
             _options,
             _loggerFactory,
             _multiplexedClientTransport,
             _simpleClientTransport);
 
         // only called from the constructor or with _mutex locked
-        clientConnection.OnAbort(_onAbort + OnAbort);
-        clientConnection.OnShutdown(_onShutdown + OnShutdown);
+        protocolConnection.OnAbort(_onAbort + OnAbort);
+        protocolConnection.OnShutdown(_onShutdown + OnShutdown);
 
-        void OnAbort(Exception exception) => _ = RefreshClientConnectionAsync(clientConnection, graceful: false);
-        void OnShutdown(string message) => _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+        void OnAbort(Exception exception) => _ = RefreshConnectionAsync(protocolConnection, graceful: false);
+        void OnShutdown(string message) => _ = RefreshConnectionAsync(protocolConnection, graceful: true);
 
-        return clientConnection;
+        return protocolConnection;
     }
 
-    private async Task RefreshClientConnectionAsync(ClientConnection clientConnection, bool graceful)
+    private async Task RefreshConnectionAsync(IProtocolConnection protocolConnection, bool graceful)
     {
         bool closeOldConnection = false;
         lock (_mutex)
         {
             // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
-            if (_isResumable && clientConnection == _clientConnection)
+            if (_isResumable && protocolConnection == _protocolConnection)
             {
-                _clientConnection = CreateClientConnection();
+                _protocolConnection = CreateProtocolConnection();
                 closeOldConnection = true;
             }
         }
@@ -217,7 +247,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
                 try
                 {
                     // Wait for existing graceful shutdown to complete, or fail immediately if aborted
-                    await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await protocolConnection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -226,7 +256,15 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
                 }
             }
 
-            await clientConnection.DisposeAsync().ConfigureAwait(false);
+            await protocolConnection.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void CheckIfDisposed()
+    {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(ResumableClientConnection));
         }
     }
 }
