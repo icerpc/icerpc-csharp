@@ -623,7 +623,11 @@ public class ConnectionTests
         else
         {
             await serverConnection!.DisposeAsync();
-            Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionLostException>());
+            // The ping can fail with either ConnectionLostException or IceRpcProtocolStreamException
+            Exception? exception = Assert.CatchAsync<Exception>(async () => await pingTask);
+            Assert.That(
+                exception,
+                Is.InstanceOf<ConnectionLostException>());
         }
         hold.Release();
     }

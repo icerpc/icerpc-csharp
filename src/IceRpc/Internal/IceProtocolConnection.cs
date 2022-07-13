@@ -149,7 +149,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override void CancelDispatchesAndAbortInvocations(Exception exception)
+    private protected override void CancelDispatchesAndInvocations(Exception exception)
     {
         lock (_mutex)
         {
@@ -169,7 +169,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
         }
 
-        // Cancel dispatches and abort invocations for a speedy shutdown.
+        // Cancel dispatches and invocations for a speedy shutdown.
         _dispatchesAndInvocationsCancelSource.Cancel();
     }
 
@@ -276,10 +276,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Make sure to unblock ShutdownAsync if it's waiting for the connection closure.
                     _pendingClose.TrySetResult();
 
-                    // Don't wait for DisposeAsync to be called to cancel dispatches and abort invocations which might
-                    // still be running.
+                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
+                    // be running.
                     Debug.Assert(completeException is not null);
-                    CancelDispatchesAndAbortInvocations(completeException);
+                    CancelDispatchesAndInvocations(completeException);
                 }
             },
             CancellationToken.None);
@@ -315,7 +315,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _networkConnection.Dispose();
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndAbortInvocations(exception);
+        CancelDispatchesAndInvocations(exception);
 
         // Next, wait for dispatches and invocations to complete.
         await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);

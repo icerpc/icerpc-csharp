@@ -53,7 +53,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
     }
 
-    private protected override void CancelDispatchesAndAbortInvocations(Exception exception)
+    private protected override void CancelDispatchesAndInvocations(Exception exception)
     {
         lock (_mutex)
         {
@@ -172,9 +172,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     InvokeOnAbort(exception);
 
-                    // Don't wait for DisposeAsync to be called to cancel dispatches and abort invocations which might
-                    // still be running.
-                    CancelDispatchesAndAbortInvocations(exception);
+                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
+                    // be running.
+                    CancelDispatchesAndInvocations(exception);
                 }
             },
             CancellationToken.None);
@@ -199,7 +199,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
+        CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
 
         // Dispose the network connection to kill the connection with the peer.
         await _networkConnection.DisposeAsync().ConfigureAwait(false);

@@ -139,7 +139,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
                         // Speed-up shutdown only if shutdown didn't fail.
-                        CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
+                        CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
                     }
 
                     try
@@ -301,7 +301,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             });
     }
 
-    private protected abstract void CancelDispatchesAndAbortInvocations(Exception exception);
+    private protected abstract void CancelDispatchesAndInvocations(Exception exception);
 
     /// <summary>Checks if the connection is idle. If it's idle, the connection implementation should stop accepting new
     /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
@@ -385,7 +385,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             if (cancelDispatchesAndInvocations)
             {
-                CancelDispatchesAndAbortInvocations(new ConnectionAbortedException(message));
+                CancelDispatchesAndInvocations(new ConnectionAbortedException(message));
             }
 
             // Wait for shutdown to complete.
