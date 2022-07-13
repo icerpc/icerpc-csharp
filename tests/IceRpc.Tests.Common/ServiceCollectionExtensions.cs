@@ -73,8 +73,10 @@ public static class ServiceCollectionExtensions
                 provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+
+            Endpoint listenerEndpoint = listener.Endpoint;
             return clientTransport.CreateConnection(
-                listener.Endpoint,
+                ref listenerEndpoint,
                 clientAuthenticationOptions,
                 logger);
         });

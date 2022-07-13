@@ -21,8 +21,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
         new TcpClientTransport();
 
-    /// <summary>Gets the endpoint of this connection.</summary>
-    // TODO: should we remove this property?
+    /// <summary>Gets the endpoint of this connection. This endpoint includes a transport parameter even when
+    /// <see cref="ClientConnectionOptions.Endpoint"/> does not.</summary>
     public Endpoint Endpoint { get; }
 
     /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
@@ -47,7 +47,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        Endpoint = options.Endpoint ??
+        Endpoint endpoint = options.Endpoint ??
             throw new ArgumentException(
                 $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
                 nameof(options));
@@ -59,10 +59,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
-        if (Protocol == Protocol.Ice)
+        if (endpoint.Protocol == Protocol.Ice)
         {
             ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                Endpoint,
+                ref endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -71,7 +71,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 networkConnection = new LogSimpleNetworkConnectionDecorator(
                     networkConnection,
-                    Endpoint,
+                    endpoint,
                     isServer: false,
                     logger);
             }
@@ -81,7 +81,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                Endpoint,
+                ref endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -91,7 +91,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 #pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
                 networkConnection = new LogMultiplexedNetworkConnectionDecorator(
                     networkConnection,
-                    Endpoint,
+                    endpoint,
                     isServer: false,
                     logger);
 #pragma warning restore CA2000
@@ -99,6 +99,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             _protocolConnection = new IceRpcProtocolConnection(networkConnection, options);
         }
+
+        Endpoint = endpoint;
 
         // TODO: log level
         if (logger.IsEnabled(LogLevel.Error))

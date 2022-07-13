@@ -33,7 +33,7 @@ internal sealed class TcpListener : IListener<ISimpleNetworkConnection>
         // to catch and handle them. They are only useful for the log decorator.
         return _serverConnectionDecorator(
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
-            new TcpServerNetworkConnection(acceptedSocket, Endpoint, _authenticationOptions));
+            new TcpServerNetworkConnection(acceptedSocket, _authenticationOptions));
 #pragma warning restore CA2000
     }
 

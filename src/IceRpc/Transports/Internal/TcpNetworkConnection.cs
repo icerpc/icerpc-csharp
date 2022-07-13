@@ -267,7 +267,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
 
         _authenticationOptions = authenticationOptions;
 
-        // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
+        // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         Socket = ipAddress?.AddressFamily == AddressFamily.InterNetwork ?
             new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
@@ -307,7 +307,6 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
     private bool _connected;
-    private readonly Endpoint _endpoint;
     private SslStream? _sslStream;
 
     public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -350,13 +349,9 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
         }
     }
 
-    internal TcpServerNetworkConnection(
-        Socket socket,
-        Endpoint endpoint,
-        SslServerAuthenticationOptions? authenticationOptions)
+    internal TcpServerNetworkConnection(Socket socket, SslServerAuthenticationOptions? authenticationOptions)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;
-        _endpoint = endpoint;
     }
 }

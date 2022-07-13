@@ -18,7 +18,7 @@ public class CustomClientTransport : IClientTransport<IMultiplexedNetworkConnect
     public bool CheckParams(Endpoint endpoint) => true;
 
     public IMultiplexedNetworkConnection CreateConnection(
-        Endpoint endpoint,
+        ref Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
@@ -37,7 +37,7 @@ public class CustomClientTransport : IClientTransport<IMultiplexedNetworkConnect
             Params = endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
         };
 
-        return _transport.CreateConnection(endpoint, authenticationOptions, logger);
+        return _transport.CreateConnection(ref endpoint, authenticationOptions, logger);
     }
 }
 

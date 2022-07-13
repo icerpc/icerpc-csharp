@@ -46,6 +46,7 @@ public class TcpTransportTests
     {
         // Act
         using TcpClientNetworkConnection connection = CreateTcpClientConnection(
+            new Endpoint(Protocol.IceRpc),
             options: new TcpClientTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
@@ -90,6 +91,7 @@ public class TcpTransportTests
         var localNetworkAddress = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 
         using TcpClientNetworkConnection connection = CreateTcpClientConnection(
+            new Endpoint(Protocol.IceRpc),
             options: new TcpClientTransportOptions
             {
                 LocalNetworkAddress = localNetworkAddress,
@@ -188,8 +190,9 @@ public class TcpTransportTests
             using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             try
             {
+                Endpoint endpoint = listener.Endpoint;
                 ISimpleNetworkConnection clientConnection = clientTransport.CreateConnection(
-                    listener.Endpoint,
+                    ref endpoint,
                     authenticationOptions: null,
                     NullLogger.Instance);
                 await clientConnection.ConnectAsync(source.Token);
@@ -392,13 +395,13 @@ public class TcpTransportTests
     }
 
     private static TcpClientNetworkConnection CreateTcpClientConnection(
-        Endpoint? endpoint = null,
+        Endpoint endpoint,
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IClientTransport<ISimpleNetworkConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientNetworkConnection)transport.CreateConnection(
-            endpoint ?? new Endpoint(Protocol.IceRpc),
+            ref endpoint,
             authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }

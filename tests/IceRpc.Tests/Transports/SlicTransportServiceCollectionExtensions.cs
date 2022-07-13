@@ -41,7 +41,8 @@ public static class SlicTransportServiceCollectionExtensions
         {
             var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
             var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-            var connection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+            Endpoint listenerEndpoint = listener.Endpoint;
+            var connection = clientTransport.CreateConnection(ref listenerEndpoint, null, NullLogger.Instance);
             return (SlicNetworkConnection)connection;
         });
         return services;

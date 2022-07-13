@@ -39,7 +39,7 @@ public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnectio
 
     /// <inheritdoc/>
     public IMultiplexedNetworkConnection CreateConnection(
-        Endpoint endpoint,
+        ref Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
@@ -49,7 +49,7 @@ public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnectio
                 $"cannot create Slic client network connection for protocol {endpoint.Protocol}");
 
         return new SlicNetworkConnection(
-            _simpleClientTransport.CreateConnection(endpoint, authenticationOptions, logger),
+            _simpleClientTransport.CreateConnection(ref endpoint, authenticationOptions, logger),
             isServer: false,
             errorCodeConverter,
             _slicTransportOptions);

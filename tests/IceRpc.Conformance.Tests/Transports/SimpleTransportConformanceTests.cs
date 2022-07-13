@@ -205,7 +205,7 @@ public abstract class SimpleTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(endpoint, authenticationOptions: null, NullLogger.Instance));
+            () => clientTransport.CreateConnection(ref endpoint, authenticationOptions: null, NullLogger.Instance));
     }
 
     [Test]

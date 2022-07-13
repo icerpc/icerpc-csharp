@@ -37,7 +37,7 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
 
     /// <inheritdoc/>
     public ISimpleNetworkConnection CreateConnection(
-        Endpoint endpoint,
+        ref Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
@@ -47,6 +47,11 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
         if (!CheckParams(endpoint, out string? endpointTransport))
         {
             throw new FormatException($"cannot create a TCP connection to endpoint '{endpoint}'");
+        }
+
+        if (endpointTransport is null)
+        {
+            endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
         }
 
         authenticationOptions = authenticationOptions?.Clone() ??

@@ -20,14 +20,15 @@ public interface IClientTransport<T> where T : INetworkConnection
     bool CheckParams(Endpoint endpoint);
 
     /// <summary>Creates a new network connection to the specified endpoint.</summary>
-    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="endpoint">The endpoint. This call adds a transport parameter to <paramref name="endpoint"/> if it
+    /// does not have one already.</param>
     /// <param name="authenticationOptions">The SSL client authentication options.</param>
     /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport
     /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
     /// within the log scopes created by IceRPC.</param>
     /// <returns>The new network connection. This connection is not yet connected.</returns>
     T CreateConnection(
-        Endpoint endpoint,
+        ref Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger);
 }
