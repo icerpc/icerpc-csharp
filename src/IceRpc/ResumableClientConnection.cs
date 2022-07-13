@@ -8,7 +8,7 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
-public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposable
+public sealed class ResumableClientConnection : IConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
     public bool IsResumable
@@ -27,9 +27,6 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
     /// <inheritdoc/>
     public Protocol Protocol => _clientConnection.Protocol;
-
-    /// <inheritdoc/>
-    public Endpoint Endpoint => _clientConnection.Endpoint;
 
     private ClientConnection _clientConnection;
 

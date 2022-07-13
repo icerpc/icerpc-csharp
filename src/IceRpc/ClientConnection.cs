@@ -11,7 +11,7 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection
 /// cannot be reconnected after being closed.</summary>
-public sealed class ClientConnection : IClientConnection, IAsyncDisposable
+public sealed class ClientConnection : IConnection, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
     public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
@@ -21,7 +21,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
         new TcpClientTransport();
 
-    /// <inheritdoc/>
+    /// <summary>Gets the endpoint.</summary>
+    // TODO: remove
     public Endpoint Endpoint { get; }
 
     /// <inheritdoc/>
