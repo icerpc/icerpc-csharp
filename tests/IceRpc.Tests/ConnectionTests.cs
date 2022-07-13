@@ -378,7 +378,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Repeat(100)]
     public async Task Dispose_after_shutdown_abort_invocations_and_cancel_dispatches(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
@@ -455,39 +454,22 @@ public class ConnectionTests
     public async Task Shutdown_waits_for_connection_establishment([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        var tcpServerTransport = new TcpServerTransport();
-        using var listener = tcpServerTransport.Listen(
-            "icerpc://127.0.0.1:0",
-            authenticationOptions: null,
-            NullLogger.Instance);
 
-        var endpoint = new Endpoint(Protocol.FromString(protocol))
-        {
-            Host = listener.Endpoint.Host,
-            Port = listener.Endpoint.Port
-        };
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
+            .BuildServiceProvider(validateScopes: true);
 
-        await using var connection = new ClientConnection(new ClientConnectionOptions
-        {
-            Endpoint = endpoint,
-        });
+        var server = provider.GetRequiredService<Server>();
+        server.Listen();
+        var connection = provider.GetRequiredService<ClientConnection>();
+
         Task connectTask = connection.ConnectAsync();
 
         // Act
-        Task shutdownTask = connection.ShutdownAsync();
+        await connection.ShutdownAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(connectTask.IsCompleted, Is.False);
-            Assert.That(shutdownTask.IsCompleted, Is.False);
-        });
-        await connection.DisposeAsync();
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await connectTask, Throws.TypeOf<ConnectionAbortedException>());
-            Assert.That(async () => await shutdownTask, Throws.TypeOf<ConnectionAbortedException>());
-        });
+        Assert.That(connectTask.IsCompletedSuccessfully, Is.True);
     }
 
     [Test]
@@ -552,7 +534,11 @@ public class ConnectionTests
         else
         {
             await serverConnection!.DisposeAsync();
-            Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionLostException>());
+            // The ping can fail with either ConnectionLostException or IceRpcProtocolStreamException
+            Exception? exception = Assert.CatchAsync<Exception>(async () => await pingTask);
+            Assert.That(
+                exception,
+                Is.InstanceOf<ConnectionLostException>());
         }
         hold.Release();
     }

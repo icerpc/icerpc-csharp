@@ -88,11 +88,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
             {
+#pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
                 networkConnection = new LogMultiplexedNetworkConnectionDecorator(
                     networkConnection,
                     Endpoint,
                     isServer: false,
                     logger);
+#pragma warning restore CA2000
             }
 
             _protocolConnection = new IceRpcProtocolConnection(networkConnection, options);

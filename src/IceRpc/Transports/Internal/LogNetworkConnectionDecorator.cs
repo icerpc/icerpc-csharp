@@ -42,20 +42,6 @@ internal abstract class LogNetworkConnectionDecorator : INetworkConnection
         return Information.Value;
     }
 
-    public void Dispose()
-    {
-        _decoratee.Dispose();
-
-        if (Information is NetworkConnectionInformation connectionInformation)
-        {
-            // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
-            // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-            Logger.LogNetworkConnectionDispose();
-        }
-        // We don't emit a log when closing a connection that was not connected.
-    }
-
     public override string? ToString() => _decoratee.ToString();
 
     internal LogNetworkConnectionDecorator(

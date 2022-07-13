@@ -9,6 +9,8 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 {
+    private static readonly Exception _completedSuccessfullySentinel = new();
+
     private Exception? _exception;
     private readonly Pipe _pipe;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
@@ -41,7 +43,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
 
             _pipe.Writer.Complete(exception);
-            CompletePipeReader(exception);
+            Abort(exception);
         }
     }
 
@@ -116,7 +118,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 if (_state.HasFlag(State.PipeReaderCompleted))
                 {
                     // If the pipe reader has been completed while we were writing the stream data, we make sure to
-                    // complete the reader now since Complete or CompleteReader didn't do it.
+                    // complete the reader now since Complete or Abort didn't do it.
                     await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
                 }
                 _state.ClearFlag(State.PipeReaderInUse);
@@ -142,7 +144,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             if (_state.HasFlag(State.PipeReaderCompleted))
             {
-                if (_exception is not null)
+                Debug.Assert(_exception is not null);
+                if (_exception != _completedSuccessfullySentinel)
                 {
                     throw ExceptionUtil.Throw(_exception);
                 }
@@ -174,24 +177,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             writerScheduler: PipeScheduler.Inline));
     }
 
-    internal void Abort(Exception exception) => CompletePipeReader(exception);
-
-    internal void ReceivedStopSendingFrame(ulong errorCode) =>
-        CompletePipeReader(_errorCodeConverter.FromErrorCode(errorCode));
-
-    private void CheckIfCompleted()
+    internal void Abort(Exception? exception)
     {
-        if (_state.HasFlag(State.Completed))
-        {
-            // If the writer is completed, the caller is bogus, it shouldn't call writer operations after completing
-            // the pipe writer.
-            throw new InvalidOperationException("writing is not allowed once the writer is completed");
-        }
-    }
-
-    private void CompletePipeReader(Exception? exception)
-    {
-        _exception = exception;
+        Interlocked.CompareExchange(ref _exception, exception ?? _completedSuccessfullySentinel, null);
 
         // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
         // once the reading terminates.
@@ -208,6 +196,16 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
+    private void CheckIfCompleted()
+    {
+        if (_state.HasFlag(State.Completed))
+        {
+            // If the writer is completed, the caller is bogus, it shouldn't call writer operations after completing
+            // the pipe writer.
+            throw new InvalidOperationException("writing is not allowed once the writer is completed");
+        }
+    }
+
     /// <summary>The state enumeration is used to ensure the writer is not used after it's completed and to ensure
     /// that the internal pipe reader isn't completed concurrently when it's being used by WriteAsync.</summary>
     private enum State : int
@@ -218,8 +216,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         /// <summary>Data is being read from the internal pipe reader.</summary>
         PipeReaderInUse = 2,
 
-        /// <summary>The internal pipe reader was completed either by <see cref="Complete"/> or <see
-        /// cref="ReceivedStopSendingFrame"/>.</summary>
+        /// <summary>The internal pipe reader was completed either by <see cref="Abort"/>.</summary>
         PipeReaderCompleted = 4
     }
 }

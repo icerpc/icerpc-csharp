@@ -12,7 +12,6 @@ namespace IceRpc.Transports.Internal;
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
 internal class SlicMultiplexedStream : IMultiplexedStream
 {
-    /// <inheritdoc/>
     public long Id
     {
         get
@@ -67,25 +66,23 @@ internal class SlicMultiplexedStream : IMultiplexedStream
     private Action? _peerInputCompletedAction;
     private int _state;
 
-    public void Abort(Exception exception)
-    {
-        _inputPipeReader.Abort(exception);
-        _outputPipeWriter.Abort(exception);
-
-        // We don't wait for the application to complete the stream Input and Output to shutdown the stream. We
-        // abort reads and writes right away to shutdown the stream.
-        ulong errorCode = _connection.ErrorCodeConverter.ToErrorCode(exception);
-        AbortRead(errorCode);
-        AbortWrite(errorCode);
-    }
-
-    /// <inheritdoc/>
     public void OnPeerInputCompleted(Action callback) =>
         RegisterStateAction(ref _peerInputCompletedAction, State.ReceivedStopSending, callback);
 
-    /// <inheritdoc/>
     public void OnShutdown(Action callback) =>
         RegisterStateAction(ref _shutdownAction, State.WritesCompleted | State.ReadsCompleted, callback);
+
+    public void Abort(Exception completeException)
+    {
+        if (TrySetReadCompleted())
+        {
+            _inputPipeReader.Abort(completeException);
+        }
+        if (TrySetWriteCompleted())
+        {
+            _outputPipeWriter.Abort(completeException);
+        }
+    }
 
     internal SlicMultiplexedStream(SlicNetworkConnection connection, bool bidirectional, bool remote)
     {
@@ -124,7 +121,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
     internal void AbortRead(ulong errorCode)
     {
-        if (!IsStarted || _connection.IsAborted)
+        if (!IsStarted)
         {
             // If the stream is not started or the connection aborted, there's no need to send a stop sending frame.
             TrySetReadCompleted();
@@ -167,7 +164,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
     internal void AbortWrite(ulong errorCode)
     {
-        if (!IsStarted || _connection.IsAborted)
+        if (!IsStarted)
         {
             // If the stream is not started or the connection aborted, there's no need to send a reset frame.
             TrySetWriteCompleted();
@@ -255,7 +252,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
     internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancel) =>
         ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancel);
 
-    internal void ReceivedResetFrame(ulong error)
+    internal void ReceivedResetFrame(ulong errorCode)
     {
         if (!IsBidirectional && !IsRemote)
         {
@@ -268,11 +265,11 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
         if (TrySetReadCompleted())
         {
-            _inputPipeReader.ReceivedResetFrame(error);
+            _inputPipeReader.Abort(_connection.ErrorCodeConverter.FromErrorCode(errorCode));
         }
     }
 
-    internal void ReceivedStopSendingFrame(ulong error)
+    internal void ReceivedStopSendingFrame(ulong errorCode)
     {
         if (!IsBidirectional && IsRemote)
         {
@@ -285,7 +282,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
         if (TrySetWriteCompleted())
         {
-            _outputPipeWriter.ReceivedStopSendingFrame(error);
+            _outputPipeWriter.Abort(_connection.ErrorCodeConverter.FromErrorCode(errorCode));
         }
     }
 
@@ -346,38 +343,6 @@ internal class SlicMultiplexedStream : IMultiplexedStream
         }
     }
 
-    private void Shutdown()
-    {
-        Debug.Assert(_state.HasFlag(State.ReadsCompleted | State.WritesCompleted));
-
-        if (IsStarted)
-        {
-            // Release connection stream count or semaphore for this stream and remove it from the connection.
-            _connection.ReleaseStream(this);
-
-            // Local bidirectional streams are released from the connection when the StreamLast or StreamReset frame
-            // is received. Since a remote unidirectional stream doesn't send stream frames, we have to send a
-            // UnidirectionalStreamReleased frame here to ensure the peer's stream is released. It's important to
-            // send the frame after the ReleaseStream call above to prevent a race condition where the peer could
-            // start a new unidirectional stream before the local counter is decreased.
-            if (IsRemote && !IsBidirectional && !_connection.IsAborted)
-            {
-                try
-                {
-                    _ = _connection.SendFrameAsync(
-                        stream: this,
-                        FrameType.UnidirectionalStreamReleased,
-                        encode: null,
-                        default).AsTask();
-                }
-                catch
-                {
-                    // Ignore, the connection is closed.
-                }
-            }
-        }
-    }
-
     private bool TrySetState(State state)
     {
         if (_state.TrySetFlag(state, out int newState))
@@ -386,7 +351,10 @@ internal class SlicMultiplexedStream : IMultiplexedStream
                 newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
             {
                 // The stream reads and writes are completed, it's time to shutdown the stream.
-                Shutdown();
+                if (IsStarted)
+                {
+                    Shutdown();
+                }
 
                 // Notify the registered shutdown action.
                 ExecuteStateAction(ref _shutdownAction);
@@ -401,6 +369,33 @@ internal class SlicMultiplexedStream : IMultiplexedStream
         else
         {
             return false;
+        }
+
+        void Shutdown()
+        {
+            // Release connection stream count or semaphore for this stream and remove it from the connection.
+            _connection.ReleaseStream(this);
+
+            // Local bidirectional streams are released from the connection when the StreamLast or StreamReset frame is
+            // received. Since a remote unidirectional stream doesn't send stream frames, we have to send a
+            // UnidirectionalStreamReleased frame here to ensure the peer's stream is released. It's important to send
+            // the frame after the ReleaseStream call above to prevent a race condition where the peer could start a new
+            // unidirectional stream before the local counter is decreased.
+            if (IsRemote && !IsBidirectional)
+            {
+                try
+                {
+                    _ = _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.UnidirectionalStreamReleased,
+                        encode: null,
+                        default).AsTask();
+                }
+                catch
+                {
+                    // Ignore, the connection is closed.
+                }
+            }
         }
     }
 

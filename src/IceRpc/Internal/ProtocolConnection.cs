@@ -116,14 +116,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the mutex lock.
             await Task.Yield();
 
-            // Once _disposeTask is set, _connectTask and _shutdownTask are immutable. Once both tasks are completed,
-            // it's safe to dispose the connection.
-
-            // Cancel connect or shutdown if pending.
-            if (_connectTask is not null && !_connectTask.IsCompleted)
+            if (_connectTask is not null)
             {
-                _connectCancelSource.Cancel();
-
                 try
                 {
                     await _connectTask.ConfigureAwait(false);
@@ -131,28 +125,30 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 catch
                 {
                 }
-            }
 
-            // If connection establishment succeeded, ensure a speedy shutdown.
-            if (_connectTask is not null && _connectTask.IsCompletedSuccessfully)
-            {
-                if (_shutdownTask is null)
+                // If connection establishment succeeded, ensure a speedy shutdown.
+                if (_connectTask.IsCompletedSuccessfully)
                 {
-                    // Perform speedy shutdown.
-                    _shutdownTask = PerformShutdownAsync("connection disposed", cancelDispatchesAndInvocations: true);
-                }
-                else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
-                {
-                    // Speed-up shutdown only if shutdown didn't fail.
-                    CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
-                }
+                    if (_shutdownTask is null)
+                    {
+                        // Perform speedy shutdown.
+                        _shutdownTask = PerformShutdownAsync(
+                            $"connection dispose",
+                            cancelDispatchesAndInvocations: true);
+                    }
+                    else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
+                    {
+                        // Speed-up shutdown only if shutdown didn't fail.
+                        CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
+                    }
 
-                try
-                {
-                    await _shutdownTask.ConfigureAwait(false);
-                }
-                catch
-                {
+                    try
+                    {
+                        await _shutdownTask.ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
 
@@ -305,7 +301,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             });
     }
 
-    private protected abstract void CancelDispatchesAndAbortInvocations(Exception exception);
+    private protected abstract void CancelDispatchesAndInvocations(Exception exception);
 
     /// <summary>Checks if the connection is idle. If it's idle, the connection implementation should stop accepting new
     /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
@@ -327,11 +323,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_shutdownTask is not null)
+            if (_disposeTask is not null || _shutdownTask is not null)
             {
                 return;
             }
-            _shutdownTask ??= PerformShutdownAsync(message);
+            Debug.Assert(_connectTask is not null);
+
+            _shutdownTask = PerformShutdownAsync(message);
         }
         InvokeOnShutdown(message);
     }
@@ -387,7 +385,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             if (cancelDispatchesAndInvocations)
             {
-                CancelDispatchesAndAbortInvocations(new ConnectionAbortedException(message));
+                CancelDispatchesAndInvocations(new ConnectionAbortedException(message));
             }
 
             // Wait for shutdown to complete.
@@ -402,7 +400,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             Debug.Assert(cancelSource.IsCancellationRequested);
 
-            // Triggered by the CancelAfter above.
+             // Triggered by the CancelAfter above.
             throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
         }
     }

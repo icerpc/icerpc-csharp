@@ -50,6 +50,13 @@ internal static partial class ConnectionLoggerExtensions
     internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 
     [LoggerMessage(
+        EventId = (int)ConnectionEventIds.ConnectionShutdownReason,
+        EventName = nameof(ConnectionEventIds.ConnectionShutdownReason),
+        Level = LogLevel.Information,
+        Message = "connection shutdown (Message={message})")]
+    internal static partial void LogConnectionShutdownReason(this ILogger logger, string message);
+
+    [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionConnect,
         EventName = nameof(ConnectionEventIds.ProtocolConnectionConnect),
         Level = LogLevel.Information,

@@ -221,6 +221,7 @@ public sealed record class ServiceAddress
             throw new ArgumentException("protocol must be null or a supported protocol", nameof(protocol));
 
     /// <summary>Constructs a service address from a URI.</summary>
+    /// <param name="uri">The Uri.</param>
     public ServiceAddress(Uri uri)
     {
         if (uri.IsAbsoluteUri)
