@@ -105,7 +105,7 @@ internal class AsyncSemaphore
         {
             if (_waitForReleaseSource is not null)
             {
-                throw new InvalidOperationException($"can't call {nameof(CompleteAndWaitAsync)} twice");
+                return _waitForReleaseSource.Task;
             }
 
             if (_currentCount == _maxCount)
