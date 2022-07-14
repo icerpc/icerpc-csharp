@@ -39,12 +39,12 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = false },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        TaskCompletionSource<Endpoint?> tcs = new();
+        Endpoint? endpoint = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
             .Into(pool);
@@ -55,7 +55,6 @@ public sealed class ConnectionPoolTests
         await ServiceProxy.Parse("icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
 
         // Assert
-        Endpoint? endpoint = await tcs.Task;
         Assert.Multiple(() =>
         {
             Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
@@ -84,12 +83,12 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions() { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        TaskCompletionSource<Endpoint?> tcs = new();
+        Endpoint? endpoint = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
             .Into(pool);
@@ -98,7 +97,6 @@ public sealed class ConnectionPoolTests
         await ServiceProxy.Parse($"icerpc://bar/?alt-endpoint=foo", pipeline).IcePingAsync();
 
         // Assert
-        Endpoint? endpoint = await tcs.Task;
         Assert.That(endpoint?.Host, Is.EqualTo(server.Endpoint.Host));
     }
 
@@ -131,12 +129,12 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions(),
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        TaskCompletionSource<Endpoint?> tcs = new();
+        Endpoint? endpoint = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
             .Into(pool);
@@ -145,7 +143,6 @@ public sealed class ConnectionPoolTests
         await ServiceProxy.Parse($"icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
 
         // Assert
-        Endpoint? endpoint = await tcs.Task;
         Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
     }
 
@@ -179,12 +176,12 @@ public sealed class ConnectionPoolTests
            new ConnectionPoolOptions { PreferExistingConnection = true },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        TaskCompletionSource<Endpoint?> tcs = new();
+        Endpoint? endpoint = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
             .Into(pool);
@@ -195,7 +192,6 @@ public sealed class ConnectionPoolTests
         await ServiceProxy.Parse("icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
 
         // Assert
-        Endpoint? endpoint = await tcs.Task;
         Assert.Multiple(() =>
         {
             Assert.That(endpoint?.Host, Is.EqualTo(server2.Endpoint.Host));
