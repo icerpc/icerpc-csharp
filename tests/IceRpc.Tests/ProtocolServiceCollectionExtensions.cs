@@ -92,9 +92,8 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
 
     public async Task ConnectAsync()
     {
-        Endpoint endpoint = _listener.Endpoint;
         Task<IProtocolConnection> clientProtocolConnectionTask = CreateConnectionAsync(
-            _clientTransport.CreateConnection(ref endpoint, null, NullLogger.Instance),
+            _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
             _clientConnectionOptions,
             isServer: false);
 

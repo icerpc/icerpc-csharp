@@ -257,9 +257,8 @@ public abstract class MultiplexedTransportConformanceTests
 
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
         var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-        Endpoint endpoint = listener.Endpoint;
         await using var clientConnection =
-            clientTransport.CreateConnection(ref endpoint, null, NullLogger.Instance);
+            clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
 
         var connectTask = clientConnection.ConnectAsync(default);
         await using var serverConnection = await listener.AcceptAsync();
@@ -300,7 +299,7 @@ public abstract class MultiplexedTransportConformanceTests
         var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
         Endpoint endpoint = listener.Endpoint;
         await using var clientConnection =
-            clientTransport.CreateConnection(ref endpoint, null, NullLogger.Instance);
+            clientTransport.CreateConnection(endpoint, null, NullLogger.Instance);
 
         var connectTask = clientConnection.ConnectAsync(default);
         await using var serverConnection = await listener.AcceptAsync();
@@ -979,7 +978,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(ref endpoint, authenticationOptions: null, NullLogger.Instance));
+            () => clientTransport.CreateConnection(endpoint, authenticationOptions: null, NullLogger.Instance));
     }
 
     [Test]
@@ -1111,8 +1110,7 @@ public static class MultiplexedTransportServiceCollectionExtensions
         {
             var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
             var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-            Endpoint endpoint = listener.Endpoint;
-            var connection = clientTransport.CreateConnection(ref endpoint, null, NullLogger.Instance);
+            var connection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
             return connection;
         });
 }

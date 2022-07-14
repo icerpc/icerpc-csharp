@@ -14,6 +14,8 @@ namespace IceRpc.Transports.Internal;
 /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
 internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 {
+    public Endpoint Endpoint => _simpleNetworkConnection.Endpoint;
+
     internal bool IsServer { get; }
 
     internal int MinimumSegmentSize { get; }

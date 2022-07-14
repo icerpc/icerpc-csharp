@@ -206,7 +206,7 @@ public class TlsConfigurationTests
     {
         IClientTransport<ISimpleNetworkConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientNetworkConnection)transport.CreateConnection(
-            ref endpoint,
+            endpoint,
             authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }

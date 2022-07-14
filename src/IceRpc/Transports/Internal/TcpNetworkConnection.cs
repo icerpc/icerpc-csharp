@@ -12,6 +12,8 @@ namespace IceRpc.Transports.Internal;
 
 internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 {
+    public Endpoint Endpoint { get; }
+
     internal abstract Socket Socket { get; }
 
     internal abstract SslStream? SslStream { get; }
@@ -197,6 +199,8 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
             throw exception.ToTransportException();
         }
     }
+
+    private protected TcpNetworkConnection(Endpoint endpoint) => Endpoint = endpoint;
 }
 
 internal class TcpClientNetworkConnection : TcpNetworkConnection
@@ -256,14 +260,14 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
     }
 
     internal TcpClientNetworkConnection(
-        string host,
-        ushort port,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         TcpClientTransportOptions options)
+        : base(endpoint)
     {
-        _addr = IPAddress.TryParse(host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, port) :
-            new DnsEndPoint(host, port);
+        _addr = IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) ?
+            new IPEndPoint(ipAddress, endpoint.Port) :
+            new DnsEndPoint(endpoint.Host, endpoint.Port);
 
         _authenticationOptions = authenticationOptions;
 
@@ -349,7 +353,11 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
         }
     }
 
-    internal TcpServerNetworkConnection(Socket socket, SslServerAuthenticationOptions? authenticationOptions)
+    internal TcpServerNetworkConnection(
+        Endpoint endpoint,
+        Socket socket,
+        SslServerAuthenticationOptions? authenticationOptions)
+        : base(endpoint)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;

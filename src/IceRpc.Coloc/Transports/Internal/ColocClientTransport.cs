@@ -20,7 +20,7 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
 
     /// <inheritdoc/>
     ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
-        ref Endpoint endpoint,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {

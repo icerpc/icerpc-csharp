@@ -58,16 +58,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         if (endpoint.Protocol == Protocol.Ice)
         {
             ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                ref endpoint,
+                endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
+
+            Endpoint = networkConnection.Endpoint;
 
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
             {
                 networkConnection = new LogSimpleNetworkConnectionDecorator(
                     networkConnection,
-                    endpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
             }
@@ -77,9 +79,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                ref endpoint,
+                endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
+
+            Endpoint = networkConnection.Endpoint;
 
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
@@ -87,7 +91,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 #pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
                 networkConnection = new LogMultiplexedNetworkConnectionDecorator(
                     networkConnection,
-                    endpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
 #pragma warning restore CA2000
@@ -95,8 +99,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             _protocolConnection = new IceRpcProtocolConnection(networkConnection, options);
         }
-
-        Endpoint = endpoint;
 
         // TODO: log level
         if (logger.IsEnabled(LogLevel.Error))

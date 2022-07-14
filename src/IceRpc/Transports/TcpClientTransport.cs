@@ -37,7 +37,7 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
 
     /// <inheritdoc/>
     public ISimpleNetworkConnection CreateConnection(
-        ref Endpoint endpoint,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
@@ -70,11 +70,7 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
             };
         }
 
-        var clientConnection = new TcpClientNetworkConnection(
-            endpoint.Host,
-            endpoint.Port,
-            authenticationOptions,
-            _options);
+        var clientConnection = new TcpClientNetworkConnection(endpoint, authenticationOptions, _options);
 
         return logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
             new LogTcpNetworkConnectionDecorator(clientConnection, logger) : clientConnection;

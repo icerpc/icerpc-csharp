@@ -16,7 +16,7 @@ public class ColocTransportTests
         var colocTransport = new ColocTransport();
         Endpoint endpoint = $"icerpc://{Guid.NewGuid()}";
         var listener = colocTransport.ServerTransport.Listen(endpoint, null, NullLogger.Instance);
-        var clientConnection = colocTransport.ClientTransport.CreateConnection(ref endpoint, null, NullLogger.Instance);
+        var clientConnection = colocTransport.ClientTransport.CreateConnection(endpoint, null, NullLogger.Instance);
 
         var networkConnectionInformation = await clientConnection.ConnectAsync(default);
 

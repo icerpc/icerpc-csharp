@@ -190,9 +190,8 @@ public class TcpTransportTests
             using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             try
             {
-                Endpoint endpoint = listener.Endpoint;
                 ISimpleNetworkConnection clientConnection = clientTransport.CreateConnection(
-                    ref endpoint,
+                    listener.Endpoint,
                     authenticationOptions: null,
                     NullLogger.Instance);
                 await clientConnection.ConnectAsync(source.Token);
@@ -401,7 +400,7 @@ public class TcpTransportTests
     {
         IClientTransport<ISimpleNetworkConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientNetworkConnection)transport.CreateConnection(
-            ref endpoint,
+            endpoint,
             authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }
