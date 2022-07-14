@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
-using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
@@ -15,14 +15,23 @@ public sealed class ConnectionPoolTests
     public async Task Do_not_prefer_existing_connection()
     {
         // Arrange
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
-            new ServerOptions { Endpoint = "icerpc://foo" },
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://foo"
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
-            new ServerOptions { Endpoint = "icerpc://bar" },
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://bar",
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
@@ -30,24 +39,28 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = false },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        ClientConnection connection2 = await pool.GetClientConnectionAsync(
-            new EndpointFeature(new ServiceAddress(server2.Endpoint.Protocol) { Endpoint = server2.Endpoint }),
-            default);
+        TaskCompletionSource<Endpoint?> tcs = new();
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker(async (request, cancel) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    return response;
+                }))
+            .Into(pool);
 
-        var endpointFeature = new EndpointFeature(
-            new ServiceAddress(server1.Endpoint.Protocol)
-            {
-                Endpoint = server1.Endpoint,
-                AltEndpoints = ImmutableList.Create(server2.Endpoint)
-            });
+        await ServiceProxy.Parse("icerpc://bar", pool).IcePingAsync();
 
         // Act
-        ClientConnection connection1 = await pool.GetClientConnectionAsync(endpointFeature, default);
+        await ServiceProxy.Parse("icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
 
         // Assert
-        Assert.That(connection1.Endpoint, Is.EqualTo(server1.Endpoint));
-        Assert.That(connection1, Is.Not.EqualTo(connection2));
-        Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
+        Endpoint? endpoint = await tcs.Task;
+        Assert.Multiple(() =>
+        {
+            Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
+            Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
+        });
     }
 
     /// <summary>Verifies that the connection pool uses the alt-endpoint when it cannot connect to the main endpoint.
@@ -56,9 +69,14 @@ public sealed class ConnectionPoolTests
     public async Task Get_connection_for_alt_endpoint()
     {
         // Arrange
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server = new Server(
-            new ServerOptions { Endpoint = "icerpc://foo" },
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://foo"
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
 
@@ -66,18 +84,22 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions() { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        // Act
-        ClientConnection connection = await pool.GetClientConnectionAsync(
-            new EndpointFeature(
-                new ServiceAddress(Protocol.IceRpc)
+        TaskCompletionSource<Endpoint?> tcs = new();
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
-                    Endpoint = "icerpc://bar?transport",
-                    AltEndpoints = ImmutableList.Create(server.Endpoint)
-                }),
-            default);
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    return response;
+                }))
+            .Into(pool);
+
+        // Act
+        await ServiceProxy.Parse($"icerpc://bar/?alt-endpoint=foo", pipeline).IcePingAsync();
 
         // Assert
-        Assert.That(connection.Endpoint, Is.EqualTo(server.Endpoint));
+        Endpoint? endpoint = await tcs.Task;
+        Assert.That(endpoint?.Host, Is.EqualTo(server.Endpoint.Host));
     }
 
     /// <summary>Verifies that the connection pool prefers connecting to the main endpoint.</summary>
@@ -85,14 +107,23 @@ public sealed class ConnectionPoolTests
     public async Task Get_connection_for_main_endpoint()
     {
         // Arrange
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
-            new ServerOptions { Endpoint = "icerpc://foo" },
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://foo"
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
-            new ServerOptions { Endpoint = "icerpc://bar" },
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://bar"
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
@@ -100,46 +131,22 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions(),
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        // Act
-        ClientConnection connection = await pool.GetClientConnectionAsync(
-            new EndpointFeature(
-                new ServiceAddress(server1.Endpoint.Protocol)
+        TaskCompletionSource<Endpoint?> tcs = new();
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
-                    Endpoint = server1.Endpoint,
-                    AltEndpoints = ImmutableList.Create(server2.Endpoint)
-                }),
-            default);
-
-        // Assert
-        Assert.That(connection.Endpoint, Is.EqualTo(server1.Endpoint));
-    }
-
-    /// <summary>Verifies that the connection pool reuses existing connection.</summary>
-    [Test]
-    public async Task Get_connection_reuses_existing_connection()
-    {
-        // Arrange
-        var colocTransport = new ColocTransport();
-        await using var server = new Server(
-            new ServerOptions { Endpoint = "icerpc://foo", },
-            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server.Listen();
-
-        await using var pool = new ConnectionPool(
-            new ConnectionPoolOptions { PreferExistingConnection = true },
-            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
-
-        ClientConnection connection1 = await pool.GetClientConnectionAsync(
-            new EndpointFeature(new ServiceAddress(server.Endpoint.Protocol) { Endpoint = server.Endpoint }),
-            default);
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    return response;
+                }))
+            .Into(pool);
 
         // Act
-        ClientConnection connection2 = await pool.GetClientConnectionAsync(
-            new EndpointFeature(new ServiceAddress(server.Endpoint.Protocol) { Endpoint = server.Endpoint }),
-            default);
+        await ServiceProxy.Parse($"icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
 
         // Assert
-        Assert.That(connection2, Is.EqualTo(connection1));
+        Endpoint? endpoint = await tcs.Task;
+        Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
     }
 
     /// <summary>Verifies that the connection pool prefers reusing an existing connection when
@@ -148,14 +155,23 @@ public sealed class ConnectionPoolTests
     public async Task Prefer_existing_connection()
     {
         // Arrange
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
-            new ServerOptions { Endpoint = "icerpc://foo" },
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://foo"
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
-            new ServerOptions() { Endpoint = "icerpc://bar" },
+            new ServerOptions()
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                Endpoint = "icerpc://bar"
+            },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
@@ -163,23 +179,27 @@ public sealed class ConnectionPoolTests
            new ConnectionPoolOptions { PreferExistingConnection = true },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        ClientConnection connection1 = await pool.GetClientConnectionAsync(
-            new EndpointFeature(new ServiceAddress(server2.Endpoint.Protocol) { Endpoint = server2.Endpoint }),
-            default);
+        TaskCompletionSource<Endpoint?> tcs = new();
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker(async (request, cancel) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    tcs.SetResult(request.Features.Get<IEndpointFeature>()?.Endpoint);
+                    return response;
+                }))
+            .Into(pool);
+
+        await ServiceProxy.Parse("icerpc://bar", pool).IcePingAsync();
 
         // Act
-        ClientConnection connection2 = await pool.GetClientConnectionAsync(
-            new EndpointFeature(
-                new ServiceAddress(server2.Endpoint.Protocol)
-                {
-                    Endpoint = server1.Endpoint,
-                    AltEndpoints = ImmutableList.Create(server2.Endpoint)
-                }),
-            default);
+        await ServiceProxy.Parse("icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
 
         // Assert
-        Assert.That(connection2.Endpoint, Is.EqualTo(server2.Endpoint));
-        Assert.That(connection2, Is.EqualTo(connection1));
-        Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
+        Endpoint? endpoint = await tcs.Task;
+        Assert.Multiple(() =>
+        {
+            Assert.That(endpoint?.Host, Is.EqualTo(server2.Endpoint.Host));
+            Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
+        });
     }
 }

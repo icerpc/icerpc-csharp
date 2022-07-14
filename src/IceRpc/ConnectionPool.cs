@@ -119,103 +119,6 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
     }
 
-    /// <summary>Returns a client connection to one of the specified endpoints.</summary>
-    /// <param name="endpointFeature">The endpoint feature.</param>
-    /// <param name="cancel">The cancellation token.</param>
-    // TODO: it's internal for now for the tests, pending further refactoring.
-    internal ValueTask<ClientConnection> GetClientConnectionAsync(
-        IEndpointFeature endpointFeature,
-        CancellationToken cancel)
-    {
-        ClientConnection? connection = null;
-        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
-
-        if (_options.PreferExistingConnection)
-        {
-            lock (_mutex)
-            {
-                connection = GetActiveConnection(mainEndpoint);
-                if (connection is null)
-                {
-                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
-                    {
-                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
-                        connection = GetActiveConnection(altEndpoint);
-                        if (connection is not null)
-                        {
-                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
-                            // the first alt endpoint.
-                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
-                                .RemoveAt(i)
-                                .Insert(0, mainEndpoint);
-                            endpointFeature.Endpoint = altEndpoint;
-
-                            break; // foreach
-                        }
-                    }
-                }
-            }
-            if (connection is not null)
-            {
-                return new(connection);
-            }
-        }
-
-        return GetOrCreateAsync();
-
-        ClientConnection? GetActiveConnection(Endpoint endpoint)
-        {
-            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
-            {
-                CheckEndpoint(endpoint);
-                return connection;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
-        // a brand new connection.
-        async ValueTask<ClientConnection> GetOrCreateAsync()
-        {
-            try
-            {
-                return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                List<Exception>? exceptionList = null;
-
-                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
-                {
-                    Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
-                    try
-                    {
-                        ClientConnection connection = await ConnectAsync(altEndpoint, cancel)
-                            .ConfigureAwait(false);
-
-                        // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
-                        // the first alt endpoint.
-                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(i).Insert(0, mainEndpoint);
-                        endpointFeature.Endpoint = altEndpoint;
-
-                        return connection;
-                    }
-                    catch (Exception altEx)
-                    {
-                        exceptionList ??= new List<Exception> { ex };
-                        exceptionList.Add(altEx);
-                        // and keep trying
-                    }
-                }
-
-                throw exceptionList is null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
-            }
-        }
-    }
-
     /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
     /// when it appears we can reuse an active or pending connection based on a parameterless endpoint match.</summary>
     /// <param name="endpoint">The endpoint to check.</param>
@@ -380,6 +283,102 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                 {
                     _ = _shutdownPendingConnections.Remove(clientConnection);
                 }
+            }
+        }
+    }
+
+    /// <summary>Returns a client connection to one of the specified endpoints.</summary>
+    /// <param name="endpointFeature">The endpoint feature.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    private ValueTask<ClientConnection> GetClientConnectionAsync(
+        IEndpointFeature endpointFeature,
+        CancellationToken cancel)
+    {
+        ClientConnection? connection = null;
+        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
+
+        if (_options.PreferExistingConnection)
+        {
+            lock (_mutex)
+            {
+                connection = GetActiveConnection(mainEndpoint);
+                if (connection is null)
+                {
+                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
+                    {
+                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
+                        connection = GetActiveConnection(altEndpoint);
+                        if (connection is not null)
+                        {
+                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
+                            // the first alt endpoint.
+                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
+                                .RemoveAt(i)
+                                .Insert(0, mainEndpoint);
+                            endpointFeature.Endpoint = altEndpoint;
+
+                            break; // foreach
+                        }
+                    }
+                }
+            }
+            if (connection is not null)
+            {
+                return new(connection);
+            }
+        }
+
+        return GetOrCreateAsync();
+
+        ClientConnection? GetActiveConnection(Endpoint endpoint)
+        {
+            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
+            {
+                CheckEndpoint(endpoint);
+                return connection;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
+        // a brand new connection.
+        async ValueTask<ClientConnection> GetOrCreateAsync()
+        {
+            try
+            {
+                return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                List<Exception>? exceptionList = null;
+
+                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
+                {
+                    Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
+                    try
+                    {
+                        ClientConnection connection = await ConnectAsync(altEndpoint, cancel)
+                            .ConfigureAwait(false);
+
+                        // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
+                        // the first alt endpoint.
+                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(i).Insert(0, mainEndpoint);
+                        endpointFeature.Endpoint = altEndpoint;
+
+                        return connection;
+                    }
+                    catch (Exception altEx)
+                    {
+                        exceptionList ??= new List<Exception> { ex };
+                        exceptionList.Add(altEx);
+                        // and keep trying
+                    }
+                }
+
+                throw exceptionList is null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
             }
         }
     }
