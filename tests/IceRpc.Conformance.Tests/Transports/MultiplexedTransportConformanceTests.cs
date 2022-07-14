@@ -297,8 +297,9 @@ public abstract class MultiplexedTransportConformanceTests
 
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
         var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        Endpoint endpoint = listener.Endpoint;
         await using var clientConnection =
-            clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+            clientTransport.CreateConnection(endpoint, null, NullLogger.Instance);
 
         var connectTask = clientConnection.ConnectAsync(default);
         await using var serverConnection = await listener.AcceptAsync();

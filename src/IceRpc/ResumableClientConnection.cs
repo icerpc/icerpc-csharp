@@ -10,8 +10,8 @@ namespace IceRpc;
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
 public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the endpoint of this connection.</summary>
-    // TODO: should we remove this property?
+    /// <summary>Gets the endpoint of this connection. This endpoint includes a transport parameter even when
+    /// <see cref="ClientConnectionOptions.Endpoint"/> does not.</summary>
     public Endpoint Endpoint => _clientConnection.Endpoint;
 
     /// <summary>Gets the protocol of this connection.</summary>

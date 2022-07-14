@@ -22,7 +22,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
-    // TODO: should we remove this property?
+    /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
+    /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; }
 
     /// <summary>Gets the protocol of this connection.</summary>
@@ -43,7 +44,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        Endpoint = options.Endpoint ??
+        Endpoint endpoint = options.Endpoint ??
             throw new ArgumentException(
                 $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
                 nameof(options));
@@ -55,12 +56,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
-        if (Protocol == Protocol.Ice)
+        if (endpoint.Protocol == Protocol.Ice)
         {
             ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                Endpoint,
+                endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
+
+            Endpoint = networkConnection.Endpoint;
 
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
@@ -77,9 +80,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                Endpoint,
+                endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
+
+            Endpoint = networkConnection.Endpoint;
 
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
