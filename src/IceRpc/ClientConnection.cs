@@ -21,8 +21,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
         new TcpClientTransport();
 
-    /// <summary>Gets the endpoint of this connection. This endpoint includes a transport parameter even when
-    /// <see cref="ClientConnectionOptions.Endpoint"/> does not.</summary>
+    /// <summary>Gets the endpoint of this connection.</summary>
+    /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
+    /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; }
 
     /// <summary>Gets the protocol of this connection.</summary>
