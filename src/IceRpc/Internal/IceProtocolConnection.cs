@@ -47,9 +47,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minimumSegmentSize;
     private readonly object _mutex = new();
-    private readonly ISimpleNetworkConnection _networkConnection;
-    private readonly SimpleNetworkConnectionReader _networkConnectionReader;
-    private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
+    private readonly ISingleStreamTransportConnection _transportConnection;
+    private readonly SingleStreamTransportConnectionReader _transportConnectionReader;
+    private readonly SingleStreamTransportConnectionWriter _transportConnectionWriter;
     private int _nextRequestId;
     private readonly IcePayloadPipeWriter _payloadWriter;
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -59,7 +59,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
     internal IceProtocolConnection(
-        ISimpleNetworkConnection simpleNetworkConnection,
+        ISingleStreamTransportConnection singleStreamTransportConnection,
         bool isServer,
         ConnectionOptions options)
         : base(options)
@@ -83,13 +83,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _memoryPool = MemoryPool<byte>.Shared;
         _minimumSegmentSize = 4096;
 
-        _networkConnection = simpleNetworkConnection;
-        _networkConnectionWriter = new SimpleNetworkConnectionWriter(
-            simpleNetworkConnection,
+        _transportConnection = singleStreamTransportConnection;
+        _transportConnectionWriter = new SingleStreamTransportConnectionWriter(
+            singleStreamTransportConnection,
             _memoryPool,
             _minimumSegmentSize);
-        _networkConnectionReader = new SimpleNetworkConnectionReader(
-            simpleNetworkConnection,
+        _transportConnectionReader = new SingleStreamTransportConnectionReader(
+            singleStreamTransportConnection,
             idleTimeout: options.IdleTimeout,
             _memoryPool,
             _minimumSegmentSize,
@@ -112,7 +112,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             });
 
-        _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
+        _payloadWriter = new IcePayloadPipeWriter(_transportConnectionWriter);
 
         async Task PingAsync(CancellationToken cancel)
         {
@@ -124,8 +124,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 try
                 {
-                    EncodeValidateConnectionFrame(_networkConnectionWriter);
-                    await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+                    EncodeValidateConnectionFrame(_transportConnectionWriter);
+                    await _transportConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -141,7 +141,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 InvokeOnAbort(exception);
             }
 
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            static void EncodeValidateConnectionFrame(SingleStreamTransportConnectionWriter writer)
             {
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -190,30 +190,30 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
-        NetworkConnectionInformation networkConnectionInformation = await _networkConnection.ConnectAsync(cancel)
+        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task bellow.
-        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        // Wait for the network connection establishment to enable the idle timeout check.
-        _networkConnectionReader.EnableIdleCheck();
+        // Wait for the transport connection establishment to enable the idle timeout check.
+        _transportConnectionReader.EnableIdleCheck();
 
         if (_isServer)
         {
-            EncodeValidateConnectionFrame(_networkConnectionWriter);
-            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+            EncodeValidateConnectionFrame(_transportConnectionWriter);
+            await _transportConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
         }
         else
         {
-            ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+            ReadOnlySequence<byte> buffer = await _transportConnectionReader.ReadAtLeastAsync(
                 IceDefinitions.PrologueSize,
                 cancel).ConfigureAwait(false);
 
             (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-            _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+            _transportConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
 
             IceDefinitions.CheckPrologue(validateConnectionFrame);
             if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
@@ -237,16 +237,16 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
-                    var exception = new ConnectionAbortedException("network connection disposed");
+                    var exception = new ConnectionAbortedException("transport connection disposed");
                     _tasksCancelSource.Cancel();
                     await Task.WhenAll(
                         _pingTask,
                         _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
-                    // So there's no need to initiate shutdown, we just close the network connection and notify the
+                    // So there's no need to initiate shutdown, we just close the transport connection and notify the
                     // callback that the connection has been shutdown by the peer.
-                    _networkConnection.Dispose();
+                    _transportConnection.Dispose();
 
                     // Notify the OnShutdown callback and complete invocations which are still pending with the
                     // retryable ConnectionClosedException exception.
@@ -262,7 +262,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (OperationCanceledException)
                 {
-                    // This can occur if the network connection is disposed.
+                    // This can occur if the transport connection is disposed.
                     completeException = new ConnectionAbortedException("connection disposed");
                 }
                 catch (Exception exception)
@@ -284,9 +284,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return networkConnectionInformation;
+        return transportConnectionInformation;
 
-        static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+        static void EncodeValidateConnectionFrame(SingleStreamTransportConnectionWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
             IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -303,7 +303,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         var exception = new ConnectionAbortedException("connection disposed");
 
-        // Before disposing the network connection, cancel pending tasks which are using it wait for the tasks to
+        // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
         _tasksCancelSource.Cancel();
         await Task.WhenAll(
@@ -311,8 +311,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             _pingTask,
             _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
-        // Dispose the network connection to kill the connection with the peer.
-        _networkConnection.Dispose();
+        // Dispose the transport connection to kill the connection with the peer.
+        _transportConnection.Dispose();
 
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations(exception);
@@ -321,8 +321,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
 
         // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-        _networkConnectionReader.Dispose();
-        _networkConnectionWriter.Dispose();
+        _transportConnectionReader.Dispose();
+        _transportConnectionWriter.Dispose();
 
         _tasksCancelSource.Dispose();
         _dispatchesAndInvocationsCancelSource.Dispose();
@@ -400,7 +400,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            EncodeRequestHeader(_networkConnectionWriter, request, requestId, payloadSize);
+            EncodeRequestHeader(_transportConnectionWriter, request, requestId, payloadSize);
 
             payloadWriter = request.GetPayloadWriter(payloadWriter);
 
@@ -577,7 +577,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
 
         static void EncodeRequestHeader(
-            SimpleNetworkConnectionWriter output,
+            SingleStreamTransportConnectionWriter output,
             OutgoingRequest request,
             int requestId,
             int payloadSize)
@@ -649,8 +649,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                EncodeCloseConnectionFrame(_networkConnectionWriter);
-                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+                EncodeCloseConnectionFrame(_transportConnectionWriter);
+                await _transportConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -667,7 +667,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // the dispatch responses and close connection frame by the peer.
         await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-        static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
+        static void EncodeCloseConnectionFrame(SingleStreamTransportConnectionWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
             IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
@@ -678,7 +678,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     /// fully and buffered into an internal pipe.</summary>
     private static async ValueTask<PipeReader> CreateFrameReaderAsync(
         int size,
-        SimpleNetworkConnectionReader networkConnectionReader,
+        SingleStreamTransportConnectionReader transportConnectionReader,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         CancellationToken cancel)
@@ -691,7 +691,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         try
         {
-            await networkConnectionReader.FillBufferWriterAsync(
+            await transportConnectionReader.FillBufferWriterAsync(
                 pipe.Writer,
                 size,
                 cancel).ConfigureAwait(false);
@@ -730,7 +730,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         while (true)
         {
-            ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+            ReadOnlySequence<byte> buffer = await _transportConnectionReader.ReadAtLeastAsync(
                 IceDefinitions.PrologueSize,
                 cancel).ConfigureAwait(false);
 
@@ -742,7 +742,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 prologueBuffer,
                 (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
 
-            _networkConnectionReader.AdvanceTo(prologueBuffer.End);
+            _transportConnectionReader.AdvanceTo(prologueBuffer.End);
 
             IceDefinitions.CheckPrologue(prologue);
             if (prologue.FrameSize > _maxFrameSize)
@@ -777,7 +777,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read and ignore
                     PipeReader batchRequestReader = await CreateFrameReaderAsync(
                         prologue.FrameSize - IceDefinitions.PrologueSize,
-                        _networkConnectionReader,
+                        _transportConnectionReader,
                         _memoryPool,
                         _minimumSegmentSize,
                         cancel).ConfigureAwait(false);
@@ -812,7 +812,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // Read the remainder of the frame immediately into frameReader.
             PipeReader replyFrameReader = await CreateFrameReaderAsync(
                 replyFrameSize - IceDefinitions.PrologueSize,
-                _networkConnectionReader,
+                _transportConnectionReader,
                 _memoryPool,
                 _minimumSegmentSize,
                 cancel).ConfigureAwait(false);
@@ -863,7 +863,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // Read the request frame.
             PipeReader requestFrameReader = await CreateFrameReaderAsync(
                 requestFrameSize - IceDefinitions.PrologueSize,
-                _networkConnectionReader,
+                _transportConnectionReader,
                 _memoryPool,
                 _minimumSegmentSize,
                 cancel).ConfigureAwait(false);
@@ -1098,7 +1098,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         }
                     }
 
-                    EncodeResponseHeader(_networkConnectionWriter, requestId, payloadSize, replyStatus);
+                    EncodeResponseHeader(_transportConnectionWriter, requestId, payloadSize, replyStatus);
 
                     payloadWriter = response.GetPayloadWriter(payloadWriter);
 
@@ -1152,7 +1152,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
 
                 static void EncodeResponseHeader(
-                    SimpleNetworkConnectionWriter writer,
+                    SingleStreamTransportConnectionWriter writer,
                     int requestId,
                     int payloadSize,
                     ReplyStatus replyStatus)

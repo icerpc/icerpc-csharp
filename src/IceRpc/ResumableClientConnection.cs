@@ -14,9 +14,10 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     // TODO: should we remove this property?
     public Endpoint Endpoint => _clientConnection.Endpoint;
 
-    /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
+    /// <summary>Gets the transport connection information or <c>null</c> if the connection is not connected.
     /// </summary>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
+    public TransportConnectionInformation? TransportConnectionInformation =>
+        _clientConnection.TransportConnectionInformation;
 
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => _clientConnection.Protocol;
@@ -38,7 +39,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ILoggerFactory? _loggerFactory;
 
-    private readonly IClientTransport<IMultiplexedNetworkConnection>? _multiplexedClientTransport;
+    private readonly IClientTransport<IMultiplexedTransportConnection>? _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -48,7 +49,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ClientConnectionOptions _options;
 
-    private readonly IClientTransport<ISimpleNetworkConnection>? _simpleClientTransport;
+    private readonly IClientTransport<ISingleStreamTransportConnection>? _singleStreamClientTransport;
 
     /// <summary>Constructs a resumable client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -56,16 +57,17 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
-    /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
+    /// <param name="singleStreamClientTransport">The single stream transport used to create ice protocol
+    /// connections.</param>
     public ResumableClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
+        IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
+        IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
     {
         _options = options;
         _multiplexedClientTransport = multiplexedClientTransport;
-        _simpleClientTransport = simpleClientTransport;
+        _singleStreamClientTransport = singleStreamClientTransport;
         _loggerFactory = loggerFactory;
 
         _clientConnection = CreateClientConnection();
@@ -184,7 +186,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             _options,
             _loggerFactory,
             _multiplexedClientTransport,
-            _simpleClientTransport);
+            _singleStreamClientTransport);
 
         // only called from the constructor or with _mutex locked
         clientConnection.OnAbort(_onAbort + OnAbort);

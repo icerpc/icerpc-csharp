@@ -19,7 +19,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     private bool _isReadOnly;
 
     private readonly ILoggerFactory? _loggerFactory;
-    private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
+    private readonly IClientTransport<IMultiplexedTransportConnection> _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -31,7 +31,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
 
-    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+    private readonly IClientTransport<ISingleStreamTransportConnection> _singleStreamClientTransport;
 
     /// <summary>Constructs a connection pool.</summary>
     /// <param name="options">The connection pool options.</param>
@@ -39,17 +39,19 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
     /// connections.</param>
-    /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
+    /// <param name="singleStreamClientTransport">The single stream transport used to create ice protocol
+    /// connections.</param>
     public ConnectionPool(
         ConnectionPoolOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
+        IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
+        IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
     {
         _options = options;
         _loggerFactory = loggerFactory;
         _multiplexedClientTransport = multiplexedClientTransport ?? ClientConnection.DefaultMultiplexedClientTransport;
-        _simpleClientTransport = simpleClientTransport ?? ClientConnection.DefaultSimpleClientTransport;
+        _singleStreamClientTransport = singleStreamClientTransport ??
+            ClientConnection.DefaultSingleStreamClientTransport;
     }
 
     /// <summary>Constructs a connection pool.</summary>
@@ -222,7 +224,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     private void CheckEndpoint(Endpoint endpoint)
     {
         bool isValid = endpoint.Protocol == Protocol.Ice ?
-            _simpleClientTransport.CheckParams(endpoint) :
+            _singleStreamClientTransport.CheckParams(endpoint) :
             _multiplexedClientTransport.CheckParams(endpoint);
 
         if (!isValid)
@@ -265,7 +267,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                     _options.ClientConnectionOptions with { Endpoint = endpoint },
                     _loggerFactory,
                     _multiplexedClientTransport,
-                    _simpleClientTransport);
+                    _singleStreamClientTransport);
 
                 created = true;
                 _pendingConnections.Add(endpoint, connection);

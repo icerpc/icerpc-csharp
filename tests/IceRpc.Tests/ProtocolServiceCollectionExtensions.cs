@@ -33,25 +33,28 @@ public static class ProtocolServiceCollectionExtensions
 
         services.TryAddSingleton<ILogger>(NullLogger.Instance);
 
-        services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+        services.AddSingleton<IServerTransport<IMultiplexedTransportConnection>>(
             provider => new SlicServerTransport(
-                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+                provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>()));
 
-        services.AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+        services.AddSingleton<IClientTransport<IMultiplexedTransportConnection>>(
             provider => new SlicClientTransport(
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+                provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()));
 
-        services.AddSingleton<IListener<ISimpleNetworkConnection>, Listener<ISimpleNetworkConnection>>();
+        services.AddSingleton<IListener<ISingleStreamTransportConnection>,
+                                        Listener<ISingleStreamTransportConnection>>();
 
-        services.AddSingleton<IListener<IMultiplexedNetworkConnection>, Listener<IMultiplexedNetworkConnection>>();
+        services.AddSingleton<IListener<IMultiplexedTransportConnection>, Listener<IMultiplexedTransportConnection>>();
 
-        services.AddSingleton<LogNetworkConnectionDecoratorFactory<ISimpleNetworkConnection>>(
-            provider => (ISimpleNetworkConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
-                new LogSimpleNetworkConnectionDecorator(decoratee, endpoint, isServer, logger));
+        services.AddSingleton<LogTransportConnectionDecoratorFactory<ISingleStreamTransportConnection>>(
+            provider =>
+                (ISingleStreamTransportConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
+                    new LogSingleStreamTransportConnectionDecorator(decoratee, endpoint, isServer, logger));
 
-        services.AddSingleton<LogNetworkConnectionDecoratorFactory<IMultiplexedNetworkConnection>>(
-            provider => (IMultiplexedNetworkConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
-                new LogMultiplexedNetworkConnectionDecorator(decoratee, endpoint, isServer, logger));
+        services.AddSingleton<LogTransportConnectionDecoratorFactory<IMultiplexedTransportConnection>>(
+            provider =>
+                (IMultiplexedTransportConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
+                    new LogMultiplexedTransportConnectionDecorator(decoratee, endpoint, isServer, logger));
 
         if (protocol == Protocol.Ice)
         {
@@ -76,7 +79,7 @@ internal interface IClientServerProtocolConnection
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also  ensures
 /// the connections are correctly disposed.</summary>
 internal abstract class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
-    where T : INetworkConnection
+    where T : ITransportConnection
 {
     public IProtocolConnection Client =>
         _client ?? throw new InvalidOperationException("client connection not initialized");
@@ -106,11 +109,11 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
         _server = await serverProtocolConnectionTask;
 
         async Task<IProtocolConnection> CreateConnectionAsync(
-            T networkConnection,
+            T transportConnection,
             ConnectionOptions connectionOptions,
             bool isServer)
         {
-            IProtocolConnection protocolConnection = CreateConnection(networkConnection, isServer, connectionOptions);
+            IProtocolConnection protocolConnection = CreateConnection(transportConnection, isServer, connectionOptions);
             _ = await protocolConnection.ConnectAsync(CancellationToken.None);
             return protocolConnection;
         }
@@ -138,7 +141,7 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
     }
 
     protected abstract IProtocolConnection CreateConnection(
-        T networkConnection,
+        T transportConnection,
         bool isServer,
         ConnectionOptions options);
 }
@@ -147,12 +150,13 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolConnection<ISimpleNetworkConnection>
+internal sealed class ClientServerIceProtocolConnection :
+    ClientServerProtocolConnection<ISingleStreamTransportConnection>
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceProtocolConnection(
-        IClientTransport<ISimpleNetworkConnection> clientTransport,
-        IListener<ISimpleNetworkConnection> listener,
+        IClientTransport<ISingleStreamTransportConnection> clientTransport,
+        IListener<ISingleStreamTransportConnection> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
         base(clientTransport, listener, clientConnectionOptions, serverOptions)
@@ -160,10 +164,10 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
     }
 
     protected override IProtocolConnection CreateConnection(
-        ISimpleNetworkConnection networkConnection,
+        ISingleStreamTransportConnection transportConnection,
         bool isServer,
         ConnectionOptions options) =>
-        new IceProtocolConnection(networkConnection, isServer, options);
+        new IceProtocolConnection(transportConnection, isServer, options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -171,12 +175,12 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
 internal sealed class ClientServerIceRpcProtocolConnection :
-    ClientServerProtocolConnection<IMultiplexedNetworkConnection>
+    ClientServerProtocolConnection<IMultiplexedTransportConnection>
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceRpcProtocolConnection(
-        IClientTransport<IMultiplexedNetworkConnection> clientTransport,
-        IListener<IMultiplexedNetworkConnection> listener,
+        IClientTransport<IMultiplexedTransportConnection> clientTransport,
+        IListener<IMultiplexedTransportConnection> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
         base(clientTransport, listener, clientConnectionOptions, serverOptions)
@@ -184,17 +188,17 @@ internal sealed class ClientServerIceRpcProtocolConnection :
     }
 
     protected override IProtocolConnection CreateConnection(
-        IMultiplexedNetworkConnection networkConnection,
+        IMultiplexedTransportConnection transportConnection,
         bool isServer,
         ConnectionOptions options) =>
-        new IceRpcProtocolConnection(networkConnection, options);
+        new IceRpcProtocolConnection(transportConnection, options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal class Listener<T> : IListener<T> where T : INetworkConnection
+internal class Listener<T> : IListener<T> where T : ITransportConnection
 {
     private readonly IListener<T> _listener;
 
@@ -204,7 +208,7 @@ internal class Listener<T> : IListener<T> where T : INetworkConnection
         IServerTransport<T> serverTransport,
         ILogger logger,
         IOptions<ServerOptions> serverOptions,
-        LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
+        LogTransportConnectionDecoratorFactory<T> logDecoratorFactory)
     {
         _listener = serverTransport.Listen(
             serverOptions.Value.Endpoint,

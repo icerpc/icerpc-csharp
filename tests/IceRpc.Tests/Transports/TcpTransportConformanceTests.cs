@@ -9,18 +9,18 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports;
 
-/// <summary>Conformance tests for the tcp simple transport.</summary>
+/// <summary>Conformance tests for the tcp single stream transport.</summary>
 [Parallelizable(ParallelScope.All)]
-public class TcpTransportConformanceTests : SimpleTransportConformanceTests
+public class TcpTransportConformanceTests : SingleStreamTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection()
     {
-        var services = new ServiceCollection().UseSimpleTransport("icerpc://127.0.0.1:0/");
+        var services = new ServiceCollection().UseSingleStreamTransport("icerpc://127.0.0.1:0/");
 
-        services.AddSingleton<IServerTransport<ISimpleNetworkConnection>>(provider => new TcpServerTransport());
+        services.AddSingleton<IServerTransport<ISingleStreamTransportConnection>>(provider => new TcpServerTransport());
 
         services.TryAddSingleton(new TcpClientTransportOptions());
-        services.AddSingleton<IClientTransport<ISimpleNetworkConnection>>(provider => new TcpClientTransport());
+        services.AddSingleton<IClientTransport<ISingleStreamTransportConnection>>(provider => new TcpClientTransport());
 
         return services;
     }

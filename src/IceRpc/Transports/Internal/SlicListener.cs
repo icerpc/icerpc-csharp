@@ -2,30 +2,32 @@
 
 namespace IceRpc.Transports.Internal;
 
-internal class SlicListener : IListener<IMultiplexedNetworkConnection>
+internal class SlicListener : IListener<IMultiplexedTransportConnection>
 {
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
-    private readonly IListener<ISimpleNetworkConnection> _simpleListener;
+    private readonly IListener<ISingleStreamTransportConnection> _singleStreamListener;
     private readonly SlicTransportOptions _slicOptions;
 
-    public Endpoint Endpoint => _simpleListener.Endpoint;
+    public Endpoint Endpoint => _singleStreamListener.Endpoint;
 
-    public async Task<IMultiplexedNetworkConnection> AcceptAsync() =>
-        new SlicNetworkConnection(
-            await _simpleListener.AcceptAsync().ConfigureAwait(false),
+    public async Task<IMultiplexedTransportConnection> AcceptAsync() =>
+        new SlicTransportConnection(
+            await _singleStreamListener.AcceptAsync().ConfigureAwait(false),
             isServer: true,
             _errorCodeConverter,
             _slicOptions);
 
-    public void Dispose() => _simpleListener.Dispose();
+    public void Dispose() => _singleStreamListener.Dispose();
 
-    internal SlicListener(IListener<ISimpleNetworkConnection> simpleListener, SlicTransportOptions slicOptions)
+    internal SlicListener(
+        IListener<ISingleStreamTransportConnection> singleStreamListener,
+        SlicTransportOptions slicOptions)
     {
-        _errorCodeConverter = simpleListener.Endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
+        _errorCodeConverter = singleStreamListener.Endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
             throw new NotSupportedException(
-                $"cannot create Slic listener for protocol {simpleListener.Endpoint.Protocol}");
+                $"cannot create Slic listener for protocol {singleStreamListener.Endpoint.Protocol}");
 
-        _simpleListener = simpleListener;
+        _singleStreamListener = singleStreamListener;
         _slicOptions = slicOptions;
     }
 }

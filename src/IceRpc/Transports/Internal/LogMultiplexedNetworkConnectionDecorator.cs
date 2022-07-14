@@ -7,9 +7,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogMultiplexedNetworkConnectionDecorator : LogNetworkConnectionDecorator, IMultiplexedNetworkConnection
+internal class LogMultiplexedTransportConnectionDecorator :
+    LogTransportConnectionDecorator,
+    IMultiplexedTransportConnection
 {
-    private readonly IMultiplexedNetworkConnection _decoratee;
+    private readonly IMultiplexedTransportConnection _decoratee;
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         new LogMultiplexedStreamDecorator(
@@ -21,10 +23,10 @@ internal class LogMultiplexedNetworkConnectionDecorator : LogNetworkConnectionDe
         await _decoratee.DisposeAsync().ConfigureAwait(false);
 
         // We don't emit a log when closing a connection that was not connected.
-        if (Information is NetworkConnectionInformation connectionInformation)
+        if (Information is TransportConnectionInformation connectionInformation)
         {
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-            Logger.LogNetworkConnectionDispose();
+            Logger.LogTransportConnectionDispose();
         }
     }
 
@@ -33,25 +35,25 @@ internal class LogMultiplexedNetworkConnectionDecorator : LogNetworkConnectionDe
         await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
 
         // We don't emit a log when closing a connection that was not connected.
-        if (Information is NetworkConnectionInformation connectionInformation)
+        if (Information is TransportConnectionInformation connectionInformation)
         {
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-            Logger.LogMultiplexedNetworkConnectionShutdown(exception);
+            Logger.LogMultiplexedTransportConnectionShutdown(exception);
         }
     }
 
     public IMultiplexedStream CreateStream(bool bidirectional) =>
         new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), Logger);
 
-    internal static IMultiplexedNetworkConnection Decorate(
-        IMultiplexedNetworkConnection decoratee,
+    internal static IMultiplexedTransportConnection Decorate(
+        IMultiplexedTransportConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger) =>
-        new LogMultiplexedNetworkConnectionDecorator(decoratee, endpoint, isServer, logger);
+        new LogMultiplexedTransportConnectionDecorator(decoratee, endpoint, isServer, logger);
 
-    internal LogMultiplexedNetworkConnectionDecorator(
-        IMultiplexedNetworkConnection decoratee,
+    internal LogMultiplexedTransportConnectionDecorator(
+        IMultiplexedTransportConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger)

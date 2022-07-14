@@ -39,7 +39,7 @@ internal static class PipeWriterExtensions
             {
                 // TODO: If readResult.Buffer.Length is small, it might be better to call a single
                 // writer.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
-                // that will end up in multiple network calls?
+                // that will end up in multiple transport calls?
                 foreach (ReadOnlyMemory<byte> buffer in source)
                 {
                     flushResult = await writer.WriteAsync(buffer, cancel).ConfigureAwait(false);

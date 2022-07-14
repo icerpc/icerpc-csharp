@@ -5,16 +5,16 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the colocated transport.</summary>
-internal class ColocListener : IListener<ISimpleNetworkConnection>
+internal class ColocListener : IListener<ISingleStreamTransportConnection>
 {
     public Endpoint Endpoint { get; }
 
     private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
 
-    public async Task<ISimpleNetworkConnection> AcceptAsync()
+    public async Task<ISingleStreamTransportConnection> AcceptAsync()
     {
         (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-        return new ColocNetworkConnection(Endpoint, _ => (reader, writer));
+        return new ColocTransportConnection(Endpoint, _ => (reader, writer));
     }
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));

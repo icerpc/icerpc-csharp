@@ -4,7 +4,7 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal;
 
-/// <summary>A protocol connection enables communication over a network connection using either the ice or icerpc
+/// <summary>A protocol connection enables communication over a transport connection using either the ice or icerpc
 /// protocol.</summary>
 // TODO: Remove if we don't intend to make this interface public to replace IConnection.
 internal interface IProtocolConnection : IInvoker, IAsyncDisposable
@@ -14,8 +14,8 @@ internal interface IProtocolConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Connects the protocol connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The network connection information.</returns>
-    Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
+    /// <returns>The transport connection information.</returns>
+    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
 
     /// <summary>Adds a callback that will be executed when this connection is aborted.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>

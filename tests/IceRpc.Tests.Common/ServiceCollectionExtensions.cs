@@ -37,7 +37,7 @@ public static class ServiceCollectionExtensions
         Action<IDispatcherBuilder> configure) =>
         services.AddColocTest(configure, Protocol.IceRpc);
 
-    /// <summary>Installs the coloc simple transport.</summary>
+    /// <summary>Installs the coloc single stream transport.</summary>
     public static IServiceCollection AddColocTransport(this IServiceCollection services)
     {
         services.TryAddSingleton<ColocTransport>();
@@ -52,15 +52,15 @@ public static class ServiceCollectionExtensions
         Protocol protocol) =>
         services.AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "127.0.0.1", Port = 0 });
 
-    public static ServiceCollection UseSimpleTransport(this ServiceCollection collection, Endpoint endpoint)
+    public static ServiceCollection UseSingleStreamTransport(this ServiceCollection collection, Endpoint endpoint)
     {
         collection.AddSingleton(provider =>
         {
             ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
-            IServerTransport<ISimpleNetworkConnection>? serverTransport =
-                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+            IServerTransport<ISingleStreamTransportConnection>? serverTransport =
+                provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>();
             return serverTransport.Listen(endpoint, serverAuthenticationOptions, logger);
         });
 
@@ -69,10 +69,10 @@ public static class ServiceCollectionExtensions
             ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
-            IListener<ISimpleNetworkConnection> listener =
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-            IClientTransport<ISimpleNetworkConnection> clientTransport =
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+            IListener<ISingleStreamTransportConnection> listener =
+                provider.GetRequiredService<IListener<ISingleStreamTransportConnection>>();
+            IClientTransport<ISingleStreamTransportConnection> clientTransport =
+                provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>();
             return clientTransport.CreateConnection(
                 listener.Endpoint,
                 clientAuthenticationOptions,

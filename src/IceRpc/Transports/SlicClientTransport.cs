@@ -6,39 +6,39 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> using Slic over a simple
+/// <summary>Implements <see cref="IClientTransport{IMultiplexedTransportConnection}"/> using Slic over a single stream
 /// client transport.</summary>
-public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
+public class SlicClientTransport : IClientTransport<IMultiplexedTransportConnection>
 {
     /// <inheritdoc/>
-    public string Name => _simpleClientTransport.Name;
+    public string Name => _singleStreamClientTransport.Name;
 
-    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+    private readonly IClientTransport<ISingleStreamTransportConnection> _singleStreamClientTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 
     /// <summary>Constructs a Slic client transport.</summary>
     /// <param name="options">The options to configure the Slic transport.</param>
-    /// <param name="simpleClientTransport">The simple client transport.</param>
+    /// <param name="singleStreamClientTransport">The single client transport.</param>
     public SlicClientTransport(
         SlicTransportOptions options,
-        IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
+        IClientTransport<ISingleStreamTransportConnection> singleStreamClientTransport)
     {
-        _simpleClientTransport = simpleClientTransport;
+        _singleStreamClientTransport = singleStreamClientTransport;
         _slicTransportOptions = options;
     }
 
     /// <summary>Constructs a Slic client transport.</summary>
-    /// <param name="simpleClientTransport">The simple client transport.</param>
-    public SlicClientTransport(IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
-        : this(new(), simpleClientTransport)
+    /// <param name="singleStreamClientTransport">The single client transport.</param>
+    public SlicClientTransport(IClientTransport<ISingleStreamTransportConnection> singleStreamClientTransport)
+        : this(new(), singleStreamClientTransport)
     {
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(Endpoint endpoint) => _simpleClientTransport.CheckParams(endpoint);
+    public bool CheckParams(Endpoint endpoint) => _singleStreamClientTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    public IMultiplexedNetworkConnection CreateConnection(
+    public IMultiplexedTransportConnection CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
@@ -46,10 +46,10 @@ public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnectio
         IMultiplexedStreamErrorCodeConverter errorCodeConverter =
             endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
             throw new NotSupportedException(
-                $"cannot create Slic client network connection for protocol {endpoint.Protocol}");
+                $"cannot create Slic client transport connection for protocol {endpoint.Protocol}");
 
-        return new SlicNetworkConnection(
-            _simpleClientTransport.CreateConnection(endpoint, authenticationOptions, logger),
+        return new SlicTransportConnection(
+            _singleStreamClientTransport.CreateConnection(endpoint, authenticationOptions, logger),
             isServer: false,
             errorCodeConverter,
             _slicTransportOptions);

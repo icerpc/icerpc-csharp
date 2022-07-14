@@ -4,10 +4,10 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
 
-internal sealed class LogListenerDecorator<T> : IListener<T> where T : INetworkConnection
+internal sealed class LogListenerDecorator<T> : IListener<T> where T : ITransportConnection
 {
     private readonly IListener<T> _decoratee;
-    private readonly LogNetworkConnectionDecoratorFactory<T> _logDecoratorFactory;
+    private readonly LogTransportConnectionDecoratorFactory<T> _logDecoratorFactory;
     private readonly ILogger _logger;
 
     Endpoint IListener.Endpoint => _decoratee.Endpoint;
@@ -48,7 +48,7 @@ internal sealed class LogListenerDecorator<T> : IListener<T> where T : INetworkC
     internal LogListenerDecorator(
         IListener<T> decoratee,
         ILogger logger,
-        LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
+        LogTransportConnectionDecoratorFactory<T> logDecoratorFactory)
     {
         _decoratee = decoratee;
         _logDecoratorFactory = logDecoratorFactory;

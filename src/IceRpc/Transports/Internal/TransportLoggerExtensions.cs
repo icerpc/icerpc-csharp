@@ -47,11 +47,11 @@ internal static partial class TransportLoggerExtensions
         string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.MultiplexedNetworkConnectionShutdown,
-        EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionShutdown),
+        EventId = (int)TransportEventIds.MultiplexedTransportConnectionShutdown,
+        EventName = nameof(TransportEventIds.MultiplexedTransportConnectionShutdown),
         Level = LogLevel.Trace,
         Message = "connection shutdown")]
-    internal static partial void LogMultiplexedNetworkConnectionShutdown(
+    internal static partial void LogMultiplexedTransportConnectionShutdown(
         this ILogger logger,
         Exception exception);
 
@@ -66,49 +66,49 @@ internal static partial class TransportLoggerExtensions
         string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.NetworkConnectionConnect,
-        EventName = nameof(TransportEventIds.NetworkConnectionConnect),
+        EventId = (int)TransportEventIds.TransportConnectionConnect,
+        EventName = nameof(TransportEventIds.TransportConnectionConnect),
         Level = LogLevel.Debug,
-        Message = "network connection established: LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}")]
-    internal static partial void LogNetworkConnectionConnect(
+        Message = "transport connection established: LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}")]
+    internal static partial void LogTransportConnectionConnect(
         this ILogger logger,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.NetworkConnectionConnectFailed,
-        EventName = nameof(TransportEventIds.NetworkConnectionConnectFailed),
+        EventId = (int)TransportEventIds.TransportConnectionConnectFailed,
+        EventName = nameof(TransportEventIds.TransportConnectionConnectFailed),
         Level = LogLevel.Debug,
-        Message = "network connection establishment failed")]
-    internal static partial void LogNetworkConnectionConnectFailed(this ILogger logger, Exception exception);
+        Message = "transport connection establishment failed")]
+    internal static partial void LogTransportConnectionConnectFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.NetworkConnectionDispose,
-        EventName = nameof(TransportEventIds.NetworkConnectionDispose),
+        EventId = (int)TransportEventIds.TransportConnectionDispose,
+        EventName = nameof(TransportEventIds.TransportConnectionDispose),
         Level = LogLevel.Debug,
-        Message = "network connection disposed")]
-    internal static partial void LogNetworkConnectionDispose(this ILogger logger);
+        Message = "transport connection disposed")]
+    internal static partial void LogTransportConnectionDispose(this ILogger logger);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SimpleNetworkConnectionRead,
-        EventName = nameof(TransportEventIds.SimpleNetworkConnectionRead),
+        EventId = (int)TransportEventIds.SingleStreamTransportConnectionRead,
+        EventName = nameof(TransportEventIds.SingleStreamTransportConnectionRead),
         Level = LogLevel.Trace,
-        Message = "read {Size} bytes from simple network connection ({Data})")]
-    internal static partial void LogSimpleNetworkConnectionRead(this ILogger logger, int size, string data);
+        Message = "read {Size} bytes from single stream transport connection ({Data})")]
+    internal static partial void LogSingleStreamTransportConnectionRead(this ILogger logger, int size, string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SimpleNetworkConnectionShutdown,
-        EventName = nameof(TransportEventIds.SimpleNetworkConnectionShutdown),
+        EventId = (int)TransportEventIds.SingleStreamTransportConnectionShutdown,
+        EventName = nameof(TransportEventIds.SingleStreamTransportConnectionShutdown),
         Level = LogLevel.Trace,
-        Message = "simple network connection shutdown")]
-    internal static partial void LogSimpleNetworkConnectionShutdown(this ILogger logger);
+        Message = "single stream transport connection shutdown")]
+    internal static partial void LogSingleStreamTransportConnectionShutdown(this ILogger logger);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SimpleNetworkConnectionWrite,
-        EventName = nameof(TransportEventIds.SimpleNetworkConnectionWrite),
+        EventId = (int)TransportEventIds.SingleStreamTransportConnectionWrite,
+        EventName = nameof(TransportEventIds.SingleStreamTransportConnectionWrite),
         Level = LogLevel.Trace,
-        Message = "wrote {Size} bytes to simple network connection ({Data})")]
-    internal static partial void LogSimpleNetworkConnectionWrite(this ILogger logger, int size, string data);
+        Message = "wrote {Size} bytes to single stream transport connection ({Data})")]
+    internal static partial void LogSingleStreamTransportConnectionWrite(this ILogger logger, int size, string data);
 
     internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
         stream.IsStarted ?

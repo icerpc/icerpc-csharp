@@ -33,7 +33,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
-    private readonly IMultiplexedNetworkConnection _networkConnection;
+    private readonly IMultiplexedTransportConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
 
@@ -44,11 +44,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
 
     internal IceRpcProtocolConnection(
-        IMultiplexedNetworkConnection networkConnection,
+        IMultiplexedTransportConnection transportConnection,
         ConnectionOptions options)
         : base(options)
     {
-        _networkConnection = networkConnection;
+        _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
     }
@@ -97,16 +97,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
-        // Connect the network connection
-        NetworkConnectionInformation networkConnectionInformation = await _networkConnection.ConnectAsync(cancel)
+        // Connect the transport connection
+        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        _controlStream = _networkConnection.CreateStream(false);
+        _controlStream = _transportConnection.CreateStream(false);
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -122,7 +122,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             cancel).ConfigureAwait(false);
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
-        _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+        _remoteControlStream = await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
         await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
         await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
@@ -147,7 +147,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     while (true)
                     {
-                        IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
                             _tasksCancelSource.Token).ConfigureAwait(false);
 
                         try
@@ -162,7 +162,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (ConnectionClosedException) when (_isReadOnly)
                 {
-                    // Expected when shutting down and the network connection is gracefully shutdown.
+                    // Expected when shutting down and the transport connection is gracefully shutdown.
                 }
                 catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
                 {
@@ -179,13 +179,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return networkConnectionInformation;
+        return transportConnectionInformation;
     }
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Before disposing the network connection, cancel pending tasks which are using the network connection and wait
-        // for the tasks to complete.
+        // Before disposing the transport connection, cancel pending tasks which are using the transport connection and
+        // wait for the tasks to complete.
         _tasksCancelSource.Cancel();
         try
         {
@@ -201,8 +201,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
 
-        // Dispose the network connection to kill the connection with the peer.
-        await _networkConnection.DisposeAsync().ConfigureAwait(false);
+        // Dispose the transport connection to kill the connection with the peer.
+        await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
         // Next, wait for dispatches and invocations to complete.
         await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
@@ -245,7 +245,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
 
             // Create the stream.
-            stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
+            stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
 
             // Keep track of the invocation for the shutdown logic.
             if (!request.IsOneway || request.PayloadStream is not null)
@@ -462,14 +462,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _streamsCompleted.Task).WaitAsync(cancel).ConfigureAwait(false);
 
         // Complete the control stream only once all the streams have completed. We also wait for the peer to close
-        // its control stream to ensure the peer's stream are also completed. The network connection can safely be
+        // its control stream to ensure the peer's stream are also completed. The transport connection can safely be
         // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
-        // closing the network connection too soon, before the remote streams are completed.
+        // closing the transport connection too soon, before the remote streams are completed.
         await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
         _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
         await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
 
-        await _networkConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
+        await _transportConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

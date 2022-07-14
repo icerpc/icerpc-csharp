@@ -10,8 +10,8 @@ public interface IConnectionContext
     /// <summary>Gets the invoker implemented by the connection.</summary>
     IInvoker Invoker { get; }
 
-    /// <summary>Gets the network connection information.</summary>
-    NetworkConnectionInformation NetworkConnectionInformation { get; }
+    /// <summary>Gets the transport connection information.</summary>
+    TransportConnectionInformation TransportConnectionInformation { get; }
 
     /// <summary>Gets the protocol of this connection.</summary>
     Protocol Protocol { get; }

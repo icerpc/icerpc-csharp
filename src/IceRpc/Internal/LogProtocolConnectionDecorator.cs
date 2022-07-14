@@ -11,11 +11,11 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
 
     private readonly IProtocolConnection _decoratee;
-    private NetworkConnectionInformation _information;
+    private TransportConnectionInformation _information;
     private readonly bool _isServer;
     private readonly ILogger _logger;
 
-    async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
+    async Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
     {
         _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 

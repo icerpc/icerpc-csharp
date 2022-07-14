@@ -23,8 +23,8 @@ public static class IceRpcServiceCollectionExtensions
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+                    provider.GetRequiredService<IClientTransport<IMultiplexedTransportConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
     /// <summary>Adds a <see cref="ConnectionPool"/> and <see cref="IInvoker"/> singleton to this service collection.
@@ -37,8 +37,8 @@ public static class IceRpcServiceCollectionExtensions
                 new ConnectionPool(
                     provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+                    provider.GetRequiredService<IClientTransport<IMultiplexedTransportConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionPool>());
 
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
@@ -79,8 +79,8 @@ public static class IceRpcServiceCollectionExtensions
                 new ResumableClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+                    provider.GetRequiredService<IClientTransport<IMultiplexedTransportConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ResumableClientConnection>());
 
     /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>
@@ -93,8 +93,8 @@ public static class IceRpcServiceCollectionExtensions
                 new Server(
                     provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName),
                     loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+                    provider.GetRequiredService<IServerTransport<IMultiplexedTransportConnection>>(),
+                    provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>()));
 
     /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
     /// ServerOptions instance.</summary>
@@ -143,8 +143,8 @@ public static class IceRpcServiceCollectionExtensions
                 return new Server(
                     options,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>());
+                    provider.GetRequiredService<IServerTransport<IMultiplexedTransportConnection>>(),
+                    provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>());
             });
 
     /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
@@ -160,16 +160,16 @@ public static class IceRpcServiceCollectionExtensions
     {
         services
            .AddOptions()
-           .TryAddSingleton<IServerTransport<ISimpleNetworkConnection>>(
+           .TryAddSingleton<IServerTransport<ISingleStreamTransportConnection>>(
                provider => new TcpServerTransport(
                    provider.GetRequiredService<IOptions<TcpServerTransportOptions>>().Value));
 
         services
             .AddOptions()
-            .TryAddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+            .TryAddSingleton<IServerTransport<IMultiplexedTransportConnection>>(
                 provider => new SlicServerTransport(
                     provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
-                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+                    provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>()));
 
         return services;
     }
@@ -178,15 +178,15 @@ public static class IceRpcServiceCollectionExtensions
     {
         services
             .AddOptions()
-            .TryAddSingleton<IClientTransport<ISimpleNetworkConnection>>(
+            .TryAddSingleton<IClientTransport<ISingleStreamTransportConnection>>(
                 provider => new TcpClientTransport(
                     provider.GetRequiredService<IOptions<TcpClientTransportOptions>>().Value));
 
         services.
-            TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+            TryAddSingleton<IClientTransport<IMultiplexedTransportConnection>>(
                 provider => new SlicClientTransport(
                     provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+                    provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()));
 
         return services;
     }

@@ -17,27 +17,27 @@ public enum TransportEventIds
     /// <summary>Successfully read data from a multiplexed stream.</summary>
     MultiplexedStreamRead,
 
-    /// <summary>A multiplexed network connection was shutdown.</summary>
-    MultiplexedNetworkConnectionShutdown,
+    /// <summary>A multiplexed transport connection was shutdown.</summary>
+    MultiplexedTransportConnectionShutdown,
 
     /// <summary>Wrote data to a multiplexed stream.</summary>
     MultiplexedStreamWrite,
 
-    /// <summary>Connect on a network connection succeeded.</summary>
-    NetworkConnectionConnect,
+    /// <summary>Connect on a transport connection succeeded.</summary>
+    TransportConnectionConnect,
 
-    /// <summary>Connect on a network connection failed.</summary>
-    NetworkConnectionConnectFailed,
+    /// <summary>Connect on a transport connection failed.</summary>
+    TransportConnectionConnectFailed,
 
-    /// <summary>A network connection was disposed.</summary>
-    NetworkConnectionDispose,
+    /// <summary>A transport connection was disposed.</summary>
+    TransportConnectionDispose,
 
-    /// <summary>Successfully read data from a simple network connection.</summary>
-    SimpleNetworkConnectionRead,
+    /// <summary>Successfully read data from a single stream transport connection.</summary>
+    SingleStreamTransportConnectionRead,
 
-    /// <summary>Simple network connection shutdown.</summary>
-    SimpleNetworkConnectionShutdown,
+    /// <summary>Single stream transport connection shutdown.</summary>
+    SingleStreamTransportConnectionShutdown,
 
-    /// <summary>Wrote data to a simple network connection.</summary>
-    SimpleNetworkConnectionWrite,
+    /// <summary>Wrote data to a single stream transport connection.</summary>
+    SingleStreamTransportConnectionWrite,
 }
