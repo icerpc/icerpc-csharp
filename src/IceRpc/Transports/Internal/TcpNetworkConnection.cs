@@ -12,6 +12,8 @@ namespace IceRpc.Transports.Internal;
 
 internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 {
+    public Endpoint Endpoint { get; }
+
     internal abstract Socket Socket { get; }
 
     internal abstract SslStream? SslStream { get; }
@@ -197,6 +199,8 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
             throw exception.ToTransportException();
         }
     }
+
+    private protected TcpNetworkConnection(Endpoint endpoint) => Endpoint = endpoint;
 }
 
 internal class TcpClientNetworkConnection : TcpNetworkConnection
@@ -256,18 +260,18 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
     }
 
     internal TcpClientNetworkConnection(
-        string host,
-        ushort port,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         TcpClientTransportOptions options)
+        : base(endpoint)
     {
-        _addr = IPAddress.TryParse(host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, port) :
-            new DnsEndPoint(host, port);
+        _addr = IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) ?
+            new IPEndPoint(ipAddress, endpoint.Port) :
+            new DnsEndPoint(endpoint.Host, endpoint.Port);
 
         _authenticationOptions = authenticationOptions;
 
-        // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
+        // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         Socket = ipAddress?.AddressFamily == AddressFamily.InterNetwork ?
             new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
@@ -307,7 +311,6 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
     private bool _connected;
-    private readonly Endpoint _endpoint;
     private SslStream? _sslStream;
 
     public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -351,12 +354,12 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
     }
 
     internal TcpServerNetworkConnection(
-        Socket socket,
         Endpoint endpoint,
+        Socket socket,
         SslServerAuthenticationOptions? authenticationOptions)
+        : base(endpoint)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;
-        _endpoint = endpoint;
     }
 }

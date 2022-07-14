@@ -9,8 +9,10 @@ namespace IceRpc.Transports.Internal;
 /// copies the send buffer into the receive buffer.</summary>
 internal class ColocNetworkConnection : ISimpleNetworkConnection
 {
+    public Endpoint Endpoint { get; }
+
     private readonly Func<Endpoint, (PipeReader, PipeWriter)> _connect;
-    private readonly Endpoint _endpoint;
+
     // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or
     // ReadAsync
     private Exception? _exception;
@@ -20,8 +22,8 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
 
     public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        (_reader, _writer) = _connect(_endpoint);
-        var colocEndPoint = new ColocEndPoint(_endpoint);
+        (_reader, _writer) = _connect(Endpoint);
+        var colocEndPoint = new ColocEndPoint(Endpoint);
         return Task.FromResult(new NetworkConnectionInformation(colocEndPoint, colocEndPoint, null));
     }
 
@@ -203,7 +205,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
 
     public ColocNetworkConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
     {
-        _endpoint = endpoint;
+        Endpoint = endpoint;
         _connect = connect;
     }
 
