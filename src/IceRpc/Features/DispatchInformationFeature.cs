@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-
 namespace IceRpc.Features;
 
 /// <summary>The default implementation of <see cref="IDispatchInformationFeature"/>.</summary>

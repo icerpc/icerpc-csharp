@@ -1,17 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc;
 
-/// <summary>A connection pool is an invoker that routes outgoing requests to connections it manages. This routing is
+/// <summary>A connection cache is an invoker that routes outgoing requests to connections it manages. This routing is
 /// based on the <see cref="IEndpointFeature"/> and the endpoints of the service address carried by each outgoing
 /// request.</summary>
-public sealed class ConnectionPool : IInvoker, IAsyncDisposable
+public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
@@ -23,7 +22,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
     private readonly object _mutex = new();
 
-    private readonly ConnectionPoolOptions _options;
+    private readonly ConnectionCacheOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
@@ -33,15 +32,15 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
-    /// <summary>Constructs a connection pool.</summary>
-    /// <param name="options">The connection pool options.</param>
+    /// <summary>Constructs a connection cache.</summary>
+    /// <param name="options">The connection cache options.</param>
     /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
     /// connections.</param>
     /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
-    public ConnectionPool(
-        ConnectionPoolOptions options,
+    public ConnectionCache(
+        ConnectionCacheOptions options,
         ILoggerFactory? loggerFactory = null,
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
@@ -52,16 +51,16 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         _simpleClientTransport = simpleClientTransport ?? ClientConnection.DefaultSimpleClientTransport;
     }
 
-    /// <summary>Constructs a connection pool.</summary>
-    /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.
+    /// <summary>Constructs a connection cache.</summary>
+    /// <param name="clientConnectionOptions">The client connection options for connections created by this cache.
     /// </param>
-    public ConnectionPool(ClientConnectionOptions clientConnectionOptions)
-        : this(new ConnectionPoolOptions { ClientConnectionOptions = clientConnectionOptions })
+    public ConnectionCache(ClientConnectionOptions clientConnectionOptions)
+        : this(new ConnectionCacheOptions { ClientConnectionOptions = clientConnectionOptions })
     {
     }
 
-    /// <summary>Releases all resources allocated by this connection pool.</summary>
-    /// <returns>A value task that completes when all connections managed by this pool are disposed.</returns>
+    /// <summary>Releases all resources allocated by this connection cache.</summary>
+    /// <returns>A value task that completes when all connections managed by this cache are disposed.</returns>
     public async ValueTask DisposeAsync()
     {
         lock (_mutex)
@@ -69,7 +68,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             _isReadOnly = true;
         }
 
-        // Dispose all connections managed by this pool.
+        // Dispose all connections managed by this cache.
         IEnumerable<ClientConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
@@ -100,7 +99,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
+    /// <summary>Gracefully shuts down all connections managed by this cache. This method can be called multiple times.
     /// </summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the shutdown is complete.</returns>
@@ -111,12 +110,12 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             _isReadOnly = true;
         }
 
-        // Shut down all connections managed by this pool.
+        // Shut down all connections managed by this cache.
         IEnumerable<ClientConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
+            allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancel)));
     }
 
     /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
@@ -149,7 +148,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         {
             if (_isReadOnly)
             {
-                throw new InvalidOperationException("pool shutting down");
+                throw new InvalidOperationException("connection cache shutting down");
             }
 
             if (_activeConnections.TryGetValue(endpoint, out connection))
@@ -179,7 +178,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         {
             try
             {
-                // TODO: add cancellation token to cancel when ConnectionPool is shut down / disposed.
+                // TODO: add cancellation token to cancel when ConnectionCache is shut down / disposed.
                 await connection.ConnectAsync(cancel).ConfigureAwait(false);
             }
             catch

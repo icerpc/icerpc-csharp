@@ -103,7 +103,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
         try
         {
-           return await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            return await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException) when (IsResumable)
         {

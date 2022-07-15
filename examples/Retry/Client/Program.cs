@@ -32,8 +32,8 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
     });
 
-await using var connectionPool = new ConnectionPool(
-    new ConnectionPoolOptions { PreferExistingConnection = true },
+await using var connectionCache = new ConnectionCache(
+    new ConnectionCacheOptions { PreferExistingConnection = true },
     loggerFactory: loggerFactory);
 
 // Create an invocation pipeline with the retry and logger interceptors.
@@ -43,7 +43,7 @@ var pipeline = new Pipeline()
         new RetryOptions { MaxAttempts = 5 },
         loggerFactory)
     .UseLogger(loggerFactory)
-    .Into(connectionPool);
+    .Into(connectionCache);
 
 string endpoint = "icerpc://127.0.0.1:10000/hello?alt-endpoint=127.0.0.1:10001";
 for (int i = 2; i < serverInstances; i++)

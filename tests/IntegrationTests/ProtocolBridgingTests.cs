@@ -30,7 +30,7 @@ public sealed class ProtocolBridgingTests
 
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
-            .AddIceRpcConnectionPool()
+            .AddIceRpcConnectionCache()
             .AddSingleton<IProtocolBridgingTest>(targetService)
             .AddSingleton(_ => new Forwarder(targetServiceProxy.ToProxy<ServiceProxy>()))
             .AddIceRpcServer(
@@ -47,7 +47,7 @@ public sealed class ProtocolBridgingTests
             .AddIceRpcInvoker(
                 builder => builder
                     .UseRequestContext()
-                    .Into<ConnectionPool>());
+                    .Into<ConnectionCache>());
 
         services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
         services.AddOptions<ServerOptions>("target").Configure(options => options.Endpoint = targetEndpoint);
