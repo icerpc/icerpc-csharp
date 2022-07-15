@@ -7,9 +7,9 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests;
 
-public sealed class ConnectionPoolTests
+public sealed class ConnectionCacheTests
 {
-    /// <summary>Verifies that the connection pool does not prefer existing connections when
+    /// <summary>Verifies that the connection cache does not prefer existing connections when
     /// <c>preferExistingConnection</c> is false.</summary>
     [Test]
     public async Task Do_not_prefer_existing_connection()
@@ -35,8 +35,8 @@ public sealed class ConnectionPoolTests
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
-        await using var pool = new ConnectionPool(
-            new ConnectionPoolOptions { PreferExistingConnection = false },
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions { PreferExistingConnection = false },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         Endpoint? endpoint = null;
@@ -47,9 +47,9 @@ public sealed class ConnectionPoolTests
                     endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
-            .Into(pool);
+            .Into(cache);
 
-        await ServiceProxy.Parse("icerpc://bar", pool).IcePingAsync();
+        await ServiceProxy.Parse("icerpc://bar", cache).IcePingAsync();
 
         // Act
         await ServiceProxy.Parse("icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
@@ -62,7 +62,7 @@ public sealed class ConnectionPoolTests
         });
     }
 
-    /// <summary>Verifies that the connection pool uses the alt-endpoint when it cannot connect to the main endpoint.
+    /// <summary>Verifies that the connection cache uses the alt-endpoint when it cannot connect to the main endpoint.
     /// </summary>
     [Test]
     public async Task Get_connection_for_alt_endpoint()
@@ -79,8 +79,8 @@ public sealed class ConnectionPoolTests
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
 
-        await using var pool = new ConnectionPool(
-            new ConnectionPoolOptions() { PreferExistingConnection = true },
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions() { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         Endpoint? endpoint = null;
@@ -91,7 +91,7 @@ public sealed class ConnectionPoolTests
                     endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
-            .Into(pool);
+            .Into(cache);
 
         // Act
         await ServiceProxy.Parse($"icerpc://bar/?alt-endpoint=foo", pipeline).IcePingAsync();
@@ -100,7 +100,7 @@ public sealed class ConnectionPoolTests
         Assert.That(endpoint?.Host, Is.EqualTo(server.Endpoint.Host));
     }
 
-    /// <summary>Verifies that the connection pool prefers connecting to the main endpoint.</summary>
+    /// <summary>Verifies that the connection cache prefers connecting to the main endpoint.</summary>
     [Test]
     public async Task Get_connection_for_main_endpoint()
     {
@@ -125,8 +125,8 @@ public sealed class ConnectionPoolTests
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
-        await using var pool = new ConnectionPool(
-            new ConnectionPoolOptions(),
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions(),
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         Endpoint? endpoint = null;
@@ -137,7 +137,7 @@ public sealed class ConnectionPoolTests
                     endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
-            .Into(pool);
+            .Into(cache);
 
         // Act
         await ServiceProxy.Parse($"icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
@@ -146,7 +146,7 @@ public sealed class ConnectionPoolTests
         Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
     }
 
-    /// <summary>Verifies that the connection pool prefers reusing an existing connection when
+    /// <summary>Verifies that the connection cache prefers reusing an existing connection when
     /// <c>preferExistingConnection</c> is true.</summary>
     [Test]
     public async Task Prefer_existing_connection()
@@ -172,8 +172,8 @@ public sealed class ConnectionPoolTests
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
-        await using var pool = new ConnectionPool(
-           new ConnectionPoolOptions { PreferExistingConnection = true },
+        await using var cache = new ConnectionCache(
+           new ConnectionCacheOptions { PreferExistingConnection = true },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         Endpoint? endpoint = null;
@@ -184,9 +184,9 @@ public sealed class ConnectionPoolTests
                     endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
                     return response;
                 }))
-            .Into(pool);
+            .Into(cache);
 
-        await ServiceProxy.Parse("icerpc://bar", pool).IcePingAsync();
+        await ServiceProxy.Parse("icerpc://bar", cache).IcePingAsync();
 
         // Act
         await ServiceProxy.Parse("icerpc://foo/?alt-endpoint=bar", pipeline).IcePingAsync();
