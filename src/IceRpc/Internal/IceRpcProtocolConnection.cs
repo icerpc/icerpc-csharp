@@ -19,7 +19,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
-    private readonly IDispatcher _dispatcher;
+    private readonly IDispatcher? _dispatcher;
     private readonly CancellationTokenSource _dispatchesAndInvocationsCancelSource = new();
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -49,7 +49,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         : base(options)
     {
         _networkConnection = networkConnection;
-        _dispatcher = options.Dispatcher;
+
+        // TODO: temporary. We should keep a null _dispatcher and not accept streams when _dispatcher is null. This
+        // currently does not work because it's the accept task that detects and reports aborts.
+        _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
     }
 
@@ -139,45 +142,49 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to start accepting requests.
-        _acceptRequestsTask = Task.Run(
-            async () =>
-            {
-                try
+        if (_dispatcher is not null)
+        {
+            // Start a task to start accepting requests.
+            _acceptRequestsTask = Task.Run(
+                async () =>
                 {
-                    while (true)
+                    try
                     {
-                        IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(
-                            _tasksCancelSource.Token).ConfigureAwait(false);
+                        while (true)
+                        {
+                            IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(
+                                _tasksCancelSource.Token).ConfigureAwait(false);
 
-                        try
-                        {
-                            await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
-                        }
-                        catch (IceRpcProtocolStreamException)
-                        {
-                            // A stream failure is not a fatal connection error; we can continue accepting new requests.
+                            try
+                            {
+                                await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
+                            }
+                            catch (IceRpcProtocolStreamException)
+                            {
+                                // A stream failure is not a fatal connection error; we can continue accepting new
+                                // requests.
+                            }
                         }
                     }
-                }
-                catch (ConnectionClosedException) when (_isReadOnly)
-                {
-                    // Expected when shutting down and the network connection is gracefully shutdown.
-                }
-                catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
-                {
-                    // Expected if DisposeAsync has been called.
-                }
-                catch (Exception exception)
-                {
-                    InvokeOnAbort(exception);
+                    catch (ConnectionClosedException) when (_isReadOnly)
+                    {
+                        // Expected when shutting down and the network connection is gracefully shutdown.
+                    }
+                    catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
+                    {
+                        // Expected if DisposeAsync has been called.
+                    }
+                    catch (Exception exception)
+                    {
+                        InvokeOnAbort(exception);
 
-                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
-                    // be running.
-                    CancelDispatchesAndInvocations(exception);
-                }
-            },
-            CancellationToken.None);
+                        // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might
+                        // still be running.
+                        CancelDispatchesAndInvocations(exception);
+                    }
+                },
+                CancellationToken.None);
+        }
 
         return networkConnectionInformation;
     }
@@ -656,6 +663,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private async Task AcceptRequestAsync(IMultiplexedStream stream, CancellationToken cancel)
     {
+        Debug.Assert(_dispatcher is not null);
+
         PipeReader? fieldsPipeReader = null;
 
         try
