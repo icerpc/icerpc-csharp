@@ -49,10 +49,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         : base(options)
     {
         _networkConnection = networkConnection;
-
-        // TODO: temporary. We should keep a null _dispatcher and not accept streams when _dispatcher is null. This
-        // currently does not work because it's the accept task that detects and reports aborts.
-        _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
+        _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
     }
 
@@ -110,6 +107,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _connectionContext = new ConnectionContext(this, networkConnectionInformation);
 
         _controlStream = _networkConnection.CreateStream(false);
+        _controlStream.OnShutdown(() => ConnectionClosed());
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -126,6 +124,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
         _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+        _remoteControlStream.OnShutdown(() => ConnectionClosed());
 
         await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
         await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
@@ -176,17 +175,33 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        InvokeOnAbort(exception);
-
-                        // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might
-                        // still be running.
-                        CancelDispatchesAndInvocations(exception);
+                        ConnectionClosed(exception);
                     }
                 },
                 CancellationToken.None);
         }
 
         return networkConnectionInformation;
+
+        // Called when the closure of the connection is detected
+        void ConnectionClosed(Exception? exception = null)
+        {
+            lock (_mutex)
+            {
+                if (_isReadOnly)
+                {
+                    return; // already closing or closed
+                }
+            }
+
+            exception ??= new ConnectionLostException();
+
+            InvokeOnAbort(exception);
+
+            // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still be
+            // running.
+            CancelDispatchesAndInvocations(exception);
+        }
     }
 
     private protected override async ValueTask DisposeAsyncCore()
