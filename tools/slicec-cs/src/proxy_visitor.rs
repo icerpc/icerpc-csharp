@@ -147,12 +147,12 @@ public {proxy_impl}(
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="serviceAddressUri">A URI that represents a service address.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
-public {proxy_impl}(IceRpc.IInvoker invoker, Uri serviceAddressUri, SliceEncodeOptions? encodeOptions = null)
+public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, SliceEncodeOptions? encodeOptions = null)
     : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
 {{
 }}
 
-/// <summary>Constructs a proxy with the default service address.</summary>
+/// <summary>Constructs a proxy with the default service address and a null invoker.</summary>
 public {proxy_impl}()
 {{
 }}
