@@ -18,7 +18,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private bool _isReadOnly;
 
     private readonly ILoggerFactory? _loggerFactory;
-    private readonly IClientTransport<IMultiplexedConnection> _multiplexedClientTransport;
+    private readonly IMultiplexedClientTransport _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -30,7 +30,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
 
-    private readonly IClientTransport<IDuplexConnection> _duplexClientTransport;
+    private readonly IDuplexClientTransport _duplexClientTransport;
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
@@ -42,8 +42,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     public ConnectionCache(
         ConnectionCacheOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
-        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
+        IMultiplexedClientTransport? multiplexedClientTransport = null,
+        IDuplexClientTransport? duplexClientTransport = null)
     {
         _options = options;
         _loggerFactory = loggerFactory;

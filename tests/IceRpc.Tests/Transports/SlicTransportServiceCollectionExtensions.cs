@@ -19,28 +19,28 @@ public static class SlicTransportServiceCollectionExtensions
         var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
 
         services.
-            TryAddSingleton<IServerTransport<IMultiplexedConnection>>(
+            TryAddSingleton<IMultiplexedServerTransport>(
                 provider => new SlicServerTransport(
                     slicTransportOptions ?? new SlicTransportOptions(),
-                    provider.GetRequiredService<IServerTransport<IDuplexConnection>>()));
+                    provider.GetRequiredService<IDuplexServerTransport>()));
 
         services.
-            TryAddSingleton<IClientTransport<IMultiplexedConnection>>(
+            TryAddSingleton<IMultiplexedClientTransport>(
                 provider => new SlicClientTransport(
                     slicTransportOptions ?? new SlicTransportOptions(),
-                    provider.GetRequiredService<IClientTransport<IDuplexConnection>>()));
+                    provider.GetRequiredService<IDuplexClientTransport>()));
 
         services.AddSingleton(provider =>
         {
-            var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedConnection>>();
+            var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
             var listener = serverTransport.Listen(endpoint, null, NullLogger.Instance);
             return listener;
         });
 
         services.AddSingleton<SlicMultiplexedConnection>(provider =>
         {
-            var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-            var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedConnection>>();
+            var listener = provider.GetRequiredService<IMultiplexedListener>();
+            var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
             var connection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
             return (SlicMultiplexedConnection)connection;
         });

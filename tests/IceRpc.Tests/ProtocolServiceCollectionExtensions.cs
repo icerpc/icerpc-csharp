@@ -30,18 +30,18 @@ public static class ProtocolServiceCollectionExtensions
 
         services.TryAddSingleton<ILogger>(NullLogger.Instance);
 
-        services.AddSingleton<IServerTransport<IMultiplexedConnection>>(
+        services.AddSingleton<IMultiplexedServerTransport>(
             provider => new SlicServerTransport(
-                provider.GetRequiredService<IServerTransport<IDuplexConnection>>()));
+                provider.GetRequiredService<IDuplexServerTransport>()));
 
-        services.AddSingleton<IClientTransport<IMultiplexedConnection>>(
+        services.AddSingleton<IMultiplexedClientTransport>(
             provider => new SlicClientTransport(
-                provider.GetRequiredService<IClientTransport<IDuplexConnection>>()));
+                provider.GetRequiredService<IDuplexClientTransport>()));
 
-        services.AddSingleton<IListener<IDuplexConnection>,
+        services.AddSingleton<IDuplexListener,
                                         Listener<IDuplexConnection>>();
 
-        services.AddSingleton<IListener<IMultiplexedConnection>, Listener<IMultiplexedConnection>>();
+        services.AddSingleton<IMultiplexedListener, Listener<IMultiplexedConnection>>();
 
         services.AddSingleton<LogTransportConnectionDecoratorFactory<IDuplexConnection>>(
             provider =>
@@ -152,8 +152,8 @@ internal sealed class ClientServerIceProtocolConnection :
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceProtocolConnection(
-        IClientTransport<IDuplexConnection> clientTransport,
-        IListener<IDuplexConnection> listener,
+        IDuplexClientTransport clientTransport,
+        IDuplexListener listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
         base(clientTransport, listener, clientConnectionOptions, serverOptions)
@@ -176,8 +176,8 @@ internal sealed class ClientServerIceRpcProtocolConnection :
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceRpcProtocolConnection(
-        IClientTransport<IMultiplexedConnection> clientTransport,
-        IListener<IMultiplexedConnection> listener,
+        IMultiplexedClientTransport clientTransport,
+        IMultiplexedListener listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
         base(clientTransport, listener, clientConnectionOptions, serverOptions)

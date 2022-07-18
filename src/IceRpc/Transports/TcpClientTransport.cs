@@ -12,7 +12,7 @@ namespace IceRpc.Transports;
 
 /// <summary>Implements <see cref="IClientTransport{IDuplexConnection}"/> for the tcp and ssl transports.
 /// </summary>
-public class TcpClientTransport : IClientTransport<IDuplexConnection>
+public class TcpClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
     public string Name => TransportNames.Tcp;

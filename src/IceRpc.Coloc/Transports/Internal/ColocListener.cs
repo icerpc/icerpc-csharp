@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the colocated transport.</summary>
-internal class ColocListener : IListener<IDuplexConnection>
+internal class ColocListener : IDuplexListener
 {
     public Endpoint Endpoint { get; }
 

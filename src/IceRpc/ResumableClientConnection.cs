@@ -34,7 +34,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ILoggerFactory? _loggerFactory;
 
-    private readonly IClientTransport<IMultiplexedConnection>? _multiplexedClientTransport;
+    private readonly IMultiplexedClientTransport? _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -44,7 +44,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ClientConnectionOptions _options;
 
-    private readonly IClientTransport<IDuplexConnection>? _duplexClientTransport;
+    private readonly IDuplexClientTransport? _duplexClientTransport;
 
     /// <summary>Constructs a resumable client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -56,8 +56,8 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     public ResumableClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
-        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
+        IMultiplexedClientTransport? multiplexedClientTransport = null,
+        IDuplexClientTransport? duplexClientTransport = null)
     {
         _options = options;
         _multiplexedClientTransport = multiplexedClientTransport;

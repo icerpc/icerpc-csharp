@@ -8,7 +8,7 @@ namespace IceRpc.Transports;
 
 /// <summary>Implements <see cref="IServerTransport{IDuplexConnection}"/> for the tcp and ssl transports.
 /// </summary>
-public class TcpServerTransport : IServerTransport<IDuplexConnection>
+public class TcpServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
     public string Name => TransportNames.Tcp;
@@ -26,7 +26,7 @@ public class TcpServerTransport : IServerTransport<IDuplexConnection>
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public IListener<IDuplexConnection> Listen(
+    public IDuplexListener Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger)

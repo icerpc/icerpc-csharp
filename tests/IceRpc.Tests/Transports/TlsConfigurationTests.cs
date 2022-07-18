@@ -23,7 +23,7 @@ public class TlsConfigurationTests
     public async Task Tls_client_certificate_not_trusted()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        using IDuplexListener listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ClientCertificateRequired = true,
@@ -66,7 +66,7 @@ public class TlsConfigurationTests
         using var expectedCertificate = new X509Certificate2("../../../certs/client.p12", "password");
         X509Certificate? clientCertificate = null;
         bool localCertificateSelectionCallbackCalled = false;
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        using IDuplexListener listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -117,7 +117,7 @@ public class TlsConfigurationTests
         // Arrange
         bool serverCertificateValidationCallback = false;
         bool clientCertificateValidationCallback = false;
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        using IDuplexListener listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -164,7 +164,7 @@ public class TlsConfigurationTests
     public async Task Tls_server_certificate_not_trusted()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        using IDuplexListener listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -187,12 +187,12 @@ public class TlsConfigurationTests
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
     }
 
-    private static IListener<IDuplexConnection> CreateTcpListener(
+    private static IDuplexListener CreateTcpListener(
         Endpoint? endpoint = null,
         TcpServerTransportOptions? options = null,
         SslServerAuthenticationOptions? authenticationOptions = null)
     {
-        IServerTransport<IDuplexConnection> serverTransport = new TcpServerTransport(options ?? new());
+        IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
             endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
             authenticationOptions: authenticationOptions,
@@ -204,7 +204,7 @@ public class TlsConfigurationTests
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
-        IClientTransport<IDuplexConnection> transport = new TcpClientTransport(options ?? new());
+        IDuplexClientTransport transport = new TcpClientTransport(options ?? new());
         return (TcpClientDuplexConnection)transport.CreateConnection(
             endpoint,
             authenticationOptions: authenticationOptions,

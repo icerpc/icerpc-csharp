@@ -23,7 +23,7 @@ public class DuplexConnectionReaderTests
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var listener = provider.GetRequiredService<IDuplexListener>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
@@ -63,7 +63,7 @@ public class DuplexConnectionReaderTests
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var listener = provider.GetRequiredService<IDuplexListener>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
@@ -97,7 +97,7 @@ public class DuplexConnectionReaderTests
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var listener = provider.GetRequiredService<IDuplexListener>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);

@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>Implements <see cref="IClientTransport{IDuplexConnection}"/> for the coloc
 /// transport.</summary>
-internal class ColocClientTransport : IClientTransport<IDuplexConnection>
+internal class ColocClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
@@ -20,7 +20,7 @@ internal class ColocClientTransport : IClientTransport<IDuplexConnection>
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    IDuplexConnection IClientTransport<IDuplexConnection>.CreateConnection(
+    IDuplexConnection IDuplexClientTransport.CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
