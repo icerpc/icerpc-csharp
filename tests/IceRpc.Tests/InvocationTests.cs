@@ -10,10 +10,10 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class InvocationTests
 {
-    /// <summary>Verifies that a callback on a connection with no dispatcher throws DispatchException(ServiceNotFound)
+    /// <summary>Verifies that a callback on a connection without a dispatcher throws DispatchException(ServiceNotFound)
     /// with the ice protocol.</summary>
     [Test]
-    public async Task Bad_callback_throws_ServiceNotFound_with_ice()
+    public async Task Connection_without_dispatcher_throws_ServiceNotFound_with_ice()
     {
         // Arrange
         IInvoker? callbackInvoker = null;
@@ -43,11 +43,12 @@ public class InvocationTests
         Assert.That(((DispatchException)exception).ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
 
-    /// <summary>Verifies that a callback on a connection with no dispatcher times out with the icerpc protocol.
-    /// </summary>
+    /// <summary>Verifies that a callback on a connection without dispatcher does not accept requests with the icerpc
+    /// protocol.</summary>
     [Test]
     public async Task Connection_without_dispatcher_does_not_accept_requests_with_icerpc()
     {
+        // Arrange
         IInvoker? callbackInvoker = null;
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -67,6 +68,7 @@ public class InvocationTests
         var callback = new OutgoingRequest(ServiceAddress.Parse("icerpc:/callback"));
         using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
+        // Act and Assert
         Assert.That(
             async () => await callbackInvoker!.InvokeAsync(request, cancellationTokenSource.Token),
             Throws.InstanceOf<OperationCanceledException>());

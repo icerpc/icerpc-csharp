@@ -107,7 +107,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _connectionContext = new ConnectionContext(this, networkConnectionInformation);
 
         _controlStream = _networkConnection.CreateStream(false);
-        _controlStream.OnShutdown(() => ConnectionClosed());
+        _controlStream.OnShutdown(ConnectionLost);
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -124,7 +124,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
         _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-        _remoteControlStream.OnShutdown(() => ConnectionClosed());
+        _remoteControlStream.OnShutdown(ConnectionLost);
 
         await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
         await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
@@ -165,17 +165,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             }
                         }
                     }
-                    catch (ConnectionClosedException) when (_isReadOnly)
+                    catch
                     {
-                        // Expected when shutting down and the network connection is gracefully shutdown.
-                    }
-                    catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
-                    {
-                        // Expected if DisposeAsync has been called.
-                    }
-                    catch (Exception exception)
-                    {
-                        ConnectionClosed(exception);
+                        // Ignore all exceptions.
+                        // The loss of the connection is detected via the OnShutdown callbacks on the control streams.
                     }
                 },
                 CancellationToken.None);
@@ -183,8 +176,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         return networkConnectionInformation;
 
-        // Called when the closure of the connection is detected
-        void ConnectionClosed(Exception? exception = null)
+        void ConnectionLost()
         {
             lock (_mutex)
             {
@@ -194,13 +186,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             }
 
-            exception ??= new ConnectionLostException();
+            var connectionLostException = new ConnectionLostException();
 
-            InvokeOnAbort(exception);
+            InvokeOnAbort(connectionLostException);
 
             // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still be
             // running.
-            CancelDispatchesAndInvocations(exception);
+            CancelDispatchesAndInvocations(connectionLostException);
         }
     }
 
