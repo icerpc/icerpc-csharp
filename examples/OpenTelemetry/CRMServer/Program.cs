@@ -23,15 +23,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 
 router.Map<ICRM>(new CRM());
 
-await using var server = new Server(
-    new ServerOptions
-    {
-        Endpoint = "icerpc://127.0.0.1:20001",
-        ConnectionOptions = new ConnectionOptions
-        {
-            Dispatcher = router
-        }
-    });
+await using var server = new Server(router, new Uri("icerpc://127.0.0.1:20001"));
 
 // Shuts down the server on Ctrl+C or Ctrl+Break
 Console.CancelKeyPress += (sender, eventArgs) =>

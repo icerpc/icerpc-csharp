@@ -121,7 +121,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a client connection with the specified endpoint and authentication options. All other
+    /// <summary>Constructs a client connection with the specified endpoint URI and authentication options. All other
     /// properties have their default values.</summary>
     /// <param name="endpointUri">A URI that represents the address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>

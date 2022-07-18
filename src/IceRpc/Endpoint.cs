@@ -102,7 +102,7 @@ public readonly record struct Endpoint
     {
         if (!uri.IsAbsoluteUri)
         {
-            throw new ArgumentException("cannot create an endpoint from a relative reference", nameof(uri));
+            throw new ArgumentException("cannot create an endpoint from a relative URI", nameof(uri));
         }
         Protocol = Protocol.FromString(uri.Scheme);
         if (!Protocol.IsSupported)

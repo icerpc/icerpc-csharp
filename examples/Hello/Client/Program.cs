@@ -3,7 +3,7 @@
 using Demo;
 using IceRpc;
 
-await using var connection = new ClientConnection("icerpc://127.0.0.1");
+await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
 IHelloProxy hello = new HelloProxy(connection);
 

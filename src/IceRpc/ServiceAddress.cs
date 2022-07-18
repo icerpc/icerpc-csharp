@@ -2,8 +2,9 @@
 
 using IceRpc.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 
 namespace IceRpc;
@@ -11,6 +12,7 @@ namespace IceRpc;
 /// <summary>A service address corresponds to the URI of a service, parsed and processed for easier consumption by
 /// interceptors, <see cref="ConnectionCache"/> and other elements of the invocation pipeline. It's used to construct
 /// an <see cref="OutgoingRequest"/>.</summary>
+[TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress
 {
     /// <summary>Gets or initializes the secondary endpoints of this service address.</summary>
@@ -554,4 +556,17 @@ public sealed record class ServiceAddress
             throw new InvalidOperationException($"cannot set {propertyName} on a '{Protocol}' service address");
         }
     }
+}
+
+/// <summary>The service address type converter specifies how to convert a string to a service address. It's used by
+/// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServiceAddress properties.</summary>
+public class ServiceAddressTypeConverter : TypeConverter
+{
+    /// <inheritdoc/>
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
+        sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+    /// <inheritdoc/>
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
+        value is string valueStr ? new ServiceAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
 }

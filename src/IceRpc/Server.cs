@@ -114,7 +114,7 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a server with the specified dispatcher, endpoint and authentication options. All other
+    /// <summary>Constructs a server with the specified dispatcher, endpoint URI and authentication options. All other
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="endpointUri">A URI that represents the endpoint of the server.</param>

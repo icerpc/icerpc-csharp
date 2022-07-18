@@ -143,7 +143,7 @@ public {proxy_impl}(
     EncodeOptions = encodeOptions;
 }}
 
-/// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
+/// <summary>Constructs a proxy from an invoker, a service address URI and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="serviceAddressUri">A URI that represents a service address.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
