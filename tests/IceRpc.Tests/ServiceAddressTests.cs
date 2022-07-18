@@ -12,54 +12,54 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServiceAddressTests
 {
-    /// <summary>Provides test case data for <see cref="Equal_service_addresses_produce_the_same_hash_code(string)"/>
+    /// <summary>Provides test case data for <see cref="Equal_service_addresses_produce_the_same_hash_code"/>
     /// test.</summary>
     private static IEnumerable<TestCaseData> ServiceAddressHashCodeSource
     {
         get
         {
-            foreach ((string Str, string _, string _) in _validUriFormatProxies)
+            foreach ((string str, string _, string _) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(Str);
+                yield return new TestCaseData(new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute)));
             }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Create_service_address_from_invalid_uri(string)"/>
+    /// <summary>Provides test case data for <see cref="Create_service_address_from_invalid_uri(Uri)"/>
     /// test.</summary>
     private static IEnumerable<TestCaseData> ServiceAddressInvalidUriSource
     {
         get
         {
-            foreach (string str in _invalidUriFormatProxies)
+            foreach (string str in _invalidServiceAddressUris)
             {
-                yield return new TestCaseData(str);
+                yield return new TestCaseData(new Uri(str, UriKind.RelativeOrAbsolute));
             }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Create_service_address_from_uri(string, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Create_service_address_from_uri(Uri, string, string)"/>
     /// test.</summary>
     private static IEnumerable<TestCaseData> ServiceAddressUriSource
     {
         get
         {
-            foreach ((string Str, string Path, string Fragment) in _validUriFormatProxies)
+            foreach ((string str, string path, string fragment) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(Str, Path, Fragment);
+                yield return new TestCaseData(new Uri(str, UriKind.RelativeOrAbsolute), path, fragment);
             }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_service_address_to_a_string(string)"/> test.
+    /// <summary>Provides test case data for <see cref="Convert_a_service_address_to_a_string(ServiceAddress)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> ServiceAddressToStringSource
     {
         get
         {
-            foreach ((string Str, string _, string _) in _validUriFormatProxies)
+            foreach ((string str, string _, string _) in _validServiceAddressUris)
             {
-                yield return new TestCaseData(Str);
+                yield return new TestCaseData(new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute)));
             }
         }
     }
@@ -83,7 +83,7 @@ public class ServiceAddressTests
         {
             foreach ((string str, Endpoint[] altEndpoints) in _altEndpoints)
             {
-                yield return new TestCaseData(str, altEndpoints);
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)), altEndpoints);
             }
         }
     }
@@ -200,7 +200,7 @@ public class ServiceAddressTests
     }
 
     /// <summary>A collection of service address URIs that are valid URIs but invalid service addresses.</summary>
-    private static readonly string[] _invalidUriFormatProxies = new string[]
+    private static readonly string[] _invalidServiceAddressUris = new string[]
         {
             "icerpc://host/path?alt-endpoint=", // alt-endpoint authority cannot be empty
             "icerpc://host/path?alt-endpoint=/foo", // alt-endpoint cannot have a path
@@ -220,7 +220,7 @@ public class ServiceAddressTests
 
     /// <summary>A collection of service address URI strings that are valid, with its expected path and fragment.
     /// </summary>
-    private static readonly (string Str, string Path, string Fragment)[] _validUriFormatProxies = new (string, string, string)[]
+    private static readonly (string uriString, string Path, string Fragment)[] _validServiceAddressUris = new (string, string, string)[]
         {
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
             ("ice://host.zeroc.com/identity#facet", "/identity", "facet"),
@@ -417,12 +417,10 @@ public class ServiceAddressTests
     }
 
     /// <summary>Verifies that a service address can be converted into a string.</summary>
-    /// <param name="str">The string used to create the source serviceAddress</param>
+    /// <param name="serviceAddress">The service address.</param>
     [Test, TestCaseSource(nameof(ServiceAddressToStringSource))]
-    public void Convert_a_service_address_to_a_string(string str)
+    public void Convert_a_service_address_to_a_string(ServiceAddress serviceAddress)
     {
-        var serviceAddress = new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute));
-
         string str2 = serviceAddress.ToString();
 
         Assert.That(new ServiceAddress(new Uri(str2, UriKind.RelativeOrAbsolute)), Is.EqualTo(serviceAddress));
@@ -431,9 +429,8 @@ public class ServiceAddressTests
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
     /// <param name="str">The service address to test.</param>
     [Test, TestCaseSource(nameof(ServiceAddressHashCodeSource))]
-    public void Equal_service_addresses_produce_the_same_hash_code(string str)
+    public void Equal_service_addresses_produce_the_same_hash_code(ServiceAddress serviceAddress1)
     {
-        var serviceAddress1 = new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute));
         var serviceAddress2 = new ServiceAddress(new Uri(serviceAddress1.ToString(), UriKind.RelativeOrAbsolute));
 
         int hashCode1 = serviceAddress1.GetHashCode();
@@ -487,9 +484,9 @@ public class ServiceAddressTests
     /// <param name="path">The expected path for the parsed service address</param>
     /// <param name="fragment">The expected fragment for the parsed service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressUriSource))]
-    public void Create_service_address_from_uri(string str, string path, string fragment)
+    public void Create_service_address_from_uri(Uri uri, string path, string fragment)
     {
-        var serviceAddress = new ServiceAddress(new Uri(str, UriKind.RelativeOrAbsolute));
+        var serviceAddress = new ServiceAddress(uri);
 
         Assert.Multiple(() =>
         {
@@ -501,14 +498,12 @@ public class ServiceAddressTests
     /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException"/>.</summary>
     /// <param name="str">The URI string to parse as a service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
-    public void Create_service_address_from_invalid_uri(string str) =>
-        Assert.Throws(Is.InstanceOf<ArgumentException>(), () => new ServiceAddress(new Uri(str)));
+    public void Create_service_address_from_invalid_uri(Uri uri) =>
+        Assert.Throws(Is.InstanceOf<ArgumentException>(), () => new ServiceAddress(uri));
 
     [Test, TestCaseSource(nameof(AltEndpointsSource))]
-    public void Create_service_address_with_alt_endpoints(string str, Endpoint[] altEndpoints)
+    public void Create_service_address_with_alt_endpoints(ServiceAddress serviceAddress, Endpoint[] altEndpoints)
     {
-        var serviceAddress = new ServiceAddress(new Uri(str));
-
         Assert.That(serviceAddress.AltEndpoints, Is.EqualTo(altEndpoints));
     }
 
