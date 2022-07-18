@@ -13,7 +13,7 @@ public class LocatorEndpointFinderTests
     [Test]
     public async Task Find_adapter_by_id()
     {
-        var expectedServiceAddress = ServiceProxy.Parse("ice://localhost/dummy:10000");
+        var expectedServiceAddress = new ServiceProxy { ServiceAddress = new(new Uri("ice://localhost/dummy:10000")) };
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorProxy(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
@@ -40,7 +40,7 @@ public class LocatorEndpointFinderTests
     public void Find_adapter_by_id_returning_a_proxy_without_endpoint_fails()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(
-            new FakeLocatorProxy(ServiceProxy.Parse("ice:/dummy"), adapterId: true));
+            new FakeLocatorProxy(new ServiceProxy { ServiceAddress = new(new Uri("ice:/dummy")) }, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
         Assert.That(
@@ -52,7 +52,7 @@ public class LocatorEndpointFinderTests
     [Test]
     public async Task Find_object_by_id()
     {
-        var expectedServiceAddress = ServiceProxy.Parse("ice://localhost/dummy:10000");
+        var expectedServiceAddress = new ServiceProxy { ServiceAddress = new(new Uri("ice://localhost/dummy:10000")) };
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorProxy(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
@@ -79,7 +79,7 @@ public class LocatorEndpointFinderTests
     public void Find_object_by_id_returning_proxy_without_endpoint_fails()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(
-            new FakeLocatorProxy(ServiceProxy.Parse("ice:/dummy"), adapterId: false));
+            new FakeLocatorProxy(new ServiceProxy { ServiceAddress = new(new Uri("ice:/dummy")) }, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
         Assert.That(
@@ -92,7 +92,7 @@ public class LocatorEndpointFinderTests
     public void Find_object_by_id_returning_proxy_without_ice_protocol_fails()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(
-            new FakeLocatorProxy(ServiceProxy.Parse("icerpc://localhost/dummy:10000"), adapterId: false));
+            new FakeLocatorProxy(new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/dummy:10000")) }, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
         Assert.That(

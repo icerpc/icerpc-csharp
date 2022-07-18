@@ -23,8 +23,15 @@ public sealed class ProtocolBridgingTests
         var forwarderEndpoint = new Endpoint(new Uri($"{forwarderProtocol}://colochost1"));
         var targetEndpoint = new Endpoint(new Uri($"{targetProtocol}://colochost2"));
 
-        var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderEndpoint}forward");
-        var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetEndpoint}target");
+        var forwarderServiceProxy = new ProtocolBridgingTestProxy
+        {
+            ServiceAddress = new(new Uri($"{forwarderEndpoint}forward"))
+        };
+
+        var targetServiceProxy = new ProtocolBridgingTestProxy
+        {
+            ServiceAddress = new(new Uri($"{targetEndpoint}target"))
+        };
 
         var targetService = new ProtocolBridgingTest(targetEndpoint);
 

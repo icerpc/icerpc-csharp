@@ -528,8 +528,7 @@ public class ServiceAddressTests
         var router = new Router();
         router.Map<ISendProxyTest>(service);
         router.UseFeature<ISliceFeature>(
-            new SliceFeature(serviceProxyFactory: serviceAddress =>
-                new ServiceProxy { ServiceAddress = serviceAddress, Invoker = pipeline }));
+            new SliceFeature(serviceProxyFactory: serviceAddress => new ServiceProxy(pipeline, serviceAddress)));
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(router)
@@ -689,7 +688,7 @@ public class ServiceAddressTests
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(ReceiveProxyTestProxy.Parse("icerpc:/hello"));
+            new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
     }
 
     private class SendProxyTest : Service, ISendProxyTest
