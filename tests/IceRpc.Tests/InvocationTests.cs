@@ -15,8 +15,8 @@ public class InvocationTests
     [Test]
     public async Task Bad_callback_throws_ServiceNotFound_with_ice()
     {
+        // Arrange
         IInvoker? callbackInvoker = null;
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new InlineDispatcher(
                 (request, cancel) =>
@@ -33,9 +33,12 @@ public class InvocationTests
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
 
         var callback = new OutgoingRequest(ServiceAddress.Parse("ice:/callback"));
-        IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
-        var exception = await response.DecodeFailureAsync(request, callbackInvoker);
 
+        // Act
+        IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
+
+        // Assert
+        var exception = await response.DecodeFailureAsync(request, callbackInvoker);
         Assert.That(exception, Is.InstanceOf<DispatchException>());
         Assert.That(((DispatchException)exception).ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
