@@ -46,7 +46,7 @@ public class InvocationTests
     /// <summary>Verifies that a callback on a connection with no dispatcher times out with the icerpc protocol.
     /// </summary>
     [Test]
-    public async Task Bad_callback_times_out_with_icerpc()
+    public async Task Connection_without_dispatcher_does_not_accept_requests_with_icerpc()
     {
         IInvoker? callbackInvoker = null;
 
