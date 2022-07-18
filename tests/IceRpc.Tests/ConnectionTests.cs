@@ -157,7 +157,8 @@ public class ConnectionTests
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
-        using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
+        using var listener =
+            slicServerTransport.Listen(new Endpoint(new Uri("icerpc://127.0.0.1:0")), null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             Endpoint = listener.Endpoint,
@@ -414,7 +415,7 @@ public class ConnectionTests
     public async Task Dispose_does_not_throw_if_connect_fails()
     {
         // Arrange
-        await using var connection = new ClientConnection("icerpc://localhost");
+        await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
         _ = connection.ConnectAsync();
 
         // Act/Assert

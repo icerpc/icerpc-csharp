@@ -928,7 +928,7 @@ public ref partial struct SliceDecoder
                     }
 
                     case TransportCode.Uri:
-                        endpoint = Endpoint.FromString(DecodeString());
+                        endpoint = new Endpoint(new Uri(DecodeString()));
                         if (endpoint.Value.Protocol != protocol)
                         {
                             throw new InvalidDataException(
@@ -975,7 +975,7 @@ public ref partial struct SliceDecoder
             {
                 // The endpoints of Slice1 encoded icerpc proxies only use TransportCode.Uri.
 
-                endpoint = Endpoint.FromString(DecodeString());
+                endpoint = new Endpoint(new Uri(DecodeString()));
                 if (endpoint.Value.Protocol != protocol)
                 {
                     throw new InvalidDataException(

@@ -268,9 +268,9 @@ public sealed record class ServiceAddress
                             string altUriString = $"{uri.Scheme}://{endpointStr}";
 
                             // The separator for endpoint parameters in alt-endpoint is $, so we replace these '$'
-                            // by '&' before sending the string to Endpoint.FromString which uses '&' as separator.
-                            _altEndpoints = _altEndpoints.Add(
-                                IceRpc.Endpoint.FromString(altUriString.Replace('$', '&')));
+                            // by '&' before sending the string (Uri) to the Endpoint constructor which uses '&' as
+                            // separator.
+                            _altEndpoints = _altEndpoints.Add(new Endpoint(new Uri(altUriString.Replace('$', '&'))));
                         }
                     }
                 }

@@ -156,8 +156,8 @@ public class ServiceAddressTests
             serviceAddressWithAltEndpoints = serviceAddressWithAltEndpoints with
             {
                 AltEndpoints = ImmutableList.Create(
-                    Endpoint.FromString("ice://localhost:10000?transport=fizz"),
-                    Endpoint.FromString("ice://localhost:10101?transport=buzz")
+                    new Endpoint(new Uri("ice://localhost:10000?transport=fizz")),
+                    new Endpoint(new Uri("ice://localhost:10101?transport=buzz"))
                 )
             };
 
@@ -320,7 +320,7 @@ public class ServiceAddressTests
         var serviceAddress = ServiceAddress.Parse("foobar://localhost/hello");
 
         // Constructing alternate endpoints.
-        var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
+        var altEndpoints = ImmutableList.Create(new Endpoint(new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() =>
@@ -358,7 +358,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Constructing alternate endpoints.
-        var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
+        var altEndpoints = ImmutableList.Create(new Endpoint(new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() =>

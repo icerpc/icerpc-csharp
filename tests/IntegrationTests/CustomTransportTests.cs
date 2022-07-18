@@ -79,7 +79,7 @@ public class CustomTransportTests
         await using var server = new Server(
             new ServerOptions
             {
-                Endpoint = "icerpc://127.0.0.1:0?transport=custom",
+                Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1:0?transport=custom")),
                 ConnectionOptions = new()
                 {
                     Dispatcher = new MyService()
@@ -107,7 +107,7 @@ public class CustomTransportTests
         {
             await using var server = new Server(new ServerOptions
             {
-                Endpoint = "icerpc://127.0.0.1:0?transport=custom&custom-p=bar",
+                Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
                 ConnectionOptions = new ConnectionOptions()
                 {
                     Dispatcher = new MyService()

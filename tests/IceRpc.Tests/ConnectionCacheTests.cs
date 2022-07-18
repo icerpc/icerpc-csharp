@@ -21,7 +21,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://foo"
+                Endpoint = new Endpoint(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
@@ -30,7 +30,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://bar",
+                Endpoint =  new Endpoint(new Uri("icerpc://bar")),
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
@@ -74,7 +74,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://foo"
+                Endpoint = new Endpoint(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
@@ -111,7 +111,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://foo"
+                Endpoint = new Endpoint(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
@@ -120,7 +120,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://bar"
+                Endpoint = new Endpoint(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
@@ -158,7 +158,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://foo"
+                Endpoint = new Endpoint(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
@@ -167,7 +167,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions()
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = "icerpc://bar"
+                Endpoint = new Endpoint(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();

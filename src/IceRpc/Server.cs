@@ -114,6 +114,21 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
+    /// <summary>Constructs a server with the specified dispatcher, endpoint and authentication options. All other
+    /// properties have their default values.</summary>
+    /// <param name="dispatcher">The dispatcher of the server.</param>
+    /// <param name="endpointUri">A URI that represents the endpoint of the server.</param>
+    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
+    /// <param name="authenticationOptions">The server authentication options.</param>
+    public Server(
+        IDispatcher dispatcher,
+        Uri endpointUri,
+        ILoggerFactory? loggerFactory = null,
+        SslServerAuthenticationOptions? authenticationOptions = null)
+        : this(dispatcher, new Endpoint(endpointUri), loggerFactory, authenticationOptions)
+    {
+    }
+
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {

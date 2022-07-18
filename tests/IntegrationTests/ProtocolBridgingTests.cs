@@ -20,8 +20,8 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)
     {
-        Endpoint forwarderEndpoint = $"{forwarderProtocol}://colochost1";
-        Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
+        var forwarderEndpoint = new Endpoint(new Uri($"{forwarderProtocol}://colochost1"));
+        var targetEndpoint = new Endpoint(new Uri($"{targetProtocol}://colochost2"));
 
         var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderEndpoint}forward");
         var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetEndpoint}target");

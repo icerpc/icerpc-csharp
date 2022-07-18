@@ -108,9 +108,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Constructs a client connection with the specified endpoint and authentication options.  All other
+    /// <summary>Constructs a client connection with the specified endpoint and authentication options. All other
     /// properties have their default values.</summary>
-    /// <param name="endpoint">The connection endpoint.</param>
+    /// <param name="endpoint">The address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
@@ -118,6 +118,15 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             ClientAuthenticationOptions = clientAuthenticationOptions,
             Endpoint = endpoint
         })
+    {
+    }
+
+    /// <summary>Constructs a client connection with the specified endpoint and authentication options. All other
+    /// properties have their default values.</summary>
+    /// <param name="endpointUri">A URI that represents the address of the server.</param>
+    /// <param name="clientAuthenticationOptions">The client authentication options.</param>
+    public ClientConnection(Uri endpointUri, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+        : this(new Endpoint(endpointUri), clientAuthenticationOptions)
     {
     }
 
