@@ -33,7 +33,7 @@ internal sealed class TcpListener : IListener<ISingleStreamTransportConnection>
         // to catch and handle them. They are only useful for the log decorator.
         return _serverConnectionDecorator(
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
-            new TcpServerTransportConnection(acceptedSocket, Endpoint, _authenticationOptions));
+            new TcpServerTransportConnection(Endpoint, acceptedSocket, _authenticationOptions));
 #pragma warning restore CA2000
     }
 
@@ -66,7 +66,7 @@ internal sealed class TcpListener : IListener<ISingleStreamTransportConnection>
         }
 
         var address = new IPEndPoint(ipAddress, endpoint.Port);
-        // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
+        // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
             new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :

@@ -1,17 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc;
 
-/// <summary>A connection pool is an invoker that routes outgoing requests to connections it manages. This routing is
+/// <summary>A connection cache is an invoker that routes outgoing requests to connections it manages. This routing is
 /// based on the <see cref="IEndpointFeature"/> and the endpoints of the service address carried by each outgoing
 /// request.</summary>
-public sealed class ConnectionPool : IInvoker, IAsyncDisposable
+public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
@@ -23,7 +22,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
     private readonly object _mutex = new();
 
-    private readonly ConnectionPoolOptions _options;
+    private readonly ConnectionCacheOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
@@ -33,16 +32,15 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
     private readonly IClientTransport<ISingleStreamTransportConnection> _singleStreamClientTransport;
 
-    /// <summary>Constructs a connection pool.</summary>
-    /// <param name="options">The connection pool options.</param>
+    /// <summary>Constructs a connection cache.</summary>
+    /// <param name="options">The connection cache options.</param>
     /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
     /// connections.</param>
-    /// <param name="singleStreamClientTransport">The single stream transport used to create ice protocol
-    /// connections.</param>
-    public ConnectionPool(
-        ConnectionPoolOptions options,
+    /// <param name="singleStreamClientTransport">The simple transport used to create ice protocol connections.</param>
+    public ConnectionCache(
+        ConnectionCacheOptions options,
         ILoggerFactory? loggerFactory = null,
         IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
         IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
@@ -54,16 +52,16 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             ClientConnection.DefaultSingleStreamClientTransport;
     }
 
-    /// <summary>Constructs a connection pool.</summary>
-    /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.
+    /// <summary>Constructs a connection cache.</summary>
+    /// <param name="clientConnectionOptions">The client connection options for connections created by this cache.
     /// </param>
-    public ConnectionPool(ClientConnectionOptions clientConnectionOptions)
-        : this(new ConnectionPoolOptions { ClientConnectionOptions = clientConnectionOptions })
+    public ConnectionCache(ClientConnectionOptions clientConnectionOptions)
+        : this(new ConnectionCacheOptions { ClientConnectionOptions = clientConnectionOptions })
     {
     }
 
-    /// <summary>Releases all resources allocated by this connection pool.</summary>
-    /// <returns>A value task that completes when all connections managed by this pool are disposed.</returns>
+    /// <summary>Releases all resources allocated by this connection cache.</summary>
+    /// <returns>A value task that completes when all connections managed by this cache are disposed.</returns>
     public async ValueTask DisposeAsync()
     {
         lock (_mutex)
@@ -71,7 +69,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             _isReadOnly = true;
         }
 
-        // Dispose all connections managed by this pool.
+        // Dispose all connections managed by this cache.
         IEnumerable<ClientConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
@@ -102,7 +100,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
+    /// <summary>Gracefully shuts down all connections managed by this cache. This method can be called multiple times.
     /// </summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the shutdown is complete.</returns>
@@ -113,109 +111,12 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             _isReadOnly = true;
         }
 
-        // Shut down all connections managed by this pool.
+        // Shut down all connections managed by this cache.
         IEnumerable<ClientConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
-    }
-
-    /// <summary>Returns a client connection to one of the specified endpoints.</summary>
-    /// <param name="endpointFeature">The endpoint feature.</param>
-    /// <param name="cancel">The cancellation token.</param>
-    // TODO: it's internal for now for the tests, pending further refactoring.
-    internal ValueTask<ClientConnection> GetClientConnectionAsync(
-        IEndpointFeature endpointFeature,
-        CancellationToken cancel)
-    {
-        ClientConnection? connection = null;
-        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
-
-        if (_options.PreferExistingConnection)
-        {
-            lock (_mutex)
-            {
-                connection = GetActiveConnection(mainEndpoint);
-                if (connection is null)
-                {
-                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
-                    {
-                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
-                        connection = GetActiveConnection(altEndpoint);
-                        if (connection is not null)
-                        {
-                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
-                            // the first alt endpoint.
-                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
-                                .RemoveAt(i)
-                                .Insert(0, mainEndpoint);
-                            endpointFeature.Endpoint = altEndpoint;
-
-                            break; // foreach
-                        }
-                    }
-                }
-            }
-            if (connection is not null)
-            {
-                return new(connection);
-            }
-        }
-
-        return GetOrCreateAsync();
-
-        ClientConnection? GetActiveConnection(Endpoint endpoint)
-        {
-            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
-            {
-                CheckEndpoint(endpoint);
-                return connection;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
-        // a brand new connection.
-        async ValueTask<ClientConnection> GetOrCreateAsync()
-        {
-            try
-            {
-                return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                List<Exception>? exceptionList = null;
-
-                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
-                {
-                    Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
-                    try
-                    {
-                        ClientConnection connection = await ConnectAsync(altEndpoint, cancel)
-                            .ConfigureAwait(false);
-
-                        // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
-                        // the first alt endpoint.
-                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(i).Insert(0, mainEndpoint);
-                        endpointFeature.Endpoint = altEndpoint;
-
-                        return connection;
-                    }
-                    catch (Exception altEx)
-                    {
-                        exceptionList ??= new List<Exception> { ex };
-                        exceptionList.Add(altEx);
-                        // and keep trying
-                    }
-                }
-
-                throw exceptionList is null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
-            }
-        }
+            allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancel)));
     }
 
     /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
@@ -248,7 +149,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         {
             if (_isReadOnly)
             {
-                throw new InvalidOperationException("pool shutting down");
+                throw new InvalidOperationException("connection cache shutting down");
             }
 
             if (_activeConnections.TryGetValue(endpoint, out connection))
@@ -278,7 +179,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         {
             try
             {
-                // TODO: add cancellation token to cancel when ConnectionPool is shut down / disposed.
+                // TODO: add cancellation token to cancel when ConnectionCache is shut down / disposed.
                 await connection.ConnectAsync(cancel).ConfigureAwait(false);
             }
             catch
@@ -381,6 +282,106 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                 if (!_isReadOnly)
                 {
                     _ = _shutdownPendingConnections.Remove(clientConnection);
+                }
+            }
+        }
+    }
+
+    /// <summary>Returns a client connection to one of the specified endpoints.</summary>
+    /// <param name="endpointFeature">The endpoint feature.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    private ValueTask<ClientConnection> GetClientConnectionAsync(
+        IEndpointFeature endpointFeature,
+        CancellationToken cancel)
+    {
+        ClientConnection? connection = null;
+        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
+
+        if (_options.PreferExistingConnection)
+        {
+            lock (_mutex)
+            {
+                connection = GetActiveConnection(mainEndpoint);
+                if (connection is null)
+                {
+                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
+                    {
+                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
+                        connection = GetActiveConnection(altEndpoint);
+                        if (connection is not null)
+                        {
+                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
+                            // the first alt endpoint.
+                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
+                                .RemoveAt(i)
+                                .Insert(0, mainEndpoint);
+                            endpointFeature.Endpoint = altEndpoint;
+
+                            break; // foreach
+                        }
+                    }
+                }
+            }
+            if (connection is not null)
+            {
+                return new(connection);
+            }
+        }
+
+        return GetOrCreateAsync();
+
+        ClientConnection? GetActiveConnection(Endpoint endpoint)
+        {
+            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
+            {
+                CheckEndpoint(endpoint);
+                return connection;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
+        // a brand new connection.
+        async ValueTask<ClientConnection> GetOrCreateAsync()
+        {
+            try
+            {
+                return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                List<Exception>? exceptionList = null;
+
+                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
+                {
+                    // Rotate the endpoints before each new connection attempt: the first alt endpoint becomes the main
+                    // endpoint and the main endpoint becomes the last alt endpoint.
+                    endpointFeature.Endpoint = endpointFeature.AltEndpoints[0];
+                    endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(0).Add(mainEndpoint);
+                    mainEndpoint = endpointFeature.Endpoint.Value;
+
+                    try
+                    {
+                        return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
+                    }
+                    catch (Exception altEx)
+                    {
+                        exceptionList ??= new List<Exception> { exception };
+                        exceptionList.Add(altEx);
+                        // and keep trying
+                    }
+                }
+
+                if (exceptionList is null)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw new AggregateException(exceptionList);
                 }
             }
         }

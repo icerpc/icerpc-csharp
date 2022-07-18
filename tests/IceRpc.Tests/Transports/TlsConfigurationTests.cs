@@ -200,13 +200,13 @@ public class TlsConfigurationTests
     }
 
     private static TcpClientTransportConnection CreateTcpClientConnection(
-        Endpoint? endpoint = null,
+        Endpoint endpoint,
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IClientTransport<ISingleStreamTransportConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientTransportConnection)transport.CreateConnection(
-            endpoint ?? new Endpoint(Protocol.IceRpc),
+            endpoint,
             authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }

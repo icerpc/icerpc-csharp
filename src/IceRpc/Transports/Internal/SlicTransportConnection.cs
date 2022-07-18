@@ -14,6 +14,8 @@ namespace IceRpc.Transports.Internal;
 /// top of a <see cref="ISingleStreamTransportConnection"/>.</summary>
 internal class SlicTransportConnection : IMultiplexedTransportConnection
 {
+    public Endpoint Endpoint => _transportConnection.Endpoint;
+
     internal bool IsServer { get; }
 
     internal int MinimumSegmentSize { get; }

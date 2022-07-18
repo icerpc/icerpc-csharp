@@ -49,6 +49,11 @@ public class TcpClientTransport : IClientTransport<ISingleStreamTransportConnect
             throw new FormatException($"cannot create a TCP connection to endpoint '{endpoint}'");
         }
 
+        if (endpointTransport is null)
+        {
+            endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
+        }
+
         authenticationOptions = authenticationOptions?.Clone() ??
             (endpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
 
@@ -65,11 +70,7 @@ public class TcpClientTransport : IClientTransport<ISingleStreamTransportConnect
             };
         }
 
-        var clientConnection = new TcpClientTransportConnection(
-            endpoint.Host,
-            endpoint.Port,
-            authenticationOptions,
-            _options);
+        var clientConnection = new TcpClientTransportConnection(endpoint, authenticationOptions, _options);
 
         return logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
             new LogTcpTransportConnectionDecorator(clientConnection, logger) : clientConnection;

@@ -21,9 +21,10 @@ public sealed class Server : IAsyncDisposable
     public static IServerTransport<ISingleStreamTransportConnection> DefaultSingleStreamServerTransport { get; } =
         new TcpServerTransport();
 
-    /// <summary>Gets the server's endpoint.</summary>
+    /// <summary>Gets the endpoint of this server.</summary>
     /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
-    /// listening endpoint returned by the transport.</value>
+    /// listening endpoint returned by the transport and always includes a transport parameter even when
+    /// <see cref="ServerOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; private set; }
 
     /// <summary>Gets a task that completes when the server's shutdown is complete: see <see

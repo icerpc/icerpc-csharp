@@ -14,6 +14,8 @@ internal delegate T LogTransportConnectionDecoratorFactory<T>(
 
 internal abstract class LogTransportConnectionDecorator : ITransportConnection
 {
+    public Endpoint Endpoint => _decoratee.Endpoint;
+
     internal ILogger Logger { get; }
 
     private protected bool IsServer { get; }

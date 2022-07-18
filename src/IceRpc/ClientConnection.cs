@@ -22,12 +22,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
-    // TODO: should we remove this property?
+    /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
+    /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; }
-
-    /// <summary>Gets the transport connection information or <c>null</c> if the connection is not connected.
-    /// </summary>
-    public TransportConnectionInformation? TransportConnectionInformation { get; private set; }
 
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => Endpoint.Protocol;
@@ -48,7 +45,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
         IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
     {
-        Endpoint = options.Endpoint ??
+        Endpoint endpoint = options.Endpoint ??
             throw new ArgumentException(
                 $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
                 nameof(options));
@@ -60,12 +57,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
-        if (Protocol == Protocol.Ice)
+        if (endpoint.Protocol == Protocol.Ice)
         {
             ISingleStreamTransportConnection transportConnection = singleStreamClientTransport.CreateConnection(
-                Endpoint,
+                endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
+
+            Endpoint = transportConnection.Endpoint;
 
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
@@ -82,9 +81,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             IMultiplexedTransportConnection transportConnection = multiplexedClientTransport.CreateConnection(
-                Endpoint,
+                endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
+
+            Endpoint = transportConnection.Endpoint;
 
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
@@ -123,8 +124,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection. This method can be called multiple times, even concurrently.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that represents the completion of the connect operation. This task can complete with one of the
-    /// following exceptions:
+    /// <returns>A task that provides the <see cref="TransportConnectionInformation"/> of the transport connection, once
+    /// this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
     /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
@@ -134,8 +135,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    public async Task ConnectAsync(CancellationToken cancel = default) =>
-        TransportConnectionInformation = await _protocolConnection.ConnectAsync(cancel: cancel).ConfigureAwait(false);
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel = default) =>
+        _protocolConnection.ConnectAsync(cancel);
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();

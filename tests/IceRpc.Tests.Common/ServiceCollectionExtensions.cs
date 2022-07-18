@@ -73,6 +73,7 @@ public static class ServiceCollectionExtensions
                 provider.GetRequiredService<IListener<ISingleStreamTransportConnection>>();
             IClientTransport<ISingleStreamTransportConnection> clientTransport =
                 provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>();
+
             return clientTransport.CreateConnection(
                 listener.Endpoint,
                 clientAuthenticationOptions,

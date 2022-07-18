@@ -9,6 +9,8 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The log decorator installed by the TCP transports.</summary>
 internal class LogTcpTransportConnectionDecorator : ISingleStreamTransportConnection
 {
+    public Endpoint Endpoint => _decoratee.Endpoint;
+
     private readonly TcpTransportConnection _decoratee;
     private readonly ILogger _logger;
 

@@ -27,19 +27,19 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
-    /// <summary>Adds a <see cref="ConnectionPool"/> and <see cref="IInvoker"/> singleton to this service collection.
+    /// <summary>Adds a <see cref="ConnectionCache"/> and <see cref="IInvoker"/> singleton to this service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
-    public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
+    public static IServiceCollection AddIceRpcConnectionCache(this IServiceCollection services) =>
         services
             .TryAddIceRpcClientTransport()
             .AddSingleton(provider =>
-                new ConnectionPool(
-                    provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
+                new ConnectionCache(
+                    provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IClientTransport<IMultiplexedTransportConnection>>(),
                     provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()))
-            .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionPool>());
+            .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
 
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
     /// <param name="services">The service collection to add services to.</param>

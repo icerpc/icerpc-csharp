@@ -134,7 +134,7 @@ public class SequenceDecodingTests
 
         // Act
         TestEnum[]? decoded = sut.DecodeSequence<TestEnum>(value => checkedValues.Add(value));
-        
+
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(checkedValues, Is.EqualTo(expected));
