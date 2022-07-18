@@ -178,40 +178,6 @@ public sealed record class ServiceAddress
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
 
-    /// <summary>Creates a service address from a URI string.</summary>
-    /// <param name="s">The string to parse.</param>
-    /// <returns>The parsed service address.</returns>
-    public static ServiceAddress Parse(string s)
-    {
-        try
-        {
-            return s.StartsWith('/') ? new ServiceAddress { Path = s } :
-                new ServiceAddress(new Uri(s, UriKind.Absolute));
-        }
-        catch (ArgumentException ex)
-        {
-            throw new FormatException($"cannot parse URI '{s}'", ex);
-        }
-    }
-
-    /// <summary>Tries to create a service address from a URI string.</summary>
-    /// <param name="s">The URI string to parse.</param>
-    /// <param name="serviceAddress">The parsed service address.</param>
-    /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
-    public static bool TryParse(string s, [NotNullWhen(true)] out ServiceAddress? serviceAddress)
-    {
-        try
-        {
-            serviceAddress = Parse(s);
-            return true;
-        }
-        catch (FormatException)
-        {
-            serviceAddress = null;
-            return false;
-        }
-    }
-
     /// <summary>Constructs a service address from a protocol.</summary>
     /// <param name="protocol">The protocol, or null for a relative service address.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
@@ -234,7 +200,15 @@ public sealed record class ServiceAddress
 
             if (Protocol.IsSupported)
             {
-                Protocol.CheckPath(_path);
+                try
+                {
+                    Protocol.CheckPath(_path);
+                }
+                catch (FormatException exception)
+                {
+                    throw new ArgumentException($"invalid path in {Protocol} URI", nameof(uri), exception);
+                }
+
                 if (!Protocol.HasFragment && _fragment.Length > 0)
                 {
                     throw new ArgumentException(
@@ -278,15 +252,27 @@ public sealed record class ServiceAddress
                 {
                     if (!_path.StartsWith('/'))
                     {
-                        throw new FormatException($"invalid path in service address URI '{uri.OriginalString}'");
+                        throw new ArgumentException(
+                            $"invalid path in service address URI '{uri.OriginalString}'",
+                            nameof(uri));
                     }
 
                     if (altEndpointValue is not null)
                     {
-                        throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
+                        throw new ArgumentException(
+                            $"invalid alt-endpoint parameter in URI '{uri.OriginalString}'",
+                            nameof(uri));
                     }
 
-                    Protocol.CheckServiceAddressParams(queryParams);
+                    try
+                    {
+                        Protocol.CheckServiceAddressParams(queryParams);
+                    }
+                    catch (FormatException exception)
+                    {
+                        throw new ArgumentException("invalid params in URI", nameof(uri), exception);
+                    }
+
                     Params = queryParams;
                 }
             }
@@ -298,7 +284,15 @@ public sealed record class ServiceAddress
             // relative service address
             Protocol = null;
             _path = uri.ToString();
-            CheckPath(_path);
+
+            try
+            {
+                CheckPath(_path);
+            }
+            catch (FormatException exception)
+            {
+                throw new ArgumentException("invalid path in relative URI", nameof(uri), exception);
+            }
         }
 
         OriginalUri = uri;

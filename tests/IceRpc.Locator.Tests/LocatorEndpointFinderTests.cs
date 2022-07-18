@@ -107,7 +107,7 @@ public class LocatorEndpointFinderTests
     {
         var endpointCache = new EndpointCache();
         var location = new Location { IsAdapterId = false, Value = "good" };
-        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost/dummy:10000");
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
         IEndpointFinder endpointFinder = new CacheUpdateEndpointFinderDecorator(
             new LocatorEndpointFinder(
                 new FakeLocatorProxy(new ServiceProxy { ServiceAddress = expectedServiceAddress }, adapterId: false)),
@@ -127,7 +127,7 @@ public class LocatorEndpointFinderTests
     {
         var endpointCache = new EndpointCache();
         var location = new Location { IsAdapterId = false, Value = "good" };
-        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost/dummy:10000");
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
         endpointCache.Cache[location] = expectedServiceAddress;
 
         IEndpointFinder endpointFinder = new CacheUpdateEndpointFinderDecorator(
@@ -179,7 +179,7 @@ public class LocatorEndpointFinderTests
             await _semaphore.WaitAsync(cancel);
             Interlocked.Increment(ref Count);
 
-            return ServiceAddress.Parse("dummy://localhost:10000");
+            return new ServiceAddress(new Uri("dummy://localhost:10000"));
         }
     }
 

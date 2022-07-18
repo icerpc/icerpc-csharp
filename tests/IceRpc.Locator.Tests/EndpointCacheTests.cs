@@ -11,7 +11,7 @@ public class EndpointCacheTests
     [Test]
     public void Get_known_location_from_endpoint_cache()
     {
-        var expected = ServiceAddress.Parse("ice:/dummy");
+        var expected = new ServiceAddress(new Uri("ice:/dummy"));
         var location = new Location { IsAdapterId = true, Value = "hello" };
         IEndpointCache endpointCache = new EndpointCache(10);
         endpointCache.Set(location, expected);
@@ -39,7 +39,7 @@ public class EndpointCacheTests
     {
         // Arrange
         IEndpointCache endpointCache = new EndpointCache(10);
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, ServiceAddress.Parse("ice:/dummy1"));
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
 
         // Act
         endpointCache.Remove(new Location { IsAdapterId = true, Value = "hello-1" });
@@ -57,7 +57,7 @@ public class EndpointCacheTests
     public void Endpoint_cache_prunes_oldest_entries_when_cache_reaches_max_cache_size()
     {
         // Arrange
-        var expected = ServiceAddress.Parse("ice:/dummy");
+        var expected = new ServiceAddress(new Uri("ice:/dummy"));
         IEndpointCache endpointCache = new EndpointCache(2);
 
         endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
@@ -79,9 +79,9 @@ public class EndpointCacheTests
     public void Updatate_existing_location_entry()
     {
         // Arrange
-        var expected = ServiceAddress.Parse("ice:/expected");
+        var expected = new ServiceAddress(new Uri("ice:/expected"));
         IEndpointCache endpointCache = new EndpointCache(10);
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, ServiceAddress.Parse("ice:/dummy1"));
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
 
         // Act
         endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);

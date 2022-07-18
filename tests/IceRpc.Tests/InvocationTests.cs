@@ -29,10 +29,10 @@ public class InvocationTests
 
         provider.GetRequiredService<Server>().Listen();
 
-        var request = new OutgoingRequest(ServiceAddress.Parse("ice:/test"));
+        var request = new OutgoingRequest(new ServiceAddress(new Uri("ice:/test")));
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
 
-        var callback = new OutgoingRequest(ServiceAddress.Parse("ice:/callback"));
+        var callback = new OutgoingRequest(new ServiceAddress(new Uri("ice:/callback")));
 
         // Act
         IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
@@ -62,10 +62,10 @@ public class InvocationTests
 
         provider.GetRequiredService<Server>().Listen();
 
-        var request = new OutgoingRequest(ServiceAddress.Parse("icerpc:/test"));
+        var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
 
-        var callback = new OutgoingRequest(ServiceAddress.Parse("icerpc:/callback"));
+        var callback = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/callback")));
         using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
         // Act and Assert

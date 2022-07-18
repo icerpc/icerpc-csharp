@@ -152,6 +152,11 @@ public {proxy_impl}(IceRpc.IInvoker invoker, Uri serviceAddressUri, SliceEncodeO
 {{
 }}
 
+/// <summary>Constructs a proxy with the default service address.</summary>
+public {proxy_impl}()
+{{
+}}
+
 /// <inheritdoc/>
 public override string ToString() => ServiceAddress.ToString();"#,
         proxy_impl = interface_def.proxy_implementation_name(),
