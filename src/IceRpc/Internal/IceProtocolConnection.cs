@@ -64,7 +64,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         ConnectionOptions options)
         : base(options)
     {
-        _dispatcher = options.Dispatcher;
+        // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
+        // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
+        // more sense than throwing an UnknownException.
+        _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
         _maxFrameSize = options.MaxIceFrameSize;
         _isServer = isServer;
 

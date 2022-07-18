@@ -60,6 +60,12 @@ public sealed class Server : IAsyncDisposable
         IServerTransport<IMultiplexedConnection>? multiplexedServerTransport = null,
         IServerTransport<IDuplexConnection>? duplexServerTransport = null)
     {
+        if (options.ConnectionOptions.Dispatcher is null)
+        {
+            throw new ArgumentException(
+                $"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
+        }
+
         Endpoint = options.Endpoint;
         _options = options;
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;

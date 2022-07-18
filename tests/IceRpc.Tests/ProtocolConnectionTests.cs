@@ -99,7 +99,11 @@ public sealed class ProtocolConnectionTests
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
         services
             .AddOptions<ServerOptions>()
-            .Configure(options => options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500));
+            .Configure(options => options.ConnectionOptions = new()
+            {
+                IdleTimeout = TimeSpan.FromMilliseconds(500),
+                Dispatcher = ServiceNotFoundDispatcher.Instance
+            });
 
         await using var provider = services.BuildServiceProvider();
 

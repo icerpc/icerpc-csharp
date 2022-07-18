@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
@@ -84,7 +85,7 @@ public class RouterTests
 
     /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)"/> fails when using an invalid path.</summary>
     [Test]
-    public void Maping_an_invalid_path_fails()
+    public void Mapping_an_invalid_path_fails()
     {
         var router = new Router();
 

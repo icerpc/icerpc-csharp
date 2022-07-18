@@ -2,14 +2,14 @@
 
 using IceRpc.Slice;
 
-namespace IceRpc;
+namespace IceRpc.Internal;
 
 /// <summary>A trivial dispatcher that always throws a <see cref="DispatchException"/> with error code
 /// <see cref="DispatchErrorCode.ServiceNotFound"/>.</summary>
-public class ServiceNotFoundDispatcher : IDispatcher
+internal class ServiceNotFoundDispatcher : IDispatcher
 {
     /// <summary>Gets the unique instance of this class.</summary>
-    public static ServiceNotFoundDispatcher Instance { get; } = new();
+    internal static ServiceNotFoundDispatcher Instance { get; } = new();
 
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default) =>

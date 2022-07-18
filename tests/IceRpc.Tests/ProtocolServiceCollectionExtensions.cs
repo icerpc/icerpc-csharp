@@ -25,10 +25,7 @@ public static class ProtocolServiceCollectionExtensions
             options =>
             {
                 options.Endpoint = new Endpoint(protocol) { Host = "colochost" };
-                if (dispatcher is not null)
-                {
-                    options.ConnectionOptions.Dispatcher = dispatcher;
-                }
+                options.ConnectionOptions.Dispatcher = dispatcher ?? ServiceNotFoundDispatcher.Instance;
             });
 
         services.TryAddSingleton<ILogger>(NullLogger.Instance);
