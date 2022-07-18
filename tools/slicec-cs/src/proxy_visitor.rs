@@ -152,9 +152,10 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {proxy_impl}
     }}
 }}
 
-/// <summary>Constructs a relative proxy from a path.</summary>
+/// <summary>Creates a relative proxy from a path.</summary>
 /// <param name="path">The path.</param>
-public {proxy_impl}(string path) => ServiceAddress = new() {{ Path = path }};
+/// <returns>The new relative proxy.</returns>
+public static {proxy_impl} FromPath(string path) => new() {{ ServiceAddress = new() {{ Path = path }} }};
 
 /// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
