@@ -32,7 +32,7 @@ enum MyEnumWithCustomEnumerators
     E4 = 16,
 }
 
-interface EnumOperatons
+interface EnumOperations
 {
     opCheckedEnumSeq(p1: sequence<MyEnum>);
     opCheckedEnumWithFixedLengthSeq(p1: sequence<MyFixedLengthEnum>);
