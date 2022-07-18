@@ -102,13 +102,13 @@ internal static partial class ConnectionLoggerExtensions
     /// <summary>Starts a client connection scope.</summary>
     internal static IDisposable StartClientConnectionScope(
         this ILogger logger,
-        NetworkConnectionInformation information) =>
+        TransportConnectionInformation information) =>
         _clientConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
 
     /// <summary>Starts a client or server connection scope.</summary>
     internal static IDisposable StartConnectionScope(
         this ILogger logger,
-        NetworkConnectionInformation information,
+        TransportConnectionInformation information,
         bool isServer) =>
         isServer ? logger.StartServerConnectionScope(information) : logger.StartClientConnectionScope(information);
 
@@ -122,7 +122,7 @@ internal static partial class ConnectionLoggerExtensions
     /// <summary>Starts a server connection scope.</summary>
     internal static IDisposable StartServerConnectionScope(
         this ILogger logger,
-        NetworkConnectionInformation information) =>
+        TransportConnectionInformation information) =>
         _serverConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
 
     /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>

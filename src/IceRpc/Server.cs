@@ -14,11 +14,11 @@ namespace IceRpc;
 public sealed class Server : IAsyncDisposable
 {
     /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
-    public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
+    public static IServerTransport<IMultiplexedConnection> DefaultMultiplexedServerTransport { get; } =
         new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets the default server transport for ice protocol connections.</summary>
-    public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
+    public static IServerTransport<IDuplexConnection> DefaultDuplexServerTransport { get; } =
         new TcpServerTransport();
 
     /// <summary>Gets the endpoint of this server.</summary>
@@ -38,8 +38,8 @@ public sealed class Server : IAsyncDisposable
     private IListener? _listener;
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IServerTransport<IMultiplexedNetworkConnection> _multiplexedServerTransport;
-    private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
+    private readonly IServerTransport<IMultiplexedConnection> _multiplexedServerTransport;
+    private readonly IServerTransport<IDuplexConnection> _duplexServerTransport;
 
     // protects _shutdownTask
     private readonly object _mutex = new();
@@ -53,12 +53,12 @@ public sealed class Server : IAsyncDisposable
     /// <param name="options">The server options.</param>
     /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
-    /// <param name="simpleServerTransport">The transport used to create ice protocol connections.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections.</param>
     public Server(
         ServerOptions options,
         ILoggerFactory? loggerFactory = null,
-        IServerTransport<IMultiplexedNetworkConnection>? multiplexedServerTransport = null,
-        IServerTransport<ISimpleNetworkConnection>? simpleServerTransport = null)
+        IServerTransport<IMultiplexedConnection>? multiplexedServerTransport = null,
+        IServerTransport<IDuplexConnection>? duplexServerTransport = null)
     {
         if (options.ConnectionOptions.Dispatcher is null)
         {
@@ -70,7 +70,7 @@ public sealed class Server : IAsyncDisposable
         _options = options;
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
-        _simpleServerTransport = simpleServerTransport ?? DefaultSimpleServerTransport;
+        _duplexServerTransport = duplexServerTransport ?? DefaultDuplexServerTransport;
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
@@ -156,24 +156,24 @@ public sealed class Server : IAsyncDisposable
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 PerformListen(
-                    _simpleServerTransport,
+                    _duplexServerTransport,
                     AcceptIceConnectionAsync,
-                    LogSimpleNetworkConnectionDecorator.Decorate);
+                    LogDuplexConnectionDecorator.Decorate);
             }
             else
             {
                 PerformListen(
                     _multiplexedServerTransport,
                     AcceptIceRpcConnectionAsync,
-                    LogMultiplexedNetworkConnectionDecorator.Decorate);
+                    LogMultiplexedConnectionDecorator.Decorate);
             }
         }
 
         void PerformListen<T>(
             IServerTransport<T> serverTransport,
             Func<IListener<T>, Task<IProtocolConnection>> acceptProtocolConnection,
-            LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
-                where T : INetworkConnection
+            LogTransportConnectionDecoratorFactory<T> logDecoratorFactory)
+                where T : ITransportConnection
         {
             // This is the composition root of Server, where we install log decorators when logging is enabled.
 
@@ -201,16 +201,16 @@ public sealed class Server : IAsyncDisposable
             _ = Task.Run(() => AcceptAsync(() => acceptProtocolConnection(listener)));
         }
 
-        async Task<IProtocolConnection> AcceptIceRpcConnectionAsync(IListener<IMultiplexedNetworkConnection> listener)
+        async Task<IProtocolConnection> AcceptIceRpcConnectionAsync(IListener<IMultiplexedConnection> listener)
         {
-            IMultiplexedNetworkConnection networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
-            return new IceRpcProtocolConnection(networkConnection, _options.ConnectionOptions);
+            IMultiplexedConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
+            return new IceRpcProtocolConnection(transportConnection, _options.ConnectionOptions);
         }
 
-        async Task<IProtocolConnection> AcceptIceConnectionAsync(IListener<ISimpleNetworkConnection> listener)
+        async Task<IProtocolConnection> AcceptIceConnectionAsync(IListener<IDuplexConnection> listener)
         {
-            ISimpleNetworkConnection networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
-            return new IceProtocolConnection(networkConnection, isServer: true, _options.ConnectionOptions);
+            IDuplexConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
+            return new IceProtocolConnection(transportConnection, isServer: true, _options.ConnectionOptions);
         }
 
         async Task AcceptAsync(Func<Task<IProtocolConnection>> acceptProtocolConnection)

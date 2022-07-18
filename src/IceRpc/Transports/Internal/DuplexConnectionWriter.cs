@@ -6,11 +6,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>A helper class to write to simple network connection. It provides a PipeWriter-like API but
-/// is not a PipeWriter.</summary>
-internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
+/// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
+/// PipeWriter.</summary>
+internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
-    private readonly ISimpleNetworkConnection _connection;
+    private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
 
@@ -30,8 +30,8 @@ internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
     /// <inheritdoc/>
     public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
 
-    internal SimpleNetworkConnectionWriter(
-        ISimpleNetworkConnection connection,
+    internal DuplexConnectionWriter(
+        IDuplexConnection connection,
         MemoryPool<byte> pool,
         int minimumSegmentSize)
     {

@@ -26,7 +26,7 @@ public class LoggerMiddleware : IDispatcher
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
         _logger.LogReceivedRequest(
-            request.ConnectionContext.NetworkConnectionInformation,
+            request.ConnectionContext.TransportConnectionInformation,
             request.Path,
             request.Operation);
         try
@@ -35,7 +35,7 @@ public class LoggerMiddleware : IDispatcher
             if (!request.IsOneway)
             {
                 _logger.LogSendingResponse(
-                    request.ConnectionContext.NetworkConnectionInformation,
+                    request.ConnectionContext.TransportConnectionInformation,
                     request.Path,
                     request.Operation,
                     response.ResultType);
@@ -45,7 +45,7 @@ public class LoggerMiddleware : IDispatcher
         catch (Exception ex)
         {
             _logger.LogDispatchException(
-                request.ConnectionContext.NetworkConnectionInformation,
+                request.ConnectionContext.TransportConnectionInformation,
                 request.Path,
                 request.Operation,
                 ex);
@@ -58,7 +58,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
 {
     internal static void LogDispatchException(
         this ILogger logger,
-        NetworkConnectionInformation networkConnectionInformation,
+        TransportConnectionInformation transportConnectionInformation,
         string path,
         string operation,
         Exception ex)
@@ -66,8 +66,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogDispatchException(
-                networkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                networkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
+                transportConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                transportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
                 ex);
@@ -76,15 +76,15 @@ internal static partial class LoggerMiddlewareLoggerExtensions
 
     internal static void LogReceivedRequest(
         this ILogger logger,
-        NetworkConnectionInformation networkConnectionInformation,
+        TransportConnectionInformation transportConnectionInformation,
         string path,
         string operation)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogReceivedRequest(
-                networkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                networkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
+                transportConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                transportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation);
         }
@@ -92,7 +92,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
 
     internal static void LogSendingResponse(
         this ILogger logger,
-        NetworkConnectionInformation networkConnectionInformation,
+        TransportConnectionInformation transportConnectionInformation,
         string path,
         string operation,
         ResultType resultType)
@@ -100,8 +100,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogSendingResponse(
-                networkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                networkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
+                transportConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                transportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
                 resultType);

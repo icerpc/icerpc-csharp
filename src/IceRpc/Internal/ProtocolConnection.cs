@@ -13,7 +13,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     public abstract Protocol Protocol { get; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
-    private Task<NetworkConnectionInformation>? _connectTask;
+    private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
     private Task? _disposeTask;
     private readonly TimeSpan _idleTimeout;
@@ -27,7 +27,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
 
-    public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         lock (_mutex)
         {
@@ -48,7 +48,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         return PerformWaitForConnectAsync();
 
-        async Task<NetworkConnectionInformation> PerformWaitForConnectAsync()
+        async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
         {
             try
             {
@@ -68,7 +68,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
         }
 
-        async Task<NetworkConnectionInformation> PerformConnectAsync()
+        async Task<TransportConnectionInformation> PerformConnectAsync()
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
@@ -80,7 +80,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 cancelSource.Token.ThrowIfCancellationRequested();
 
-                NetworkConnectionInformation information = await ConnectAsyncCore(cancelSource.Token)
+                TransportConnectionInformation information = await ConnectAsyncCore(cancelSource.Token)
                     .ConfigureAwait(false);
                 EnableIdleCheck();
                 return information;
@@ -307,7 +307,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
     private protected abstract bool CheckIfIdle();
 
-    private protected abstract Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel);
+    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancel);
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);

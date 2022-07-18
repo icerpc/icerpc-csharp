@@ -7,11 +7,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>A helper class to efficiently read a simple network connection. It provides a PipeReader-like API but
-/// is not a PipeReader.</summary>
-internal class SimpleNetworkConnectionReader : IDisposable
+/// <summary>A helper class to efficiently read data from a duplex connection. It provides a PipeReader-like API but is
+/// not a PipeReader.</summary>
+internal class DuplexConnectionReader : IDisposable
 {
-    private readonly ISimpleNetworkConnection _connection;
+    private readonly IDuplexConnection _connection;
     private TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private bool _isDisposed;
@@ -37,8 +37,8 @@ internal class SimpleNetworkConnectionReader : IDisposable
         _keepAliveTimer?.Dispose();
     }
 
-    internal SimpleNetworkConnectionReader(
-        ISimpleNetworkConnection connection,
+    internal DuplexConnectionReader(
+        IDuplexConnection connection,
         TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
@@ -73,7 +73,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
                 }
 
                 abortAction(new ConnectionAbortedException(
-                    $"the network connection has been idle for longer than {_idleTimeout}"));
+                    $"the transport connection has been idle for longer than {_idleTimeout}"));
             });
 
         if (keepAliveAction is not null)
@@ -170,7 +170,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
     internal ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken cancel = default) =>
         ReadAtLeastAsync(minimumSize: 1, cancel);
 
-    /// <summary>Reads and returns bytes from the underlying network connection. The returned buffer has always
+    /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer has always
     /// at least minimumSize bytes.</summary>
     internal async ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(
         int minimumSize,
@@ -272,7 +272,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
                 // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
                 // calling read method doesn't return data.
                 throw new ConnectionAbortedException(
-                    $"the network connection has been idle for longer than {_idleTimeout}");
+                    $"the transport connection has been idle for longer than {_idleTimeout}");
             }
             else
             {

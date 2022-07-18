@@ -8,54 +8,55 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal;
 
 /// <summary>A stateless pipe writer used for the payload writer of an outgoing request or response. The writer just
-/// writes to the network connection writer.</summary>
+/// writes to the transport connection writer.</summary>
 internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 {
-    private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
+    private readonly DuplexConnectionWriter _transportConnectionWriter;
 
-    public override void Advance(int bytes) => _networkConnectionWriter.Advance(bytes);
+    public override void Advance(int bytes) => _transportConnectionWriter.Advance(bytes);
 
     public override void CancelPendingFlush() => throw new NotSupportedException();
 
     public override void Complete(Exception? exception = null)
     {
-        // No-op. We don't want to dispose the network connection writer.
+        // No-op. We don't want to dispose the transport connection writer.
     }
 
     public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default)
     {
         try
         {
-            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+            await _transportConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted.
+            // The duplex connection can only be disposed if this connection is aborted.
             throw new ConnectionAbortedException();
         }
         return default;
     }
 
-    public override Memory<byte> GetMemory(int sizeHint = 0) => _networkConnectionWriter.GetMemory(sizeHint);
+    public override Memory<byte> GetMemory(int sizeHint = 0) => _transportConnectionWriter.GetMemory(sizeHint);
 
-    public override Span<byte> GetSpan(int sizeHint = 0) => _networkConnectionWriter.GetSpan(sizeHint);
+    public override Span<byte> GetSpan(int sizeHint = 0) => _transportConnectionWriter.GetSpan(sizeHint);
 
     public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
     {
         try
         {
-            await _networkConnectionWriter.WriteAsync(new ReadOnlySequence<byte>(source), cancel).ConfigureAwait(false);
+            await _transportConnectionWriter.WriteAsync(
+                new ReadOnlySequence<byte>(source), cancel).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted.
+            // The duplex connection can only be disposed if this connection is aborted.
             throw new ConnectionAbortedException();
         }
         return default;
     }
 
-    /// <summary>Writes the source to the simple network connection. <paramref name="endStream"/> is ignored because
-    /// the simple network connection has no use for it.</summary>
+    /// <summary>Writes the source to the duplex connection. <paramref name="endStream"/> is ignored
+    /// because the duplex connection has no use for it.</summary>
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
@@ -63,16 +64,16 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
     {
         try
         {
-            await _networkConnectionWriter.WriteAsync(source, cancel).ConfigureAwait(false);
+            await _transportConnectionWriter.WriteAsync(source, cancel).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted.
+            // The duplex connection can only be disposed if this connection is aborted.
             throw new ConnectionAbortedException();
         }
         return default;
     }
 
-    internal IcePayloadPipeWriter(SimpleNetworkConnectionWriter networkConnectionWriter) =>
-        _networkConnectionWriter = networkConnectionWriter;
+    internal IcePayloadPipeWriter(DuplexConnectionWriter transportConnectionWriter) =>
+        _transportConnectionWriter = transportConnectionWriter;
 }

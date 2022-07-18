@@ -17,7 +17,7 @@ public class SlicTransportTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+            .AddSingleton<IServerTransport<IMultiplexedConnection>>(
                 provider => new SlicServerTransport(
                     new SlicTransportOptions
                     {
@@ -25,8 +25,8 @@ public class SlicTransportTests
                         ResumeWriterThreshold = 2000,
                         PacketMaxSize = 2098
                     },
-                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()))
-            .AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+                    provider.GetRequiredService<IServerTransport<IDuplexConnection>>()))
+            .AddSingleton<IClientTransport<IMultiplexedConnection>>(
                 provider => new SlicClientTransport(
                     new SlicTransportOptions
                     {
@@ -34,16 +34,16 @@ public class SlicTransportTests
                         ResumeWriterThreshold = 2000,
                         PacketMaxSize = 4567
                     },
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+                    provider.GetRequiredService<IClientTransport<IDuplexConnection>>()))
             .AddSlicTest()
             .BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var clientConnection = provider.GetRequiredService<SlicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        var serverConnection = (SlicNetworkConnection)await acceptTask;
+        var serverConnection = (SlicMultiplexedConnection)await acceptTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -68,10 +68,10 @@ public class SlicTransportTests
 
         byte[] payload = new byte[pauseThreshold - 1];
 
-        var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        var clientConnection = provider.GetRequiredService<SlicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using IMultiplexedConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
@@ -99,10 +99,10 @@ public class SlicTransportTests
             .AddSlicTest(new SlicTransportOptions { PauseWriterThreshold = pauseThreshold })
             .BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        var clientConnection = provider.GetRequiredService<SlicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using IMultiplexedConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream1, IMultiplexedStream remoteStream1) =
             await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
@@ -142,10 +142,10 @@ public class SlicTransportTests
                     ResumeWriterThreshold = resumeThreshold,
                 }).BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<SlicNetworkConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        Task<IMultiplexedNetworkConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        var clientConnection = provider.GetRequiredService<SlicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using IMultiplexedConnection serverConnection = await acceptTask;
 
         IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: true);
 
@@ -172,8 +172,8 @@ public class SlicTransportTests
     }
 
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
-        IMultiplexedNetworkConnection localConnection,
-        IMultiplexedNetworkConnection remoteConnection,
+        IMultiplexedConnection localConnection,
+        IMultiplexedConnection remoteConnection,
         bool bidirectional = true)
     {
         IMultiplexedStream localStream = localConnection.CreateStream(bidirectional);
@@ -184,9 +184,9 @@ public class SlicTransportTests
         return (localStream, remoteStream);
     }
 
-    private static async Task<IMultiplexedNetworkConnection> ConnectAndAcceptConnectionAsync(
-        IListener<IMultiplexedNetworkConnection> listener,
-        IMultiplexedNetworkConnection connection)
+    private static async Task<IMultiplexedConnection> ConnectAndAcceptConnectionAsync(
+        IListener<IMultiplexedConnection> listener,
+        IMultiplexedConnection connection)
     {
         var connectTask = connection.ConnectAsync(default);
         var serverConnection = await listener.AcceptAsync();

@@ -9,7 +9,7 @@ internal sealed class ConnectionContext : IConnectionContext
 {
     public IInvoker Invoker => _protocolConnection;
 
-    public NetworkConnectionInformation NetworkConnectionInformation { get; }
+    public TransportConnectionInformation TransportConnectionInformation { get; }
 
     public Protocol Protocol => _protocolConnection.Protocol;
 
@@ -21,9 +21,9 @@ internal sealed class ConnectionContext : IConnectionContext
 
     internal ConnectionContext(
         IProtocolConnection protocolConnection,
-        NetworkConnectionInformation networkConnectionInformation)
+        TransportConnectionInformation transportConnectionInformation)
     {
         _protocolConnection = protocolConnection;
-        NetworkConnectionInformation = networkConnectionInformation;
+        TransportConnectionInformation = transportConnectionInformation;
     }
 }

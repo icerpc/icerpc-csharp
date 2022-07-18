@@ -5,9 +5,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The colocated network connection class to exchange data within the same process. The implementation
-/// copies the send buffer into the receive buffer.</summary>
-internal class ColocNetworkConnection : ISimpleNetworkConnection
+/// <summary>The colocated connection class to exchange data within the same process. The implementation copies the send
+/// buffer into the receive buffer.</summary>
+internal class ColocDuplexConnection : IDuplexConnection
 {
     public Endpoint Endpoint { get; }
 
@@ -20,16 +20,16 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
     private int _state;
     private PipeWriter? _writer;
 
-    public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         (_reader, _writer) = _connect(Endpoint);
         var colocEndPoint = new ColocEndPoint(Endpoint);
-        return Task.FromResult(new NetworkConnectionInformation(colocEndPoint, colocEndPoint, null));
+        return Task.FromResult(new TransportConnectionInformation(colocEndPoint, colocEndPoint, null));
     }
 
     public void Dispose()
     {
-        _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+        _exception ??= new ObjectDisposedException($"{typeof(ColocDuplexConnection)}");
 
         if (_state.TrySetFlag(State.Disposed))
         {
@@ -203,7 +203,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
         }
     }
 
-    public ColocNetworkConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
+    public ColocDuplexConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
     {
         Endpoint = endpoint;
         _connect = connect;

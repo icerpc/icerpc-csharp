@@ -10,9 +10,9 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the tcp and ssl transports.
+/// <summary>Implements <see cref="IClientTransport{IDuplexConnection}"/> for the tcp and ssl transports.
 /// </summary>
-public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
+public class TcpClientTransport : IClientTransport<IDuplexConnection>
 {
     /// <inheritdoc/>
     public string Name => TransportNames.Tcp;
@@ -36,7 +36,7 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
     public bool CheckParams(Endpoint endpoint) => CheckParams(endpoint, out _);
 
     /// <inheritdoc/>
-    public ISimpleNetworkConnection CreateConnection(
+    public IDuplexConnection CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
@@ -70,10 +70,10 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
             };
         }
 
-        var clientConnection = new TcpClientNetworkConnection(endpoint, authenticationOptions, _options);
+        var clientConnection = new TcpClientDuplexConnection(endpoint, authenticationOptions, _options);
 
         return logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
-            new LogTcpNetworkConnectionDecorator(clientConnection, logger) : clientConnection;
+            new LogTcpTransportConnectionDecorator(clientConnection, logger) : clientConnection;
     }
 
     /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"

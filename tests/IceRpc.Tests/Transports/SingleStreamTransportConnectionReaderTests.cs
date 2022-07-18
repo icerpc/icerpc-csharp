@@ -10,7 +10,7 @@ using System.Buffers;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class SimpleNetworkConnectionReaderTests
+public class DuplexConnectionReaderTests
 {
     // TODO: Add more tests
 
@@ -19,20 +19,20 @@ public class SimpleNetworkConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSimpleTransport("icerpc://colochost/")
+            .UseDuplexTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        using IDuplexConnection serverConnection = await acceptTask;
+        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         int pingCount = 0;
-        using var reader = new SimpleNetworkConnectionReader(
+        using var reader = new DuplexConnectionReader(
             clientConnection,
             TimeSpan.FromMilliseconds(1000),
             MemoryPool<byte>.Shared,
@@ -59,20 +59,20 @@ public class SimpleNetworkConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSimpleTransport("icerpc://colochost/")
+            .UseDuplexTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        using IDuplexConnection serverConnection = await acceptTask;
+        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
-        using var reader = new SimpleNetworkConnectionReader(
+        using var reader = new DuplexConnectionReader(
             clientConnection,
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
@@ -93,20 +93,20 @@ public class SimpleNetworkConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSimpleTransport("icerpc://colochost/")
+            .UseDuplexTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        using IDuplexConnection serverConnection = await acceptTask;
+        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
-        using var reader = new SimpleNetworkConnectionReader(
+        using var reader = new DuplexConnectionReader(
             clientConnection,
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,

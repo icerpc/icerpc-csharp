@@ -10,7 +10,7 @@ using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
-internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
+internal abstract class TcpDuplexConnection : IDuplexConnection
 {
     public Endpoint Endpoint { get; }
 
@@ -25,7 +25,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 
     private readonly List<ArraySegment<byte>> _segments = new();
 
-    public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
+    public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
 
     public void Dispose()
     {
@@ -69,7 +69,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -192,7 +192,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -200,10 +200,10 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
         }
     }
 
-    private protected TcpNetworkConnection(Endpoint endpoint) => Endpoint = endpoint;
+    private protected TcpDuplexConnection(Endpoint endpoint) => Endpoint = endpoint;
 }
 
-internal class TcpClientNetworkConnection : TcpNetworkConnection
+internal class TcpClientDuplexConnection : TcpDuplexConnection
 {
     internal override Socket Socket { get; }
 
@@ -216,7 +216,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
 
     private SslStream? _sslStream;
 
-    public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         Debug.Assert(!_connected);
         _connected = true;
@@ -235,7 +235,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
                 await _sslStream.AuthenticateAsClientAsync(_authenticationOptions, cancel).ConfigureAwait(false);
             }
 
-            return new NetworkConnectionInformation(
+            return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
@@ -251,7 +251,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -259,7 +259,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
         }
     }
 
-    internal TcpClientNetworkConnection(
+    internal TcpClientDuplexConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         TcpClientTransportOptions options)
@@ -303,7 +303,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
     }
 }
 
-internal class TcpServerNetworkConnection : TcpNetworkConnection
+internal class TcpServerDuplexConnection : TcpDuplexConnection
 {
     internal override Socket Socket { get; }
 
@@ -313,7 +313,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
     private bool _connected;
     private SslStream? _sslStream;
 
-    public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         Debug.Assert(!_connected);
         _connected = true;
@@ -329,7 +329,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
             var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
 
-            return new NetworkConnectionInformation(
+            return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
@@ -345,7 +345,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -353,7 +353,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
         }
     }
 
-    internal TcpServerNetworkConnection(
+    internal TcpServerDuplexConnection(
         Endpoint endpoint,
         Socket socket,
         SslServerAuthenticationOptions? authenticationOptions)

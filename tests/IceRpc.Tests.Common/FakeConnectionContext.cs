@@ -12,7 +12,7 @@ public sealed class FakeConnectionContext : IConnectionContext
 
     public IInvoker Invoker => NotImplementedInvoker.Instance;
 
-    public NetworkConnectionInformation NetworkConnectionInformation => default;
+    public TransportConnectionInformation TransportConnectionInformation => default;
 
     public Protocol Protocol { get; }
 

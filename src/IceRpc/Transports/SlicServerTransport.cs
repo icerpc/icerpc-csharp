@@ -6,38 +6,38 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> using Slic over a simple
-/// server transport.</summary>
-public class SlicServerTransport : IServerTransport<IMultiplexedNetworkConnection>
+/// <summary>Implements <see cref="IServerTransport{IMultiplexedConnection}"/> using Slic over a duplex server
+/// transport.</summary>
+public class SlicServerTransport : IServerTransport<IMultiplexedConnection>
 {
     /// <inheritdoc/>
-    public string Name => _simpleServerTransport.Name;
+    public string Name => _duplexServerTransport.Name;
 
-    private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
+    private readonly IServerTransport<IDuplexConnection> _duplexServerTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 
     /// <summary>Constructs a Slic server transport.</summary>
     /// <param name="options">The options to configure the transport.</param>
-    /// <param name="simpleServerTransport">The simple server transport.</param>
+    /// <param name="duplexServerTransport">The single server transport.</param>
     public SlicServerTransport(
         SlicTransportOptions options,
-        IServerTransport<ISimpleNetworkConnection> simpleServerTransport)
+        IServerTransport<IDuplexConnection> duplexServerTransport)
     {
         _slicTransportOptions = options;
-        _simpleServerTransport = simpleServerTransport;
+        _duplexServerTransport = duplexServerTransport;
     }
 
     /// <summary>Constructs a Slic server transport.</summary>
-    /// <param name="simpleServerTransport">The simple server transport.</param>
-    public SlicServerTransport(IServerTransport<ISimpleNetworkConnection> simpleServerTransport)
-        : this(new(), simpleServerTransport)
+    /// <param name="duplexServerTransport">The single server transport.</param>
+    public SlicServerTransport(IServerTransport<IDuplexConnection> duplexServerTransport)
+        : this(new(), duplexServerTransport)
     {
     }
 
     /// <inheritdoc/>
-    public IListener<IMultiplexedNetworkConnection> Listen(
+    public IListener<IMultiplexedConnection> Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger) =>
-        new SlicListener(_simpleServerTransport.Listen(endpoint, authenticationOptions, logger), _slicTransportOptions);
+        new SlicListener(_duplexServerTransport.Listen(endpoint, authenticationOptions, logger), _slicTransportOptions);
 }

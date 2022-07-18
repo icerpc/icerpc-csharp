@@ -349,7 +349,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Connect_returns_network_connection_information([Values("ice", "icerpc")] string protocol)
+    public async Task Connect_returns_transport_connection_information([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddColocTest(
@@ -362,10 +362,10 @@ public class ConnectionTests
         var connection = provider.GetRequiredService<ClientConnection>();
 
         // Act
-        NetworkConnectionInformation networkConnectionInformation = await connection.ConnectAsync(default);
+        TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync(default);
 
         // Assert
-        Assert.That(networkConnectionInformation, Is.Not.EqualTo(new NetworkConnectionInformation()));
+        Assert.That(transportConnectionInformation, Is.Not.EqualTo(new TransportConnectionInformation()));
     }
 
     [Test]

@@ -7,8 +7,9 @@ using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
-internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
+/// <summary>Implements <see cref="IClientTransport{IDuplexConnection}"/> for the coloc
+/// transport.</summary>
+internal class ColocClientTransport : IClientTransport<IDuplexConnection>
 {
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
@@ -19,7 +20,7 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
+    IDuplexConnection IClientTransport<IDuplexConnection>.CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
@@ -36,7 +37,7 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
 
         endpoint = endpoint.WithTransport(Name);
 
-        return new ColocNetworkConnection(endpoint, Connect);
+        return new ColocDuplexConnection(endpoint, Connect);
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>

@@ -10,11 +10,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The Slic multiplexed network connection implements an <see cref="IMultiplexedNetworkConnection"/> on
-/// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
-internal class SlicNetworkConnection : IMultiplexedNetworkConnection
+/// <summary>The Slic multiplexed connection implements an <see cref="IMultiplexedConnection"/> on top of a <see
+/// cref="IDuplexConnection"/>.</summary>
+internal class SlicMultiplexedConnection : IMultiplexedConnection
 {
-    public Endpoint Endpoint => _simpleNetworkConnection.Endpoint;
+    public Endpoint Endpoint => _transportConnection.Endpoint;
 
     internal bool IsServer { get; }
 
@@ -48,11 +48,11 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     private long _nextUnidirectionalId;
     private readonly int _packetMaxSize;
     private Task? _readFramesTask;
-    private readonly ISimpleNetworkConnection _simpleNetworkConnection;
-    private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
-    private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
     private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
     private readonly CancellationTokenSource _tasksCancelSource = new();
+    private readonly IDuplexConnection _transportConnection;
+    private readonly DuplexConnectionReader _transportConnectionReader;
+    private readonly DuplexConnectionWriter _transportConnectionWriter;
     private readonly int _unidirectionalMaxStreams;
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -61,17 +61,17 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         _acceptStreamQueue.DequeueAsync(cancel);
 
-    public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        // Connect the simple network connection.
-        NetworkConnectionInformation information = await _simpleNetworkConnection.ConnectAsync(
+        // Connect the duplex connection.
+        TransportConnectionInformation information = await _transportConnection.ConnectAsync(
             cancel).ConfigureAwait(false);
 
-        // Enable the idle timeout check after the network connection establishment. We don't want the network
-        // connection to be disposed because it's idle when the network connection establishment is in progress.
-        // This would require the simple network connection ConnectAsync/Dispose implementations to be thread safe.
-        // The network connection establishment timeout is handled by the cancellation token instead.
-        _simpleNetworkConnectionReader.EnableIdleCheck();
+        // Enable the idle timeout check after the transport connection establishment. We don't want the transport
+        // connection to be disposed because it's idle when the transport connection establishment is in progress. This
+        // would require the duplex connection ConnectAsync/Dispose implementations to be thread safe. The transport
+        // connection establishment timeout is handled by the cancellation token instead.
+        _transportConnectionReader.EnableIdleCheck();
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
 
@@ -187,7 +187,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             }
         }
 
-        // Start a task to read frames from the network connection.
+        // Start a task to read frames from the transport connection.
         _readFramesTask = Task.Run(
             async () =>
             {
@@ -197,15 +197,15 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                     // Read frames. This will return when the Close frame is received.
                     await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
-                    completeException = new ConnectionClosedException("network connection closed");
+                    completeException = new ConnectionClosedException("transport connection closed");
                 }
                 catch (OperationCanceledException)
                 {
-                    completeException = new ConnectionAbortedException("network connection disposed");
+                    completeException = new ConnectionAbortedException("transport connection disposed");
                 }
                 catch (ObjectDisposedException)
                 {
-                    completeException = new ConnectionAbortedException("network connection disposed");
+                    completeException = new ConnectionAbortedException("transport connection disposed");
                 }
                 catch (Exception ex)
                 {
@@ -250,9 +250,9 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         async Task PerformDisposeAsync()
         {
-            var exception = new ConnectionAbortedException("network connection disposed");
+            var exception = new ConnectionAbortedException("transport connection disposed");
 
-            // Cancel tasks which are using the network connection before disposing the network connection.
+            // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCancelSource.Cancel();
             try
             {
@@ -265,8 +265,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 // Ignore.
             }
 
-            // Dispose the network connection.
-            _simpleNetworkConnection.Dispose();
+            // Dispose the transport connection.
+            _transportConnection.Dispose();
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
@@ -278,8 +278,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             _unidirectionalStreamSemaphore?.Complete(exception);
 
             // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-            _simpleNetworkConnectionReader.Dispose();
-            _simpleNetworkConnectionWriter.Dispose();
+            _transportConnectionReader.Dispose();
+            _transportConnectionWriter.Dispose();
 
             _tasksCancelSource.Dispose();
         }
@@ -301,8 +301,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
                 cancel).ConfigureAwait(false);
 
-            // Shutdown the simple network connection.
-            await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+            // Shutdown the duplex connection.
+            await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -314,8 +314,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
     }
 
-    internal SlicNetworkConnection(
-        ISimpleNetworkConnection simpleNetworkConnection,
+    internal SlicMultiplexedConnection(
+        IDuplexConnection duplexConnection,
         bool isServer,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
         SlicTransportOptions slicOptions)
@@ -331,10 +331,10 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         _packetMaxSize = slicOptions.PacketMaxSize;
         _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
         _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
-        _simpleNetworkConnection = simpleNetworkConnection;
+        _transportConnection = duplexConnection;
 
-        _simpleNetworkConnectionWriter = new SimpleNetworkConnectionWriter(
-            simpleNetworkConnection,
+        _transportConnectionWriter = new DuplexConnectionWriter(
+            duplexConnection,
             slicOptions.Pool,
             slicOptions.MinimumSegmentSize);
 
@@ -345,8 +345,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
         }
 
-        _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
-            simpleNetworkConnection,
+        _transportConnectionReader = new DuplexConnectionReader(
+            duplexConnection,
             idleTimeout: _localIdleTimeout,
             slicOptions.Pool,
             slicOptions.MinimumSegmentSize,
@@ -377,7 +377,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         {
             if (_isReadOnly)
             {
-                throw new ConnectionAbortedException("network connection disposed");
+                throw new ConnectionAbortedException("transport connection disposed");
             }
 
             _streams[id] = stream;
@@ -406,7 +406,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         IBufferWriter<byte> bufferWriter,
         int byteCount,
         CancellationToken cancel) =>
-        _simpleNetworkConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
+        _transportConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
 
     internal void ReleaseStream(SlicMultiplexedStream stream)
     {
@@ -554,7 +554,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             }
             catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
             {
-                throw new ConnectionAbortedException("network connection disposed");
+                throw new ConnectionAbortedException("transport connection disposed");
             }
             finally
             {
@@ -598,7 +598,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
         Debug.Assert(size > 0);
 
-        ReadOnlySequence<byte> buffer = await _simpleNetworkConnectionReader.ReadAtLeastAsync(
+        ReadOnlySequence<byte> buffer = await _transportConnectionReader.ReadAtLeastAsync(
             size, cancel).ConfigureAwait(false);
 
         if (buffer.Length > size)
@@ -607,7 +607,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
 
         T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
-        _simpleNetworkConnectionReader.AdvanceTo(buffer.End);
+        _transportConnectionReader.AdvanceTo(buffer.End);
         return decodedFrame;
     }
 
@@ -617,9 +617,9 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         while (true)
         {
             // Read data from the pipe reader.
-            if (!_simpleNetworkConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
+            if (!_transportConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
             {
-                buffer = await _simpleNetworkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+                buffer = await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
             }
 
             if (TryDecodeHeader(
@@ -627,12 +627,12 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 out (FrameType FrameType, int FrameSize, long? StreamId) header,
                 out int consumed))
             {
-                _simpleNetworkConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
+                _transportConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
                 return header;
             }
             else
             {
-                _simpleNetworkConnectionReader.AdvanceTo(buffer.Start, buffer.End);
+                _transportConnectionReader.AdvanceTo(buffer.Start, buffer.End);
             }
         }
 
@@ -705,7 +705,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 }
                 case FrameType.Pong:
                 {
-                    // Nothing to do, the simple network connection reader keeps track of the last activity time.
+                    // Nothing to do, the duplex connection reader keeps track of the last activity time.
                     break;
                 }
                 case FrameType.Stream:
@@ -805,7 +805,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                                 minimumSegmentSize: MinimumSegmentSize,
                                 writerScheduler: PipeScheduler.Inline));
 
-                        await _simpleNetworkConnectionReader.FillBufferWriterAsync(
+                        await _transportConnectionReader.FillBufferWriterAsync(
                                 pipe.Writer,
                                 dataSize - readSize,
                                 cancel).ConfigureAwait(false);
@@ -969,7 +969,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         // Use the smallest idle timeout.
         if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
         {
-            _simpleNetworkConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
+            _transportConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
         }
     }
 
@@ -998,7 +998,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         EncodeAction? encode,
         CancellationToken cancel)
     {
-        var encoder = new SliceEncoder(_simpleNetworkConnectionWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(_transportConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeUInt8((byte)frameType);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
@@ -1010,7 +1010,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         encode?.Invoke(ref encoder);
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
-        return _simpleNetworkConnectionWriter.FlushAsync(cancel);
+        return _transportConnectionWriter.FlushAsync(cancel);
     }
 
     private ValueTask WriteStreamFrameAsync(
@@ -1020,7 +1020,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         bool endStream,
         CancellationToken cancel)
     {
-        var encoder = new SliceEncoder(_simpleNetworkConnectionWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(_transportConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeUInt8((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
@@ -1028,6 +1028,6 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         SliceEncoder.EncodeVarUInt62(
             (ulong)(encoder.EncodedByteCount - startPos + source1.Length + source2.Length), sizePlaceholder);
 
-        return _simpleNetworkConnectionWriter.WriteAsync(source1, source2, cancel);
+        return _transportConnectionWriter.WriteAsync(source1, source2, cancel);
     }
 }

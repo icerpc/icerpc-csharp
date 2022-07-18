@@ -6,9 +6,9 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IServerTransport{ISimpleNetworkConnection}"/> for the tcp and ssl transports.
+/// <summary>Implements <see cref="IServerTransport{IDuplexConnection}"/> for the tcp and ssl transports.
 /// </summary>
-public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
+public class TcpServerTransport : IServerTransport<IDuplexConnection>
 {
     /// <inheritdoc/>
     public string Name => TransportNames.Tcp;
@@ -26,7 +26,7 @@ public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public IListener<ISimpleNetworkConnection> Listen(
+    public IListener<IDuplexConnection> Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger)
@@ -52,9 +52,9 @@ public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
             throw new FormatException($"cannot create a TCP listener for endpoint '{endpoint}'");
         }
 
-        Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =
+        Func<TcpServerDuplexConnection, IDuplexConnection> serverConnectionDecorator =
             logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
-                connection => new LogTcpNetworkConnectionDecorator(connection, logger) : connection => connection;
+                connection => new LogTcpTransportConnectionDecorator(connection, logger) : connection => connection;
 
         return new TcpListener(endpoint, authenticationOptions, _options, serverConnectionDecorator);
     }

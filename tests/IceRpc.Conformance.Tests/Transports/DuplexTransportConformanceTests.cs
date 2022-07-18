@@ -8,26 +8,26 @@ using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 
-/// <summary>Conformance tests for the simple transports.</summary>
-public abstract class SimpleTransportConformanceTests
+/// <summary>Conformance tests for the duplex transports.</summary>
+public abstract class DuplexTransportConformanceTests
 {
     /// <summary>Verifies that the transport can accept connections.</summary>
     [Test]
-    public async Task Accept_network_connection()
+    public async Task Accept_transport_connection()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
 
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         _ = clientConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(
             async () =>
             {
-                using ISimpleNetworkConnection _ = await acceptTask;
+                using IDuplexConnection _ = await acceptTask;
             },
             Throws.Nothing);
     }
@@ -39,9 +39,9 @@ public abstract class SimpleTransportConformanceTests
     {
         var payload = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
 
         int writtenSize = 0;
         Task writeTask;
@@ -70,7 +70,7 @@ public abstract class SimpleTransportConformanceTests
             Assert.That(async () => await readTask, Throws.Nothing);
         });
 
-        static async Task ReadAsync(ISimpleNetworkConnection connection, int size)
+        static async Task ReadAsync(IDuplexConnection connection, int size)
         {
             var buffer = new byte[1024];
             while (size > 0)
@@ -85,9 +85,9 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var serverAuthenticationOptions = provider.GetService<SslServerAuthenticationOptions>();
-        var serverTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+        var serverTransport = provider.GetRequiredService<IServerTransport<IDuplexConnection>>();
 
         // Act/Assert
         Assert.That(
@@ -99,10 +99,10 @@ public abstract class SimpleTransportConformanceTests
     public async Task Read_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
         var buffer = new Memory<byte>(new byte[1]);
 
         Assert.CatchAsync<OperationCanceledException>(
@@ -117,9 +117,9 @@ public abstract class SimpleTransportConformanceTests
         // Arrange
         using var canceled = new CancellationTokenSource();
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
         ValueTask<int> readTask = sut.ClientConnection.ReadAsync(new byte[1], canceled.Token);
 
         // Act
@@ -137,12 +137,12 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
 
-        ISimpleNetworkConnection readFrom = readFromServer ? sut.ServerConnection : sut.ClientConnection;
-        ISimpleNetworkConnection disposedPeer = readFromServer ? sut.ClientConnection : sut.ServerConnection;
+        IDuplexConnection readFrom = readFromServer ? sut.ServerConnection : sut.ClientConnection;
+        IDuplexConnection disposedPeer = readFromServer ? sut.ClientConnection : sut.ServerConnection;
 
         disposedPeer.Dispose();
 
@@ -159,10 +159,10 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
-        ISimpleNetworkConnection disposedConnection = disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
+        IDuplexConnection disposedConnection = disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
 
         disposedConnection.Dispose();
 
@@ -176,9 +176,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Read_returns_zero_after_shutdown()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
 
         // Act
         await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
@@ -199,7 +199,7 @@ public abstract class SimpleTransportConformanceTests
     public async Task Create_client_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var clientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IDuplexConnection>>();
 
         Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
 
@@ -212,7 +212,7 @@ public abstract class SimpleTransportConformanceTests
     public async Task Create_server_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var serverTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+        var serverTransport = provider.GetRequiredService<IServerTransport<IDuplexConnection>>();
 
         Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
 
@@ -225,9 +225,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Write_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
 
         Assert.CatchAsync<OperationCanceledException>(
@@ -241,9 +241,9 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         using var canceled = new CancellationTokenSource();
 
@@ -278,9 +278,9 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
 
         // Act
         sut.ServerConnection.Dispose();
@@ -311,10 +311,10 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
-        ISimpleNetworkConnection disposedConnection =
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
+        IDuplexConnection disposedConnection =
             disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
 
         disposedConnection.Dispose();
@@ -331,9 +331,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Write_fails_after_shutdown()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
         await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
 
         // Act/Assert
@@ -350,13 +350,13 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
         byte[] writeBuffer = Enumerable.Range(0, size).Select(i => (byte)(i % 255)).ToArray();
 
-        ISimpleNetworkConnection writeConnection = useServerConnection ? sut.ServerConnection : sut.ClientConnection;
-        ISimpleNetworkConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
+        IDuplexConnection writeConnection = useServerConnection ? sut.ServerConnection : sut.ClientConnection;
+        IDuplexConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
 
         // Act
         ValueTask writeTask = writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
@@ -376,30 +376,30 @@ public abstract class SimpleTransportConformanceTests
         });
     }
 
-    /// <summary>Creates the service collection used for the simple transport conformance tests.</summary>
+    /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 
-    private static async Task<ClientServerSimpleTransportConnection> ConnectAndAcceptAsync(
-        IListener<ISimpleNetworkConnection> listener,
-        ISimpleNetworkConnection clientConnection)
+    private static async Task<ClientServerDuplexConnection> ConnectAndAcceptAsync(
+        IListener<IDuplexConnection> listener,
+        IDuplexConnection clientConnection)
     {
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        IDuplexConnection serverConnection = await acceptTask;
+        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
-        return new ClientServerSimpleTransportConnection(clientConnection, serverConnection);
+        return new ClientServerDuplexConnection(clientConnection, serverConnection);
     }
 }
 
-public record struct ClientServerSimpleTransportConnection : IDisposable
+public record struct ClientServerDuplexConnection : IDisposable
 {
-    public ISimpleNetworkConnection ClientConnection { get; }
-    public ISimpleNetworkConnection ServerConnection { get; }
+    public IDuplexConnection ClientConnection { get; }
+    public IDuplexConnection ServerConnection { get; }
 
-    public ClientServerSimpleTransportConnection(
-        ISimpleNetworkConnection clientConnection,
-        ISimpleNetworkConnection serverConnection)
+    public ClientServerDuplexConnection(
+        IDuplexConnection clientConnection,
+        IDuplexConnection serverConnection)
     {
         ClientConnection = clientConnection;
         ServerConnection = serverConnection;

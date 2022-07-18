@@ -47,11 +47,11 @@ internal static partial class TransportLoggerExtensions
         string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.MultiplexedNetworkConnectionShutdown,
-        EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionShutdown),
+        EventId = (int)TransportEventIds.MultiplexedConnectionShutdown,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionShutdown),
         Level = LogLevel.Trace,
         Message = "connection shutdown")]
-    internal static partial void LogMultiplexedNetworkConnectionShutdown(
+    internal static partial void LogMultiplexedConnectionShutdown(
         this ILogger logger,
         Exception exception);
 
@@ -66,49 +66,49 @@ internal static partial class TransportLoggerExtensions
         string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.NetworkConnectionConnect,
-        EventName = nameof(TransportEventIds.NetworkConnectionConnect),
+        EventId = (int)TransportEventIds.TransportConnectionConnect,
+        EventName = nameof(TransportEventIds.TransportConnectionConnect),
         Level = LogLevel.Debug,
-        Message = "network connection established: LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}")]
-    internal static partial void LogNetworkConnectionConnect(
+        Message = "transport connection established: LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}")]
+    internal static partial void LogTransportConnectionConnect(
         this ILogger logger,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.NetworkConnectionConnectFailed,
-        EventName = nameof(TransportEventIds.NetworkConnectionConnectFailed),
+        EventId = (int)TransportEventIds.TransportConnectionConnectFailed,
+        EventName = nameof(TransportEventIds.TransportConnectionConnectFailed),
         Level = LogLevel.Debug,
-        Message = "network connection establishment failed")]
-    internal static partial void LogNetworkConnectionConnectFailed(this ILogger logger, Exception exception);
+        Message = "transport connection establishment failed")]
+    internal static partial void LogTransportConnectionConnectFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.NetworkConnectionDispose,
-        EventName = nameof(TransportEventIds.NetworkConnectionDispose),
+        EventId = (int)TransportEventIds.TransportConnectionDispose,
+        EventName = nameof(TransportEventIds.TransportConnectionDispose),
         Level = LogLevel.Debug,
-        Message = "network connection disposed")]
-    internal static partial void LogNetworkConnectionDispose(this ILogger logger);
+        Message = "transport connection disposed")]
+    internal static partial void LogTransportConnectionDispose(this ILogger logger);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SimpleNetworkConnectionRead,
-        EventName = nameof(TransportEventIds.SimpleNetworkConnectionRead),
+        EventId = (int)TransportEventIds.DuplexConnectionRead,
+        EventName = nameof(TransportEventIds.DuplexConnectionRead),
         Level = LogLevel.Trace,
-        Message = "read {Size} bytes from simple network connection ({Data})")]
-    internal static partial void LogSimpleNetworkConnectionRead(this ILogger logger, int size, string data);
+        Message = "read {Size} bytes from duplex connection ({Data})")]
+    internal static partial void LogDuplexConnectionRead(this ILogger logger, int size, string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SimpleNetworkConnectionShutdown,
-        EventName = nameof(TransportEventIds.SimpleNetworkConnectionShutdown),
+        EventId = (int)TransportEventIds.DuplexConnectionShutdown,
+        EventName = nameof(TransportEventIds.DuplexConnectionShutdown),
         Level = LogLevel.Trace,
-        Message = "simple network connection shutdown")]
-    internal static partial void LogSimpleNetworkConnectionShutdown(this ILogger logger);
+        Message = "duplex connection shutdown")]
+    internal static partial void LogDuplexConnectionShutdown(this ILogger logger);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SimpleNetworkConnectionWrite,
-        EventName = nameof(TransportEventIds.SimpleNetworkConnectionWrite),
+        EventId = (int)TransportEventIds.DuplexConnectionWrite,
+        EventName = nameof(TransportEventIds.DuplexConnectionWrite),
         Level = LogLevel.Trace,
-        Message = "wrote {Size} bytes to simple network connection ({Data})")]
-    internal static partial void LogSimpleNetworkConnectionWrite(this ILogger logger, int size, string data);
+        Message = "wrote {Size} bytes to duplex connection ({Data})")]
+    internal static partial void LogDuplexConnectionWrite(this ILogger logger, int size, string data);
 
     internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
         stream.IsStarted ?

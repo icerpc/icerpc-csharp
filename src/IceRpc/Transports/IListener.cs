@@ -11,10 +11,10 @@ public interface IListener : IDisposable
     Endpoint Endpoint { get; }
 }
 
-/// <summary>A listener listens for connection requests from clients. It creates a server network connection when it
+/// <summary>A listener listens for connection requests from clients. It creates a server transport connection when it
 /// accepts a connection from a client.</summary>
-/// <typeparam name="T">The listener network connection type.</typeparam>
-public interface IListener<T> : IListener where T : INetworkConnection
+/// <typeparam name="T">The transport connection type.</typeparam>
+public interface IListener<T> : IListener where T : ITransportConnection
 {
     /// <summary>Accepts a new connection.</summary>
     /// <returns>The accepted connection.</returns>

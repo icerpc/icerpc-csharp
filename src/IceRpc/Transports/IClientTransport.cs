@@ -6,8 +6,8 @@ using System.Net.Security;
 namespace IceRpc.Transports;
 
 /// <summary>Gives ClientConnection the ability to create outgoing transport connections.</summary>
-/// <typeparam name="T">The type of the network connection used by the transport.</typeparam>
-public interface IClientTransport<T> where T : INetworkConnection
+/// <typeparam name="T">The type of the transport connection used by the transport.</typeparam>
+public interface IClientTransport<T> where T : ITransportConnection
 {
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
@@ -19,13 +19,13 @@ public interface IClientTransport<T> where T : INetworkConnection
     /// <c>false</c>.</returns>
     bool CheckParams(Endpoint endpoint);
 
-    /// <summary>Creates a new network connection to the specified endpoint.</summary>
+    /// <summary>Creates a new transport connection to the specified endpoint.</summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="authenticationOptions">The SSL client authentication options.</param>
     /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport
     /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
     /// within the log scopes created by IceRPC.</param>
-    /// <returns>The new network connection. This connection is not yet connected.</returns>
+    /// <returns>The new transport connection. This connection is not yet connected.</returns>
     T CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,

@@ -6,13 +6,13 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal;
 
-internal delegate T LogNetworkConnectionDecoratorFactory<T>(
+internal delegate T LogTransportConnectionDecoratorFactory<T>(
     T decoratee,
     Endpoint endpoint,
     bool isServer,
-    ILogger logger) where T : INetworkConnection;
+    ILogger logger) where T : ITransportConnection;
 
-internal abstract class LogNetworkConnectionDecorator : INetworkConnection
+internal abstract class LogTransportConnectionDecorator : ITransportConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
@@ -20,13 +20,13 @@ internal abstract class LogNetworkConnectionDecorator : INetworkConnection
 
     private protected bool IsServer { get; }
 
-    private protected NetworkConnectionInformation? Information { get; set; }
+    private protected TransportConnectionInformation? Information { get; set; }
 
-    private readonly INetworkConnection _decoratee;
+    private readonly ITransportConnection _decoratee;
 
     private readonly Endpoint _endpoint;
 
-    public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public virtual async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
 
@@ -36,18 +36,18 @@ internal abstract class LogNetworkConnectionDecorator : INetworkConnection
         }
         catch (Exception ex)
         {
-            Logger.LogNetworkConnectionConnectFailed(ex);
+            Logger.LogTransportConnectionConnectFailed(ex);
             throw;
         }
 
-        Logger.LogNetworkConnectionConnect(Information.Value.LocalNetworkAddress, Information.Value.RemoteNetworkAddress);
+        Logger.LogTransportConnectionConnect(Information.Value.LocalNetworkAddress, Information.Value.RemoteNetworkAddress);
         return Information.Value;
     }
 
     public override string? ToString() => _decoratee.ToString();
 
-    internal LogNetworkConnectionDecorator(
-        INetworkConnection decoratee,
+    internal LogTransportConnectionDecorator(
+        ITransportConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger)

@@ -34,7 +34,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ILoggerFactory? _loggerFactory;
 
-    private readonly IClientTransport<IMultiplexedNetworkConnection>? _multiplexedClientTransport;
+    private readonly IClientTransport<IMultiplexedConnection>? _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -44,7 +44,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ClientConnectionOptions _options;
 
-    private readonly IClientTransport<ISimpleNetworkConnection>? _simpleClientTransport;
+    private readonly IClientTransport<IDuplexConnection>? _duplexClientTransport;
 
     /// <summary>Constructs a resumable client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -52,16 +52,16 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
-    /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ResumableClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
+        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
+        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
     {
         _options = options;
         _multiplexedClientTransport = multiplexedClientTransport;
-        _simpleClientTransport = simpleClientTransport;
+        _duplexClientTransport = duplexClientTransport;
         _loggerFactory = loggerFactory;
 
         _clientConnection = CreateClientConnection();
@@ -84,7 +84,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that provides the <see cref="NetworkConnectionInformation"/> of the transport connection, once
+    /// <returns>A task that provides the <see cref="TransportConnectionInformation"/> of the transport connection, once
     /// this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
@@ -96,7 +96,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
-    public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel = default)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel = default)
     {
         // make a copy of the client connection we're trying with
         ClientConnection clientConnection = _clientConnection;
@@ -189,7 +189,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             _options,
             _loggerFactory,
             _multiplexedClientTransport,
-            _simpleClientTransport);
+            _duplexClientTransport);
 
         // only called from the constructor or with _mutex locked
         clientConnection.OnAbort(_onAbort + OnAbort);

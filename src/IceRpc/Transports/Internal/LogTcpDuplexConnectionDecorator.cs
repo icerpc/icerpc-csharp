@@ -7,18 +7,18 @@ using System.Security.Authentication;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The log decorator installed by the TCP transports.</summary>
-internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
+internal class LogTcpTransportConnectionDecorator : IDuplexConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
-    private readonly TcpNetworkConnection _decoratee;
+    private readonly TcpDuplexConnection _decoratee;
     private readonly ILogger _logger;
 
-    public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         try
         {
-            NetworkConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            TransportConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
             if (_decoratee.SslStream is SslStream sslStream)
             {
@@ -48,7 +48,7 @@ internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
     public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
         _decoratee.WriteAsync(buffers, cancel);
 
-    internal LogTcpNetworkConnectionDecorator(TcpNetworkConnection decoratee, ILogger logger)
+    internal LogTcpTransportConnectionDecorator(TcpDuplexConnection decoratee, ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;

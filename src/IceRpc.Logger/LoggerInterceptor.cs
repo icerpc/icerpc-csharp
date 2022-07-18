@@ -77,8 +77,8 @@ internal static partial class LoggerInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogReceivedResponse(
-                connectionContext.NetworkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                connectionContext.NetworkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
+                connectionContext.TransportConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                connectionContext.TransportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
                 resultType);

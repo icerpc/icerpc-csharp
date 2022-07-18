@@ -23,8 +23,8 @@ public sealed record class SlicTransportOptions
                 nameof(value));
     }
 
-    /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the network connection health. If no
-    /// data is received within the idle timeout period, the network connection is aborted. The default is 60s.
+    /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no
+    /// data is received within the idle timeout period, the transport connection is aborted. The default is 60s.
     /// </summary>
     public TimeSpan IdleTimeout
     {

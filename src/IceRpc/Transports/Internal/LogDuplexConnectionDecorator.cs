@@ -5,18 +5,18 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorator, ISimpleNetworkConnection
+internal class LogDuplexConnectionDecorator : LogTransportConnectionDecorator, IDuplexConnection
 {
-    private readonly ISimpleNetworkConnection _decoratee;
+    private readonly IDuplexConnection _decoratee;
 
     public void Dispose()
     {
         _decoratee.Dispose();
 
-        if (Information is NetworkConnectionInformation connectionInformation)
+        if (Information is TransportConnectionInformation connectionInformation)
         {
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-            Logger.LogNetworkConnectionDispose();
+            Logger.LogTransportConnectionDispose();
         }
         // We don't emit a log when closing a connection that was not connected.
     }
@@ -24,14 +24,14 @@ internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorat
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {
         int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-        Logger.LogSimpleNetworkConnectionRead(received, ToHexString(buffer[0..received]));
+        Logger.LogDuplexConnectionRead(received, ToHexString(buffer[0..received]));
         return received;
     }
 
     public async Task ShutdownAsync(CancellationToken cancel)
     {
         await _decoratee.ShutdownAsync(cancel).ConfigureAwait(false);
-        Logger.LogSimpleNetworkConnectionShutdown();
+        Logger.LogDuplexConnectionShutdown();
     }
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
@@ -42,18 +42,18 @@ internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorat
         {
             size += buffer.Length;
         }
-        Logger.LogSimpleNetworkConnectionWrite(size, ToHexString(buffers));
+        Logger.LogDuplexConnectionWrite(size, ToHexString(buffers));
     }
 
-    internal static ISimpleNetworkConnection Decorate(
-        ISimpleNetworkConnection decoratee,
+    internal static IDuplexConnection Decorate(
+        IDuplexConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger) =>
-        new LogSimpleNetworkConnectionDecorator(decoratee, endpoint, isServer, logger);
+        new LogDuplexConnectionDecorator(decoratee, endpoint, isServer, logger);
 
-    internal LogSimpleNetworkConnectionDecorator(
-        ISimpleNetworkConnection decoratee,
+    internal LogDuplexConnectionDecorator(
+        IDuplexConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger)
