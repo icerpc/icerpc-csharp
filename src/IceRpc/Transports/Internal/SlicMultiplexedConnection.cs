@@ -10,9 +10,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The Slic multiplexed transport connection implements an <see cref="IMultiplexedTransportConnection"/> on
-/// top of a <see cref="ISingleStreamTransportConnection"/>.</summary>
-internal class SlicTransportConnection : IMultiplexedTransportConnection
+/// <summary>The Slic multiplexed connection implements an <see cref="IMultiplexedConnection"/> on top of a <see
+/// cref="IDuplexConnection"/>.</summary>
+internal class SlicMultiplexedConnection : IMultiplexedConnection
 {
     public Endpoint Endpoint => _transportConnection.Endpoint;
 
@@ -50,9 +50,9 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
     private Task? _readFramesTask;
     private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
     private readonly CancellationTokenSource _tasksCancelSource = new();
-    private readonly ISingleStreamTransportConnection _transportConnection;
-    private readonly SingleStreamTransportConnectionReader _transportConnectionReader;
-    private readonly SingleStreamTransportConnectionWriter _transportConnectionWriter;
+    private readonly IDuplexConnection _transportConnection;
+    private readonly DuplexConnectionReader _transportConnectionReader;
+    private readonly DuplexConnectionWriter _transportConnectionWriter;
     private readonly int _unidirectionalMaxStreams;
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -63,14 +63,14 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        // Connect the single stream transport connection.
+        // Connect the duplex connection.
         TransportConnectionInformation information = await _transportConnection.ConnectAsync(
             cancel).ConfigureAwait(false);
 
         // Enable the idle timeout check after the transport connection establishment. We don't want the transport
         // connection to be disposed because it's idle when the transport connection establishment is in progress. This
-        // would require the single stream transport connection ConnectAsync/Dispose implementations to be thread safe.
-        // The transport connection establishment timeout is handled by the cancellation token instead.
+        // would require the duplex connection ConnectAsync/Dispose implementations to be thread safe. The transport
+        // connection establishment timeout is handled by the cancellation token instead.
         _transportConnectionReader.EnableIdleCheck();
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
@@ -301,7 +301,7 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
                 new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
                 cancel).ConfigureAwait(false);
 
-            // Shutdown the single stream transport connection.
+            // Shutdown the duplex connection.
             await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -314,8 +314,8 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
         }
     }
 
-    internal SlicTransportConnection(
-        ISingleStreamTransportConnection singleStreamTransportConnection,
+    internal SlicMultiplexedConnection(
+        IDuplexConnection duplexConnection,
         bool isServer,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
         SlicTransportOptions slicOptions)
@@ -331,10 +331,10 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
         _packetMaxSize = slicOptions.PacketMaxSize;
         _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
         _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
-        _transportConnection = singleStreamTransportConnection;
+        _transportConnection = duplexConnection;
 
-        _transportConnectionWriter = new SingleStreamTransportConnectionWriter(
-            singleStreamTransportConnection,
+        _transportConnectionWriter = new DuplexConnectionWriter(
+            duplexConnection,
             slicOptions.Pool,
             slicOptions.MinimumSegmentSize);
 
@@ -345,8 +345,8 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
             keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
         }
 
-        _transportConnectionReader = new SingleStreamTransportConnectionReader(
-            singleStreamTransportConnection,
+        _transportConnectionReader = new DuplexConnectionReader(
+            duplexConnection,
             idleTimeout: _localIdleTimeout,
             slicOptions.Pool,
             slicOptions.MinimumSegmentSize,
@@ -705,8 +705,7 @@ internal class SlicTransportConnection : IMultiplexedTransportConnection
                 }
                 case FrameType.Pong:
                 {
-                    // Nothing to do, the single stream transport connection reader keeps track of the last activity
-                    // time.
+                    // Nothing to do, the duplex connection reader keeps track of the last activity time.
                     break;
                 }
                 case FrameType.Stream:

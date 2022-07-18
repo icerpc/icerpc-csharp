@@ -33,28 +33,28 @@ public static class ProtocolServiceCollectionExtensions
 
         services.TryAddSingleton<ILogger>(NullLogger.Instance);
 
-        services.AddSingleton<IServerTransport<IMultiplexedTransportConnection>>(
+        services.AddSingleton<IServerTransport<IMultiplexedConnection>>(
             provider => new SlicServerTransport(
-                provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>()));
+                provider.GetRequiredService<IServerTransport<IDuplexConnection>>()));
 
-        services.AddSingleton<IClientTransport<IMultiplexedTransportConnection>>(
+        services.AddSingleton<IClientTransport<IMultiplexedConnection>>(
             provider => new SlicClientTransport(
-                provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()));
+                provider.GetRequiredService<IClientTransport<IDuplexConnection>>()));
 
-        services.AddSingleton<IListener<ISingleStreamTransportConnection>,
-                                        Listener<ISingleStreamTransportConnection>>();
+        services.AddSingleton<IListener<IDuplexConnection>,
+                                        Listener<IDuplexConnection>>();
 
-        services.AddSingleton<IListener<IMultiplexedTransportConnection>, Listener<IMultiplexedTransportConnection>>();
+        services.AddSingleton<IListener<IMultiplexedConnection>, Listener<IMultiplexedConnection>>();
 
-        services.AddSingleton<LogTransportConnectionDecoratorFactory<ISingleStreamTransportConnection>>(
+        services.AddSingleton<LogTransportConnectionDecoratorFactory<IDuplexConnection>>(
             provider =>
-                (ISingleStreamTransportConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
-                    new LogSingleStreamTransportConnectionDecorator(decoratee, endpoint, isServer, logger));
+                (IDuplexConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
+                    new LogDuplexConnectionDecorator(decoratee, endpoint, isServer, logger));
 
-        services.AddSingleton<LogTransportConnectionDecoratorFactory<IMultiplexedTransportConnection>>(
+        services.AddSingleton<LogTransportConnectionDecoratorFactory<IMultiplexedConnection>>(
             provider =>
-                (IMultiplexedTransportConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
-                    new LogMultiplexedTransportConnectionDecorator(decoratee, endpoint, isServer, logger));
+                (IMultiplexedConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
+                    new LogMultiplexedConnectionDecorator(decoratee, endpoint, isServer, logger));
 
         if (protocol == Protocol.Ice)
         {
@@ -151,12 +151,12 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
 internal sealed class ClientServerIceProtocolConnection :
-    ClientServerProtocolConnection<ISingleStreamTransportConnection>
+    ClientServerProtocolConnection<IDuplexConnection>
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceProtocolConnection(
-        IClientTransport<ISingleStreamTransportConnection> clientTransport,
-        IListener<ISingleStreamTransportConnection> listener,
+        IClientTransport<IDuplexConnection> clientTransport,
+        IListener<IDuplexConnection> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
         base(clientTransport, listener, clientConnectionOptions, serverOptions)
@@ -164,7 +164,7 @@ internal sealed class ClientServerIceProtocolConnection :
     }
 
     protected override IProtocolConnection CreateConnection(
-        ISingleStreamTransportConnection transportConnection,
+        IDuplexConnection transportConnection,
         bool isServer,
         ConnectionOptions options) =>
         new IceProtocolConnection(transportConnection, isServer, options);
@@ -175,12 +175,12 @@ internal sealed class ClientServerIceProtocolConnection :
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
 internal sealed class ClientServerIceRpcProtocolConnection :
-    ClientServerProtocolConnection<IMultiplexedTransportConnection>
+    ClientServerProtocolConnection<IMultiplexedConnection>
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceRpcProtocolConnection(
-        IClientTransport<IMultiplexedTransportConnection> clientTransport,
-        IListener<IMultiplexedTransportConnection> listener,
+        IClientTransport<IMultiplexedConnection> clientTransport,
+        IListener<IMultiplexedConnection> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
         base(clientTransport, listener, clientConnectionOptions, serverOptions)
@@ -188,7 +188,7 @@ internal sealed class ClientServerIceRpcProtocolConnection :
     }
 
     protected override IProtocolConnection CreateConnection(
-        IMultiplexedTransportConnection transportConnection,
+        IMultiplexedConnection transportConnection,
         bool isServer,
         ConnectionOptions options) =>
         new IceRpcProtocolConnection(transportConnection, options);

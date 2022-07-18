@@ -45,7 +45,7 @@ public class TcpTransportTests
     public void Configure_client_connection_buffer_size(int bufferSize)
     {
         // Act
-        using TcpClientTransportConnection connection = CreateTcpClientConnection(
+        using TcpClientDuplexConnection connection = CreateTcpClientConnection(
             new Endpoint(Protocol.IceRpc),
             options: new TcpClientTransportOptions
             {
@@ -90,7 +90,7 @@ public class TcpTransportTests
     {
         var localNetworkAddress = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 
-        using TcpClientTransportConnection connection = CreateTcpClientConnection(
+        using TcpClientDuplexConnection connection = CreateTcpClientConnection(
             new Endpoint(Protocol.IceRpc),
             options: new TcpClientTransportOptions
             {
@@ -110,22 +110,22 @@ public class TcpTransportTests
     public async Task Configure_server_connection_buffer_size(int bufferSize)
     {
         // Arrange
-        using IListener<ISingleStreamTransportConnection> listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
                 SendBufferSize = bufferSize,
             });
-        Task<ISingleStreamTransportConnection> acceptTask = listener.AcceptAsync();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
 
-        IClientTransport<ISingleStreamTransportConnection> clientTransport = new TcpClientTransport(
+        IClientTransport<IDuplexConnection> clientTransport = new TcpClientTransport(
             new TcpClientTransportOptions());
 
-        using TcpClientTransportConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
+        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
         await clientConnection.ConnectAsync(default);
 
         // Act
-        using var serverConnection = (TcpServerTransportConnection)await acceptTask;
+        using var serverConnection = (TcpServerDuplexConnection)await acceptTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -173,16 +173,16 @@ public class TcpTransportTests
     public async Task Configure_server_connection_listen_backlog()
     {
         // Arrange
-        using IListener<ISingleStreamTransportConnection> listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 18
             });
 
-        IClientTransport<ISingleStreamTransportConnection> clientTransport =
+        IClientTransport<IDuplexConnection> clientTransport =
             new TcpClientTransport(new TcpClientTransportOptions());
 
-        var connections = new List<ISingleStreamTransportConnection>();
+        var connections = new List<IDuplexConnection>();
 
         // Act
         while (true)
@@ -190,7 +190,7 @@ public class TcpTransportTests
             using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             try
             {
-                ISingleStreamTransportConnection clientConnection = clientTransport.CreateConnection(
+                IDuplexConnection clientConnection = clientTransport.CreateConnection(
                     listener.Endpoint,
                     authenticationOptions: null,
                     NullLogger.Instance);
@@ -218,7 +218,7 @@ public class TcpTransportTests
     public async Task Connect_cancellation()
     {
         // Arrange
-        using IListener<ISingleStreamTransportConnection> listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 1
@@ -228,10 +228,10 @@ public class TcpTransportTests
 
         using var cancellationTokenSource = new CancellationTokenSource();
         Task<TransportConnectionInformation> connectTask;
-        TcpClientTransportConnection clientConnection;
+        TcpClientDuplexConnection clientConnection;
         while (true)
         {
-            TcpClientTransportConnection? connection = CreateTcpClientConnection(listener.Endpoint);
+            TcpClientDuplexConnection? connection = CreateTcpClientConnection(listener.Endpoint);
             try
             {
                 connectTask = connection.ConnectAsync(cancellationTokenSource.Token);
@@ -272,10 +272,10 @@ public class TcpTransportTests
         // Arrange
 
         using var cancellationSource = new CancellationTokenSource();
-        using IListener<ISingleStreamTransportConnection> listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
-        using TcpClientTransportConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions:
                 new SslClientAuthenticationOptions
@@ -289,7 +289,7 @@ public class TcpTransportTests
         Task<TransportConnectionInformation> connectTask =
             clientConnection.ConnectAsync(cancellationSource.Token);
 
-        ISingleStreamTransportConnection serverConnection = await listener.AcceptAsync();
+        IDuplexConnection serverConnection = await listener.AcceptAsync();
         cancellationSource.Cancel();
         _ = serverConnection.ConnectAsync(CancellationToken.None);
 
@@ -302,15 +302,15 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        using IListener<ISingleStreamTransportConnection> listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
-        using TcpClientTransportConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: tls ? DefaultSslClientAuthenticationOptions : null);
 
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
-        ISingleStreamTransportConnection serverConnection = await listener.AcceptAsync();
+        IDuplexConnection serverConnection = await listener.AcceptAsync();
         Task<TransportConnectionInformation> serverConnectTask =
             serverConnection.ConnectAsync(cancellationSource.Token);
 
@@ -338,15 +338,15 @@ public class TcpTransportTests
     public async Task Tls_server_connection_connect_failed_exception()
     {
         // Arrange
-        using IListener<ISingleStreamTransportConnection> listener =
+        using IListener<IDuplexConnection> listener =
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
-        using TcpClientTransportConnection clientConnection =
+        using TcpClientDuplexConnection clientConnection =
             CreateTcpClientConnection(listener.Endpoint, authenticationOptions: DefaultSslClientAuthenticationOptions);
 
-        Task<ISingleStreamTransportConnection> acceptTask = listener.AcceptAsync();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
         await clientConnection.Socket.ConnectAsync(new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port));
-        ISingleStreamTransportConnection serverConnection = await acceptTask;
+        IDuplexConnection serverConnection = await acceptTask;
         clientConnection.Dispose();
 
         // Act/Assert
@@ -361,7 +361,7 @@ public class TcpTransportTests
     public async Task Tls_server_connect_operation_canceled_exception()
     {
         // Arrange
-        using IListener<ISingleStreamTransportConnection> listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -371,12 +371,12 @@ public class TcpTransportTests
                 }
             });
 
-        using TcpClientTransportConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
-        ISingleStreamTransportConnection serverConnection = await listener.AcceptAsync();
+        IDuplexConnection serverConnection = await listener.AcceptAsync();
         Task<TransportConnectionInformation> serverConnectTask =
             serverConnection.ConnectAsync(new CancellationToken(canceled: true));
 
@@ -384,25 +384,25 @@ public class TcpTransportTests
         Assert.That(async () => await serverConnectTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    private static IListener<ISingleStreamTransportConnection> CreateTcpListener(
+    private static IListener<IDuplexConnection> CreateTcpListener(
         Endpoint? endpoint = null,
         TcpServerTransportOptions? options = null,
         SslServerAuthenticationOptions? authenticationOptions = null)
     {
-        IServerTransport<ISingleStreamTransportConnection> serverTransport = new TcpServerTransport(options ?? new());
+        IServerTransport<IDuplexConnection> serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
             endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
             authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }
 
-    private static TcpClientTransportConnection CreateTcpClientConnection(
+    private static TcpClientDuplexConnection CreateTcpClientConnection(
         Endpoint endpoint,
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
-        IClientTransport<ISingleStreamTransportConnection> transport = new TcpClientTransport(options ?? new());
-        return (TcpClientTransportConnection)transport.CreateConnection(
+        IClientTransport<IDuplexConnection> transport = new TcpClientTransport(options ?? new());
+        return (TcpClientDuplexConnection)transport.CreateConnection(
             endpoint,
             authenticationOptions: authenticationOptions,
             NullLogger.Instance);

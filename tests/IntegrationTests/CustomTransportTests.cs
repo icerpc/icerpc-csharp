@@ -8,16 +8,16 @@ using System.Net.Security;
 
 namespace IceRpc.IntegrationTests;
 
-public class CustomClientTransport : IClientTransport<IMultiplexedTransportConnection>
+public class CustomClientTransport : IClientTransport<IMultiplexedConnection>
 {
     public string Name => "custom";
 
-    private readonly IClientTransport<IMultiplexedTransportConnection> _transport =
+    private readonly IClientTransport<IMultiplexedConnection> _transport =
         new SlicClientTransport(new TcpClientTransport());
 
     public bool CheckParams(Endpoint endpoint) => true;
 
-    public IMultiplexedTransportConnection CreateConnection(
+    public IMultiplexedConnection CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
@@ -41,14 +41,14 @@ public class CustomClientTransport : IClientTransport<IMultiplexedTransportConne
     }
 }
 
-public class CustomServerTransport : IServerTransport<IMultiplexedTransportConnection>
+public class CustomServerTransport : IServerTransport<IMultiplexedConnection>
 {
     public string Name => "custom";
 
-    private readonly IServerTransport<IMultiplexedTransportConnection> _transport =
+    private readonly IServerTransport<IMultiplexedConnection> _transport =
         new SlicServerTransport(new TcpServerTransport());
 
-    public IListener<IMultiplexedTransportConnection> Listen(
+    public IListener<IMultiplexedConnection> Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger)

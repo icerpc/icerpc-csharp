@@ -7,11 +7,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>A helper class to efficiently read data from a single stream transport connection. It provides a
-/// PipeReader-like API but is not a PipeReader.</summary>
-internal class SingleStreamTransportConnectionReader : IDisposable
+/// <summary>A helper class to efficiently read data from a duplex connection. It provides a PipeReader-like API but is
+/// not a PipeReader.</summary>
+internal class DuplexConnectionReader : IDisposable
 {
-    private readonly ISingleStreamTransportConnection _connection;
+    private readonly IDuplexConnection _connection;
     private TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private bool _isDisposed;
@@ -37,8 +37,8 @@ internal class SingleStreamTransportConnectionReader : IDisposable
         _keepAliveTimer?.Dispose();
     }
 
-    internal SingleStreamTransportConnectionReader(
-        ISingleStreamTransportConnection connection,
+    internal DuplexConnectionReader(
+        IDuplexConnection connection,
         TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,

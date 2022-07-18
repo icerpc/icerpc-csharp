@@ -55,7 +55,7 @@ public sealed class IceRpcProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        await sut.Server.DisposeAsync();
+        await sut.Server.avc();
 
         // Assert
         Assert.That(async () => await tcs.Task, Throws.Nothing);

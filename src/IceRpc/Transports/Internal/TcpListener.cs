@@ -7,15 +7,15 @@ using System.Net.Sockets;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the TCP transport.</summary>
-internal sealed class TcpListener : IListener<ISingleStreamTransportConnection>
+internal sealed class TcpListener : IListener<IDuplexConnection>
 {
     public Endpoint Endpoint { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private readonly Func<TcpServerTransportConnection, ISingleStreamTransportConnection> _serverConnectionDecorator;
+    private readonly Func<TcpServerDuplexConnection, IDuplexConnection> _serverConnectionDecorator;
     private readonly Socket _socket;
 
-    public async Task<ISingleStreamTransportConnection> AcceptAsync()
+    public async Task<IDuplexConnection> AcceptAsync()
     {
         Socket acceptedSocket;
         try
@@ -33,7 +33,7 @@ internal sealed class TcpListener : IListener<ISingleStreamTransportConnection>
         // to catch and handle them. They are only useful for the log decorator.
         return _serverConnectionDecorator(
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
-            new TcpServerTransportConnection(Endpoint, acceptedSocket, _authenticationOptions));
+            new TcpServerDuplexConnection(Endpoint, acceptedSocket, _authenticationOptions));
 #pragma warning restore CA2000
     }
 
@@ -43,7 +43,7 @@ internal sealed class TcpListener : IListener<ISingleStreamTransportConnection>
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         TcpServerTransportOptions options,
-        Func<TcpServerTransportConnection, ISingleStreamTransportConnection> serverConnectionDecorator)
+        Func<TcpServerDuplexConnection, IDuplexConnection> serverConnectionDecorator)
     {
         if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
         {

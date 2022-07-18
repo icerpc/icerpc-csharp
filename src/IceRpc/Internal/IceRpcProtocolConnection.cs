@@ -33,7 +33,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
-    private readonly IMultiplexedTransportConnection _transportConnection;
+    private readonly IMultiplexedConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
 
@@ -44,7 +44,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
 
     internal IceRpcProtocolConnection(
-        IMultiplexedTransportConnection transportConnection,
+        IMultiplexedConnection transportConnection,
         ConnectionOptions options)
         : base(options)
     {

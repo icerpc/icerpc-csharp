@@ -47,9 +47,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minimumSegmentSize;
     private readonly object _mutex = new();
-    private readonly ISingleStreamTransportConnection _transportConnection;
-    private readonly SingleStreamTransportConnectionReader _transportConnectionReader;
-    private readonly SingleStreamTransportConnectionWriter _transportConnectionWriter;
+    private readonly IDuplexConnection _transportConnection;
+    private readonly DuplexConnectionReader _transportConnectionReader;
+    private readonly DuplexConnectionWriter _transportConnectionWriter;
     private int _nextRequestId;
     private readonly IcePayloadPipeWriter _payloadWriter;
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -59,7 +59,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
     internal IceProtocolConnection(
-        ISingleStreamTransportConnection singleStreamTransportConnection,
+        IDuplexConnection duplexConnection,
         bool isServer,
         ConnectionOptions options)
         : base(options)
@@ -83,13 +83,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _memoryPool = MemoryPool<byte>.Shared;
         _minimumSegmentSize = 4096;
 
-        _transportConnection = singleStreamTransportConnection;
-        _transportConnectionWriter = new SingleStreamTransportConnectionWriter(
-            singleStreamTransportConnection,
+        _transportConnection = duplexConnection;
+        _transportConnectionWriter = new DuplexConnectionWriter(
+            duplexConnection,
             _memoryPool,
             _minimumSegmentSize);
-        _transportConnectionReader = new SingleStreamTransportConnectionReader(
-            singleStreamTransportConnection,
+        _transportConnectionReader = new DuplexConnectionReader(
+            duplexConnection,
             idleTimeout: options.IdleTimeout,
             _memoryPool,
             _minimumSegmentSize,
@@ -141,7 +141,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 InvokeOnAbort(exception);
             }
 
-            static void EncodeValidateConnectionFrame(SingleStreamTransportConnectionWriter writer)
+            static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
             {
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -286,7 +286,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         return transportConnectionInformation;
 
-        static void EncodeValidateConnectionFrame(SingleStreamTransportConnectionWriter writer)
+        static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
             IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -577,7 +577,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
 
         static void EncodeRequestHeader(
-            SingleStreamTransportConnectionWriter output,
+            DuplexConnectionWriter output,
             OutgoingRequest request,
             int requestId,
             int payloadSize)
@@ -667,7 +667,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // the dispatch responses and close connection frame by the peer.
         await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-        static void EncodeCloseConnectionFrame(SingleStreamTransportConnectionWriter writer)
+        static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
             IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
@@ -678,7 +678,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     /// fully and buffered into an internal pipe.</summary>
     private static async ValueTask<PipeReader> CreateFrameReaderAsync(
         int size,
-        SingleStreamTransportConnectionReader transportConnectionReader,
+        DuplexConnectionReader transportConnectionReader,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         CancellationToken cancel)
@@ -1152,7 +1152,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
 
                 static void EncodeResponseHeader(
-                    SingleStreamTransportConnectionWriter writer,
+                    DuplexConnectionWriter writer,
                     int requestId,
                     int payloadSize,
                     ReplyStatus replyStatus)

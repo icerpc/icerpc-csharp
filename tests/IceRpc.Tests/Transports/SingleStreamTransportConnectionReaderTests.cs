@@ -10,7 +10,7 @@ using System.Buffers;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class SingleStreamTransportConnectionReaderTests
+public class DuplexConnectionReaderTests
 {
     // TODO: Add more tests
 
@@ -19,20 +19,20 @@ public class SingleStreamTransportConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSingleStreamTransport("icerpc://colochost/")
+            .UseDuplexTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<ISingleStreamTransportConnection>>();
-        var clientConnection = provider.GetRequiredService<ISingleStreamTransportConnection>();
-        Task<ISingleStreamTransportConnection> acceptTask = listener.AcceptAsync();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using ISingleStreamTransportConnection serverConnection = await acceptTask;
+        using IDuplexConnection serverConnection = await acceptTask;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         int pingCount = 0;
-        using var reader = new SingleStreamTransportConnectionReader(
+        using var reader = new DuplexConnectionReader(
             clientConnection,
             TimeSpan.FromMilliseconds(1000),
             MemoryPool<byte>.Shared,
@@ -59,20 +59,20 @@ public class SingleStreamTransportConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSingleStreamTransport("icerpc://colochost/")
+            .UseDuplexTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<ISingleStreamTransportConnection>>();
-        var clientConnection = provider.GetRequiredService<ISingleStreamTransportConnection>();
-        Task<ISingleStreamTransportConnection> acceptTask = listener.AcceptAsync();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using ISingleStreamTransportConnection serverConnection = await acceptTask;
+        using IDuplexConnection serverConnection = await acceptTask;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
-        using var reader = new SingleStreamTransportConnectionReader(
+        using var reader = new DuplexConnectionReader(
             clientConnection,
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
@@ -93,20 +93,20 @@ public class SingleStreamTransportConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSingleStreamTransport("icerpc://colochost/")
+            .UseDuplexTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<ISingleStreamTransportConnection>>();
-        var clientConnection = provider.GetRequiredService<ISingleStreamTransportConnection>();
-        Task<ISingleStreamTransportConnection> acceptTask = listener.AcceptAsync();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using ISingleStreamTransportConnection serverConnection = await acceptTask;
+        using IDuplexConnection serverConnection = await acceptTask;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
-        using var reader = new SingleStreamTransportConnectionReader(
+        using var reader = new DuplexConnectionReader(
             clientConnection,
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,

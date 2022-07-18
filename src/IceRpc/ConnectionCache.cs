@@ -18,7 +18,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private bool _isReadOnly;
 
     private readonly ILoggerFactory? _loggerFactory;
-    private readonly IClientTransport<IMultiplexedTransportConnection> _multiplexedClientTransport;
+    private readonly IClientTransport<IMultiplexedConnection> _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -30,7 +30,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
 
-    private readonly IClientTransport<ISingleStreamTransportConnection> _singleStreamClientTransport;
+    private readonly IClientTransport<IDuplexConnection> _duplexClientTransport;
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
@@ -38,18 +38,17 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
     /// connections.</param>
-    /// <param name="singleStreamClientTransport">The simple transport used to create ice protocol connections.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ConnectionCache(
         ConnectionCacheOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
+        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
+        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
     {
         _options = options;
         _loggerFactory = loggerFactory;
         _multiplexedClientTransport = multiplexedClientTransport ?? ClientConnection.DefaultMultiplexedClientTransport;
-        _singleStreamClientTransport = singleStreamClientTransport ??
-            ClientConnection.DefaultSingleStreamClientTransport;
+        _duplexClientTransport = duplexClientTransport ?? ClientConnection.DefaultDuplexClientTransport;
     }
 
     /// <summary>Constructs a connection cache.</summary>
@@ -125,7 +124,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private void CheckEndpoint(Endpoint endpoint)
     {
         bool isValid = endpoint.Protocol == Protocol.Ice ?
-            _singleStreamClientTransport.CheckParams(endpoint) :
+            _duplexClientTransport.CheckParams(endpoint) :
             _multiplexedClientTransport.CheckParams(endpoint);
 
         if (!isValid)
@@ -168,7 +167,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     _options.ClientConnectionOptions with { Endpoint = endpoint },
                     _loggerFactory,
                     _multiplexedClientTransport,
-                    _singleStreamClientTransport);
+                    _duplexClientTransport);
 
                 created = true;
                 _pendingConnections.Add(endpoint, connection);

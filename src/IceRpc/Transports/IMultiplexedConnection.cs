@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a multiplexed transport.</summary>
-public interface IMultiplexedTransportConnection : ITransportConnection, IAsyncDisposable
+public interface IMultiplexedConnection : ITransportConnection, IAsyncDisposable
 {
     /// <summary>Accepts a remote stream.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

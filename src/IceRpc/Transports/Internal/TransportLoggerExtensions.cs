@@ -47,11 +47,11 @@ internal static partial class TransportLoggerExtensions
         string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.MultiplexedTransportConnectionShutdown,
-        EventName = nameof(TransportEventIds.MultiplexedTransportConnectionShutdown),
+        EventId = (int)TransportEventIds.MultiplexedConnectionShutdown,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionShutdown),
         Level = LogLevel.Trace,
         Message = "connection shutdown")]
-    internal static partial void LogMultiplexedTransportConnectionShutdown(
+    internal static partial void LogMultiplexedConnectionShutdown(
         this ILogger logger,
         Exception exception);
 
@@ -90,25 +90,25 @@ internal static partial class TransportLoggerExtensions
     internal static partial void LogTransportConnectionDispose(this ILogger logger);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SingleStreamTransportConnectionRead,
-        EventName = nameof(TransportEventIds.SingleStreamTransportConnectionRead),
+        EventId = (int)TransportEventIds.DuplexConnectionRead,
+        EventName = nameof(TransportEventIds.DuplexConnectionRead),
         Level = LogLevel.Trace,
-        Message = "read {Size} bytes from single stream transport connection ({Data})")]
-    internal static partial void LogSingleStreamTransportConnectionRead(this ILogger logger, int size, string data);
+        Message = "read {Size} bytes from duplex connection ({Data})")]
+    internal static partial void LogDuplexConnectionRead(this ILogger logger, int size, string data);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SingleStreamTransportConnectionShutdown,
-        EventName = nameof(TransportEventIds.SingleStreamTransportConnectionShutdown),
+        EventId = (int)TransportEventIds.DuplexConnectionShutdown,
+        EventName = nameof(TransportEventIds.DuplexConnectionShutdown),
         Level = LogLevel.Trace,
-        Message = "single stream transport connection shutdown")]
-    internal static partial void LogSingleStreamTransportConnectionShutdown(this ILogger logger);
+        Message = "duplex connection shutdown")]
+    internal static partial void LogDuplexConnectionShutdown(this ILogger logger);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.SingleStreamTransportConnectionWrite,
-        EventName = nameof(TransportEventIds.SingleStreamTransportConnectionWrite),
+        EventId = (int)TransportEventIds.DuplexConnectionWrite,
+        EventName = nameof(TransportEventIds.DuplexConnectionWrite),
         Level = LogLevel.Trace,
-        Message = "wrote {Size} bytes to single stream transport connection ({Data})")]
-    internal static partial void LogSingleStreamTransportConnectionWrite(this ILogger logger, int size, string data);
+        Message = "wrote {Size} bytes to duplex connection ({Data})")]
+    internal static partial void LogDuplexConnectionWrite(this ILogger logger, int size, string data);
 
     internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
         stream.IsStarted ?

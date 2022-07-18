@@ -14,11 +14,11 @@ namespace IceRpc;
 public sealed class Server : IAsyncDisposable
 {
     /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
-    public static IServerTransport<IMultiplexedTransportConnection> DefaultMultiplexedServerTransport { get; } =
+    public static IServerTransport<IMultiplexedConnection> DefaultMultiplexedServerTransport { get; } =
         new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets the default server transport for ice protocol connections.</summary>
-    public static IServerTransport<ISingleStreamTransportConnection> DefaultSingleStreamServerTransport { get; } =
+    public static IServerTransport<IDuplexConnection> DefaultDuplexServerTransport { get; } =
         new TcpServerTransport();
 
     /// <summary>Gets the endpoint of this server.</summary>
@@ -38,8 +38,8 @@ public sealed class Server : IAsyncDisposable
     private IListener? _listener;
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IServerTransport<IMultiplexedTransportConnection> _multiplexedServerTransport;
-    private readonly IServerTransport<ISingleStreamTransportConnection> _singleStreamServerTransport;
+    private readonly IServerTransport<IMultiplexedConnection> _multiplexedServerTransport;
+    private readonly IServerTransport<IDuplexConnection> _duplexServerTransport;
 
     // protects _shutdownTask
     private readonly object _mutex = new();
@@ -53,18 +53,18 @@ public sealed class Server : IAsyncDisposable
     /// <param name="options">The server options.</param>
     /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
-    /// <param name="singleStreamServerTransport">The transport used to create ice protocol connections.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections.</param>
     public Server(
         ServerOptions options,
         ILoggerFactory? loggerFactory = null,
-        IServerTransport<IMultiplexedTransportConnection>? multiplexedServerTransport = null,
-        IServerTransport<ISingleStreamTransportConnection>? singleStreamServerTransport = null)
+        IServerTransport<IMultiplexedConnection>? multiplexedServerTransport = null,
+        IServerTransport<IDuplexConnection>? duplexServerTransport = null)
     {
         Endpoint = options.Endpoint;
         _options = options;
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
-        _singleStreamServerTransport = singleStreamServerTransport ?? DefaultSingleStreamServerTransport;
+        _duplexServerTransport = duplexServerTransport ?? DefaultDuplexServerTransport;
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
@@ -150,16 +150,16 @@ public sealed class Server : IAsyncDisposable
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 PerformListen(
-                    _singleStreamServerTransport,
+                    _duplexServerTransport,
                     AcceptIceConnectionAsync,
-                    LogSingleStreamTransportConnectionDecorator.Decorate);
+                    LogDuplexConnectionDecorator.Decorate);
             }
             else
             {
                 PerformListen(
                     _multiplexedServerTransport,
                     AcceptIceRpcConnectionAsync,
-                    LogMultiplexedTransportConnectionDecorator.Decorate);
+                    LogMultiplexedConnectionDecorator.Decorate);
             }
         }
 
@@ -195,15 +195,15 @@ public sealed class Server : IAsyncDisposable
             _ = Task.Run(() => AcceptAsync(() => acceptProtocolConnection(listener)));
         }
 
-        async Task<IProtocolConnection> AcceptIceRpcConnectionAsync(IListener<IMultiplexedTransportConnection> listener)
+        async Task<IProtocolConnection> AcceptIceRpcConnectionAsync(IListener<IMultiplexedConnection> listener)
         {
-            IMultiplexedTransportConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
+            IMultiplexedConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
             return new IceRpcProtocolConnection(transportConnection, _options.ConnectionOptions);
         }
 
-        async Task<IProtocolConnection> AcceptIceConnectionAsync(IListener<ISingleStreamTransportConnection> listener)
+        async Task<IProtocolConnection> AcceptIceConnectionAsync(IListener<IDuplexConnection> listener)
         {
-            ISingleStreamTransportConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
+            IDuplexConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
             return new IceProtocolConnection(transportConnection, isServer: true, _options.ConnectionOptions);
         }
 

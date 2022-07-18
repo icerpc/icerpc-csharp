@@ -2,32 +2,32 @@
 
 namespace IceRpc.Transports.Internal;
 
-internal class SlicListener : IListener<IMultiplexedTransportConnection>
+internal class SlicListener : IListener<IMultiplexedConnection>
 {
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
-    private readonly IListener<ISingleStreamTransportConnection> _singleStreamListener;
+    private readonly IListener<IDuplexConnection> _duplexListener;
     private readonly SlicTransportOptions _slicOptions;
 
-    public Endpoint Endpoint => _singleStreamListener.Endpoint;
+    public Endpoint Endpoint => _duplexListener.Endpoint;
 
-    public async Task<IMultiplexedTransportConnection> AcceptAsync() =>
-        new SlicTransportConnection(
-            await _singleStreamListener.AcceptAsync().ConfigureAwait(false),
+    public async Task<IMultiplexedConnection> AcceptAsync() =>
+        new SlicMultiplexedConnection(
+            await _duplexListener.AcceptAsync().ConfigureAwait(false),
             isServer: true,
             _errorCodeConverter,
             _slicOptions);
 
-    public void Dispose() => _singleStreamListener.Dispose();
+    public void Dispose() => _duplexListener.Dispose();
 
     internal SlicListener(
-        IListener<ISingleStreamTransportConnection> singleStreamListener,
+        IListener<IDuplexConnection> duplexListener,
         SlicTransportOptions slicOptions)
     {
-        _errorCodeConverter = singleStreamListener.Endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
+        _errorCodeConverter = duplexListener.Endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
             throw new NotSupportedException(
-                $"cannot create Slic listener for protocol {singleStreamListener.Endpoint.Protocol}");
+                $"cannot create Slic listener for protocol {duplexListener.Endpoint.Protocol}");
 
-        _singleStreamListener = singleStreamListener;
+        _duplexListener = duplexListener;
         _slicOptions = slicOptions;
     }
 }

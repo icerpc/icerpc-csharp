@@ -54,7 +54,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
     internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
 
-    private readonly SlicTransportConnection _connection;
+    private readonly SlicMultiplexedConnection _connection;
     private long _id = -1;
     private readonly SlicPipeReader _inputPipeReader;
     private readonly object _mutex = new();
@@ -84,7 +84,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
         }
     }
 
-    internal SlicMultiplexedStream(SlicTransportConnection connection, bool bidirectional, bool remote)
+    internal SlicMultiplexedStream(SlicMultiplexedConnection connection, bool bidirectional, bool remote)
     {
         _connection = connection;
         _sendCredit = _connection.PeerPauseWriterThreshold;

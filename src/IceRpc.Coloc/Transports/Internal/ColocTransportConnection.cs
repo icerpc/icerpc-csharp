@@ -5,9 +5,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The colocated transport connection class to exchange data within the same process. The implementation
-/// copies the send buffer into the receive buffer.</summary>
-internal class ColocTransportConnection : ISingleStreamTransportConnection
+/// <summary>The colocated connection class to exchange data within the same process. The implementation copies the send
+/// buffer into the receive buffer.</summary>
+internal class ColocDuplexConnection : IDuplexConnection
 {
     public Endpoint Endpoint { get; }
 
@@ -29,7 +29,7 @@ internal class ColocTransportConnection : ISingleStreamTransportConnection
 
     public void Dispose()
     {
-        _exception ??= new ObjectDisposedException($"{typeof(ColocTransportConnection)}");
+        _exception ??= new ObjectDisposedException($"{typeof(ColocDuplexConnection)}");
 
         if (_state.TrySetFlag(State.Disposed))
         {
@@ -203,7 +203,7 @@ internal class ColocTransportConnection : ISingleStreamTransportConnection
         }
     }
 
-    public ColocTransportConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
+    public ColocDuplexConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
     {
         Endpoint = endpoint;
         _connect = connect;

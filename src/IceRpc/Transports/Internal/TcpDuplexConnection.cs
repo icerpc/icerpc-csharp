@@ -10,7 +10,7 @@ using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
-internal abstract class TcpTransportConnection : ISingleStreamTransportConnection
+internal abstract class TcpDuplexConnection : IDuplexConnection
 {
     public Endpoint Endpoint { get; }
 
@@ -69,7 +69,7 @@ internal abstract class TcpTransportConnection : ISingleStreamTransportConnectio
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpTransportConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -192,7 +192,7 @@ internal abstract class TcpTransportConnection : ISingleStreamTransportConnectio
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpTransportConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -200,10 +200,10 @@ internal abstract class TcpTransportConnection : ISingleStreamTransportConnectio
         }
     }
 
-    private protected TcpTransportConnection(Endpoint endpoint) => Endpoint = endpoint;
+    private protected TcpDuplexConnection(Endpoint endpoint) => Endpoint = endpoint;
 }
 
-internal class TcpClientTransportConnection : TcpTransportConnection
+internal class TcpClientDuplexConnection : TcpDuplexConnection
 {
     internal override Socket Socket { get; }
 
@@ -251,7 +251,7 @@ internal class TcpClientTransportConnection : TcpTransportConnection
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpTransportConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -259,7 +259,7 @@ internal class TcpClientTransportConnection : TcpTransportConnection
         }
     }
 
-    internal TcpClientTransportConnection(
+    internal TcpClientDuplexConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         TcpClientTransportOptions options)
@@ -303,7 +303,7 @@ internal class TcpClientTransportConnection : TcpTransportConnection
     }
 }
 
-internal class TcpServerTransportConnection : TcpTransportConnection
+internal class TcpServerDuplexConnection : TcpDuplexConnection
 {
     internal override Socket Socket { get; }
 
@@ -345,7 +345,7 @@ internal class TcpServerTransportConnection : TcpTransportConnection
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
-            throw new ObjectDisposedException($"{typeof(TcpTransportConnection)}");
+            throw new ObjectDisposedException($"{typeof(TcpDuplexConnection)}");
         }
         catch (Exception exception)
         {
@@ -353,7 +353,7 @@ internal class TcpServerTransportConnection : TcpTransportConnection
         }
     }
 
-    internal TcpServerTransportConnection(
+    internal TcpServerDuplexConnection(
         Endpoint endpoint,
         Socket socket,
         SslServerAuthenticationOptions? authenticationOptions)

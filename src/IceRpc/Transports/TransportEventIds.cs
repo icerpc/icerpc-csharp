@@ -17,8 +17,8 @@ public enum TransportEventIds
     /// <summary>Successfully read data from a multiplexed stream.</summary>
     MultiplexedStreamRead,
 
-    /// <summary>A multiplexed transport connection was shutdown.</summary>
-    MultiplexedTransportConnectionShutdown,
+    /// <summary>A multiplexed connection was shutdown.</summary>
+    MultiplexedConnectionShutdown,
 
     /// <summary>Wrote data to a multiplexed stream.</summary>
     MultiplexedStreamWrite,
@@ -32,12 +32,12 @@ public enum TransportEventIds
     /// <summary>A transport connection was disposed.</summary>
     TransportConnectionDispose,
 
-    /// <summary>Successfully read data from a single stream transport connection.</summary>
-    SingleStreamTransportConnectionRead,
+    /// <summary>Successfully read data from a duplex connection.</summary>
+    DuplexConnectionRead,
 
     /// <summary>Single stream transport connection shutdown.</summary>
-    SingleStreamTransportConnectionShutdown,
+    DuplexConnectionShutdown,
 
-    /// <summary>Wrote data to a single stream transport connection.</summary>
-    SingleStreamTransportConnectionWrite,
+    /// <summary>Wrote data to a duplex connection.</summary>
+    DuplexConnectionWrite,
 }

@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogSingleStreamTransportConnectionDecorator : LogTransportConnectionDecorator, ISingleStreamTransportConnection
+internal class LogDuplexConnectionDecorator : LogTransportConnectionDecorator, IDuplexConnection
 {
-    private readonly ISingleStreamTransportConnection _decoratee;
+    private readonly IDuplexConnection _decoratee;
 
     public void Dispose()
     {
@@ -24,14 +24,14 @@ internal class LogSingleStreamTransportConnectionDecorator : LogTransportConnect
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {
         int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-        Logger.LogSingleStreamTransportConnectionRead(received, ToHexString(buffer[0..received]));
+        Logger.LogDuplexConnectionRead(received, ToHexString(buffer[0..received]));
         return received;
     }
 
     public async Task ShutdownAsync(CancellationToken cancel)
     {
         await _decoratee.ShutdownAsync(cancel).ConfigureAwait(false);
-        Logger.LogSingleStreamTransportConnectionShutdown();
+        Logger.LogDuplexConnectionShutdown();
     }
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
@@ -42,18 +42,18 @@ internal class LogSingleStreamTransportConnectionDecorator : LogTransportConnect
         {
             size += buffer.Length;
         }
-        Logger.LogSingleStreamTransportConnectionWrite(size, ToHexString(buffers));
+        Logger.LogDuplexConnectionWrite(size, ToHexString(buffers));
     }
 
-    internal static ISingleStreamTransportConnection Decorate(
-        ISingleStreamTransportConnection decoratee,
+    internal static IDuplexConnection Decorate(
+        IDuplexConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger) =>
-        new LogSingleStreamTransportConnectionDecorator(decoratee, endpoint, isServer, logger);
+        new LogDuplexConnectionDecorator(decoratee, endpoint, isServer, logger);
 
-    internal LogSingleStreamTransportConnectionDecorator(
-        ISingleStreamTransportConnection decoratee,
+    internal LogDuplexConnectionDecorator(
+        IDuplexConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger)

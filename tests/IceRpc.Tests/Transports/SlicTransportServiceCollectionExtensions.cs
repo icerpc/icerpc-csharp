@@ -19,30 +19,30 @@ public static class SlicTransportServiceCollectionExtensions
         var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
 
         services.
-            TryAddSingleton<IServerTransport<IMultiplexedTransportConnection>>(
+            TryAddSingleton<IServerTransport<IMultiplexedConnection>>(
                 provider => new SlicServerTransport(
                     slicTransportOptions ?? new SlicTransportOptions(),
-                    provider.GetRequiredService<IServerTransport<ISingleStreamTransportConnection>>()));
+                    provider.GetRequiredService<IServerTransport<IDuplexConnection>>()));
 
         services.
-            TryAddSingleton<IClientTransport<IMultiplexedTransportConnection>>(
+            TryAddSingleton<IClientTransport<IMultiplexedConnection>>(
                 provider => new SlicClientTransport(
                     slicTransportOptions ?? new SlicTransportOptions(),
-                    provider.GetRequiredService<IClientTransport<ISingleStreamTransportConnection>>()));
+                    provider.GetRequiredService<IClientTransport<IDuplexConnection>>()));
 
         services.AddSingleton(provider =>
         {
-            var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedTransportConnection>>();
+            var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedConnection>>();
             var listener = serverTransport.Listen(endpoint, null, NullLogger.Instance);
             return listener;
         });
 
-        services.AddSingleton<SlicTransportConnection>(provider =>
+        services.AddSingleton<SlicMultiplexedConnection>(provider =>
         {
-            var listener = provider.GetRequiredService<IListener<IMultiplexedTransportConnection>>();
-            var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedTransportConnection>>();
+            var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+            var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedConnection>>();
             var connection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
-            return (SlicTransportConnection)connection;
+            return (SlicMultiplexedConnection)connection;
         });
         return services;
     }

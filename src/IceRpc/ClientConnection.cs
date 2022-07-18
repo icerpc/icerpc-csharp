@@ -14,11 +14,11 @@ namespace IceRpc;
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
-    public static IClientTransport<IMultiplexedTransportConnection> DefaultMultiplexedClientTransport { get; } =
+    public static IClientTransport<IMultiplexedConnection> DefaultMultiplexedClientTransport { get; } =
         new SlicClientTransport(new TcpClientTransport());
 
     /// <summary>Gets the default client transport for ice protocol connections.</summary>
-    public static IClientTransport<ISingleStreamTransportConnection> DefaultSingleStreamClientTransport { get; } =
+    public static IClientTransport<IDuplexConnection> DefaultDuplexClientTransport { get; } =
         new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
@@ -37,13 +37,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
-    /// <param name="singleStreamClientTransport">The single stream transport used to create ice protocol
-    /// connections.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
+        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
+        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
     {
         Endpoint endpoint = options.Endpoint ??
             throw new ArgumentException(
@@ -53,13 +52,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
 
         multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-        singleStreamClientTransport ??= DefaultSingleStreamClientTransport;
+        duplexClientTransport ??= DefaultDuplexClientTransport;
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
         if (endpoint.Protocol == Protocol.Ice)
         {
-            ISingleStreamTransportConnection transportConnection = singleStreamClientTransport.CreateConnection(
+            IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
                 endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
@@ -69,7 +68,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             // TODO: log level
             if (logger.IsEnabled(LogLevel.Error))
             {
-                transportConnection = new LogSingleStreamTransportConnectionDecorator(
+                transportConnection = new LogDuplexConnectionDecorator(
                     transportConnection,
                     Endpoint,
                     isServer: false,
@@ -80,7 +79,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         else
         {
-            IMultiplexedTransportConnection transportConnection = multiplexedClientTransport.CreateConnection(
+            IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
                 endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
@@ -91,7 +90,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (logger.IsEnabled(LogLevel.Error))
             {
 #pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
-                transportConnection = new LogMultiplexedTransportConnectionDecorator(
+                transportConnection = new LogMultiplexedConnectionDecorator(
                     transportConnection,
                     Endpoint,
                     isServer: false,

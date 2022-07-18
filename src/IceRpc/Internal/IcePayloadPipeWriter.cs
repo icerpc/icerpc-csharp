@@ -11,7 +11,7 @@ namespace IceRpc.Internal;
 /// writes to the transport connection writer.</summary>
 internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 {
-    private readonly SingleStreamTransportConnectionWriter _transportConnectionWriter;
+    private readonly DuplexConnectionWriter _transportConnectionWriter;
 
     public override void Advance(int bytes) => _transportConnectionWriter.Advance(bytes);
 
@@ -30,7 +30,7 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         }
         catch (ObjectDisposedException)
         {
-            // The single stream transport connection can only be disposed if this connection is aborted.
+            // The duplex connection can only be disposed if this connection is aborted.
             throw new ConnectionAbortedException();
         }
         return default;
@@ -49,14 +49,14 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         }
         catch (ObjectDisposedException)
         {
-            // The single stream transport connection can only be disposed if this connection is aborted.
+            // The duplex connection can only be disposed if this connection is aborted.
             throw new ConnectionAbortedException();
         }
         return default;
     }
 
-    /// <summary>Writes the source to the single stream transport connection. <paramref name="endStream"/> is ignored
-    /// because the single stream transport connection has no use for it.</summary>
+    /// <summary>Writes the source to the duplex connection. <paramref name="endStream"/> is ignored
+    /// because the duplex connection has no use for it.</summary>
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
@@ -68,12 +68,12 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         }
         catch (ObjectDisposedException)
         {
-            // The single stream transport connection can only be disposed if this connection is aborted.
+            // The duplex connection can only be disposed if this connection is aborted.
             throw new ConnectionAbortedException();
         }
         return default;
     }
 
-    internal IcePayloadPipeWriter(SingleStreamTransportConnectionWriter transportConnectionWriter) =>
+    internal IcePayloadPipeWriter(DuplexConnectionWriter transportConnectionWriter) =>
         _transportConnectionWriter = transportConnectionWriter;
 }

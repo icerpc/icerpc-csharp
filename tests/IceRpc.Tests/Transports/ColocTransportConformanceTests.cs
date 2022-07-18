@@ -7,10 +7,10 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports;
 
-/// <summary>Conformance tests for the coloc single stream transport.</summary>
+/// <summary>Conformance tests for the coloc duplex transport.</summary>
 [Parallelizable(ParallelScope.All)]
-public class ColocTransportConformanceTests : SingleStreamTransportConformanceTests
+public class ColocTransportConformanceTests : DuplexTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() =>
-        new ServiceCollection().UseSingleStreamTransport("icerpc://colochost/").AddColocTransport();
+        new ServiceCollection().UseDuplexTransport("icerpc://colochost/").AddColocTransport();
 }

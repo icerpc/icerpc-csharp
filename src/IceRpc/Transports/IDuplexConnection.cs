@@ -2,8 +2,8 @@
 
 namespace IceRpc.Transports;
 
-/// <summary>Represents a transport connection created by a single stream transport.</summary>
-public interface ISingleStreamTransportConnection : ITransportConnection, IDisposable
+/// <summary>Represents a transport connection created by a duplex transport.</summary>
+public interface IDuplexConnection : ITransportConnection, IDisposable
 {
     /// <summary>Reads data from the connection.</summary>
     /// <param name="buffer">The buffer that holds the read data.</param>

@@ -17,7 +17,7 @@ public interface IMultiplexedStream : IDuplexPipe
 
     /// <summary>Gets a value indicating whether the stream is remote. A remote stream is a stream initiated by the peer
     /// and it's returned by <see
-    /// cref="IMultiplexedTransportConnection.AcceptStreamAsync(CancellationToken)"/>.</summary>
+    /// cref="IMultiplexedConnection.AcceptStreamAsync(CancellationToken)"/>.</summary>
     bool IsRemote { get; }
 
     /// <summary>Gets a value indicating whether the stream is started.</summary>

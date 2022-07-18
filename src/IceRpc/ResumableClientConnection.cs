@@ -34,7 +34,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ILoggerFactory? _loggerFactory;
 
-    private readonly IClientTransport<IMultiplexedTransportConnection>? _multiplexedClientTransport;
+    private readonly IClientTransport<IMultiplexedConnection>? _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
@@ -44,7 +44,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly ClientConnectionOptions _options;
 
-    private readonly IClientTransport<ISingleStreamTransportConnection>? _singleStreamClientTransport;
+    private readonly IClientTransport<IDuplexConnection>? _duplexClientTransport;
 
     /// <summary>Constructs a resumable client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -52,17 +52,16 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
-    /// <param name="singleStreamClientTransport">The single stream transport used to create ice protocol
-    /// connections.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ResumableClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedTransportConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISingleStreamTransportConnection>? singleStreamClientTransport = null)
+        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
+        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
     {
         _options = options;
         _multiplexedClientTransport = multiplexedClientTransport;
-        _singleStreamClientTransport = singleStreamClientTransport;
+        _duplexClientTransport = duplexClientTransport;
         _loggerFactory = loggerFactory;
 
         _clientConnection = CreateClientConnection();
@@ -190,7 +189,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             _options,
             _loggerFactory,
             _multiplexedClientTransport,
-            _singleStreamClientTransport);
+            _duplexClientTransport);
 
         // only called from the constructor or with _mutex locked
         clientConnection.OnAbort(_onAbort + OnAbort);

@@ -7,11 +7,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogMultiplexedTransportConnectionDecorator :
+internal class LogMultiplexedConnectionDecorator :
     LogTransportConnectionDecorator,
-    IMultiplexedTransportConnection
+    IMultiplexedConnection
 {
-    private readonly IMultiplexedTransportConnection _decoratee;
+    private readonly IMultiplexedConnection _decoratee;
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         new LogMultiplexedStreamDecorator(
@@ -38,22 +38,22 @@ internal class LogMultiplexedTransportConnectionDecorator :
         if (Information is TransportConnectionInformation connectionInformation)
         {
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-            Logger.LogMultiplexedTransportConnectionShutdown(exception);
+            Logger.LogMultiplexedConnectionShutdown(exception);
         }
     }
 
     public IMultiplexedStream CreateStream(bool bidirectional) =>
         new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), Logger);
 
-    internal static IMultiplexedTransportConnection Decorate(
-        IMultiplexedTransportConnection decoratee,
+    internal static IMultiplexedConnection Decorate(
+        IMultiplexedConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger) =>
-        new LogMultiplexedTransportConnectionDecorator(decoratee, endpoint, isServer, logger);
+        new LogMultiplexedConnectionDecorator(decoratee, endpoint, isServer, logger);
 
-    internal LogMultiplexedTransportConnectionDecorator(
-        IMultiplexedTransportConnection decoratee,
+    internal LogMultiplexedConnectionDecorator(
+        IMultiplexedConnection decoratee,
         Endpoint endpoint,
         bool isServer,
         ILogger logger)
