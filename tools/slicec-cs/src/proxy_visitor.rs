@@ -72,8 +72,10 @@ impl Visitor for ProxyVisitor<'_> {
             .add_block(request_class(interface_def))
             .add_block(response_class(interface_def))
             .add_block(format!(r#"
-/// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
-public static readonly string DefaultPath = typeof({proxy_impl}).GetDefaultPath();
+/// <summary>The default service address for services that implement Slice interface <c>{interface_name}</c>. Its
+/// protocol is icerpc and its path is computed from the Slice interface name.</summary>
+public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
+    new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultPath() }};
 
 private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({proxy_impl}).Assembly);
@@ -85,7 +87,7 @@ public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
 public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 
 /// <inheritdoc/>
-public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}"#,
+public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#,
                                interface_name = interface_def.identifier(),
                                proxy_impl = proxy_impl
             ).into());
@@ -154,14 +156,27 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {proxy_impl}
 /// <param name="path">The path.</param>
 public {proxy_impl}(string path) => ServiceAddress = new() {{ Path = path }};
 
-/// <summary>Constructs a proxy from an invoker, a path and a protocol.</summary>
+/// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
-/// <param name="path">The path of the service address. If null, the path is set to <see cref="DefaultPath"/>.</param>
-/// <param name="protocol">The protocol of the service address. If null, the protocol is set to IceRpc.</param>
-public {proxy_impl}(IceRpc.IInvoker invoker, string? path = null, IceRpc.Protocol? protocol = null)
+/// <param name="serviceAddress">The service address. Null is equivalent to <see cref="DefaultServiceAddress"/>.</param>
+/// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
+public {proxy_impl}(
+    IceRpc.IInvoker invoker,
+    IceRpc.ServiceAddress? serviceAddress = null,
+    SliceEncodeOptions? encodeOptions = null)
 {{
     Invoker = invoker;
-    ServiceAddress = new(protocol ?? IceRpc.Protocol.IceRpc) {{ Path = path ?? DefaultPath }};
+    ServiceAddress = serviceAddress ?? DefaultServiceAddress;
+    EncodeOptions = encodeOptions;
+}}
+
+/// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
+/// <param name="invoker">The invocation pipeline of the proxy.</param>
+/// <param name="serviceAddressUri">A URI that represents a service address.</param>
+/// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
+public {proxy_impl}(IceRpc.IInvoker invoker, Uri serviceAddressUri, SliceEncodeOptions? encodeOptions = null)
+    : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
+{{
 }}
 
 /// <inheritdoc/>

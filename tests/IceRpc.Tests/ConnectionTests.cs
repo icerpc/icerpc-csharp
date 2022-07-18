@@ -393,7 +393,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var serviceAddress = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
 
@@ -457,7 +457,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var serviceAddress = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
         Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection!.ShutdownAsync("");
@@ -554,7 +554,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var serviceAddress = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
 
