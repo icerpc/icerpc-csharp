@@ -137,8 +137,8 @@ public sealed class Router : IDispatcher
                     {
                         if (path.Length == AbsolutePrefix.Length)
                         {
-                            // We consume everything so there is nothing left to match.
-                            return ServiceNotFoundDispatcher.Instance.DispatchAsync(request, cancel);
+                            // We consumed everything so there is nothing left to match.
+                            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
                         }
                         else
                         {
@@ -174,7 +174,7 @@ public sealed class Router : IDispatcher
 
                         if (prefix == "/")
                         {
-                            return ServiceNotFoundDispatcher.Instance.DispatchAsync(request, cancel);
+                            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
                         }
 
                         // Cut last segment

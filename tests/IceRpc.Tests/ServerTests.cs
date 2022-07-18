@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -42,7 +43,7 @@ public class ServerTests
     /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after
     /// <see cref="Server.ShutdownAsync(CancellationToken)"/> completed.</summary>
     [Test]
-    public async Task The_shutdown_complete_task_is_completed_after_shutdow()
+    public async Task The_shutdown_complete_task_is_completed_after_shutdown()
     {
         await using var server = new Server(ServiceNotFoundDispatcher.Instance);
 

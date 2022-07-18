@@ -15,8 +15,9 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection.</summary>
-    /// <value>The dispatcher that dispatches requests received by this connection.</value>
-    public IDispatcher Dispatcher { get; set; } = ServiceNotFoundDispatcher.Instance;
+    /// <value>The dispatcher that dispatches requests received by this connection, or null if this connection does
+    /// not accept requests.</value>
+    public IDispatcher? Dispatcher { get; set; }
 
     /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
     /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
