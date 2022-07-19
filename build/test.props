@@ -3,5 +3,6 @@
   <Import Project="$(MSbuildThisFileDirectory)common.props"/>
   <PropertyGroup>
     <OutputPath>.</OutputPath>
+    <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 </Project>

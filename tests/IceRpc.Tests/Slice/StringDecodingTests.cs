@@ -15,8 +15,7 @@ namespace IceRpc.Tests.Slice;
 public class DecodeStringTests
 {
     /// <summary>Tests the decoding of a string. The only difference between decoding strings with Slice1 and
-    /// the Slice2 is how the size gets encoded. Since <see cref="Decoding_size(string, byte[], byte[])"/>
-    /// tests the size encoding, this test only needs to verify how strings are decoded with 2.0. </summary>
+    /// the Slice2 is how the size gets encoded that is tested separately.</summary>
     /// <param name="testString">The string to be decoded.</param>
     [TestCase("")]
     [TestCase("Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit.")]

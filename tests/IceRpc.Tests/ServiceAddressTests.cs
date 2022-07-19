@@ -75,8 +75,8 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_service_address_alt_endpoints(string)"/> test.
-    /// </summary>
+    /// <summary>Provides test case data for <see cref="Parse_service_address_alt_endpoints(string, Endpoint[])"/>
+    /// test.</summary>
     private static IEnumerable<TestCaseData> AltEndpointsSource
     {
         get
@@ -486,7 +486,6 @@ public class ServiceAddressTests
 
     /// <summary>Verifies that a string can be correctly parsed as a service address</summary>
     /// <param name="str">The string to parse as a service address</param>
-    /// <param name="format">The format of <paramref name="str"/> string.</param>
     /// <param name="path">The expected path for the parsed service address</param>
     /// <param name="fragment">The expected fragment for the parsed service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressParseSource))]
@@ -501,10 +500,8 @@ public class ServiceAddressTests
         });
     }
 
-    /// <summary>Verifies that parsing a string that is not valid according the given <paramref name="format"/> throws
-    /// <see cref="FormatException"/>.</summary>
+    /// <summary>Verifies that parsing a string that is not valid throws <see cref="FormatException"/>.</summary>
     /// <param name="str">The string to parse as a service address</param>
-    /// <param name="format">The format use to parse the string as a service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressParseInvalidSource))]
     public void Parse_an_invalid_service_address_string(string str) =>
         Assert.Throws(Is.InstanceOf<FormatException>(), () => ServiceAddress.Parse(str));
