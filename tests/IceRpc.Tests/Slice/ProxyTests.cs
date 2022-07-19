@@ -36,7 +36,10 @@ public class ProxyTests
                 string? expected,
                 SliceEncoding encoding) in testData)
             {
-                yield return new TestCaseData(ServiceAddress.Parse(value), ServiceAddress.Parse(expected ?? value), encoding);
+                yield return new TestCaseData(
+                    new ServiceAddress(new Uri(value)),
+                    new ServiceAddress(new Uri(expected ?? value)),
+                    encoding);
             }
         }
     }
@@ -45,7 +48,7 @@ public class ProxyTests
     {
         get
         {
-            yield return ServiceAddress.Parse("icerpc://host.zeroc.com/hello");
+            yield return new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello"));
             yield return null;
         }
     }

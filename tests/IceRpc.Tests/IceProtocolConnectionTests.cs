@@ -36,7 +36,7 @@ public sealed class IceProtocolConnectionTests
             // Service not found failure with a service address that has endpoints does not get a retry policy response
             // field
             yield return new TestCaseData(
-                ServiceAddress.Parse("ice://localhost/service"),
+                new ServiceAddress(new Uri("ice://localhost/service")),
                 DispatchErrorCode.ServiceNotFound,
                 null);
 

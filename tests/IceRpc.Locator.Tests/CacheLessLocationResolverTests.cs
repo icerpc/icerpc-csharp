@@ -13,7 +13,7 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost:10000/dummy");
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/dummy"));
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedServiceAddress));
 
         (ServiceAddress? serviceAddress, bool fromCache) =
@@ -31,7 +31,7 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost:10000/dummy");
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/dummy"));
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedServiceAddress));
 
         (ServiceAddress? serviceAddress, bool fromCache) =

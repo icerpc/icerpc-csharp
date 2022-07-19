@@ -23,7 +23,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
 });
 
-string endpoint = $"icerpc://127.0.0.1:{10000 + number}/";
+var endpoint = new Endpoint(new Uri($"icerpc://127.0.0.1:{10000 + number}/"));
 
 await using var server = new Server(new Hello(endpoint), endpoint, loggerFactory);
 

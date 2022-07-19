@@ -157,7 +157,8 @@ public class ConnectionTests
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
-        using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
+        using var listener =
+            slicServerTransport.Listen(new Endpoint(new Uri("icerpc://127.0.0.1:0")), null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             Endpoint = listener.Endpoint,
@@ -392,7 +393,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var serviceAddress = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
 
@@ -414,7 +415,7 @@ public class ConnectionTests
     public async Task Dispose_does_not_throw_if_connect_fails()
     {
         // Arrange
-        await using var connection = new ClientConnection("icerpc://localhost");
+        await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
         _ = connection.ConnectAsync();
 
         // Act/Assert
@@ -456,7 +457,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var serviceAddress = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
         Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection!.ShutdownAsync("");
@@ -553,7 +554,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var serviceAddress = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
 
