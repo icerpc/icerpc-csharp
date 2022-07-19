@@ -6,9 +6,8 @@ using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>Implements <see cref="IServerTransport{IDuplexConnection}"/> for the coloc
-/// transport.</summary>
-internal class ColocServerTransport : IServerTransport<IDuplexConnection>
+/// <summary>Implements <see cref="IDuplexServerTransport"/> for the coloc transport.</summary>
+internal class ColocServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
@@ -16,7 +15,7 @@ internal class ColocServerTransport : IServerTransport<IDuplexConnection>
     private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    IListener<IDuplexConnection> IServerTransport<IDuplexConnection>.Listen(
+    IDuplexListener IDuplexServerTransport.Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger)

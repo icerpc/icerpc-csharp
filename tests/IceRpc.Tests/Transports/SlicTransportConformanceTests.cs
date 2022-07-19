@@ -24,7 +24,7 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
             .AddSingleton(provider =>
             {
                 var loggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
-                var transport = provider.GetRequiredService<IServerTransport<IMultiplexedConnection>>();
+                var transport = provider.GetRequiredService<IMultiplexedServerTransport>();
                 var listener = transport.Listen(
                     endpoint,
                     null,
@@ -33,16 +33,16 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
             });
 
         services.
-            TryAddSingleton<IServerTransport<IMultiplexedConnection>>(
+            TryAddSingleton<IMultiplexedServerTransport>(
                 provider => new SlicServerTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("server"),
-                    provider.GetRequiredService<IServerTransport<IDuplexConnection>>()));
+                    provider.GetRequiredService<IDuplexServerTransport>()));
 
         services.
-            TryAddSingleton<IClientTransport<IMultiplexedConnection>>(
+            TryAddSingleton<IMultiplexedClientTransport>(
                 provider => new SlicClientTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("client"),
-                    provider.GetRequiredService<IClientTransport<IDuplexConnection>>()));
+                    provider.GetRequiredService<IDuplexClientTransport>()));
 
         services.TryAddSingleton(new MultiplexedTransportOptions());
 

@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the TCP transport.</summary>
-internal sealed class TcpListener : IListener<IDuplexConnection>
+internal sealed class TcpListener : IDuplexListener
 {
     public Endpoint Endpoint { get; }
 

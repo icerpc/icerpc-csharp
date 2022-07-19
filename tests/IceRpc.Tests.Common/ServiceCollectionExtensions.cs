@@ -59,8 +59,7 @@ public static class ServiceCollectionExtensions
             ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
-            IServerTransport<IDuplexConnection>? serverTransport =
-                provider.GetRequiredService<IServerTransport<IDuplexConnection>>();
+            IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
             return serverTransport.Listen(endpoint, serverAuthenticationOptions, logger);
         });
 
@@ -69,10 +68,10 @@ public static class ServiceCollectionExtensions
             ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
-            IListener<IDuplexConnection> listener =
-                provider.GetRequiredService<IListener<IDuplexConnection>>();
-            IClientTransport<IDuplexConnection> clientTransport =
-                provider.GetRequiredService<IClientTransport<IDuplexConnection>>();
+            IDuplexListener listener =
+                provider.GetRequiredService<IDuplexListener>();
+            IDuplexClientTransport clientTransport =
+                provider.GetRequiredService<IDuplexClientTransport>();
 
             return clientTransport.CreateConnection(
                 listener.Endpoint,

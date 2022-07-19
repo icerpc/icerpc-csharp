@@ -5,9 +5,8 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Gives class <see cref="Server"/> the ability to create incoming transport connections.</summary>
-/// <typeparam name="T">The transport connection type.</typeparam>
-public interface IServerTransport<T> where T : ITransportConnection
+/// <summary>A class to create a <see cref="IDuplexListener"/> to accept incoming duplex connections.</summary>
+public interface IDuplexServerTransport
 {
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
@@ -19,5 +18,5 @@ public interface IServerTransport<T> where T : ITransportConnection
     /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
     /// within the log scopes created by IceRPC.</param>
     /// <returns>The new listener.</returns>
-    IListener<T> Listen(Endpoint endpoint, SslServerAuthenticationOptions? authenticationOptions, ILogger logger);
+    IDuplexListener Listen(Endpoint endpoint, SslServerAuthenticationOptions? authenticationOptions, ILogger logger);
 }

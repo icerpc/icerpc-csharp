@@ -6,14 +6,14 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IServerTransport{IMultiplexedConnection}"/> using Slic over a duplex server
+/// <summary>Implements <see cref="IMultiplexedServerTransport"/> using Slic over a duplex server
 /// transport.</summary>
-public class SlicServerTransport : IServerTransport<IMultiplexedConnection>
+public class SlicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
     public string Name => _duplexServerTransport.Name;
 
-    private readonly IServerTransport<IDuplexConnection> _duplexServerTransport;
+    private readonly IDuplexServerTransport _duplexServerTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 
     /// <summary>Constructs a Slic server transport.</summary>
@@ -21,7 +21,7 @@ public class SlicServerTransport : IServerTransport<IMultiplexedConnection>
     /// <param name="duplexServerTransport">The single server transport.</param>
     public SlicServerTransport(
         SlicTransportOptions options,
-        IServerTransport<IDuplexConnection> duplexServerTransport)
+        IDuplexServerTransport duplexServerTransport)
     {
         _slicTransportOptions = options;
         _duplexServerTransport = duplexServerTransport;
@@ -29,13 +29,13 @@ public class SlicServerTransport : IServerTransport<IMultiplexedConnection>
 
     /// <summary>Constructs a Slic server transport.</summary>
     /// <param name="duplexServerTransport">The single server transport.</param>
-    public SlicServerTransport(IServerTransport<IDuplexConnection> duplexServerTransport)
+    public SlicServerTransport(IDuplexServerTransport duplexServerTransport)
         : this(new(), duplexServerTransport)
     {
     }
 
     /// <inheritdoc/>
-    public IListener<IMultiplexedConnection> Listen(
+    public IMultiplexedListener Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger) =>

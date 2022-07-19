@@ -13,10 +13,10 @@ public sealed class ColocTransport
     public const string Name = "coloc";
 
     /// <summary>Gets the colocated client transport.</summary>
-    public IClientTransport<IDuplexConnection> ClientTransport { get; }
+    public IDuplexClientTransport ClientTransport { get; }
 
     /// <summary>Gets the colocated server transport.</summary>
-    public IServerTransport<IDuplexConnection> ServerTransport { get; }
+    public IDuplexServerTransport ServerTransport { get; }
 
     /// <summary>Constructs a <see cref="ColocTransport"/>.</summary>
     public ColocTransport()

@@ -2,10 +2,10 @@
 
 namespace IceRpc.Transports.Internal;
 
-internal class SlicListener : IListener<IMultiplexedConnection>
+internal class SlicListener : IMultiplexedListener
 {
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
-    private readonly IListener<IDuplexConnection> _duplexListener;
+    private readonly IDuplexListener _duplexListener;
     private readonly SlicTransportOptions _slicOptions;
 
     public Endpoint Endpoint => _duplexListener.Endpoint;
@@ -20,7 +20,7 @@ internal class SlicListener : IListener<IMultiplexedConnection>
     public void Dispose() => _duplexListener.Dispose();
 
     internal SlicListener(
-        IListener<IDuplexConnection> duplexListener,
+        IDuplexListener duplexListener,
         SlicTransportOptions slicOptions)
     {
         _errorCodeConverter = duplexListener.Endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??

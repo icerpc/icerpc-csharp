@@ -17,10 +17,10 @@ public class TcpTransportConformanceTests : DuplexTransportConformanceTests
     {
         var services = new ServiceCollection().UseDuplexTransport(new Uri("icerpc://127.0.0.1:0/"));
 
-        services.AddSingleton<IServerTransport<IDuplexConnection>>(provider => new TcpServerTransport());
+        services.AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport());
 
         services.TryAddSingleton(new TcpClientTransportOptions());
-        services.AddSingleton<IClientTransport<IDuplexConnection>>(provider => new TcpClientTransport());
+        services.AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport());
 
         return services;
     }

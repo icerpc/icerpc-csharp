@@ -5,9 +5,8 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Gives ClientConnection the ability to create outgoing transport connections.</summary>
-/// <typeparam name="T">The type of the transport connection used by the transport.</typeparam>
-public interface IClientTransport<T> where T : ITransportConnection
+/// <summary>A class to create outgoing duplex connections.</summary>
+public interface IDuplexClientTransport
 {
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
@@ -22,11 +21,11 @@ public interface IClientTransport<T> where T : ITransportConnection
     /// <summary>Creates a new transport connection to the specified endpoint.</summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="authenticationOptions">The SSL client authentication options.</param>
-    /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport
-    /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
-    /// within the log scopes created by IceRPC.</param>
+    /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport APIs it
+    /// calls. The transport implementation can use this logger to log implementation-specific details within the log
+    /// scopes created by IceRPC.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
-    T CreateConnection(
+    IDuplexConnection CreateConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger);

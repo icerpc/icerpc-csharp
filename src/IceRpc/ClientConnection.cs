@@ -14,12 +14,11 @@ namespace IceRpc;
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
-    public static IClientTransport<IMultiplexedConnection> DefaultMultiplexedClientTransport { get; } =
+    public static IMultiplexedClientTransport DefaultMultiplexedClientTransport { get; } =
         new SlicClientTransport(new TcpClientTransport());
 
     /// <summary>Gets the default client transport for ice protocol connections.</summary>
-    public static IClientTransport<IDuplexConnection> DefaultDuplexClientTransport { get; } =
-        new TcpClientTransport();
+    public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
     /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
@@ -41,8 +40,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public ClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
-        IClientTransport<IMultiplexedConnection>? multiplexedClientTransport = null,
-        IClientTransport<IDuplexConnection>? duplexClientTransport = null)
+        IMultiplexedClientTransport? multiplexedClientTransport = null,
+        IDuplexClientTransport? duplexClientTransport = null)
     {
         Endpoint endpoint = options.Endpoint ??
             throw new ArgumentException(

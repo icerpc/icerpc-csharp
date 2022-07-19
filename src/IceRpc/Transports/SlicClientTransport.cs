@@ -6,14 +6,13 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IClientTransport{IMultiplexedConnection}"/> using Slic over a duplex client
-/// transport.</summary>
-public class SlicClientTransport : IClientTransport<IMultiplexedConnection>
+/// <summary>Implements <see cref="IMultiplexedClientTransport"/> using Slic over a duplex client transport.</summary>
+public class SlicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>
     public string Name => _duplexClientTransport.Name;
 
-    private readonly IClientTransport<IDuplexConnection> _duplexClientTransport;
+    private readonly IDuplexClientTransport _duplexClientTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 
     /// <summary>Constructs a Slic client transport.</summary>
@@ -21,7 +20,7 @@ public class SlicClientTransport : IClientTransport<IMultiplexedConnection>
     /// <param name="duplexClientTransport">The single client transport.</param>
     public SlicClientTransport(
         SlicTransportOptions options,
-        IClientTransport<IDuplexConnection> duplexClientTransport)
+        IDuplexClientTransport duplexClientTransport)
     {
         _duplexClientTransport = duplexClientTransport;
         _slicTransportOptions = options;
@@ -29,7 +28,7 @@ public class SlicClientTransport : IClientTransport<IMultiplexedConnection>
 
     /// <summary>Constructs a Slic client transport.</summary>
     /// <param name="duplexClientTransport">The single client transport.</param>
-    public SlicClientTransport(IClientTransport<IDuplexConnection> duplexClientTransport)
+    public SlicClientTransport(IDuplexClientTransport duplexClientTransport)
         : this(new(), duplexClientTransport)
     {
     }

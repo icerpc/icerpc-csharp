@@ -10,9 +10,8 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IClientTransport{IDuplexConnection}"/> for the tcp and ssl transports.
-/// </summary>
-public class TcpClientTransport : IClientTransport<IDuplexConnection>
+/// <summary>Implements <see cref="IDuplexClientTransport"/> for the tcp and ssl transports.</summary>
+public class TcpClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
     public string Name => TransportNames.Tcp;

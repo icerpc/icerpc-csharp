@@ -14,11 +14,11 @@ namespace IceRpc;
 public sealed class Server : IAsyncDisposable
 {
     /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
-    public static IServerTransport<IMultiplexedConnection> DefaultMultiplexedServerTransport { get; } =
+    public static IMultiplexedServerTransport DefaultMultiplexedServerTransport { get; } =
         new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets the default server transport for ice protocol connections.</summary>
-    public static IServerTransport<IDuplexConnection> DefaultDuplexServerTransport { get; } =
+    public static IDuplexServerTransport DefaultDuplexServerTransport { get; } =
         new TcpServerTransport();
 
     /// <summary>Gets the endpoint of this server.</summary>
@@ -35,11 +35,11 @@ public sealed class Server : IAsyncDisposable
 
     private bool _isReadOnly;
 
-    private IListener? _listener;
+    private IDisposable? _listener;
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IServerTransport<IMultiplexedConnection> _multiplexedServerTransport;
-    private readonly IServerTransport<IDuplexConnection> _duplexServerTransport;
+    private readonly IMultiplexedServerTransport _multiplexedServerTransport;
+    private readonly IDuplexServerTransport _duplexServerTransport;
 
     // protects _shutdownTask
     private readonly object _mutex = new();
@@ -57,8 +57,8 @@ public sealed class Server : IAsyncDisposable
     public Server(
         ServerOptions options,
         ILoggerFactory? loggerFactory = null,
-        IServerTransport<IMultiplexedConnection>? multiplexedServerTransport = null,
-        IServerTransport<IDuplexConnection>? duplexServerTransport = null)
+        IMultiplexedServerTransport? multiplexedServerTransport = null,
+        IDuplexServerTransport? duplexServerTransport = null)
     {
         if (options.ConnectionOptions.Dispatcher is null)
         {
@@ -168,64 +168,53 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"server '{this}' is already listening");
             }
 
+            ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
+
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
-                PerformListen(
-                    _duplexServerTransport,
-                    AcceptIceConnectionAsync,
-                    LogDuplexConnectionDecorator.Decorate);
+                IDuplexListener listener = _duplexServerTransport.Listen(
+                    Endpoint,
+                    _options.ServerAuthenticationOptions,
+                    logger);
+                Endpoint = listener.Endpoint;
+
+                // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    listener = new LogDuplexListenerDecorator(listener, logger);
+                }
+
+                _listener = listener;
+
+                // Run task to start accepting new connections.
+                _ = Task.Run(() => AcceptAsync(
+                    async () => new IceProtocolConnection(
+                        await listener.AcceptAsync().ConfigureAwait(false),
+                        isServer: true,
+                        _options.ConnectionOptions)));
             }
             else
             {
-                PerformListen(
-                    _multiplexedServerTransport,
-                    AcceptIceRpcConnectionAsync,
-                    LogMultiplexedConnectionDecorator.Decorate);
-            }
-        }
+                IMultiplexedListener listener = _multiplexedServerTransport.Listen(
+                    Endpoint,
+                    _options.ServerAuthenticationOptions,
+                    logger);
+                Endpoint = listener.Endpoint;
 
-        void PerformListen<T>(
-            IServerTransport<T> serverTransport,
-            Func<IListener<T>, Task<IProtocolConnection>> acceptProtocolConnection,
-            LogTransportConnectionDecoratorFactory<T> logDecoratorFactory)
-                where T : ITransportConnection
-        {
-            // This is the composition root of Server, where we install log decorators when logging is enabled.
+                // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    listener = new LogMultiplexedListenerDecorator(listener, logger);
+                }
 
-            ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
-
-            IListener<T> listener = serverTransport.Listen(Endpoint, _options.ServerAuthenticationOptions, logger);
-            _listener = listener;
-            Endpoint = listener.Endpoint;
-
-            // TODO: log level
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
                 _listener = listener;
 
-                Func<IListener<T>, Task<IProtocolConnection>> decoratee = acceptProtocolConnection;
-                acceptProtocolConnection = async listener =>
-                    new LogProtocolConnectionDecorator(
-                        await decoratee(listener).ConfigureAwait(false),
-                        isServer: true,
-                        logger);
+                // Run task to start accepting new connections.
+                _ = Task.Run(() => AcceptAsync(
+                    async () => new IceRpcProtocolConnection(
+                        await listener.AcceptAsync().ConfigureAwait(false),
+                        _options.ConnectionOptions)));
             }
-
-            // Run task to start accepting new connections.
-            _ = Task.Run(() => AcceptAsync(() => acceptProtocolConnection(listener)));
-        }
-
-        async Task<IProtocolConnection> AcceptIceRpcConnectionAsync(IListener<IMultiplexedConnection> listener)
-        {
-            IMultiplexedConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
-            return new IceRpcProtocolConnection(transportConnection, _options.ConnectionOptions);
-        }
-
-        async Task<IProtocolConnection> AcceptIceConnectionAsync(IListener<IDuplexConnection> listener)
-        {
-            IDuplexConnection transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
-            return new IceProtocolConnection(transportConnection, isServer: true, _options.ConnectionOptions);
         }
 
         async Task AcceptAsync(Func<Task<IProtocolConnection>> acceptProtocolConnection)
