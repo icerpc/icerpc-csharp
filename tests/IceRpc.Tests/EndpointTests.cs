@@ -8,18 +8,19 @@ namespace IceRpc.Tests;
 public class EndpointTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Parse_a_valid_endpoint_string(string, string, ushort, IDictionary{string, string})"/> test.</summary>
-    private static IEnumerable<TestCaseData> EndpointParseSource
+    /// <see cref="Create_endpoint_from_valid_uri(Uri, string, ushort, IDictionary{string, string})"/> test.
+    /// </summary>
+    private static IEnumerable<TestCaseData> EndpointUriSource
     {
         get
         {
-            foreach ((string str,
+            foreach ((Uri uri,
                       string host,
                       ushort port,
                       IDictionary<string, string>? parameters) in _validEndpoints)
             {
                 yield return new TestCaseData(
-                    str,
+                    uri,
                     host,
                     port,
                     parameters ?? new Dictionary<string, string>());
@@ -32,68 +33,68 @@ public class EndpointTests
     {
         get
         {
-            foreach ((string str, string _, ushort _, IDictionary<string, string>? _) in _validEndpoints)
+            foreach ((Uri uri, string _, ushort _, IDictionary<string, string>? _) in _validEndpoints)
             {
-                yield return new TestCaseData(str);
+                yield return new TestCaseData(uri);
             }
         }
     }
 
     /// <summary>A collection of valid endpoint strings with its expected host, port, and parameters.</summary>
-    private static readonly (string Str, string Host, ushort Port, IDictionary<string, string>? Parameters)[] _validEndpoints =
-        new (string, string, ushort, IDictionary<string, string>?)[]
+    private static readonly (Uri Uri, string Host, ushort Port, IDictionary<string, string>? Parameters)[] _validEndpoints =
+        new (Uri, string, ushort, IDictionary<string, string>?)[]
         {
-            ("icerpc://host:10000", "host", 10000, null),
-            ("icerpc://host:10000?transport=foobar", "host", 10000, new Dictionary<string, string>() { ["transport"] = "foobar" }),
-            ("icerpc://host", "host", 4062, null),
-            ("icerpc://[::0]", "::", 4062, null),
-            ("ice://[::0]?foo=bar&xyz=true",
+            (new Uri("icerpc://host:10000"), "host", 10000, null),
+            (new Uri("icerpc://host:10000?transport=foobar"), "host", 10000, new Dictionary<string, string>() { ["transport"] = "foobar" }),
+            (new Uri("icerpc://host"), "host", 4062, null),
+            (new Uri("icerpc://[::0]"), "::", 4062, null),
+            (new Uri("ice://[::0]?foo=bar&xyz=true"),
              "::",
              4061,
              new Dictionary<string, string>() { ["foo"] = "bar", ["xyz"] = "true" }),
-            ("icerpc://[::0]?xyz=false&xyz=true&foo=&b=",
+            (new Uri("icerpc://[::0]?xyz=false&xyz=true&foo=&b="),
              "::",
              4062,
              new Dictionary<string, string>() { ["xyz"] = "false,true", ["foo"] = "", ["b"] = "" }),
-            ("icerpc://host:10000?xyz=foo",
+            (new Uri("icerpc://host:10000?xyz=foo"),
              "host",
              10000,
              new Dictionary<string, string> { ["xyz"] = "foo" }),
-            ("icerpc://host:10000?transport=coloc",
+            (new Uri("icerpc://host:10000?transport=coloc"),
              "host",
              10000,
              new Dictionary<string, string>() { ["transport"] = "coloc" }),
-            ("ice://localhost?transport=tcp",
+            (new Uri("ice://localhost?transport=tcp"),
              "localhost",
              4061,
              new Dictionary<string, string>{ ["transport"] = "tcp" }),
-            ("ice://host:10000", "host", 10000, null),
-            ("icerpc://host:10000?xyz",
+            (new Uri("ice://host:10000"), "host", 10000, null),
+            (new Uri("icerpc://host:10000?xyz"),
              "host",
              10000,
              new Dictionary<string, string>{ ["xyz"] = "" }),
-            ("icerpc://host:10000?xyz&adapter-id=ok",
+            (new Uri("icerpc://host:10000?xyz&adapter-id=ok"),
              "host",
              10000,
              new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
-            ("IceRpc://host:10000", "host", 10000, null),
+            (new Uri("IceRpc://host:10000"), "host", 10000, null),
             // parses ok even though not a valid name
-            ("icerpc://host:10000? =bar",
+            (new Uri("icerpc://host:10000? =bar"),
              "host",
              10000,
              new Dictionary<string, string>() { ["%20"] = "bar" })
         };
 
     /// <summary>Verifies that an endpoint can be correctly converted into a string.</summary>
-    /// <param name="str1">The endpoint string to test.</param>
+    /// <param name="uri1">The endpoint URI to test.</param>
     [Test, TestCaseSource(nameof(EndpointToStringSource))]
-    public void Convert_an_endpoint_into_a_string(string str1)
+    public void Convert_an_endpoint_into_a_string(Uri uri1)
     {
-        var endpoint1 = Endpoint.FromString(str1);
+        var endpoint1 = new Endpoint(uri1);
 
         string str2 = endpoint1.ToString();
 
-        Assert.That(endpoint1, Is.EqualTo(Endpoint.FromString(str2)));
+        Assert.That(endpoint1, Is.EqualTo(new Endpoint(new Uri(str2))));
     }
 
     /// <summary>Verifies that the properties of a default constructed endpoint have the expected default values.
@@ -117,7 +118,7 @@ public class EndpointTests
     [Test]
     public void Endpoint_original_URI()
     {
-        var endpoint = Endpoint.FromString("icerpc://host:10000?transport=foobar");
+        var endpoint = new Endpoint(new Uri("icerpc://host:10000?transport=foobar"));
 
         Assert.That(endpoint.OriginalUri, Is.Not.Null);
     }
@@ -127,7 +128,7 @@ public class EndpointTests
     [Test]
     public void Endpoint_original_URI_is_null_after_updating_the_endpoint()
     {
-        var endpoint = Endpoint.FromString("icerpc://host:10000?transport=foobar");
+        var endpoint = new Endpoint(new Uri("icerpc://host:10000?transport=foobar"));
 
         Endpoint endpoint2 = endpoint with { Host = "localhost", Port = 10001 };
 
@@ -135,7 +136,7 @@ public class EndpointTests
         Assert.That(endpoint2.OriginalUri, Is.Null);
     }
 
-    /// <summary>Verifies that parsing an invalid endpoint string throws <see cref="FormatException"/>.</summary>
+    /// <summary>Verifies that Endpoint's constructor fails when a URI is not a valid endpoint.</summary>
     [TestCase("icerpc://host:10000/category/name")]                // unexpected path
     [TestCase("icerpc://host:10000#fragment")]                     // unexpected fragment
     [TestCase("icerpc://host:10000?alt-endpoint=host2")]           // alt-endpoint is service address only
@@ -147,24 +148,22 @@ public class EndpointTests
     [TestCase("icerpc:")]                                          // no authority
     [TestCase("foo://host:10000")]                                 // protocol not supported
     [TestCase("icerpc://user:password@host:10000")]                // bad user-info
-    [TestCase("icerpc://host:70000")]                              // bad port
-    [TestCase("icerpc://host:10_000")]                             // bad port
-    public void Parse_an_invalid_endpoint_string(string str) =>
-        Assert.Catch<FormatException>(() => Endpoint.FromString(str));
+    public void Cannot_create_endpoint_from_non_endpoint_uri(Uri uri) =>
+        Assert.Catch<ArgumentException>(() => new Endpoint(uri));
 
-    /// <summary>Verifies that a string can be correctly parsed as an endpoint.</summary>
-    /// <param name="str">The string to parse as an endpoint.</param>
-    /// <param name="host">The expected host for the parsed endpoint.</param>
-    /// <param name="port">The expected port for the parsed endpoint.</param>
-    /// <param name="parameters">The expected parameters for the parsed endpoint.</param>
-    [Test, TestCaseSource(nameof(EndpointParseSource))]
-    public void Parse_a_valid_endpoint_string(
-        string str,
+    /// <summary>Verifies that an endpoint can be created from a URI.</summary>
+    /// <param name="uri">The endpoint URI.</param>
+    /// <param name="host">The expected host for the new endpoint.</param>
+    /// <param name="port">The expected port for the new endpoint.</param>
+    /// <param name="parameters">The expected parameters for the new endpoint.</param>
+    [Test, TestCaseSource(nameof(EndpointUriSource))]
+    public void Create_endpoint_from_valid_uri(
+        Uri uri,
         string host,
         ushort port,
         IDictionary<string, string> parameters)
     {
-        var endpoint = Endpoint.FromString(str);
+        var endpoint = new Endpoint(uri);
 
         Assert.Multiple(() =>
         {
@@ -181,7 +180,7 @@ public class EndpointTests
     [TestCase("::1")]
     public void Setting_the_endpoint_host(string host)
     {
-        var endpoint = Endpoint.FromString("icerpc://localhost");
+        var endpoint = new Endpoint(new Uri("icerpc://localhost"));
 
         endpoint = endpoint with { Host = host };
 
@@ -227,7 +226,7 @@ public class EndpointTests
     public void Original_uri_set_to_null_when_setting_property()
     {
         // Arrange
-        var endpoint = Endpoint.FromString("icerpc://localhost");
+        var endpoint = new Endpoint(new Uri("icerpc://localhost"));
         endpoint = endpoint with { Host = "foo" }; // new host invalidates OriginalUri
 
         // Act
@@ -246,7 +245,7 @@ public class EndpointTests
     [TestCase("name%23[]", "value%25[]@!")]
     public void Setting_the_endpoint_params(string name, string value)
     {
-        var endpoint = Endpoint.FromString("icerpc://localhost");
+        var endpoint = new Endpoint(new Uri("icerpc://localhost"));
 
         endpoint = endpoint with { Params = endpoint.Params.Add(name, value) };
 
@@ -261,7 +260,7 @@ public class EndpointTests
     [TestCase("::1.2")]
     public void Setting_invalid_endpoint_host_fails(string host)
     {
-        var endpoint = Endpoint.FromString("icerpc://localhost");
+        var endpoint = new Endpoint(new Uri("icerpc://localhost"));
 
         Assert.Throws<ArgumentException>(() => _ = endpoint with { Host = host });
 
@@ -279,7 +278,7 @@ public class EndpointTests
     [TestCase("name", "valu&e")]
     public void Setting_invalid_endpoint_params_fails(string name, string value)
     {
-        var endpoint = Endpoint.FromString("icerpc://localhost");
+        var endpoint = new Endpoint(new Uri("icerpc://localhost"));
 
         Assert.Throws<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add(name, value) });
 

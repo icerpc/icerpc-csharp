@@ -104,11 +104,11 @@ public sealed class StructTests
 
     [Test]
     public void Decode_slice1_compact_struct_with_nullable_proxy(
-        [Values("icerpc://localhost/service", null)] string? proxy)
+        [Values("icerpc://localhost/service", null)] string? serviceAddress)
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy is null ? null : ServiceProxy.Parse(proxy));
+            serviceAddress is null ? null : new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeInt32(expected.A);
@@ -122,11 +122,12 @@ public sealed class StructTests
 
     [Test]
     public void Decode_slice2_compact_struct_with_nullable_proxy(
-        [Values("icerpc://localhost/service", null)] string? proxy)
+        [Values("icerpc://localhost/service", null)] string? serviceAddress)
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy is null ? null : ServiceProxy.Parse(proxy));
+            serviceAddress is null ? null :
+                new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
@@ -154,9 +155,9 @@ public sealed class StructTests
         {
             I = new ServiceProxy?[]
             {
-                ServiceProxy.Parse("icerpc://localhost/service1"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                ServiceProxy.Parse("icerpc://localhost/service2"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -178,9 +179,9 @@ public sealed class StructTests
         {
             I = new ServiceProxy?[]
             {
-                ServiceProxy.Parse("icerpc://localhost/service1"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                ServiceProxy.Parse("icerpc://localhost/service2"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -202,9 +203,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, ServiceProxy?>
             {
-                [1] = ServiceProxy.Parse("icerpc://localhost/service1"),
+                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = ServiceProxy.Parse("icerpc://localhost/service2"),
+                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -227,9 +228,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, ServiceProxy?>
             {
-                [1] = ServiceProxy.Parse("icerpc://localhost/service1"),
+                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = ServiceProxy.Parse("icerpc://localhost/service2"),
+                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -336,11 +337,11 @@ public sealed class StructTests
 
     [Test]
     public void Encode_slice1_compact_struct_with_nullable_proxy(
-        [Values("icerpc://localhost/service", null)] string? proxy)
+        [Values("icerpc://localhost/service", null)] string? serviceAddress)
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy is null ? null : ServiceProxy.Parse(proxy));
+            serviceAddress is null ? null : new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
@@ -354,11 +355,12 @@ public sealed class StructTests
 
     [Test]
     public void Encode_slice2_compact_struct_with_nullable_proxy(
-        [Values("icerpc://localhost/service", null)] string? proxy)
+        [Values("icerpc://localhost/service", null)] string? serviceAddress)
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy is null ? null : ServiceProxy.Parse(proxy));
+            serviceAddress is null ? null : new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
 
@@ -379,9 +381,9 @@ public sealed class StructTests
         {
             I = new ServiceProxy?[]
             {
-                ServiceProxy.Parse("icerpc://localhost/service1"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                ServiceProxy.Parse("icerpc://localhost/service2"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -402,9 +404,9 @@ public sealed class StructTests
         {
             I = new ServiceProxy?[]
             {
-                ServiceProxy.Parse("icerpc://localhost/service1"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                ServiceProxy.Parse("icerpc://localhost/service2"),
+                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -426,9 +428,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, ServiceProxy?>
             {
-                [1] = ServiceProxy.Parse("icerpc://localhost/service1"),
+                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = ServiceProxy.Parse("icerpc://localhost/service2"),
+                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -452,9 +454,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, ServiceProxy?>
             {
-                [1] = ServiceProxy.Parse("icerpc://localhost/service1"),
+                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = ServiceProxy.Parse("icerpc://localhost/service2"),
+                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);

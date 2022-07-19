@@ -19,7 +19,7 @@ public class DuplexConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseDuplexTransport("icerpc://colochost/")
+            .UseDuplexTransport(new Uri("icerpc://colochost/"))
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
@@ -59,7 +59,7 @@ public class DuplexConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseDuplexTransport("icerpc://colochost/")
+            .UseDuplexTransport(new Uri("icerpc://colochost/"))
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
@@ -93,7 +93,7 @@ public class DuplexConnectionReaderTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseDuplexTransport("icerpc://colochost/")
+            .UseDuplexTransport(new Uri("icerpc://colochost/"))
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 

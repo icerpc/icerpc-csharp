@@ -980,7 +980,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
-        Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
+        var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
         Assert.Throws<FormatException>(
@@ -993,7 +993,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
 
-        Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
+        var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
         Assert.Throws<FormatException>(

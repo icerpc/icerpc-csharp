@@ -14,7 +14,7 @@ public class LocationResolverTests
         int refreshThreshold,
         int cacheEntryAge)
     {
-        var cachedServiceAddress = ServiceAddress.Parse("ice://localhost/cached");
+        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/cached"));
         var endpointFinder = new MockEndpointFinder();
         var resolver = new LocationResolver(
                 endpointFinder,
@@ -36,8 +36,8 @@ public class LocationResolverTests
         int refreshThreshold,
         int cacheEntryAge)
     {
-        var cachedServiceAddress = ServiceAddress.Parse("ice://localhost/cached");
-        var resolvedServiceAddress = ServiceAddress.Parse("ice://localhost/resolved");
+        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/cached"));
+        var resolvedServiceAddress = new ServiceAddress(new Uri("ice://localhost/resolved"));
         var endpointFinder = new MockEndpointFinder(resolvedServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
@@ -56,8 +56,8 @@ public class LocationResolverTests
     [NonParallelizable]
     public async Task Endpoint_finder_called_on_background()
     {
-        var cachedServiceAddress = ServiceAddress.Parse("ice://localhost/stale");
-        var resolvedServiceAddress = ServiceAddress.Parse("ice://localhost/resolved");
+        var cachedServiceAddress = new ServiceAddress(new Uri("ice://localhost/stale"));
+        var resolvedServiceAddress = new ServiceAddress(new Uri("ice://localhost/resolved"));
         var endpointFinder = new MockEndpointFinder(resolvedServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
@@ -76,8 +76,8 @@ public class LocationResolverTests
     [Test]
     public async Task Location_recursive_resolution()
     {
-        var wellKnownServiceAddress = ServiceAddress.Parse("ice:/foo?adapter-id=bar");
-        var adapterIdServiceAddress = ServiceAddress.Parse("ice://localhost/resolved");
+        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/foo?adapter-id=bar"));
+        var adapterIdServiceAddress = new ServiceAddress(new Uri("ice://localhost/resolved"));
         var endpointFinder = new MockEndpointFinder(wellKnownServiceAddress, adapterIdServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
@@ -103,7 +103,7 @@ public class LocationResolverTests
     [Test]
     public async Task Failure_to_recursively_resolve_adapter_id_removes_proxy_from_cache()
     {
-        var wellKnownServiceAddress = ServiceAddress.Parse("ice:/foo?adapter-id=bar");
+        var wellKnownServiceAddress = new ServiceAddress(new Uri("ice:/foo?adapter-id=bar"));
         var endpointFinder = new MockEndpointFinder(wellKnownServiceAddress);
         var endpointCache = new MockEndpointCache(wellKnownServiceAddress);
         var resolver = new LocationResolver(

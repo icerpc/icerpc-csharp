@@ -12,5 +12,5 @@ namespace IceRpc.Tests.Transports;
 public class ColocTransportConformanceTests : DuplexTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() =>
-        new ServiceCollection().UseDuplexTransport("icerpc://colochost/").AddColocTransport();
+        new ServiceCollection().UseDuplexTransport(new Uri("icerpc://colochost/")).AddColocTransport();
 }

@@ -2,8 +2,9 @@
 
 using IceRpc.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 
 namespace IceRpc;
@@ -11,6 +12,7 @@ namespace IceRpc;
 /// <summary>A service address corresponds to the URI of a service, parsed and processed for easier consumption by
 /// interceptors, <see cref="ConnectionCache"/> and other elements of the invocation pipeline. It's used to construct
 /// an <see cref="OutgoingRequest"/>.</summary>
+[TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress
 {
     /// <summary>Gets or initializes the secondary endpoints of this service address.</summary>
@@ -178,40 +180,6 @@ public sealed record class ServiceAddress
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
 
-    /// <summary>Creates a service address from a URI string.</summary>
-    /// <param name="s">The string to parse.</param>
-    /// <returns>The parsed service address.</returns>
-    public static ServiceAddress Parse(string s)
-    {
-        try
-        {
-            return s.StartsWith('/') ? new ServiceAddress { Path = s } :
-                new ServiceAddress(new Uri(s, UriKind.Absolute));
-        }
-        catch (ArgumentException ex)
-        {
-            throw new FormatException($"cannot parse URI '{s}'", ex);
-        }
-    }
-
-    /// <summary>Tries to create a service address from a URI string.</summary>
-    /// <param name="s">The URI string to parse.</param>
-    /// <param name="serviceAddress">The parsed service address.</param>
-    /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
-    public static bool TryParse(string s, [NotNullWhen(true)] out ServiceAddress? serviceAddress)
-    {
-        try
-        {
-            serviceAddress = Parse(s);
-            return true;
-        }
-        catch (FormatException)
-        {
-            serviceAddress = null;
-            return false;
-        }
-    }
-
     /// <summary>Constructs a service address from a protocol.</summary>
     /// <param name="protocol">The protocol, or null for a relative service address.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
@@ -234,7 +202,15 @@ public sealed record class ServiceAddress
 
             if (Protocol.IsSupported)
             {
-                Protocol.CheckPath(_path);
+                try
+                {
+                    Protocol.CheckPath(_path);
+                }
+                catch (FormatException exception)
+                {
+                    throw new ArgumentException($"invalid path in {Protocol} URI", nameof(uri), exception);
+                }
+
                 if (!Protocol.HasFragment && _fragment.Length > 0)
                 {
                     throw new ArgumentException(
@@ -268,9 +244,9 @@ public sealed record class ServiceAddress
                             string altUriString = $"{uri.Scheme}://{endpointStr}";
 
                             // The separator for endpoint parameters in alt-endpoint is $, so we replace these '$'
-                            // by '&' before sending the string to Endpoint.FromString which uses '&' as separator.
-                            _altEndpoints = _altEndpoints.Add(
-                                IceRpc.Endpoint.FromString(altUriString.Replace('$', '&')));
+                            // by '&' before sending the string (Uri) to the Endpoint constructor which uses '&' as
+                            // separator.
+                            _altEndpoints = _altEndpoints.Add(new Endpoint(new Uri(altUriString.Replace('$', '&'))));
                         }
                     }
                 }
@@ -278,15 +254,27 @@ public sealed record class ServiceAddress
                 {
                     if (!_path.StartsWith('/'))
                     {
-                        throw new FormatException($"invalid path in service address URI '{uri.OriginalString}'");
+                        throw new ArgumentException(
+                            $"invalid path in service address URI '{uri.OriginalString}'",
+                            nameof(uri));
                     }
 
                     if (altEndpointValue is not null)
                     {
-                        throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
+                        throw new ArgumentException(
+                            $"invalid alt-endpoint parameter in URI '{uri.OriginalString}'",
+                            nameof(uri));
                     }
 
-                    Protocol.CheckServiceAddressParams(queryParams);
+                    try
+                    {
+                        Protocol.CheckServiceAddressParams(queryParams);
+                    }
+                    catch (FormatException exception)
+                    {
+                        throw new ArgumentException("invalid params in URI", nameof(uri), exception);
+                    }
+
                     Params = queryParams;
                 }
             }
@@ -298,7 +286,15 @@ public sealed record class ServiceAddress
             // relative service address
             Protocol = null;
             _path = uri.ToString();
-            CheckPath(_path);
+
+            try
+            {
+                CheckPath(_path);
+            }
+            catch (FormatException exception)
+            {
+                throw new ArgumentException("invalid path in relative URI", nameof(uri), exception);
+            }
         }
 
         OriginalUri = uri;
@@ -560,4 +556,17 @@ public sealed record class ServiceAddress
             throw new InvalidOperationException($"cannot set {propertyName} on a '{Protocol}' service address");
         }
     }
+}
+
+/// <summary>The service address type converter specifies how to convert a string to a service address. It's used by
+/// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServiceAddress properties.</summary>
+public class ServiceAddressTypeConverter : TypeConverter
+{
+    /// <inheritdoc/>
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
+        sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+    /// <inheritdoc/>
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
+        value is string valueStr ? new ServiceAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
 }

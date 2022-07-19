@@ -82,6 +82,17 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     {
     }
 
+    /// <summary>Constructs a resumable client connection with the specified endpoint URI and client authentication
+    /// options. All other properties have their default values.</summary>
+    /// <param name="endpointUri">The connection endpoint URI.</param>
+    /// <param name="clientAuthenticationOptions">The client authentication options.</param>
+    public ResumableClientConnection(
+        Uri endpointUri,
+        SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+        : this(new Endpoint(endpointUri), clientAuthenticationOptions)
+    {
+    }
+
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that provides the <see cref="TransportConnectionInformation"/> of the transport connection, once

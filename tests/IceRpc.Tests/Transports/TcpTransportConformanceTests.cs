@@ -15,7 +15,7 @@ public class TcpTransportConformanceTests : DuplexTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection()
     {
-        var services = new ServiceCollection().UseDuplexTransport("icerpc://127.0.0.1:0/");
+        var services = new ServiceCollection().UseDuplexTransport(new Uri("icerpc://127.0.0.1:0/"));
 
         services.AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport());
 

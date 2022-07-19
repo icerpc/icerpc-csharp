@@ -6,13 +6,13 @@ using IceRpc;
 var options = new ClientConnectionOptions
 {
     Dispatcher = new AlertObserver(),
-    Endpoint = "icerpc://127.0.0.1",
+    Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1")),
 };
 
 await using var connection = new ClientConnection(options);
 
 var alertSystem = new AlertSystemProxy(connection);
-var alertObserver = new AlertObserverProxy("/");
+var alertObserver = AlertObserverProxy.FromPath("/");
 
 Console.WriteLine("Waiting for Alert ...");
 await alertSystem.AddObserverAsync(alertObserver);

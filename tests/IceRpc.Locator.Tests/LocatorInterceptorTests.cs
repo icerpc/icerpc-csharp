@@ -15,13 +15,11 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
-        await using var connection = new ClientConnection(new ClientConnectionOptions()
-        {
-            Endpoint = "ice://localhost:10000"
-        });
+        await using var connection = new ClientConnection(new Uri("ice://localhost:10000"));
+
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var serviceAddress = ServiceAddress.Parse("ice://localhost:10000/path");
+        var serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/path"));
         var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
@@ -36,7 +34,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
-        var expected = ServiceAddress.Parse("ice://localhost:10000/foo");
+        var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice)
@@ -59,7 +57,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
-        var expected = ServiceAddress.Parse("ice://localhost:10000/foo");
+        var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };
@@ -154,7 +152,7 @@ public class LocatorInterceptorTests
     {
         /// <summary>True if the last call asked to refresh the cache otherwise, false.</summary>
         public bool RefreshCache { get; set; }
-        private readonly ServiceAddress _serviceAddress = ServiceAddress.Parse("ice://localhost:10000/foo");
+        private readonly ServiceAddress _serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
 
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
@@ -171,7 +169,7 @@ public class LocatorInterceptorTests
     {
         /// <summary>True if the last call asked to refresh the cache otherwise, false.</summary>
         public bool RefreshCache { get; set; }
-        private readonly ServiceAddress _serviceAddress = ServiceAddress.Parse("ice://localhost:10000/foo");
+        private readonly ServiceAddress _serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
 
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,

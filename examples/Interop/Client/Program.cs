@@ -4,10 +4,10 @@ using Demo;
 using IceRpc;
 
 // Use the ice protocol for compatibility with ZeroC Ice.
-await using var connection = new ClientConnection("ice://127.0.0.1:10000");
+await using var connection = new ClientConnection(new Uri("ice://127.0.0.1:10000"));
 
-// Don't forget to specify the protocol when constructing your proxy. The default protocol is icerpc.
-var hello = new HelloProxy(connection, "/hello", connection.Protocol);
+// The service address URI includes the protocol to use (ice).
+var hello = new HelloProxy(connection, new Uri("ice:/hello"));
 
 Console.Write("To say hello to the server, type your name: ");
 
