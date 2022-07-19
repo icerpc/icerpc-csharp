@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Retry.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
@@ -119,25 +118,11 @@ public class RetryInterceptor : IInvoker
                         }
 
                         if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature &&
-                            endpointFeature.Endpoint is Endpoint mainEndpoint)
+                            endpointFeature.Endpoint is Endpoint mainEndpoint &&
+                            retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            if (retryPolicy == RetryPolicy.OtherReplica)
-                            {
-                                // We don't want to retry with this endpoint
-                                endpointFeature.RemoveEndpoint(mainEndpoint);
-                            }
-                            else if (IsDeadConnectionException(exception))
-                            {
-                                // We retry with this endpoint only if we have no other choice
-                                if (endpointFeature.AltEndpoints.Count > 0)
-                                {
-                                    endpointFeature.Endpoint = endpointFeature.AltEndpoints[0];
-                                    endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
-                                        .RemoveAt(0)
-                                        .Add(mainEndpoint);
-                                }
-                                // else no change since altEndpoints are empty
-                            }
+                            // We don't want to retry with this endpoint
+                            endpointFeature.RemoveEndpoint(mainEndpoint);
                         }
 
                         decorator.Reset();
@@ -165,14 +150,6 @@ public class RetryInterceptor : IInvoker
                 decorator.IsResettable = false;
             }
         }
-
-        static bool IsDeadConnectionException(Exception? exception) =>
-            exception is
-                ConnectionAbortedException or
-                ConnectionClosedException or
-                ConnectionLostException or
-                ConnectFailedException or
-                TimeoutException;
     }
 
     private static Exception RethrowException(Exception ex)
