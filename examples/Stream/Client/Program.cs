@@ -5,7 +5,7 @@ using IceRpc;
 using System.Runtime.CompilerServices;
 
 // Establish the connection to the server
-await using var connection = new ClientConnection("icerpc://127.0.0.1");
+await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 var numberStreamProxy = new NumberStreamProxy(connection);
 
 // Continues to stream data until either the client or server are shut down

@@ -72,30 +72,6 @@ public readonly record struct Endpoint
     private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private readonly ushort _port;
 
-    /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
-    /// <param name="s">The string representation of the endpoint.</param>
-    /// <returns>The new endpoint.</returns>
-    /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not a valid endpoint URI string.
-    /// </exception>
-    public static implicit operator Endpoint(string s) => FromString(s);
-
-    /// <summary>Creates an endpoint from a URI string.</summary>
-    /// <param name="s">The string representation of the endpoint.</param>
-    /// <returns>The new endpoint.</returns>
-    /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not a valid endpoint URI string.
-    /// </exception>
-    public static Endpoint FromString(string s)
-    {
-        try
-        {
-            return new Endpoint(new Uri(s, UriKind.Absolute));
-        }
-        catch (ArgumentException ex)
-        {
-            throw new FormatException($"'{s}' is not a valid endpoint URI", ex);
-        }
-    }
-
     /// <summary>Constructs an endpoint with default values.</summary>
     public Endpoint()
         : this(Protocol.IceRpc)
@@ -111,6 +87,7 @@ public readonly record struct Endpoint
                 "cannot create an endpoint with a non-supported protocol",
                 nameof(protocol));
         }
+
         Protocol = protocol;
         _port = (ushort)Protocol.DefaultUriPort;
         OriginalUri = null;
@@ -121,12 +98,11 @@ public readonly record struct Endpoint
     /// <exception cref="ArgumentException">Thrown if the <paramref name="uri"/> is not an absolute URI, or if its
     /// scheme is not a supported protocol, or if it has a non-empty path or fragment, or if it has an empty host,
     /// or if its query can't be parsed or if it has an alt-endpoint query parameter.</exception>
-    /// <exception cref="FormatException">Thrown if the query portion of the URI cannot be parsed.</exception>
     public Endpoint(Uri uri)
     {
         if (!uri.IsAbsoluteUri)
         {
-            throw new ArgumentException("cannot create an endpoint from a relative reference", nameof(uri));
+            throw new ArgumentException("cannot create an endpoint from a relative URI", nameof(uri));
         }
         Protocol = Protocol.FromString(uri.Scheme);
         if (!Protocol.IsSupported)
@@ -157,12 +133,20 @@ public readonly record struct Endpoint
             throw new ArgumentException("cannot create an endpoint with a fragment", nameof(uri));
         }
 
-        (_params, string? altEndpointValue) = uri.ParseQuery();
-        if (altEndpointValue is not null)
+        try
         {
-            throw new ArgumentException(
-                "cannot create an endpoint with an alt-endpoint query parameter",
-                nameof(uri));
+            (_params, string? altEndpointValue) = uri.ParseQuery();
+
+            if (altEndpointValue is not null)
+            {
+                throw new ArgumentException(
+                    "cannot create an endpoint with an alt-endpoint query parameter",
+                    nameof(uri));
+            }
+        }
+        catch (FormatException exception)
+        {
+            throw new ArgumentException("cannot parse query of endpoint URI", nameof(uri), exception);
         }
 
         OriginalUri = uri;
@@ -193,8 +177,8 @@ public readonly record struct Endpoint
 
     /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>
-    /// <remarks>This constructor is used by <see cref="ServiceAddress"/> for its main endpoint and by the Slice decoder for
-    /// Slice1 endpoints.</remarks>
+    /// <remarks>This constructor is used by <see cref="ServiceAddress"/> for its main endpoint and by the Slice decoder
+    /// for Slice1 endpoints.</remarks>
     internal Endpoint(
         Protocol protocol,
         string host,
@@ -237,5 +221,5 @@ public class EndpointTypeConverter : TypeConverter
 
     /// <inheritdoc/>
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
-        value is string valueStr ? Endpoint.FromString(valueStr) : base.ConvertFrom(context, culture, value);
+        value is string valueStr ? new Endpoint(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
 }

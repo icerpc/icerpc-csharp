@@ -13,7 +13,7 @@ public class ServerTests
     [Test]
     public async Task DNS_name_cannot_be_used_in_a_server_endpoint()
     {
-        await using var server = new Server(ServiceNotFoundDispatcher.Instance, "icerpc://foo:10000");
+        await using var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://foo:10000"));
 
         Assert.Throws<NotSupportedException>(() => server.Listen());
     }

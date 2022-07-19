@@ -63,7 +63,7 @@ public class EnumTests
         };
 
         // Act
-        var payload = EnumOperatonsProxy.Request.OpCheckedEnumSeq(expected);
+        var payload = EnumOperationsProxy.Request.OpCheckedEnumSeq(expected);
 
         // Assert
         var decoded = Decode(payload);
@@ -91,7 +91,7 @@ public class EnumTests
         };
 
         // Act
-        var payload = EnumOperatonsProxy.Request.OpCheckedEnumWithFixedLengthSeq(expected);
+        var payload = EnumOperationsProxy.Request.OpCheckedEnumWithFixedLengthSeq(expected);
 
         // Assert
         var decoded = Decode(payload);
@@ -120,7 +120,7 @@ public class EnumTests
         };
 
         // Act
-        var payload = EnumOperatonsProxy.Request.OpUncheckedEnumSeq(expected.AsMemory());
+        var payload = EnumOperationsProxy.Request.OpUncheckedEnumSeq(expected.AsMemory());
 
         // Assert
         var decoded = Decode(payload);

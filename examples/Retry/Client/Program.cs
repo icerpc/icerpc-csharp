@@ -45,12 +45,12 @@ var pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connectionCache);
 
-string endpoint = "icerpc://127.0.0.1:10000/hello?alt-endpoint=127.0.0.1:10001";
+string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-endpoint=127.0.0.1:10001";
 for (int i = 2; i < serverInstances; i++)
 {
-    endpoint += $"&alt-endpoint=127.0.0.1:{10000 + i}";
+    helloServiceAddress += $"&alt-endpoint=127.0.0.1:{10000 + i}";
 }
-IHelloProxy hello = HelloProxy.Parse(endpoint, invoker: pipeline);
+var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
 
 Console.Write("To say hello to the server, type your name: ");
 

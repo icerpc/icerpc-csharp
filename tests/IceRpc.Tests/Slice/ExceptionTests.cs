@@ -437,7 +437,7 @@ public sealed class ExceptionTests
                 {
                     Dispatcher = new Slice2ExceptionOperations(throwException),
                 },
-                Endpoint = $"icerpc://{Guid.NewGuid()}/"
+                Endpoint = new Endpoint(new Uri($"icerpc://{Guid.NewGuid()}/"))
             },
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
@@ -469,7 +469,7 @@ public sealed class ExceptionTests
                 {
                     Dispatcher = new Slice1ExceptionOperations(throwException),
                 },
-                Endpoint = $"icerpc://{Guid.NewGuid()}/"
+                Endpoint = new Endpoint(new Uri($"icerpc://{Guid.NewGuid()}/"))
             },
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
