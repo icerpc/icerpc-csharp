@@ -140,7 +140,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await new ServiceProxy(pipeline, new Uri($"icerpc://foo/?alt-endpoint=bar")).IcePingAsync();
+        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-endpoint=bar")).IcePingAsync();
 
         // Assert
         Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
