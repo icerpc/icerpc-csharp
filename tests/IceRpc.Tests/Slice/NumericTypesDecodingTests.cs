@@ -65,9 +65,9 @@ public class NumericTypesDecodingTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Tests that attempting to decode a variable size int that that is out of bound throws
+    /// <summary>Tests that attempting to decode a variable size int that is out of bound throws
     /// an <see cref="InvalidDataException"/>.</summary>
-    /// <param name="value">An encoded long that will fail to be decoded into an int.</param>
+    /// <param name="encodedBytes">An encoded long that will fail to be decoded into an int.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 })]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFD, 0xFF, 0xFF, 0xFF })]
     public void Decode_varint_invalid_data_fails(byte[] encodedBytes)
@@ -119,7 +119,6 @@ public class NumericTypesDecodingTests
 
     /// <summary>Tests decoding the size bytes with the 1.1 encoding.</summary>
     /// <param name="encodedBytes">The encoded byte array to decode.</param>
-    /// <param name="encoding">The encoding to use to decode the byte array.</param>
     /// <param name="expected">The expected size to be decoded.</param>
     [TestCase(new byte[] { 0x40 }, 64)]
     [TestCase(new byte[] { 0x9C }, 156)]

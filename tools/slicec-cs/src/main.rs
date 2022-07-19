@@ -138,6 +138,7 @@ fn preamble(slice_file: &SliceFile) -> CodeBlock {
 #nullable enable
 
 #pragma warning disable 1591 // Missing XML Comment
+#pragma warning disable 1573 // Parameter has no matching param tag in the XML comment
 
 using IceRpc.Slice;
 

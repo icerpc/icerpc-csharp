@@ -28,7 +28,7 @@ public class EndpointTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_an_endpoint_into_a_string(string)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Convert_an_endpoint_into_a_string(Uri)"/> test.</summary>
     private static IEnumerable<TestCaseData> EndpointToStringSource
     {
         get

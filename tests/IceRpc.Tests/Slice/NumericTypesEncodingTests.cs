@@ -109,7 +109,7 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)"/> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varulong.</summary>
     /// <param name="value">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarUInt62MaxValue + 1)]
