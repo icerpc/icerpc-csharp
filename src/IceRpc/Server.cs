@@ -172,10 +172,19 @@ public sealed class Server : IAsyncDisposable
 
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
-                IDuplexListener listener = _duplexServerTransport.Listen(
-                    Endpoint,
-                    _options.ServerAuthenticationOptions,
-                    logger);
+                var duplexListenerOptions = new DuplexListenerOptions
+                {
+                    ServerConnectionOptions = new()
+                    {
+                        MinimumSegmentSize = _options.ConnectionOptions.MinimumSegmentSize,
+                        Pool = _options.ConnectionOptions.Pool,
+                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions
+                    },
+                    Endpoint = _options.Endpoint,
+                    Logger = logger
+                };
+
+                IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
                 Endpoint = listener.Endpoint;
 
                 // TODO: log level
@@ -195,10 +204,22 @@ public sealed class Server : IAsyncDisposable
             }
             else
             {
-                IMultiplexedListener listener = _multiplexedServerTransport.Listen(
-                    Endpoint,
-                    _options.ServerAuthenticationOptions,
-                    logger);
+                var multiplexedListenerOptions = new MultiplexedListenerOptions
+                    {
+                        ServerConnectionOptions = new()
+                        {
+                            MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
+                            MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams,
+                            MinimumSegmentSize = _options.ConnectionOptions.MinimumSegmentSize,
+                            Pool = _options.ConnectionOptions.Pool,
+                            ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
+                            StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+                        },
+                        Endpoint = _options.Endpoint,
+                        Logger = logger
+                    };
+
+                IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);
                 Endpoint = listener.Endpoint;
 
                 // TODO: log level

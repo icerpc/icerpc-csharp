@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using System.Net.Security;
 
 namespace IceRpc.Transports;
 
@@ -37,20 +35,18 @@ public class SlicClientTransport : IMultiplexedClientTransport
     public bool CheckParams(Endpoint endpoint) => _duplexClientTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    public IMultiplexedConnection CreateConnection(
-        Endpoint endpoint,
-        SslClientAuthenticationOptions? authenticationOptions,
-        ILogger logger)
-    {
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter =
-            endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
-            throw new NotSupportedException(
-                $"cannot create Slic client transport connection for protocol {endpoint.Protocol}");
-
-        return new SlicMultiplexedConnection(
-            _duplexClientTransport.CreateConnection(endpoint, authenticationOptions, logger),
+    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
+        new SlicMultiplexedConnection(
+            _duplexClientTransport.CreateConnection(
+                new DuplexClientConnectionOptions
+                {
+                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
+                    Endpoint = options.Endpoint,
+                    Logger = options.Logger,
+                    MinimumSegmentSize = options.MinimumSegmentSize,
+                    Pool = options.Pool
+                }),
             isServer: false,
-            errorCodeConverter,
+            options,
             _slicTransportOptions);
-    }
 }

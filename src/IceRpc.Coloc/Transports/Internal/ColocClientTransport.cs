@@ -19,24 +19,19 @@ internal class ColocClientTransport : IDuplexClientTransport
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    IDuplexConnection IDuplexClientTransport.CreateConnection(
-        Endpoint endpoint,
-        SslClientAuthenticationOptions? authenticationOptions,
-        ILogger logger)
+    IDuplexConnection IDuplexClientTransport.CreateConnection(DuplexClientConnectionOptions options)
     {
-        if (authenticationOptions is not null)
+        if (options.ClientAuthenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create a secure Coloc connection");
         }
 
-        if (!CheckParams(endpoint))
+        if (!CheckParams(options.Endpoint))
         {
-            throw new FormatException($"cannot create a Coloc connection to endpoint '{endpoint}'");
+            throw new FormatException($"cannot create a Coloc connection to endpoint '{options.Endpoint}'");
         }
 
-        endpoint = endpoint.WithTransport(Name);
-
-        return new ColocDuplexConnection(endpoint, Connect);
+        return new ColocDuplexConnection(options.Endpoint.WithTransport(Name), Connect);
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>

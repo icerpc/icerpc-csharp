@@ -56,27 +56,35 @@ public static class ServiceCollectionExtensions
     {
         collection.AddSingleton(provider =>
         {
-            ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
-            return serverTransport.Listen(endpoint, serverAuthenticationOptions, logger);
+            return serverTransport.Listen(
+                new DuplexListenerOptions
+                {
+                    Endpoint = endpoint,
+                    ServerConnectionOptions = new()
+                    {
+                        ServerAuthenticationOptions = serverAuthenticationOptions
+                    },
+                    Logger = provider.GetService<ILogger>() ?? NullLogger.Instance
+                });
         });
 
         collection.AddSingleton(provider =>
         {
-            ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
-            IDuplexListener listener =
-                provider.GetRequiredService<IDuplexListener>();
-            IDuplexClientTransport clientTransport =
-                provider.GetRequiredService<IDuplexClientTransport>();
+            IDuplexListener listener = provider.GetRequiredService<IDuplexListener>();
+            IDuplexClientTransport clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
             return clientTransport.CreateConnection(
-                listener.Endpoint,
-                clientAuthenticationOptions,
-                logger);
+                new DuplexClientConnectionOptions
+                {
+                    Endpoint = listener.Endpoint,
+                    ClientAuthenticationOptions = clientAuthenticationOptions,
+                    Logger = provider.GetService<ILogger>() ?? NullLogger.Instance
+                });
         });
         return collection;
     }

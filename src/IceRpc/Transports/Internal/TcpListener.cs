@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -12,7 +13,7 @@ internal sealed class TcpListener : IDuplexListener
     public Endpoint Endpoint { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private readonly Func<TcpServerDuplexConnection, IDuplexConnection> _serverConnectionDecorator;
+    private readonly ILogger _logger;
     private readonly Socket _socket;
 
     public async Task<IDuplexConnection> AcceptAsync()
@@ -29,31 +30,31 @@ internal sealed class TcpListener : IDuplexListener
             throw new ObjectDisposedException(nameof(TcpListener), ex);
         }
 
-        // We don't translate other exceptions since they are unexpected and the application code has no opportunity
-        // to catch and handle them. They are only useful for the log decorator.
-        return _serverConnectionDecorator(
-#pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
-            new TcpServerDuplexConnection(Endpoint, acceptedSocket, _authenticationOptions));
+#pragma warning disable CA2000 // the connection is disposed by the caller
+        var serverConnection = new TcpServerDuplexConnection(Endpoint, acceptedSocket, _authenticationOptions);
+        if (_logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
+        {
+            return new LogTcpTransportConnectionDecorator(serverConnection, _logger);
+        }
+        else
+        {
+            return serverConnection;
+        }
 #pragma warning restore CA2000
     }
 
     public void Dispose() => _socket.Dispose();
 
-    internal TcpListener(
-        Endpoint endpoint,
-        SslServerAuthenticationOptions? authenticationOptions,
-        TcpServerTransportOptions options,
-        Func<TcpServerDuplexConnection, IDuplexConnection> serverConnectionDecorator)
+    internal TcpListener(DuplexListenerOptions options, TcpServerTransportOptions tcpOptions)
     {
-        if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(options.Endpoint.Host, out IPAddress? ipAddress))
         {
             throw new NotSupportedException(
-                $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
+                $"endpoint '{options.Endpoint}' cannot accept connections because it has a DNS name");
         }
 
-        _serverConnectionDecorator = serverConnectionDecorator;
-
-        _authenticationOptions = authenticationOptions;
+        _authenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions;
+        _logger = options.Logger;
 
         if (_authenticationOptions is not null)
         {
@@ -61,11 +62,11 @@ internal sealed class TcpListener : IDuplexListener
             _authenticationOptions = _authenticationOptions.Clone();
             _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(endpoint.Protocol.Name)
+                new SslApplicationProtocol(options.Endpoint.Protocol.Name)
             };
         }
 
-        var address = new IPEndPoint(ipAddress, endpoint.Port);
+        var address = new IPEndPoint(ipAddress, options.Endpoint.Port);
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
@@ -75,18 +76,18 @@ internal sealed class TcpListener : IDuplexListener
         {
             _socket.ExclusiveAddressUse = true;
 
-            if (options.ReceiveBufferSize is int receiveSize)
+            if (tcpOptions.ReceiveBufferSize is int receiveSize)
             {
                 _socket.ReceiveBufferSize = receiveSize;
             }
-            if (options.SendBufferSize is int sendSize)
+            if (tcpOptions.SendBufferSize is int sendSize)
             {
                 _socket.SendBufferSize = sendSize;
             }
 
             _socket.Bind(address);
             address = (IPEndPoint)_socket.LocalEndPoint!;
-            _socket.Listen(options.ListenerBackLog);
+            _socket.Listen(tcpOptions.ListenerBackLog);
         }
         catch (SocketException ex)
         {
@@ -94,6 +95,6 @@ internal sealed class TcpListener : IDuplexListener
             throw ex.ToTransportException();
         }
 
-        Endpoint = endpoint with { Port = (ushort)address.Port };
+        Endpoint = options.Endpoint with { Port = (ushort)address.Port };
     }
 }

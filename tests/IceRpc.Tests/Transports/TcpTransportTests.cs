@@ -190,9 +190,7 @@ public class TcpTransportTests
             try
             {
                 IDuplexConnection clientConnection = clientTransport.CreateConnection(
-                    listener.Endpoint,
-                    authenticationOptions: null,
-                    NullLogger.Instance);
+                    new DuplexClientConnectionOptions { Endpoint = listener.Endpoint });
                 await clientConnection.ConnectAsync(source.Token);
                 connections.Add(clientConnection);
             }
@@ -390,9 +388,14 @@ public class TcpTransportTests
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
-            endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
-            authenticationOptions: authenticationOptions,
-            NullLogger.Instance);
+            new DuplexListenerOptions
+            {
+                ServerConnectionOptions = new()
+                {
+                    ServerAuthenticationOptions = authenticationOptions
+                },
+                Endpoint = endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
+            });
     }
 
     private static TcpClientDuplexConnection CreateTcpClientConnection(
@@ -402,8 +405,10 @@ public class TcpTransportTests
     {
         IDuplexClientTransport transport = new TcpClientTransport(options ?? new());
         return (TcpClientDuplexConnection)transport.CreateConnection(
-            endpoint,
-            authenticationOptions: authenticationOptions,
-            NullLogger.Instance);
+            new DuplexClientConnectionOptions
+            {
+                Endpoint = endpoint,
+                ClientAuthenticationOptions = authenticationOptions
+            });
     }
 }

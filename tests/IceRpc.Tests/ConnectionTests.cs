@@ -157,8 +157,11 @@ public class ConnectionTests
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
-        using var listener =
-            slicServerTransport.Listen(new Endpoint(new Uri("icerpc://127.0.0.1:0")), null, NullLogger.Instance);
+        using var listener = slicServerTransport.Listen(
+            new MultiplexedListenerOptions
+            {
+                Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1:0"))
+            });
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             Endpoint = listener.Endpoint,

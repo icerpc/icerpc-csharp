@@ -15,22 +15,19 @@ internal class ColocServerTransport : IDuplexServerTransport
     private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    IDuplexListener IDuplexServerTransport.Listen(
-        Endpoint endpoint,
-        SslServerAuthenticationOptions? authenticationOptions,
-        ILogger logger)
+    IDuplexListener IDuplexServerTransport.Listen(DuplexListenerOptions options)
     {
-        if (authenticationOptions is not null)
+        if (options.ServerConnectionOptions.ServerAuthenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create secure Coloc server");
         }
 
-        if (!ColocTransport.CheckParams(endpoint))
+        if (!ColocTransport.CheckParams(options.Endpoint))
         {
-            throw new FormatException($"cannot create a Coloc listener for endpoint '{endpoint}'");
+            throw new FormatException($"cannot create a Coloc listener for endpoint '{options.Endpoint}'");
         }
 
-        var listener = new ColocListener(endpoint.WithTransport(Name));
+        var listener = new ColocListener(options with { Endpoint = options.Endpoint.WithTransport(Name) });
         if (!_listeners.TryAdd(listener.Endpoint, listener))
         {
             throw new TransportException($"endpoint '{listener.Endpoint}' is already in use");

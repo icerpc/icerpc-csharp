@@ -14,8 +14,7 @@ internal sealed class IceRpcProtocol : Protocol
 
     public override bool IsSupported => true;
 
-    public override IMultiplexedStreamErrorCodeConverter? MultiplexedStreamErrorCodeConverter { get; } =
-        new ErrorCodeConverter();
+    public IMultiplexedStreamErrorCodeConverter MultiplexedStreamErrorCodeConverter { get; } = new ErrorCodeConverter();
 
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();

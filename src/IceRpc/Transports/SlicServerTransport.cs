@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using System.Net.Security;
 
 namespace IceRpc.Transports;
 
@@ -35,9 +33,20 @@ public class SlicServerTransport : IMultiplexedServerTransport
     }
 
     /// <inheritdoc/>
-    public IMultiplexedListener Listen(
-        Endpoint endpoint,
-        SslServerAuthenticationOptions? authenticationOptions,
-        ILogger logger) =>
-        new SlicListener(_duplexServerTransport.Listen(endpoint, authenticationOptions, logger), _slicTransportOptions);
+    public IMultiplexedListener Listen(MultiplexedListenerOptions options) =>
+        new SlicListener(
+            _duplexServerTransport.Listen(
+                new DuplexListenerOptions
+                {
+                    ServerConnectionOptions = new()
+                    {
+                        MinimumSegmentSize = options.ServerConnectionOptions.MinimumSegmentSize,
+                        Pool = options.ServerConnectionOptions.Pool,
+                        ServerAuthenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions
+                    },
+                    Endpoint = options.Endpoint,
+                    Logger = options.Logger
+                }),
+            options,
+            _slicTransportOptions);
 }

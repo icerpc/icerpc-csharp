@@ -19,14 +19,7 @@ public interface IMultiplexedClientTransport
     bool CheckParams(Endpoint endpoint);
 
     /// <summary>Creates a new transport connection to the specified endpoint.</summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="authenticationOptions">The SSL client authentication options.</param>
-    /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport APIs it
-    /// calls. The transport implementation can use this logger to log implementation-specific details within the log
-    /// scopes created by IceRPC.</param>
+    /// <param name="options">The multiplexed client connection options.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
-    IMultiplexedConnection CreateConnection(
-        Endpoint endpoint,
-        SslClientAuthenticationOptions? authenticationOptions,
-        ILogger logger);
+    IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options);
 }
