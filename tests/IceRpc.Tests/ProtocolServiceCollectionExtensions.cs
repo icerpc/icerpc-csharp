@@ -31,27 +31,12 @@ public static class ProtocolServiceCollectionExtensions
         services.TryAddSingleton<ILogger>(NullLogger.Instance);
 
         services.AddSingleton<IMultiplexedServerTransport>(
-            provider => new SlicServerTransport(
-                provider.GetRequiredService<IDuplexServerTransport>()));
-
+            provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()));
         services.AddSingleton<IMultiplexedClientTransport>(
-            provider => new SlicClientTransport(
-                provider.GetRequiredService<IDuplexClientTransport>()));
+            provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
 
-        services.AddSingleton<IDuplexListener,
-                                        Listener<IDuplexConnection>>();
-
-        services.AddSingleton<IMultiplexedListener, Listener<IMultiplexedConnection>>();
-
-        services.AddSingleton<LogTransportConnectionDecoratorFactory<IDuplexConnection>>(
-            provider =>
-                (IDuplexConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
-                    new LogDuplexConnectionDecorator(decoratee, endpoint, isServer, logger));
-
-        services.AddSingleton<LogTransportConnectionDecoratorFactory<IMultiplexedConnection>>(
-            provider =>
-                (IMultiplexedConnection decoratee, Endpoint endpoint, bool isServer, ILogger logger) =>
-                    new LogMultiplexedConnectionDecorator(decoratee, endpoint, isServer, logger));
+        services.AddSingleton<IDuplexListener, DuplexListenerDecorator>();
+        services.AddSingleton<IMultiplexedListener, MultiplexedListenerDecorator>();
 
         if (protocol == Protocol.Ice)
         {
@@ -75,137 +60,132 @@ internal interface IClientServerProtocolConnection
 
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also  ensures
 /// the connections are correctly disposed.</summary>
-internal abstract class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
-    where T : ITransportConnection
+internal abstract class ClientServerProtocolConnection : IClientServerProtocolConnection, IDisposable
 {
-    public IProtocolConnection Client =>
-        _client ?? throw new InvalidOperationException("client connection not initialized");
-    public IProtocolConnection Server =>
-        _server ?? throw new InvalidOperationException("server connection not initialized");
+    public IProtocolConnection Client { get; }
 
-    private IProtocolConnection? _client;
-    private readonly ConnectionOptions _clientConnectionOptions;
-    private readonly IClientTransport<T> _clientTransport;
-    private readonly IListener<T> _listener;
+    public IProtocolConnection Server
+    {
+        get => _server ?? throw new InvalidOperationException("server connection not initialized");
+        private protected set => _server = value;
+    }
+
+    private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
+    private readonly ILogger _logger;
     private IProtocolConnection? _server;
-    private readonly ServerOptions _serverOptions;
 
     public async Task ConnectAsync()
     {
-        Task<IProtocolConnection> clientProtocolConnectionTask = CreateConnectionAsync(
-            _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
-            _clientConnectionOptions,
-            isServer: false);
-
-        Task<IProtocolConnection> serverProtocolConnectionTask = CreateConnectionAsync(
-            await _listener.AcceptAsync(),
-            _serverOptions.ConnectionOptions,
-            isServer: true);
-
-        _client = await clientProtocolConnectionTask;
-        _server = await serverProtocolConnectionTask;
-
-        async Task<IProtocolConnection> CreateConnectionAsync(
-            T transportConnection,
-            ConnectionOptions connectionOptions,
-            bool isServer)
+        Task clientProtocolConnectionTask = Client.ConnectAsync(CancellationToken.None);
+        _server = await _acceptServerConnectionAsync();
+        if (_logger != NullLogger.Instance)
         {
-            IProtocolConnection protocolConnection = CreateConnection(transportConnection, isServer, connectionOptions);
-            _ = await protocolConnection.ConnectAsync(CancellationToken.None);
-            return protocolConnection;
+            _server = new LogProtocolConnectionDecorator(_server, isServer: true, _logger);
         }
+        await _server.ConnectAsync(CancellationToken.None);
+        await clientProtocolConnectionTask;
     }
 
     public void Dispose()
     {
-        ValueTask? disposeTask;
-        disposeTask = _client?.DisposeAsync();
-        disposeTask = _server?.DisposeAsync();
+        _ = Client.DisposeAsync().AsTask();
+        _ = _server?.DisposeAsync().AsTask();
     }
 
-    protected ClientServerProtocolConnection(
-        IClientTransport<T> clientTransport,
-        IListener<T> listener,
-        IOptions<ConnectionOptions> clientConnectionOptions,
-        IOptions<ServerOptions> serverOptions)
+    private protected ClientServerProtocolConnection(
+        IProtocolConnection clientProtocolConnection,
+        Func<Task<IProtocolConnection>> acceptServerConnectionAsync,
+        ILogger logger)
     {
-        _clientTransport = clientTransport;
-        _listener = listener;
-        _clientConnectionOptions = clientConnectionOptions?.Value ?? new ConnectionOptions();
-        _serverOptions = serverOptions?.Value ?? new ServerOptions();
-        _client = null;
-        _server = null;
+        _acceptServerConnectionAsync = acceptServerConnectionAsync;
+        _logger = logger;
+        if (logger != NullLogger.Instance)
+        {
+            Client = new LogProtocolConnectionDecorator(clientProtocolConnection, isServer: false, logger);
+        }
+        else
+        {
+            Client = clientProtocolConnection;
+        }
     }
-
-    protected abstract IProtocolConnection CreateConnection(
-        T transportConnection,
-        bool isServer,
-        ConnectionOptions options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal sealed class ClientServerIceProtocolConnection :
-    ClientServerProtocolConnection<IDuplexConnection>
+internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolConnection
 {
     // This constructor must be public to be usable by DI container
+#pragma warning disable CA2000 // the connection is disposed by the base class Dispose method
     public ClientServerIceProtocolConnection(
         IDuplexClientTransport clientTransport,
         IDuplexListener listener,
-        IOptions<ConnectionOptions> clientConnectionOptions,
-        IOptions<ServerOptions> serverOptions) :
-        base(clientTransport, listener, clientConnectionOptions, serverOptions)
+        ILogger logger,
+        IOptions<ClientConnectionOptions> clientConnectionOptions,
+        IOptions<ServerOptions> serverOptions)
+        : base(
+            clientProtocolConnection: new IceProtocolConnection(
+                    clientTransport.CreateConnection(
+                        listener.Endpoint,
+                        clientConnectionOptions.Value.ClientAuthenticationOptions,
+                        logger),
+                isServer: false,
+                clientConnectionOptions.Value),
+            acceptServerConnectionAsync: async () => new IceProtocolConnection(
+                    await listener.AcceptAsync(),
+                    isServer: true,
+                    serverOptions.Value.ConnectionOptions),
+            logger)
     {
     }
-
-    protected override IProtocolConnection CreateConnection(
-        IDuplexConnection transportConnection,
-        bool isServer,
-        ConnectionOptions options) =>
-        new IceProtocolConnection(transportConnection, isServer, options);
+#pragma warning restore CA2000
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal sealed class ClientServerIceRpcProtocolConnection :
-    ClientServerProtocolConnection<IMultiplexedConnection>
+internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtocolConnection
 {
     // This constructor must be public to be usable by DI container
+#pragma warning disable CA2000 // the connection is disposed by the base class Dispose method
     public ClientServerIceRpcProtocolConnection(
         IMultiplexedClientTransport clientTransport,
         IMultiplexedListener listener,
-        IOptions<ConnectionOptions> clientConnectionOptions,
-        IOptions<ServerOptions> serverOptions) :
-        base(clientTransport, listener, clientConnectionOptions, serverOptions)
+        ILogger logger,
+        IOptions<ClientConnectionOptions> clientConnectionOptions,
+        IOptions<ServerOptions> serverOptions)
+        : base(
+            clientProtocolConnection: new IceRpcProtocolConnection(
+                    clientTransport.CreateConnection(
+                        listener.Endpoint,
+                        clientConnectionOptions.Value.ClientAuthenticationOptions,
+                        logger),
+                clientConnectionOptions.Value),
+            acceptServerConnectionAsync: async() => new IceRpcProtocolConnection(
+                    await listener.AcceptAsync(),
+                    serverOptions.Value.ConnectionOptions),
+            logger)
     {
     }
-
-    protected override IProtocolConnection CreateConnection(
-        IMultiplexedConnection transportConnection,
-        bool isServer,
-        ConnectionOptions options) =>
-        new IceRpcProtocolConnection(transportConnection, options);
+#pragma warning restore CA2000
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal class Listener<T> : IListener<T> where T : ITransportConnection
+internal class DuplexListenerDecorator : IDuplexListener
 {
-    private readonly IListener<T> _listener;
+    private readonly IDuplexListener _listener;
 
     public Endpoint Endpoint => _listener.Endpoint;
 
-    public Listener(
-        IServerTransport<T> serverTransport,
+    public DuplexListenerDecorator(
+        IDuplexServerTransport serverTransport,
         ILogger logger,
-        IOptions<ServerOptions> serverOptions,
-        LogTransportConnectionDecoratorFactory<T> logDecoratorFactory)
+        IOptions<ServerOptions> serverOptions)
     {
         _listener = serverTransport.Listen(
             serverOptions.Value.Endpoint,
@@ -213,11 +193,41 @@ internal class Listener<T> : IListener<T> where T : ITransportConnection
             logger);
         if (logger != NullLogger.Instance)
         {
-            _listener = new LogListenerDecorator<T>(_listener, logger, logDecoratorFactory);
+            _listener = new LogDuplexListenerDecorator(_listener, logger);
         }
     }
 
-    public Task<T> AcceptAsync() => _listener.AcceptAsync();
+    public Task<IDuplexConnection> AcceptAsync() => _listener.AcceptAsync();
+
+    public void Dispose() => _listener.Dispose();
+}
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "DI instantiated")]
+internal class MultiplexedListenerDecorator : IMultiplexedListener
+{
+    private readonly IMultiplexedListener _listener;
+
+    public Endpoint Endpoint => _listener.Endpoint;
+
+    public MultiplexedListenerDecorator(
+        IMultiplexedServerTransport serverTransport,
+        ILogger logger,
+        IOptions<ServerOptions> serverOptions)
+    {
+        _listener = serverTransport.Listen(
+            serverOptions.Value.Endpoint,
+            serverOptions.Value.ServerAuthenticationOptions,
+            logger);
+        if (logger != NullLogger.Instance)
+        {
+            _listener = new LogMultiplexedListenerDecorator(_listener, logger);
+        }
+    }
+
+    public Task<IMultiplexedConnection> AcceptAsync() => _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();
 }

@@ -6,8 +6,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IServerTransport{IDuplexConnection}"/> for the tcp and ssl transports.
-/// </summary>
+/// <summary>Implements <see cref="IDuplexServerTransport"/> for the tcp and ssl transports.</summary>
 public class TcpServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>

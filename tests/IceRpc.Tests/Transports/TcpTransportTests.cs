@@ -179,8 +179,7 @@ public class TcpTransportTests
                 ListenerBackLog = 18
             });
 
-        IDuplexClientTransport clientTransport =
-            new TcpClientTransport(new TcpClientTransportOptions());
+        IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
         var connections = new List<IDuplexConnection>();
 

@@ -4,20 +4,19 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
 
-internal sealed class LogListenerDecorator<T> : IListener<T> where T : ITransportConnection
+internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
 {
-    private readonly IListener<T> _decoratee;
-    private readonly LogTransportConnectionDecoratorFactory<T> _logDecoratorFactory;
+    private readonly IMultiplexedListener _decoratee;
     private readonly ILogger _logger;
 
-    Endpoint IListener.Endpoint => _decoratee.Endpoint;
+    Endpoint IMultiplexedListener.Endpoint => _decoratee.Endpoint;
 
-    async Task<T> IListener<T>.AcceptAsync()
+    async Task<IMultiplexedConnection> IMultiplexedListener.AcceptAsync()
     {
         try
         {
-            T connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-            return _logDecoratorFactory(connection, _decoratee.Endpoint, isServer: true, _logger);
+            IMultiplexedConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
+            return new LogMultiplexedConnectionDecorator(connection, _decoratee.Endpoint, isServer: true, _logger);
         }
         catch (ObjectDisposedException)
         {
@@ -45,13 +44,9 @@ internal sealed class LogListenerDecorator<T> : IListener<T> where T : ITranspor
 
     public override string? ToString() => _decoratee.ToString();
 
-    internal LogListenerDecorator(
-        IListener<T> decoratee,
-        ILogger logger,
-        LogTransportConnectionDecoratorFactory<T> logDecoratorFactory)
+    internal LogMultiplexedListenerDecorator(IMultiplexedListener decoratee, ILogger logger)
     {
         _decoratee = decoratee;
-        _logDecoratorFactory = logDecoratorFactory;
         _logger = logger;
         _logger.LogListenerCreated(_decoratee.Endpoint);
     }
