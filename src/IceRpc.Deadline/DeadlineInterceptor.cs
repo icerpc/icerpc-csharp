@@ -6,7 +6,9 @@ namespace IceRpc.Deadline;
 
 /// <summary>The deadline interceptor adds a deadline to requests without a deadline feature and encodes the deadline
 /// field. When the deadline expires, the invocation is canceled and the interceptor throws
-/// <see cref="TimeoutException"/>.</summary>
+/// <see cref="TimeoutException"/>. When used in conjunction with the retry interceptor it is important to install this
+/// interceptor before the retry interceptor to ensure that the deadline is computed once per invocation and not once
+/// per each retry.</summary>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;
