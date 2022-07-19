@@ -6,27 +6,24 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogDuplexConnectionDecorator : IDuplexConnection
+internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
     internal ILogger Logger { get; }
 
-    private protected bool IsServer { get; }
-
-    private protected TransportConnectionInformation? Information { get; set; }
-
     private readonly IDuplexConnection _decoratee;
-
     private readonly Endpoint _endpoint;
+    private TransportConnectionInformation? _information;
+    private readonly bool _isServer;
 
-    public virtual async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
+        using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, _isServer);
 
         try
         {
-            Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -35,18 +32,18 @@ internal class LogDuplexConnectionDecorator : IDuplexConnection
         }
 
         Logger.LogTransportConnectionConnect(
-            Information.Value.LocalNetworkAddress,
-            Information.Value.RemoteNetworkAddress);
-        return Information.Value;
+            _information.Value.LocalNetworkAddress,
+            _information.Value.RemoteNetworkAddress);
+        return _information.Value;
     }
 
     public void Dispose()
     {
         _decoratee.Dispose();
 
-        if (Information is TransportConnectionInformation connectionInformation)
+        if (_information is TransportConnectionInformation connectionInformation)
         {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, _isServer);
             Logger.LogTransportConnectionDispose();
         }
         // We don't emit a log when closing a connection that was not connected.
@@ -86,7 +83,7 @@ internal class LogDuplexConnectionDecorator : IDuplexConnection
     {
         _decoratee = decoratee;
         _endpoint = endpoint;
-        IsServer = isServer;
+        _isServer = isServer;
         Logger = logger;
     }
 
