@@ -18,8 +18,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         new SlicClientTransport(new TcpClientTransport());
 
     /// <summary>Gets the default client transport for ice protocol connections.</summary>
-    public static IDuplexClientTransport DefaultDuplexClientTransport { get; } =
-        new TcpClientTransport();
+    public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
     /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
