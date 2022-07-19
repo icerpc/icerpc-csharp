@@ -3,6 +3,8 @@
   <Import Project="$(MSbuildThisFileDirectory)common.props"/>
   <PropertyGroup>
     <OutputPath>.</OutputPath>
+    <!-- Missing XML comment for publicly visible type or member, we disable this warning because we don't care about
+         public elements not being documented, we just want to ensure that bogus doc elments are detected. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 </Project>
