@@ -7,7 +7,6 @@ namespace IceRpc.Transports;
 /// <summary>A multiplexed stream implementation uses this interface to convert exceptions it receives through
 /// <see cref="PipeReader.Complete(Exception?)"/>, <see cref="PipeWriter.Complete(Exception?)"/> and similar APIs
 /// into error codes, and to convert error codes sent by the remote peer into exceptions.</summary>
-/// <seealso cref="Protocol.MultiplexedStreamErrorCodeConverter"/>
 public interface IMultiplexedStreamErrorCodeConverter
 {
     /// <summary>Converts a transport-independent error code carried by a multiplexed stream into an exception.

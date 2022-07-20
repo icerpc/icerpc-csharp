@@ -2,6 +2,7 @@
 
 using IceRpc.Conformance.Tests;
 using IceRpc.Tests.Common;
+using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -25,11 +26,12 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
             {
                 var loggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
                 var transport = provider.GetRequiredService<IMultiplexedServerTransport>();
-                var listener = transport.Listen(
-                    endpoint,
-                    null,
-                    loggerFactory.CreateLogger("IceRpc"));
-                return listener;
+                return transport.Listen(
+                    provider.GetRequiredService<IOptions<MultiplexedListenerOptions>>().Value with
+                    {
+                        Endpoint = endpoint,
+                        Logger = loggerFactory.CreateLogger("IceRpc")
+                    });
             });
 
         services.
@@ -44,33 +46,18 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("client"),
                     provider.GetRequiredService<IDuplexClientTransport>()));
 
-        services.TryAddSingleton(new MultiplexedTransportOptions());
+        services.AddOptions<SlicTransportOptions>("client");
+        services.AddOptions<SlicTransportOptions>("server");
 
-        services.AddOptions<SlicTransportOptions>("client").Configure<MultiplexedTransportOptions>(
-            ConfigureMultiplexedTransportOptions);
-        services.AddOptions<SlicTransportOptions>("server").Configure<MultiplexedTransportOptions>(
-            ConfigureMultiplexedTransportOptions);
+        services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
+            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+
+        services.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+
+        services.AddOptions<MultiplexedListenerOptions>().Configure<IOptions<MultiplexedServerConnectionOptions>>(
+            (options, serverConnectionOptions) => options.ServerConnectionOptions = serverConnectionOptions.Value);
 
         return services;
-
-        static void ConfigureMultiplexedTransportOptions(
-            SlicTransportOptions options,
-            MultiplexedTransportOptions multiplexedTransportOptions)
-        {
-            if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
-            {
-                options.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
-            }
-
-            if (multiplexedTransportOptions.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
-            {
-                options.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
-            }
-
-            if (multiplexedTransportOptions.IdleTimeout is TimeSpan idleTimeout)
-            {
-                options.IdleTimeout = idleTimeout;
-            }
-        }
     }
 }

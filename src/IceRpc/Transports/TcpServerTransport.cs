@@ -25,36 +25,34 @@ public class TcpServerTransport : IDuplexServerTransport
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public IDuplexListener Listen(
-        Endpoint endpoint,
-        SslServerAuthenticationOptions? authenticationOptions,
-        ILogger logger)
+    public IDuplexListener Listen(DuplexListenerOptions options)
     {
         // This is the composition root of the tcp server transport, where we install log decorators when logging
         // is enabled.
 
-        if (TcpClientTransport.CheckParams(endpoint, out string? endpointTransport))
+        if (TcpClientTransport.CheckParams(options.Endpoint, out string? endpointTransport))
         {
             if (endpointTransport is null)
             {
-                endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
+                options = options with
+                {
+                    Endpoint = options.Endpoint with { Params = options.Endpoint.Params.Add("transport", Name) }
+                };
             }
-            else if (endpointTransport == TransportNames.Ssl && authenticationOptions is null)
+            else if (endpointTransport == TransportNames.Ssl &&
+                     options.ServerConnectionOptions.ServerAuthenticationOptions is null)
             {
                 throw new ArgumentNullException(
-                    nameof(authenticationOptions),
-                    $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
+                    nameof(options.ServerConnectionOptions.ServerAuthenticationOptions),
+                    @$"{nameof(options.ServerConnectionOptions.ServerAuthenticationOptions)
+                        } cannot be null with the ssl transport");
             }
         }
         else
         {
-            throw new FormatException($"cannot create a TCP listener for endpoint '{endpoint}'");
+            throw new FormatException($"cannot create a TCP listener for endpoint '{options.Endpoint}'");
         }
 
-        Func<TcpServerDuplexConnection, IDuplexConnection> serverConnectionDecorator =
-            logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
-                connection => new LogTcpTransportConnectionDecorator(connection, logger) : connection => connection;
-
-        return new TcpListener(endpoint, authenticationOptions, _options, serverConnectionDecorator);
+        return new TcpListener(options, _options);
     }
 }

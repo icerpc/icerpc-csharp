@@ -194,9 +194,11 @@ public class TlsConfigurationTests
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
-            endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
-            authenticationOptions: authenticationOptions,
-            NullLogger.Instance);
+            new DuplexListenerOptions
+            {
+                Endpoint = endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
+                ServerConnectionOptions = new() { ServerAuthenticationOptions = authenticationOptions }
+            });
     }
 
     private static TcpClientDuplexConnection CreateTcpClientConnection(
@@ -206,8 +208,10 @@ public class TlsConfigurationTests
     {
         IDuplexClientTransport transport = new TcpClientTransport(options ?? new());
         return (TcpClientDuplexConnection)transport.CreateConnection(
-            endpoint,
-            authenticationOptions: authenticationOptions,
-            NullLogger.Instance);
+            new DuplexClientConnectionOptions
+            {
+                Endpoint = endpoint,
+                ClientAuthenticationOptions = authenticationOptions
+            });
     }
 }

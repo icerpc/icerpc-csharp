@@ -14,11 +14,11 @@ internal sealed class IceRpcProtocol : Protocol
 
     public override bool IsSupported => true;
 
-    public override IMultiplexedStreamErrorCodeConverter? MultiplexedStreamErrorCodeConverter { get; } =
-        new ErrorCodeConverter();
-
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
+
+    internal IMultiplexedStreamErrorCodeConverter MultiplexedStreamErrorCodeConverter { get; }
+        = new ErrorCodeConverter();
 
     internal override SliceEncoding SliceEncoding => SliceEncoding.Slice2;
 

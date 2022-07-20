@@ -35,14 +35,11 @@ public class TcpClientTransport : IDuplexClientTransport
     public bool CheckParams(Endpoint endpoint) => CheckParams(endpoint, out _);
 
     /// <inheritdoc/>
-    public IDuplexConnection CreateConnection(
-        Endpoint endpoint,
-        SslClientAuthenticationOptions? authenticationOptions,
-        ILogger logger)
+    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
     {
         // This is the composition root of the tcp client transport, where we install log decorators when logging
         // is enabled.
-
+        Endpoint endpoint = options.Endpoint;
         if (!CheckParams(endpoint, out string? endpointTransport))
         {
             throw new FormatException($"cannot create a TCP connection to endpoint '{endpoint}'");
@@ -53,9 +50,8 @@ public class TcpClientTransport : IDuplexClientTransport
             endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
         }
 
-        authenticationOptions = authenticationOptions?.Clone() ??
+        SslClientAuthenticationOptions? authenticationOptions = options.ClientAuthenticationOptions?.Clone() ??
             (endpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
-
         if (authenticationOptions is not null)
         {
             // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
@@ -69,10 +65,20 @@ public class TcpClientTransport : IDuplexClientTransport
             };
         }
 
-        var clientConnection = new TcpClientDuplexConnection(endpoint, authenticationOptions, _options);
-
-        return logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
-            new LogTcpTransportConnectionDecorator(clientConnection, logger) : clientConnection;
+        var clientConnection = new TcpClientDuplexConnection(
+            endpoint,
+            authenticationOptions,
+            options.Pool,
+            options.MinSegmentSize,
+            _options);
+        if (options.Logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
+        {
+            return new LogTcpTransportConnectionDecorator(clientConnection, options.Logger);
+        }
+        else
+        {
+            return clientConnection;
+        }
     }
 
     /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"

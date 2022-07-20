@@ -23,6 +23,10 @@ internal abstract class TcpDuplexConnection : IDuplexConnection
     // The MaxDataSize of the SSL implementation.
     private const int MaxSslDataSize = 16 * 1024;
 
+    private readonly int _minSegmentSize;
+
+    private readonly MemoryPool<byte> _pool;
+
     private readonly List<ArraySegment<byte>> _segments = new();
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
@@ -138,7 +142,8 @@ internal abstract class TcpDuplexConnection : IDuplexConnection
                     }
                     else if (writeBufferSize > 0)
                     {
-                        using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
+                        using IMemoryOwner<byte> writeBufferOwner =
+                            _pool.Rent(Math.Max(_minSegmentSize, writeBufferSize));
                         Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
                         int offset = 0;
                         for (int i = 0; i < index; ++i)
@@ -200,7 +205,15 @@ internal abstract class TcpDuplexConnection : IDuplexConnection
         }
     }
 
-    private protected TcpDuplexConnection(Endpoint endpoint) => Endpoint = endpoint;
+    private protected TcpDuplexConnection(
+        Endpoint endpoint,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize)
+    {
+        Endpoint = endpoint;
+        _pool = pool;
+        _minSegmentSize = minimumSegmentSize;
+    }
 }
 
 internal class TcpClientDuplexConnection : TcpDuplexConnection
@@ -262,8 +275,10 @@ internal class TcpClientDuplexConnection : TcpDuplexConnection
     internal TcpClientDuplexConnection(
         Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize,
         TcpClientTransportOptions options)
-        : base(endpoint)
+        : base(endpoint, pool, minimumSegmentSize)
     {
         _addr = IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, endpoint.Port) :
@@ -356,8 +371,10 @@ internal class TcpServerDuplexConnection : TcpDuplexConnection
     internal TcpServerDuplexConnection(
         Endpoint endpoint,
         Socket socket,
-        SslServerAuthenticationOptions? authenticationOptions)
-        : base(endpoint)
+        SslServerAuthenticationOptions? authenticationOptions,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize)
+        : base(endpoint, pool, minimumSegmentSize)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;

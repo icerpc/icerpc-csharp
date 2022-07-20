@@ -18,7 +18,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
     internal bool IsServer { get; }
 
-    internal int MinimumSegmentSize { get; }
+    internal int MinSegmentSize { get; }
 
     internal IMultiplexedStreamErrorCodeConverter ErrorCodeConverter { get; }
 
@@ -35,12 +35,13 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
-    private readonly int _bidirectionalMaxStreams;
     private Task? _disposeTask;
     private bool _isReadOnly;
     private readonly TimeSpan _localIdleTimeout;
     private long _lastRemoteBidirectionalStreamId = -1;
     private long _lastRemoteUnidirectionalStreamId = -1;
+    private readonly int _maxBidirectionalStreams;
+    private readonly int _maxUnidirectionalStreams;
     // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
     // an atomic operation.
     private readonly object _mutex = new();
@@ -53,7 +54,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     private readonly IDuplexConnection _transportConnection;
     private readonly DuplexConnectionReader _transportConnectionReader;
     private readonly DuplexConnectionWriter _transportConnectionWriter;
-    private readonly int _unidirectionalMaxStreams;
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
@@ -316,27 +316,33 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
     internal SlicMultiplexedConnection(
         IDuplexConnection duplexConnection,
-        bool isServer,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        MultiplexedConnectionOptions options,
         SlicTransportOptions slicOptions)
     {
-        IsServer = isServer;
-        ErrorCodeConverter = errorCodeConverter;
+        if (options.StreamErrorCodeConverter is null)
+        {
+            throw new ArgumentException(nameof(options), $"{nameof(options.StreamErrorCodeConverter)} is null");
+        }
+
+        IsServer = options is MultiplexedServerConnectionOptions;
+        ErrorCodeConverter = options.StreamErrorCodeConverter;
+
+        Pool = options.Pool;
+        MinSegmentSize = options.MinSegmentSize;
+        _maxBidirectionalStreams = options.MaxBidirectionalStreams;
+        _maxUnidirectionalStreams = options.MaxUnidirectionalStreams;
+
         PauseWriterThreshold = slicOptions.PauseWriterThreshold;
         ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
-        Pool = slicOptions.Pool;
-        MinimumSegmentSize = slicOptions.MinimumSegmentSize;
-
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
-        _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
-        _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
+
         _transportConnection = duplexConnection;
 
         _transportConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
-            slicOptions.Pool,
-            slicOptions.MinimumSegmentSize);
+            options.Pool,
+            options.MinSegmentSize);
 
         Action? keepAliveAction = null;
         if (!IsServer)
@@ -348,8 +354,8 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         _transportConnectionReader = new DuplexConnectionReader(
             duplexConnection,
             idleTimeout: _localIdleTimeout,
-            slicOptions.Pool,
-            slicOptions.MinimumSegmentSize,
+            options.Pool,
+            options.MinSegmentSize,
             abortAction: exception => _acceptStreamQueue.TryComplete(exception),
             keepAliveAction);
 
@@ -570,8 +576,8 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     {
         var parameters = new List<KeyValuePair<int, IList<byte>>>
         {
-            EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
-            EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
+            EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_maxBidirectionalStreams),
+            EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_maxUnidirectionalStreams),
             EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
             EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
         };
@@ -746,19 +752,19 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
                         if (isBidirectional)
                         {
-                            if (_bidirectionalStreamCount == _bidirectionalMaxStreams)
+                            if (_bidirectionalStreamCount == _maxBidirectionalStreams)
                             {
                                 throw new InvalidDataException(
-                                    $"maximum bidirectional stream count {_bidirectionalMaxStreams} reached");
+                                    $"maximum bidirectional stream count {_maxBidirectionalStreams} reached");
                             }
                             Interlocked.Increment(ref _bidirectionalStreamCount);
                         }
                         else
                         {
-                            if (_unidirectionalStreamCount == _unidirectionalMaxStreams)
+                            if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
                             {
                                 throw new InvalidDataException(
-                                    $"maximum unidirectional stream count {_unidirectionalMaxStreams} reached");
+                                    $"maximum unidirectional stream count {_maxUnidirectionalStreams} reached");
                             }
                             Interlocked.Increment(ref _unidirectionalStreamCount);
                         }
@@ -802,7 +808,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                             new PipeOptions(
                                 pool: Pool,
                                 pauseWriterThreshold: 0,
-                                minimumSegmentSize: MinimumSegmentSize,
+                                minimumSegmentSize: MinSegmentSize,
                                 writerScheduler: PipeScheduler.Inline));
 
                         await _transportConnectionReader.FillBufferWriterAsync(

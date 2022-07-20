@@ -86,12 +86,11 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var listener = provider.GetRequiredService<IDuplexListener>();
-        var serverAuthenticationOptions = provider.GetService<SslServerAuthenticationOptions>();
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
         // Act/Assert
         Assert.That(
-            () => serverTransport.Listen(listener.Endpoint, serverAuthenticationOptions, NullLogger.Instance),
+            () => serverTransport.Listen(new DuplexListenerOptions { Endpoint = listener.Endpoint }),
             Throws.TypeOf<TransportException>());
     }
 
@@ -205,7 +204,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(endpoint, authenticationOptions: null, NullLogger.Instance));
+            () => clientTransport.CreateConnection(new DuplexClientConnectionOptions { Endpoint = endpoint }));
     }
 
     [Test]
@@ -217,8 +216,7 @@ public abstract class DuplexTransportConformanceTests
         var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(
-            () => serverTransport.Listen(endpoint, authenticationOptions: null, NullLogger.Instance));
+        Assert.Throws<FormatException>(() => serverTransport.Listen(new DuplexListenerOptions { Endpoint = endpoint }));
     }
 
     [Test]

@@ -17,27 +17,27 @@ public class CustomClientTransport : IMultiplexedClientTransport
 
     public bool CheckParams(Endpoint endpoint) => true;
 
-    public IMultiplexedConnection CreateConnection(
-        Endpoint endpoint,
-        SslClientAuthenticationOptions? authenticationOptions,
-        ILogger logger)
+    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options)
     {
-        if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+        if (options.Endpoint.Params.TryGetValue("transport", out string? endpointTransport))
         {
             if (endpointTransport != "tcp" && endpointTransport != "custom")
             {
                 throw new ArgumentException(
-                    $"cannot use custom transport with endpoint '{endpoint}'",
-                    nameof(endpoint));
+                    $"cannot use custom transport with endpoint '{options.Endpoint}'",
+                    nameof(options));
             }
         }
 
-        endpoint = endpoint with
+        options = options with
         {
-            Params = endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            Endpoint = options.Endpoint with
+            {
+                Params = options.Endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            }
         };
 
-        return _transport.CreateConnection(endpoint, authenticationOptions, logger);
+        return _transport.CreateConnection(options);
     }
 }
 
@@ -48,26 +48,27 @@ public class CustomServerTransport : IMultiplexedServerTransport
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());
 
-    public IMultiplexedListener Listen(
-        Endpoint endpoint,
-        SslServerAuthenticationOptions? authenticationOptions,
-        ILogger logger)
+    public IMultiplexedListener Listen(MultiplexedListenerOptions options)
     {
-        if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+        if (options.Endpoint.Params.TryGetValue("transport", out string? endpointTransport))
         {
             if (endpointTransport != "tcp" && endpointTransport != "custom")
             {
                 throw new ArgumentException(
-                    $"cannot use custom transport with endpoint '{endpoint}'",
-                    nameof(endpoint));
+                    $"cannot use custom transport with endpoint '{options.Endpoint}'",
+                    nameof(options));
             }
         }
 
-        endpoint = endpoint with
+        options = options with
         {
-            Params = endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            Endpoint = options.Endpoint with
+            {
+                Params = options.Endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            }
         };
-        return _transport.Listen(endpoint, authenticationOptions, logger);
+
+        return _transport.Listen(options);
     }
 }
 

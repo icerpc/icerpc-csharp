@@ -45,7 +45,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly bool _isServer;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
-    private readonly int _minimumSegmentSize;
+    private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private readonly IDuplexConnection _transportConnection;
     private readonly DuplexConnectionReader _transportConnectionReader;
@@ -78,24 +78,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 maxCount: options.MaxIceConcurrentDispatches);
         }
 
-        // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
-        // these from SlicOptions but another option could be to add Pool/MinimumSegmentSize on
-        // ConnectionOptions/ServerOptions. These properties would be used by:
-        // - the multiplexed transport implementations
-        // - the Ice protocol connection
-        _memoryPool = MemoryPool<byte>.Shared;
-        _minimumSegmentSize = 4096;
+        _memoryPool = options.Pool;
+        _minSegmentSize = options.MinSegmentSize;
 
         _transportConnection = duplexConnection;
         _transportConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
             _memoryPool,
-            _minimumSegmentSize);
+            _minSegmentSize);
         _transportConnectionReader = new DuplexConnectionReader(
             duplexConnection,
             idleTimeout: options.IdleTimeout,
             _memoryPool,
-            _minimumSegmentSize,
+            _minSegmentSize,
             abortAction: exception => InvokeOnAbort(exception),
             keepAliveAction: () =>
             {
@@ -782,7 +777,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         prologue.FrameSize - IceDefinitions.PrologueSize,
                         _transportConnectionReader,
                         _memoryPool,
-                        _minimumSegmentSize,
+                        _minSegmentSize,
                         cancel).ConfigureAwait(false);
                     await batchRequestReader.CompleteAsync().ConfigureAwait(false);
                     break;
@@ -817,7 +812,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 replyFrameSize - IceDefinitions.PrologueSize,
                 _transportConnectionReader,
                 _memoryPool,
-                _minimumSegmentSize,
+                _minSegmentSize,
                 cancel).ConfigureAwait(false);
 
             bool cleanupFrameReader = true;
@@ -868,7 +863,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 requestFrameSize - IceDefinitions.PrologueSize,
                 _transportConnectionReader,
                 _memoryPool,
-                _minimumSegmentSize,
+                _minSegmentSize,
                 cancel).ConfigureAwait(false);
 
             // Decode its header.

@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+using System.Buffers;
+
 namespace IceRpc;
 
 /// <summary>A property bag used to configure client and server connections.</summary>
@@ -53,6 +56,36 @@ public record class ConnectionOptions
                 $"{nameof(MaxIceFrameSize)} must be at least {IceMinFrameSize}");
     }
 
+    /// <summary>Gets or sets the maximum allowed number of simultaneous remote bidirectional streams that can be
+    /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
+    /// bidirectional stream. Since an bidirectional stream is opened for each two-way invocation, the sending of the
+    /// two-way invocation will be delayed until another two-way invocation's stream completes.</summary>
+    /// <value>The maximum number of bidirectional streams. It can't be less than 1 and the default value is
+    /// 100.</value>
+    public int MaxIceRpcBidirectionalStreams
+    {
+        get => _maxIceRpcBidirectionalStreams;
+        set => _maxIceRpcBidirectionalStreams = value > 0 ? value :
+            throw new ArgumentException(
+                $"{nameof(MaxIceRpcBidirectionalStreams)} can't be less than 1",
+                nameof(value));
+    }
+
+    /// <summary>Gets or sets the maximum allowed number of simultaneous remote unidirectional streams that can be
+    /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
+    /// unidirectional stream. Since an unidirectional stream is opened for each one-way invocation, the sending of the
+    /// one-way invocation will be delayed until another one-way invocation's stream completes.</summary>
+    /// <value>The maximum number of unidirectional streams. It can't be less than 1 and the default value is
+    /// 100.</value>
+    public int MaxIceRpcUnidirectionalStreams
+    {
+        get => _maxIceRpcUnidirectionalStreams;
+        set => _maxIceRpcUnidirectionalStreams = value > 0 ? value :
+            throw new ArgumentException(
+                $"{nameof(MaxIceRpcUnidirectionalStreams)} can't be less than 1",
+                nameof(value));
+    }
+
     /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
     /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The
     /// default value is 16,383, and the range of this value is 63 to 1,048,575.</value>
@@ -61,6 +94,20 @@ public record class ConnectionOptions
         get => _maxIceRpcHeaderSize;
         set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
     }
+
+    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool"/>.</summary>
+    /// <value>The minimum size of the segment requested from the <see cref="Pool"/>.</value>
+    public int MinSegmentSize
+    {
+        get => _minSegmentSize;
+        set => _minSegmentSize = value >= 1024 ? value :
+            throw new ArgumentException($"{nameof(MinSegmentSize)} can't be less than 1KB", nameof(value));
+    }
+
+    /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used by the connection for allocating memory
+    /// blocks.</summary>
+    /// <value>A pool of memory blocks used for buffer management.</value>
+    public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
     /// <summary>Gets or sets the connection shutdown timeout. This timeout is used when gracefully shutting down a
     /// connection to wait for the remote peer to shut down. If the peer doesn't close its side of the connection
@@ -81,7 +128,10 @@ public record class ConnectionOptions
     private int _iceConcurrentDispatches = 100;
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
     private int _maxIceFrameSize = 1024 * 1024;
+    private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
     private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
+    private int _maxIceRpcUnidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxUnidirectionalStreams;
+    private int _minSegmentSize = 4096;
     private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 
     internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :

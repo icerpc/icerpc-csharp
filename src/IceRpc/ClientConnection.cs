@@ -58,9 +58,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         if (endpoint.Protocol == Protocol.Ice)
         {
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
-                endpoint,
-                options.ClientAuthenticationOptions,
-                logger);
+                new DuplexClientConnectionOptions
+                {
+                    Pool = options.Pool,
+                    MinSegmentSize = options.MinSegmentSize,
+                    Endpoint = endpoint,
+                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
+                    Logger = logger
+                });
 
             Endpoint = transportConnection.Endpoint;
 
@@ -79,9 +84,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
-                endpoint,
-                options.ClientAuthenticationOptions,
-                logger);
+                new MultiplexedClientConnectionOptions
+                {
+                    MaxBidirectionalStreams = options.MaxIceRpcBidirectionalStreams,
+                    MaxUnidirectionalStreams = options.MaxIceRpcUnidirectionalStreams,
+                    Pool = options.Pool,
+                    MinSegmentSize = options.MinSegmentSize,
+                    Endpoint = endpoint,
+                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
+                    Logger = logger,
+                    StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+                });
 
             Endpoint = transportConnection.Endpoint;
 
