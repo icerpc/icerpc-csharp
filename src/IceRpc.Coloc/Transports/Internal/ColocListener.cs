@@ -29,11 +29,11 @@ internal class ColocListener : IDuplexListener
             minimumSegmentSize: options.ServerConnectionOptions.MinimumSegmentSize);
     }
 
-    internal (PipeReader, PipeWriter) NewClientConnection()
+    internal (PipeReader, PipeWriter) NewClientConnection(DuplexClientConnectionOptions options)
     {
         // By default, the Pipe will pause writes on the PipeWriter when written data is more than 64KB. We could
         // eventually increase this size by providing a PipeOptions instance to the Pipe construction.
-        var localPipe = new Pipe(_pipeOptions);
+        var localPipe = new Pipe(new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinimumSegmentSize));
         var remotePipe = new Pipe(_pipeOptions);
         try
         {

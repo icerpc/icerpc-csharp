@@ -31,17 +31,17 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new FormatException($"cannot create a Coloc connection to endpoint '{options.Endpoint}'");
         }
 
-        return new ColocDuplexConnection(options.Endpoint.WithTransport(Name), Connect);
+        return new ColocDuplexConnection(options.Endpoint.WithTransport(Name), endpoint => Connect(endpoint, options));
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
         _listeners = listeners;
 
-    private (PipeReader, PipeWriter) Connect(Endpoint endpoint)
+    private (PipeReader, PipeWriter) Connect(Endpoint endpoint, DuplexClientConnectionOptions options)
     {
         if (_listeners.TryGetValue(endpoint, out ColocListener? listener))
         {
-            return listener.NewClientConnection();
+            return listener.NewClientConnection(options);
         }
         else
         {

@@ -316,7 +316,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
     internal SlicMultiplexedConnection(
         IDuplexConnection duplexConnection,
-        bool isServer,
         MultiplexedConnectionOptions options,
         SlicTransportOptions slicOptions)
     {
@@ -325,7 +324,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             throw new ArgumentException(nameof(options), $"{nameof(options.StreamErrorCodeConverter)} is null");
         }
 
-        IsServer = isServer;
+        IsServer = options is MultiplexedServerConnectionOptions;
         ErrorCodeConverter = options.StreamErrorCodeConverter;
 
         Pool = options.Pool;

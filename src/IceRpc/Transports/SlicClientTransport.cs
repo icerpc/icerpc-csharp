@@ -46,7 +46,6 @@ public class SlicClientTransport : IMultiplexedClientTransport
                     MinimumSegmentSize = options.MinimumSegmentSize,
                     Pool = options.Pool
                 }),
-            isServer: false,
             options,
             _slicTransportOptions);
 }
