@@ -75,8 +75,8 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_service_address_alt_endpoints(string)"/> test.
-    /// </summary>
+    /// <summary>Provides test case data for
+    /// <see cref="Create_service_address_with_alt_endpoints(ServiceAddress, Endpoint[])"/> test.</summary>
     private static IEnumerable<TestCaseData> AltEndpointsSource
     {
         get
@@ -427,7 +427,7 @@ public class ServiceAddressTests
     }
 
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
-    /// <param name="str">The service address to test.</param>
+    /// <param name="serviceAddress1">The service address to test.</param>
     [Test, TestCaseSource(nameof(ServiceAddressHashCodeSource))]
     public void Equal_service_addresses_produce_the_same_hash_code(ServiceAddress serviceAddress1)
     {
@@ -480,7 +480,7 @@ public class ServiceAddressTests
     }
 
     /// <summary>Verifies that a service address can be created from a URI.</summary>
-    /// <param name="str">The string to parse into a URI service address.</param>
+    /// <param name="uri">The URI to create the service address from.</param>
     /// <param name="path">The expected path for the parsed service address</param>
     /// <param name="fragment">The expected fragment for the parsed service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressUriSource))]
@@ -496,7 +496,7 @@ public class ServiceAddressTests
     }
 
     /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException"/>.</summary>
-    /// <param name="str">The URI string to parse as a service address</param>
+    /// <param name="uri">The URI to parse as a service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
     public void Create_service_address_from_invalid_uri(Uri uri) =>
         Assert.Throws(Is.InstanceOf<ArgumentException>(), () => new ServiceAddress(uri));

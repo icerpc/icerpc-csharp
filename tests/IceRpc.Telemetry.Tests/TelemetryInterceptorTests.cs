@@ -11,8 +11,8 @@ namespace IceRpc.Telemetry.Tests;
 
 public sealed class TelemetryInterceptorTests
 {
-    /// <summary>Verifies that the invocation activity is created using the activity source when one is configured
-    /// in the <see cref="Configure.TelemetryOptions"/>.</summary>
+    /// <summary>Verifies that the invocation activity is created using the activity source used to create the
+    /// <see cref="TelemetryInterceptor"/>.</summary>
     [Test]
     public async Task Invocation_activity_created_from_activity_source()
     {

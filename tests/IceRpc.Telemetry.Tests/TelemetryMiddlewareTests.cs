@@ -11,8 +11,8 @@ namespace IceRpc.Telemetry.Tests;
 
 public sealed class TelemetryMiddlewareTests
 {
-    /// <summary>Verifies that the dispatch activity is created using the activity source when one is configured
-    /// in the <see cref="Configure.TelemetryOptions"/>.</summary>
+    /// <summary>Verifies that the dispatch activity is created using the activity source used to create the
+    /// <see cref="TelemetryMiddleware"/>.</summary>
     [Test]
     public async Task Dispatch_activity_created_from_activity_source()
     {

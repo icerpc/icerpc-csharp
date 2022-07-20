@@ -10,8 +10,8 @@ namespace IceRpc.Extensions.DependencyInjection.Tests;
 
 public sealed class DispatcherBuilderTests
 {
-    [Test]
     /// <summary>Verifies that DispatcherBuilder.Map works with scoped services.</summary>
+    [Test]
     public async Task Map_dispatches_to_service()
     {
         await using ServiceProvider provider = new ServiceCollection()
@@ -28,8 +28,8 @@ public sealed class DispatcherBuilderTests
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
 
-    [Test]
     /// <summary>Verifies that DispatcherBuilder.Mount works with scoped services.</summary>
+    [Test]
     public async Task Mount_dispatches_to_service()
     {
         await using ServiceProvider provider = new ServiceCollection()
@@ -46,9 +46,9 @@ public sealed class DispatcherBuilderTests
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
 
-    [Test]
     /// <summary>Verifies that UseMiddleware with a single service dependency works with a scoped service dependency.
     /// </summary>
+    [Test]
     public async Task UseMiddleware_with_single_service_dependency()
     {
         await using ServiceProvider provider = new ServiceCollection()
@@ -69,9 +69,9 @@ public sealed class DispatcherBuilderTests
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
     }
 
-    [Test]
     /// <summary>Verifies that UseMiddleware with a 3 service dependencies works with scoped service dependencies.
     /// </summary>
+    [Test]
     public async Task UseMiddleware_with_3_service_dependencies()
     {
         await using ServiceProvider provider = new ServiceCollection()

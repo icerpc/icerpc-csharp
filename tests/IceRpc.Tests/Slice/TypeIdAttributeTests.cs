@@ -79,9 +79,9 @@ public sealed class TypeIdAttributeTests
     /// <param name="type">The <see cref="Type"/> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [Test, TestCaseSource(nameof(GetDefaultPathSource))]
-    public void Get_default_path(Type t, string? expected)
+    public void Get_default_path(Type type, string? expected)
     {
-        string defaultPath = t.GetDefaultPath();
+        string defaultPath = type.GetDefaultPath();
 
         Assert.That(defaultPath, Is.EqualTo(expected));
     }

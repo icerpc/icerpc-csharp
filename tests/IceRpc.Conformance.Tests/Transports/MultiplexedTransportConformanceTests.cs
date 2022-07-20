@@ -714,8 +714,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>
-    /// <param name="readDelay">Number of milliseconds to delay in the read operation.</param>
-    /// <param name="writeDelay">Number of milliseconds to delay in the write operation.</param>
+    /// <param name="delay">Number of milliseconds to delay the read and write operation.</param>
     /// <param name="streams">The number of streams to create.</param>
     /// <param name="segments">The number of segments to write to each stream.</param>
     /// <param name="payloadSize">The payload size to write with each write call.</param>
@@ -883,7 +882,6 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that stream output completes after the peer completes the input.</summary>
-    /// <param name="payloadSize">The size of the payload in bytes.</param>
     [Test]
     public async Task Stream_output_completes_after_completing_peer_input()
     {
