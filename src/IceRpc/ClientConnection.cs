@@ -61,7 +61,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 new DuplexClientConnectionOptions
                 {
                     Pool = options.Pool,
-                    MinimumSegmentSize = options.MinimumSegmentSize,
+                    MinSegmentSize = options.MinSegmentSize,
                     Endpoint = endpoint,
                     ClientAuthenticationOptions = options.ClientAuthenticationOptions,
                     Logger = logger
@@ -89,7 +89,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     MaxBidirectionalStreams = options.MaxIceRpcBidirectionalStreams,
                     MaxUnidirectionalStreams = options.MaxIceRpcUnidirectionalStreams,
                     Pool = options.Pool,
-                    MinimumSegmentSize = options.MinimumSegmentSize,
+                    MinSegmentSize = options.MinSegmentSize,
                     Endpoint = endpoint,
                     ClientAuthenticationOptions = options.ClientAuthenticationOptions,
                     Logger = logger,

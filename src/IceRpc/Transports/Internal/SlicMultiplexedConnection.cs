@@ -18,7 +18,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
     internal bool IsServer { get; }
 
-    internal int MinimumSegmentSize { get; }
+    internal int MinSegmentSize { get; }
 
     internal IMultiplexedStreamErrorCodeConverter ErrorCodeConverter { get; }
 
@@ -328,7 +328,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         ErrorCodeConverter = options.StreamErrorCodeConverter;
 
         Pool = options.Pool;
-        MinimumSegmentSize = options.MinimumSegmentSize;
+        MinSegmentSize = options.MinSegmentSize;
         _maxBidirectionalStreams = options.MaxBidirectionalStreams;
         _maxUnidirectionalStreams = options.MaxUnidirectionalStreams;
 
@@ -342,7 +342,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         _transportConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
             options.Pool,
-            options.MinimumSegmentSize);
+            options.MinSegmentSize);
 
         Action? keepAliveAction = null;
         if (!IsServer)
@@ -355,7 +355,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             duplexConnection,
             idleTimeout: _localIdleTimeout,
             options.Pool,
-            options.MinimumSegmentSize,
+            options.MinSegmentSize,
             abortAction: exception => _acceptStreamQueue.TryComplete(exception),
             keepAliveAction);
 
@@ -808,7 +808,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                             new PipeOptions(
                                 pool: Pool,
                                 pauseWriterThreshold: 0,
-                                minimumSegmentSize: MinimumSegmentSize,
+                                minimumSegmentSize: MinSegmentSize,
                                 writerScheduler: PipeScheduler.Inline));
 
                         await _transportConnectionReader.FillBufferWriterAsync(

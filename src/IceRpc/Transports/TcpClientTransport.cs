@@ -65,7 +65,12 @@ public class TcpClientTransport : IDuplexClientTransport
             };
         }
 
-        var clientConnection = new TcpClientDuplexConnection(endpoint, authenticationOptions, _options);
+        var clientConnection = new TcpClientDuplexConnection(
+            endpoint,
+            authenticationOptions,
+            options.Pool,
+            options.MinSegmentSize,
+            _options);
         if (options.Logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
         {
             return new LogTcpTransportConnectionDecorator(clientConnection, options.Logger);

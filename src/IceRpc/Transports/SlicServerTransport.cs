@@ -40,7 +40,7 @@ public class SlicServerTransport : IMultiplexedServerTransport
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinimumSegmentSize = options.ServerConnectionOptions.MinimumSegmentSize,
+                        MinSegmentSize = options.ServerConnectionOptions.MinSegmentSize,
                         Pool = options.ServerConnectionOptions.Pool,
                         ServerAuthenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions
                     },

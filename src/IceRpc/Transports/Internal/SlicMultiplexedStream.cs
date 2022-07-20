@@ -93,7 +93,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
             this,
             _connection.ErrorCodeConverter,
             _connection.Pool,
-            _connection.MinimumSegmentSize,
+            _connection.MinSegmentSize,
             _connection.ResumeWriterThreshold,
             _connection.PauseWriterThreshold);
 
@@ -101,7 +101,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
             this,
             _connection.ErrorCodeConverter,
             _connection.Pool,
-            _connection.MinimumSegmentSize);
+            _connection.MinSegmentSize);
 
         IsBidirectional = bidirectional;
         if (!IsBidirectional)

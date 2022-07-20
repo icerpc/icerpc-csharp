@@ -176,7 +176,7 @@ public sealed class Server : IAsyncDisposable
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinimumSegmentSize = _options.ConnectionOptions.MinimumSegmentSize,
+                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
                         Pool = _options.ConnectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions
                     },
@@ -210,7 +210,7 @@ public sealed class Server : IAsyncDisposable
                         {
                             MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                             MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams,
-                            MinimumSegmentSize = _options.ConnectionOptions.MinimumSegmentSize,
+                            MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
                             Pool = _options.ConnectionOptions.Pool,
                             ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
                             StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter

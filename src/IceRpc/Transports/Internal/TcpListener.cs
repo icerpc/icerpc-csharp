@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -14,6 +15,8 @@ internal sealed class TcpListener : IDuplexListener
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
     private readonly ILogger _logger;
+    private int _minSegmentSize;
+    private MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
     public async Task<IDuplexConnection> AcceptAsync()
@@ -31,7 +34,12 @@ internal sealed class TcpListener : IDuplexListener
         }
 
 #pragma warning disable CA2000 // the connection is disposed by the caller
-        var serverConnection = new TcpServerDuplexConnection(Endpoint, acceptedSocket, _authenticationOptions);
+        var serverConnection = new TcpServerDuplexConnection(
+            Endpoint,
+            acceptedSocket,
+            _authenticationOptions,
+            _pool,
+            _minSegmentSize);
         if (_logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
         {
             return new LogTcpTransportConnectionDecorator(serverConnection, _logger);
@@ -55,6 +63,8 @@ internal sealed class TcpListener : IDuplexListener
 
         _authenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions;
         _logger = options.Logger;
+        _minSegmentSize = options.ServerConnectionOptions.MinSegmentSize;
+        _pool = options.ServerConnectionOptions.Pool;
 
         if (_authenticationOptions is not null)
         {

@@ -43,7 +43,7 @@ public class SlicClientTransport : IMultiplexedClientTransport
                     ClientAuthenticationOptions = options.ClientAuthenticationOptions,
                     Endpoint = options.Endpoint,
                     Logger = options.Logger,
-                    MinimumSegmentSize = options.MinimumSegmentSize,
+                    MinSegmentSize = options.MinSegmentSize,
                     Pool = options.Pool
                 }),
             options,
