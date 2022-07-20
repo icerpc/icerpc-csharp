@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Net;
 
 namespace IceRpc.Logger;
 
-/// <summary>An interceptor that logs request and response messages using a logger with the "IceRpc" category. When
+/// <summary>An interceptor that logs requests using a logger with the "IceRpc.Logger" category. When
 /// used in conjunction with the telemetry interceptor, install the logger interceptor after the telemetry interceptor,
 /// this way the logger can include the scopes created by the telemetry activities.</summary>
 public class LoggerInterceptor : IInvoker
@@ -24,23 +26,21 @@ public class LoggerInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        _logger.LogSendingRequest(request.ServiceAddress.Path, request.Operation);
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
-            if (!request.IsOneway)
-            {
-                _logger.LogReceivedResponse(
-                    response.ConnectionContext,
-                    request.ServiceAddress.Path,
-                    request.Operation,
-                    response.ResultType);
-            }
+
+            stopwatch.Stop();
+            _logger.LogInvoke(request, response, stopwatch.ElapsedMilliseconds);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogInvokeException(request.ServiceAddress.Path, request.Operation, ex);
+            stopwatch.Stop();
+            _logger.LogInvokeException(request, stopwatch.ElapsedMilliseconds, ex);
             throw;
         }
     }
@@ -49,53 +49,70 @@ public class LoggerInterceptor : IInvoker
 /// <summary>This class contains the ILogger extension methods for logging logger interceptor messages.</summary>
 internal static partial class LoggerInterceptorLoggerExtensions
 {
-    [LoggerMessage(
-       EventId = (int)LoggerInterceptorEventIds.InvokeException,
-       EventName = nameof(LoggerInterceptorEventIds.InvokeException),
-       Level = LogLevel.Information,
-       Message = "request invocation exception (Path={Path}, Operation={Operation})")]
-    internal static partial void LogInvokeException(
-       this ILogger logger,
-       string path,
-       string operation,
-       Exception ex);
-
-    [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventIds.SendingRequest,
-        EventName = nameof(LoggerInterceptorEventIds.SendingRequest),
-        Level = LogLevel.Information,
-        Message = "sending request (Path={Path}, Operation={Operation})")]
-    internal static partial void LogSendingRequest(this ILogger logger, string path, string operation);
-
-    internal static void LogReceivedResponse(
+    internal static void LogInvoke(
         this ILogger logger,
-        IConnectionContext connectionContext,
-        string path,
-        string operation,
-        ResultType resultType)
+        OutgoingRequest request,
+        IncomingResponse response,
+        long latency)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogReceivedResponse(
-                connectionContext.TransportConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                connectionContext.TransportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
-                path,
-                operation,
-                resultType);
+            logger.LogInvoke(
+                request.ServiceAddress,
+                request.Operation,
+                request.IsOneway,
+                response.ResultType,
+                response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+                response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
+                latency);
+        }
+    }
+
+    internal static void LogInvokeException(
+        this ILogger logger,
+        OutgoingRequest request,
+        long latency,
+        Exception exception)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInvokeException(
+                request.ServiceAddress,
+                request.Operation,
+                request.IsOneway,
+                latency,
+                exception);
         }
     }
 
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventIds.ReceivedResponse,
-        EventName = nameof(LoggerInterceptorEventIds.ReceivedResponse),
+        EventId = (int)LoggerInterceptorEventIds.Invoke,
+        EventName = nameof(LoggerInterceptorEventIds.Invoke),
         Level = LogLevel.Information,
-        Message = "received response (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress=" +
-            "{RemoteNetworkAddress}, Path={Path}, Operation={Operation}, ResultType={ResultType})")]
-    private static partial void LogReceivedResponse(
+        Message = "sent request and received response {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
+            "IsOneway = {IsOneway}, ResultType = {ResultType}, LocalNetworkAddress = {LocalNetworkAddress}, " +
+            "RemoteNetworkAddress = {RemoteNetworkAddress}, Latency = {Latency} ms }}")]
+    private static partial void LogInvoke(
         this ILogger logger,
-        string localNetworkAddress,
-        string remoteNetworkAddress,
-        string path,
+        ServiceAddress serviceAddress,
         string operation,
-        ResultType resultType);
+        bool isOneway,
+        ResultType resultType,
+        EndPoint? localNetworkAddress,
+        EndPoint? remoteNetworkAddress,
+        long latency);
+
+    [LoggerMessage(
+        EventId = (int)LoggerInterceptorEventIds.InvokeException,
+        EventName = nameof(LoggerInterceptorEventIds.InvokeException),
+        Level = LogLevel.Information,
+        Message = "failed to send request {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
+            "IsOneway = {IsOneway}, Latency = {Latency} ms }}")]
+    private static partial void LogInvokeException(
+        this ILogger logger,
+        ServiceAddress serviceAddress,
+        string operation,
+        bool isOneway,
+        long latency,
+        Exception exception);
 }

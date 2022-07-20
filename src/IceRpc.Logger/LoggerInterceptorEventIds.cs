@@ -5,12 +5,10 @@ namespace IceRpc.Logger;
 /// <summary>This class contains event ID constants used by the logger interceptor.</summary>
 public enum LoggerInterceptorEventIds
 {
-    /// <summary>The invocation of the request failed with an exception.</summary>
-    InvokeException,
+    /// <summary>The invocation was successful as far as IceRPC is concerned. Its result type can nevertheless contain
+    /// a failure.</summary>
+    Invoke,
 
-    /// <summary>Received a response.</summary>
-    ReceivedResponse,
-
-    /// <summary>A request is being sent.</summary>
-    SendingRequest
+    /// <summary>The invocation failed with an exception.</summary>
+    InvokeException
 }
