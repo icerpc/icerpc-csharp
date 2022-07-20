@@ -21,26 +21,12 @@ internal static partial class ConnectionLoggerExtensions
         LoggerMessage.DefineScope<Endpoint>(
             "NewServerConnection(Endpoint={Endpoint})");
 
-    private static readonly Func<ILogger, string, string, IDisposable> _receiveResponseScope =
-        LoggerMessage.DefineScope<string, string>("ReceiveResponse(Path={Path}, Operation={Operation})");
-
     private static readonly Func<ILogger, string, string, IDisposable> _sendRequestScope =
         LoggerMessage.DefineScope<string, string>("SendRequest(Path={Path}, Operation={Operation})");
-
-    private static readonly Func<ILogger, string, string, ResultType, IDisposable> _sendResponseScope =
-        LoggerMessage.DefineScope<string, string, ResultType>(
-            "SendResponse(Path={Path}, Operation={Operation}, ResultType={ResultType})");
 
     private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _serverConnectionScope =
         LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
             "ServerConnection(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})");
-
-    [LoggerMessage(
-        EventId = (int)ConnectionEventIds.AcceptRequests,
-        EventName = nameof(ConnectionEventIds.AcceptRequests),
-        Level = LogLevel.Debug,
-        Message = "accepting request frames")]
-    internal static partial void LogAcceptRequests(this ILogger logger);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.ConnectionClosedReason,
@@ -67,13 +53,6 @@ internal static partial class ConnectionLoggerExtensions
         Protocol protocol,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
-
-    [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionDispose,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionDispose),
-        Level = LogLevel.Information,
-        Message = "{Protocol} connection disposed")]
-    internal static partial void LogProtocolConnectionDispose(this ILogger logger, Protocol protocol);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionShutdown,
@@ -125,18 +104,7 @@ internal static partial class ConnectionLoggerExtensions
         TransportConnectionInformation information) =>
         _serverConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
 
-    /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
-    internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>
-        _receiveResponseScope(logger, request.ServiceAddress.Path, request.Operation);
-
     /// <summary>Starts a scope for method IProtocolConnection.InvokeAsync.</summary>
     internal static IDisposable StartSendRequestScope(this ILogger logger, OutgoingRequest request) =>
         _sendRequestScope(logger, request.ServiceAddress.Path, request.Operation);
-
-    /// <summary>Starts a scope for method IProtocolConnection.SendResponseAsync.</summary>
-    internal static IDisposable StartSendResponseScope(
-        this ILogger logger,
-        OutgoingResponse response,
-        IncomingRequest request) =>
-        _sendResponseScope(logger, request.Path, request.Operation, response.ResultType);
 }

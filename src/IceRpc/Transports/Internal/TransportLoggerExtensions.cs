@@ -37,16 +37,6 @@ internal static partial class TransportLoggerExtensions
     internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.MultiplexedStreamRead,
-        EventName = nameof(TransportEventIds.MultiplexedStreamRead),
-        Level = LogLevel.Trace,
-        Message = "read {Size} bytes from multiplexed stream ({Data})")]
-    internal static partial void LogMultiplexedStreamRead(
-        this ILogger logger,
-        int size,
-        string data);
-
-    [LoggerMessage(
         EventId = (int)TransportEventIds.MultiplexedConnectionShutdown,
         EventName = nameof(TransportEventIds.MultiplexedConnectionShutdown),
         Level = LogLevel.Trace,
@@ -54,16 +44,6 @@ internal static partial class TransportLoggerExtensions
     internal static partial void LogMultiplexedConnectionShutdown(
         this ILogger logger,
         Exception exception);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.MultiplexedStreamWrite,
-        EventName = nameof(TransportEventIds.MultiplexedStreamWrite),
-        Level = LogLevel.Trace,
-        Message = "wrote {Size} bytes to multiplexed stream ({Data})")]
-    internal static partial void LogMultiplexedStreamWrite(
-        this ILogger logger,
-        int size,
-        string data);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.TransportConnectionConnect,

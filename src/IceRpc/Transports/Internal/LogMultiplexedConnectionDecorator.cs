@@ -7,27 +7,24 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-internal class LogMultiplexedConnectionDecorator : IMultiplexedConnection
+internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
     internal ILogger Logger { get; }
 
-    private protected bool IsServer { get; }
-
-    private protected TransportConnectionInformation? Information { get; set; }
-
     private readonly IMultiplexedConnection _decoratee;
-
     private readonly Endpoint _endpoint;
+    private TransportConnectionInformation? _information;
+    private readonly bool _isServer;
 
-    public virtual async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
+        using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, _isServer);
 
         try
         {
-            Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -36,9 +33,9 @@ internal class LogMultiplexedConnectionDecorator : IMultiplexedConnection
         }
 
         Logger.LogTransportConnectionConnect(
-            Information.Value.LocalNetworkAddress,
-            Information.Value.RemoteNetworkAddress);
-        return Information.Value;
+            _information.Value.LocalNetworkAddress,
+            _information.Value.RemoteNetworkAddress);
+        return _information.Value;
     }
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
@@ -54,9 +51,9 @@ internal class LogMultiplexedConnectionDecorator : IMultiplexedConnection
         await _decoratee.DisposeAsync().ConfigureAwait(false);
 
         // We don't emit a log when closing a connection that was not connected.
-        if (Information is TransportConnectionInformation connectionInformation)
+        if (_information is TransportConnectionInformation connectionInformation)
         {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, _isServer);
             Logger.LogTransportConnectionDispose();
         }
     }
@@ -66,9 +63,9 @@ internal class LogMultiplexedConnectionDecorator : IMultiplexedConnection
         await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
 
         // We don't emit a log when closing a connection that was not connected.
-        if (Information is TransportConnectionInformation connectionInformation)
+        if (_information is TransportConnectionInformation connectionInformation)
         {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, _isServer);
             Logger.LogMultiplexedConnectionShutdown(exception);
         }
     }
@@ -83,7 +80,7 @@ internal class LogMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         _decoratee = decoratee;
         _endpoint = endpoint;
-        IsServer = isServer;
+        _isServer = isServer;
         Logger = logger;
     }
 }

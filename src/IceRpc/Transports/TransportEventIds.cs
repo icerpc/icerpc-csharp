@@ -14,14 +14,8 @@ public enum TransportEventIds
     /// <summary>The listener is disposed and no longer accepts connections.</summary>
     ListenerDisposed,
 
-    /// <summary>Successfully read data from a multiplexed stream.</summary>
-    MultiplexedStreamRead,
-
     /// <summary>A multiplexed connection was shutdown.</summary>
     MultiplexedConnectionShutdown,
-
-    /// <summary>Wrote data to a multiplexed stream.</summary>
-    MultiplexedStreamWrite,
 
     /// <summary>Connect on a transport connection succeeded.</summary>
     TransportConnectionConnect,
