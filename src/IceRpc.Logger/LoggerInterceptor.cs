@@ -34,13 +34,13 @@ public class LoggerInterceptor : IInvoker
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
             stopwatch.Stop();
-            _logger.LogInvoke(request, response, stopwatch.ElapsedMilliseconds);
+            _logger.LogInvoke(request, response, stopwatch.Elapsed.TotalMilliseconds);
             return response;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogInvokeException(request, stopwatch.ElapsedMilliseconds, ex);
+            _logger.LogInvokeException(request, stopwatch.Elapsed.TotalMilliseconds, ex);
             throw;
         }
     }
@@ -53,7 +53,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
         this ILogger logger,
         OutgoingRequest request,
         IncomingResponse response,
-        long latency)
+        double totalMilliseconds)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -64,14 +64,14 @@ internal static partial class LoggerInterceptorLoggerExtensions
                 response.ResultType,
                 response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
                 response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                latency);
+                totalMilliseconds);
         }
     }
 
     internal static void LogInvokeException(
         this ILogger logger,
         OutgoingRequest request,
-        long latency,
+        double totalMilliseconds,
         Exception exception)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -80,7 +80,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
                 request.ServiceAddress,
                 request.Operation,
                 request.IsOneway,
-                latency,
+                totalMilliseconds,
                 exception);
         }
     }
@@ -91,7 +91,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
         Level = LogLevel.Information,
         Message = "sent request and received response {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
             "IsOneway = {IsOneway}, ResultType = {ResultType}, LocalNetworkAddress = {LocalNetworkAddress}, " +
-            "RemoteNetworkAddress = {RemoteNetworkAddress}, Latency = {Latency} ms }}")]
+            "RemoteNetworkAddress = {RemoteNetworkAddress}, Time = {TotalMilliseconds:F} ms }}")]
     private static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
@@ -100,19 +100,19 @@ internal static partial class LoggerInterceptorLoggerExtensions
         ResultType resultType,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
-        long latency);
+        double totalMilliseconds);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventIds.InvokeException,
         EventName = nameof(LoggerInterceptorEventIds.InvokeException),
         Level = LogLevel.Information,
         Message = "failed to send request {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
-            "IsOneway = {IsOneway}, Latency = {Latency} ms }}")]
+            "IsOneway = {IsOneway}, Time = {TotalMilliseconds:F} ms }}")]
     private static partial void LogInvokeException(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
         bool isOneway,
-        long latency,
+        double totalMilliseconds,
         Exception exception);
 }
