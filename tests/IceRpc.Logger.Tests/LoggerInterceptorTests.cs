@@ -31,7 +31,7 @@ public sealed class LoggerInterceptorTests
             Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
             Assert.That(entries[0].State["LocalNetworkAddress"], Is.Null);
             Assert.That(entries[0].State["RemoteNetworkAddress"], Is.Null);
-            Assert.That(entries[0].State["Latency"], Is.Not.Null);
+            Assert.That(entries[0].State["Time"], Is.Not.Null);
         });
     }
 
@@ -62,7 +62,7 @@ public sealed class LoggerInterceptorTests
             Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("operation"));
             Assert.That(entries[0].State["IsOneway"], Is.False);
-            Assert.That(entries[0].State["Latency"], Is.Not.Null);
+            Assert.That(entries[0].State["Time"], Is.Not.Null);
             Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
         });
     }
