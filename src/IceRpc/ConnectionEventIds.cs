@@ -11,8 +11,11 @@ public enum ConnectionEventIds
     /// <summary>The message from the connection shutdown.</summary>
     ConnectionShutdownReason,
 
-    /// <summary>Established a protocol connection.</summary>
-    ProtocolConnectionConnect,
+    /// <summary>The connect operation for an ice or icerpc connection completed successfully.</summary>
+    ConnectionConnect,
+
+    /// <summary>The connect operation for an ice or icerpc connection failed with an exception.</summary>
+    ConnectionConnectException,
 
     /// <summary>The protocol connection was shut down.</summary>
     ProtocolConnectionShutdown,

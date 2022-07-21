@@ -79,7 +79,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     logger);
             }
 
-            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
+            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options, logger);
         }
         else
         {
@@ -110,13 +110,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 #pragma warning restore CA2000
             }
 
-            _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
-        }
-
-        // TODO: log level
-        if (logger.IsEnabled(LogLevel.Error))
-        {
-            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, isServer: false, logger);
+            _protocolConnection = new IceRpcProtocolConnection(transportConnection, options, logger);
         }
     }
 

@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -12,7 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    public override Protocol Protocol => Protocol.IceRpc;
+    private protected override Endpoint Endpoint => _transportConnection.Endpoint;
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
@@ -45,8 +46,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
-        ConnectionOptions options)
-        : base(options)
+        ConnectionOptions options,
+        ILogger logger)
+        : base(options, logger)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;

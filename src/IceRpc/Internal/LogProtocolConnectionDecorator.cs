@@ -18,27 +18,6 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     async Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
     {
         _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-
-        using IDisposable scope = _logger.StartConnectionScope(_information, _isServer);
-        _logger.LogProtocolConnectionConnect(
-            _decoratee.Protocol,
-            _information.LocalNetworkAddress,
-            _information.RemoteNetworkAddress);
-
-        _decoratee.OnAbort(
-            exception =>
-            {
-                using IDisposable scope = _logger.StartClientConnectionScope(_information);
-                _logger.LogConnectionClosedReason(exception);
-            });
-
-        _decoratee.OnShutdown(
-            message =>
-            {
-                using IDisposable scope = _logger.StartClientConnectionScope(_information);
-                _logger.LogConnectionShutdownReason(message);
-            });
-
         return _information;
     }
 

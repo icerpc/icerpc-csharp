@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -13,7 +14,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    public override Protocol Protocol => Protocol.Ice;
+    private protected override Endpoint Endpoint => _transportConnection.Endpoint;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -61,8 +62,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
         bool isServer,
-        ConnectionOptions options)
-        : base(options)
+        ConnectionOptions options,
+        ILogger logger)
+        : base(options, logger)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes

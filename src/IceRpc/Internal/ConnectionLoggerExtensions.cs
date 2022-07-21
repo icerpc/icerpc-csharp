@@ -43,18 +43,6 @@ internal static partial class ConnectionLoggerExtensions
     internal static partial void LogConnectionShutdownReason(this ILogger logger, string message);
 
     [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionConnect,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionConnect),
-        Level = LogLevel.Information,
-        Message = "{Protocol} connection established " +
-            "(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})")]
-    internal static partial void LogProtocolConnectionConnect(
-        this ILogger logger,
-        Protocol protocol,
-        EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress);
-
-    [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionShutdown,
         EventName = nameof(ConnectionEventIds.ProtocolConnectionShutdown),
         Level = LogLevel.Debug,

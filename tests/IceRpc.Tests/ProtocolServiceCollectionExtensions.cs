@@ -144,11 +144,13 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
                             Logger = logger
                         }),
                 isServer: false,
-                clientConnectionOptions.Value),
+                clientConnectionOptions.Value,
+                logger),
             acceptServerConnectionAsync: async () => new IceProtocolConnection(
                     await listener.AcceptAsync(),
                     isServer: true,
-                    serverOptions.Value.ConnectionOptions),
+                    serverOptions.Value.ConnectionOptions,
+                    logger),
             logger)
     {
     }
@@ -179,10 +181,12 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                             ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions,
                             Logger = logger
                         }),
-                clientConnectionOptions.Value),
+                clientConnectionOptions.Value,
+                logger),
             acceptServerConnectionAsync: async() => new IceRpcProtocolConnection(
                     await listener.AcceptAsync(),
-                    serverOptions.Value.ConnectionOptions),
+                    serverOptions.Value.ConnectionOptions,
+                    logger),
             logger)
     {
     }

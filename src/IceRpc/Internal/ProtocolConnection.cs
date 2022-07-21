@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc.Internal;
@@ -10,7 +11,9 @@ namespace IceRpc.Internal;
 /// correct order.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
-    public abstract Protocol Protocol { get; }
+    public Protocol Protocol => Endpoint.Protocol;
+
+    private protected abstract Endpoint Endpoint { get; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
     private Task<TransportConnectionInformation>? _connectTask;
@@ -18,6 +21,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Task? _disposeTask;
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
+    private readonly ILogger _logger;
     private readonly object _mutex = new();
     private Action<Exception>? _onAbort;
     private Exception? _onAbortException;
@@ -42,7 +46,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                _connectTask = PerformConnectAsync();
+                _connectTask = _logger.IsEnabled(LogLevel.Information) ?
+                    PerformConnectAsyncWithLogging() : PerformConnectAsync();
             }
         }
 
@@ -95,6 +100,25 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 Debug.Assert(cancelSource.IsCancellationRequested);
                 throw new TimeoutException($"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+            }
+        }
+
+        async Task<TransportConnectionInformation> PerformConnectAsyncWithLogging()
+        {
+            try
+            {
+                TransportConnectionInformation information = await PerformConnectAsync().ConfigureAwait(false);
+                _logger.LogProtocolConnectionConnect(
+                    Endpoint.Protocol,
+                    Endpoint,
+                    information.LocalNetworkAddress,
+                    information.RemoteNetworkAddress);
+                return information;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogProtocolConnectionConnectException(Endpoint.Protocol, Endpoint, exception);
+                throw;
             }
         }
     }
@@ -287,7 +311,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options)
+    internal ProtocolConnection(ConnectionOptions options, ILogger logger)
     {
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
@@ -299,6 +323,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown("idle connection");
                 }
             });
+        _logger = logger;
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);

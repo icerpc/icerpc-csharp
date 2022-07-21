@@ -200,7 +200,8 @@ public sealed class Server : IAsyncDisposable
                     async () => new IceProtocolConnection(
                         await listener.AcceptAsync().ConfigureAwait(false),
                         isServer: true,
-                        _options.ConnectionOptions)));
+                        _options.ConnectionOptions,
+                        logger)));
             }
             else
             {
@@ -234,7 +235,8 @@ public sealed class Server : IAsyncDisposable
                 _ = Task.Run(() => AcceptAsync(
                     async () => new IceRpcProtocolConnection(
                         await listener.AcceptAsync().ConfigureAwait(false),
-                        _options.ConnectionOptions)));
+                        _options.ConnectionOptions,
+                        logger)));
             }
         }
 
