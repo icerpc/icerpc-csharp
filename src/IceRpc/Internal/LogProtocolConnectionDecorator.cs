@@ -11,22 +11,24 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     public Endpoint Endpoint => _decoratee.Endpoint;
 
     private readonly IProtocolConnection _decoratee;
-    private TransportConnectionInformation _information;
+    private IConnectionContext? _connectionContext;
     private readonly ILogger _logger;
 
     async Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
     {
         try
         {
-            _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            TransportConnectionInformation information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
             _logger.LogProtocolConnectionConnect(
                    Endpoint.Protocol,
                    Endpoint,
-                   _information.LocalNetworkAddress,
-                   _information.RemoteNetworkAddress);
+                   information.LocalNetworkAddress,
+                   information.RemoteNetworkAddress);
 
-            return _information;
+            _connectionContext ??= new ConnectionContext(this, information);
+
+            return information;
         }
         catch (Exception exception)
         {
@@ -41,12 +43,16 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         _logger.LogProtocolConnectionDispose(
             Endpoint.Protocol,
             Endpoint,
-            _information.LocalNetworkAddress,
-            _information.RemoteNetworkAddress);
+            _connectionContext?.TransportConnectionInformation.LocalNetworkAddress,
+            _connectionContext?.TransportConnectionInformation.RemoteNetworkAddress);
     }
 
-    Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-        _decoratee.InvokeAsync(request, cancel);
+    async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    {
+        IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
+        response.ConnectionContext = _connectionContext!;
+        return response;
+    }
 
         /*
         using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
@@ -68,8 +74,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             _logger.LogProtocolConnectionShutdown(
                 Endpoint.Protocol,
                 Endpoint,
-                _information.LocalNetworkAddress,
-                _information.RemoteNetworkAddress,
+                _connectionContext?.TransportConnectionInformation.LocalNetworkAddress,
+                _connectionContext?.TransportConnectionInformation.RemoteNetworkAddress,
                 message);
         }
         catch (Exception exception)
@@ -77,8 +83,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             _logger.LogProtocolConnectionShutdownException(
                 Endpoint.Protocol,
                 Endpoint,
-                _information.LocalNetworkAddress,
-                _information.RemoteNetworkAddress,
+                _connectionContext?.TransportConnectionInformation.LocalNetworkAddress,
+                _connectionContext?.TransportConnectionInformation.RemoteNetworkAddress,
                 exception);
             throw;
         }
