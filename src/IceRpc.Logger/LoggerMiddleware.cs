@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace IceRpc.Logger;
 
@@ -29,25 +30,32 @@ public class LoggerMiddleware : IDispatcher
             request.ConnectionContext.TransportConnectionInformation,
             request.Path,
             request.Operation);
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         try
         {
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+            stopwatch.Stop();
             if (!request.IsOneway)
             {
                 _logger.LogSendingResponse(
                     request.ConnectionContext.TransportConnectionInformation,
                     request.Path,
                     request.Operation,
-                    response.ResultType);
+                    response.ResultType,
+                    stopwatch.Elapsed.TotalMilliseconds);
             }
             return response;
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
             _logger.LogDispatchException(
                 request.ConnectionContext.TransportConnectionInformation,
                 request.Path,
                 request.Operation,
+                stopwatch.Elapsed.TotalMilliseconds,
                 ex);
             throw;
         }
@@ -61,6 +69,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         TransportConnectionInformation transportConnectionInformation,
         string path,
         string operation,
+        double totalMilliseconds,
         Exception ex)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -70,6 +79,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
                 transportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
+                totalMilliseconds,
                 ex);
         }
     }
@@ -95,7 +105,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         TransportConnectionInformation transportConnectionInformation,
         string path,
         string operation,
-        ResultType resultType)
+        ResultType resultType,
+        double totalMilliseconds)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -104,7 +115,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
                 transportConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
-                resultType);
+                resultType,
+                totalMilliseconds);
         }
     }
 
@@ -112,22 +124,22 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.DispatchException,
         EventName = nameof(LoggerMiddlewareEventIds.DispatchException),
         Level = LogLevel.Information,
-        Message = "request dispatch exception (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}, " +
-                  "Path={Path}, Operation={Operation})")]
+        Message = "failed to dispatch {Path}{Operation} using {LocalNetworkAddress} -> {RemoteNetworkAddress} in " +
+                  "{TotalMilliseconds:F} ms")]
     private static partial void LogDispatchException(
         this ILogger logger,
         string localNetworkAddress,
         string remoteNetworkAddress,
         string path,
         string operation,
+        double totalMilliseconds,
         Exception ex);
 
     [LoggerMessage(
         EventId = (int)LoggerMiddlewareEventIds.ReceivedRequest,
         EventName = nameof(LoggerMiddlewareEventIds.ReceivedRequest),
         Level = LogLevel.Information,
-        Message = "received request (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}, " +
-                  "Path={Path}, Operation={Operation})")]
+        Message = "received request to {Path}{Operation} using {LocalNetworkAddress} -> {RemoteNetworkAddress}")]
     private static partial void LogReceivedRequest(
         this ILogger logger,
         string localNetworkAddress,
@@ -139,13 +151,14 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.SendingResponse,
         EventName = nameof(LoggerMiddlewareEventIds.SendingResponse),
         Level = LogLevel.Information,
-        Message = "sending response (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}, " +
-                  "Path={Path}, Operation={Operation}, ResultType={ResultType})")]
+        Message = "sending response to {Path}{Operation} using {LocalNetworkAddress} -> {RemoteNetworkAddress} and " +
+            "received {ResultType} in {TotalMilliseconds:F} ms")]
     private static partial void LogSendingResponse(
         this ILogger logger,
         string localNetworkAddress,
         string remoteNetworkAddress,
         string path,
         string operation,
-        ResultType resultType);
+        ResultType resultType,
+        double totalMilliseconds);
 }
