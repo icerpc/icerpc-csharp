@@ -203,10 +203,10 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        IMultiplexedConnection disposedConnection =
-            disposeServerConnection ? serverConnection : clientConnection;
-        IMultiplexedConnection peerConnection =
-            disposeServerConnection ? clientConnection : serverConnection;
+        IMultiplexedConnection disposedConnection = disposeServerConnection ? serverConnection : clientConnection;
+        IMultiplexedConnection peerConnection = disposeServerConnection ? clientConnection : serverConnection;
+        IMultiplexedStream peerStream = peerConnection.CreateStream(true);
+        await peerStream.Output.WriteAsync(_oneBytePayload); // Make sure the stream is started before DisposeAsync
 
         // Act
         await disposedConnection.DisposeAsync();
@@ -219,7 +219,6 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.ThrowsAsync<ConnectionAbortedException>(
             async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
-        IMultiplexedStream peerStream = peerConnection.CreateStream(true);
         Assert.ThrowsAsync<ConnectionLostException>(async () =>
             {
                 // It can take few writes for the peer to detect the connection closure.
