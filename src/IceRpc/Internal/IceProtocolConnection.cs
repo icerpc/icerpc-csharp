@@ -59,12 +59,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    internal IceProtocolConnection(
-        IDuplexConnection duplexConnection,
-        bool isServer,
-        ConnectionOptions options,
-        ILogger logger)
-        : base(options, logger)
+    internal IceProtocolConnection(IDuplexConnection duplexConnection, bool isServer, ConnectionOptions options)
+        : base(options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes

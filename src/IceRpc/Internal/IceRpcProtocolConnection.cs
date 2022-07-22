@@ -44,11 +44,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private readonly CancellationTokenSource _tasksCancelSource = new();
 
-    internal IceRpcProtocolConnection(
-        IMultiplexedConnection transportConnection,
-        ConnectionOptions options,
-        ILogger logger)
-        : base(options, logger)
+    internal IceRpcProtocolConnection(IMultiplexedConnection transportConnection, ConnectionOptions options)
+        : base(options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;

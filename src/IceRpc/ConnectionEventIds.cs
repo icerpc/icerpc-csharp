@@ -12,10 +12,19 @@ public enum ConnectionEventIds
     ConnectionShutdownReason,
 
     /// <summary>The connect operation for an ice or icerpc connection completed successfully.</summary>
-    ConnectionConnect,
+    Connect,
 
     /// <summary>The connect operation for an ice or icerpc connection failed with an exception.</summary>
-    ConnectionConnectException,
+    ConnectException,
+
+    /// <summary>An ice or icerpc connection was disposed.</summary>
+    Dispose,
+
+    /// <summary>The shutdown operation for an ice or icerpc connection completed successfully.</summary>
+    Shutdown,
+
+    /// <summary>The shutdown operation for an ice or icerpc connection failed with an exception.</summary>
+    ShutdownException,
 
     /// <summary>The protocol connection was shut down.</summary>
     ProtocolConnectionShutdown,

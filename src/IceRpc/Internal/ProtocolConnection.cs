@@ -21,7 +21,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Task? _disposeTask;
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
-    private readonly ILogger _logger;
     private readonly object _mutex = new();
     private Action<Exception>? _onAbort;
     private Exception? _onAbortException;
@@ -46,8 +45,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                _connectTask = _logger.IsEnabled(LogLevel.Information) ?
-                    PerformConnectAsyncWithLogging() : PerformConnectAsync();
+                _connectTask = PerformConnectAsync();
             }
         }
 
@@ -102,25 +100,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw new TimeoutException($"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
             }
         }
-
-        async Task<TransportConnectionInformation> PerformConnectAsyncWithLogging()
-        {
-            try
-            {
-                TransportConnectionInformation information = await PerformConnectAsync().ConfigureAwait(false);
-                _logger.LogProtocolConnectionConnect(
-                    Endpoint.Protocol,
-                    Endpoint,
-                    information.LocalNetworkAddress,
-                    information.RemoteNetworkAddress);
-                return information;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogProtocolConnectionConnectException(Endpoint.Protocol, Endpoint, exception);
-                throw;
-            }
-        }
     }
 
     public ValueTask DisposeAsync()
@@ -156,9 +135,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        _shutdownTask = PerformShutdownAsync(
-                            $"connection dispose",
-                            cancelDispatchesAndInvocations: true);
+                        _shutdownTask = CreateShutdownTask("connection dispose", cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
@@ -285,7 +262,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else
             {
-                _shutdownTask ??= PerformShutdownAsync(message);
+                _shutdownTask ??= CreateShutdownTask(message);
             }
         }
 
@@ -311,7 +288,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options, ILogger logger)
+    internal ProtocolConnection(ConnectionOptions options)
     {
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
@@ -323,7 +300,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown("idle connection");
                 }
             });
-        _logger = logger;
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);
@@ -354,7 +330,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             Debug.Assert(_connectTask is not null);
 
-            _shutdownTask = PerformShutdownAsync(message);
+            _shutdownTask = CreateShutdownTask(message);
         }
         InvokeOnShutdown(message);
     }
@@ -391,7 +367,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancel);
 
-    private async Task PerformShutdownAsync(string message, bool cancelDispatchesAndInvocations = false)
+    private async Task CreateShutdownTask(string message, bool cancelDispatchesAndInvocations = false)
     {
         Debug.Assert(_connectTask is not null);
 
