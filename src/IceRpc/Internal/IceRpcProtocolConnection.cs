@@ -244,7 +244,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
 
             // Abort the stream if the invocation is canceled.
-            cancel.UnsafeRegister(
+            abortTokenRegistration = cancel.UnsafeRegister(
                 stream => ((IMultiplexedStream)stream!).Abort(new OperationCanceledException("invocation canceled")),
                 stream);
 
@@ -782,8 +782,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             });
 
-            // Create a linked source to cancel the dispatch either through its cancellation token source or the
-            // cancellation token source for all the dispatches.
+            // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
             using CancellationTokenRegistration _ = _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
                 dispatchCancelSource);
