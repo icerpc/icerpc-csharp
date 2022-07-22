@@ -54,14 +54,6 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         return response;
     }
 
-        /*
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        using IDisposable _ = _logger.StartSendRequestScope(request);
-        IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
-        _logger.LogSendRequest();
-        return response;
-        */
-
     void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
     void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
