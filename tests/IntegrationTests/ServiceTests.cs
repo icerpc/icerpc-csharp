@@ -24,11 +24,11 @@ public class ServiceTests
 
         string[] ids = new string[]
         {
-            "::IceRpc::Service",
+            "::IceRpc::Slice::Service",
         };
 
         Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
-        Assert.That(await proxy.IceIsAAsync("::IceRpc::Service"), Is.True);
+        Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
         Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }

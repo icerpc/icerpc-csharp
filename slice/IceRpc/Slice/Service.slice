@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-module IceRpc;
+module IceRpc::Slice;
 
 /// All services defined in Slice implement this interface.
 interface Service

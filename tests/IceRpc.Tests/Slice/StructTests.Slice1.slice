@@ -7,15 +7,15 @@ module IceRpc::Tests::Slice;
 compact struct MyCompactStructWithNullableProxy
 {
     a: int32,
-    i: IceRpc::Service?
+    i: IceRpc::Slice::Service?
 }
 
 compact struct MyCompactStructWithSequenceOfNullableProxies
 {
-    i: sequence<IceRpc::Service?>
+    i: sequence<IceRpc::Slice::Service?>
 }
 
 compact struct MyCompactStructWithDictionaryOfNullableProxies
 {
-    i: dictionary<int32, IceRpc::Service?>
+    i: dictionary<int32, IceRpc::Slice::Service?>
 }
