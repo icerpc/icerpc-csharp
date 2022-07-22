@@ -61,7 +61,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
         using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
         await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
-        using CancellationTokenRegistration _ = cancel.Register(() =>
+        using CancellationTokenRegistration _ = cancel.UnsafeRegister(
+            _ =>
             {
                 try
                 {
@@ -70,7 +71,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 catch
                 {
                 }
-            });
+            },
+            null);
         _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
     }
 

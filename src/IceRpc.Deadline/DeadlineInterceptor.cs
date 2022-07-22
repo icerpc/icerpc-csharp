@@ -64,15 +64,15 @@ public class DeadlineInterceptor : IInvoker
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
             using var timeoutTokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenSource linkedTokenSource = cancel.CanBeCanceled ?
-                CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutTokenSource.Token) :
-                timeoutTokenSource;
+            using CancellationTokenRegistration _ = cancel.UnsafeRegister(
+                cts => ((CancellationTokenSource)cts!).Cancel(),
+                timeoutTokenSource);
 
             try
             {
-                return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
+                return await _next.InvokeAsync(request, timeoutTokenSource.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == linkedTokenSource.Token)
+            catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
                 cancel.ThrowIfCancellationRequested();
                 throw new TimeoutException("the request deadline has expired");

@@ -153,8 +153,8 @@ internal class AsyncSemaphore
             if (cancel.CanBeCanceled)
             {
                 cancel.ThrowIfCancellationRequested();
-                tokenRegistration = cancel.Register(
-                    () =>
+                tokenRegistration = cancel.UnsafeRegister(
+                    _ =>
                     {
                         lock (_mutex)
                         {
@@ -163,7 +163,8 @@ internal class AsyncSemaphore
                                 taskCompletionSource.SetException(new OperationCanceledException(cancel));
                             }
                         }
-                    });
+                    },
+                    null);
             }
             _queue.Enqueue(taskCompletionSource);
         }
