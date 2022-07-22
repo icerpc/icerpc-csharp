@@ -13,7 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    private protected override Endpoint Endpoint => _transportConnection.Endpoint;
+    public override Endpoint Endpoint => _transportConnection.Endpoint;
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;

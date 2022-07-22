@@ -11,9 +11,7 @@ namespace IceRpc.Internal;
 /// correct order.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
-    public Protocol Protocol => Endpoint.Protocol;
-
-    private protected abstract Endpoint Endpoint { get; }
+    public abstract Endpoint Endpoint { get; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
     private Task<TransportConnectionInformation>? _connectTask;

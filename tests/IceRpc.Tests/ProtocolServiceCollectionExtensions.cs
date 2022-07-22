@@ -89,7 +89,7 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
         _server = await _acceptServerConnectionAsync();
         if (_logger != NullLogger.Instance)
         {
-            _server = new LogProtocolConnectionDecorator(_server, new Endpoint(_server.Protocol), _logger);
+            _server = new LogProtocolConnectionDecorator(_server, _logger);
         }
         await _server.ConnectAsync(CancellationToken.None);
         await clientProtocolConnectionTask;
@@ -110,10 +110,7 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
         _logger = logger;
         if (logger != NullLogger.Instance)
         {
-            Client = new LogProtocolConnectionDecorator(
-                clientProtocolConnection,
-                new Endpoint(clientProtocolConnection.Protocol),
-                logger);
+            Client = new LogProtocolConnectionDecorator(clientProtocolConnection, logger);
         }
         else
         {

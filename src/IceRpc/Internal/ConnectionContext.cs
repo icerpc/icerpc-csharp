@@ -11,7 +11,7 @@ internal sealed class ConnectionContext : IConnectionContext
 
     public TransportConnectionInformation TransportConnectionInformation { get; }
 
-    public Protocol Protocol => _protocolConnection.Protocol;
+    public Protocol Protocol => _protocolConnection.Endpoint.Protocol;
 
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
 

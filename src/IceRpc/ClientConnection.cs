@@ -113,10 +113,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         if (logger != NullLogger.Instance)
         {
-            _protocolConnection = new LogProtocolConnectionDecorator(
-                _protocolConnection,
-                Endpoint,
-                logger);
+            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, logger);
         }
     }
 

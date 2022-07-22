@@ -14,7 +14,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    private protected override Endpoint Endpoint => _transportConnection.Endpoint;
+    public override Endpoint Endpoint => _transportConnection.Endpoint;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
