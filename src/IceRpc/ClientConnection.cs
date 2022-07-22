@@ -55,6 +55,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
+        DebugDispatcherDecorator? debugDispatcherDecorator = null;
+
+        if (options.Dispatcher is not null && logger.IsEnabled(LogLevel.Debug))
+        {
+            debugDispatcherDecorator = new DebugDispatcherDecorator(options.Dispatcher, logger);
+            options = options with { Dispatcher = debugDispatcherDecorator };
+        }
+
         if (endpoint.Protocol == Protocol.Ice)
         {
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
@@ -114,6 +122,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         if (logger != NullLogger.Instance)
         {
             _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, logger);
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                _protocolConnection = new DebugProtocolConnectionDecorator(_protocolConnection, logger);
+                debugDispatcherDecorator!.SetProtocolConnection(_protocolConnection);
+            }
         }
     }
 

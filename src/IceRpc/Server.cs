@@ -170,14 +170,24 @@ public sealed class Server : IAsyncDisposable
 
             ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
+            ConnectionOptions connectionOptions = _options.ConnectionOptions;
+
+            if (connectionOptions.Dispatcher is not null && logger.IsEnabled(LogLevel.Debug))
+            {
+                connectionOptions = connectionOptions with
+                {
+                    Dispatcher = new DebugDispatcherDecorator(connectionOptions.Dispatcher, logger)
+                };
+            }
+
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 var duplexListenerOptions = new DuplexListenerOptions
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
+                        MinSegmentSize = connectionOptions.MinSegmentSize,
+                        Pool = connectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions
                     },
                     Endpoint = _options.Endpoint,
@@ -200,7 +210,7 @@ public sealed class Server : IAsyncDisposable
                     logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
 
                 IProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, _options.ConnectionOptions);
+                    new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
 
                 IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection) =>
                     new LogProtocolConnectionDecorator(CreateProtocolConnection(duplexConnection), logger);
@@ -211,10 +221,10 @@ public sealed class Server : IAsyncDisposable
                 {
                     ServerConnectionOptions = new()
                     {
-                        MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
-                        MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams,
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
+                        MaxBidirectionalStreams = connectionOptions.MaxIceRpcBidirectionalStreams,
+                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams,
+                        MinSegmentSize = connectionOptions.MinSegmentSize,
+                        Pool = connectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
@@ -238,7 +248,7 @@ public sealed class Server : IAsyncDisposable
                     logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
 
                 IProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, _options.ConnectionOptions);
+                    new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
 
                 IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection) =>
                     new LogProtocolConnectionDecorator(CreateProtocolConnection(multiplexedConnection), logger);

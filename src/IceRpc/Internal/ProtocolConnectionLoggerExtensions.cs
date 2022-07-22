@@ -5,68 +5,113 @@ using System.Net;
 
 namespace IceRpc.Internal;
 
-/// <summary>This class provides ILogger extension methods for protocol connection APIs. They are all at Information
-/// level or higher.</summary>
+/// <summary>This class provides ILogger extension methods for protocol connection APIs.</summary>
 internal static partial class ProtocolConnectionLoggerExtensions
 {
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Connect,
         EventName = nameof(ConnectionEventIds.Connect),
         Level = LogLevel.Information,
-        Message = "established {Protocol} connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+        Message = "established {Protocol} connection for {Endpoint} over " +
+            "{LocalNetworkAddress}<->{RemoteNetworkAddress} in {TotalMilliseconds:F} ms")]
     internal static partial void LogProtocolConnectionConnect(
         this ILogger logger,
         Protocol protocol,
         Endpoint endpoint,
         EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress);
+        EndPoint? remoteNetworkAddress,
+        double totalMilliseconds);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.ConnectException,
         EventName = nameof(ConnectionEventIds.ConnectException),
         Level = LogLevel.Information,
-        Message = "failed to establish {Protocol} connection for {Endpoint}")]
+        Message = "failed to establish {Protocol} connection for {Endpoint} after {TotalMilliseconds:F} ms")]
     internal static partial void LogProtocolConnectionConnectException(
         this ILogger logger,
         Protocol protocol,
         Endpoint endpoint,
+        double totalMilliseconds,
         Exception exception);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Dispose,
         EventName = nameof(ConnectionEventIds.Dispose),
         Level = LogLevel.Information,
-        Message = "disposed {Protocol} connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+        Message = "disposed {Protocol} connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress} " +
+            "in {TotalMilliseconds:F} ms")]
     internal static partial void LogProtocolConnectionDispose(
         this ILogger logger,
         Protocol protocol,
         Endpoint endpoint,
         EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress);
+        EndPoint? remoteNetworkAddress,
+        double totalMilliseconds);
+
+    [LoggerMessage(
+       EventId = (int)ConnectionDebugEventIds.Invoke,
+       EventName = nameof(ConnectionDebugEventIds.Invoke),
+       Level = LogLevel.Debug,
+       Message = "invoke complete {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
+        "IsOneway = {IsOneway}, ResultType = {ResultType}, LocalNetworkAddress = {LocalNetworkAddress}, " +
+        "RemoteNetworkAddress = {RemoteNetworkAddress}, Time = {TotalMilliseconds} ms }}")]
+    internal static partial void LogProtocolConnectionInvoke(
+       this ILogger logger,
+       ServiceAddress serviceAddress,
+       string operation,
+       bool isOneway,
+       ResultType resultType,
+       EndPoint? localNetworkAddress,
+       EndPoint? remoteNetworkAddress,
+       double totalMilliseconds);
+
+    [LoggerMessage(
+       EventId = (int)ConnectionDebugEventIds.InvokeException,
+       EventName = nameof(ConnectionDebugEventIds.InvokeException),
+       Level = LogLevel.Debug,
+       Message = "invoke exception {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
+        "IsOneway = {IsOneway}, Time = {TotalMilliseconds} ms }}")]
+    internal static partial void LogProtocolConnectionInvokeException(
+       this ILogger logger,
+       ServiceAddress serviceAddress,
+       string operation,
+       bool isOneway,
+       double totalMilliseconds,
+       Exception exception);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Shutdown,
         EventName = nameof(ConnectionEventIds.Shutdown),
         Level = LogLevel.Information,
-        Message = "shut down {Protocol} connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress}: {Message}")]
+        Message = "shut down {Protocol} connection for {Endpoint} over " +
+            "{LocalNetworkAddress}<->{RemoteNetworkAddress} in {TotalMilliseconds:F} ms: {Message}")]
     internal static partial void LogProtocolConnectionShutdown(
         this ILogger logger,
         Protocol protocol,
         Endpoint endpoint,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
+        double totalMilliseconds,
         string message);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.ShutdownException,
         EventName = nameof(ConnectionEventIds.ShutdownException),
         Level = LogLevel.Information,
-        Message = "failed to shut down {Protocol} connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+        Message = "failed to shut down {Protocol} connection for {Endpoint} over " +
+            "{LocalNetworkAddress}<->{RemoteNetworkAddress} after {TotalMilliseconds:F} ms")]
     internal static partial void LogProtocolConnectionShutdownException(
         this ILogger logger,
         Protocol protocol,
         Endpoint endpoint,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
+        double totalMilliseconds,
         Exception exception);
+
+    private enum ConnectionDebugEventIds
+    {
+        Invoke = BaseEventIds.Connection + (BaseEventIds.EventIdRange / 2),
+        InvokeException
+    }
 }
