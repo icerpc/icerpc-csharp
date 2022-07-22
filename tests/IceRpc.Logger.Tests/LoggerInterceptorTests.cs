@@ -14,7 +14,7 @@ public sealed class LoggerInterceptorTests
             (request, cancel) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
-        var request = new OutgoingRequest(serviceAddress) { Operation = "operation" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory);
 
         await sut.InvokeAsync(request, default);
@@ -26,11 +26,14 @@ public sealed class LoggerInterceptorTests
             Assert.That(entries.Count, Is.EqualTo(1));
             Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.Invoke));
             Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
-            Assert.That(entries[0].State["Operation"], Is.EqualTo("operation"));
-            Assert.That(entries[0].State["IsOneway"], Is.False);
+            Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
             Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
-            Assert.That(entries[0].State["LocalNetworkAddress"], Is.Null);
-            Assert.That(entries[0].State["RemoteNetworkAddress"], Is.Null);
+            Assert.That(
+                entries[0].State["LocalNetworkAddress"],
+                Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));
+            Assert.That(
+                entries[0].State["RemoteNetworkAddress"],
+                Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
             Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
         });
     }
@@ -41,7 +44,7 @@ public sealed class LoggerInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
-        var request = new OutgoingRequest(serviceAddress) { Operation = "operation" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
         var sut = new LoggerInterceptor(invoker, loggerFactory);
 
         try
@@ -60,8 +63,7 @@ public sealed class LoggerInterceptorTests
             Assert.That(entries.Count, Is.EqualTo(1));
             Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.InvokeException));
             Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
-            Assert.That(entries[0].State["Operation"], Is.EqualTo("operation"));
-            Assert.That(entries[0].State["IsOneway"], Is.False);
+            Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
             Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
             Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
         });

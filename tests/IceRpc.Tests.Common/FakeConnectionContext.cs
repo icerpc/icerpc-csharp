@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Net;
+using System.Net.Sockets;
 
 namespace IceRpc.Tests.Common;
 
@@ -12,7 +14,8 @@ public sealed class FakeConnectionContext : IConnectionContext
 
     public IInvoker Invoker => NotImplementedInvoker.Instance;
 
-    public TransportConnectionInformation TransportConnectionInformation => default;
+    public TransportConnectionInformation TransportConnectionInformation =>
+        new(IPEndPoint.Parse("192.168.7.7:10000"), IPEndPoint.Parse("10.10.10.10:11000"), null);
 
     public Protocol Protocol { get; }
 
