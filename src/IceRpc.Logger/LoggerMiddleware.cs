@@ -124,7 +124,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.DispatchException,
         EventName = nameof(LoggerMiddlewareEventIds.DispatchException),
         Level = LogLevel.Information,
-        Message = "failed to dispatch {Path}{Operation} using {LocalNetworkAddress} -> {RemoteNetworkAddress} in " +
+        Message = "failed to dispatch {Operation} to {Path} using {LocalNetworkAddress} -> {RemoteNetworkAddress} in " +
                   "{TotalMilliseconds:F} ms")]
     private static partial void LogDispatchException(
         this ILogger logger,
@@ -139,7 +139,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.ReceivedRequest,
         EventName = nameof(LoggerMiddlewareEventIds.ReceivedRequest),
         Level = LogLevel.Information,
-        Message = "received request to {Path}{Operation} using {LocalNetworkAddress} -> {RemoteNetworkAddress}")]
+        Message = "received {Operation} to {Path} using {LocalNetworkAddress} -> {RemoteNetworkAddress}")]
     private static partial void LogReceivedRequest(
         this ILogger logger,
         string localNetworkAddress,
@@ -151,7 +151,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.SendingResponse,
         EventName = nameof(LoggerMiddlewareEventIds.SendingResponse),
         Level = LogLevel.Information,
-        Message = "sending response to {Path}{Operation} using {LocalNetworkAddress} -> {RemoteNetworkAddress} and " +
+        Message = "sending {Operation} to {Path} using {LocalNetworkAddress} -> {RemoteNetworkAddress} and " +
             "received {ResultType} in {TotalMilliseconds:F} ms")]
     private static partial void LogSendingResponse(
         this ILogger logger,
