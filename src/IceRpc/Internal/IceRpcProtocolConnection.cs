@@ -483,7 +483,24 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
         await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
 
+        // Shutdown the transport and wait for the peer shutdown.
         await _transportConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
+
+        // Wait for the peer to shutdown the connection.
+        if (_acceptRequestsTask is null)
+        {
+            try
+            {
+                await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+        }
+        else
+        {
+            await _acceptRequestsTask.ConfigureAwait(false);
+        }
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

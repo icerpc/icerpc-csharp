@@ -215,6 +215,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 {
                     Debug.Assert(completeException is not null);
                     ShutdownCore(completeException);
+
+                    // Unblock AcceptStreamAsync if it's pending.
+                    _acceptStreamQueue.TryComplete(completeException);
                 }
             },
             CancellationToken.None);
@@ -310,7 +313,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         }
         catch
         {
-            // Ignore, this can occur if the peer already close the connection.
+            // Ignore, this connection with the peer is lost.
         }
     }
 
@@ -994,7 +997,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         // Unblock requests waiting on the semaphores.
         _bidirectionalStreamSemaphore?.Complete(completeException);
         _unidirectionalStreamSemaphore?.Complete(completeException);
-        _acceptStreamQueue.TryComplete(completeException);
         _writeSemaphore.Complete(completeException);
     }
 
