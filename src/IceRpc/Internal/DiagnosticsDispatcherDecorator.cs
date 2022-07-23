@@ -46,23 +46,11 @@ internal static partial class DispatcherLoggerExtensions
 
 internal class DiagnosticsDispatcherDecorator : IDispatcher
 {
-    private IConnectionContext? _connectionContext;
     private readonly IDispatcher _decoratee;
     private readonly ILogger _logger;
-    private IProtocolConnection? _protocolConnection;
 
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
-        if (_connectionContext is null)
-        {
-            Debug.Assert(_protocolConnection is not null);
-            _connectionContext = new ConnectionContext(
-                _protocolConnection,
-                request.ConnectionContext.TransportConnectionInformation);
-        }
-
-        request.ConnectionContext = _connectionContext;
-
         using IDisposable _ = _logger.StartDispatchScope(request.Path, request.Operation);
 
         var stopwatch = new Stopwatch();
@@ -96,7 +84,4 @@ internal class DiagnosticsDispatcherDecorator : IDispatcher
         _decoratee = decoratee;
         _logger = logger;
     }
-
-    internal void SetProtocolConnection(IProtocolConnection protocolConnection) =>
-        _protocolConnection = protocolConnection;
 }

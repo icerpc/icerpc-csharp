@@ -102,7 +102,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
         _controlStream.OnShutdown(ConnectionLost);

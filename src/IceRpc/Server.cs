@@ -170,14 +170,23 @@ public sealed class Server : IAsyncDisposable
 
             ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
+            ConnectionOptions connectionOptions = _options.ConnectionOptions;
+            if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
+            {
+                connectionOptions = connectionOptions with
+                {
+                    Dispatcher = new DiagnosticsDispatcherDecorator(dispatcher, logger)
+                };
+            }
+
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 var duplexListenerOptions = new DuplexListenerOptions
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
+                        MinSegmentSize = connectionOptions.MinSegmentSize,
+                        Pool = connectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions
                     },
                     Endpoint = _options.Endpoint,
@@ -199,32 +208,21 @@ public sealed class Server : IAsyncDisposable
                     () => listener.AcceptAsync(),
                     logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
 
-                IProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, _options.ConnectionOptions);
+                ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
+                    new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
 
                 IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
                 {
-                    IProtocolConnection decoratee;
-                    if (_options.ConnectionOptions.Dispatcher is IDispatcher dispatcher &&
-                        logger.IsEnabled(LogLevel.Debug))
+                    ProtocolConnection decoratee = CreateProtocolConnection(duplexConnection);
+
+                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
+                    if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
                     {
-                        // We need a dispatcher decorator per connection to set the correct connection context (with
-                        // the correct invoker) in all incoming requests.
-
-                        var dispatcherDecorator = new DiagnosticsDispatcherDecorator(dispatcher, logger);
-                        ConnectionOptions connectionOptions =
-                            _options.ConnectionOptions with { Dispatcher = dispatcherDecorator };
-
-                        decoratee = new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
-
-                        decoratee = new DiagnosticsProtocolConnectionDecorator(decoratee, logger);
-                        dispatcherDecorator.SetProtocolConnection(decoratee);
+                        decorator = new DiagnosticsProtocolConnectionDecorator(decorator, logger);
                     }
-                    else
-                    {
-                        decoratee = CreateProtocolConnection(duplexConnection);
-                    }
-                    return new LogProtocolConnectionDecorator(decoratee, logger);
+
+                    decoratee.Decorator = decorator;
+                    return decorator;
                 }
             }
             else
@@ -233,10 +231,10 @@ public sealed class Server : IAsyncDisposable
                 {
                     ServerConnectionOptions = new()
                     {
-                        MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
-                        MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams,
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
+                        MaxBidirectionalStreams = connectionOptions.MaxIceRpcBidirectionalStreams,
+                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams,
+                        MinSegmentSize = connectionOptions.MinSegmentSize,
+                        Pool = connectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
@@ -259,33 +257,22 @@ public sealed class Server : IAsyncDisposable
                     () => listener.AcceptAsync(),
                     logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
 
-                IProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, _options.ConnectionOptions);
+                ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
+                    new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
 
                 // TODO: reduce duplication with Duplex code above
                 IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
                 {
-                    IProtocolConnection decoratee;
-                    if (_options.ConnectionOptions.Dispatcher is IDispatcher dispatcher &&
-                        logger.IsEnabled(LogLevel.Debug))
+                    ProtocolConnection decoratee = CreateProtocolConnection(multiplexedConnection);
+
+                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
+                    if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
                     {
-                        // We need a dispatcher decorator per connection to set the correct connection context (with
-                        // the correct invoker) in all incoming requests.
-
-                        var dispatcherDecorator = new DiagnosticsDispatcherDecorator(dispatcher, logger);
-                        ConnectionOptions connectionOptions =
-                            _options.ConnectionOptions with { Dispatcher = dispatcherDecorator };
-
-                        decoratee = new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
-
-                        decoratee = new DiagnosticsProtocolConnectionDecorator(decoratee, logger);
-                        dispatcherDecorator.SetProtocolConnection(decoratee);
+                        decorator = new DiagnosticsProtocolConnectionDecorator(decorator, logger);
                     }
-                    else
-                    {
-                        decoratee = CreateProtocolConnection(multiplexedConnection);
-                    }
-                    return new LogProtocolConnectionDecorator(decoratee, logger);
+
+                    decoratee.Decorator = decorator;
+                    return decorator;
                 }
             }
         }

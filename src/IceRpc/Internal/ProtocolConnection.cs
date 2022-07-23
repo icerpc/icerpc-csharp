@@ -12,6 +12,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
 {
     public abstract Endpoint Endpoint { get; }
 
+    // When calling methods on IProtocolConnection, we have to call Decorator other we would bypass decoration.
+    internal IProtocolConnection Decorator { get; set; }
+
     private readonly CancellationTokenSource _connectCancelSource = new();
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
@@ -179,7 +182,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             // Perform the connection establishment without a cancellation token. It will eventually timeout if the
             // connect timeout is reached.
-            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
+            await Decorator.ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
 
             return await InvokeAsyncCore(request, cancel).ConfigureAwait(false);
         }
@@ -297,6 +300,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown("idle connection");
                 }
             });
+
+        Decorator = this;
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);

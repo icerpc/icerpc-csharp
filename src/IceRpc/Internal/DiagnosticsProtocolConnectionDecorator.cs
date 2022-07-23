@@ -7,22 +7,15 @@ using System.Diagnostics;
 namespace IceRpc.Internal;
 
 /// <summary>Decorates <see cref="IProtocolConnection"/> for diagnostics.</summary>
-/// <remarks>Even though this class decorates <see cref="IProtocolConnection"/>, it only emit messages for InvokeAsync.
-/// </remarks>
 internal class DiagnosticsProtocolConnectionDecorator : IProtocolConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
-    private IConnectionContext? _connectionContext;
     private readonly IProtocolConnection _decoratee;
     private readonly ILogger _logger;
 
-    async Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
-    {
-        TransportConnectionInformation information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-        _connectionContext ??= new ConnectionContext(this, information);
-        return information;
-    }
+    Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel) =>
+        _decoratee.ConnectAsync(cancel);
 
     ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
 
@@ -45,9 +38,6 @@ internal class DiagnosticsProtocolConnectionDecorator : IProtocolConnection
                 response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
                 stopwatch.Elapsed.TotalMilliseconds);
 
-            // Since we log InvokeAsync, we need to replace the connection context with 'this' as the invoker.
-            // See also the DiagnosticsDispatcherDecorator.
-            response.ConnectionContext = _connectionContext!;
             return response;
         }
         catch (Exception exception)

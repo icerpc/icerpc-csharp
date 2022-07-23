@@ -191,7 +191,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task bellow.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
 
         // Wait for the transport connection establishment to enable the idle timeout check.
         _transportConnectionReader.EnableIdleCheck();
