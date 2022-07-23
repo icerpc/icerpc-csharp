@@ -6,8 +6,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
-/// <summary>A debug decorator for protocol connections.</summary>
-internal class DebugProtocolConnectionDecorator : IProtocolConnection
+internal class DiagnosticsProtocolConnectionDecorator : IProtocolConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
@@ -26,6 +25,8 @@ internal class DebugProtocolConnectionDecorator : IProtocolConnection
 
     async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
+        using IDisposable _ = _logger.StartInvocationScope(request.ServiceAddress, request.Operation);
+
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
@@ -35,8 +36,6 @@ internal class DebugProtocolConnectionDecorator : IProtocolConnection
 
             stopwatch.Stop();
             _logger.LogProtocolConnectionInvoke(
-                request.ServiceAddress,
-                request.Operation,
                 request.IsOneway,
                 response.ResultType,
                 response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
@@ -52,8 +51,6 @@ internal class DebugProtocolConnectionDecorator : IProtocolConnection
         {
             stopwatch.Stop();
             _logger.LogProtocolConnectionInvokeException(
-                request.ServiceAddress,
-                request.Operation,
                 request.IsOneway,
                 stopwatch.Elapsed.TotalMilliseconds,
                 exception);
@@ -68,7 +65,7 @@ internal class DebugProtocolConnectionDecorator : IProtocolConnection
     Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel) =>
         _decoratee.ShutdownAsync(message, cancel);
 
-    internal DebugProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
+    internal DiagnosticsProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;

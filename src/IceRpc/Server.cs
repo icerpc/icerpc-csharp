@@ -176,7 +176,7 @@ public sealed class Server : IAsyncDisposable
             {
                 connectionOptions = connectionOptions with
                 {
-                    Dispatcher = new DebugDispatcherDecorator(connectionOptions.Dispatcher, logger)
+                    Dispatcher = new DiagnosticsDispatcherDecorator(connectionOptions.Dispatcher, logger)
                 };
             }
 

@@ -8,6 +8,10 @@ namespace IceRpc.Internal;
 /// <summary>This class provides ILogger extension methods for protocol connection APIs.</summary>
 internal static partial class ProtocolConnectionLoggerExtensions
 {
+    private static readonly Func<ILogger, ServiceAddress, string, IDisposable> _invocationScope =
+        LoggerMessage.DefineScope<ServiceAddress, string>(
+            "Invocation {{ ServiceAddress = {ServiceAddress}, Operation = {Operation} }}");
+
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Connect,
         EventName = nameof(ConnectionEventIds.Connect),
@@ -49,16 +53,14 @@ internal static partial class ProtocolConnectionLoggerExtensions
         double totalMilliseconds);
 
     [LoggerMessage(
-       EventId = (int)ConnectionDebugEventIds.Invoke,
-       EventName = nameof(ConnectionDebugEventIds.Invoke),
+       EventId = (int)ConnectionDiagnosticsEventIds.Invoke,
+       EventName = nameof(ConnectionDiagnosticsEventIds.Invoke),
        Level = LogLevel.Debug,
-       Message = "invoke complete {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
-        "IsOneway = {IsOneway}, ResultType = {ResultType}, LocalNetworkAddress = {LocalNetworkAddress}, " +
-        "RemoteNetworkAddress = {RemoteNetworkAddress}, Time = {TotalMilliseconds} ms }}")]
+       Message = "invoke complete {{ IsOneway = {IsOneway}, ResultType = {ResultType}, " +
+        "LocalNetworkAddress = {LocalNetworkAddress}, RemoteNetworkAddress = {RemoteNetworkAddress}, " +
+        "Time = {TotalMilliseconds} ms }}")]
     internal static partial void LogProtocolConnectionInvoke(
        this ILogger logger,
-       ServiceAddress serviceAddress,
-       string operation,
        bool isOneway,
        ResultType resultType,
        EndPoint? localNetworkAddress,
@@ -66,15 +68,12 @@ internal static partial class ProtocolConnectionLoggerExtensions
        double totalMilliseconds);
 
     [LoggerMessage(
-       EventId = (int)ConnectionDebugEventIds.InvokeException,
-       EventName = nameof(ConnectionDebugEventIds.InvokeException),
+       EventId = (int)ConnectionDiagnosticsEventIds.InvokeException,
+       EventName = nameof(ConnectionDiagnosticsEventIds.InvokeException),
        Level = LogLevel.Debug,
-       Message = "invoke exception {{ ServiceAddress = {ServiceAddress}, Operation = {Operation}, " +
-        "IsOneway = {IsOneway}, Time = {TotalMilliseconds} ms }}")]
+       Message = "invoke exception {{ IsOneway = {IsOneway}, Time = {TotalMilliseconds} ms }}")]
     internal static partial void LogProtocolConnectionInvokeException(
        this ILogger logger,
-       ServiceAddress serviceAddress,
-       string operation,
        bool isOneway,
        double totalMilliseconds,
        Exception exception);
@@ -109,7 +108,13 @@ internal static partial class ProtocolConnectionLoggerExtensions
         double totalMilliseconds,
         Exception exception);
 
-    private enum ConnectionDebugEventIds
+    internal static IDisposable StartInvocationScope(
+        this ILogger logger,
+        ServiceAddress serviceAddress,
+        string operation) =>
+        _invocationScope(logger, serviceAddress, operation);
+
+    private enum ConnectionDiagnosticsEventIds
     {
         Invoke = BaseEventIds.Connection + (BaseEventIds.EventIdRange / 2),
         InvokeException

@@ -8,43 +8,43 @@ namespace IceRpc.Internal;
 /// <summary>This class provides ILogger extension for dispatchers.</summary>
 internal static partial class DispatcherLoggerExtensions
 {
+    private static readonly Func<ILogger, string, string, IDisposable> _dispatchScope =
+        LoggerMessage.DefineScope<string, string>("Dispatch {{ Path = {Path}, Operation = {Operation} }}");
+
     [LoggerMessage(
-        EventId = (int)DispatcherDebugEventIds.Dispatch,
-        EventName = nameof(DispatcherDebugEventIds.Dispatch),
+        EventId = (int)DispatcherDiagnosticsEventIds.Dispatch,
+        EventName = nameof(DispatcherDiagnosticsEventIds.Dispatch),
         Level = LogLevel.Debug,
-        Message = "dispatch completed {{ Path = {Path}, Operation = {Operation}, IsOneway = {IsOneway}, " +
-            "ResultType = {ResultType}, Time = {TotalMilliseconds} }}")]
+        Message = "dispatch completed {{ IsOneway = {IsOneway}, ResultType = {ResultType}, " +
+            "Time = {TotalMilliseconds} }}")]
     internal static partial void LogDispatch(
         this ILogger logger,
-        string path,
-        string operation,
         bool isOneway,
         ResultType resultType,
         double totalMilliseconds);
 
     [LoggerMessage(
-       EventId = (int)DispatcherDebugEventIds.DispatchException,
-       EventName = nameof(DispatcherDebugEventIds.DispatchException),
+       EventId = (int)DispatcherDiagnosticsEventIds.DispatchException,
+       EventName = nameof(DispatcherDiagnosticsEventIds.DispatchException),
        Level = LogLevel.Debug,
-       Message = "dispatch exception {{ Path = {Path}, Operation = {Operation}, IsOneway = {IsOneway}, " +
-           "Time = {TotalMilliseconds} }}")]
+       Message = "dispatch exception {{ IsOneway = {IsOneway}, Time = {TotalMilliseconds} }}")]
     internal static partial void LogDispatchException(
        this ILogger logger,
-       string path,
-       string operation,
        bool isOneway,
        double totalMilliseconds,
        Exception exception);
 
-    private enum DispatcherDebugEventIds
+    internal static IDisposable StartDispatchScope(this ILogger logger, string path, string operation) =>
+        _dispatchScope(logger, path, operation);
+
+    private enum DispatcherDiagnosticsEventIds
     {
         Dispatch = BaseEventIds.Dispatcher + (BaseEventIds.EventIdRange / 2),
         DispatchException
     }
 }
 
-/// <summary>A debug decorator for dispatcher.</summary>
-internal class DebugDispatcherDecorator : IDispatcher
+internal class DiagnosticsDispatcherDecorator : IDispatcher
 {
     private IConnectionContext? _connectionContext;
     private readonly IDispatcher _decoratee;
@@ -63,6 +63,8 @@ internal class DebugDispatcherDecorator : IDispatcher
 
         request.ConnectionContext = _connectionContext;
 
+        using IDisposable _ = _logger.StartDispatchScope(request.Path, request.Operation);
+
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
@@ -72,8 +74,6 @@ internal class DebugDispatcherDecorator : IDispatcher
 
             stopwatch.Stop();
             _logger.LogDispatch(
-                request.Path,
-                request.Operation,
                 request.IsOneway,
                 response.ResultType,
                 stopwatch.Elapsed.TotalMilliseconds);
@@ -84,8 +84,6 @@ internal class DebugDispatcherDecorator : IDispatcher
         {
             stopwatch.Stop();
             _logger.LogDispatchException(
-                request.Path,
-                request.Operation,
                 request.IsOneway,
                 stopwatch.Elapsed.TotalMilliseconds,
                 exception);
@@ -93,7 +91,7 @@ internal class DebugDispatcherDecorator : IDispatcher
         }
     }
 
-    internal DebugDispatcherDecorator(IDispatcher decoratee, ILogger logger)
+    internal DiagnosticsDispatcherDecorator(IDispatcher decoratee, ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;

@@ -55,11 +55,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
-        DebugDispatcherDecorator? debugDispatcherDecorator = null;
+        DiagnosticsDispatcherDecorator? debugDispatcherDecorator = null;
 
         if (options.Dispatcher is not null && logger.IsEnabled(LogLevel.Debug))
         {
-            debugDispatcherDecorator = new DebugDispatcherDecorator(options.Dispatcher, logger);
+            debugDispatcherDecorator = new DiagnosticsDispatcherDecorator(options.Dispatcher, logger);
             options = options with { Dispatcher = debugDispatcherDecorator };
         }
 
@@ -125,7 +125,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _protocolConnection = new DebugProtocolConnectionDecorator(_protocolConnection, logger);
+                _protocolConnection = new DiagnosticsProtocolConnectionDecorator(_protocolConnection, logger);
                 debugDispatcherDecorator!.SetProtocolConnection(_protocolConnection);
             }
         }
