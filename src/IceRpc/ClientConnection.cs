@@ -55,14 +55,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
-        DiagnosticsDispatcherDecorator? debugDispatcherDecorator = null;
-
-        if (options.Dispatcher is not null && logger.IsEnabled(LogLevel.Debug))
-        {
-            debugDispatcherDecorator = new DiagnosticsDispatcherDecorator(options.Dispatcher, logger);
-            options = options with { Dispatcher = debugDispatcherDecorator };
-        }
-
         if (endpoint.Protocol == Protocol.Ice)
         {
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
@@ -86,7 +78,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     logger);
             }
 
-            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
+            if (options.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
+            {
+                var dispatcherDecorator = new DiagnosticsDispatcherDecorator(dispatcher, logger);
+                options = options with { Dispatcher = dispatcherDecorator };
+                _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
+                _protocolConnection = new DiagnosticsProtocolConnectionDecorator(_protocolConnection, logger);
+                dispatcherDecorator.SetProtocolConnection(_protocolConnection);
+            }
+            else
+            {
+                _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
+            }
         }
         else
         {
@@ -116,18 +119,24 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 #pragma warning restore CA2000
             }
 
-            _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
+            // TODO: reduce duplication with Duplex code above
+            if (options.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
+            {
+                var dispatcherDecorator = new DiagnosticsDispatcherDecorator(dispatcher, logger);
+                options = options with { Dispatcher = dispatcherDecorator };
+                _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
+                _protocolConnection = new DiagnosticsProtocolConnectionDecorator(_protocolConnection, logger);
+                dispatcherDecorator.SetProtocolConnection(_protocolConnection);
+            }
+            else
+            {
+                _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
+            }
         }
 
         if (logger != NullLogger.Instance)
         {
             _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, logger);
-
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                _protocolConnection = new DiagnosticsProtocolConnectionDecorator(_protocolConnection, logger);
-                debugDispatcherDecorator!.SetProtocolConnection(_protocolConnection);
-            }
         }
     }
 

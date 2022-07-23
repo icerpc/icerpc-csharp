@@ -170,16 +170,14 @@ public sealed class Server : IAsyncDisposable
 
             ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
-            ConnectionOptions connectionOptions = _options.ConnectionOptions;
-
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 var duplexListenerOptions = new DuplexListenerOptions
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinSegmentSize = connectionOptions.MinSegmentSize,
-                        Pool = connectionOptions.Pool,
+                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
+                        Pool = _options.ConnectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions
                     },
                     Endpoint = _options.Endpoint,
@@ -235,10 +233,10 @@ public sealed class Server : IAsyncDisposable
                 {
                     ServerConnectionOptions = new()
                     {
-                        MaxBidirectionalStreams = connectionOptions.MaxIceRpcBidirectionalStreams,
-                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams,
-                        MinSegmentSize = connectionOptions.MinSegmentSize,
-                        Pool = connectionOptions.Pool,
+                        MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
+                        MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams,
+                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
+                        Pool = _options.ConnectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
@@ -262,7 +260,7 @@ public sealed class Server : IAsyncDisposable
                     logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
 
                 IProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
+                    new IceRpcProtocolConnection(multiplexedConnection, _options.ConnectionOptions);
 
                 // TODO: reduce duplication with Duplex code above
                 IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
