@@ -6,6 +6,9 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
+/// <summary>Decorates <see cref="IProtocolConnection"/> for diagnostics.</summary>
+/// <remarks>Even though this class decorates <see cref="IProtocolConnection"/>, it only emit messages for InvokeAsync.
+/// </remarks>
 internal class DiagnosticsProtocolConnectionDecorator : IProtocolConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
@@ -42,8 +45,8 @@ internal class DiagnosticsProtocolConnectionDecorator : IProtocolConnection
                 response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
                 stopwatch.Elapsed.TotalMilliseconds);
 
-            // Since the log InvokeAsync, we need to replace the connection context with 'this' as the invoker.
-            // See also the DebugDispatcherDecorator.
+            // Since we log InvokeAsync, we need to replace the connection context with 'this' as the invoker.
+            // See also the DiagnosticsDispatcherDecorator.
             response.ConnectionContext = _connectionContext!;
             return response;
         }
