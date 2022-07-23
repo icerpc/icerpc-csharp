@@ -10,7 +10,7 @@ internal static partial class ProtocolConnectionLoggerExtensions
 {
     private static readonly Func<ILogger, ServiceAddress, string, IDisposable> _invocationScope =
         LoggerMessage.DefineScope<ServiceAddress, string>(
-            "Invocation {{ ServiceAddress = {ServiceAddress}, Operation = {Operation} }}");
+            "ServiceAddress:{ServiceAddress}, Operation:{Operation}");
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Connect,

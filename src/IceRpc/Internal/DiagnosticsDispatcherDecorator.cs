@@ -2,21 +2,24 @@
 
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Net;
 
 namespace IceRpc.Internal;
 
 /// <summary>This class provides ILogger extension for dispatchers.</summary>
 internal static partial class DispatcherLoggerExtensions
 {
-    private static readonly Func<ILogger, string, string, IDisposable> _dispatchScope =
-        LoggerMessage.DefineScope<string, string>("Dispatch {{ Path = {Path}, Operation = {Operation} }}");
+    private static readonly Func<ILogger, string, string, EndPoint?, EndPoint?, IDisposable> _dispatchScope =
+        LoggerMessage.DefineScope<string, string, EndPoint?, EndPoint?>(
+            "Path:{Path}, Operation:{Operation}, LocalNetworkAddress:{LocalNetworkAddress}, " +
+            "RemoteNetworkAddress:{RemoteNetworkAddress}");
 
     [LoggerMessage(
         EventId = (int)DispatcherDiagnosticsEventIds.Dispatch,
         EventName = nameof(DispatcherDiagnosticsEventIds.Dispatch),
         Level = LogLevel.Debug,
         Message = "dispatch completed {{ IsOneway = {IsOneway}, ResultType = {ResultType}, " +
-            "Time = {TotalMilliseconds} }}")]
+            "Time = {TotalMilliseconds} ms }}")]
     internal static partial void LogDispatch(
         this ILogger logger,
         bool isOneway,
@@ -27,15 +30,20 @@ internal static partial class DispatcherLoggerExtensions
        EventId = (int)DispatcherDiagnosticsEventIds.DispatchException,
        EventName = nameof(DispatcherDiagnosticsEventIds.DispatchException),
        Level = LogLevel.Debug,
-       Message = "dispatch exception {{ IsOneway = {IsOneway}, Time = {TotalMilliseconds} }}")]
+       Message = "dispatch exception {{ IsOneway = {IsOneway}, Time = {TotalMilliseconds} ms }}")]
     internal static partial void LogDispatchException(
        this ILogger logger,
        bool isOneway,
        double totalMilliseconds,
        Exception exception);
 
-    internal static IDisposable StartDispatchScope(this ILogger logger, string path, string operation) =>
-        _dispatchScope(logger, path, operation);
+    internal static IDisposable StartDispatchScope(this ILogger logger, IncomingRequest request) =>
+        _dispatchScope(
+            logger,
+            request.Path,
+            request.Operation,
+            request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+            request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
 
     private enum DispatcherDiagnosticsEventIds
     {
@@ -51,7 +59,7 @@ internal class DiagnosticsDispatcherDecorator : IDispatcher
 
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
-        using IDisposable _ = _logger.StartDispatchScope(request.Path, request.Operation);
+        using IDisposable _ = _logger.StartDispatchScope(request);
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
