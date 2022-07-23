@@ -172,14 +172,6 @@ public sealed class Server : IAsyncDisposable
 
             ConnectionOptions connectionOptions = _options.ConnectionOptions;
 
-            if (connectionOptions.Dispatcher is not null && logger.IsEnabled(LogLevel.Debug))
-            {
-                connectionOptions = connectionOptions with
-                {
-                    Dispatcher = new DiagnosticsDispatcherDecorator(connectionOptions.Dispatcher, logger)
-                };
-            }
-
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 var duplexListenerOptions = new DuplexListenerOptions
@@ -210,10 +202,32 @@ public sealed class Server : IAsyncDisposable
                     logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
 
                 IProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
+                    new IceProtocolConnection(duplexConnection, isServer: true, _options.ConnectionOptions);
 
-                IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection) =>
-                    new LogProtocolConnectionDecorator(CreateProtocolConnection(duplexConnection), logger);
+                IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
+                {
+                    IProtocolConnection decoratee;
+                    if (_options.ConnectionOptions.Dispatcher is IDispatcher dispatcher &&
+                        logger.IsEnabled(LogLevel.Debug))
+                    {
+                        // We need a dispatcher decorator per connection to set the correct connection context (with
+                        // the correct invoker) in all incoming requests.
+
+                        var dispatcherDecorator = new DiagnosticsDispatcherDecorator(dispatcher, logger);
+                        ConnectionOptions connectionOptions =
+                            _options.ConnectionOptions with { Dispatcher = dispatcherDecorator };
+
+                        decoratee = new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
+
+                        decoratee = new DiagnosticsProtocolConnectionDecorator(decoratee, logger);
+                        dispatcherDecorator.SetProtocolConnection(decoratee);
+                    }
+                    else
+                    {
+                        decoratee = CreateProtocolConnection(duplexConnection);
+                    }
+                    return new LogProtocolConnectionDecorator(decoratee, logger);
+                }
             }
             else
             {
@@ -250,8 +264,31 @@ public sealed class Server : IAsyncDisposable
                 IProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
                     new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
 
-                IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection) =>
-                    new LogProtocolConnectionDecorator(CreateProtocolConnection(multiplexedConnection), logger);
+                // TODO: reduce duplication with Duplex code above
+                IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
+                {
+                    IProtocolConnection decoratee;
+                    if (_options.ConnectionOptions.Dispatcher is IDispatcher dispatcher &&
+                        logger.IsEnabled(LogLevel.Debug))
+                    {
+                        // We need a dispatcher decorator per connection to set the correct connection context (with
+                        // the correct invoker) in all incoming requests.
+
+                        var dispatcherDecorator = new DiagnosticsDispatcherDecorator(dispatcher, logger);
+                        ConnectionOptions connectionOptions =
+                            _options.ConnectionOptions with { Dispatcher = dispatcherDecorator };
+
+                        decoratee = new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
+
+                        decoratee = new DiagnosticsProtocolConnectionDecorator(decoratee, logger);
+                        dispatcherDecorator.SetProtocolConnection(decoratee);
+                    }
+                    else
+                    {
+                        decoratee = CreateProtocolConnection(multiplexedConnection);
+                    }
+                    return new LogProtocolConnectionDecorator(decoratee, logger);
+                }
             }
         }
 
