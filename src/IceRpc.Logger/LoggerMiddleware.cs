@@ -87,7 +87,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerInterceptorEventIds.Invoke,
         EventName = nameof(LoggerInterceptorEventIds.Invoke),
         Level = LogLevel.Information,
-        Message = "sent {Operation} to {Path} using {LocalNetworkAddress}->{RemoteNetworkAddress} and " +
+        Message = "dispatched {Operation} to {Path} using {LocalNetworkAddress}->{RemoteNetworkAddress} and " +
             "received {ResultType} response after {TotalMilliseconds:F} ms")]
     private static partial void LogDispatch(
         this ILogger logger,
