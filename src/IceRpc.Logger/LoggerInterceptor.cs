@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Net;
 
 namespace IceRpc.Logger;
@@ -26,31 +25,21 @@ public class LoggerInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
-            stopwatch.Stop();
             _logger.LogInvoke(
                 request.ServiceAddress,
                 request.Operation,
                 response.ResultType,
                 response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
-                response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                stopwatch.Elapsed.TotalMilliseconds);
+                response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
             return response;
         }
         catch (Exception exception)
         {
-            stopwatch.Stop();
-            _logger.LogInvokeException(
-                exception,
-                request.ServiceAddress,
-                request.Operation,
-                stopwatch.Elapsed.TotalMilliseconds);
+            _logger.LogInvokeException(exception, request.ServiceAddress, request.Operation);
             throw;
         }
     }
@@ -63,26 +52,24 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventId = (int)LoggerInterceptorEventIds.Invoke,
         EventName = nameof(LoggerInterceptorEventIds.Invoke),
         Level = LogLevel.Information,
-        Message = "Sent {Operation} to {ServiceAddress} and received {ResultType} response " +
-            "over {LocalNetworkAddress}<->{RemoteNetworkAddress} in {TotalMilliseconds:F} ms")]
+        Message = "Sent {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and "
+            + "received {ResultType} response")]
     internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
         ResultType resultType,
         EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress,
-        double totalMilliseconds);
+        EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventIds.InvokeException,
         EventName = nameof(LoggerInterceptorEventIds.InvokeException),
         Level = LogLevel.Information,
-        Message = "Failed to send {Operation} to {ServiceAddress} in {TotalMilliseconds:F} ms")]
+        Message = "Failed to send {Operation} to {ServiceAddress}")]
     internal static partial void LogInvokeException(
         this ILogger logger,
         Exception exception,
         ServiceAddress serviceAddress,
-        string operation,
-        double totalMilliseconds);
+        string operation);
 }
