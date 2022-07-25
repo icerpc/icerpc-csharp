@@ -197,6 +197,26 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     // Read frames. This will return when the Close frame is received.
                     await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
+                    var exception = new ConnectionClosedException();
+                    if (ShutdownCore(exception))
+                    {
+                        // Wait for writes to complete and send the close frame.
+                        await _writeSemaphore.CompleteAndWaitAsync(exception).WaitAsync(cancel).ConfigureAwait(false);
+
+                        // Send the close frame.
+                        await WriteFrameAsync(
+                            FrameType.Close,
+                            streamId: null,
+                            new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
+                            cancel).ConfigureAwait(false);
+
+                        // Shutdown the underlying duplex transport.
+                        await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+                    }
+
+                    // Wait for the connection closure.
+                    await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+
                     completeException = new ConnectionClosedException("transport connection closed");
                 }
                 catch (OperationCanceledException)
@@ -290,31 +310,24 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
     public async Task ShutdownAsync(Exception completeException, CancellationToken cancel)
     {
-        ShutdownCore(completeException);
-
-        // Wait for writes to complete and send the close frame.
-        await _writeSemaphore.CompleteAndWaitAsync(completeException).WaitAsync(cancel).ConfigureAwait(false);
-
-        // Send the close frame.
-        try
+        if (ShutdownCore(completeException))
         {
+            // Wait for writes to complete and send the close frame.
+            await _writeSemaphore.CompleteAndWaitAsync(completeException).WaitAsync(cancel).ConfigureAwait(false);
+
+            // Send the close frame.
             await WriteFrameAsync(
                 FrameType.Close,
                 streamId: null,
                 new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
                 cancel).ConfigureAwait(false);
 
-            // Shutdown the duplex connection.
+            // Shutdown the underlying duplex transport.
             await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch
-        {
-            // Ignore, this connection with the peer is lost.
-        }
+
+        // Wait for the connection closure.
+        await _readFramesTask!.WaitAsync(cancel).ConfigureAwait(false);
     }
 
     internal SlicMultiplexedConnection(
@@ -982,10 +995,14 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         }
     }
 
-    private void ShutdownCore(Exception completeException)
+    private bool ShutdownCore(Exception completeException)
     {
         lock (_mutex)
         {
+            if (_isReadOnly)
+            {
+                return false;
+            }
             _isReadOnly = true;
         }
 
@@ -998,6 +1015,8 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         _bidirectionalStreamSemaphore?.Complete(completeException);
         _unidirectionalStreamSemaphore?.Complete(completeException);
         _writeSemaphore.Complete(completeException);
+
+        return true;
     }
 
     private ValueTask WriteFrameAsync(

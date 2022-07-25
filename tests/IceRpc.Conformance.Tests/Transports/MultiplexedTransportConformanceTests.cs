@@ -23,8 +23,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection =
-            provider.GetRequiredService<IMultiplexedConnection>();
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IMultiplexedListener>();
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
@@ -1028,6 +1027,48 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(
             async () => await stream.Output.WriteAsync(_oneBytePayload, default),
             Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public async Task Shutdown_connection()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        IMultiplexedListener listener = provider.GetRequiredService<IMultiplexedListener>();
+
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        // Act/Assert
+        Assert.That(async () => await clientConnection.ShutdownAsync(
+            new InvalidOperationException(), CancellationToken.None),
+            Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Shutdown_connection_on_both_sides()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        IMultiplexedListener listener = provider.GetRequiredService<IMultiplexedListener>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        // Act
+        var exception = new InvalidOperationException();
+        Task clientShutdownTask = clientConnection.ShutdownAsync(exception, CancellationToken.None);
+        Task serverShutdownTask = serverConnection.ShutdownAsync(exception, CancellationToken.None);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => clientShutdownTask, Throws.Nothing);
+            Assert.That(() => serverShutdownTask, Throws.Nothing);
+        });
     }
 
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
