@@ -37,12 +37,10 @@ public class LoggerInterceptor : IInvoker
             _logger.LogInvoke(
                 request.ServiceAddress,
                 request.Operation,
-                request.IsOneway,
                 response.ResultType,
                 response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
                 response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                stopwatch.Elapsed.TotalMilliseconds,
-                Environment.NewLine);
+                stopwatch.Elapsed.TotalMilliseconds);
             return response;
         }
         catch (Exception exception)
@@ -52,9 +50,7 @@ public class LoggerInterceptor : IInvoker
                 exception,
                 request.ServiceAddress,
                 request.Operation,
-                request.IsOneway,
-                stopwatch.Elapsed.TotalMilliseconds,
-                Environment.NewLine);
+                stopwatch.Elapsed.TotalMilliseconds);
             throw;
         }
     }
@@ -67,40 +63,26 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventId = (int)LoggerInterceptorEventIds.Invoke,
         EventName = nameof(LoggerInterceptorEventIds.Invoke),
         Level = LogLevel.Information,
-        Message = "Sent request and received response:{NewLine}" +
-        "ServiceAddress: {ServiceAddress}{NewLine}" +
-        "Operation: {Operation}{NewLine}" +
-        "IsOneway: {IsOneway}{NewLine}" +
-        "LocalNetworkAddress: {LocalNetworkAddress}{NewLine}" +
-        "RemoteNetworkAddress: {RemoteNetworkAddress}{NewLine}" +
-        "ResultType: {ResultType}{NewLine}" +
-        "Time: {TotalMilliseconds:F} ms")]
+        Message = "Sent {Operation} to {ServiceAddress} and received {ResultType} response " +
+            "over {LocalNetworkAddress}<->{RemoteNetworkAddress} in {TotalMilliseconds:F} ms")]
     internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
-        bool isOneway,
         ResultType resultType,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
-        double totalMilliseconds,
-        string newLine);
+        double totalMilliseconds);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventIds.InvokeException,
         EventName = nameof(LoggerInterceptorEventIds.InvokeException),
         Level = LogLevel.Information,
-        Message = "Failed to send request:{NewLine}" +
-        "ServiceAddress: {ServiceAddress}{NewLine}" +
-        "Operation: {Operation}{NewLine}" +
-        "IsOneway: {IsOneway}{NewLine}" +
-        "Time: {TotalMilliseconds:F} ms")]
+        Message = "Failed to send {Operation} to {ServiceAddress} in {TotalMilliseconds:F} ms")]
     internal static partial void LogInvokeException(
         this ILogger logger,
         Exception exception,
         ServiceAddress serviceAddress,
         string operation,
-        bool isOneway,
-        double totalMilliseconds,
-        string newLine);
+        double totalMilliseconds);
 }
