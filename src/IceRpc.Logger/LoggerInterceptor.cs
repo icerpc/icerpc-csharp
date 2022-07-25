@@ -34,13 +34,27 @@ public class LoggerInterceptor : IInvoker
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
             stopwatch.Stop();
-            _logger.LogInvoke(request, response, stopwatch.Elapsed.TotalMilliseconds);
+            _logger.LogInvoke(
+                request.ServiceAddress,
+                request.Operation,
+                request.IsOneway,
+                response.ResultType,
+                response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+                response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
+                stopwatch.Elapsed.TotalMilliseconds,
+                Environment.NewLine);
             return response;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             stopwatch.Stop();
-            _logger.LogInvokeException(request, stopwatch.Elapsed.TotalMilliseconds, ex);
+            _logger.LogInvokeException(
+                exception,
+                request.ServiceAddress,
+                request.Operation,
+                request.IsOneway,
+                stopwatch.Elapsed.TotalMilliseconds,
+                Environment.NewLine);
             throw;
         }
     }
@@ -49,64 +63,44 @@ public class LoggerInterceptor : IInvoker
 /// <summary>This class contains the ILogger extension methods for logging logger interceptor messages.</summary>
 internal static partial class LoggerInterceptorLoggerExtensions
 {
-    internal static void LogInvoke(
-        this ILogger logger,
-        OutgoingRequest request,
-        IncomingResponse response,
-        double totalMilliseconds)
-    {
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInvoke(
-                request.ServiceAddress,
-                request.Operation,
-                response.ResultType,
-                response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
-                response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                totalMilliseconds);
-        }
-    }
-
-    internal static void LogInvokeException(
-        this ILogger logger,
-        OutgoingRequest request,
-        double totalMilliseconds,
-        Exception exception)
-    {
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInvokeException(
-                request.ServiceAddress,
-                request.Operation,
-                totalMilliseconds,
-                exception);
-        }
-    }
-
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventIds.Invoke,
         EventName = nameof(LoggerInterceptorEventIds.Invoke),
         Level = LogLevel.Information,
-        Message = "sent {Operation} to {ServiceAddress} using {LocalNetworkAddress}->{RemoteNetworkAddress} and " +
-            "received {ResultType} response after {TotalMilliseconds:F} ms")]
-    private static partial void LogInvoke(
+        Message = "Sent request and received response:{NewLine}" +
+        "ServiceAddress: {ServiceAddress}{NewLine}" +
+        "Operation: {Operation}{NewLine}" +
+        "IsOneway: {IsOneway}{NewLine}" +
+        "LocalNetworkAddress: {LocalNetworkAddress}{NewLine}" +
+        "RemoteNetworkAddress: {RemoteNetworkAddress}{NewLine}" +
+        "ResultType: {ResultType}{NewLine}" +
+        "Time: {TotalMilliseconds:F} ms")]
+    internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
+        bool isOneway,
         ResultType resultType,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
-        double totalMilliseconds);
+        double totalMilliseconds,
+        string newLine);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventIds.InvokeException,
         EventName = nameof(LoggerInterceptorEventIds.InvokeException),
         Level = LogLevel.Information,
-        Message = "failed to send {Operation} to {ServiceAddress} in {TotalMilliseconds:F} ms")]
-    private static partial void LogInvokeException(
+        Message = "Failed to send request:{NewLine}" +
+        "ServiceAddress: {ServiceAddress}{NewLine}" +
+        "Operation: {Operation}{NewLine}" +
+        "IsOneway: {IsOneway}{NewLine}" +
+        "Time: {TotalMilliseconds:F} ms")]
+    internal static partial void LogInvokeException(
         this ILogger logger,
+        Exception exception,
         ServiceAddress serviceAddress,
         string operation,
+        bool isOneway,
         double totalMilliseconds,
-        Exception exception);
+        string newLine);
 }
