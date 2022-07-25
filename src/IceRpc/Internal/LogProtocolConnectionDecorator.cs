@@ -60,17 +60,15 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
     {
         using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
-        using CancellationTokenRegistration _ = cancel.Register(() =>
-            {
-                try
-                {
-                    _logger.LogProtocolConnectionShutdownCanceled(_decoratee.Protocol);
-                }
-                catch
-                {
-                }
-            });
+        try
+        {
+            await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception) when (exception.CancellationToken == cancel)
+        {
+            _logger.LogProtocolConnectionShutdownCanceled(_decoratee.Protocol);
+            throw;
+        }
         _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
     }
 
