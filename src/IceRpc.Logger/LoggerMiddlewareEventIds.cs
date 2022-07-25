@@ -5,12 +5,10 @@ namespace IceRpc.Logger;
 /// <summary>This class contains event ID constants used by the logger middleware.</summary>
 public enum LoggerMiddlewareEventIds
 {
-    /// <summary>The dispatch of the request failed.</summary>
-    DispatchException = 100,
+    /// <summary>The dispatch was successful as far as IceRPC is concerned. Its result type can nevertheless contain
+    /// a failure.</summary>
+    Dispatch,
 
-    /// <summary>Received a request.</summary>
-    ReceivedRequest,
-
-    /// <summary>A response is being sent.</summary>
-    SendingResponse
+    /// <summary>The dispatch failed with an exception.</summary>
+    DispatchException,
 }
