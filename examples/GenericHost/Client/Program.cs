@@ -71,12 +71,18 @@ public static class Program
         // The host application lifetime is used to stop the .NET Generic Host.
         private readonly IHostApplicationLifetime _applicationLifetime;
 
+        private readonly ClientConnection _connection;
+
         // A proxy to the remote Hello service.
         private readonly IHelloProxy _hello;
 
-        public ClientHostedService(IHelloProxy hello, IHostApplicationLifetime applicationLifetime)
+        public ClientHostedService(
+            IHelloProxy hello,
+            ClientConnection connection,
+            IHostApplicationLifetime applicationLifetime)
         {
             _applicationLifetime = applicationLifetime;
+            _connection = connection;
             _hello = hello;
         }
 
@@ -89,6 +95,8 @@ public static class Program
                 {
                     Console.WriteLine(await _hello.SayHelloAsync(name, cancel: cancellationToken));
                 }
+
+                await _connection.ShutdownAsync("client is going away", cancellationToken);
             }
             catch (Exception exception)
             {

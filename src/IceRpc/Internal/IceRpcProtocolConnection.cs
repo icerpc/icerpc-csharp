@@ -228,29 +228,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
-        CancellationTokenSource? cancelSource = null;
+        CancellationTokenRegistration? abortTokenRegistration = null;
         Exception? completeException = null;
-
-        lock (_mutex)
-        {
-            // Nothing prevents InvokeAsync to be called on a connection which is being shutdown or disposed. We check
-            // for this condition here and throw ConnectionClosedException if necessary.
-            if (_isReadOnly)
-            {
-                throw new ConnectionClosedException();
-            }
-
-            // _dispatchesAndInvocationsCancelSource.Token can throw ObjectDisposedException so only create the
-            // linked source if the connection is not disposed.
-            cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
-                _dispatchesAndInvocationsCancelSource.Token,
-                cancel);
-        }
 
         try
         {
-            cancel = cancelSource.Token;
-
             if (request.ServiceAddress.Fragment.Length > 0)
             {
                 throw new NotSupportedException("the icerpc protocol does not support fragments");
@@ -258,6 +240,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // Create the stream.
             stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
+
+            // Abort the stream if the invocation is canceled.
+            abortTokenRegistration = cancel.UnsafeRegister(
+                stream => ((IMultiplexedStream)stream!).Abort(new OperationCanceledException("invocation canceled")),
+                stream);
 
             // Keep track of the invocation for the shutdown logic.
             if (!request.IsOneway || request.PayloadStream is not null)
@@ -306,7 +293,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeHeader(stream.Output);
 
             // SendPayloadAsync takes care of the completion of the stream output.
-            await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
+            await SendPayloadAsync(request, stream, _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
@@ -331,7 +318,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                 }
 
-                cancelSource?.Dispose();
+                if (abortTokenRegistration is not null)
+                {
+                    await abortTokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
+                }
             }
         }
 
@@ -345,7 +335,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                cancel).ConfigureAwait(false);
+                _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
 
             // Nothing cancels the stream input pipe reader.
             Debug.Assert(!readResult.IsCanceled);
@@ -383,7 +373,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
             }
 
-            cancelSource?.Dispose();
+            if (abortTokenRegistration is not null)
+            {
+                await abortTokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
+            }
         }
 
         void EncodeHeader(PipeWriter writer)
@@ -787,16 +780,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             });
 
-            // Create a linked source to cancel the dispatch either through its cancellation token source or the
-            // cancellation token source for all the dispatches.
-            using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
-                _dispatchesAndInvocationsCancelSource.Token,
-                dispatchCancelSource.Token);
+            // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
+            using CancellationTokenRegistration _ = _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
+                cts => ((CancellationTokenSource)cts!).Cancel(),
+                dispatchCancelSource);
 
             OutgoingResponse response;
             try
             {
-                response = await _dispatcher.DispatchAsync(request, cancelSource.Token).ConfigureAwait(false);
+                response = await _dispatcher.DispatchAsync(request, dispatchCancelSource.Token).ConfigureAwait(false);
 
                 if (response != request.Response)
                 {
@@ -804,7 +796,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException exception) when (cancelSource.IsCancellationRequested)
+            catch (OperationCanceledException exception) when (dispatchCancelSource.IsCancellationRequested)
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 request.Complete();
@@ -909,7 +901,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
                 // output.
-                await SendPayloadAsync(response, stream, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(response, stream, dispatchCancelSource.Token).ConfigureAwait(false);
                 request.Complete();
             }
             catch (Exception exception)

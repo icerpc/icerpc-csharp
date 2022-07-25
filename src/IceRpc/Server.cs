@@ -175,7 +175,7 @@ public sealed class Server : IAsyncDisposable
             {
                 connectionOptions = connectionOptions with
                 {
-                    Dispatcher = new DiagnosticsDispatcherDecorator(dispatcher, logger)
+                    Dispatcher = new LogDispatcherDecorator(dispatcher, logger)
                 };
             }
 
@@ -216,11 +216,6 @@ public sealed class Server : IAsyncDisposable
                     ProtocolConnection decoratee = CreateProtocolConnection(duplexConnection);
 
                     IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
-                    if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
-                    {
-                        decorator = new DiagnosticsProtocolConnectionDecorator(decorator, logger);
-                    }
-
                     decoratee.Decorator = decorator;
                     return decorator;
                 }
@@ -266,12 +261,8 @@ public sealed class Server : IAsyncDisposable
                     ProtocolConnection decoratee = CreateProtocolConnection(multiplexedConnection);
 
                     IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
-                    if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
-                    {
-                        decorator = new DiagnosticsProtocolConnectionDecorator(decorator, logger);
-                    }
-
                     decoratee.Decorator = decorator;
+
                     return decorator;
                 }
             }

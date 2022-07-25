@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
@@ -15,88 +14,92 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     private TransportConnectionInformation _information;
     private readonly ILogger _logger;
 
-    async Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
+    Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformConnectAsync() : _decoratee.ConnectAsync(cancel);
 
-        try
+        async Task<TransportConnectionInformation> PerformConnectAsync()
         {
-            _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-            stopwatch.Stop();
-            _logger.LogProtocolConnectionConnect(
-                   Endpoint.Protocol,
-                   Endpoint,
-                   _information.LocalNetworkAddress,
-                   _information.RemoteNetworkAddress,
-                   stopwatch.Elapsed.TotalMilliseconds);
+                _logger.LogConnectionConnect(
+                    Endpoint,
+                    _information.LocalNetworkAddress,
+                    _information.RemoteNetworkAddress);
 
-            return _information;
-        }
-        catch (Exception exception)
-        {
-            stopwatch.Stop();
-            _logger.LogProtocolConnectionConnectException(
-                Endpoint.Protocol,
-                Endpoint,
-                stopwatch.Elapsed.TotalMilliseconds,
-                exception);
-            throw;
+                return _information;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogConnectionConnectException(exception, Endpoint);
+                throw;
+            }
         }
     }
 
-    async ValueTask IAsyncDisposable.DisposeAsync()
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformDisposeAsync() : _decoratee.DisposeAsync();
 
-        await _decoratee.DisposeAsync().ConfigureAwait(false);
-        _logger.LogProtocolConnectionDispose(
-            Endpoint.Protocol,
-            Endpoint,
-            _information.LocalNetworkAddress,
-            _information.RemoteNetworkAddress,
-            stopwatch.Elapsed.TotalMilliseconds);
+        async ValueTask PerformDisposeAsync()
+        {
+            using IDisposable _ = _logger.StartConnectionShutdownScope(Endpoint, _information);
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _logger.LogConnectionDispose(Endpoint.Protocol);
+        }
     }
 
-    // Since we don't log InvokeAsync, we don't need to replace the connection context.
-    Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-        _decoratee.InvokeAsync(request, cancel);
+    Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    {
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformInvokeAsync() : _decoratee.InvokeAsync(request, cancel);
+
+        async Task<IncomingResponse> PerformInvokeAsync()
+        {
+            using IDisposable _ = _logger.StartConnectionInvocationScope(request);
+
+            try
+            {
+                IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
+                _logger.LogConnectionInvoke(
+                    response.ResultType,
+                    _information.LocalNetworkAddress,
+                    _information.RemoteNetworkAddress);
+
+                return response;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogConnectionInvokeException(exception);
+                throw;
+            }
+        }
+    }
 
     void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
     void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-    async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
+    Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformShutdownAsync() : _decoratee.ShutdownAsync(message, cancel);
 
-        try
+        async Task PerformShutdownAsync()
         {
-            await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            using IDisposable _ = _logger.StartConnectionShutdownScope(Endpoint, _information);
 
-            stopwatch.Stop();
-            _logger.LogProtocolConnectionShutdown(
-                Endpoint.Protocol,
-                Endpoint,
-                _information.LocalNetworkAddress,
-                _information.RemoteNetworkAddress,
-                stopwatch.Elapsed.TotalMilliseconds,
-                message);
-        }
-        catch (Exception exception)
-        {
-            stopwatch.Stop();
-            _logger.LogProtocolConnectionShutdownException(
-                Endpoint.Protocol,
-                Endpoint,
-                _information.LocalNetworkAddress,
-                _information.RemoteNetworkAddress,
-                stopwatch.Elapsed.TotalMilliseconds,
-                exception);
-            throw;
+            try
+            {
+                await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+
+                _logger.LogConnectionShutdown(Endpoint.Protocol, message);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogConnectionShutdownException(exception, Endpoint.Protocol);
+                throw;
+            }
         }
     }
 

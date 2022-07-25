@@ -57,7 +57,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         if (options.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
         {
-            options = options with { Dispatcher = new DiagnosticsDispatcherDecorator(dispatcher, logger) };
+            options = options with { Dispatcher = new LogDispatcherDecorator(dispatcher, logger) };
         }
 
         ProtocolConnection decoratee;
@@ -78,11 +78,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (logger != NullLogger.Instance)
             {
-                transportConnection = new LogDuplexConnectionDecorator(
-                    transportConnection,
-                    Endpoint,
-                    isServer: false,
-                    logger);
+                transportConnection = new LogDuplexConnectionDecorator(transportConnection, logger);
             }
 
 #pragma warning disable CA2000
@@ -109,11 +105,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (logger != NullLogger.Instance)
             {
 #pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
-                transportConnection = new LogMultiplexedConnectionDecorator(
-                    transportConnection,
-                    Endpoint,
-                    isServer: false,
-                    logger);
+                transportConnection = new LogMultiplexedConnectionDecorator(transportConnection, logger);
 #pragma warning restore CA2000
             }
 #pragma warning disable CA2000
@@ -124,11 +116,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         if (logger != NullLogger.Instance)
         {
             _protocolConnection = new LogProtocolConnectionDecorator(decoratee, logger);
-
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                _protocolConnection = new DiagnosticsProtocolConnectionDecorator(_protocolConnection, logger);
-            }
             decoratee.Decorator = _protocolConnection;
         }
         else

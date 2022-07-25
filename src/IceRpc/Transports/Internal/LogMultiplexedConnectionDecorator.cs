@@ -11,77 +11,38 @@ internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
-    internal ILogger Logger { get; }
-
     private readonly IMultiplexedConnection _decoratee;
-    private readonly Endpoint _endpoint;
-    private TransportConnectionInformation? _information;
-    private readonly bool _isServer;
+    private readonly ILogger _logger;
 
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
-    {
-        using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, _isServer);
-
-        try
-        {
-            _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogTransportConnectionConnectFailed(ex);
-            throw;
-        }
-
-        Logger.LogTransportConnectionConnect(
-            _information.Value.LocalNetworkAddress,
-            _information.Value.RemoteNetworkAddress);
-        return _information.Value;
-    }
+    // We don't log anything as it would be redundant with the ProtocolConnection logging.
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel) =>
+        _decoratee.ConnectAsync(cancel);
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         new LogMultiplexedStreamDecorator(
             await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
-            Logger);
+            _logger);
 
     public IMultiplexedStream CreateStream(bool bidirectional) =>
-        new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), Logger);
+        new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), _logger);
 
-    public async ValueTask DisposeAsync()
-    {
-        await _decoratee.DisposeAsync().ConfigureAwait(false);
-
-        // We don't emit a log when closing a connection that was not connected.
-        if (_information is TransportConnectionInformation connectionInformation)
-        {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, _isServer);
-            Logger.LogTransportConnectionDispose();
-        }
-    }
+    // We don't log anything as it would be redundant with the ProtocolConnection logging.
+    public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
     public async Task ShutdownAsync(Exception exception, CancellationToken cancel)
     {
-        await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
+        // TODO: do we always get the scope from ProtocolConnection?
 
-        // We don't emit a log when closing a connection that was not connected.
-        if (_information is TransportConnectionInformation connectionInformation)
-        {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, _isServer);
-            Logger.LogMultiplexedConnectionShutdown(exception);
-        }
+        await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
+        _logger.LogMultiplexedConnectionShutdown(exception);
     }
 
     public override string? ToString() => _decoratee.ToString();
 
-    internal LogMultiplexedConnectionDecorator(
-        IMultiplexedConnection decoratee,
-        Endpoint endpoint,
-        bool isServer,
-        ILogger logger)
+    internal LogMultiplexedConnectionDecorator(IMultiplexedConnection decoratee, ILogger logger)
     {
         _decoratee = decoratee;
-        _endpoint = endpoint;
-        _isServer = isServer;
-        Logger = logger;
+        _logger = logger;
     }
 }
 
