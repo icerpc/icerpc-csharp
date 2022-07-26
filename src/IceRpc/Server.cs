@@ -171,7 +171,7 @@ public sealed class Server : IAsyncDisposable
             ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
             ConnectionOptions connectionOptions = _options.ConnectionOptions;
-            if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
+            if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
             {
                 connectionOptions = connectionOptions with
                 {

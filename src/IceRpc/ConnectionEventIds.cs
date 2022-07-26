@@ -11,10 +11,10 @@ public enum ConnectionEventIds
     /// <summary>The connect operation for an ice or icerpc connection failed with an exception.</summary>
     ConnectException,
 
-    /// <summary>A dispatch started by a connection completed.</summary>
+    /// <summary>A dispatch started by an ice or icerpc connection completed.</summary>
     Dispatch,
 
-    /// <summary>A dispatch started by a connection failed with an exception.</summary>
+    /// <summary>A dispatch started by an ice or icerpc connection failed with an exception.</summary>
     DispatchException,
 
     /// <summary>An ice or icerpc connection was disposed.</summary>

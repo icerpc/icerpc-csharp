@@ -55,7 +55,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
-        if (options.Dispatcher is IDispatcher dispatcher && logger.IsEnabled(LogLevel.Debug))
+        if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
         {
             options = options with { Dispatcher = new LogDispatcherDecorator(dispatcher, logger) };
         }
