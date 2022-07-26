@@ -67,7 +67,7 @@ internal interface IClientServerProtocolConnection
     Task ConnectAsync();
 }
 
-/// <summary>A helper class to connect and provide access to a client and server protocol connection. It also  ensures
+/// <summary>A helper class to connect and provide access to a client and server protocol connection. It also ensures
 /// the connections are correctly disposed.</summary>
 internal abstract class ClientServerProtocolConnection : IClientServerProtocolConnection, IDisposable
 {
@@ -89,7 +89,7 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
         _server = await _acceptServerConnectionAsync();
         if (_logger != NullLogger.Instance)
         {
-            _server = new LogProtocolConnectionDecorator(_server, isServer: true, _logger);
+            _server = new LogProtocolConnectionDecorator(_server, _logger);
         }
         await _server.ConnectAsync(CancellationToken.None);
         await clientProtocolConnectionTask;
@@ -110,7 +110,7 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
         _logger = logger;
         if (logger != NullLogger.Instance)
         {
-            Client = new LogProtocolConnectionDecorator(clientProtocolConnection, isServer: false, logger);
+            Client = new LogProtocolConnectionDecorator(clientProtocolConnection, logger);
         }
         else
         {

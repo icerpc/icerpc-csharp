@@ -170,14 +170,23 @@ public sealed class Server : IAsyncDisposable
 
             ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
+            ConnectionOptions connectionOptions = _options.ConnectionOptions;
+            if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
+            {
+                connectionOptions = connectionOptions with
+                {
+                    Dispatcher = new LogDispatcherDecorator(dispatcher, logger)
+                };
+            }
+
             if (_options.Endpoint.Protocol == Protocol.Ice)
             {
                 var duplexListenerOptions = new DuplexListenerOptions
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
+                        MinSegmentSize = connectionOptions.MinSegmentSize,
+                        Pool = connectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions
                     },
                     Endpoint = _options.Endpoint,
@@ -187,65 +196,88 @@ public sealed class Server : IAsyncDisposable
                 IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
                 Endpoint = listener.Endpoint;
 
-                // TODO: log level
-                if (logger.IsEnabled(LogLevel.Error))
+                if (logger != NullLogger.Instance)
                 {
                     listener = new LogDuplexListenerDecorator(listener, logger);
                 }
 
                 _listener = listener;
 
-                // Run task to start accepting new connections.
+                // Run task to start accepting new connections
                 _ = Task.Run(() => AcceptAsync(
-                    async () => new IceProtocolConnection(
-                        await listener.AcceptAsync().ConfigureAwait(false),
-                        isServer: true,
-                        _options.ConnectionOptions)));
+                    () => listener.AcceptAsync(),
+                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
+
+                ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
+                    new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
+
+                IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
+                {
+                    ProtocolConnection decoratee = CreateProtocolConnection(duplexConnection);
+
+                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
+                    decoratee.Decorator = decorator;
+                    return decorator;
+                }
             }
             else
             {
                 var multiplexedListenerOptions = new MultiplexedListenerOptions
+                {
+                    ServerConnectionOptions = new()
                     {
-                        ServerConnectionOptions = new()
-                        {
-                            MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
-                            MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams,
-                            MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                            Pool = _options.ConnectionOptions.Pool,
-                            ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
-                            StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-                        },
-                        Endpoint = _options.Endpoint,
-                        Logger = logger
-                    };
+                        MaxBidirectionalStreams = connectionOptions.MaxIceRpcBidirectionalStreams,
+                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams,
+                        MinSegmentSize = connectionOptions.MinSegmentSize,
+                        Pool = connectionOptions.Pool,
+                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
+                        StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+                    },
+                    Endpoint = _options.Endpoint,
+                    Logger = logger
+                };
 
                 IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);
                 Endpoint = listener.Endpoint;
 
-                // TODO: log level
-                if (logger.IsEnabled(LogLevel.Error))
+                if (logger != NullLogger.Instance)
                 {
                     listener = new LogMultiplexedListenerDecorator(listener, logger);
                 }
 
                 _listener = listener;
 
-                // Run task to start accepting new connections.
+                // Run task to start accepting new connections
                 _ = Task.Run(() => AcceptAsync(
-                    async () => new IceRpcProtocolConnection(
-                        await listener.AcceptAsync().ConfigureAwait(false),
-                        _options.ConnectionOptions)));
+                    () => listener.AcceptAsync(),
+                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
+
+                ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
+                    new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
+
+                // TODO: reduce duplication with Duplex code above
+                IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
+                {
+                    ProtocolConnection decoratee = CreateProtocolConnection(multiplexedConnection);
+
+                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
+                    decoratee.Decorator = decorator;
+
+                    return decorator;
+                }
             }
         }
 
-        async Task AcceptAsync(Func<Task<IProtocolConnection>> acceptProtocolConnection)
+        async Task AcceptAsync<T>(
+            Func<Task<T>> acceptTransportConnection,
+            Func<T, IProtocolConnection> createProtocolConnection)
         {
             while (true)
             {
                 IProtocolConnection connection;
                 try
                 {
-                    connection = await acceptProtocolConnection().ConfigureAwait(false);
+                    connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
                 }
                 catch
                 {

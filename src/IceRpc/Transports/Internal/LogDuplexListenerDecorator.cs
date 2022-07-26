@@ -16,7 +16,7 @@ internal sealed class LogDuplexListenerDecorator : IDuplexListener
         try
         {
             IDuplexConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-            return new LogDuplexConnectionDecorator(connection, _decoratee.Endpoint, isServer: true, _logger);
+            return new LogDuplexConnectionDecorator(connection, _logger);
         }
         catch (ObjectDisposedException)
         {

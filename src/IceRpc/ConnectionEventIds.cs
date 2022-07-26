@@ -2,24 +2,33 @@
 
 namespace IceRpc;
 
-/// <summary>Connection-related events shared by all Ice protocols.</summary>
+/// <summary>Connection-related events.</summary>
 public enum ConnectionEventIds
 {
-    /// <summary>The exception that triggered the closure of a connection.</summary>
-    ConnectionClosedReason = Internal.BaseEventIds.Connection,
+    /// <summary>The connect operation for an ice or icerpc connection completed successfully.</summary>
+    Connect = Internal.BaseEventIds.Connection,
 
-    /// <summary>The message from the connection shutdown.</summary>
-    ConnectionShutdownReason,
+    /// <summary>The connect operation for an ice or icerpc connection failed with an exception.</summary>
+    ConnectException,
 
-    /// <summary>Established a protocol connection.</summary>
-    ProtocolConnectionConnect,
+    /// <summary>A dispatch started by an ice or icerpc connection completed.</summary>
+    Dispatch,
 
-    /// <summary>The protocol connection was shut down.</summary>
-    ProtocolConnectionShutdown,
+    /// <summary>A dispatch started by an ice or icerpc connection failed with an exception.</summary>
+    DispatchException,
 
-    /// <summary>The protocol connection shut down was canceled.</summary>
-    ProtocolConnectionShutdownCanceled,
+    /// <summary>An ice or icerpc connection was disposed.</summary>
+    Dispose,
 
-    /// <summary>A request was sent successfully.</summary>
-    SendRequest,
+    /// <summary>An invocation completed.</summary>
+    Invoke,
+
+    /// <summary>An invocation failed with an exception.</summary>
+    InvokeException,
+
+    /// <summary>The shutdown operation for an ice or icerpc connection completed successfully.</summary>
+    Shutdown,
+
+    /// <summary>The shutdown operation for an ice or icerpc connection failed with an exception.</summary>
+    ShutdownException,
 }

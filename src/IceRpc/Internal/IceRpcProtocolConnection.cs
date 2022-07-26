@@ -12,7 +12,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    public override Protocol Protocol => Protocol.IceRpc;
+    public override Endpoint Endpoint => _transportConnection.Endpoint;
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
@@ -43,9 +43,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private readonly CancellationTokenSource _tasksCancelSource = new();
 
-    internal IceRpcProtocolConnection(
-        IMultiplexedConnection transportConnection,
-        ConnectionOptions options)
+    internal IceRpcProtocolConnection(IMultiplexedConnection transportConnection, ConnectionOptions options)
         : base(options)
     {
         _transportConnection = transportConnection;
@@ -104,7 +102,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
         _controlStream.OnShutdown(ConnectionLost);

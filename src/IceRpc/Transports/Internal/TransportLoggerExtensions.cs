@@ -46,30 +46,6 @@ internal static partial class TransportLoggerExtensions
         Exception exception);
 
     [LoggerMessage(
-        EventId = (int)TransportEventIds.TransportConnectionConnect,
-        EventName = nameof(TransportEventIds.TransportConnectionConnect),
-        Level = LogLevel.Debug,
-        Message = "transport connection established: LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}")]
-    internal static partial void LogTransportConnectionConnect(
-        this ILogger logger,
-        EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.TransportConnectionConnectFailed,
-        EventName = nameof(TransportEventIds.TransportConnectionConnectFailed),
-        Level = LogLevel.Debug,
-        Message = "transport connection establishment failed")]
-    internal static partial void LogTransportConnectionConnectFailed(this ILogger logger, Exception exception);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.TransportConnectionDispose,
-        EventName = nameof(TransportEventIds.TransportConnectionDispose),
-        Level = LogLevel.Debug,
-        Message = "transport connection disposed")]
-    internal static partial void LogTransportConnectionDispose(this ILogger logger);
-
-    [LoggerMessage(
         EventId = (int)TransportEventIds.DuplexConnectionRead,
         EventName = nameof(TransportEventIds.DuplexConnectionRead),
         Level = LogLevel.Trace,

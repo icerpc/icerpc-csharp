@@ -10,7 +10,10 @@ namespace IceRpc.Internal;
 /// correct order.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
-    public abstract Protocol Protocol { get; }
+    public abstract Endpoint Endpoint { get; }
+
+    // When calling methods on IProtocolConnection, we have to call Decorator other we would bypass decoration.
+    internal IProtocolConnection Decorator { get; set; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
     private Task<TransportConnectionInformation>? _connectTask;
@@ -132,9 +135,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        _shutdownTask = PerformShutdownAsync(
-                            $"connection dispose",
-                            cancelDispatchesAndInvocations: true);
+                        _shutdownTask = CreateShutdownTask("connection dispose", cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
@@ -181,7 +182,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             // Perform the connection establishment without a cancellation token. It will eventually timeout if the
             // connect timeout is reached.
-            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
+            await Decorator.ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
 
             return await InvokeAsyncCore(request, cancel).ConfigureAwait(false);
         }
@@ -261,7 +262,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else
             {
-                _shutdownTask ??= PerformShutdownAsync(message);
+                _shutdownTask ??= CreateShutdownTask(message);
             }
         }
 
@@ -299,6 +300,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown("idle connection");
                 }
             });
+
+        Decorator = this;
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);
@@ -329,7 +332,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             Debug.Assert(_connectTask is not null);
 
-            _shutdownTask = PerformShutdownAsync(message);
+            _shutdownTask = CreateShutdownTask(message);
         }
         InvokeOnShutdown(message);
     }
@@ -366,7 +369,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancel);
 
-    private async Task PerformShutdownAsync(string message, bool cancelDispatchesAndInvocations = false)
+    private async Task CreateShutdownTask(string message, bool cancelDispatchesAndInvocations = false)
     {
         Debug.Assert(_connectTask is not null);
 
