@@ -34,7 +34,6 @@ public sealed class LoggerInterceptorTests
             Assert.That(
                 entries[0].State["RemoteNetworkAddress"],
                 Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
-            Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
         });
     }
 
@@ -64,7 +63,6 @@ public sealed class LoggerInterceptorTests
             Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.InvokeException));
             Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-            Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
             Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
         });
     }
