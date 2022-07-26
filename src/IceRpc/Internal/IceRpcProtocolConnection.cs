@@ -119,6 +119,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await SendControlFrameAsync(
             IceRpcControlFrameType.Settings,
             (ref SliceEncoder encoder) => settings.Encode(ref encoder),
+            endOfStream: false,
             cancel).ConfigureAwait(false);
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
@@ -150,16 +151,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
                             _tasksCancelSource.Token).ConfigureAwait(false);
 
-                        // TODO: reject stream if _dispatcher == null
-
-                        try
+                        if (_dispatcher is null)
                         {
-                            await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
+                            // TODO: just ignore the stream or reject it with an appropriate error code?
                         }
-                        catch (IceRpcProtocolStreamException)
+                        else
                         {
-                            // A stream failure is not a fatal connection error; we can continue accepting new
-                            // requests.
+                            try
+                            {
+                                await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
+                            }
+                            catch (IceRpcProtocolStreamException)
+                            {
+                                // A stream failure is not a fatal connection error; we can continue accepting new
+                                // requests.
+                            }
                         }
                     }
                 }
@@ -438,6 +444,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await SendControlFrameAsync(
             IceRpcControlFrameType.GoAway,
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
+            endOfStream: true,
             cancel).ConfigureAwait(false);
 
         // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
@@ -1046,6 +1053,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction? encodeAction,
+        bool endOfStream,
         CancellationToken cancel)
     {
         PipeWriter output = _controlStream!.Output;
@@ -1057,7 +1065,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeFrame(output);
         }
 
-        if (frameType == IceRpcControlFrameType.GoAway)
+        if (endOfStream)
         {
             return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancel);
         }

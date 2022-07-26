@@ -36,7 +36,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
     private Task? _disposeTask;
-    private bool _isReadOnly;
+    private Exception? _exception;
     private readonly TimeSpan _localIdleTimeout;
     private long _lastRemoteBidirectionalStreamId = -1;
     private long _lastRemoteUnidirectionalStreamId = -1;
@@ -203,7 +203,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
                     var exception = new ConnectionClosedException("transport connection closed by peer");
-                    if (ShutdownCore(exception))
+                    if (Abort(exception))
                     {
                         // Gracefully shutdown the duplex connection.
                         await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
@@ -224,7 +224,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 {
                     // Unexpected transport exception.
                     var exception = new ConnectionLostException(ex);
-                    if (ShutdownCore(exception))
+                    if (Abort(exception))
                     {
                         _acceptStreamQueue.TryComplete(exception);
                     }
@@ -263,16 +263,14 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            var exception = new ConnectionAbortedException("transport connection disposed");
-
-            ShutdownCore(exception);
+            Abort(new ConnectionAbortedException("transport connection disposed"));
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCancelSource.Cancel();
             try
             {
                 await Task.WhenAll(
-                    _writeSemaphore.CompleteAndWaitAsync(exception),
+                    _writeSemaphore.CompleteAndWaitAsync(_exception!),
                     _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
             }
             catch
@@ -280,7 +278,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 // Ignore.
             }
 
-            _acceptStreamQueue.TryComplete(exception);
+            _acceptStreamQueue.TryComplete(_exception!);
 
             // Dispose the transport connection and the reader/writer.
             _transportConnection.Dispose();
@@ -291,12 +289,12 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         }
     }
 
-    public async Task ShutdownAsync(Exception completeException, CancellationToken cancel)
+    public async Task ShutdownAsync(Exception exception, CancellationToken cancel)
     {
-        if (ShutdownCore(completeException))
+        if (Abort(exception))
         {
             // Wait for writes to complete and send the close frame.
-            await _writeSemaphore.CompleteAndWaitAsync(completeException).WaitAsync(cancel).ConfigureAwait(false);
+            await _writeSemaphore.CompleteAndWaitAsync(exception).WaitAsync(cancel).ConfigureAwait(false);
 
             // Send the close frame.
             await WriteFrameAsync(
@@ -377,9 +375,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            if (_isReadOnly)
+            if (_exception is not null)
             {
-                throw new ConnectionAbortedException("transport connection disposed");
+                throw ExceptionUtil.Throw(_exception);
             }
 
             _streams[id] = stream;
@@ -568,6 +566,30 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         return new FlushResult(isCanceled: false, isCompleted: false);
     }
 
+    private bool Abort(Exception exception)
+    {
+        lock (_mutex)
+        {
+            if (_exception is not null)
+            {
+                return false;
+            }
+            _exception = exception;
+        }
+
+        foreach (SlicMultiplexedStream stream in _streams.Values)
+        {
+            stream.Abort(exception);
+        }
+
+        // Unblock requests waiting on the semaphores.
+        _bidirectionalStreamSemaphore?.Complete(exception);
+        _unidirectionalStreamSemaphore?.Complete(exception);
+        _writeSemaphore.Complete(exception);
+
+        return true;
+    }
+
     private Dictionary<int, IList<byte>> GetParameters()
     {
         var parameters = new List<KeyValuePair<int, IList<byte>>>
@@ -688,7 +710,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             {
                 lock (_mutex)
                 {
-                    if (_isReadOnly)
+                    if (_exception is not null)
                     {
                         // Expected if shutting down.
                         return;
@@ -995,30 +1017,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         {
             _transportConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
         }
-    }
-
-    private bool ShutdownCore(Exception completeException)
-    {
-        lock (_mutex)
-        {
-            if (_isReadOnly)
-            {
-                return false;
-            }
-            _isReadOnly = true;
-        }
-
-        foreach (SlicMultiplexedStream stream in _streams.Values)
-        {
-            stream.Abort(completeException);
-        }
-
-        // Unblock requests waiting on the semaphores.
-        _bidirectionalStreamSemaphore?.Complete(completeException);
-        _unidirectionalStreamSemaphore?.Complete(completeException);
-        _writeSemaphore.Complete(completeException);
-
-        return true;
     }
 
     private ValueTask WriteFrameAsync(
