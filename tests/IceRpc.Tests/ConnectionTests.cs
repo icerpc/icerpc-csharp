@@ -5,7 +5,6 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;

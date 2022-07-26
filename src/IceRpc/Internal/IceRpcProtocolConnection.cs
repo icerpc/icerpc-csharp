@@ -107,7 +107,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
-        _controlStream.OnShutdown(ConnectionLost);
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -124,7 +123,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
         _remoteControlStream = await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-        _remoteControlStream.OnShutdown(ConnectionLost);
 
         await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
         await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
@@ -141,59 +139,54 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        if (_dispatcher is not null)
-        {
-            // Start a task to start accepting requests.
-            _acceptRequestsTask = Task.Run(
-                async () =>
+        // Start a task to start accepting requests.
+        _acceptRequestsTask = Task.Run(
+            async () =>
+            {
+                try
                 {
-                    try
+                    while (true)
                     {
-                        while (true)
-                        {
-                            IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
-                                _tasksCancelSource.Token).ConfigureAwait(false);
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
+                            _tasksCancelSource.Token).ConfigureAwait(false);
 
-                            try
-                            {
-                                await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
-                            }
-                            catch (IceRpcProtocolStreamException)
-                            {
-                                // A stream failure is not a fatal connection error; we can continue accepting new
-                                // requests.
-                            }
+                        // TODO: reject stream if _dispatcher == null
+
+                        try
+                        {
+                            await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
+                        }
+                        catch (IceRpcProtocolStreamException)
+                        {
+                            // A stream failure is not a fatal connection error; we can continue accepting new
+                            // requests.
                         }
                     }
-                    catch
+                }
+                catch (Exception exception)
+                {
+                    lock (_mutex)
                     {
-                        // Ignore all exceptions.
-                        // The loss of the connection is detected via the OnShutdown callbacks on the control streams.
+                        if (_isReadOnly)
+                        {
+                            return; // already closing or closed
+                        }
                     }
-                },
-                CancellationToken.None);
-        }
+
+                    // Otherwise, unexpected connection closure.
+
+                    var connectionLostException = new ConnectionLostException(exception);
+
+                    InvokeOnAbort(connectionLostException);
+
+                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
+                    // be running.
+                    CancelDispatchesAndInvocations(connectionLostException);
+                }
+            },
+            CancellationToken.None);
 
         return transportConnectionInformation;
-
-        void ConnectionLost()
-        {
-            lock (_mutex)
-            {
-                if (_isReadOnly)
-                {
-                    return; // already closing or closed
-                }
-            }
-
-            var connectionLostException = new ConnectionLostException();
-
-            InvokeOnAbort(connectionLostException);
-
-            // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still be
-            // running.
-            CancelDispatchesAndInvocations(connectionLostException);
-        }
     }
 
     private protected override async ValueTask DisposeAsyncCore()
@@ -480,27 +473,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
         // closing the transport connection too soon, before the remote streams are completed.
         await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
-        _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
-        await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
+        await _remoteControlStream!.Input.CompleteAsync().ConfigureAwait(false);
 
         // Shutdown the transport and wait for the peer shutdown.
         await _transportConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
-
-        // Wait for the peer to shutdown the connection.
-        if (_acceptRequestsTask is null)
-        {
-            try
-            {
-                await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-        }
-        else
-        {
-            await _acceptRequestsTask.ConfigureAwait(false);
-        }
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
@@ -1081,7 +1057,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeFrame(output);
         }
 
-        return output.FlushAsync(cancel);
+        if (frameType == IceRpcControlFrameType.GoAway)
+        {
+            return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancel);
+        }
+        else
+        {
+            return output.FlushAsync(cancel);
+        }
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {

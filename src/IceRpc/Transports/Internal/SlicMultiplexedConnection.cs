@@ -74,20 +74,21 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         _transportConnectionReader.EnableIdleCheck();
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
+        (FrameType FrameType, int FrameSize, long?)? header;
 
         // Initialize the Slic connection.
         if (IsServer)
         {
             // Read the Initialize frame sent by the client.
-            (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
-            if (dataSize == 0)
+            if (header is null || header.Value.FrameSize == 0)
             {
                 throw new InvalidDataException("invalid empty initialize frame");
             }
 
             (uint version, InitializeBody? initializeBody) = await ReadFrameAsync(
-                dataSize,
+                header.Value.FrameSize,
                 DecodeInitialize,
                 cancel).ConfigureAwait(false);
 
@@ -102,15 +103,15 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     cancel).ConfigureAwait(false);
 
                 // Read again the Initialize frame sent by the client.
-                (type, dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
-                if (dataSize == 0)
+                if (header is null || header.Value.FrameSize == 0)
                 {
                     throw new InvalidDataException("invalid empty initialize frame");
                 }
 
                 (version, initializeBody) = await ReadFrameAsync(
-                    dataSize,
+                    header.Value.FrameSize,
                     DecodeInitialize,
                     cancel).ConfigureAwait(false);
             }
@@ -159,13 +160,18 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 cancel).ConfigureAwait(false);
 
             // Read back either the InitializeAck or Version frame.
-            (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
-            switch (type)
+            if (header is null || header.Value.FrameSize == 0)
+            {
+                throw new InvalidDataException("invalid empty initialize ack frame");
+            }
+
+            switch (header.Value.FrameType)
             {
                 case FrameType.InitializeAck:
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
-                        dataSize,
+                        header.Value.FrameSize,
                         (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
                         cancel).ConfigureAwait(false);
 
@@ -174,7 +180,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
                 case FrameType.Version:
                     VersionBody versionBody = await ReadFrameAsync(
-                        dataSize,
+                        header.Value.FrameSize,
                         (ref SliceDecoder decoder) => new VersionBody(ref decoder),
                         cancel).ConfigureAwait(false);
 
@@ -183,7 +189,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                         $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
 
                 default:
-                    throw new InvalidDataException($"unexpected Slic frame '{type}'");
+                    throw new InvalidDataException($"unexpected Slic frame '{header.Value.FrameType}'");
             }
         }
 
@@ -191,53 +197,38 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         _readFramesTask = Task.Run(
             async () =>
             {
-                Exception? completeException = null;
                 try
                 {
                     // Read frames. This will return when the Close frame is received.
                     await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
-                    var exception = new ConnectionClosedException();
+                    var exception = new ConnectionClosedException("transport connection closed by peer");
                     if (ShutdownCore(exception))
                     {
-                        // Wait for writes to complete and send the close frame.
-                        await _writeSemaphore.CompleteAndWaitAsync(exception).WaitAsync(cancel).ConfigureAwait(false);
-
-                        // Send the close frame.
-                        await WriteFrameAsync(
-                            FrameType.Close,
-                            streamId: null,
-                            new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
-                            cancel).ConfigureAwait(false);
-
-                        // Shutdown the underlying duplex transport.
+                        // Gracefully shutdown the duplex connection.
                         await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+
+                        // Wait for the connection closure.
+                        await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+
+                        // Time for AcceptStreamAsync to return.
+                        _acceptStreamQueue.TryComplete(exception);
                     }
-
-                    // Wait for the connection closure.
-                    await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
-
-                    completeException = new ConnectionClosedException("transport connection closed");
                 }
                 catch (OperationCanceledException)
                 {
-                    completeException = new ConnectionAbortedException("transport connection disposed");
-                }
-                catch (ObjectDisposedException)
-                {
-                    completeException = new ConnectionAbortedException("transport connection disposed");
+                    // DisposeAsync has been called.
+                    throw new ConnectionAbortedException("transport connection disposed");
                 }
                 catch (Exception ex)
                 {
-                    completeException = ex;
-                }
-                finally
-                {
-                    Debug.Assert(completeException is not null);
-                    ShutdownCore(completeException);
-
-                    // Unblock AcceptStreamAsync if it's pending.
-                    _acceptStreamQueue.TryComplete(completeException);
+                    // Unexpected transport exception.
+                    var exception = new ConnectionLostException(ex);
+                    if (ShutdownCore(exception))
+                    {
+                        _acceptStreamQueue.TryComplete(exception);
+                    }
+                    throw;
                 }
             },
             CancellationToken.None);
@@ -266,7 +257,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            _isReadOnly = true;
             _disposeTask ??= PerformDisposeAsync();
         }
         return new(_disposeTask);
@@ -274,6 +264,8 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         async Task PerformDisposeAsync()
         {
             var exception = new ConnectionAbortedException("transport connection disposed");
+
+            ShutdownCore(exception);
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCancelSource.Cancel();
@@ -288,19 +280,10 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 // Ignore.
             }
 
-            // Dispose the transport connection.
-            _transportConnection.Dispose();
-
-            foreach (SlicMultiplexedStream stream in _streams.Values)
-            {
-                stream.Abort(exception);
-            }
-
             _acceptStreamQueue.TryComplete(exception);
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
 
-            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+            // Dispose the transport connection and the reader/writer.
+            _transportConnection.Dispose();
             _transportConnectionReader.Dispose();
             _transportConnectionWriter.Dispose();
 
@@ -325,9 +308,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             // Shutdown the underlying duplex transport.
             await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
         }
-
-        // Wait for the connection closure.
-        await _readFramesTask!.WaitAsync(cancel).ConfigureAwait(false);
     }
 
     internal SlicMultiplexedConnection(
@@ -633,7 +613,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         return decodedFrame;
     }
 
-    private async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
+    private async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)?> ReadFrameHeaderAsync(
         CancellationToken cancel)
     {
         while (true)
@@ -642,6 +622,12 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             if (!_transportConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
             {
                 buffer = await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+            }
+
+            if (buffer.IsEmpty)
+            {
+                // Peer shutdown the connection
+                return null;
             }
 
             if (TryDecodeHeader(
@@ -697,8 +683,24 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     {
         while (true)
         {
-            (FrameType type, int dataSize, long? streamId) =
-                await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            (FrameType, int, long?)? header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            if (header is null)
+            {
+                lock (_mutex)
+                {
+                    if (_isReadOnly)
+                    {
+                        // Expected if shutting down.
+                        return;
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"unexpected peer connection shutdown");
+                    }
+                }
+            }
+
+            (FrameType type, int dataSize, long? streamId) = header.Value;
 
             // Only stream frames are expected at this point. Non stream frames are only exchanged at the
             // initialization step.
