@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Net;
 
 namespace IceRpc.Transports.Internal;
 
@@ -10,65 +9,126 @@ internal static partial class TransportLoggerExtensions
 {
     private static readonly Func<ILogger, long, string, string, IDisposable> _multiplexedStreamScope =
         LoggerMessage.DefineScope<long, string, string>(
-            "MultiplexedStream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.ListenerAcceptFailed,
-        EventName = nameof(TransportEventIds.ListenerAcceptFailed),
-        Level = LogLevel.Error,
-        Message = "listener '{endpoint}' failed to accept a new connection")]
-    internal static partial void LogListenerAcceptFailed(
-        this ILogger logger,
-        Endpoint endpoint,
-        Exception ex);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.ListenerCreated,
-        EventName = nameof(TransportEventIds.ListenerCreated),
-        Level = LogLevel.Information,
-        Message = "listener '{endpoint}' started")]
-    internal static partial void LogListenerCreated(this ILogger logger, Endpoint endpoint);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.ListenerDisposed,
-        EventName = nameof(TransportEventIds.ListenerDisposed),
-        Level = LogLevel.Information,
-        Message = "listener '{endpoint}' shut down")]
-    internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.MultiplexedConnectionShutdown,
-        EventName = nameof(TransportEventIds.MultiplexedConnectionShutdown),
-        Level = LogLevel.Trace,
-        Message = "connection shutdown")]
-    internal static partial void LogMultiplexedConnectionShutdown(
-        this ILogger logger,
-        Exception exception);
+            "MultiplexedStream:{ID}, InitiatedBy:{InitiatedBy}, Kind:{Kind}");
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.DuplexConnectionRead,
         EventName = nameof(TransportEventIds.DuplexConnectionRead),
         Level = LogLevel.Trace,
-        Message = "read {Size} bytes from duplex connection ({Data})")]
+        Message = "Read {Size} bytes from duplex connection ({Data})")]
     internal static partial void LogDuplexConnectionRead(this ILogger logger, int size, string data);
-
-    [LoggerMessage(
-        EventId = (int)TransportEventIds.DuplexConnectionShutdown,
-        EventName = nameof(TransportEventIds.DuplexConnectionShutdown),
-        Level = LogLevel.Trace,
-        Message = "duplex connection shutdown")]
-    internal static partial void LogDuplexConnectionShutdown(this ILogger logger);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.DuplexConnectionWrite,
         EventName = nameof(TransportEventIds.DuplexConnectionWrite),
         Level = LogLevel.Trace,
-        Message = "wrote {Size} bytes to duplex connection ({Data})")]
+        Message = "Wrote {Size} bytes to duplex connection ({Data})")]
     internal static partial void LogDuplexConnectionWrite(this ILogger logger, int size, string data);
 
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.DuplexConnectionShutdown,
+        EventName = nameof(TransportEventIds.DuplexConnectionShutdown),
+        Level = LogLevel.Trace,
+        Message = "Duplex connection shut down")]
+    internal static partial void LogDuplexConnectionShutdown(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.DuplexConnectionShutdownException,
+        EventName = nameof(TransportEventIds.DuplexConnectionShutdownException),
+        Level = LogLevel.Trace,
+        Message = "Duplex connection failed to shut own")]
+    internal static partial void LogDuplexConnectionShutdownException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.ListenerAccept,
+        EventName = nameof(TransportEventIds.ListenerAccept),
+        Level = LogLevel.Debug,
+        Message = "Listener {Endpoint} accepted a new connection")]
+    internal static partial void LogListenerAccept(this ILogger logger, Endpoint endpoint);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.ListenerAcceptException,
+        EventName = nameof(TransportEventIds.ListenerAcceptException),
+        Level = LogLevel.Debug,
+        Message = "Listener {Endpoint} failed to accept a new connection")]
+    internal static partial void LogListenerAcceptException(
+        this ILogger logger,
+        Exception exception,
+        Endpoint endpoint);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.ListenerDispose,
+        EventName = nameof(TransportEventIds.ListenerDispose),
+        Level = LogLevel.Information,
+        Message = "Listener {Endpoint} shut down")]
+    internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.MultiplexedConnectionAcceptStream,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionAcceptStream),
+        Level = LogLevel.Trace,
+        Message = "Accepted a new multiplexed stream")]
+    internal static partial void LogMultiplexedConnectionAcceptStream(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.MultiplexedConnectionAcceptStreamException,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionAcceptStreamException),
+        Level = LogLevel.Trace,
+        Message = "Failed to accept a new multiplexed stream")]
+    internal static partial void LogMultiplexedConnectionAcceptStreamException(
+        this ILogger logger,
+        Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.MultiplexedConnectionCreateStream,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionCreateStream),
+        Level = LogLevel.Trace,
+        Message = "Created a new {Kind} multiplexed stream")]
+    internal static partial void LogMultiplexedConnectionCreateStream(this ILogger logger, string kind);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.MultiplexedConnectionCreateStreamException,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionCreateStreamException),
+        Level = LogLevel.Trace,
+        Message = "Failed to create a new {Kind} multiplexed stream")]
+    internal static partial void LogMultiplexedConnectionCreateStreamException(
+        this ILogger logger,
+        Exception exception,
+        string kind);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.MultiplexedConnectionShutdown,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionShutdown),
+        Level = LogLevel.Trace,
+        Message = "Multiplexed connection shut down: {Message}")]
+    internal static partial void LogMultiplexedConnectionShutdown(this ILogger logger, string message);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.MultiplexedConnectionShutdownException,
+        EventName = nameof(TransportEventIds.MultiplexedConnectionShutdownException),
+        Level = LogLevel.Trace,
+        Message = "Multiplexed connection failed to shut down")]
+    internal static partial void LogMultiplexedConnectionShutdownException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.ServerTransportListen,
+        EventName = nameof(TransportEventIds.ServerTransportListen),
+        Level = LogLevel.Information,
+        Message = "Listening for new connections on {Endpoint}")]
+    internal static partial void LogServerTransportListen(this ILogger logger, Endpoint endpoint);
+
+    [LoggerMessage(
+        EventId = (int)TransportEventIds.ServerTransportListenException,
+        EventName = nameof(TransportEventIds.ServerTransportListenException),
+        Level = LogLevel.Information,
+        Message = "Cannot listen on {Endpoint}")]
+    internal static partial void LogServerTransportListenException(
+        this ILogger logger,
+        Exception exception,
+        Endpoint endpoint);
+
     internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
-        stream.IsStarted ?
-            StartMultiplexedStreamScope(logger, stream.Id) :
+        stream.IsStarted ? StartMultiplexedStreamScope(logger, stream.Id) :
             // Client stream is not started yet
             stream.IsBidirectional switch
             {

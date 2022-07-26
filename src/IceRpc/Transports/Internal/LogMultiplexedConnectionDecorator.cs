@@ -18,13 +18,44 @@ internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel) =>
         _decoratee.ConnectAsync(cancel);
 
-    public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
-        new LogMultiplexedStreamDecorator(
-            await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
-            _logger);
+    public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel)
+    {
+        IMultiplexedStream stream;
+        try
+        {
+            stream = await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogMultiplexedConnectionAcceptStreamException(exception);
+            throw;
+        }
 
-    public IMultiplexedStream CreateStream(bool bidirectional) =>
-        new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), _logger);
+        _logger.LogMultiplexedConnectionAcceptStream();
+
+        // This decoration is conditional unlike other log decorations.
+        return _logger.IsEnabled(LogLevel.Trace) ? new LogMultiplexedStreamDecorator(stream, _logger) : stream;
+    }
+
+    public IMultiplexedStream CreateStream(bool bidirectional)
+    {
+        IMultiplexedStream stream;
+        string kind = bidirectional ? "bidirectional" : "unidirectional";
+        try
+        {
+            stream = _decoratee.CreateStream(bidirectional);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogMultiplexedConnectionCreateStreamException(exception, kind);
+            throw;
+        }
+
+        _logger.LogMultiplexedConnectionCreateStream(kind);
+
+        // This decoration is conditional unlike other log decorations.
+        return _logger.IsEnabled(LogLevel.Trace) ? new LogMultiplexedStreamDecorator(stream, _logger) : stream;
+    }
 
     // We don't log anything as it would be redundant with the ProtocolConnection logging.
     public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
@@ -33,8 +64,16 @@ internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         // TODO: do we always get the scope from ProtocolConnection?
 
-        await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
-        _logger.LogMultiplexedConnectionShutdown(exception);
+        try
+        {
+            await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
+        }
+        catch (Exception failure)
+        {
+            _logger.LogMultiplexedConnectionShutdownException(failure);
+            throw;
+        }
+        _logger.LogMultiplexedConnectionShutdown(exception.Message);
     }
 
     public override string? ToString() => _decoratee.ToString();
