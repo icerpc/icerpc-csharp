@@ -205,11 +205,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     var exception = new ConnectionClosedException("transport connection closed by peer");
                     if (Abort(exception))
                     {
-                        // Gracefully shutdown the duplex connection.
+                        // Shutdown the duplex connection. This acknowledge the receive of the Close frame and triggers
+                        // the completion of the peer's ReadFramesAsync call.
                         await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
-
-                        // Wait for the connection closure.
-                        await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
 
                         // Time for AcceptStreamAsync to return.
                         _acceptStreamQueue.TryComplete(exception);
@@ -217,8 +215,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 }
                 catch (OperationCanceledException)
                 {
-                    // DisposeAsync has been called.
-                    throw new ConnectionAbortedException("transport connection disposed");
+                    // Nothing to do, DisposeAsync has been called and it takes care of the cleanup.
                 }
                 catch (Exception ex)
                 {
@@ -228,7 +225,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     {
                         _acceptStreamQueue.TryComplete(exception);
                     }
-                    throw;
                 }
             },
             CancellationToken.None);
@@ -267,16 +263,10 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCancelSource.Cancel();
-            try
-            {
-                await Task.WhenAll(
-                    _writeSemaphore.CompleteAndWaitAsync(_exception!),
-                    _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore.
-            }
+
+            await Task.WhenAll(
+                _writeSemaphore.CompleteAndWaitAsync(_exception!),
+                _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
 
             _acceptStreamQueue.TryComplete(_exception!);
 
@@ -648,8 +638,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
             if (buffer.IsEmpty)
             {
-                // Peer shutdown the connection
-                return null;
+                return null; // Peer shutdown the duplex connection.
             }
 
             if (TryDecodeHeader(

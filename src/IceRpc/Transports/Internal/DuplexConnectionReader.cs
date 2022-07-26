@@ -167,64 +167,15 @@ internal class DuplexConnectionReader : IDisposable
         }
     }
 
+    /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer can be empty if
+    /// the peer shutdown its side of the connection.</summary>
     internal ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken cancel = default) =>
-        // Read 0 or more bytes but always perform a ReadAsync to wait for data if no data is buffered.
-        ReadAtLeastAsync(minimumSize: 0, cancel);
+        ReadAsyncCore(minimumSize: 1, canReturnEmptyBuffer: true, cancel);
 
     /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer has always
     /// at least minimumSize bytes.</summary>
-    internal async ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(
-        int minimumSize,
-        CancellationToken cancel = default)
-    {
-        if (_pipe.Reader.TryRead(out ReadResult readResult))
-        {
-            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
-            if (readResult.Buffer.Length >= minimumSize)
-            {
-                return readResult.Buffer;
-            }
-            _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-            minimumSize -= (int)readResult.Buffer.Length;
-        }
-
-        if (minimumSize >= 0)
-        {
-            do
-            {
-                // Fill the pipe with data read from the connection.
-                Memory<byte> buffer = _pipe.Writer.GetMemory();
-                int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                _pipe.Writer.Advance(read);
-                minimumSize -= read;
-
-                ResetTimers();
-
-                if (read == 0)
-                {
-                    if (minimumSize > 0)
-                    {
-                        // The peer gracefully shut down the connection but returned less data than expected, it's
-                        // considered as an error.
-                        throw new ConnectionLostException("received less data than expected");
-                    }
-                    else
-                    {
-                        // The peer gracefully shutdown the connection and were not necessarily expecting data.
-                        break;
-                    }
-                }
-            }
-            while (minimumSize > 0);
-
-            _ = await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
-
-            _pipe.Reader.TryRead(out readResult);
-            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
-        }
-
-        return readResult.Buffer;
-    }
+    internal ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(int minimumSize, CancellationToken cancel = default) =>
+        ReadAsyncCore(minimumSize: minimumSize, canReturnEmptyBuffer: false, cancel);
 
     internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
     {
@@ -295,5 +246,62 @@ internal class DuplexConnectionReader : IDisposable
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
             }
         }
+    }
+
+    /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer has always at
+    /// least minimumSize bytes or if canReturnEmptyBuffer is true, the returned buffer can be empty if the peer
+    /// shutdown the connection.</summary>
+    private async ValueTask<ReadOnlySequence<byte>> ReadAsyncCore(
+        int minimumSize,
+        bool canReturnEmptyBuffer,
+        CancellationToken cancel = default)
+    {
+        Debug.Assert(minimumSize > 0);
+
+        // Read buffered data first.
+        if (_pipe.Reader.TryRead(out ReadResult readResult))
+        {
+            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
+            if (readResult.Buffer.Length >= minimumSize)
+            {
+                return readResult.Buffer;
+            }
+            _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+            minimumSize -= (int)readResult.Buffer.Length;
+        }
+
+        do
+        {
+            // Fill the pipe with data read from the connection.
+            Memory<byte> buffer = _pipe.Writer.GetMemory();
+            int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+            _pipe.Writer.Advance(read);
+            minimumSize -= read;
+
+            ResetTimers();
+
+            // The peer shutdown its side of the connection, return an empty buffer if allowed.
+            if (read == 0)
+            {
+                if (canReturnEmptyBuffer)
+                {
+                    break;
+                }
+                else
+                {
+                    // The peer gracefully shut down the connection but returned less data than expected, it's
+                    // considered as an error.
+                    throw new ConnectionLostException("received less data than expected");
+                }
+            }
+        }
+        while (minimumSize > 0);
+
+        _ = await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+
+        _pipe.Reader.TryRead(out readResult);
+        Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
+
+        return readResult.Buffer;
     }
 }

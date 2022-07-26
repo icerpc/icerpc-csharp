@@ -46,11 +46,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
     }
 
-    public static IServiceCollection AddTcpTransport(this IServiceCollection services) =>
-        services
-            .AddSingleton<IDuplexServerTransport, TcpServerTransport>()
-            .AddSingleton<IDuplexClientTransport, TcpClientTransport>();
-
     public static IServiceCollection AddTcpTest(
         this IServiceCollection services,
         IDispatcher dispatcher,

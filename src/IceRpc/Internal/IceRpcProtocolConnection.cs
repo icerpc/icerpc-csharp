@@ -117,7 +117,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await SendControlFrameAsync(
             IceRpcControlFrameType.Settings,
             (ref SliceEncoder encoder) => settings.Encode(ref encoder),
-            endOfStream: false,
+            endStream: false,
             cancel).ConfigureAwait(false);
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
@@ -138,7 +138,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to start accepting requests.
+        // Start a task to start accepting requests and detect when the transport connection is closed.
         _acceptRequestsTask = Task.Run(
             async () =>
             {
@@ -177,7 +177,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                     }
 
-                    // Otherwise, unexpected connection closure.
+                    // Otherwise, it's an unexpected connection closure.
 
                     var connectionLostException = new ConnectionLostException(exception);
 
@@ -435,7 +435,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await SendControlFrameAsync(
             IceRpcControlFrameType.GoAway,
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
-            endOfStream: true,
+            endStream: true,
             cancel).ConfigureAwait(false);
 
         // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
@@ -465,13 +465,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await Task.WhenAll(
             _dispatchesCompleted.Task,
             _streamsCompleted.Task).WaitAsync(cancel).ConfigureAwait(false);
-
-        // Complete the control stream only once all the streams have completed. We also wait for the peer to close
-        // its control stream to ensure the peer's stream are also completed. The transport connection can safely be
-        // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
-        // closing the transport connection too soon, before the remote streams are completed.
-        await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
-        await _remoteControlStream!.Input.CompleteAsync().ConfigureAwait(false);
 
         // Shutdown the transport and wait for the peer shutdown.
         await _transportConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
@@ -1043,7 +1036,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction? encodeAction,
-        bool endOfStream,
+        bool endStream,
         CancellationToken cancel)
     {
         PipeWriter output = _controlStream!.Output;
@@ -1055,14 +1048,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeFrame(output);
         }
 
-        if (endOfStream)
-        {
-            return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancel);
-        }
-        else
-        {
-            return output.FlushAsync(cancel);
-        }
+        return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream, cancel); // Flush
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {
