@@ -9,6 +9,9 @@ internal static class BaseEventIds
     /// <summary>The base event ID for connection tracing.</summary>
     internal const int Connection = 1 * EventIdRange;
 
+    /// <summary>The size of each range.</summary>
+    internal const int EventIdRange = 100;
+
     /// <summary>The base event ID for protocol tracing.</summary>
     internal const int Protocol = 2 * EventIdRange;
 
@@ -18,5 +21,6 @@ internal static class BaseEventIds
     /// <summary>The base event ID for Tcp tracing.</summary>
     internal const int Tcp = 4 * EventIdRange;
 
-    private const int EventIdRange = 100;
+    /// <summary>The base event ID for dispatcher tracing.</summary>
+    internal const int Dispatcher = 5 * EventIdRange;
 }

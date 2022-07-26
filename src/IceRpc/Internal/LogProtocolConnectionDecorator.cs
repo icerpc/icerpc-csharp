@@ -8,76 +8,104 @@ namespace IceRpc.Internal;
 /// <summary>A log decorator for protocol connections.</summary>
 internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
-    Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
+    public Endpoint Endpoint => _decoratee.Endpoint;
 
     private readonly IProtocolConnection _decoratee;
     private TransportConnectionInformation _information;
-    private readonly bool _isServer;
     private readonly ILogger _logger;
 
-    async Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
+    Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
     {
-        _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformConnectAsync() : _decoratee.ConnectAsync(cancel);
 
-        using IDisposable scope = _logger.StartConnectionScope(_information, _isServer);
-        _logger.LogProtocolConnectionConnect(
-            _decoratee.Protocol,
-            _information.LocalNetworkAddress,
-            _information.RemoteNetworkAddress);
-
-        _decoratee.OnAbort(
-            exception =>
+        async Task<TransportConnectionInformation> PerformConnectAsync()
+        {
+            try
             {
-                using IDisposable scope = _logger.StartClientConnectionScope(_information);
-                _logger.LogConnectionClosedReason(exception);
-            });
+                _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-        _decoratee.OnShutdown(
-            message =>
+                _logger.LogConnectionConnect(
+                    Endpoint,
+                    _information.LocalNetworkAddress,
+                    _information.RemoteNetworkAddress);
+
+                return _information;
+            }
+            catch (Exception exception)
             {
-                using IDisposable scope = _logger.StartClientConnectionScope(_information);
-                _logger.LogConnectionShutdownReason(message);
-            });
-
-        return _information;
+                _logger.LogConnectionConnectException(exception, Endpoint);
+                throw;
+            }
+        }
     }
 
-    ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
-
-    async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        using IDisposable _ = _logger.StartSendRequestScope(request);
-        IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
-        _logger.LogSendRequest();
-        return response;
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformDisposeAsync() : _decoratee.DisposeAsync();
+
+        async ValueTask PerformDisposeAsync()
+        {
+            using IDisposable _ = _logger.StartConnectionShutdownScope(Endpoint, _information);
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _logger.LogConnectionDispose(Endpoint.Protocol);
+        }
+    }
+
+    Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    {
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformInvokeAsync() : _decoratee.InvokeAsync(request, cancel);
+
+        async Task<IncomingResponse> PerformInvokeAsync()
+        {
+            using IDisposable _ = _logger.StartConnectionInvocationScope(request);
+
+            try
+            {
+                IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
+                _logger.LogConnectionInvoke(
+                    response.ResultType,
+                    _information.LocalNetworkAddress,
+                    _information.RemoteNetworkAddress);
+
+                return response;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogConnectionInvokeException(exception);
+                throw;
+            }
+        }
     }
 
     void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
     void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-    async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
+    Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
     {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
-        using CancellationTokenRegistration _ = cancel.Register(() =>
+        return _logger.IsEnabled(LogLevel.Debug) ? PerformShutdownAsync() : _decoratee.ShutdownAsync(message, cancel);
+
+        async Task PerformShutdownAsync()
+        {
+            using IDisposable _ = _logger.StartConnectionShutdownScope(Endpoint, _information);
+
+            try
             {
-                try
-                {
-                    _logger.LogProtocolConnectionShutdownCanceled(_decoratee.Protocol);
-                }
-                catch
-                {
-                }
-            });
-        _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
+                await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+
+                _logger.LogConnectionShutdown(Endpoint.Protocol, message);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogConnectionShutdownException(exception, Endpoint.Protocol);
+                throw;
+            }
+        }
     }
 
-    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, bool isServer, ILogger logger)
+    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
     {
         _decoratee = decoratee;
-        _isServer = isServer;
         _logger = logger;
     }
 }

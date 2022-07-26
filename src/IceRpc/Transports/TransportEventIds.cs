@@ -17,15 +17,6 @@ public enum TransportEventIds
     /// <summary>A multiplexed connection was shutdown.</summary>
     MultiplexedConnectionShutdown,
 
-    /// <summary>Connect on a transport connection succeeded.</summary>
-    TransportConnectionConnect,
-
-    /// <summary>Connect on a transport connection failed.</summary>
-    TransportConnectionConnectFailed,
-
-    /// <summary>A transport connection was disposed.</summary>
-    TransportConnectionDispose,
-
     /// <summary>Successfully read data from a duplex connection.</summary>
     DuplexConnectionRead,
 

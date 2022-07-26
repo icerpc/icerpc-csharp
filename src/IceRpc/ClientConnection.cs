@@ -55,6 +55,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 
+        if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
+        {
+            options = options with { Dispatcher = new LogDispatcherDecorator(dispatcher, logger) };
+        }
+
+        ProtocolConnection decoratee;
+
         if (endpoint.Protocol == Protocol.Ice)
         {
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
@@ -69,17 +76,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             Endpoint = transportConnection.Endpoint;
 
-            // TODO: log level
-            if (logger.IsEnabled(LogLevel.Error))
+            if (logger != NullLogger.Instance)
             {
-                transportConnection = new LogDuplexConnectionDecorator(
-                    transportConnection,
-                    Endpoint,
-                    isServer: false,
-                    logger);
+                transportConnection = new LogDuplexConnectionDecorator(transportConnection, logger);
             }
 
-            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
+#pragma warning disable CA2000
+            decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
+#pragma warning restore CA2000
         }
         else
         {
@@ -99,25 +103,25 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             Endpoint = transportConnection.Endpoint;
 
-            // TODO: log level
-            if (logger.IsEnabled(LogLevel.Error))
+            if (logger != NullLogger.Instance)
             {
 #pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
-                transportConnection = new LogMultiplexedConnectionDecorator(
-                    transportConnection,
-                    Endpoint,
-                    isServer: false,
-                    logger);
+                transportConnection = new LogMultiplexedConnectionDecorator(transportConnection, logger);
 #pragma warning restore CA2000
             }
-
-            _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
+#pragma warning disable CA2000
+            decoratee = new IceRpcProtocolConnection(transportConnection, options);
+#pragma warning restore CA2000
         }
 
-        // TODO: log level
-        if (logger.IsEnabled(LogLevel.Error))
+        if (logger != NullLogger.Instance)
         {
-            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, isServer: false, logger);
+            _protocolConnection = new LogProtocolConnectionDecorator(decoratee, logger);
+            decoratee.Decorator = _protocolConnection;
+        }
+        else
+        {
+            _protocolConnection = decoratee;
         }
     }
 

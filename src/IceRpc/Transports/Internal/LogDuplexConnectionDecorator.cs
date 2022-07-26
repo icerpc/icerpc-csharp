@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
@@ -10,56 +9,29 @@ internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
-    internal ILogger Logger { get; }
-
     private readonly IDuplexConnection _decoratee;
-    private readonly Endpoint _endpoint;
-    private TransportConnectionInformation? _information;
-    private readonly bool _isServer;
+    private readonly ILogger _logger;
 
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
-    {
-        using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, _isServer);
+    // We don't log anything as it would be redundant with the ProtocolConnection logging.
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel) =>
+        _decoratee.ConnectAsync(cancel);
 
-        try
-        {
-            _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogTransportConnectionConnectFailed(ex);
-            throw;
-        }
-
-        Logger.LogTransportConnectionConnect(
-            _information.Value.LocalNetworkAddress,
-            _information.Value.RemoteNetworkAddress);
-        return _information.Value;
-    }
-
-    public void Dispose()
-    {
-        _decoratee.Dispose();
-
-        if (_information is TransportConnectionInformation connectionInformation)
-        {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, _isServer);
-            Logger.LogTransportConnectionDispose();
-        }
-        // We don't emit a log when closing a connection that was not connected.
-    }
+    // We don't log anything as it would be redundant with the ProtocolConnection logging.
+    public void Dispose() => _decoratee.Dispose();
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {
         int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-        Logger.LogDuplexConnectionRead(received, ToHexString(buffer[0..received]));
+        _logger.LogDuplexConnectionRead(received, ToHexString(buffer[0..received]));
         return received;
     }
 
     public async Task ShutdownAsync(CancellationToken cancel)
     {
+        // TODO: do we always get the scope from the LogProtocolConnectionDecorator?
+
         await _decoratee.ShutdownAsync(cancel).ConfigureAwait(false);
-        Logger.LogDuplexConnectionShutdown();
+        _logger.LogDuplexConnectionShutdown();
     }
 
     public override string? ToString() => _decoratee.ToString();
@@ -72,19 +44,13 @@ internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
         {
             size += buffer.Length;
         }
-        Logger.LogDuplexConnectionWrite(size, ToHexString(buffers));
+        _logger.LogDuplexConnectionWrite(size, ToHexString(buffers));
     }
 
-    internal LogDuplexConnectionDecorator(
-        IDuplexConnection decoratee,
-        Endpoint endpoint,
-        bool isServer,
-        ILogger logger)
+    internal LogDuplexConnectionDecorator(IDuplexConnection decoratee, ILogger logger)
     {
         _decoratee = decoratee;
-        _endpoint = endpoint;
-        _isServer = isServer;
-        Logger = logger;
+        _logger = logger;
     }
 
     internal static string ToHexString(Memory<byte> buffer)

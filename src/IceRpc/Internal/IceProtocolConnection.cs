@@ -13,7 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    public override Protocol Protocol => Protocol.Ice;
+    public override Endpoint Endpoint => _transportConnection.Endpoint;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -58,10 +58,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    internal IceProtocolConnection(
-        IDuplexConnection duplexConnection,
-        bool isServer,
-        ConnectionOptions options)
+    internal IceProtocolConnection(IDuplexConnection duplexConnection, bool isServer, ConnectionOptions options)
         : base(options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
@@ -194,7 +191,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task bellow.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
 
         // Wait for the transport connection establishment to enable the idle timeout check.
         _transportConnectionReader.EnableIdleCheck();

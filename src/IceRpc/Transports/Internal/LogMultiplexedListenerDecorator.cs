@@ -16,7 +16,7 @@ internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
         try
         {
             IMultiplexedConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-            return new LogMultiplexedConnectionDecorator(connection, _decoratee.Endpoint, isServer: true, _logger);
+            return new LogMultiplexedConnectionDecorator(connection, _logger);
         }
         catch (ObjectDisposedException)
         {

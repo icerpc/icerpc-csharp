@@ -85,11 +85,13 @@ internal class StreamDecoder<T>
         Action? cancelCallback = null,
         [EnumeratorCancellation] CancellationToken cancel = default)
     {
-        using CancellationTokenRegistration _ = cancel.Register(() =>
-        {
-            CompleteReader();
-            cancelCallback?.Invoke();
-        });
+        using CancellationTokenRegistration _ = cancel.UnsafeRegister(
+            _ =>
+            {
+                CompleteReader();
+                cancelCallback?.Invoke();
+            },
+            null);
 
         _readerStarted = _readerStarted == false ? true :
             throw new InvalidOperationException("a stream decoder can be read only once");

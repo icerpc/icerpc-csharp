@@ -6,105 +6,120 @@ using System.Net;
 
 namespace IceRpc.Internal;
 
-/// <summary>This class provides ILogger extension methods for connection-related messages.</summary>
+/// <summary>This class provides ILogger extension methods for connection event IDs.</summary>
 internal static partial class ConnectionLoggerExtensions
 {
-    private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _clientConnectionScope =
-        LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
-            "ClientConnection(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})");
+    // We cannot create a "connect scope" because ConnectAsync creates long running tasks and we don't want these
+    // tasks to inherit this scope.
 
-    private static readonly Func<ILogger, Endpoint, IDisposable> _newClientConnectionScope =
-        LoggerMessage.DefineScope<Endpoint>(
-            "NewClientConnection(Endpoint={Endpoint})");
+    private static readonly Func<ILogger, string, string, EndPoint?, EndPoint?, IDisposable> _dispatchScope =
+        LoggerMessage.DefineScope<string, string, EndPoint?, EndPoint?>(
+            "Path:{Path}, Operation:{Operation}, LocalNetworkAddress:{LocalNetworkAddress}, " +
+            "RemoteNetworkAddress:{RemoteNetworkAddress}");
 
-    private static readonly Func<ILogger, Endpoint, IDisposable> _newServerConnectionScope =
-        LoggerMessage.DefineScope<Endpoint>(
-            "NewServerConnection(Endpoint={Endpoint})");
+    private static readonly Func<ILogger, ServiceAddress, string, IDisposable> _invocationScope =
+        LoggerMessage.DefineScope<ServiceAddress, string>("ServiceAddress:{ServiceAddress}, Operation:{Operation}");
 
-    private static readonly Func<ILogger, string, string, IDisposable> _sendRequestScope =
-        LoggerMessage.DefineScope<string, string>("SendRequest(Path={Path}, Operation={Operation})");
-
-    private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _serverConnectionScope =
-        LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
-            "ServerConnection(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})");
+    private static readonly Func<ILogger, Endpoint, EndPoint?, EndPoint?, IDisposable> _shutdownScope =
+        LoggerMessage.DefineScope<Endpoint, EndPoint?, EndPoint?>(
+            "Endpoint:{Endpoint}, LocalNetworkAddress:{LocalNetworkAddress}, " +
+            "RemoteNetworkAddress:{RemoteNetworkAddress}");
 
     [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ConnectionClosedReason,
-        EventName = nameof(ConnectionEventIds.ConnectionClosedReason),
-        Level = LogLevel.Information,
-        Message = "connection closed due to exception")]
-    internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
-
-    [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ConnectionShutdownReason,
-        EventName = nameof(ConnectionEventIds.ConnectionShutdownReason),
-        Level = LogLevel.Information,
-        Message = "connection shutdown (Message={message})")]
-    internal static partial void LogConnectionShutdownReason(this ILogger logger, string message);
-
-    [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionConnect,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionConnect),
-        Level = LogLevel.Information,
-        Message = "{Protocol} connection established " +
-            "(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})")]
-    internal static partial void LogProtocolConnectionConnect(
+        EventId = (int)ConnectionEventIds.Connect,
+        EventName = nameof(ConnectionEventIds.Connect),
+        Level = LogLevel.Debug,
+        Message =
+            "Established connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+    internal static partial void LogConnectionConnect(
         this ILogger logger,
-        Protocol protocol,
+        Endpoint endpoint,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionShutdown,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionShutdown),
+        EventId = (int)ConnectionEventIds.ConnectException,
+        EventName = nameof(ConnectionEventIds.ConnectException),
         Level = LogLevel.Debug,
-        Message = "{Protocol} connection shut down (Message={Message})")]
-    internal static partial void LogProtocolConnectionShutdown(
+        Message = "Failed to establish connection for {Endpoint}")]
+    internal static partial void LogConnectionConnectException(
+        this ILogger logger,
+        Exception exception,
+        Endpoint endpoint);
+
+    [LoggerMessage(
+        EventId = (int)ConnectionEventIds.Dispatch,
+        EventName = nameof(ConnectionEventIds.Dispatch),
+        Level = LogLevel.Debug,
+        Message = "Returning {ResultType} response")]
+    internal static partial void LogConnectionDispatch(this ILogger logger, ResultType resultType);
+
+    [LoggerMessage(
+       EventId = (int)ConnectionEventIds.DispatchException,
+       EventName = nameof(ConnectionEventIds.DispatchException),
+       Level = LogLevel.Debug,
+       Message = "Failed to dispatch request")]
+    internal static partial void LogConnectionDispatchException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)ConnectionEventIds.Dispose,
+        EventName = nameof(ConnectionEventIds.Dispose),
+        Level = LogLevel.Debug,
+        Message = "Disposed {Protocol} connection")]
+    internal static partial void LogConnectionDispose(this ILogger logger, Protocol protocol);
+
+    [LoggerMessage(
+       EventId = (int)ConnectionEventIds.Invoke,
+       EventName = nameof(ConnectionEventIds.Invoke),
+       Level = LogLevel.Debug,
+       Message = "Sent request and received {ResultType} response over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+    internal static partial void LogConnectionInvoke(
+       this ILogger logger,
+       ResultType resultType,
+       EndPoint? localNetworkAddress,
+       EndPoint? remoteNetworkAddress);
+
+    [LoggerMessage(
+       EventId = (int)ConnectionEventIds.InvokeException,
+       EventName = nameof(ConnectionEventIds.InvokeException),
+       Level = LogLevel.Debug,
+       Message = "Failed to send request")]
+    internal static partial void LogConnectionInvokeException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)ConnectionEventIds.Shutdown,
+        EventName = nameof(ConnectionEventIds.Shutdown),
+        Level = LogLevel.Debug,
+        Message = "Shut down {Protocol} connection: {Message}")]
+    internal static partial void LogConnectionShutdown(
         this ILogger logger,
         Protocol protocol,
         string message);
 
     [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionShutdownCanceled,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionShutdownCanceled),
+        EventId = (int)ConnectionEventIds.ShutdownException,
+        EventName = nameof(ConnectionEventIds.ShutdownException),
         Level = LogLevel.Debug,
-        Message = "{Protocol} connection shut down canceled")]
-    internal static partial void LogProtocolConnectionShutdownCanceled(this ILogger logger, Protocol protocol);
-
-    [LoggerMessage(
-        EventId = (int)ConnectionEventIds.SendRequest,
-        EventName = nameof(ConnectionEventIds.SendRequest),
-        Level = LogLevel.Debug,
-        Message = "sent request frame")]
-    internal static partial void LogSendRequest(this ILogger logger);
-
-    /// <summary>Starts a client connection scope.</summary>
-    internal static IDisposable StartClientConnectionScope(
+        Message = "Failed to shut down {Protocol} connection")]
+    internal static partial void LogConnectionShutdownException(
         this ILogger logger,
-        TransportConnectionInformation information) =>
-        _clientConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
+        Exception exception,
+        Protocol protocol);
 
-    /// <summary>Starts a client or server connection scope.</summary>
-    internal static IDisposable StartConnectionScope(
-        this ILogger logger,
-        TransportConnectionInformation information,
-        bool isServer) =>
-        isServer ? logger.StartServerConnectionScope(information) : logger.StartClientConnectionScope(information);
+    internal static IDisposable StartConnectionDispatchScope(this ILogger logger, IncomingRequest request) =>
+        _dispatchScope(
+            logger,
+            request.Path,
+            request.Operation,
+            request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
+            request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
 
-    /// <summary>Starts a client or server connection scope.</summary>
-    internal static IDisposable StartNewConnectionScope(
+    internal static IDisposable StartConnectionInvocationScope(this ILogger logger, OutgoingRequest request) =>
+        _invocationScope(logger, request.ServiceAddress, request.Operation);
+
+    internal static IDisposable StartConnectionShutdownScope(
         this ILogger logger,
         Endpoint endpoint,
-        bool isServer) =>
-        isServer ? _newServerConnectionScope(logger, endpoint) : _newClientConnectionScope(logger, endpoint);
-
-    /// <summary>Starts a server connection scope.</summary>
-    internal static IDisposable StartServerConnectionScope(
-        this ILogger logger,
         TransportConnectionInformation information) =>
-        _serverConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
-
-    /// <summary>Starts a scope for method IProtocolConnection.InvokeAsync.</summary>
-    internal static IDisposable StartSendRequestScope(this ILogger logger, OutgoingRequest request) =>
-        _sendRequestScope(logger, request.ServiceAddress.Path, request.Operation);
+        _shutdownScope(logger, endpoint, information.LocalNetworkAddress, information.RemoteNetworkAddress);
 }

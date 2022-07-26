@@ -44,14 +44,16 @@ public class DeadlineMiddleware : IDispatcher
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
         {
-            using var tokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenRegistration _ = cancel.Register(tokenSource.Cancel);
+            using var timeoutTokenSource = new CancellationTokenSource(timeout);
+            using CancellationTokenRegistration _ = cancel.UnsafeRegister(
+                cts => ((CancellationTokenSource)cts!).Cancel(),
+                timeoutTokenSource);
 
             try
             {
-                return await _next.DispatchAsync(request, tokenSource.Token).ConfigureAwait(false);
+                return await _next.DispatchAsync(request, timeoutTokenSource.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == tokenSource.Token)
+            catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
                 cancel.ThrowIfCancellationRequested();
                 throw new DispatchException("the request deadline has expired", DispatchErrorCode.DeadlineExpired);

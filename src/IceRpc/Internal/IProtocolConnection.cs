@@ -6,11 +6,10 @@ namespace IceRpc.Internal;
 
 /// <summary>A protocol connection enables communication over a transport connection using either the ice or icerpc
 /// protocol.</summary>
-// TODO: Remove if we don't intend to make this interface public to replace IConnection.
 internal interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the protocol implemented by this protocol connection.</summary>
-    Protocol Protocol { get; }
+    /// <summary>Gets the endpoint that identifies this protocol connection.</summary>
+    Endpoint Endpoint { get; }
 
     /// <summary>Connects the protocol connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

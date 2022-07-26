@@ -13,22 +13,30 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
-        {
-            Path = "/path",
-            Operation = "operation"
-        };
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };
         var sut = new LoggerMiddleware(dispatcher, loggerFactory);
 
+        // Act
         await sut.DispatchAsync(request, default);
 
+        // Assert
         Assert.That(loggerFactory.Logger, Is.Not.Null);
         List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
-        Assert.That(entries.Count, Is.EqualTo(2));
-        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.ReceivedRequest));
-        CheckEntryState(entries[0]);
-        Assert.That(entries[1].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.SendingResponse));
-        CheckEntryState(entries[1]);
+        Assert.Multiple(() =>
+        {
+            Assert.That(entries.Count, Is.EqualTo(1));
+            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.Dispatch));
+            Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
+            Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
+            Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
+            Assert.That(
+                entries[0].State["LocalNetworkAddress"],
+                Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));
+            Assert.That(
+                entries[0].State["RemoteNetworkAddress"],
+                Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
+            Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
+        });
     }
 
     [Test]
@@ -37,11 +45,7 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
-        {
-            Path = "/path",
-            Operation = "operation"
-        };
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };
         var sut = new LoggerMiddleware(dispatcher, loggerFactory);
 
         try
@@ -53,19 +57,16 @@ public sealed class LoggerMiddlewareTests
         }
 
         Assert.That(loggerFactory.Logger, Is.Not.Null);
-        List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
-        Assert.That(entries.Count, Is.EqualTo(2));
-        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.ReceivedRequest));
-        CheckEntryState(entries[0]);
-        Assert.That(entries[1].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.DispatchException));
-        CheckEntryState(entries[1]);
-    }
 
-    private static void CheckEntryState(TestLoggerEntry entry)
-    {
-        Assert.That(entry.State["LocalNetworkAddress"], Is.EqualTo("undefined"));
-        Assert.That(entry.State["RemoteNetworkAddress"], Is.EqualTo("undefined"));
-        Assert.That(entry.State["Operation"], Is.EqualTo("operation"));
-        Assert.That(entry.State["Path"], Is.EqualTo("/path"));
+        List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
+        Assert.Multiple(() =>
+        {
+            Assert.That(entries.Count, Is.EqualTo(1));
+            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.DispatchException));
+            Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
+            Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
+            Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
+            Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
+        });
     }
 }
