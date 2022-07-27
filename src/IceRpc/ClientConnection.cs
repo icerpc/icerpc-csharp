@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -167,8 +169,50 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-        _protocolConnection.InvokeAsync(request, cancel);
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    {
+        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
+        {
+            if (endpointFeature.Endpoint is Endpoint mainEndpoint)
+            {
+                CheckRequestEndpoints(mainEndpoint, endpointFeature.AltEndpoints);
+            }
+        }
+        else if (request.ServiceAddress.Endpoint is Endpoint mainEndpoint)
+        {
+            CheckRequestEndpoints(mainEndpoint, request.ServiceAddress.AltEndpoints);
+        }
+        // If the request has no endpoint at all, we let it through.
+
+        return _protocolConnection.InvokeAsync(request, cancel);
+
+        void CheckRequestEndpoints(Endpoint mainEndpoint, ImmutableList<Endpoint> altEndpoints)
+        {
+            _ = Endpoint.Params.TryGetValue("transport", out string? transportName);
+
+            if (IsCompatible(mainEndpoint))
+            {
+                return;
+            }
+
+            foreach (Endpoint endpoint in altEndpoints)
+            {
+                if (IsCompatible(endpoint))
+                {
+                    return;
+                }
+            }
+
+            throw new InvalidOperationException(
+                $"none of the request's endpoint(s) is compatible with this connection's endpoint: {Endpoint}");
+
+            bool IsCompatible(Endpoint endpoint) =>
+                EndpointComparer.ParameterLess.Equals(endpoint, Endpoint) &&
+                    (transportName is null ||
+                     !endpoint.Params.TryGetValue("transport", out string? otherTransportName) ||
+                     transportName == otherTransportName);
+        }
+    }
 
     /// <summary>Adds a callback that will be executed when the connection is aborted.</summary>
     /// <param name="callback">The callback to run when the connection is aborted.</param>

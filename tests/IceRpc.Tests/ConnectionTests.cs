@@ -173,6 +173,56 @@ public class ConnectionTests
             Throws.TypeOf<TimeoutException>());
     }
 
+    /// <summary>Verifies that InvokeAsync succeeds when there is a compatible endpoint.</summary>
+    [TestCase("icerpc://testhost.com?transport=coloc")]
+    [TestCase("icerpc://testhost.com:4062")]
+    [TestCase("icerpc://testhost.com")]
+    [TestCase("icerpc://foo.com/path?alt-endpoint=testhost.com")]
+    [TestCase("ice://testhost.com/path")]
+    [TestCase("ice://testhost.com:4061/path")]
+    [TestCase("ice://foo.com/path?alt-endpoint=testhost.com")]
+    public async Task InvokeAsync_succeeds_with_a_compatible_endpoint(ServiceAddress serviceAddress)
+    {
+        // Arrange
+        await using ServiceProvider provider =
+            new ServiceCollection()
+                .AddColocTest(
+                    new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                    serviceAddress.Protocol!,
+                    host: "testhost.com")
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+
+        server.Listen();
+
+        // Assert
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            Throws.Nothing);
+    }
+
+    /// <summary>Verifies that InvokeAsync fails when there is no compatible endpoint.</summary>
+    [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=quic")]
+    [TestCase("icerpc://foo.com", "icerpc://bar.com")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
+    [TestCase("icerpc://foo.com", "icerpc://bar.com?transport=quic")]
+    [TestCase("ice://foo.com?transport=tcp", "ice://foo.com/path?transport=quic")]
+    [TestCase("ice://foo.com", "ice://bar.com/path")]
+    [TestCase("ice://foo.com", "ice://foo.com:10000/path")]
+    [TestCase("ice://foo.com", "ice://bar.com/path?transport=quic")]
+    public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
+    {
+        // Arrange
+        await using var connection = new ClientConnection(endpoint);
+
+        // Assert
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            Throws.TypeOf<InvalidOperationException>());
+    }
+
     [Test]
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
