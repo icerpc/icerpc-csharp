@@ -9,5 +9,6 @@ public class ServiceProviderFeature : IServiceProviderFeature
     public IServiceProvider ServiceProvider { get; }
 
     /// <summary>Constructs a service provider feature.</summary>
+    /// <param name="provider">The service provider hold by this feature.</param>
     public ServiceProviderFeature(IServiceProvider provider) => ServiceProvider = provider;
 }

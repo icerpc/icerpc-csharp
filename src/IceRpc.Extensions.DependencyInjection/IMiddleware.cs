@@ -7,6 +7,10 @@ namespace IceRpc;
 public interface IMiddleware<TDep> where TDep : notnull
 {
     /// <summary>Dispatches a request and returns a response.</summary>
+    /// <param name="request">The request being dispatch.</param>
+    /// <param name="dep">The injected dependency.</param>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The dispatch response.</returns>
     ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, TDep dep, CancellationToken cancel);
 }
 
@@ -18,6 +22,11 @@ public interface IMiddleware<TDep1, TDep2>
     where TDep2 : notnull
 {
     /// <summary>Dispatches a request and returns a response.</summary>
+    /// <param name="request">The request being dispatch.</param>
+    /// <param name="dep1">The first injected dependency.</param>
+    /// <param name="dep2">The second injected dependency.</param>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The dispatch response.</returns>
     ValueTask<OutgoingResponse> DispatchAsync(
         IncomingRequest request,
         TDep1 dep1,
@@ -35,6 +44,13 @@ public interface IMiddleware<TDep1, TDep2, TDep3>
     where TDep3 : notnull
 {
     /// <summary>Dispatches a request and returns a response.</summary>
+    /// <summary>Dispatches a request and returns a response.</summary>
+    /// <param name="request">The request being dispatch.</param>
+    /// <param name="dep1">The first injected dependency.</param>
+    /// <param name="dep2">The second injected dependency.</param>
+    /// <param name="dep3">The third injected dependency.</param>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The dispatch response.</returns>
     ValueTask<OutgoingResponse> DispatchAsync(
         IncomingRequest request,
         TDep1 dep1,

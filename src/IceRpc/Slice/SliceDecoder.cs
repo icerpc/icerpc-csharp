@@ -382,6 +382,7 @@ public ref partial struct SliceDecoder
 
     /// <summary>Copy bytes from the underlying reader into the destination to fill completely destination.
     /// </summary>
+    /// <param name="destination">The span to which bytes of this decoder will be copied.</param>
     /// <remarks>This method also moves the reader's Consumed property.</remarks>
     public void CopyTo(Span<byte> destination)
     {
@@ -396,6 +397,7 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a Slice1 system exception.</summary>
+    /// <returns>The decoded exception.</returns>
     public DispatchException DecodeSystemException()
     {
         if (Encoding != SliceEncoding.Slice1)
@@ -585,6 +587,8 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Skips the remaining tagged data members or parameters.</summary>
+    /// <param name="useTagEndMarker">Whether or not the tagged data members or parameters use a tag end marker.
+    /// </param>
     public void SkipTagged(bool useTagEndMarker)
     {
         if (Encoding == SliceEncoding.Slice1)

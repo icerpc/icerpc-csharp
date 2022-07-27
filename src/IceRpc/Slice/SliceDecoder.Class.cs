@@ -39,6 +39,7 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a Slice1 user exception.</summary>
+    /// <returns>The decoded remote exception.</returns>
     public RemoteException DecodeUserException()
     {
         if (Encoding != SliceEncoding.Slice1)

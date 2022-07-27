@@ -196,7 +196,8 @@ public class LocatorLocationResolver : ILocationResolver
         }
     }
 
-    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
+    /// <inheritdoc/>
+    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel) => _locationResolver.ResolveAsync(location, refreshCache, cancel);
