@@ -31,7 +31,7 @@ internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
             throw;
         }
 
-        _logger.LogMultiplexedConnectionAcceptStream();
+        _logger.LogMultiplexedConnectionAcceptStream(stream.IsBidirectional ? "bidirectional" : "unidirectional");
 
         // This decoration is conditional unlike other log decorations.
         return _logger.IsEnabled(LogLevel.Trace) ? new LogMultiplexedStreamDecorator(stream, _logger) : stream;

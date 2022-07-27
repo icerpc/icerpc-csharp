@@ -29,8 +29,7 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventIds.Connect,
         EventName = nameof(ConnectionEventIds.Connect),
         Level = LogLevel.Debug,
-        Message =
-            "Established connection for {Endpoint} over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+        Message = "Connection {Endpoint} established over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
     internal static partial void LogConnectionConnect(
         this ILogger logger,
         Endpoint endpoint,
@@ -41,7 +40,7 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventIds.ConnectException,
         EventName = nameof(ConnectionEventIds.ConnectException),
         Level = LogLevel.Debug,
-        Message = "Failed to establish connection for {Endpoint}")]
+        Message = "Connection {Endpoint} could not be established")]
     internal static partial void LogConnectionConnectException(
         this ILogger logger,
         Exception exception,
@@ -51,28 +50,29 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventIds.Dispatch,
         EventName = nameof(ConnectionEventIds.Dispatch),
         Level = LogLevel.Debug,
-        Message = "Returning {ResultType} response")]
+        Message = "Connection returning {ResultType} response")]
     internal static partial void LogConnectionDispatch(this ILogger logger, ResultType resultType);
 
     [LoggerMessage(
        EventId = (int)ConnectionEventIds.DispatchException,
        EventName = nameof(ConnectionEventIds.DispatchException),
        Level = LogLevel.Debug,
-       Message = "Failed to dispatch request")]
+       Message = "Connection failed to dispatch request")]
     internal static partial void LogConnectionDispatchException(this ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Dispose,
         EventName = nameof(ConnectionEventIds.Dispose),
         Level = LogLevel.Debug,
-        Message = "Disposed {Protocol} connection")]
+        Message = "{Protocol} connection disposed")]
     internal static partial void LogConnectionDispose(this ILogger logger, Protocol protocol);
 
     [LoggerMessage(
        EventId = (int)ConnectionEventIds.Invoke,
        EventName = nameof(ConnectionEventIds.Invoke),
        Level = LogLevel.Debug,
-       Message = "Sent request and received {ResultType} response over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+       Message = "Connection sent request and received {ResultType} response over " +
+        "{LocalNetworkAddress}<->{RemoteNetworkAddress}")]
     internal static partial void LogConnectionInvoke(
        this ILogger logger,
        ResultType resultType,
@@ -83,14 +83,14 @@ internal static partial class ConnectionLoggerExtensions
        EventId = (int)ConnectionEventIds.InvokeException,
        EventName = nameof(ConnectionEventIds.InvokeException),
        Level = LogLevel.Debug,
-       Message = "Failed to send request")]
+       Message = "Connection failed to send request")]
     internal static partial void LogConnectionInvokeException(this ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.Shutdown,
         EventName = nameof(ConnectionEventIds.Shutdown),
         Level = LogLevel.Debug,
-        Message = "Shut down {Protocol} connection: {Message}")]
+        Message = "{Protocol} connection shut down successfully: {Message}")]
     internal static partial void LogConnectionShutdown(
         this ILogger logger,
         Protocol protocol,
@@ -100,7 +100,7 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventIds.ShutdownException,
         EventName = nameof(ConnectionEventIds.ShutdownException),
         Level = LogLevel.Debug,
-        Message = "Failed to shut down {Protocol} connection")]
+        Message = "{Protocol} connection failed to shut down")]
     internal static partial void LogConnectionShutdownException(
         this ILogger logger,
         Exception exception,
