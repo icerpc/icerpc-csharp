@@ -706,7 +706,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        throw new InvalidDataException($"unexpected peer connection shutdown");
+                        throw new InvalidDataException("unexpected peer connection shutdown");
                     }
                 }
             }
