@@ -12,6 +12,7 @@ public static class IncomingRequestExtensions
     /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
     /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
     /// incorrectly believes this operation is idempotent.</summary>
+    /// <param name="request">The request to check.</param>
     public static void CheckNonIdempotent(this IncomingRequest request)
     {
         if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))

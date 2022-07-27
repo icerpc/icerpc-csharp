@@ -179,12 +179,14 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
         ShutdownAsync("connection shutdown", cancel: cancel);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
         lock (_mutex)

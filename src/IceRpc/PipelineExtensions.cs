@@ -12,6 +12,7 @@ public static class PipelineExtensions
     /// <typeparam name="TFeature">The type of the feature.</typeparam>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="feature">The value of the feature to set.</param>
+    /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseFeature<TFeature>(this Pipeline pipeline, TFeature feature) =>
         pipeline.Use(next => new InlineInvoker((request, cancel) =>
         {

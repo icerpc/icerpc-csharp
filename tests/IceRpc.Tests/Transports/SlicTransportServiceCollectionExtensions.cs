@@ -57,7 +57,7 @@ public static class SlicTransportServiceCollectionExtensions
                 {
                     Endpoint = listener.Endpoint
                 });
-            return (SlicMultiplexedConnection)connection;
+            return (SlicConnection)connection;
         });
         return services;
     }

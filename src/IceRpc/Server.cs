@@ -359,7 +359,7 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
     /// existing connections.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <return>A task that completes once the shutdown is complete.</return>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     public async Task ShutdownAsync(CancellationToken cancel = default)
     {
         try

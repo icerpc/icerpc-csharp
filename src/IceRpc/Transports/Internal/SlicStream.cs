@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
 /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
-internal class SlicMultiplexedStream : IMultiplexedStream
+internal class SlicStream : IMultiplexedStream
 {
     public long Id
     {
@@ -58,7 +58,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
     internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
 
-    private readonly SlicMultiplexedConnection _connection;
+    private readonly SlicConnection _connection;
     private long _id = -1;
     private readonly SlicPipeReader _inputPipeReader;
     private readonly SlicPipeWriter _outputPipeWriter;
@@ -81,7 +81,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
         }
     }
 
-    internal SlicMultiplexedStream(SlicMultiplexedConnection connection, bool bidirectional, bool remote)
+    internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
         _connection = connection;
         _sendCredit = _connection.PeerPauseWriterThreshold;

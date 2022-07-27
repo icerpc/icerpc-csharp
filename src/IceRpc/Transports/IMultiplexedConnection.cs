@@ -28,16 +28,17 @@ public interface IMultiplexedConnection : IAsyncDisposable
 
     /// <summary>Accepts a remote stream.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <return>The remote stream.</return>
+    /// <returns>The remote stream.</returns>
     ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel);
 
     /// <summary>Creates a local stream.</summary>
     /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
-    /// <return>The local stream.</return>
+    /// <returns>The local stream.</returns>
     IMultiplexedStream CreateStream(bool bidirectional);
 
     /// <summary>Shuts down the connection.</summary>
     /// <param name="completeException">The exception provided to the stream <see cref="IDuplexPipe"/>.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     Task ShutdownAsync(Exception completeException, CancellationToken cancel);
 }
