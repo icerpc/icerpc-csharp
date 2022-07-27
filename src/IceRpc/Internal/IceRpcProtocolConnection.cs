@@ -139,9 +139,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to start accepting requests and detect when the transport connection is closed.
         if (_dispatcher is not null)
         {
+            // Start a task to start accepting requests.
             _acceptRequestsTask = Task.Run(
                 async () =>
                 {
@@ -280,7 +280,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                         _streams.Add(stream);
 
-                        RemoveStreamOnWritesAndReadsClosed(stream);
+                        _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
                     }
                 }
             }
@@ -705,7 +705,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                     _streams.Add(stream);
 
-                    RemoveStreamOnWritesAndReadsClosed(stream);
+                    _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
                 }
             }
 
@@ -1034,37 +1034,32 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private void RemoveStreamOnWritesAndReadsClosed(IMultiplexedStream stream)
+    private async Task RemoveStreamOnWritesAndReadsClosedAsync(IMultiplexedStream stream)
     {
-        _ = WaitForStreamShutdownAndRemoveAsync();
-
-        async Task WaitForStreamShutdownAndRemoveAsync()
+        try
         {
-            try
-            {
-                await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore the reason of the reads/writes close.
-            }
+            await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore the reason of the reads/writes close.
+        }
 
-            lock (_mutex)
-            {
-                _streams.Remove(stream);
+        lock (_mutex)
+        {
+            _streams.Remove(stream);
 
-                if (_streams.Count == 0)
+            if (_streams.Count == 0)
+            {
+                if (_isReadOnly)
                 {
-                    if (_isReadOnly)
-                    {
-                        // If shutting down, we can set the _streamsCompleted task completion source
-                        // as completed to allow shutdown to progress.
-                        _streamsCompleted.TrySetResult();
-                    }
-                    else
-                    {
-                        EnableIdleCheck();
-                    }
+                    // If shutting down, we can set the _streamsCompleted task completion source
+                    // as completed to allow shutdown to progress.
+                    _streamsCompleted.TrySetResult();
+                }
+                else
+                {
+                    EnableIdleCheck();
                 }
             }
         }

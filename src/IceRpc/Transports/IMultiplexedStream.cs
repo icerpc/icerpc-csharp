@@ -23,10 +23,10 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     bool IsStarted { get; }
 
-    /// <summary>Gets a task that gets completed when reads are closed.</summary>
+    /// <summary>Gets a task that completes when reads are closed.</summary>
     Task ReadsClosed { get; }
 
-    /// <summary>Gets a task that gets completed when writes are closed.</summary>
+    /// <summary>Gets a task that completes when writes are closed.</summary>
     Task WritesClosed { get; }
 
     /// <summary>Aborts the stream by completing the <see cref="IDuplexPipe.Input"/> and <see
