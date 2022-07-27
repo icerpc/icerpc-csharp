@@ -587,7 +587,7 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Skips the remaining tagged data members or parameters.</summary>
-    /// <param name="useTagEndMarker">Whether or not the tagged data members or parameters included a tag end marker.
+    /// <param name="useTagEndMarker">Whether or not the tagged data members or parameters use a tag end marker.
     /// </param>
     public void SkipTagged(bool useTagEndMarker)
     {
