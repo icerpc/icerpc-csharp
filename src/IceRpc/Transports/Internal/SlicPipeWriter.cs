@@ -13,7 +13,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private readonly Pipe _pipe;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _state;
-    private readonly SlicMultiplexedStream _stream;
+    private readonly SlicStream _stream;
 
     public override void Advance(int bytes)
     {
@@ -159,7 +159,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     }
 
     internal SlicPipeWriter(
-        SlicMultiplexedStream stream,
+        SlicStream stream,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize)

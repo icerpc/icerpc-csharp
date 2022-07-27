@@ -36,7 +36,7 @@ public class SlicClientTransport : IMultiplexedClientTransport
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
-        new SlicMultiplexedConnection(
+        new SlicConnection(
             _duplexClientTransport.CreateConnection(
                 new DuplexClientConnectionOptions
                 {
