@@ -178,9 +178,11 @@ public class ConnectionTests
     [TestCase("icerpc://testhost.com:4062")]
     [TestCase("icerpc://testhost.com")]
     [TestCase("icerpc://foo.com/path?alt-endpoint=testhost.com")]
+    [TestCase("icerpc:/path")]
     [TestCase("ice://testhost.com/path")]
     [TestCase("ice://testhost.com:4061/path")]
     [TestCase("ice://foo.com/path?alt-endpoint=testhost.com")]
+    [TestCase("ice:/path")]
     public async Task InvokeAsync_succeeds_with_a_compatible_endpoint(ServiceAddress serviceAddress)
     {
         // Arrange
