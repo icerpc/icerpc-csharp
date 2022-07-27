@@ -20,7 +20,7 @@ internal class SlicPipeReader : PipeReader
     private int _receiveCredit;
     private readonly int _resumeThreshold;
     private int _state;
-    private readonly SlicMultiplexedStream _stream;
+    private readonly SlicStream _stream;
 
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
@@ -139,7 +139,7 @@ internal class SlicPipeReader : PipeReader
     }
 
     internal SlicPipeReader(
-        SlicMultiplexedStream stream,
+        SlicStream stream,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,

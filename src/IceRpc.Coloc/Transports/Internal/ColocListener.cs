@@ -16,7 +16,7 @@ internal class ColocListener : IDuplexListener
     public async Task<IDuplexConnection> AcceptAsync()
     {
         (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-        return new ColocDuplexConnection(Endpoint, _ => (reader, writer));
+        return new ColocConnection(Endpoint, _ => (reader, writer));
     }
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));

@@ -10,11 +10,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The Slic multiplexed connection implements an <see cref="IMultiplexedConnection"/> on top of a <see
+/// <summary>The Slic connection implements an <see cref="IMultiplexedConnection"/> on top of a <see
 /// cref="IDuplexConnection"/>.</summary>
-internal class SlicMultiplexedConnection : IMultiplexedConnection
+internal class SlicConnection : IMultiplexedConnection
 {
-    public Endpoint Endpoint => _transportConnection.Endpoint;
+    public Endpoint Endpoint => _duplexConnection.Endpoint;
 
     internal bool IsServer { get; }
 
@@ -36,6 +36,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
     private Task? _disposeTask;
+    private readonly IDuplexConnection _duplexConnection;
+    private readonly DuplexConnectionReader _duplexConnectionReader;
+    private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private bool _isReadOnly;
     private readonly TimeSpan _localIdleTimeout;
     private long _lastRemoteBidirectionalStreamId = -1;
@@ -49,11 +52,8 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     private long _nextUnidirectionalId;
     private readonly int _packetMaxSize;
     private Task? _readFramesTask;
-    private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
+    private readonly ConcurrentDictionary<long, SlicStream> _streams = new();
     private readonly CancellationTokenSource _tasksCancelSource = new();
-    private readonly IDuplexConnection _transportConnection;
-    private readonly DuplexConnectionReader _transportConnectionReader;
-    private readonly DuplexConnectionWriter _transportConnectionWriter;
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
@@ -64,14 +64,14 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         // Connect the duplex connection.
-        TransportConnectionInformation information = await _transportConnection.ConnectAsync(
+        TransportConnectionInformation information = await _duplexConnection.ConnectAsync(
             cancel).ConfigureAwait(false);
 
         // Enable the idle timeout check after the transport connection establishment. We don't want the transport
         // connection to be disposed because it's idle when the transport connection establishment is in progress. This
         // would require the duplex connection ConnectAsync/Dispose implementations to be thread safe. The transport
         // connection establishment timeout is handled by the cancellation token instead.
-        _transportConnectionReader.EnableIdleCheck();
+        _duplexConnectionReader.EnableIdleCheck();
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
 
@@ -237,7 +237,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
     public IMultiplexedStream CreateStream(bool bidirectional) =>
         // TODO: Cache SlicMultiplexedStream
-        new SlicMultiplexedStream(this, bidirectional, remote: false);
+        new SlicStream(this, bidirectional, remote: false);
 
     public ValueTask DisposeAsync()
     {
@@ -266,9 +266,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             }
 
             // Dispose the transport connection.
-            _transportConnection.Dispose();
+            _duplexConnection.Dispose();
 
-            foreach (SlicMultiplexedStream stream in _streams.Values)
+            foreach (SlicStream stream in _streams.Values)
             {
                 stream.Abort(exception);
             }
@@ -278,8 +278,8 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             _unidirectionalStreamSemaphore?.Complete(exception);
 
             // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-            _transportConnectionReader.Dispose();
-            _transportConnectionWriter.Dispose();
+            _duplexConnectionReader.Dispose();
+            _duplexConnectionWriter.Dispose();
 
             _tasksCancelSource.Dispose();
         }
@@ -302,7 +302,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 cancel).ConfigureAwait(false);
 
             // Shutdown the duplex connection.
-            await _transportConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+            await _duplexConnection.ShutdownAsync(cancel).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -314,7 +314,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         }
     }
 
-    internal SlicMultiplexedConnection(
+    internal SlicConnection(
         IDuplexConnection duplexConnection,
         MultiplexedConnectionOptions options,
         SlicTransportOptions slicOptions)
@@ -337,9 +337,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
 
-        _transportConnection = duplexConnection;
+        _duplexConnection = duplexConnection;
 
-        _transportConnectionWriter = new DuplexConnectionWriter(
+        _duplexConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
             options.Pool,
             options.MinSegmentSize);
@@ -351,7 +351,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
         }
 
-        _transportConnectionReader = new DuplexConnectionReader(
+        _duplexConnectionReader = new DuplexConnectionReader(
             duplexConnection,
             idleTimeout: _localIdleTimeout,
             options.Pool,
@@ -377,7 +377,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         }
     }
 
-    internal void AddStream(long id, SlicMultiplexedStream stream)
+    internal void AddStream(long id, SlicStream stream)
     {
         lock (_mutex)
         {
@@ -412,13 +412,13 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         IBufferWriter<byte> bufferWriter,
         int byteCount,
         CancellationToken cancel) =>
-        _transportConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
+        _duplexConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
 
-    internal void ReleaseStream(SlicMultiplexedStream stream)
+    internal void ReleaseStream(SlicStream stream)
     {
         Debug.Assert(stream.IsStarted);
 
-        _streams.TryRemove(stream.Id, out SlicMultiplexedStream? _);
+        _streams.TryRemove(stream.Id, out SlicStream? _);
 
         if (stream.IsRemote)
         {
@@ -438,7 +438,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     }
 
     internal async ValueTask SendFrameAsync(
-        SlicMultiplexedStream? stream,
+        SlicStream? stream,
         FrameType frameType,
         EncodeAction? encode,
         CancellationToken cancel)
@@ -459,7 +459,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     }
 
     internal async ValueTask<FlushResult> SendStreamFrameAsync(
-        SlicMultiplexedStream stream,
+        SlicStream stream,
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
@@ -604,7 +604,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
     {
         Debug.Assert(size > 0);
 
-        ReadOnlySequence<byte> buffer = await _transportConnectionReader.ReadAtLeastAsync(
+        ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
             size, cancel).ConfigureAwait(false);
 
         if (buffer.Length > size)
@@ -613,7 +613,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         }
 
         T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
-        _transportConnectionReader.AdvanceTo(buffer.End);
+        _duplexConnectionReader.AdvanceTo(buffer.End);
         return decodedFrame;
     }
 
@@ -623,9 +623,9 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         while (true)
         {
             // Read data from the pipe reader.
-            if (!_transportConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
+            if (!_duplexConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
             {
-                buffer = await _transportConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+                buffer = await _duplexConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
             }
 
             if (TryDecodeHeader(
@@ -633,12 +633,12 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                 out (FrameType FrameType, int FrameSize, long? StreamId) header,
                 out int consumed))
             {
-                _transportConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
+                _duplexConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
                 return header;
             }
             else
             {
-                _transportConnectionReader.AdvanceTo(buffer.Start, buffer.End);
+                _duplexConnectionReader.AdvanceTo(buffer.Start, buffer.End);
             }
         }
 
@@ -733,7 +733,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                     }
 
                     int readSize = 0;
-                    if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
+                    if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         // Let the stream receive the data.
                         readSize = await stream.ReceivedStreamFrameAsync(
@@ -771,7 +771,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
 
                         // Accept the new remote stream.
                         // TODO: Cache SliceMultiplexedStream
-                        stream = new SlicMultiplexedStream(this, isBidirectional, remote: true);
+                        stream = new SlicStream(this, isBidirectional, remote: true);
 
                         try
                         {
@@ -811,7 +811,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                                 minimumSegmentSize: MinSegmentSize,
                                 writerScheduler: PipeScheduler.Inline));
 
-                        await _transportConnectionReader.FillBufferWriterAsync(
+                        await _duplexConnectionReader.FillBufferWriterAsync(
                                 pipe.Writer,
                                 dataSize - readSize,
                                 cancel).ConfigureAwait(false);
@@ -838,7 +838,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                         dataSize,
                         (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
                         cancel).ConfigureAwait(false);
-                    if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
+                    if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         stream.ReceivedConsumedFrame((int)consumed.Size);
                     }
@@ -860,7 +860,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                         dataSize,
                         (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
                         cancel).ConfigureAwait(false);
-                    if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
+                    if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         stream.ReceivedResetFrame(streamReset.ApplicationProtocolErrorCode);
                     }
@@ -882,7 +882,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
                         dataSize,
                         (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
                         cancel).ConfigureAwait(false);
-                    if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
+                    if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         stream.ReceivedStopSendingFrame(streamStopSending.ApplicationProtocolErrorCode);
                     }
@@ -975,7 +975,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         // Use the smallest idle timeout.
         if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
         {
-            _transportConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
+            _duplexConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
         }
     }
 
@@ -986,7 +986,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
             _isReadOnly = true;
         }
 
-        foreach (SlicMultiplexedStream stream in _streams.Values)
+        foreach (SlicStream stream in _streams.Values)
         {
             stream.Abort(completeException);
         }
@@ -1004,7 +1004,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         EncodeAction? encode,
         CancellationToken cancel)
     {
-        var encoder = new SliceEncoder(_transportConnectionWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeUInt8((byte)frameType);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
@@ -1016,7 +1016,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         encode?.Invoke(ref encoder);
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
-        return _transportConnectionWriter.FlushAsync(cancel);
+        return _duplexConnectionWriter.FlushAsync(cancel);
     }
 
     private ValueTask WriteStreamFrameAsync(
@@ -1026,7 +1026,7 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         bool endStream,
         CancellationToken cancel)
     {
-        var encoder = new SliceEncoder(_transportConnectionWriter, SliceEncoding.Slice2);
+        var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeUInt8((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
@@ -1034,6 +1034,6 @@ internal class SlicMultiplexedConnection : IMultiplexedConnection
         SliceEncoder.EncodeVarUInt62(
             (ulong)(encoder.EncodedByteCount - startPos + source1.Length + source2.Length), sizePlaceholder);
 
-        return _transportConnectionWriter.WriteAsync(source1, source2, cancel);
+        return _duplexConnectionWriter.WriteAsync(source1, source2, cancel);
     }
 }

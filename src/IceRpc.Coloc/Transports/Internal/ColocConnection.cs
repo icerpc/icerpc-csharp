@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>The colocated connection class to exchange data within the same process. The implementation copies the send
 /// buffer into the receive buffer.</summary>
-internal class ColocDuplexConnection : IDuplexConnection
+internal class ColocConnection : IDuplexConnection
 {
     public Endpoint Endpoint { get; }
 
@@ -29,7 +29,7 @@ internal class ColocDuplexConnection : IDuplexConnection
 
     public void Dispose()
     {
-        _exception ??= new ObjectDisposedException($"{typeof(ColocDuplexConnection)}");
+        _exception ??= new ObjectDisposedException($"{typeof(ColocConnection)}");
 
         if (_state.TrySetFlag(State.Disposed))
         {
@@ -203,7 +203,7 @@ internal class ColocDuplexConnection : IDuplexConnection
         }
     }
 
-    public ColocDuplexConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
+    public ColocConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
     {
         Endpoint = endpoint;
         _connect = connect;
