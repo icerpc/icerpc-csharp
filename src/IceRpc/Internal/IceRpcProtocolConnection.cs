@@ -264,27 +264,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                         _streams.Add(stream);
 
-                        stream.OnShutdown(() =>
-                        {
-                            lock (_mutex)
-                            {
-                                _streams.Remove(stream);
-
-                                if (_streams.Count == 0)
-                                {
-                                    if (_isReadOnly)
-                                    {
-                                        // If shutting down, we can set the _streamsCompleted task completion source
-                                        // as completed to allow shutdown to progress.
-                                        _streamsCompleted.TrySetResult();
-                                    }
-                                    else
-                                    {
-                                        EnableIdleCheck();
-                                    }
-                                }
-                            }
-                        });
+                        RemoveStreamOnWritesAndReadsClosed(stream);
                     }
                 }
             }
@@ -610,8 +590,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             bool endStream,
             CancellationToken cancel)
         {
-            // If the peer completes its input pipe reader, we cancel the pending read on the payload.
-            stream.OnPeerInputCompleted(reader.CancelPendingRead);
+            // If the peer is no longer interested to receive the payload, cancel the reading of the payload.
+            _ = CancelPendingReadOnWritesClosedAsync();
 
             FlushResult flushResult;
             do
@@ -649,6 +629,20 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             while (!flushResult.IsCanceled && !flushResult.IsCompleted);
             return flushResult;
+
+            async Task CancelPendingReadOnWritesClosedAsync()
+            {
+                try
+                {
+                    await stream.WritesClosed.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore the reason of the writes close.
+                }
+
+                reader.CancelPendingRead();
+            }
         }
     }
 
@@ -695,27 +689,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                     _streams.Add(stream);
 
-                    stream.OnShutdown(() =>
-                    {
-                        lock (_mutex)
-                        {
-                            _streams.Remove(stream);
-
-                            if (_streams.Count == 0)
-                            {
-                                if (_isReadOnly)
-                                {
-                                    // If shutting down, we can set the _streamsCompleted task completion source
-                                    // as completed to allow shutdown to progress.
-                                    _streamsCompleted.TrySetResult();
-                                }
-                                else
-                                {
-                                    EnableIdleCheck();
-                                }
-                            }
-                        }
-                    });
+                    RemoveStreamOnWritesAndReadsClosed(stream);
                 }
             }
 
@@ -759,24 +733,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var dispatchCancelSource = new CancellationTokenSource();
 
-            // If the peer input pipe reader is completed while the request is being dispatched, we cancel the dispatch.
-            // There's no point in continuing the dispatch if the peer is no longer interested in the response.
-            stream.OnPeerInputCompleted(() =>
-            {
-                try
-                {
-                    dispatchCancelSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Expected if already disposed.
-                }
-            });
+            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
+            _ = CancelDispatchOnWritesClosedAsync();
 
             // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
-            using CancellationTokenRegistration _ = _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                dispatchCancelSource);
+            using CancellationTokenRegistration tokenRegistration =
+                _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
+                    cts => ((CancellationTokenSource)cts!).Cancel(),
+                    dispatchCancelSource);
 
             OutgoingResponse response;
             try
@@ -924,6 +888,27 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 CheckRemoteHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
+
+            async Task CancelDispatchOnWritesClosedAsync()
+            {
+                try
+                {
+                    await stream.WritesClosed.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore the reason of the writes close.
+                }
+
+                try
+                {
+                    dispatchCancelSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected if already disposed.
+                }
+            }
         }
 
         static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -1030,6 +1015,42 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         finally
         {
             input.AdvanceTo(readResult.Buffer.End);
+        }
+    }
+
+    private void RemoveStreamOnWritesAndReadsClosed(IMultiplexedStream stream)
+    {
+        _ = WaitForStreamShutdownAndRemoveAsync();
+
+        async Task WaitForStreamShutdownAndRemoveAsync()
+        {
+            try
+            {
+                await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore the reason of the reads/writes close.
+            }
+
+            lock (_mutex)
+            {
+                _streams.Remove(stream);
+
+                if (_streams.Count == 0)
+                {
+                    if (_isReadOnly)
+                    {
+                        // If shutting down, we can set the _streamsCompleted task completion source
+                        // as completed to allow shutdown to progress.
+                        _streamsCompleted.TrySetResult();
+                    }
+                    else
+                    {
+                        EnableIdleCheck();
+                    }
+                }
+            }
         }
     }
 

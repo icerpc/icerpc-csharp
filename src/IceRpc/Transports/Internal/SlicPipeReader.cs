@@ -11,7 +11,6 @@ internal class SlicPipeReader : PipeReader
 {
     private static readonly Exception _completedSuccessfullySentinel = new();
 
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _examined;
     private Exception? _exception;
     private long _lastExaminedOffset;
@@ -57,7 +56,7 @@ internal class SlicPipeReader : PipeReader
         {
             // The application consumed all the byes and the peer is done sending data, we can mark reads as
             // completed on the stream.
-            _stream.TrySetReadCompleted();
+            _stream.TrySetReadsClosed(exception: null);
         }
     }
 
@@ -70,14 +69,14 @@ internal class SlicPipeReader : PipeReader
             if (_readResult.IsCompleted)
             {
                 // If the peer is no longer sending data, just mark reads as completed on the stream.
-                _stream.TrySetReadCompleted();
+                _stream.TrySetReadsClosed(exception: null);
             }
 
             if (!_stream.ReadsCompleted)
             {
                 // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
                 // frame to the peer to notify it shouldn't send additional data.
-                _stream.AbortRead(_errorCodeConverter.ToErrorCode(exception));
+                _stream.AbortRead(exception);
             }
 
             _pipe.Reader.Complete(exception);
@@ -103,7 +102,7 @@ internal class SlicPipeReader : PipeReader
         {
             // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
             // stream count.
-            _stream.TrySetReadCompleted();
+            _stream.TrySetReadsClosed(exception: null);
         }
         return result;
     }
@@ -128,7 +127,7 @@ internal class SlicPipeReader : PipeReader
             {
                 // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
                 // stream count.
-                _stream.TrySetReadCompleted();
+                _stream.TrySetReadsClosed(exception: null);
             }
             return true;
         }
@@ -140,14 +139,12 @@ internal class SlicPipeReader : PipeReader
 
     internal SlicPipeReader(
         SlicMultiplexedStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         int resumeThreshold,
         int pauseThreshold)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
         _resumeThreshold = resumeThreshold;
         _receiveCredit = pauseThreshold;
         _pipe = new(new PipeOptions(

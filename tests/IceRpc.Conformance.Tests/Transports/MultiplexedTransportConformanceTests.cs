@@ -387,8 +387,8 @@ public abstract class MultiplexedTransportConformanceTests
         var localTcs = new TaskCompletionSource();
         var remoteTcs = new TaskCompletionSource();
 
-        localStream.OnShutdown(localTcs.SetResult);
-        remoteStream.OnShutdown(remoteTcs.SetResult);
+        _ = CompleteSourceOnShutdownAsync(localStream, localTcs);
+        _ = CompleteSourceOnShutdownAsync(remoteStream, remoteTcs);
 
         // Act
         await serverConnection.DisposeAsync();
@@ -396,11 +396,24 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await localTcs.Task, Throws.Nothing);
-            Assert.That(async () => await remoteTcs.Task, Throws.Nothing);
+            Assert.That(async () => await localTcs.Task, Throws.TypeOf<ConnectionLostException>());
+            Assert.That(async () => await remoteTcs.Task, Throws.TypeOf<ConnectionAbortedException>());
         });
         await CompleteStreamAsync(localStream);
         await CompleteStreamAsync(remoteStream);
+
+        static async Task CompleteSourceOnShutdownAsync(IMultiplexedStream stream, TaskCompletionSource tcs)
+        {
+            try
+            {
+                await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+                tcs.SetResult();
+            }
+            catch (Exception exception)
+            {
+                tcs.SetException(exception);
+            }
+        }
     }
 
     /// <summary>Write data until the transport flow control start blocking, at this point we start
