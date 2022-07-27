@@ -13,7 +13,7 @@ internal sealed class LogMultiplexedClientTransportDecorator : IMultiplexedClien
 
     public bool CheckParams(Endpoint endpoint) => _decoratee.CheckParams(endpoint);
 
-    // This decorators does not log anything, it only provides a decorated duplex connection.
+    // This decorator does not log anything, it only provides a decorated multiplex connection.
     public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
         new LogMultiplexedConnectionDecorator(_decoratee.CreateConnection(options), _logger);
 
