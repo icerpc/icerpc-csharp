@@ -42,6 +42,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _tasksCancelSource = new();
+    private Task? _waitForConnectionFailure;
 
     internal IceRpcProtocolConnection(IMultiplexedConnection transportConnection, ConnectionOptions options)
         : base(options)
@@ -139,22 +140,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             CancellationToken.None);
 
         // Start a task to start accepting requests and detect when the transport connection is closed.
-        _acceptRequestsTask = Task.Run(
-            async () =>
-            {
-                try
+        if (_dispatcher is not null)
+        {
+            _acceptRequestsTask = Task.Run(
+                async () =>
                 {
-                    while (true)
+                    try
                     {
-                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
-                            _tasksCancelSource.Token).ConfigureAwait(false);
+                        while (true)
+                        {
+                            IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
+                                _tasksCancelSource.Token).ConfigureAwait(false);
 
-                        if (_dispatcher is null)
-                        {
-                            // TODO: just ignore the stream or reject it with an appropriate error code?
-                        }
-                        else
-                        {
                             try
                             {
                                 await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
@@ -166,6 +163,24 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             }
                         }
                     }
+                    catch
+                    {
+                        // Ignore connection failures here, this is handled by the _waitForConnectionFailure task.
+                    }
+                },
+                CancellationToken.None);
+        }
+
+        _waitForConnectionFailure = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await _remoteControlStream!.ReadsClosed.WaitAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Connection disposed.
                 }
                 catch (Exception exception)
                 {
@@ -177,7 +192,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                     }
 
-                    // Otherwise, it's an unexpected connection closure.
+                    // Otherwise, it's an unexpected connection failure.
 
                     var connectionLostException = new ConnectionLostException(exception);
 
@@ -202,7 +217,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             await Task.WhenAll(
                 _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
+                _readGoAwayTask ?? Task.CompletedTask,
+                _waitForConnectionFailure ?? Task.CompletedTask).ConfigureAwait(false);
         }
         catch
         {
