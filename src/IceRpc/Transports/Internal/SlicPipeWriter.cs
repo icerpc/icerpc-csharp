@@ -9,13 +9,10 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 {
-    private static readonly Exception _completedSuccessfullySentinel = new();
-
     private Exception? _exception;
     private readonly Pipe _pipe;
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _state;
-    private readonly SlicMultiplexedStream _stream;
+    private readonly SlicStream _stream;
 
     public override void Advance(int bytes)
     {
@@ -39,7 +36,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                         $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
                 }
 
-                _stream.AbortWrite(_errorCodeConverter.ToErrorCode(exception));
+                _stream.AbortWrite(exception);
             }
 
             _pipe.Writer.Complete(exception);
@@ -144,12 +141,14 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             if (_state.HasFlag(State.PipeReaderCompleted))
             {
-                Debug.Assert(_exception is not null);
-                if (_exception != _completedSuccessfullySentinel)
+                if (_exception is null)
+                {
+                    return new FlushResult(isCanceled: false, isCompleted: true);
+                }
+                else
                 {
                     throw ExceptionUtil.Throw(_exception);
                 }
-                return new FlushResult(isCanceled: false, isCompleted: true);
             }
             else
             {
@@ -158,14 +157,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal SlicPipeWriter(
-        SlicMultiplexedStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize)
+    internal SlicPipeWriter(SlicStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
         // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
@@ -179,7 +173,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     internal void Abort(Exception? exception)
     {
-        Interlocked.CompareExchange(ref _exception, exception ?? _completedSuccessfullySentinel, null);
+        Interlocked.CompareExchange(ref _exception, exception, null);
 
         // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
         // once the reading terminates.

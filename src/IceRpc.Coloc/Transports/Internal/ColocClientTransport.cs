@@ -31,7 +31,7 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new FormatException($"cannot create a Coloc connection to endpoint '{options.Endpoint}'");
         }
 
-        return new ColocDuplexConnection(options.Endpoint.WithTransport(Name), endpoint => Connect(endpoint, options));
+        return new ColocConnection(options.Endpoint.WithTransport(Name), endpoint => Connect(endpoint, options));
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>

@@ -37,6 +37,7 @@ public interface IDuplexConnection : IDisposable
 
     /// <summary>Shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     Task ShutdownAsync(CancellationToken cancel);
 
     /// <summary>Writes data over the connection.</summary>

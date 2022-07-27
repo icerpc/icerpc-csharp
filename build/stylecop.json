@@ -5,7 +5,7 @@
         "companyName": "ZeroC",
         "copyrightText": "Copyright (c) ZeroC, Inc. All rights reserved.",
         "xmlHeader": false,
-        "documentInterfaces": true,
+        "documentInterfaces": false,
         "documentExposedElements": true,
         "documentInternalElements": false,
         "documentPrivateElements": false,

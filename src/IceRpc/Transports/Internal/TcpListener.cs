@@ -34,7 +34,7 @@ internal sealed class TcpListener : IDuplexListener
         }
 
 #pragma warning disable CA2000 // the connection is disposed by the caller
-        var serverConnection = new TcpServerDuplexConnection(
+        var serverConnection = new TcpServerConnection(
             Endpoint,
             acceptedSocket,
             _authenticationOptions,
@@ -42,7 +42,7 @@ internal sealed class TcpListener : IDuplexListener
             _minSegmentSize);
         if (_logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
         {
-            return new LogTcpTransportConnectionDecorator(serverConnection, _logger);
+            return new LogTcpConnectionDecorator(serverConnection, _logger);
         }
         else
         {

@@ -45,7 +45,7 @@ public class SlicClientTransport : IMultiplexedClientTransport
             duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, options.Logger);
         }
 
-        return new SlicMultiplexedConnection(
+        return new SlicConnection(
             duplexClientTransport.CreateConnection(
                 new DuplexClientConnectionOptions
                 {

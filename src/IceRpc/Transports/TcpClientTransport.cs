@@ -65,7 +65,7 @@ public class TcpClientTransport : IDuplexClientTransport
             };
         }
 
-        var clientConnection = new TcpClientDuplexConnection(
+        var clientConnection = new TcpClientConnection(
             endpoint,
             authenticationOptions,
             options.Pool,
@@ -73,7 +73,7 @@ public class TcpClientTransport : IDuplexClientTransport
             _options);
         if (options.Logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
         {
-            return new LogTcpTransportConnectionDecorator(clientConnection, options.Logger);
+            return new LogTcpConnectionDecorator(clientConnection, options.Logger);
         }
         else
         {

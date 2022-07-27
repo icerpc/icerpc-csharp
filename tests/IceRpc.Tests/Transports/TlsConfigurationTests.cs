@@ -31,7 +31,7 @@ public class TlsConfigurationTests
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
             });
 
-        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -78,7 +78,7 @@ public class TlsConfigurationTests
                 }
             });
 
-        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -129,7 +129,7 @@ public class TlsConfigurationTests
                 }
             });
 
-        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -170,7 +170,7 @@ public class TlsConfigurationTests
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
             });
 
-        using TcpClientDuplexConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -201,13 +201,13 @@ public class TlsConfigurationTests
             });
     }
 
-    private static TcpClientDuplexConnection CreateTcpClientConnection(
+    private static TcpClientConnection CreateTcpClientConnection(
         Endpoint endpoint,
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexClientTransport transport = new TcpClientTransport(options ?? new());
-        return (TcpClientDuplexConnection)transport.CreateConnection(
+        return (TcpClientConnection)transport.CreateConnection(
             new DuplexClientConnectionOptions
             {
                 Endpoint = endpoint,

@@ -11,6 +11,7 @@ public static class InvokerBuilderExtensions
     /// <summary>Sets the last invoker of the invocation pipeline to be a DI service managed by the service provider.
     /// </summary>
     /// <typeparam name="TService">The type of the DI service.</typeparam>
+    /// <param name="builder">The builder being configured.</param>
     /// <returns>This builder.</returns>
     public static IInvokerBuilder Into<TService>(this IInvokerBuilder builder) where TService : IInvoker
     {

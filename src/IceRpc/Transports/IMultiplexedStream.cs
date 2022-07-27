@@ -23,19 +23,14 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     bool IsStarted { get; }
 
+    /// <summary>Gets a task that completes when reads are closed.</summary>
+    Task ReadsClosed { get; }
+
+    /// <summary>Gets a task that completes when writes are closed.</summary>
+    Task WritesClosed { get; }
+
     /// <summary>Aborts the stream by completing the <see cref="IDuplexPipe.Input"/> and <see
     /// cref="IDuplexPipe.Output"/> with the given exception.</summary>
     /// <param name="exception">The completion exception.</param>
     void Abort(Exception exception);
-
-    /// <summary>Sets the action which is called when the peer <see cref="IDuplexPipe.Input"/> completes.</summary>
-    /// <param name="action">The callback to register.</param>
-    /// <remarks>If the he peer <see cref="IDuplexPipe.Input"/> is already completed, the callback is called
-    /// synchronously by this method.</remarks>
-    void OnPeerInputCompleted(Action action);
-
-    /// <summary>Sets the action which is called when the stream is shutdown.</summary>
-    /// <param name="action">The callback to register.</param>
-    /// <remarks>If the stream is already shutdown, the callback is called synchronously by this method.</remarks>
-    void OnShutdown(Action action);
 }

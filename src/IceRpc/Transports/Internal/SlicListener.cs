@@ -11,7 +11,7 @@ internal class SlicListener : IMultiplexedListener
     public Endpoint Endpoint => _duplexListener.Endpoint;
 
     public async Task<IMultiplexedConnection> AcceptAsync() =>
-        new SlicMultiplexedConnection(
+        new SlicConnection(
             await _duplexListener.AcceptAsync().ConfigureAwait(false),
             _options.ServerConnectionOptions,
             _slicOptions);

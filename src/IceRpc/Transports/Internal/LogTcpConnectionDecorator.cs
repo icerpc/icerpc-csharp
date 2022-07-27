@@ -7,11 +7,11 @@ using System.Security.Authentication;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The log decorator installed by the TCP transports.</summary>
-internal class LogTcpTransportConnectionDecorator : IDuplexConnection
+internal class LogTcpConnectionDecorator : IDuplexConnection
 {
     public Endpoint Endpoint => _decoratee.Endpoint;
 
-    private readonly TcpDuplexConnection _decoratee;
+    private readonly TcpConnection _decoratee;
     private readonly ILogger _logger;
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -48,7 +48,7 @@ internal class LogTcpTransportConnectionDecorator : IDuplexConnection
     public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
         _decoratee.WriteAsync(buffers, cancel);
 
-    internal LogTcpTransportConnectionDecorator(TcpDuplexConnection decoratee, ILogger logger)
+    internal LogTcpConnectionDecorator(TcpConnection decoratee, ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;

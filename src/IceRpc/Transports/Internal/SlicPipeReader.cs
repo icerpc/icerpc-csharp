@@ -9,9 +9,6 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeReader : PipeReader
 {
-    private static readonly Exception _completedSuccessfullySentinel = new();
-
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _examined;
     private Exception? _exception;
     private long _lastExaminedOffset;
@@ -20,7 +17,7 @@ internal class SlicPipeReader : PipeReader
     private int _receiveCredit;
     private readonly int _resumeThreshold;
     private int _state;
-    private readonly SlicMultiplexedStream _stream;
+    private readonly SlicStream _stream;
 
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
@@ -57,7 +54,7 @@ internal class SlicPipeReader : PipeReader
         {
             // The application consumed all the byes and the peer is done sending data, we can mark reads as
             // completed on the stream.
-            _stream.TrySetReadCompleted();
+            _stream.TrySetReadsClosed(exception: null);
         }
     }
 
@@ -70,14 +67,14 @@ internal class SlicPipeReader : PipeReader
             if (_readResult.IsCompleted)
             {
                 // If the peer is no longer sending data, just mark reads as completed on the stream.
-                _stream.TrySetReadCompleted();
+                _stream.TrySetReadsClosed(exception: null);
             }
 
             if (!_stream.ReadsCompleted)
             {
                 // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
                 // frame to the peer to notify it shouldn't send additional data.
-                _stream.AbortRead(_errorCodeConverter.ToErrorCode(exception));
+                _stream.AbortRead(exception);
             }
 
             _pipe.Reader.Complete(exception);
@@ -103,7 +100,7 @@ internal class SlicPipeReader : PipeReader
         {
             // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
             // stream count.
-            _stream.TrySetReadCompleted();
+            _stream.TrySetReadsClosed(exception: null);
         }
         return result;
     }
@@ -128,7 +125,7 @@ internal class SlicPipeReader : PipeReader
             {
                 // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
                 // stream count.
-                _stream.TrySetReadCompleted();
+                _stream.TrySetReadsClosed(exception: null);
             }
             return true;
         }
@@ -139,15 +136,13 @@ internal class SlicPipeReader : PipeReader
     }
 
     internal SlicPipeReader(
-        SlicMultiplexedStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        SlicStream stream,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         int resumeThreshold,
         int pauseThreshold)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
         _resumeThreshold = resumeThreshold;
         _receiveCredit = pauseThreshold;
         _pipe = new(new PipeOptions(
@@ -159,7 +154,7 @@ internal class SlicPipeReader : PipeReader
 
     internal void Abort(Exception? exception)
     {
-        Interlocked.CompareExchange(ref _exception, exception ?? _completedSuccessfullySentinel, null);
+        Interlocked.CompareExchange(ref _exception, exception, null);
 
         if (_state.TrySetFlag(State.PipeWriterCompleted))
         {
@@ -250,12 +245,14 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
-            Debug.Assert(_exception is not null);
-            if (_exception != _completedSuccessfullySentinel)
+            if (_exception is null)
+            {
+                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
+            }
+            else
             {
                 throw ExceptionUtil.Throw(_exception);
             }
-            return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
         }
         else
         {
