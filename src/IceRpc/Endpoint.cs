@@ -79,6 +79,7 @@ public readonly record struct Endpoint
     }
 
     /// <summary>Constructs an endpoint from a protocol.</summary>
+    /// <param name="protocol">The endpoint's protocol.</param>
     public Endpoint(Protocol protocol)
     {
         if (!protocol.IsSupported)

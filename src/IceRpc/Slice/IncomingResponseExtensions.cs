@@ -152,6 +152,7 @@ public static class IncomingResponseExtensions
     /// <param name="encodeOptions">The encode options of the proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="cancel">The cancellation token.</param>
+    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,

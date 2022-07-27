@@ -364,6 +364,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Converts this service address into a string.</summary>
+    /// <returns>The string representation of this service address.</returns>
     public override string ToString()
     {
         if (Protocol is null)
@@ -440,6 +441,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Converts this service address into a Uri.</summary>
+    /// <returns>An Uri representing this service address.</returns>
     public Uri ToUri() =>
         OriginalUri ?? (Protocol is null ? new Uri(Path, UriKind.Relative) : new Uri(ToString(), UriKind.Absolute));
 

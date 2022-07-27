@@ -40,6 +40,7 @@ public static class RouterExtensions
     /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature"/> feature
     /// in all requests.</summary>
     /// <param name="router">The router being configured.</param>
+    /// <returns>The router being configured.</returns>
     public static Router UseDispatchInformation(this Router router) =>
         router.Use(next => new InlineDispatcher((request, cancel) =>
         {
@@ -52,6 +53,7 @@ public static class RouterExtensions
     /// <typeparam name="TFeature">The type of the feature.</typeparam>
     /// <param name="router">The router being configured.</param>
     /// <param name="feature">The value of the feature to set in all requests.</param>
+    /// <returns>The router being configured.</returns>
     public static Router UseFeature<TFeature>(this Router router, TFeature feature) =>
         router.Use(next => new InlineDispatcher((request, cancel) =>
         {

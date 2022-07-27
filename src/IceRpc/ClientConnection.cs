@@ -170,10 +170,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         _protocolConnection.InvokeAsync(request, cancel);
 
     /// <summary>Adds a callback that will be executed when the connection is aborted.</summary>
+    /// <param name="callback">The callback to run when the connection is aborted.</param>
     /// TODO: fix doc-comment
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
 
     /// <summary>Adds a callback that will be executed when the connection is shut down.</summary>
+    /// <param name="callback">The callback to run when the connection is shutdown.</param>
     /// TODO: fix doc-comment
     public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
 
@@ -182,6 +184,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
         ShutdownAsync("client connection shutdown", cancel);
 
@@ -191,6 +194,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(string message, CancellationToken cancel = default) =>
         _protocolConnection.ShutdownAsync(message, cancel);
 }

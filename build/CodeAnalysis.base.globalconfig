@@ -211,15 +211,6 @@ dotnet_diagnostic.SA1513.severity = none
 # SA1515: Single-line comment should be preceded by blank line
 dotnet_diagnostic.SA1515.severity = none
 
-# SA1600: Element should be documented
-dotnet_diagnostic.SA1600.severity = none
-
-# SA1611: The documentation for parameter is missing, TODO enable to ensure all parameters are documented
-dotnet_diagnostic.SA1611.severity = none
-
-# SA1615: Element return value should be documented, TODO enable to ensure we always document the return value
-dotnet_diagnostic.SA1615.severity = none
-
 # SA1625: Element documentation should not be copied and pasted
 dotnet_diagnostic.SA1625.severity = none
 
