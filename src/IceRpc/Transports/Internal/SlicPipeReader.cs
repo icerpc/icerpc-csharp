@@ -9,8 +9,6 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeReader : PipeReader
 {
-    private static readonly Exception _completedSuccessfullySentinel = new();
-
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _examined;
     private Exception? _exception;
@@ -159,7 +157,7 @@ internal class SlicPipeReader : PipeReader
 
     internal void Abort(Exception? exception)
     {
-        Interlocked.CompareExchange(ref _exception, exception ?? _completedSuccessfullySentinel, null);
+        Interlocked.CompareExchange(ref _exception, exception, null);
 
         if (_state.TrySetFlag(State.PipeWriterCompleted))
         {
@@ -250,12 +248,14 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
-            Debug.Assert(_exception is not null);
-            if (_exception != _completedSuccessfullySentinel)
+            if (_exception is null)
+            {
+                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
+            }
+            else
             {
                 throw ExceptionUtil.Throw(_exception);
             }
-            return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
         }
         else
         {
