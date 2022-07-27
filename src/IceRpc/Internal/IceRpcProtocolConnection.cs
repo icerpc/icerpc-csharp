@@ -42,6 +42,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _tasksCancelSource = new();
+    private Task? _waitForConnectionFailure;
 
     internal IceRpcProtocolConnection(IMultiplexedConnection transportConnection, ConnectionOptions options)
         : base(options)
@@ -105,7 +106,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
-        _controlStream.OnShutdown(ConnectionLost);
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -118,11 +118,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await SendControlFrameAsync(
             IceRpcControlFrameType.Settings,
             (ref SliceEncoder encoder) => settings.Encode(ref encoder),
+            endStream: false,
             cancel).ConfigureAwait(false);
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
         _remoteControlStream = await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-        _remoteControlStream.OnShutdown(ConnectionLost);
 
         await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
         await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
@@ -165,33 +165,47 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch
                     {
-                        // Ignore all exceptions.
-                        // The loss of the connection is detected via the OnShutdown callbacks on the control streams.
+                        // Ignore connection failures here, this is handled by the _waitForConnectionFailure task.
                     }
                 },
                 CancellationToken.None);
         }
 
-        return transportConnectionInformation;
-
-        void ConnectionLost()
-        {
-            lock (_mutex)
+        _waitForConnectionFailure = Task.Run(
+            async () =>
             {
-                if (_isReadOnly)
+                try
                 {
-                    return; // already closing or closed
+                    await _remoteControlStream!.ReadsClosed.WaitAsync(_tasksCancelSource.Token).ConfigureAwait(false);
                 }
-            }
+                catch (OperationCanceledException)
+                {
+                    // Connection disposed.
+                }
+                catch (Exception exception)
+                {
+                    lock (_mutex)
+                    {
+                        if (_isReadOnly)
+                        {
+                            return; // already closing or closed
+                        }
+                    }
 
-            var connectionLostException = new ConnectionLostException();
+                    // Otherwise, it's an unexpected connection failure.
 
-            InvokeOnAbort(connectionLostException);
+                    var connectionLostException = new ConnectionLostException(exception);
 
-            // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still be
-            // running.
-            CancelDispatchesAndInvocations(connectionLostException);
-        }
+                    InvokeOnAbort(connectionLostException);
+
+                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
+                    // be running.
+                    CancelDispatchesAndInvocations(connectionLostException);
+                }
+            },
+            CancellationToken.None);
+
+        return transportConnectionInformation;
     }
 
     private protected override async ValueTask DisposeAsyncCore()
@@ -203,7 +217,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             await Task.WhenAll(
                 _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
+                _readGoAwayTask ?? Task.CompletedTask,
+                _waitForConnectionFailure ?? Task.CompletedTask).ConfigureAwait(false);
         }
         catch
         {
@@ -265,27 +280,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                         _streams.Add(stream);
 
-                        stream.OnShutdown(() =>
-                        {
-                            lock (_mutex)
-                            {
-                                _streams.Remove(stream);
-
-                                if (_streams.Count == 0)
-                                {
-                                    if (_isReadOnly)
-                                    {
-                                        // If shutting down, we can set the _streamsCompleted task completion source
-                                        // as completed to allow shutdown to progress.
-                                        _streamsCompleted.TrySetResult();
-                                    }
-                                    else
-                                    {
-                                        EnableIdleCheck();
-                                    }
-                                }
-                            }
-                        });
+                        _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
                     }
                 }
             }
@@ -436,6 +431,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await SendControlFrameAsync(
             IceRpcControlFrameType.GoAway,
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
+            endStream: true,
             cancel).ConfigureAwait(false);
 
         // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
@@ -466,14 +462,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _dispatchesCompleted.Task,
             _streamsCompleted.Task).WaitAsync(cancel).ConfigureAwait(false);
 
-        // Complete the control stream only once all the streams have completed. We also wait for the peer to close
-        // its control stream to ensure the peer's stream are also completed. The transport connection can safely be
-        // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
-        // closing the transport connection too soon, before the remote streams are completed.
-        await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
-        _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
-        await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
-
+        // Shutdown the transport and wait for the peer shutdown.
         await _transportConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
     }
 
@@ -617,8 +606,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             bool endStream,
             CancellationToken cancel)
         {
-            // If the peer completes its input pipe reader, we cancel the pending read on the payload.
-            stream.OnPeerInputCompleted(reader.CancelPendingRead);
+            // If the peer is no longer interested to receive the payload, cancel the reading of the payload.
+            _ = CancelPendingReadOnWritesClosedAsync();
 
             FlushResult flushResult;
             do
@@ -656,6 +645,20 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             while (!flushResult.IsCanceled && !flushResult.IsCompleted);
             return flushResult;
+
+            async Task CancelPendingReadOnWritesClosedAsync()
+            {
+                try
+                {
+                    await stream.WritesClosed.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore the reason of the writes close.
+                }
+
+                reader.CancelPendingRead();
+            }
         }
     }
 
@@ -702,27 +705,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                     _streams.Add(stream);
 
-                    stream.OnShutdown(() =>
-                    {
-                        lock (_mutex)
-                        {
-                            _streams.Remove(stream);
-
-                            if (_streams.Count == 0)
-                            {
-                                if (_isReadOnly)
-                                {
-                                    // If shutting down, we can set the _streamsCompleted task completion source
-                                    // as completed to allow shutdown to progress.
-                                    _streamsCompleted.TrySetResult();
-                                }
-                                else
-                                {
-                                    EnableIdleCheck();
-                                }
-                            }
-                        }
-                    });
+                    _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
                 }
             }
 
@@ -766,24 +749,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var dispatchCancelSource = new CancellationTokenSource();
 
-            // If the peer input pipe reader is completed while the request is being dispatched, we cancel the dispatch.
-            // There's no point in continuing the dispatch if the peer is no longer interested in the response.
-            stream.OnPeerInputCompleted(() =>
-            {
-                try
-                {
-                    dispatchCancelSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Expected if already disposed.
-                }
-            });
+            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
+            _ = CancelDispatchOnWritesClosedAsync();
 
             // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
-            using CancellationTokenRegistration _ = _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                dispatchCancelSource);
+            using CancellationTokenRegistration tokenRegistration =
+                _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
+                    cts => ((CancellationTokenSource)cts!).Cancel(),
+                    dispatchCancelSource);
 
             OutgoingResponse response;
             try
@@ -931,6 +904,27 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 CheckRemoteHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
+
+            async Task CancelDispatchOnWritesClosedAsync()
+            {
+                try
+                {
+                    await stream.WritesClosed.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore the reason of the writes close.
+                }
+
+                try
+                {
+                    dispatchCancelSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected if already disposed.
+                }
+            }
         }
 
         static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -1040,9 +1034,41 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
+    private async Task RemoveStreamOnWritesAndReadsClosedAsync(IMultiplexedStream stream)
+    {
+        try
+        {
+            await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore the reason of the reads/writes close.
+        }
+
+        lock (_mutex)
+        {
+            _streams.Remove(stream);
+
+            if (_streams.Count == 0)
+            {
+                if (_isReadOnly)
+                {
+                    // If shutting down, we can set the _streamsCompleted task completion source
+                    // as completed to allow shutdown to progress.
+                    _streamsCompleted.TrySetResult();
+                }
+                else
+                {
+                    EnableIdleCheck();
+                }
+            }
+        }
+    }
+
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction? encodeAction,
+        bool endStream,
         CancellationToken cancel)
     {
         PipeWriter output = _controlStream!.Output;
@@ -1054,7 +1080,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeFrame(output);
         }
 
-        return output.FlushAsync(cancel);
+        return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream, cancel); // Flush
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {

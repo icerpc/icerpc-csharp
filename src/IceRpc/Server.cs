@@ -227,7 +227,8 @@ public sealed class Server : IAsyncDisposable
                     ServerConnectionOptions = new()
                     {
                         MaxBidirectionalStreams = connectionOptions.MaxIceRpcBidirectionalStreams,
-                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams,
+                        // Add an additional stream for the icerpc protocol control stream.
+                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams + 1,
                         MinSegmentSize = connectionOptions.MinSegmentSize,
                         Pool = connectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions,

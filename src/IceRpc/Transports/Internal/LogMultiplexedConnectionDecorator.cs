@@ -60,14 +60,14 @@ internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
 
     public PipeWriter Output => _output ??= new LogMultiplexedStreamPipeWriter(_decoratee.Output, this, _logger);
 
+    public Task ReadsClosed => _decoratee.ReadsClosed;
+
+    public Task WritesClosed => _decoratee.WritesClosed;
+
     private readonly IMultiplexedStream _decoratee;
     private PipeReader? _input;
     private readonly ILogger _logger;
     private PipeWriter? _output;
-
-    public void OnShutdown(Action callback) => _decoratee.OnShutdown(callback);
-
-    public void OnPeerInputCompleted(Action callback) => _decoratee.OnPeerInputCompleted(callback);
 
     public void Abort(Exception exception) => _decoratee.Abort(exception);
 

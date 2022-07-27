@@ -11,7 +11,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 {
     private Exception? _exception;
     private readonly Pipe _pipe;
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _state;
     private readonly SlicStream _stream;
 
@@ -37,7 +36,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                         $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
                 }
 
-                _stream.AbortWrite(_errorCodeConverter.ToErrorCode(exception));
+                _stream.AbortWrite(exception);
             }
 
             _pipe.Writer.Complete(exception);
@@ -158,14 +157,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal SlicPipeWriter(
-        SlicStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize)
+    internal SlicPipeWriter(SlicStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
         // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to

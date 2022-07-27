@@ -19,7 +19,6 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
     /// <summary>Creates the service collection used for Slic multiplexed transports for conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection()
     {
-        var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
         var services = new ServiceCollection()
             .AddColocTransport()
             .AddSingleton(provider =>
@@ -29,8 +28,8 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
                 return transport.Listen(
                     provider.GetRequiredService<IOptions<MultiplexedListenerOptions>>().Value with
                     {
-                        Endpoint = endpoint,
-                        Logger = loggerFactory.CreateLogger("IceRpc")
+                        Endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" },
+                        Logger = loggerFactory.CreateLogger("IceRpc"),
                     });
             });
 

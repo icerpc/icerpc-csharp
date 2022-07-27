@@ -91,7 +91,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 new MultiplexedClientConnectionOptions
                 {
                     MaxBidirectionalStreams = options.MaxIceRpcBidirectionalStreams,
-                    MaxUnidirectionalStreams = options.MaxIceRpcUnidirectionalStreams,
+                    // Add an additional stream for the icerpc protocol control stream.
+                    MaxUnidirectionalStreams = options.MaxIceRpcUnidirectionalStreams + 1,
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
                     Endpoint = endpoint,

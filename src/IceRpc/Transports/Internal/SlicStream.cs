@@ -48,6 +48,10 @@ internal class SlicStream : IMultiplexedStream
         _outputPipeWriter :
         throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
 
+    public Task ReadsClosed => _readsClosedCompletionSource.Task;
+
+    public Task WritesClosed => _writesClosedCompletionSource.Task;
+
     internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
     internal bool ReadsCompleted => _state.HasFlag(State.ReadsCompleted);
@@ -57,28 +61,21 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicConnection _connection;
     private long _id = -1;
     private readonly SlicPipeReader _inputPipeReader;
-    private readonly object _mutex = new();
     private readonly SlicPipeWriter _outputPipeWriter;
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
-    private Action? _shutdownAction;
-    private Action? _peerInputCompletedAction;
+    private readonly TaskCompletionSource _readsClosedCompletionSource = new();
+    private readonly TaskCompletionSource _writesClosedCompletionSource = new();
     private int _state;
-
-    public void OnPeerInputCompleted(Action callback) =>
-        RegisterStateAction(ref _peerInputCompletedAction, State.ReceivedStopSending, callback);
-
-    public void OnShutdown(Action callback) =>
-        RegisterStateAction(ref _shutdownAction, State.WritesCompleted | State.ReadsCompleted, callback);
 
     public void Abort(Exception completeException)
     {
-        if (TrySetReadCompleted())
+        if (TrySetReadsClosed(completeException))
         {
             _inputPipeReader.Abort(completeException);
         }
-        if (TrySetWriteCompleted())
+        if (TrySetWritesClosed(completeException))
         {
             _outputPipeWriter.Abort(completeException);
         }
@@ -91,17 +88,12 @@ internal class SlicStream : IMultiplexedStream
 
         _inputPipeReader = new SlicPipeReader(
             this,
-            _connection.ErrorCodeConverter,
             _connection.Pool,
             _connection.MinSegmentSize,
             _connection.ResumeWriterThreshold,
             _connection.PauseWriterThreshold);
 
-        _outputPipeWriter = new SlicPipeWriter(
-            this,
-            _connection.ErrorCodeConverter,
-            _connection.Pool,
-            _connection.MinSegmentSize);
+        _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinSegmentSize);
 
         IsBidirectional = bidirectional;
         if (!IsBidirectional)
@@ -109,22 +101,22 @@ internal class SlicStream : IMultiplexedStream
             if (remote)
             {
                 // Write-side of remote unidirectional stream is marked as completed.
-                TrySetWriteCompleted();
+                TrySetWritesClosed(exception: null);
             }
             else
             {
                 // Read-side of local unidirectional stream is marked as completed.
-                TrySetReadCompleted();
+                TrySetReadsClosed(exception: null);
             }
         }
     }
 
-    internal void AbortRead(ulong errorCode)
+    internal void AbortRead(Exception? exception)
     {
         if (!IsStarted)
         {
             // If the stream is not started or the connection aborted, there's no need to send a stop sending frame.
-            TrySetReadCompleted();
+            TrySetReadsClosed(exception: null);
         }
         else if (!ReadsCompleted)
         {
@@ -137,7 +129,7 @@ internal class SlicStream : IMultiplexedStream
             {
                 // Complete reads before sending the stop sending frame to ensure the stream max count is decreased
                 // before the peer receives the frame.
-                TrySetReadCompleted();
+                TrySetReadsClosed(exception: null);
             }
 
             try
@@ -145,7 +137,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamStopSending,
-                    new StreamStopSendingBody(errorCode).Encode,
+                    new StreamStopSendingBody(_connection.ErrorCodeConverter.ToErrorCode(exception)).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -157,17 +149,17 @@ internal class SlicStream : IMultiplexedStream
             {
                 // Complete reads after sending the stop sending frame to ensure the peer's stream max count is
                 // decreased before it receives a frame for a new stream.
-                TrySetReadCompleted();
+                TrySetReadsClosed(exception: null);
             }
         }
     }
 
-    internal void AbortWrite(ulong errorCode)
+    internal void AbortWrite(Exception? exception)
     {
         if (!IsStarted)
         {
             // If the stream is not started or the connection aborted, there's no need to send a reset frame.
-            TrySetWriteCompleted();
+            TrySetWritesClosed(exception: null);
         }
         else if (!WritesCompleted)
         {
@@ -180,7 +172,7 @@ internal class SlicStream : IMultiplexedStream
             {
                 // Complete writes before sending the reset frame to ensure the stream max count is decreased before
                 // the peer receives the frame.
-                TrySetWriteCompleted();
+                TrySetWritesClosed(exception: null);
             }
 
             try
@@ -188,7 +180,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamReset,
-                    new StreamResetBody(errorCode).Encode,
+                    new StreamResetBody(_connection.ErrorCodeConverter.ToErrorCode(exception)).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -200,7 +192,7 @@ internal class SlicStream : IMultiplexedStream
             {
                 // Complete writes after sending the reset frame to ensure the peer's stream max count is decreased
                 // before it receives a frame for a new stream.
-                TrySetWriteCompleted();
+                TrySetWritesClosed(exception: null);
             }
         }
     }
@@ -258,14 +250,11 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new InvalidDataException("received reset frame on local unidirectional stream");
         }
-        else if (!TrySetState(State.ReceivedReset))
-        {
-            throw new InvalidDataException("already received reset frame");
-        }
 
-        if (TrySetReadCompleted())
+        Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
+        if (TrySetReadsClosed(exception))
         {
-            _inputPipeReader.Abort(_connection.ErrorCodeConverter.FromErrorCode(errorCode));
+            _inputPipeReader.Abort(exception);
         }
     }
 
@@ -275,14 +264,11 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new InvalidDataException("received stop sending on remote unidirectional stream");
         }
-        else if (!TrySetState(State.ReceivedStopSending))
-        {
-            throw new InvalidDataException("already received stop sending frame");
-        }
 
-        if (TrySetWriteCompleted())
+        Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
+        if (TrySetWritesClosed(exception))
         {
-            _outputPipeWriter.Abort(_connection.ErrorCodeConverter.FromErrorCode(errorCode));
+            _outputPipeWriter.Abort(exception);
         }
     }
 
@@ -300,46 +286,43 @@ internal class SlicStream : IMultiplexedStream
             new StreamConsumedBody((ulong)size).Encode,
             CancellationToken.None).AsTask();
 
-    internal bool TrySetReadCompleted() => TrySetState(State.ReadsCompleted);
-
-    internal bool TrySetWriteCompleted() => TrySetState(State.WritesCompleted);
-
-    private void ExecuteStateAction(ref Action? stateAction)
+    internal bool TrySetReadsClosed(Exception? exception)
     {
-        Action? action;
-        lock (_mutex)
+        if (TrySetState(State.ReadsCompleted))
         {
-            action = stateAction;
-        }
-
-        try
-        {
-            action?.Invoke();
-        }
-        catch (Exception ex)
-        {
-            Debug.Assert(false, $"unexpected exception from stream state action\n{ex}");
-            throw;
-        }
-    }
-
-    private void RegisterStateAction(ref Action? stateAction, State state, Action action)
-    {
-        bool isStateAlreadySet = false;
-        lock (_mutex)
-        {
-            if (_state.HasFlag(state))
+            if (exception is null)
             {
-                isStateAlreadySet = true;
+                _readsClosedCompletionSource.SetResult();
             }
             else
             {
-                stateAction = action;
+                _readsClosedCompletionSource.SetException(exception);
             }
+            return true;
         }
-        if (isStateAlreadySet)
+        else
         {
-            action();
+            return false;
+        }
+    }
+
+    internal bool TrySetWritesClosed(Exception? exception)
+    {
+        if (TrySetState(State.WritesCompleted))
+        {
+            if (exception is null)
+            {
+                _writesClosedCompletionSource.SetResult();
+            }
+            else
+            {
+                _writesClosedCompletionSource.SetException(exception);
+            }
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 
@@ -355,14 +338,6 @@ internal class SlicStream : IMultiplexedStream
                 {
                     Shutdown();
                 }
-
-                // Notify the registered shutdown action.
-                ExecuteStateAction(ref _shutdownAction);
-            }
-            if (state.HasFlag(State.ReceivedStopSending))
-            {
-                // Notify the registered peer input completed action.
-                ExecuteStateAction(ref _peerInputCompletedAction);
             }
             return true;
         }
@@ -404,7 +379,5 @@ internal class SlicStream : IMultiplexedStream
     {
         ReadsCompleted = 1,
         WritesCompleted = 2,
-        ReceivedStopSending = 4,
-        ReceivedReset = 8
     }
 }
