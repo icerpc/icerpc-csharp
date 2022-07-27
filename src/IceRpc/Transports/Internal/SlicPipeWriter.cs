@@ -9,8 +9,6 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 {
-    private static readonly Exception _completedSuccessfullySentinel = new();
-
     private Exception? _exception;
     private readonly Pipe _pipe;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
@@ -144,12 +142,14 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             if (_state.HasFlag(State.PipeReaderCompleted))
             {
-                Debug.Assert(_exception is not null);
-                if (_exception != _completedSuccessfullySentinel)
+                if (_exception is null)
+                {
+                    return new FlushResult(isCanceled: false, isCompleted: true);
+                }
+                else
                 {
                     throw ExceptionUtil.Throw(_exception);
                 }
-                return new FlushResult(isCanceled: false, isCompleted: true);
             }
             else
             {
@@ -179,7 +179,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     internal void Abort(Exception? exception)
     {
-        Interlocked.CompareExchange(ref _exception, exception ?? _completedSuccessfullySentinel, null);
+        Interlocked.CompareExchange(ref _exception, exception, null);
 
         // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
         // once the reading terminates.
