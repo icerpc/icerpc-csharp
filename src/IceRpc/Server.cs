@@ -168,7 +168,7 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"server '{this}' is already listening");
             }
 
-            ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
+            ILogger logger = _loggerFactory.CreateLogger(GetType().FullName!);
 
             ConnectionOptions connectionOptions = _options.ConnectionOptions;
             if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)

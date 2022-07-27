@@ -53,7 +53,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
         duplexClientTransport ??= DefaultDuplexClientTransport;
 
-        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
+        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
         if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
         {
