@@ -207,11 +207,9 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=quic")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
-    [TestCase("icerpc://foo.com", "icerpc://bar.com?transport=quic")]
     [TestCase("ice://foo.com?transport=tcp", "ice://foo.com/path?transport=quic")]
     [TestCase("ice://foo.com", "ice://bar.com/path")]
     [TestCase("ice://foo.com", "ice://foo.com:10000/path")]
-    [TestCase("ice://foo.com", "ice://bar.com/path?transport=quic")]
     public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
     {
         // Arrange
