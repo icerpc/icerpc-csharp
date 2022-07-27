@@ -90,7 +90,7 @@ internal static partial class TransportLoggerExtensions
         EventId = (int)TransportEventIds.MultiplexedConnectionCreateStreamException,
         EventName = nameof(TransportEventIds.MultiplexedConnectionCreateStreamException),
         Level = LogLevel.Trace,
-        Message = "Multiplexed connection failed to accept a new {Kind}stream")]
+        Message = "Multiplexed connection failed to accept a new {Kind} stream")]
     internal static partial void LogMultiplexedConnectionCreateStreamException(
         this ILogger logger,
         Exception exception,
