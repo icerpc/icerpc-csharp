@@ -114,14 +114,14 @@ internal static partial class TransportLoggerExtensions
         EventId = (int)TransportEventIds.ServerTransportListen,
         EventName = nameof(TransportEventIds.ServerTransportListen),
         Level = LogLevel.Information,
-        Message = "Listening for new connections on {Endpoint}")]
+        Message = "Server listening for new connections on {Endpoint}")]
     internal static partial void LogServerTransportListen(this ILogger logger, Endpoint endpoint);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.ServerTransportListenException,
         EventName = nameof(TransportEventIds.ServerTransportListenException),
         Level = LogLevel.Information,
-        Message = "Cannot listen on {Endpoint}")]
+        Message = "Server cannot listen for new connections on {Endpoint}")]
     internal static partial void LogServerTransportListenException(
         this ILogger logger,
         Exception exception,
