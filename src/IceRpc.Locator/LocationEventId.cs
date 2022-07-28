@@ -4,7 +4,7 @@ namespace IceRpc.Locator;
 
 /// <summary>This enum contains event ID constants used by log decorators of ILocationResolver, IEndpointFinder and
 /// IEndpointCache.</summary>
-public enum LocationEventIds
+public enum LocationEventId
 {
     /// <summary>The location resolver is resolving a location.</summary>
     Resolving,

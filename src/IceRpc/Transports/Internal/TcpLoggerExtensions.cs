@@ -13,12 +13,12 @@ internal static partial class TcpLoggerExtensions
     private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthentication =
         LoggerMessage.Define<Dictionary<string, string>>(
             LogLevel.Debug,
-            new EventId((int)TcpEventIds.TlsAuthentication, nameof(TcpEventIds.TlsAuthentication)),
+            new EventId((int)TcpEventId.TlsAuthentication, nameof(TcpEventId.TlsAuthentication)),
             "Tls authentication succeeded ({TlsInfo})");
 
     [LoggerMessage(
-        EventId = (int)TcpEventIds.Connect,
-        EventName = nameof(TcpEventIds.Connect),
+        EventId = (int)TcpEventId.Connect,
+        EventName = nameof(TcpEventId.Connect),
         Level = LogLevel.Debug,
         Message = "tcp connection established (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
     internal static partial void LogTcpConnect(this ILogger logger, int rcvSize, int sndSize);
@@ -46,8 +46,8 @@ internal static partial class TcpLoggerExtensions
 
     // TODO: log SslStream properties
     [LoggerMessage(
-        EventId = (int)TcpEventIds.TlsAuthenticationFailed,
-        EventName = nameof(TcpEventIds.TlsAuthenticationFailed),
+        EventId = (int)TcpEventId.TlsAuthenticationFailed,
+        EventName = nameof(TcpEventId.TlsAuthenticationFailed),
         Level = LogLevel.Debug,
         Message = "Tls authentication failed")]
     internal static partial void LogTlsAuthenticationFailed(this ILogger logger, Exception exception);
