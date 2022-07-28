@@ -9,6 +9,7 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 {
+    private readonly CancellationTokenSource _abortCancelSource = new();
     private Exception? _exception;
     private readonly Pipe _pipe;
     private int _state;
@@ -41,6 +42,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
             _pipe.Writer.Complete(exception);
             Abort(exception);
+
+            _abortCancelSource.Dispose();
         }
     }
 
@@ -67,6 +70,11 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             return GetFlushResult();
         }
+
+        // Abort the stream if the invocation is canceled.
+        using CancellationTokenRegistration cancelTokenRegistration = cancel.UnsafeRegister(
+                tcs => ((CancellationTokenSource)tcs!).Cancel(),
+                _abortCancelSource);
 
         if (_pipe.Writer.UnflushedBytes > 0)
         {
@@ -100,7 +108,12 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                         readResult.Buffer,
                         source,
                         endStream,
-                        cancel).ConfigureAwait(false);
+                        _abortCancelSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancel.ThrowIfCancellationRequested();
+                    return GetFlushResult();
                 }
                 finally
                 {
@@ -124,11 +137,19 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         else if (source.Length > 0 || endStream)
         {
             // If there's no unflushed bytes, we just send the source.
-            return await _stream.SendStreamFrameAsync(
-                source,
-                ReadOnlySequence<byte>.Empty,
-                endStream,
-                cancel).ConfigureAwait(false);
+            try
+            {
+                return await _stream.SendStreamFrameAsync(
+                    source,
+                    ReadOnlySequence<byte>.Empty,
+                    endStream,
+                    _abortCancelSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                cancel.ThrowIfCancellationRequested();
+                return GetFlushResult();
+            }
         }
         else
         {
@@ -179,6 +200,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         // once the reading terminates.
         if (_state.TrySetFlag(State.PipeReaderCompleted))
         {
+            // Cancel write if pending.
+            _abortCancelSource.Cancel();
+
             if (_state.HasFlag(State.PipeReaderInUse))
             {
                 _pipe.Writer.CancelPendingFlush();

@@ -90,9 +90,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
                 new MultiplexedClientConnectionOptions
                 {
-                    MaxBidirectionalStreams = options.MaxIceRpcBidirectionalStreams,
+                    MaxBidirectionalStreams =
+                        options.Dispatcher is null ? 0 : options.MaxIceRpcBidirectionalStreams,
                     // Add an additional stream for the icerpc protocol control stream.
-                    MaxUnidirectionalStreams = options.MaxIceRpcUnidirectionalStreams + 1,
+                    MaxUnidirectionalStreams =
+                        options.Dispatcher is null ? 1 : (options.MaxIceRpcUnidirectionalStreams + 1),
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
                     Endpoint = endpoint,

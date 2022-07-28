@@ -938,7 +938,7 @@ public abstract class MultiplexedTransportConformanceTests
 
     /// <summary>Verifies that stream read can be canceled.</summary>
     [Test]
-    public async Task Stream_read_canceled()
+    public async Task Stream_read_cancellation()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -960,6 +960,29 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
     }
 
+    /// <summary>Verifies that aborting the stream cancels a pending read.</summary>
+    [Test]
+    public async Task Stream_abort_cancels_read()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IMultiplexedListener>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+        ValueTask<ReadResult> task = clientStream.Input.ReadAsync(CancellationToken.None);
+
+        // Act
+        clientStream.Abort(new InvalidOperationException());
+
+        // Act/Assert
+        Assert.CatchAsync<InvalidOperationException>(async () => await task);
+    }
+
     /// <summary>Verifies that calling write with a canceled cancellation token fails with
     /// <see cref="OperationCanceledException"/>.</summary>
     [Test]
@@ -976,9 +999,65 @@ public abstract class MultiplexedTransportConformanceTests
 
         IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
 
+        // Act
+        ValueTask<FlushResult> task = clientStream.Output.WriteAsync(
+            _oneBytePayload,
+            new CancellationToken(canceled: true));
+
+        // Assert
+        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+    }
+
+    /// <summary>Verifies that calling write with a canceled cancellation token fails with
+    /// <see cref="OperationCanceledException"/>.</summary>
+    [Test]
+    public async Task Stream_write_max_streams_semaphores_cancellation()
+    {
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            options => options.MaxBidirectionalStreams = 0);
+
+        // Arrange
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IMultiplexedListener>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        ValueTask<FlushResult> task = clientStream.Output.WriteAsync(_oneBytePayload, cancellationTokenSource.Token);
+
+        // Act
+        cancellationTokenSource.Cancel();
+
         // Act/Assert
-        Assert.CatchAsync<OperationCanceledException>(
-            async () => await clientStream.Output.WriteAsync(_oneBytePayload, new CancellationToken(canceled: true)));
+        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+    }
+
+    /// <summary>Verifies that aborting the stream cancels a pending write.</summary>
+    [Test]
+    public async Task Stream_abort_cancels_write()
+    {
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            options => options.MaxBidirectionalStreams = 0);
+
+        // Arrange
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IMultiplexedListener>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+        ValueTask<FlushResult> task = clientStream.Output.WriteAsync(_oneBytePayload, CancellationToken.None);
+
+        // Act
+        clientStream.Abort(new InvalidOperationException());
+
+        // Act/Assert
+        Assert.CatchAsync<InvalidOperationException>(async () => await task);
     }
 
     [Test]
