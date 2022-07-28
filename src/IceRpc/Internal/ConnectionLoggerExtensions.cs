@@ -6,7 +6,7 @@ using System.Net;
 
 namespace IceRpc.Internal;
 
-/// <summary>This class provides ILogger extension methods for connection event IDs.</summary>
+/// <summary>This class provides ILogger extension methods for connection events.</summary>
 internal static partial class ConnectionLoggerExtensions
 {
     // We cannot create a "connect scope" because ConnectAsync creates long running tasks and we don't want these

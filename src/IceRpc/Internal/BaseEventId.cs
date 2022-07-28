@@ -2,8 +2,8 @@
 
 namespace IceRpc.Internal;
 
-/// <summary>This enumerations contains base event ID constants used by category specific event IDs enumeration
-/// values.</summary>
+/// <summary>This enumerations contains base event ID constants used by category specific event ID enumerations.
+/// </summary>
 internal enum BaseEventId
 {
     /// <summary>The base event ID for connection logging.</summary>
