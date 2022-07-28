@@ -25,7 +25,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 
 var endpoint = new Endpoint(new Uri($"icerpc://127.0.0.1:{10000 + number}/"));
 
-await using var server = new Server(new Hello(endpoint), endpoint, loggerFactory);
+await using var server = new Server(new Hello(endpoint), endpoint, loggerFactory: loggerFactory);
 
 // Shuts down the server on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
