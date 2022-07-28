@@ -179,10 +179,7 @@ public class ConnectionTests
     [TestCase("icerpc://testhost.com")]
     [TestCase("icerpc://foo.com/path?alt-endpoint=testhost.com")]
     [TestCase("icerpc:/path")]
-    [TestCase("ice://testhost.com/path")]
     [TestCase("ice://testhost.com:4061/path")]
-    [TestCase("ice://foo.com/path?alt-endpoint=testhost.com")]
-    [TestCase("ice:/path")]
     public async Task InvokeAsync_succeeds_with_a_compatible_endpoint(ServiceAddress serviceAddress)
     {
         // Arrange
@@ -206,11 +203,10 @@ public class ConnectionTests
     }
 
     /// <summary>Verifies that InvokeAsync fails when there is no compatible endpoint.</summary>
-    [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=quic")]
+    [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=coloc")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
-    [TestCase("ice://foo.com?transport=tcp", "ice://foo.com/path?transport=quic")]
-    [TestCase("ice://foo.com", "ice://bar.com/path")]
     [TestCase("ice://foo.com", "ice://foo.com:10000/path")]
     public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
     {

@@ -32,6 +32,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     private readonly IProtocolConnection _protocolConnection;
 
+    private readonly string _transportName;
+
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
     /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
@@ -116,6 +118,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 #pragma warning restore CA2000
         }
 
+        // This will throws KeyNotFoundException if the transport did not set "transport" (= bug in the transport).
+        _transportName = Endpoint.Params["transport"];
+
         if (logger != NullLogger.Instance)
         {
             _protocolConnection = new LogProtocolConnectionDecorator(decoratee, logger);
@@ -188,8 +193,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         void CheckRequestEndpoints(Endpoint mainEndpoint, ImmutableList<Endpoint> altEndpoints)
         {
-            _ = Endpoint.Params.TryGetValue("transport", out string? transportName);
-
             if (IsCompatible(mainEndpoint))
             {
                 return;
@@ -208,9 +211,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             bool IsCompatible(Endpoint endpoint) =>
                 EndpointComparer.ParameterLess.Equals(endpoint, Endpoint) &&
-                    (transportName is null ||
-                     !endpoint.Params.TryGetValue("transport", out string? otherTransportName) ||
-                     transportName == otherTransportName);
+                    (!endpoint.Params.TryGetValue("transport", out string? otherTransportName) ||
+                     _transportName == otherTransportName);
         }
     }
 
