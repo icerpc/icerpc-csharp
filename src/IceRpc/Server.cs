@@ -13,13 +13,12 @@ namespace IceRpc;
 /// the corresponding responses.</summary>
 public sealed class Server : IAsyncDisposable
 {
+    /// <summary>Gets the default server transport for ice protocol connections.</summary>
+    public static IDuplexServerTransport DefaultDuplexServerTransport { get; } = new TcpServerTransport();
+
     /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
     public static IMultiplexedServerTransport DefaultMultiplexedServerTransport { get; } =
         new SlicServerTransport(new TcpServerTransport());
-
-    /// <summary>Gets the default server transport for ice protocol connections.</summary>
-    public static IDuplexServerTransport DefaultDuplexServerTransport { get; } =
-        new TcpServerTransport();
 
     /// <summary>Gets the endpoint of this server.</summary>
     /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
@@ -37,7 +36,8 @@ public sealed class Server : IAsyncDisposable
 
     private IDisposable? _listener;
 
-    private readonly ILoggerFactory _loggerFactory;
+    private readonly Func<IDisposable> _listenerFactory;
+
     private readonly IMultiplexedServerTransport _multiplexedServerTransport;
     private readonly IDuplexServerTransport _duplexServerTransport;
 
@@ -67,10 +67,202 @@ public sealed class Server : IAsyncDisposable
         }
 
         Endpoint = options.Endpoint;
-        _options = options;
-        _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-        _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
         _duplexServerTransport = duplexServerTransport ?? DefaultDuplexServerTransport;
+        _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
+
+        loggerFactory ??= NullLoggerFactory.Instance;
+        ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
+
+        if (logger != NullLogger.Instance)
+        {
+            _duplexServerTransport = new LogDuplexServerTransportDecorator(_duplexServerTransport, logger);
+            _multiplexedServerTransport =
+                new LogMultiplexedServerTransportDecorator(_multiplexedServerTransport, logger);
+
+            if (options.ConnectionOptions.Dispatcher is IDispatcher dispatcher)
+            {
+                options = options with
+                {
+                    ConnectionOptions = options.ConnectionOptions with
+                    {
+                        Dispatcher = new LogDispatcherDecorator(dispatcher, logger)
+                    }
+                };
+            }
+        }
+
+        _options = options;
+        _listenerFactory = CreateListener;
+
+        IDisposable CreateListener()
+        {
+            if (_options.Endpoint.Protocol == Protocol.Ice)
+            {
+                var duplexListenerOptions = new DuplexListenerOptions
+                {
+                    ServerConnectionOptions = new()
+                    {
+                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
+                        Pool = _options.ConnectionOptions.Pool,
+                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions
+                    },
+                    Endpoint = _options.Endpoint,
+                    Logger = logger // TODO: temporary until #1536 is fixed
+                };
+
+                IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
+                Endpoint = listener.Endpoint;
+
+                // Run task to start accepting new connections
+                _ = Task.Run(() => AcceptAsync(
+                    () => listener.AcceptAsync(),
+                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
+
+                return listener;
+
+                ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
+                    new IceProtocolConnection(duplexConnection, isServer: true, _options.ConnectionOptions);
+
+                IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
+                {
+                    ProtocolConnection decoratee = CreateProtocolConnection(duplexConnection);
+
+                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
+                    decoratee.Decorator = decorator;
+                    return decorator;
+                }
+            }
+            else
+            {
+                var multiplexedListenerOptions = new MultiplexedListenerOptions
+                {
+                    ServerConnectionOptions = new()
+                    {
+                        MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
+                        // Add an additional stream for the icerpc protocol control stream.
+                        MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
+                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
+                        Pool = _options.ConnectionOptions.Pool,
+                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
+                        StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+                    },
+                    Endpoint = _options.Endpoint,
+                    Logger = logger
+                };
+
+                IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);
+                Endpoint = listener.Endpoint;
+                _listener = listener;
+
+                // Run task to start accepting new connections
+                _ = Task.Run(() => AcceptAsync(
+                    () => listener.AcceptAsync(),
+                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
+
+                return listener;
+
+                ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
+                    new IceRpcProtocolConnection(multiplexedConnection, _options.ConnectionOptions);
+
+                // TODO: reduce duplication with Duplex code above
+                IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
+                {
+                    ProtocolConnection decoratee = CreateProtocolConnection(multiplexedConnection);
+
+                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
+                    decoratee.Decorator = decorator;
+
+                    return decorator;
+                }
+            }
+
+            async Task AcceptAsync<T>(
+                Func<Task<T>> acceptTransportConnection,
+                Func<T, IProtocolConnection> createProtocolConnection)
+            {
+                while (true)
+                {
+                    IProtocolConnection connection;
+                    try
+                    {
+                        connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
+                    }
+                    catch
+                    {
+                        lock (_mutex)
+                        {
+                            if (_isReadOnly)
+                            {
+                                return;
+                            }
+                        }
+
+                        // We wait for one second to avoid running in a tight loop in case the failures occurs
+                        // immediately again. Failures here are unexpected and could be considered fatal.
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    lock (_mutex)
+                    {
+                        if (_isReadOnly)
+                        {
+                            connection.DisposeAsync().AsTask();
+                            return;
+                        }
+                        _ = _connections.Add(connection);
+                    }
+
+                    // Schedule removal after addition. We do this outside the mutex lock otherwise
+                    // await serverConnection.ShutdownAsync could be called within this lock.
+                    connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
+                    connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
+
+                    // We don't wait for the connection to be activated. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client and
+                    // server.
+                    // Waiting could also cause a security issue if the client doesn't respond to the connection
+                    // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                    // eventually timeout if the ConnectTimeout expires.
+                    _ = connection.ConnectAsync(CancellationToken.None);
+                }
+            }
+
+            // Remove the connection from _connections once shutdown completes
+            async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
+            {
+                lock (_mutex)
+                {
+                    if (_isReadOnly)
+                    {
+                        return; // already shutting down / disposed / being disposed by another thread
+                    }
+                }
+
+                if (graceful)
+                {
+                    // Wait for the current shutdown to complete
+                    try
+                    {
+                        await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                await connection.DisposeAsync().ConfigureAwait(false);
+
+                lock (_mutex)
+                {
+                    // the _connections collection is read-only when shutting down or disposing.
+                    if (!_isReadOnly)
+                    {
+                        _ = _connections.Remove(connection);
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
@@ -93,13 +285,13 @@ public sealed class Server : IAsyncDisposable
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="endpoint">The endpoint of the server.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
         Endpoint endpoint,
-        ILoggerFactory? loggerFactory = null,
-        SslServerAuthenticationOptions? authenticationOptions = null)
+        SslServerAuthenticationOptions? authenticationOptions = null,
+        ILoggerFactory? loggerFactory = null)
         : this(
             new ServerOptions
             {
@@ -118,14 +310,14 @@ public sealed class Server : IAsyncDisposable
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="endpointUri">A URI that represents the endpoint of the server.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
         Uri endpointUri,
-        ILoggerFactory? loggerFactory = null,
-        SslServerAuthenticationOptions? authenticationOptions = null)
-        : this(dispatcher, new Endpoint(endpointUri), loggerFactory, authenticationOptions)
+        SslServerAuthenticationOptions? authenticationOptions = null,
+        ILoggerFactory? loggerFactory = null)
+        : this(dispatcher, new Endpoint(endpointUri), authenticationOptions, loggerFactory)
     {
     }
 
@@ -168,191 +360,7 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"server '{this}' is already listening");
             }
 
-            ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
-
-            ConnectionOptions connectionOptions = _options.ConnectionOptions;
-            if (connectionOptions.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
-            {
-                connectionOptions = connectionOptions with
-                {
-                    Dispatcher = new LogDispatcherDecorator(dispatcher, logger)
-                };
-            }
-
-            if (_options.Endpoint.Protocol == Protocol.Ice)
-            {
-                var duplexListenerOptions = new DuplexListenerOptions
-                {
-                    ServerConnectionOptions = new()
-                    {
-                        MinSegmentSize = connectionOptions.MinSegmentSize,
-                        Pool = connectionOptions.Pool,
-                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions
-                    },
-                    Endpoint = _options.Endpoint,
-                    Logger = logger
-                };
-
-                IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
-                Endpoint = listener.Endpoint;
-
-                if (logger != NullLogger.Instance)
-                {
-                    listener = new LogDuplexListenerDecorator(listener, logger);
-                }
-
-                _listener = listener;
-
-                // Run task to start accepting new connections
-                _ = Task.Run(() => AcceptAsync(
-                    () => listener.AcceptAsync(),
-                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
-
-                ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, connectionOptions);
-
-                IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
-                {
-                    ProtocolConnection decoratee = CreateProtocolConnection(duplexConnection);
-
-                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
-                    decoratee.Decorator = decorator;
-                    return decorator;
-                }
-            }
-            else
-            {
-                var multiplexedListenerOptions = new MultiplexedListenerOptions
-                {
-                    ServerConnectionOptions = new()
-                    {
-                        MaxBidirectionalStreams = connectionOptions.MaxIceRpcBidirectionalStreams,
-                        // Add an additional stream for the icerpc protocol control stream.
-                        MaxUnidirectionalStreams = connectionOptions.MaxIceRpcUnidirectionalStreams + 1,
-                        MinSegmentSize = connectionOptions.MinSegmentSize,
-                        Pool = connectionOptions.Pool,
-                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
-                        StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-                    },
-                    Endpoint = _options.Endpoint,
-                    Logger = logger
-                };
-
-                IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);
-                Endpoint = listener.Endpoint;
-
-                if (logger != NullLogger.Instance)
-                {
-                    listener = new LogMultiplexedListenerDecorator(listener, logger);
-                }
-
-                _listener = listener;
-
-                // Run task to start accepting new connections
-                _ = Task.Run(() => AcceptAsync(
-                    () => listener.AcceptAsync(),
-                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
-
-                ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, connectionOptions);
-
-                // TODO: reduce duplication with Duplex code above
-                IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
-                {
-                    ProtocolConnection decoratee = CreateProtocolConnection(multiplexedConnection);
-
-                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
-                    decoratee.Decorator = decorator;
-
-                    return decorator;
-                }
-            }
-        }
-
-        async Task AcceptAsync<T>(
-            Func<Task<T>> acceptTransportConnection,
-            Func<T, IProtocolConnection> createProtocolConnection)
-        {
-            while (true)
-            {
-                IProtocolConnection connection;
-                try
-                {
-                    connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
-                }
-                catch
-                {
-                    lock (_mutex)
-                    {
-                        if (_isReadOnly)
-                        {
-                            return;
-                        }
-                    }
-
-                    // We wait for one second to avoid running in a tight loop in case the failures occurs
-                    // immediately again. Failures here are unexpected and could be considered fatal.
-                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                    continue;
-                }
-
-                lock (_mutex)
-                {
-                    if (_isReadOnly)
-                    {
-                        connection.DisposeAsync().AsTask();
-                        return;
-                    }
-                    _ = _connections.Add(connection);
-                }
-
-                // Schedule removal after addition. We do this outside the mutex lock otherwise
-                // await serverConnection.ShutdownAsync could be called within this lock.
-                connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
-                connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
-
-                // We don't wait for the connection to be activated. This could take a while for some transports such as
-                // TLS based transports where the handshake requires few round trips between the client and server.
-                // Waiting could also cause a security issue if the client doesn't respond to the connection
-                // initialization as we wouldn't be able to accept new connections in the meantime. The call will
-                // eventually timeout if the ConnectTimeout expires.
-                _ = connection.ConnectAsync(CancellationToken.None);
-            }
-        }
-
-        // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
-        {
-            lock (_mutex)
-            {
-                if (_isReadOnly)
-                {
-                    return; // already shutting down / disposed / being disposed by another thread
-                }
-            }
-
-            if (graceful)
-            {
-                // Wait for the current shutdown to complete
-                try
-                {
-                    await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
-                }
-                catch
-                {
-                }
-            }
-
-            await connection.DisposeAsync().ConfigureAwait(false);
-
-            lock (_mutex)
-            {
-                // the _connections collection is read-only when shutting down or disposing.
-                if (!_isReadOnly)
-                {
-                    _ = _connections.Remove(connection);
-                }
-            }
+            _listener = _listenerFactory();
         }
     }
 

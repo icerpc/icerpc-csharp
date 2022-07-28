@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Transports;
 
@@ -33,9 +34,17 @@ public class SlicServerTransport : IMultiplexedServerTransport
     }
 
     /// <inheritdoc/>
-    public IMultiplexedListener Listen(MultiplexedListenerOptions options) =>
-        new SlicListener(
-            _duplexServerTransport.Listen(
+    public IMultiplexedListener Listen(MultiplexedListenerOptions options)
+    {
+        // TODO: temporary until #1536 is fixed
+        IDuplexServerTransport duplexServerTransport = _duplexServerTransport;
+        if (options.Logger != NullLogger.Instance)
+        {
+            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, options.Logger);
+        }
+
+        return new SlicListener(
+            duplexServerTransport.Listen(
                 new DuplexListenerOptions
                 {
                     ServerConnectionOptions = new()
@@ -49,4 +58,5 @@ public class SlicServerTransport : IMultiplexedServerTransport
                 }),
             options,
             _slicTransportOptions);
+    }
 }

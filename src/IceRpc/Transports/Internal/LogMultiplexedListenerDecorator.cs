@@ -6,40 +6,38 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
 {
+    public Endpoint Endpoint => _decoratee.Endpoint;
+
+    private const string Kind = "Multiplexed";
     private readonly IMultiplexedListener _decoratee;
     private readonly ILogger _logger;
 
-    Endpoint IMultiplexedListener.Endpoint => _decoratee.Endpoint;
-
-    async Task<IMultiplexedConnection> IMultiplexedListener.AcceptAsync()
+    public async Task<IMultiplexedConnection> AcceptAsync()
     {
+        IMultiplexedConnection connection;
         try
         {
-            IMultiplexedConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-            return new LogMultiplexedConnectionDecorator(connection, _logger);
+            connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
             // We assume the decoratee is shut down which should not result in an error message.
             throw;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogListenerAcceptFailed(_decoratee.Endpoint, ex);
+            _logger.LogListenerAcceptException(exception, Kind, _decoratee.Endpoint);
             throw;
         }
+
+        _logger.LogListenerAccept(Kind, _decoratee.Endpoint);
+        return new LogMultiplexedConnectionDecorator(connection, _logger);
     }
 
     public void Dispose()
     {
-        try
-        {
-            _decoratee.Dispose();
-        }
-        finally
-        {
-            _logger.LogListenerDispose(_decoratee.Endpoint);
-        }
+        _decoratee.Dispose();
+        _logger.LogListenerDispose(Kind, _decoratee.Endpoint);
     }
 
     public override string? ToString() => _decoratee.ToString();
@@ -48,6 +46,5 @@ internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
     {
         _decoratee = decoratee;
         _logger = logger;
-        _logger.LogListenerCreated(_decoratee.Endpoint);
     }
 }

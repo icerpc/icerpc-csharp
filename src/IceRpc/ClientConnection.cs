@@ -52,10 +52,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
 
-        multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-        duplexClientTransport ??= DefaultDuplexClientTransport;
-
-        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
+        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
         if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
         {
@@ -66,6 +63,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         if (endpoint.Protocol == Protocol.Ice)
         {
+            duplexClientTransport ??= DefaultDuplexClientTransport;
+            if (logger != NullLogger.Instance)
+            {
+                duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, logger);
+            }
+
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
                 new DuplexClientConnectionOptions
                 {
@@ -78,17 +81,20 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             Endpoint = transportConnection.Endpoint;
 
-            if (logger != NullLogger.Instance)
-            {
-                transportConnection = new LogDuplexConnectionDecorator(transportConnection, logger);
-            }
-
 #pragma warning disable CA2000
             decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
 #pragma warning restore CA2000
         }
         else
         {
+            multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
+            if (logger != NullLogger.Instance)
+            {
+                multiplexedClientTransport = new LogMultiplexedClientTransportDecorator(
+                    multiplexedClientTransport,
+                    logger);
+            }
+
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
                 new MultiplexedClientConnectionOptions
                 {
@@ -105,12 +111,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             Endpoint = transportConnection.Endpoint;
 
-            if (logger != NullLogger.Instance)
-            {
-#pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
-                transportConnection = new LogMultiplexedConnectionDecorator(transportConnection, logger);
-#pragma warning restore CA2000
-            }
 #pragma warning disable CA2000
             decoratee = new IceRpcProtocolConnection(transportConnection, options);
 #pragma warning restore CA2000
