@@ -10,12 +10,7 @@ namespace IceRpc.Transports.Internal;
 internal class ColocServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
-    public string Name => ColocTransport.Name;
-
-    private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
-
-    /// <inheritdoc/>
-    IDuplexListener IDuplexServerTransport.Listen(DuplexListenerOptions options)
+    public IDuplexListener Listen(DuplexListenerOptions options)
     {
         if (options.ServerConnectionOptions.ServerAuthenticationOptions is not null)
         {
@@ -34,6 +29,11 @@ internal class ColocServerTransport : IDuplexServerTransport
         }
         return listener;
     }
+
+    /// <inheritdoc/>
+    public string Name => ColocTransport.Name;
+
+    private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     internal ColocServerTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
         _listeners = listeners;

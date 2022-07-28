@@ -31,9 +31,9 @@ public sealed class LogAttributeLoggerFactory : ILoggerFactory
 
     public ILogger Logger => CreateLogger("Test");
 
-    private readonly List<ILoggerProvider> _providers = new();
+    public void AddProvider(ILoggerProvider provider) => _providers.Add(provider);
 
-    void ILoggerFactory.AddProvider(ILoggerProvider provider) => _providers.Add(provider);
+    private readonly List<ILoggerProvider> _providers = new();
 
     public ILogger CreateLogger(string categoryName)
     {

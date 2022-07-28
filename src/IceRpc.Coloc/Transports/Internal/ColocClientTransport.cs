@@ -13,13 +13,11 @@ internal class ColocClientTransport : IDuplexClientTransport
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
 
-    private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
-
     /// <inheritdoc/>
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    IDuplexConnection IDuplexClientTransport.CreateConnection(DuplexClientConnectionOptions options)
+    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
     {
         if (options.ClientAuthenticationOptions is not null)
         {
@@ -34,8 +32,7 @@ internal class ColocClientTransport : IDuplexClientTransport
         return new ColocConnection(options.Endpoint.WithTransport(Name), endpoint => Connect(endpoint, options));
     }
 
-    internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
-        _listeners = listeners;
+    private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     private (PipeReader, PipeWriter) Connect(Endpoint endpoint, DuplexClientConnectionOptions options)
     {
@@ -48,4 +45,7 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new ConnectionRefusedException();
         }
     }
+
+    internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
+        _listeners = listeners;
 }

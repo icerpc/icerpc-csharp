@@ -36,7 +36,7 @@ internal class LogTcpConnectionDecorator : IDuplexConnection
         }
     }
 
-    void IDisposable.Dispose() => _decoratee.Dispose();
+    public void Dispose() => _decoratee.Dispose();
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
         _decoratee.ReadAsync(buffer, cancel);

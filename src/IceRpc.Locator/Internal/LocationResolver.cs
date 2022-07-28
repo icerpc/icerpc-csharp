@@ -40,14 +40,12 @@ internal static partial class LocatorLoggerExtensions
 /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
 internal class CacheLessLocationResolver : ILocationResolver
 {
-    private readonly IEndpointFinder _endpointFinder;
-
-    internal CacheLessLocationResolver(IEndpointFinder endpointFinder) => _endpointFinder = endpointFinder;
-
-    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
+    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel) => ResolveAsync(location, cancel);
+
+    private readonly IEndpointFinder _endpointFinder;
 
     private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
@@ -65,6 +63,8 @@ internal class CacheLessLocationResolver : ILocationResolver
 
         return (serviceAddress, false);
     }
+
+    internal CacheLessLocationResolver(IEndpointFinder endpointFinder) => _endpointFinder = endpointFinder;
 }
 
 /// <summary>The main implementation of <see cref="ILocationResolver"/>, with a cache.</summary>
@@ -169,7 +169,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
         _logger = logger;
     }
 
-    async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
+    public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel)
