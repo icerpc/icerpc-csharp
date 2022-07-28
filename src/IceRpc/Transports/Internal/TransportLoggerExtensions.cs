@@ -43,25 +43,26 @@ internal static partial class TransportLoggerExtensions
         EventId = (int)TransportEventIds.ListenerAccept,
         EventName = nameof(TransportEventIds.ListenerAccept),
         Level = LogLevel.Debug,
-        Message = "Listener {Endpoint} accepted a new connection")]
-    internal static partial void LogListenerAccept(this ILogger logger, Endpoint endpoint);
+        Message = "{Kind} listener {Endpoint} accepted a new connection")]
+    internal static partial void LogListenerAccept(this ILogger logger, string kind, Endpoint endpoint);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.ListenerAcceptException,
         EventName = nameof(TransportEventIds.ListenerAcceptException),
         Level = LogLevel.Debug,
-        Message = "Listener {Endpoint} failed to accept a new connection")]
+        Message = "{Kind} listener {Endpoint} failed to accept a new connection")]
     internal static partial void LogListenerAcceptException(
         this ILogger logger,
         Exception exception,
+        string kind,
         Endpoint endpoint);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.ListenerDispose,
         EventName = nameof(TransportEventIds.ListenerDispose),
         Level = LogLevel.Information,
-        Message = "Listener {Endpoint} shut down successfully")]
-    internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
+        Message = "{Kind} listener {Endpoint} shut down successfully")]
+    internal static partial void LogListenerDispose(this ILogger logger, string kind, Endpoint endpoint);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.MultiplexedConnectionAcceptStream,
@@ -114,17 +115,18 @@ internal static partial class TransportLoggerExtensions
         EventId = (int)TransportEventIds.ServerTransportListen,
         EventName = nameof(TransportEventIds.ServerTransportListen),
         Level = LogLevel.Information,
-        Message = "Server {Endpoint} is listening for new connections...")]
-    internal static partial void LogServerTransportListen(this ILogger logger, Endpoint endpoint);
+        Message = "{Kind} server transport is listening for new connections on {Endpoint}...")]
+    internal static partial void LogServerTransportListen(this ILogger logger, string kind, Endpoint endpoint);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.ServerTransportListenException,
         EventName = nameof(TransportEventIds.ServerTransportListenException),
         Level = LogLevel.Information,
-        Message = "Server {Endpoint} cannot listen for new connections")]
+        Message = "{Kind} server transport cannot listen for new connections on {Endpoint}")]
     internal static partial void LogServerTransportListenException(
         this ILogger logger,
         Exception exception,
+        string kind,
         Endpoint endpoint);
 
     internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>

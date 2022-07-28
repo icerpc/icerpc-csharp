@@ -6,10 +6,11 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
 {
+    public Endpoint Endpoint => _decoratee.Endpoint;
+
+    private const string Kind = "Multiplexed";
     private readonly IMultiplexedListener _decoratee;
     private readonly ILogger _logger;
-
-    public Endpoint Endpoint => _decoratee.Endpoint;
 
     public async Task<IMultiplexedConnection> AcceptAsync()
     {
@@ -25,18 +26,18 @@ internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
         }
         catch (Exception exception)
         {
-            _logger.LogListenerAcceptException(exception, _decoratee.Endpoint);
+            _logger.LogListenerAcceptException(exception, Kind, _decoratee.Endpoint);
             throw;
         }
 
-        _logger.LogListenerAccept(_decoratee.Endpoint);
+        _logger.LogListenerAccept(Kind, _decoratee.Endpoint);
         return new LogMultiplexedConnectionDecorator(connection, _logger);
     }
 
     public void Dispose()
     {
         _decoratee.Dispose();
-        _logger.LogListenerDispose(_decoratee.Endpoint);
+        _logger.LogListenerDispose(Kind, _decoratee.Endpoint);
     }
 
     public override string? ToString() => _decoratee.ToString();

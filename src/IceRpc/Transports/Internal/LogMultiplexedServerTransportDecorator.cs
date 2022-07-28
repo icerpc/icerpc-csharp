@@ -6,22 +6,23 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogMultiplexedServerTransportDecorator : IMultiplexedServerTransport
 {
+    public string Name => _decoratee.Name;
+
+    private const string Kind = "Multiplexed";
     private readonly IMultiplexedServerTransport _decoratee;
     private readonly ILogger _logger;
-
-    public string Name => _decoratee.Name;
 
     public IMultiplexedListener Listen(MultiplexedListenerOptions options)
     {
         try
         {
             IMultiplexedListener listener = _decoratee.Listen(options);
-            _logger.LogServerTransportListen(listener.Endpoint);
+            _logger.LogServerTransportListen(Kind, listener.Endpoint);
             return new LogMultiplexedListenerDecorator(listener, _logger);
         }
         catch (Exception exception)
         {
-            _logger.LogServerTransportListenException(exception, options.Endpoint);
+            _logger.LogServerTransportListenException(exception, Kind, options.Endpoint);
             throw;
         }
     }

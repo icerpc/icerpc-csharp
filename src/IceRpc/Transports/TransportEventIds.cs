@@ -6,7 +6,7 @@ namespace IceRpc.Transports;
 public enum TransportEventIds
 {
     /// <summary>Successfully read data from a duplex connection.</summary>
-    DuplexConnectionRead,
+    DuplexConnectionRead = IceRpc.Internal.BaseEventIds.Transport,
 
     /// <summary>The duplex connection was shut down.</summary>
     DuplexConnectionShutdown,
@@ -18,7 +18,7 @@ public enum TransportEventIds
     DuplexConnectionWrite,
 
     /// <summary>The listener accepted a new connection.</summary>
-    ListenerAccept = IceRpc.Internal.BaseEventIds.Transport,
+    ListenerAccept,
 
     /// <summary>The listener failed to accept a new connection.</summary>
     ListenerAcceptException,

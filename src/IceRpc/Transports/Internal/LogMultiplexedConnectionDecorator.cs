@@ -25,6 +25,11 @@ internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
         {
             stream = await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            // We don't log this exception as it's expected during connection shutdown.
+            throw;
+        }
         catch (Exception exception)
         {
             _logger.LogMultiplexedConnectionAcceptStreamException(exception);

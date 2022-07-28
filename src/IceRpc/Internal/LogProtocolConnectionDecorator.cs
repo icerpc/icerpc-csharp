@@ -45,9 +45,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
         async ValueTask PerformDisposeAsync()
         {
-            using IDisposable _ = _logger.StartConnectionShutdownScope(Endpoint, _information);
+            using IDisposable _ = _logger.StartConnectionShutdownScope(_information);
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.LogConnectionDispose(Endpoint.Protocol);
+            _logger.LogConnectionDispose(Endpoint);
         }
     }
 
@@ -87,17 +87,17 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
         async Task PerformShutdownAsync()
         {
-            using IDisposable _ = _logger.StartConnectionShutdownScope(Endpoint, _information);
+            using IDisposable _ = _logger.StartConnectionShutdownScope(_information);
 
             try
             {
                 await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
 
-                _logger.LogConnectionShutdown(Endpoint.Protocol, message);
+                _logger.LogConnectionShutdown(Endpoint, message);
             }
             catch (Exception exception)
             {
-                _logger.LogConnectionShutdownException(exception, Endpoint.Protocol);
+                _logger.LogConnectionShutdownException(exception, Endpoint);
                 throw;
             }
         }
