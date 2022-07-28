@@ -207,7 +207,7 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
-    [TestCase("ice://foo.com", "ice://foo.com:10000/path")]
+    [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path")]
     public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
     {
         // Arrange
@@ -217,6 +217,19 @@ public class ConnectionTests
         Assert.That(
             async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
             Throws.TypeOf<InvalidOperationException>());
+    }
+
+    // <summary>Verifies that InvokeAsync fails when the endpoint has a bogus endpoint parameter.</summary>
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
+    public async Task InvokeAsync_fails_with_unknown_endpoint_param(Endpoint endpoint, ServiceAddress serviceAddress)
+    {
+        // Arrange
+        await using var connection = new ClientConnection(endpoint);
+
+        // Assert
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            Throws.TypeOf<FormatException>());
     }
 
     [Test]
