@@ -207,7 +207,7 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
-    [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path")]
+    [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
     public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
     {
         // Arrange
@@ -219,8 +219,9 @@ public class ConnectionTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    // <summary>Verifies that InvokeAsync fails when the endpoint has a bogus endpoint parameter.</summary>
+    /// <summary>Verifies that InvokeAsync fails when the endpoint has a bogus endpoint parameter.</summary>
     [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")] // t is not valid with the icerpc protocol
     public async Task InvokeAsync_fails_with_unknown_endpoint_param(Endpoint endpoint, ServiceAddress serviceAddress)
     {
         // Arrange
