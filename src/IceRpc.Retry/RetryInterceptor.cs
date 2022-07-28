@@ -26,7 +26,7 @@ public class RetryInterceptor : IInvoker
     {
         _next = next;
         _options = options;
-        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Retry");
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
     }
 
     /// <inheritdoc/>

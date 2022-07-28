@@ -50,7 +50,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
 
-        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
+        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
         if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
         {

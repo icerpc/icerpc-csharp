@@ -19,7 +19,7 @@ public class LoggerInterceptor : IInvoker
     public LoggerInterceptor(IInvoker next, ILoggerFactory loggerFactory)
     {
         _next = next;
-        _logger = loggerFactory.CreateLogger("IceRpc.Logger");
+        _logger = loggerFactory.CreateLogger(GetType().FullName!);
     }
 
     /// <inheritdoc/>

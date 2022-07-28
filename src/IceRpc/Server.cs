@@ -71,7 +71,7 @@ public sealed class Server : IAsyncDisposable
         _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
 
         loggerFactory ??= NullLoggerFactory.Instance;
-        ILogger logger = loggerFactory.CreateLogger("IceRpc.Server");
+        ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
 
         if (logger != NullLogger.Instance)
         {
