@@ -82,7 +82,7 @@ public class TcpClientTransport : IDuplexClientTransport
     }
 
     /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
-    /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
+    /// and "z" parameters are supported and ignored for the ice protocol.</summary>
     /// <returns><c>true</c> when the endpoint parameters are valid; otherwise, <c>false</c>.</returns>
     internal static bool CheckParams(Endpoint endpoint, out string? transportValue)
     {
@@ -105,7 +105,11 @@ public class TcpClientTransport : IDuplexClientTransport
 
                 case "t":
                 case "z":
-                    // we don't check the value since we ignore it
+                    if (endpoint.Protocol != Protocol.Ice)
+                    {
+                        return false;
+                    }
+                    // else keep going; we don't check the value since we ignore it
                     break;
 
                 default:
