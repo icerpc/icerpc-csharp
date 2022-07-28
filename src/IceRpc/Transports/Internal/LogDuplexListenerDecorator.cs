@@ -6,40 +6,38 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogDuplexListenerDecorator : IDuplexListener
 {
+    public Endpoint Endpoint => _decoratee.Endpoint;
+
+    private const string Kind = "Duplex";
     private readonly IDuplexListener _decoratee;
     private readonly ILogger _logger;
 
-    Endpoint IDuplexListener.Endpoint => _decoratee.Endpoint;
-
-    async Task<IDuplexConnection> IDuplexListener.AcceptAsync()
+    public async Task<IDuplexConnection> AcceptAsync()
     {
+        IDuplexConnection connection;
         try
         {
-            IDuplexConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-            return new LogDuplexConnectionDecorator(connection, _logger);
+            connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
             // We assume the decoratee is shut down which should not result in an error message.
             throw;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogListenerAcceptFailed(_decoratee.Endpoint, ex);
+            _logger.LogListenerAcceptException(exception, Kind, _decoratee.Endpoint);
             throw;
         }
+
+        _logger.LogListenerAccept(Kind, _decoratee.Endpoint);
+        return new LogDuplexConnectionDecorator(connection, _logger);
     }
 
     public void Dispose()
     {
-        try
-        {
-            _decoratee.Dispose();
-        }
-        finally
-        {
-            _logger.LogListenerDispose(_decoratee.Endpoint);
-        }
+        _decoratee.Dispose();
+        _logger.LogListenerDispose(Kind, _decoratee.Endpoint);
     }
 
     public override string? ToString() => _decoratee.ToString();
@@ -48,6 +46,5 @@ internal sealed class LogDuplexListenerDecorator : IDuplexListener
     {
         _decoratee = decoratee;
         _logger = logger;
-        _logger.LogListenerCreated(_decoratee.Endpoint);
     }
 }

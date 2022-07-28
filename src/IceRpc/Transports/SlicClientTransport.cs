@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Transports;
 
@@ -35,9 +36,17 @@ public class SlicClientTransport : IMultiplexedClientTransport
     public bool CheckParams(Endpoint endpoint) => _duplexClientTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
-        new SlicConnection(
-            _duplexClientTransport.CreateConnection(
+    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options)
+    {
+        // TODO: temporary until #1536 is fixed
+        IDuplexClientTransport duplexClientTransport = _duplexClientTransport;
+        if (options.Logger != NullLogger.Instance)
+        {
+            duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, options.Logger);
+        }
+
+        return new SlicConnection(
+            duplexClientTransport.CreateConnection(
                 new DuplexClientConnectionOptions
                 {
                     ClientAuthenticationOptions = options.ClientAuthenticationOptions,
@@ -48,4 +57,5 @@ public class SlicClientTransport : IMultiplexedClientTransport
                 }),
             options,
             _slicTransportOptions);
+    }
 }

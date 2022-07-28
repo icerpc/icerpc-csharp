@@ -19,32 +19,49 @@ internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
     // We don't log anything as it would be redundant with the ProtocolConnection logging.
     public void Dispose() => _decoratee.Dispose();
 
-    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+    public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {
-        int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-        _logger.LogDuplexConnectionRead(received, ToHexString(buffer[0..received]));
-        return received;
+        return _logger.IsEnabled(LogLevel.Trace) ? PerformReadAsync() : _decoratee.ReadAsync(buffer, cancel);
+
+        async ValueTask<int> PerformReadAsync()
+        {
+            int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
+            _logger.LogDuplexConnectionRead(received, ToHexString(buffer[0..received]));
+            return received;
+        }
     }
 
     public async Task ShutdownAsync(CancellationToken cancel)
     {
         // TODO: do we always get the scope from the LogProtocolConnectionDecorator?
-
-        await _decoratee.ShutdownAsync(cancel).ConfigureAwait(false);
+        try
+        {
+            await _decoratee.ShutdownAsync(cancel).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogDuplexConnectionShutdownException(exception);
+            throw;
+        }
         _logger.LogDuplexConnectionShutdown();
     }
 
     public override string? ToString() => _decoratee.ToString();
 
-    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
     {
-        await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);
-        int size = 0;
-        foreach (ReadOnlyMemory<byte> buffer in buffers)
+        return _logger.IsEnabled(LogLevel.Trace) ? PerformWriteAsync() : _decoratee.WriteAsync(buffers, cancel);
+
+        async ValueTask PerformWriteAsync()
         {
-            size += buffer.Length;
+            await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);
+            int size = 0;
+            foreach (ReadOnlyMemory<byte> buffer in buffers)
+            {
+                size += buffer.Length;
+            }
+            _logger.LogDuplexConnectionWrite(size, ToHexString(buffers));
         }
-        _logger.LogDuplexConnectionWrite(size, ToHexString(buffers));
     }
 
     internal LogDuplexConnectionDecorator(IDuplexConnection decoratee, ILogger logger)
@@ -53,7 +70,7 @@ internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
         _logger = logger;
     }
 
-    internal static string ToHexString(Memory<byte> buffer)
+    private static string ToHexString(Memory<byte> buffer)
     {
         var sb = new StringBuilder();
         for (int i = 0; i < Math.Min(buffer.Length, 64); ++i)
@@ -67,7 +84,7 @@ internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
         return sb.ToString().Trim();
     }
 
-    internal static string ToHexString(IReadOnlyList<ReadOnlyMemory<byte>> buffers)
+    private static string ToHexString(IReadOnlyList<ReadOnlyMemory<byte>> buffers)
     {
         int size = 0;
         var sb = new StringBuilder();
