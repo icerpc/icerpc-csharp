@@ -27,8 +27,8 @@ internal class AsyncSemaphore
     private readonly Queue<ManualResetValueTaskCompletionSource<bool>> _queue = new();
     private TaskCompletionSource? _waitForReleaseSource;
 
-    /// <summary>Initializes a new instance of the asynchronous semaphore with the given maximum number of times to the
-    /// semaphore can be entered.</summary>
+    /// <summary>Initializes a new instance of the asynchronous semaphore with the given maximum number of times that
+    /// the semaphore can be entered.</summary>
     /// <param name="initialCount">The initial number of time for the semaphore that can be entered.</param>
     /// <param name="maxCount">The maximum number of times the semaphore can be entered.</param>
     /// <exception cref="ArgumentOutOfRangeException">Raised if maxCount or initialCount is less than 0 or if maxCount

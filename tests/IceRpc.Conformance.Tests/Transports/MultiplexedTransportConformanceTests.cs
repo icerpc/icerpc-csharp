@@ -1008,16 +1008,16 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.CatchAsync<OperationCanceledException>(async () => await task);
     }
 
-    /// <summary>Verifies that calling write with a canceled cancellation token fails with
-    /// <see cref="OperationCanceledException"/>.</summary>
+    /// <summary>Verifies that canceling writes when the write is waiting to acquire the max stream semaphore correctly
+    /// raise OperationCanceledException.</summary>
     [Test]
     public async Task Stream_write_max_streams_semaphores_cancellation()
     {
+        // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
         serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = 0);
 
-        // Arrange
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IMultiplexedListener>();
@@ -1035,15 +1035,15 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.CatchAsync<OperationCanceledException>(async () => await task);
     }
 
-    /// <summary>Verifies that aborting the stream cancels a pending write.</summary>
+    /// <summary>Verifies that aborting writes correctly raises the abort exception.</summary>
     [Test]
     public async Task Stream_abort_cancels_write()
     {
+        // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
         serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = 0);
 
-        // Arrange
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IMultiplexedListener>();
