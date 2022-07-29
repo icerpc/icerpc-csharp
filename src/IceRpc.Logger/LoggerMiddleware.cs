@@ -65,8 +65,8 @@ public class LoggerMiddleware : IDispatcher
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventIds.Invoke,
-        EventName = nameof(LoggerInterceptorEventIds.Invoke),
+        EventId = (int)LoggerInterceptorEventId.Invoke,
+        EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
         Message = "Dispatched {Operation} to {Path} using {LocalNetworkAddress}<->{RemoteNetworkAddress} and " +
             "received {ResultType} response after {TotalMilliseconds:F} ms")]
@@ -80,8 +80,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         double totalMilliseconds);
 
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventIds.InvokeException,
-        EventName = nameof(LoggerInterceptorEventIds.InvokeException),
+        EventId = (int)LoggerInterceptorEventId.InvokeException,
+        EventName = nameof(LoggerInterceptorEventId.InvokeException),
         Level = LogLevel.Information,
         Message = "Failed to dispatch {Operation} to {Path} in {TotalMilliseconds:F} ms")]
     internal static partial void LogDispatchException(

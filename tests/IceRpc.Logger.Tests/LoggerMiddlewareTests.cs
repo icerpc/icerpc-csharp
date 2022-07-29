@@ -25,7 +25,7 @@ public sealed class LoggerMiddlewareTests
         Assert.Multiple(() =>
         {
             Assert.That(entries.Count, Is.EqualTo(1));
-            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.Dispatch));
+            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
             Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
             Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
@@ -62,7 +62,7 @@ public sealed class LoggerMiddlewareTests
         Assert.Multiple(() =>
         {
             Assert.That(entries.Count, Is.EqualTo(1));
-            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventIds.DispatchException));
+            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchException));
             Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
             Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);

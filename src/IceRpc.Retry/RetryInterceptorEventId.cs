@@ -2,8 +2,8 @@
 
 namespace IceRpc.Retry;
 
-/// <summary>This class contains event ID constants used by the retry interceptor.</summary>
-public enum RetryInterceptorEventIds
+/// <summary>This enumeration contains event ID constants used by the retry interceptor.</summary>
+public enum RetryInterceptorEventId
 {
     /// <summary>A request will be retried because of a retryable exception.</summary>
     RetryRequest,

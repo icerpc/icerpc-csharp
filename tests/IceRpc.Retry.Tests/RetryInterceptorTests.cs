@@ -58,7 +58,7 @@ public sealed class RetryInterceptorTests
         Assert.That(entry.State["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));
         Assert.That(entry.State["Attempt"], Is.EqualTo(2));
         Assert.That(entry.State["MaxAttempts"], Is.EqualTo(2));
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)RetryInterceptorEventIds.RetryRequest));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)RetryInterceptorEventId.RetryRequest));
         Assert.That(entry.LogLevel, Is.EqualTo(LogLevel.Information));
         Assert.That(entry.State["Path"], Is.EqualTo("/"));
         Assert.That(entry.State["Operation"], Is.EqualTo("Op"));

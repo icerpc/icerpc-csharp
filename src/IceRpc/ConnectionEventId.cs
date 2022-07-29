@@ -3,10 +3,10 @@
 namespace IceRpc;
 
 /// <summary>Connection-related events.</summary>
-public enum ConnectionEventIds
+public enum ConnectionEventId
 {
     /// <summary>The connect operation for an ice or icerpc connection completed successfully.</summary>
-    Connect = Internal.BaseEventIds.Connection,
+    Connect = Internal.BaseEventId.Connection,
 
     /// <summary>The connect operation for an ice or icerpc connection failed with an exception.</summary>
     ConnectException,
