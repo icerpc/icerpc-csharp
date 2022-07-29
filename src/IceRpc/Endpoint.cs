@@ -68,7 +68,7 @@ public readonly record struct Endpoint
     /// <summary>Gets the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
     public Uri? OriginalUri { get; private init; }
 
-    /// <summary>Gets the value of the transport parameter of this endpoint.</summary>
+    /// <summary>Gets the transport of this endpoint, or null if the transport not specified.</summary>
     public string? Transport
     {
         get => _transport;
