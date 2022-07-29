@@ -12,10 +12,10 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public class ConnectionTests
 {
-    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint include a coloc transport parameter when
-    /// the transport is coloc.</summary>
+    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint's Transport property is set to "coloc".
+    /// </summary>
     [Test]
-    public async Task Coloc_endpoint_gets_transport_param([Values("ice", "icerpc")] string protocol)
+    public async Task Coloc_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -29,10 +29,10 @@ public class ConnectionTests
         Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
     }
 
-    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint include a tcp transport parameter when
-    /// the transport is tcp.</summary>
+    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint's Transport property is set to "tcp".
+    /// </summary>
     [Test]
-    public async Task Tcp_endpoint_gets_transport_param([Values("ice", "icerpc")] string protocol)
+    public async Task Tcp_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddTcpTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -47,7 +47,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Coloc_ClientConnection_Endpoint_has_transport_param([Values("ice", "icerpc")] string protocol)
+    public async Task Coloc_ClientConnection_Endpoint_has_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))

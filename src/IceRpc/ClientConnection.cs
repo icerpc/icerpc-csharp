@@ -23,7 +23,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
-    /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
+    /// <value>The endpoint (server address) of this connection. It has a non-null <see cref="Endpoint.Transport"/> even
     /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; }
 
