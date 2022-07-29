@@ -55,7 +55,7 @@ fn validate_cs_attribute(attribute: &Attribute, error_reporter: &mut ErrorReport
 fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     if !attribute.arguments.is_empty() {
         error_reporter.report(
-            LogicKind::TooManyArguments(r#"cs::internal()"#.to_owned()),
+            LogicKind::TooManyArguments(r#"cs::internal"#.to_owned()),
             Some(&attribute.location),
         );
     }
@@ -64,7 +64,7 @@ fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporte
 fn validate_cs_encoded_result(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     if !attribute.arguments.is_empty() {
         error_reporter.report(
-            LogicKind::TooManyArguments(r#"cs::encodedResult()"#.to_owned()),
+            LogicKind::TooManyArguments(r#"cs::encodedResult"#.to_owned()),
             Some(&attribute.location),
         );
     }
