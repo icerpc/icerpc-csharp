@@ -33,7 +33,7 @@ fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
 
 fn report_unexpected_attribute(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     error_reporter.report(
-        LogicKind::UnexpectedAttribute("cs::{}".to_owned()),
+        LogicKind::UnexpectedAttribute(format!("cs::{}", attribute.directive)),
         Some(&attribute.location),
     );
 }
