@@ -126,6 +126,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     _writeSemaphore.Release();
                 }
+
+                if (IceRpcEventSource.Log.IsEnabled())
+                {
+                    IceRpcEventSource.Log.ValidateConnectionSent();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -200,6 +205,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             EncodeValidateConnectionFrame(_duplexConnectionWriter);
             await _duplexConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+
+            if (IceRpcEventSource.Log.IsEnabled())
+            {
+                IceRpcEventSource.Log.ValidateConnectionSent();
+            }
         }
         else
         {
@@ -220,6 +230,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 throw new InvalidDataException(
                     @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+            }
+
+            if (IceRpcEventSource.Log.IsEnabled())
+            {
+                IceRpcEventSource.Log.ValidateConnectionReceived();
             }
         }
 
@@ -651,6 +666,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 _writeSemaphore.Release();
             }
+
+            if (IceRpcEventSource.Log.IsEnabled())
+            {
+                IceRpcEventSource.Log.CloseConnectionSent(message);
+            }
         }
         catch (ConnectionAbortedException)
         {
@@ -761,6 +781,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw new InvalidDataException(
                             $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
                     }
+
+                    if (IceRpcEventSource.Log.IsEnabled())
+                    {
+                        IceRpcEventSource.Log.CloseConnectionReceived();
+                    }
+
                     return;
                 }
 
@@ -777,6 +803,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         _minSegmentSize,
                         cancel).ConfigureAwait(false);
                     await batchRequestReader.CompleteAsync().ConfigureAwait(false);
+
+                    if (IceRpcEventSource.Log.IsEnabled())
+                    {
+                        IceRpcEventSource.Log.BatchRequestReceived();
+                    }
                     break;
 
                 case IceFrameType.Reply:
@@ -785,11 +816,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 case IceFrameType.ValidateConnection:
                 {
-                    // Notify the control stream of the reception of a Ping frame.
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
                             $"unexpected data for {nameof(IceFrameType.ValidateConnection)}");
+                    }
+
+                    if (IceRpcEventSource.Log.IsEnabled())
+                    {
+                        IceRpcEventSource.Log.ValidateConnectionReceived();
                     }
                     break;
                 }

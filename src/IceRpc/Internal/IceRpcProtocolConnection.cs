@@ -134,6 +134,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 CancellationToken cancel = _tasksCancelSource.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
+
+                if (IceRpcEventSource.Log.IsEnabled())
+                {
+                    IceRpcEventSource.Log.GoAwayReceived(
+                        goAwayFrame.LastBidirectionalStreamId,
+                        goAwayFrame.LastUnidirectionalStreamId,
+                        goAwayFrame.Message);
+                }
+
                 InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
             },
@@ -433,6 +442,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
             endStream: true,
             cancel).ConfigureAwait(false);
+
+        if (IceRpcEventSource.Log.IsEnabled())
+        {
+            IceRpcEventSource.Log.GoAwaySent(
+                goAwayFrame.LastBidirectionalStreamId,
+                goAwayFrame.LastUnidirectionalStreamId,
+                goAwayFrame.Message);
+        }
 
         // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
         // initiated by the peer.
