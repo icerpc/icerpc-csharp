@@ -44,7 +44,7 @@ internal class CacheLessLocationResolver : ILocationResolver
 
     internal CacheLessLocationResolver(IEndpointFinder endpointFinder) => _endpointFinder = endpointFinder;
 
-    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
+    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel) => ResolveAsync(location, cancel);
@@ -169,7 +169,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
         _logger = logger;
     }
 
-    async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
+    public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel)

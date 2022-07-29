@@ -19,7 +19,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    IDuplexConnection IDuplexClientTransport.CreateConnection(DuplexClientConnectionOptions options)
+    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
     {
         if (options.ClientAuthenticationOptions is not null)
         {

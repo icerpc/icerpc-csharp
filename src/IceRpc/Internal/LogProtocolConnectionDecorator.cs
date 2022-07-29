@@ -14,7 +14,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     private TransportConnectionInformation _information;
     private readonly ILogger _logger;
 
-    Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformConnectAsync() : _decoratee.ConnectAsync(cancel);
 
@@ -39,7 +39,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         }
     }
 
-    ValueTask IAsyncDisposable.DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformDisposeAsync() : _decoratee.DisposeAsync();
 
@@ -51,7 +51,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         }
     }
 
-    Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformInvokeAsync() : _decoratee.InvokeAsync(request, cancel);
 
@@ -77,11 +77,11 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         }
     }
 
-    void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
+    public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
-    void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
+    public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-    Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
+    public Task ShutdownAsync(string message, CancellationToken cancel)
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformShutdownAsync() : _decoratee.ShutdownAsync(message, cancel);
 

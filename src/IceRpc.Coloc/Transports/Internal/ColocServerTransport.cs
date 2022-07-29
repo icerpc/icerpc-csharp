@@ -15,7 +15,7 @@ internal class ColocServerTransport : IDuplexServerTransport
     private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    IDuplexListener IDuplexServerTransport.Listen(DuplexListenerOptions options)
+    public IDuplexListener Listen(DuplexListenerOptions options)
     {
         if (options.ServerConnectionOptions.ServerAuthenticationOptions is not null)
         {
