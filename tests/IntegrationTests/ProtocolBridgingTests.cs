@@ -156,6 +156,8 @@ public sealed class ProtocolBridgingTests
 
     public sealed class Forwarder : IDispatcher
     {
+        private readonly ServiceProxy _target;
+
         public async ValueTask<OutgoingResponse> DispatchAsync(
             IncomingRequest request,
             CancellationToken cancel)
@@ -206,8 +208,6 @@ public sealed class ProtocolBridgingTests
                 ResultType = incomingResponse.ResultType
             };
         }
-
-        private readonly ServiceProxy _target;
 
         internal Forwarder(ServiceProxy target) => _target = target;
     }
