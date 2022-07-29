@@ -7,16 +7,23 @@ use slice::grammar::{Module, NamedSymbol, ScopedSymbol};
 
 #[derive(Debug)]
 pub struct GeneratedCode {
+    // File preamble
+    pub preamble: Vec<CodeBlock>,
+
     /// Generated "top-level" code blocks
     pub code_blocks: Vec<CodeBlock>,
 
     /// Private map of scoped module names to their code blocks.
-    scoped_code_blocks: HashMap<String, Vec<CodeBlock>>,
+    pub scoped_code_blocks: HashMap<String, Vec<CodeBlock>>,
 }
 
 impl GeneratedCode {
     pub fn new() -> GeneratedCode {
-        GeneratedCode { scoped_code_blocks: HashMap::new(), code_blocks: Vec::new() }
+        GeneratedCode {
+            preamble: Vec::new(),
+            scoped_code_blocks: HashMap::new(),
+            code_blocks: Vec::new(),
+        }
     }
 
     pub fn insert_scoped(&mut self, symbol: &dyn ScopedSymbol, code: CodeBlock) {

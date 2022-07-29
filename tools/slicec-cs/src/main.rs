@@ -61,7 +61,7 @@ fn try_main() -> ParserResult {
         for slice_file in parsed_data.files.values().filter(|file| file.is_source) {
             let mut generated_code = GeneratedCode::new();
 
-            generated_code.code_blocks.push(preamble(slice_file));
+            generated_code.preamble.push(preamble(slice_file));
 
             let mut struct_visitor = StructVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut struct_visitor);
@@ -98,8 +98,9 @@ fn try_main() -> ParserResult {
                 // Move the generated code out of the generated_code struct and consolidate into a
                 // single string.
                 let code_string = generated_code
-                    .code_blocks
+                    .preamble
                     .into_iter()
+                    .chain(generated_code.code_blocks.into_iter())
                     .collect::<CodeBlock>()
                     .into_string();
 
