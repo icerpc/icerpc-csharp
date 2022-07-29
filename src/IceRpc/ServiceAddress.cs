@@ -537,9 +537,9 @@ public sealed record class ServiceAddress
         return true;
     }
 
-    /// <summary>Checks if <paramref name="name"/> is not empty nor equal to <c>alt-endpoint</c> and contains only
-    /// unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>, <c>&#38;</c> and <c>=</c>.
-    /// </summary>
+    /// <summary>Checks if <paramref name="name"/> is not empty, not equal to <c>alt-endpoint</c> nor equal to
+    /// <c>transport</c> and contains only unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>,
+    /// <c>&#38;</c> and <c>=</c>.</summary>
     /// <param name="name">The name to check.</param>
     /// <returns><c>true</c> if <paramref name="name"/> is a valid parameter name; otherwise, <c>false</c>.
     /// </returns>
@@ -547,7 +547,7 @@ public sealed record class ServiceAddress
     /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
     /// in a name.</remarks>
     private static bool IsValidParamName(string name) =>
-        name.Length > 0 && name != "alt-endpoint" && IsValid(name, "\"<>#&=\\^`{|}");
+        name.Length > 0 && name != "alt-endpoint" && name != "transport" && IsValid(name, "\"<>#&=\\^`{|}");
 
     private void CheckSupportedProtocol(string propertyName)
     {

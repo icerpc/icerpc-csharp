@@ -58,7 +58,7 @@ public readonly record struct Endpoint
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException($"invalid parameters", nameof(Params), ex);
+                throw new ArgumentException("invalid parameters", nameof(Params), ex);
             }
             _params = value;
             OriginalUri = null; // new params invalidates OriginalUri
