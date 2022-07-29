@@ -30,11 +30,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => Endpoint.Protocol;
 
-    private readonly Func<Endpoint, bool> _checkEndpointParams;
-
     private readonly IProtocolConnection _protocolConnection;
-
-    private readonly string _transportName;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -73,8 +69,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, logger);
             }
 
-            _checkEndpointParams = endpoint => duplexClientTransport.CheckParams(endpoint);
-
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
                 new DuplexClientConnectionOptions
                 {
@@ -101,8 +95,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     logger);
             }
 
-            _checkEndpointParams = endpoint => multiplexedClientTransport.CheckParams(endpoint);
-
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
                 new MultiplexedClientConnectionOptions
                 {
@@ -125,9 +117,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             decoratee = new IceRpcProtocolConnection(transportConnection, options);
 #pragma warning restore CA2000
         }
-
-        // This will throws KeyNotFoundException if the transport did not set "transport" (= bug in the transport).
-        _transportName = Endpoint.Params["transport"];
 
         if (logger != NullLogger.Instance)
         {
@@ -201,36 +190,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         void CheckRequestEndpoints(Endpoint mainEndpoint, ImmutableList<Endpoint> altEndpoints)
         {
-            if (IsCompatible(mainEndpoint))
+            if (EndpointComparer.OptionalTransport.Equals(mainEndpoint, Endpoint))
             {
                 return;
             }
 
             foreach (Endpoint endpoint in altEndpoints)
             {
-                if (IsCompatible(endpoint))
+                if (EndpointComparer.OptionalTransport.Equals(endpoint, Endpoint))
                 {
                     return;
                 }
             }
 
             throw new InvalidOperationException(
-                $"none of the request's endpoint(s) is compatible with this connection's endpoint: {Endpoint}");
-
-            bool IsCompatible(Endpoint endpoint)
-            {
-                if (EndpointComparer.ParameterLess.Equals(endpoint, Endpoint) &&
-                    (!endpoint.Params.TryGetValue("transport", out string? otherTransportName) ||
-                     _transportName == otherTransportName))
-                {
-                    return _checkEndpointParams(endpoint) ? true :
-                        throw new FormatException($"invalid parameter in endpoint {endpoint}");
-                }
-                else
-                {
-                    return false;
-                }
-            }
+                $"none of the request's endpoint(s) matches this connection's endpoint: {Endpoint}");
         }
     }
 

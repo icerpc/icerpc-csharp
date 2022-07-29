@@ -432,7 +432,8 @@ public ref partial struct SliceDecoder
                     string target = requestFailed.Fragment.Length > 0 ?
                         $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                    message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                    message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
+                    } }} while dispatching '{requestFailed.Operation}' on '{target}'";
                 }
                 // else message remains null
                 break;
@@ -962,7 +963,6 @@ public ref partial struct SliceDecoder
                         }
 
                         var builder = ImmutableDictionary.CreateBuilder<string, string>();
-                        builder.Add("transport", TransportNames.Opaque);
                         builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
                         builder.Add("v", Convert.ToBase64String(vSpan));
 
@@ -970,6 +970,7 @@ public ref partial struct SliceDecoder
                             Protocol.Ice,
                             OpaqueTransport.Host,
                             OpaqueTransport.Port,
+                            TransportNames.Opaque,
                             builder.ToImmutable());
                         break;
                     }
@@ -1001,7 +1002,9 @@ public ref partial struct SliceDecoder
         if (endpoint is null)
         {
             throw new InvalidDataException(
-                @$"cannot decode endpoint for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with endpoint encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
+                @$"cannot decode endpoint for protocol '{protocol
+                }' and transport '{transportCode.ToString().ToLowerInvariant()
+                }' with endpoint encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
         }
 
         return endpoint.Value;

@@ -30,27 +30,24 @@ public class TcpServerTransport : IDuplexServerTransport
         // This is the composition root of the tcp server transport, where we install log decorators when logging
         // is enabled.
 
-        if (TcpClientTransport.CheckParams(options.Endpoint, out string? endpointTransport))
-        {
-            if (endpointTransport is null)
-            {
-                options = options with
-                {
-                    Endpoint = options.Endpoint with { Params = options.Endpoint.Params.Add("transport", Name) }
-                };
-            }
-            else if (endpointTransport == TransportNames.Ssl &&
-                     options.ServerConnectionOptions.ServerAuthenticationOptions is null)
-            {
-                throw new ArgumentNullException(
-                    nameof(options.ServerConnectionOptions.ServerAuthenticationOptions),
-                    @$"{nameof(options.ServerConnectionOptions.ServerAuthenticationOptions)
-                        } cannot be null with the ssl transport");
-            }
-        }
-        else
+        if (options.Endpoint.Params.Count > 0)
         {
             throw new FormatException($"cannot create a TCP listener for endpoint '{options.Endpoint}'");
+        }
+
+        if (options.Endpoint.Transport is not string transport)
+        {
+            options = options with
+            {
+                Endpoint = options.Endpoint with { Transport = Name }
+            };
+        }
+        else if (transport == TransportNames.Ssl && options.ServerConnectionOptions.ServerAuthenticationOptions is null)
+        {
+            throw new ArgumentNullException(
+                nameof(options.ServerConnectionOptions.ServerAuthenticationOptions),
+                @$"{nameof(options.ServerConnectionOptions.ServerAuthenticationOptions)
+                    } cannot be null with the ssl transport");
         }
 
         return new TcpListener(options, _options);

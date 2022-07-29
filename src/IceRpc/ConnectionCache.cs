@@ -13,7 +13,8 @@ namespace IceRpc;
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
-    private readonly Dictionary<Key, ClientConnection> _activeConnections = new();
+    private readonly Dictionary<Endpoint, ClientConnection> _activeConnections =
+        new(EndpointComparer.OptionalTransport);
 
     private bool _isReadOnly;
 
@@ -25,7 +26,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly ConnectionCacheOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
-    private readonly Dictionary<Key, ClientConnection> _pendingConnections = new();
+    private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections =
+        new(EndpointComparer.OptionalTransport);
 
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
@@ -128,8 +130,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         ClientConnection? connection = null;
         bool created = false;
 
-        Key key = CreateKey(endpoint);
-
         lock (_mutex)
         {
             if (_isReadOnly)
@@ -137,11 +137,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 throw new InvalidOperationException("connection cache shutting down");
             }
 
-            if (_activeConnections.TryGetValue(key, out connection))
+            if (_activeConnections.TryGetValue(endpoint, out connection))
             {
                 return connection;
             }
-            else if (_pendingConnections.TryGetValue(key, out connection))
+            else if (_pendingConnections.TryGetValue(endpoint, out connection))
             {
                 // and call ConnectAsync on this connection after the if block.
             }
@@ -154,7 +154,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     _duplexClientTransport);
 
                 created = true;
-                _pendingConnections.Add(key, connection);
+                _pendingConnections.Add(endpoint, connection);
             }
         }
 
@@ -175,7 +175,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     if (!_isReadOnly)
                     {
                         // "move" from pending to shutdown pending
-                        bool removed = _pendingConnections.Remove(key);
+                        bool removed = _pendingConnections.Remove(endpoint);
                         Debug.Assert(removed);
                         _ = _shutdownPendingConnections.Add(connection);
                         scheduleRemoveFromClosed = true;
@@ -196,9 +196,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (!_isReadOnly)
                 {
                     // "move" from pending to active
-                    bool removed = _pendingConnections.Remove(key);
+                    bool removed = _pendingConnections.Remove(endpoint);
                     Debug.Assert(removed);
-                    _activeConnections.Add(key, connection);
+                    _activeConnections.Add(endpoint, connection);
                     scheduleRemoveFromActive = true;
                 }
                 // this new connection is being shut down already
@@ -230,7 +230,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (!_isReadOnly)
                 {
                     // "move" from active to shutdown pending
-                    bool removed = _activeConnections.Remove(CreateKey(connection.Endpoint));
+                    bool removed = _activeConnections.Remove(connection.Endpoint);
                     Debug.Assert(removed);
                     _ = _shutdownPendingConnections.Add(connection);
                     scheduleRemoveFromClosed = true;
@@ -268,17 +268,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
             }
         }
-    }
-
-    private Key CreateKey(Endpoint endpoint)
-    {
-        if (!endpoint.Params.TryGetValue("transport", out string? transportName))
-        {
-            transportName = endpoint.Protocol == Protocol.IceRpc ?
-                _multiplexedClientTransport.Name : _duplexClientTransport.Name;
-        }
-
-        return new Key(endpoint, transportName);
     }
 
     /// <summary>Returns a client connection to one of the specified endpoints.</summary>
@@ -325,7 +314,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         return GetOrCreateAsync();
 
         ClientConnection? GetActiveConnection(Endpoint endpoint) =>
-            _activeConnections.TryGetValue(CreateKey(endpoint), out ClientConnection? connection) ? connection : null;
+            _activeConnections.TryGetValue(endpoint, out ClientConnection? connection) ? connection : null;
 
         // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
         // a brand new connection.
@@ -368,27 +357,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     throw new AggregateException(exceptionList);
                 }
             }
-        }
-    }
-
-    // The key consists of the endpoint's protocol, host, port and transport.
-    private readonly record struct Key
-    {
-        internal Endpoint Endpoint { get; }
-
-        internal string TransportName { get; }
-
-        public bool Equals(Key other) =>
-            EndpointComparer.ParameterLess.Equals(Endpoint, other.Endpoint) &&
-            TransportName == other.TransportName;
-
-        public override int GetHashCode() =>
-            HashCode.Combine(EndpointComparer.ParameterLess.GetHashCode(Endpoint), TransportName);
-
-        internal Key(Endpoint endpoint, string transportName)
-        {
-            Endpoint = endpoint;
-            TransportName = transportName;
         }
     }
 }

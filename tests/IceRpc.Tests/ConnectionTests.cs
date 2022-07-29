@@ -25,8 +25,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Params["transport"], Is.EqualTo("coloc"));
-        Assert.That(connection.Endpoint.Params["transport"], Is.EqualTo("coloc"));
+        Assert.That(server.Endpoint.Transport, Is.EqualTo("coloc"));
+        Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
     }
 
     /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint include a tcp transport parameter when
@@ -42,8 +42,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Params["transport"], Is.EqualTo("tcp"));
-        Assert.That(connection.Endpoint.Params["transport"], Is.EqualTo("tcp"));
+        Assert.That(server.Endpoint.Transport, Is.EqualTo("tcp"));
+        Assert.That(connection.Endpoint.Transport, Is.EqualTo("tcp"));
     }
 
     [Test]
@@ -57,8 +57,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Params["transport"], Is.EqualTo("coloc"));
-        Assert.That(connection.Endpoint.Params["transport"], Is.EqualTo("coloc"));
+        Assert.That(server.Endpoint.Transport, Is.EqualTo("coloc"));
+        Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
     }
 
     /// <summary>Verifies that aborting the connection aborts the invocations.</summary>
@@ -207,6 +207,8 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
     public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
     {
@@ -217,20 +219,6 @@ public class ConnectionTests
         Assert.That(
             async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
             Throws.TypeOf<InvalidOperationException>());
-    }
-
-    /// <summary>Verifies that InvokeAsync fails when the endpoint has a bogus endpoint parameter.</summary>
-    [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
-    [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")] // t is not valid with the icerpc protocol
-    public async Task InvokeAsync_fails_with_unknown_endpoint_param(Endpoint endpoint, ServiceAddress serviceAddress)
-    {
-        // Arrange
-        await using var connection = new ClientConnection(endpoint);
-
-        // Assert
-        Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
-            Throws.TypeOf<FormatException>());
     }
 
     [Test]

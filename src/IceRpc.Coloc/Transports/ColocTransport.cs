@@ -26,7 +26,5 @@ public sealed class ColocTransport
         ServerTransport = new ColocServerTransport(listeners);
     }
 
-    internal static bool CheckParams(Endpoint endpoint) =>
-        endpoint.Params.TryGetValue("transport", out string? transportValue) ?
-            transportValue == Name && endpoint.Params.Count == 1 : endpoint.Params.Count == 0;
+    internal static bool CheckParams(Endpoint endpoint) => endpoint.Params.Count == 0;
 }
