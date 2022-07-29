@@ -2,11 +2,11 @@
 
 namespace IceRpc.Transports;
 
-/// <summary>This class contains event ID constants used for TCP logging.</summary>
-public enum TcpEventIds
+/// <summary>This enumeration contains event ID constants used for TCP logging.</summary>
+public enum TcpEventId
 {
     /// <summary>Connect completed successfully.</summary>
-    Connect = IceRpc.Internal.BaseEventIds.Tcp,
+    Connect = IceRpc.Internal.BaseEventId.Tcp,
 
     /// <summary>The TLS authentication operation completed successfully.</summary>
     TlsAuthentication,

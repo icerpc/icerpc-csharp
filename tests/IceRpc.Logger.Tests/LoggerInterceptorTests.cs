@@ -24,7 +24,7 @@ public sealed class LoggerInterceptorTests
         Assert.Multiple(() =>
         {
             Assert.That(entries.Count, Is.EqualTo(1));
-            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.Invoke));
+            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.Invoke));
             Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
             Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
@@ -60,7 +60,7 @@ public sealed class LoggerInterceptorTests
         Assert.Multiple(() =>
         {
             Assert.That(entries.Count, Is.EqualTo(1));
-            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.InvokeException));
+            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.InvokeException));
             Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
             Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());

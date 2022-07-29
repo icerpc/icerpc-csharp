@@ -2,13 +2,13 @@
 
 namespace IceRpc;
 
-/// <summary>This class contains event ID constants used for protocol logging.</summary>
-// TODO: split into IceEventIds and IceRpcEventIds
-// The protocol-neutral event IDs are in ConnectionEventIds.
-public enum ProtocolEventIds
+/// <summary>This enumeration contains event ID constants used for protocol logging.</summary>
+// TODO: split into IceEventId and IceRpcEventId
+// The protocol-neutral event IDs are in ConnectionEventId.
+public enum ProtocolEventId
 {
     /// <summary>Received an ice close connection frame.</summary>
-    ReceivedIceCloseConnectionFrame = Internal.BaseEventIds.Protocol,
+    ReceivedIceCloseConnectionFrame = Internal.BaseEventId.Protocol,
 
     /// <summary>Received an ice request batch frame.</summary>
     ReceivedIceRequestBatchFrame,
