@@ -212,8 +212,7 @@ internal class DuplexListenerDecorator : IDuplexListener
                 {
                     ServerAuthenticationOptions = serverOptions.Value.ServerAuthenticationOptions,
                 },
-                Endpoint = serverOptions.Value.Endpoint,
-                Logger = logger
+                Endpoint = serverOptions.Value.Endpoint
             });
         if (logger != NullLogger.Instance)
         {
@@ -249,8 +248,7 @@ internal class MultiplexedListenerDecorator : IMultiplexedListener
                 {
                     ServerAuthenticationOptions = serverOptions.Value.ServerAuthenticationOptions,
                 },
-                Endpoint = serverOptions.Value.Endpoint,
-                Logger = logger,
+                Endpoint = serverOptions.Value.Endpoint
             });
         if (logger != NullLogger.Instance)
         {

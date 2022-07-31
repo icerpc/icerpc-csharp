@@ -14,7 +14,6 @@ internal sealed class TcpListener : IDuplexListener
     public Endpoint Endpoint { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private readonly ILogger _logger;
     private int _minSegmentSize;
     private MemoryPool<byte> _pool;
     private readonly Socket _socket;
@@ -52,7 +51,6 @@ internal sealed class TcpListener : IDuplexListener
         }
 
         _authenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions;
-        _logger = options.Logger;
         _minSegmentSize = options.ServerConnectionOptions.MinSegmentSize;
         _pool = options.ServerConnectionOptions.Pool;
 

@@ -66,8 +66,7 @@ public static class ServiceCollectionExtensions
                     ServerConnectionOptions = new()
                     {
                         ServerAuthenticationOptions = serverAuthenticationOptions
-                    },
-                    Logger = provider.GetService<ILogger>() ?? NullLogger.Instance
+                    }
                 });
         });
 

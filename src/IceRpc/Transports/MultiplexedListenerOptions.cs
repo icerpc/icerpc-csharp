@@ -15,7 +15,4 @@ public sealed record class MultiplexedListenerOptions
 
     /// <summary>Gets or sets the listener's endpoint.</summary>
     public Endpoint Endpoint { get; set; }
-
-    /// <summary>Gets or sets the listener's logger.</summary>
-    public ILogger Logger { get; set; } = NullLogger.Instance;
 }
