@@ -38,10 +38,6 @@ public class SlicServerTransport : IMultiplexedServerTransport
     {
         // TODO: temporary until #1536 is fixed
         IDuplexServerTransport duplexServerTransport = _duplexServerTransport;
-        if (options.Logger != NullLogger.Instance)
-        {
-            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, options.Logger);
-        }
 
         return new SlicListener(
             duplexServerTransport.Listen(

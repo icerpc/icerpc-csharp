@@ -33,22 +33,12 @@ internal sealed class TcpListener : IDuplexListener
             throw new ObjectDisposedException(nameof(TcpListener), ex);
         }
 
-#pragma warning disable CA2000 // the connection is disposed by the caller
-        var serverConnection = new TcpServerConnection(
+        return new TcpServerConnection(
             Endpoint,
             acceptedSocket,
             _authenticationOptions,
             _pool,
             _minSegmentSize);
-        if (_logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
-        {
-            return new LogTcpConnectionDecorator(serverConnection, _logger);
-        }
-        else
-        {
-            return serverConnection;
-        }
-#pragma warning restore CA2000
     }
 
     public void Dispose() => _socket.Dispose();

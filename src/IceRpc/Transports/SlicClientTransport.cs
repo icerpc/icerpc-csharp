@@ -40,10 +40,6 @@ public class SlicClientTransport : IMultiplexedClientTransport
     {
         // TODO: temporary until #1536 is fixed
         IDuplexClientTransport duplexClientTransport = _duplexClientTransport;
-        if (options.Logger != NullLogger.Instance)
-        {
-            duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, options.Logger);
-        }
 
         return new SlicConnection(
             duplexClientTransport.CreateConnection(
