@@ -81,8 +81,7 @@ public static class ServiceCollectionExtensions
                 new DuplexClientConnectionOptions
                 {
                     Endpoint = listener.Endpoint,
-                    ClientAuthenticationOptions = clientAuthenticationOptions,
-                    Logger = provider.GetService<ILogger>() ?? NullLogger.Instance
+                    ClientAuthenticationOptions = clientAuthenticationOptions
                 });
         });
         return collection;
