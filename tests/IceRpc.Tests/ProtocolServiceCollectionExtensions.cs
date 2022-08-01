@@ -140,8 +140,7 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
                         duplexClientConnectionOptions.Value with
                         {
                             Endpoint = listener.Endpoint,
-                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions,
-                            Logger = logger
+                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions
                         }),
                 isServer: false,
                 clientConnectionOptions.Value),
@@ -176,8 +175,7 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                         multiplexedClientConnectionOptions.Value with
                         {
                             Endpoint = listener.Endpoint,
-                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions,
-                            Logger = logger
+                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions
                         }),
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
@@ -212,8 +210,7 @@ internal class DuplexListenerDecorator : IDuplexListener
                 {
                     ServerAuthenticationOptions = serverOptions.Value.ServerAuthenticationOptions,
                 },
-                Endpoint = serverOptions.Value.Endpoint,
-                Logger = logger
+                Endpoint = serverOptions.Value.Endpoint
             });
         if (logger != NullLogger.Instance)
         {
@@ -249,8 +246,7 @@ internal class MultiplexedListenerDecorator : IMultiplexedListener
                 {
                     ServerAuthenticationOptions = serverOptions.Value.ServerAuthenticationOptions,
                 },
-                Endpoint = serverOptions.Value.Endpoint,
-                Logger = logger,
+                Endpoint = serverOptions.Value.Endpoint
             });
         if (logger != NullLogger.Instance)
         {

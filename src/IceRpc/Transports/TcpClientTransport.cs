@@ -64,20 +64,12 @@ public class TcpClientTransport : IDuplexClientTransport
             };
         }
 
-        var clientConnection = new TcpClientConnection(
+        return new TcpClientConnection(
             endpoint,
             authenticationOptions,
             options.Pool,
             options.MinSegmentSize,
             _options);
-        if (options.Logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
-        {
-            return new LogTcpConnectionDecorator(clientConnection, options.Logger);
-        }
-        else
-        {
-            return clientConnection;
-        }
     }
 
     /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
