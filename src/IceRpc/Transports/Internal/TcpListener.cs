@@ -14,7 +14,6 @@ internal sealed class TcpListener : IDuplexListener
     public Endpoint Endpoint { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private readonly ILogger _logger;
     private int _minSegmentSize;
     private MemoryPool<byte> _pool;
     private readonly Socket _socket;
@@ -33,22 +32,12 @@ internal sealed class TcpListener : IDuplexListener
             throw new ObjectDisposedException(nameof(TcpListener), ex);
         }
 
-#pragma warning disable CA2000 // the connection is disposed by the caller
-        var serverConnection = new TcpServerConnection(
+        return new TcpServerConnection(
             Endpoint,
             acceptedSocket,
             _authenticationOptions,
             _pool,
             _minSegmentSize);
-        if (_logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
-        {
-            return new LogTcpConnectionDecorator(serverConnection, _logger);
-        }
-        else
-        {
-            return serverConnection;
-        }
-#pragma warning restore CA2000
     }
 
     public void Dispose() => _socket.Dispose();
@@ -62,7 +51,6 @@ internal sealed class TcpListener : IDuplexListener
         }
 
         _authenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions;
-        _logger = options.Logger;
         _minSegmentSize = options.ServerConnectionOptions.MinSegmentSize;
         _pool = options.ServerConnectionOptions.Pool;
 

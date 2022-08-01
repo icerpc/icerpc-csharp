@@ -2,9 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
-using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 

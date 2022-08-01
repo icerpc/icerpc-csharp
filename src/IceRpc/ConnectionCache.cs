@@ -13,7 +13,8 @@ namespace IceRpc;
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
-    private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
+    private readonly Dictionary<Endpoint, ClientConnection> _activeConnections =
+        new(EndpointComparer.OptionalTransport);
 
     private bool _isReadOnly;
 
@@ -25,7 +26,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly ConnectionCacheOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
-    private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
+    private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections =
+        new(EndpointComparer.OptionalTransport);
 
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
@@ -118,22 +120,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancel)));
     }
 
-    /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
-    /// when it appears we can reuse an active or pending connection based on a parameterless endpoint match.</summary>
-    /// <param name="endpoint">The endpoint to check.</param>
-    private void CheckEndpoint(Endpoint endpoint)
-    {
-        bool isValid = endpoint.Protocol == Protocol.Ice ?
-            _duplexClientTransport.CheckParams(endpoint) :
-            _multiplexedClientTransport.CheckParams(endpoint);
-
-        if (!isValid)
-        {
-            throw new FormatException(
-                $"cannot establish a client connection to endpoint '{endpoint}': one or more parameters are invalid");
-        }
-    }
-
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
     /// connection for the desired endpoint.</summary>
     /// <param name="endpoint">The endpoint of the server.</param>
@@ -153,12 +139,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             if (_activeConnections.TryGetValue(endpoint, out connection))
             {
-                CheckEndpoint(endpoint);
                 return connection;
             }
             else if (_pendingConnections.TryGetValue(endpoint, out connection))
             {
-                CheckEndpoint(endpoint);
                 // and call ConnectAsync on this connection after the if block.
             }
             else
@@ -329,18 +313,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         return GetOrCreateAsync();
 
-        ClientConnection? GetActiveConnection(Endpoint endpoint)
-        {
-            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
-            {
-                CheckEndpoint(endpoint);
-                return connection;
-            }
-            else
-            {
-                return null;
-            }
-        }
+        ClientConnection? GetActiveConnection(Endpoint endpoint) =>
+            _activeConnections.TryGetValue(endpoint, out ClientConnection? connection) ? connection : null;
 
         // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
         // a brand new connection.

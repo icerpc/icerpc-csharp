@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-using System.Net.Security;
-
 namespace IceRpc.Transports;
 
 /// <summary>A class to create outgoing multiplexed connections.</summary>

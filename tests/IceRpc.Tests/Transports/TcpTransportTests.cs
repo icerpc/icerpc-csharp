@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Security;

@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
-using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -31,7 +29,7 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new FormatException($"cannot create a Coloc connection to endpoint '{options.Endpoint}'");
         }
 
-        return new ColocConnection(options.Endpoint.WithTransport(Name), endpoint => Connect(endpoint, options));
+        return new ColocConnection(options.Endpoint with { Transport = Name }, endpoint => Connect(endpoint, options));
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
