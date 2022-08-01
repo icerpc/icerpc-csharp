@@ -31,6 +31,7 @@ use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
+use slice::errors::ErrorKind;
 use slice::parse_result::ParserResult;
 use slice::slice_file::SliceFile;
 use std::fs::File;
@@ -112,8 +113,12 @@ fn try_main() -> ParserResult {
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
                     Err(err) => {
-                        parsed_data.error_reporter.report_error(
-                            format!("failed to write to file {}: {}", &path.display(), err),
+                        parsed_data.error_reporter.report(
+                            ErrorKind::IO(format!(
+                                "failed to write to file {}: {}",
+                                &path.display(),
+                                err
+                            )),
                             None,
                         );
 

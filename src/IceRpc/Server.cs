@@ -106,8 +106,7 @@ public sealed class Server : IAsyncDisposable
                         Pool = _options.ConnectionOptions.Pool,
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions
                     },
-                    Endpoint = _options.Endpoint,
-                    Logger = logger // TODO: temporary until #1536 is fixed
+                    Endpoint = _options.Endpoint
                 };
 
                 IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
@@ -146,8 +145,7 @@ public sealed class Server : IAsyncDisposable
                         ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
-                    Endpoint = _options.Endpoint,
-                    Logger = logger
+                    Endpoint = _options.Endpoint
                 };
 
                 IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);

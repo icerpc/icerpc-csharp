@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Conformance.Tests;
-using IceRpc.Tests.Common;
 using IceRpc.Internal;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,8 +28,7 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
                 return transport.Listen(
                     provider.GetRequiredService<IOptions<MultiplexedListenerOptions>>().Value with
                     {
-                        Endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" },
-                        Logger = loggerFactory.CreateLogger("IceRpc"),
+                        Endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" }
                     });
             });
 

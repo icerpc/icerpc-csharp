@@ -18,7 +18,4 @@ public sealed record class DuplexClientConnectionOptions : DuplexConnectionOptio
     /// <summary>Gets or sets the connection's endpoint. The endpoint of a connection is the address of the server-end
     /// of that connection.</summary>
     public Endpoint Endpoint { get; set; }
-
-    /// <summary>Gets or sets the connection's logger.</summary>
-    public ILogger Logger { get; set; } = NullLogger.Instance;
 }

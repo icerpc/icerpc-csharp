@@ -75,8 +75,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
                     Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
-                    Logger = logger
+                    ClientAuthenticationOptions = options.ClientAuthenticationOptions
                 });
 
             Endpoint = transportConnection.Endpoint;
@@ -107,7 +106,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     MinSegmentSize = options.MinSegmentSize,
                     Endpoint = endpoint,
                     ClientAuthenticationOptions = options.ClientAuthenticationOptions,
-                    Logger = logger,
                     StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                 });
 

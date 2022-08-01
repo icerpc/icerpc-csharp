@@ -158,8 +158,8 @@ public sealed class ProtocolBridgingTests
     {
         private readonly ServiceProxy _target;
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
-            IncomingRequest incomingRequest,
+        public async ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
             CancellationToken cancel)
         {
             // First create an outgoing request to _target from the incoming request:
@@ -168,10 +168,10 @@ public sealed class ProtocolBridgingTests
 
             var outgoingRequest = new OutgoingRequest(_target.ServiceAddress)
             {
-                IsOneway = incomingRequest.IsOneway,
-                Operation = incomingRequest.Operation,
-                Payload = incomingRequest.Payload,
-                Features = incomingRequest.Features,
+                IsOneway = request.IsOneway,
+                Operation = request.Operation,
+                Payload = request.Payload,
+                Features = request.Features,
             };
 
             // Then invoke
@@ -182,7 +182,7 @@ public sealed class ProtocolBridgingTests
 
             // When ResultType == Failure and the protocols are different, we need to transcode the exception
             // (typically a dispatch exception). Fortunately, we can simply decode it and throw it.
-            if (incomingRequest.Protocol != incomingResponse.Protocol &&
+            if (request.Protocol != incomingResponse.Protocol &&
                 incomingResponse.ResultType == ResultType.Failure)
             {
                 RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
@@ -201,7 +201,7 @@ public sealed class ProtocolBridgingTests
                             new OutgoingFieldValue(pair.Value))));
             _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
-            return new OutgoingResponse(incomingRequest)
+            return new OutgoingResponse(request)
             {
                 Fields = fields,
                 Payload = incomingResponse.Payload,

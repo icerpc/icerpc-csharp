@@ -30,7 +30,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint =  new Endpoint(new Uri("icerpc://bar")),
+                Endpoint = new Endpoint(new Uri("icerpc://bar")),
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();

@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
-using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -19,7 +17,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    IDuplexConnection IDuplexClientTransport.CreateConnection(DuplexClientConnectionOptions options)
+    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
     {
         if (options.ClientAuthenticationOptions is not null)
         {

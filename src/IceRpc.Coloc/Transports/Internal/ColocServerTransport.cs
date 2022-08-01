@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -15,7 +13,7 @@ internal class ColocServerTransport : IDuplexServerTransport
     private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    IDuplexListener IDuplexServerTransport.Listen(DuplexListenerOptions options)
+    public IDuplexListener Listen(DuplexListenerOptions options)
     {
         if (options.ServerConnectionOptions.ServerAuthenticationOptions is not null)
         {

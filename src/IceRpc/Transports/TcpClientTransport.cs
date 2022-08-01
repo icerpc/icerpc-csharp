@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -91,20 +90,12 @@ public class TcpClientTransport : IDuplexClientTransport
             };
         }
 
-        var clientConnection = new TcpClientConnection(
+        return new TcpClientConnection(
             endpoint,
             authenticationOptions,
             options.Pool,
             options.MinSegmentSize,
             _options);
-        if (options.Logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
-        {
-            return new LogTcpConnectionDecorator(clientConnection, options.Logger);
-        }
-        else
-        {
-            return clientConnection;
-        }
     }
 
     /// <summary>Decodes the body of a tcp or ssl ice endpoint encoded using Slice1.</summary>
