@@ -8,8 +8,7 @@ namespace IceRpc.Transports;
 /// IceRPC core calls <see cref="ConnectAsync"/> before calling other methods.</summary>
 public interface ITransportConnection
 {
-    /// <summary>Gets the endpoint of this connection. This endpoint always includes a transport parameter that
-    /// identifies the underlying transport.</summary>
+    /// <summary>Gets the endpoint of this connection. The Transport property of this endpoint is not null.</summary>
     Endpoint Endpoint { get; }
 
     /// <summary>Connects this transport connection.</summary>

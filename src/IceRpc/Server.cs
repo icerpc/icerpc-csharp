@@ -22,7 +22,7 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Gets the endpoint of this server.</summary>
     /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
-    /// listening endpoint returned by the transport and always includes a transport parameter even when
+    /// listening endpoint returned by the transport. It has a non-null Transport property even when
     /// <see cref="ServerOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; private set; }
 

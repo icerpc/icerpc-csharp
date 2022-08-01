@@ -52,13 +52,19 @@ internal static class EndpointExtensions
             sb.Append(path);
         }
 
-        bool firstOption = true;
+        bool firstParam = true;
+        if (endpoint.Transport is not null)
+        {
+            firstParam = false;
+            sb.Append("?transport=").Append(endpoint.Transport);
+        }
+
         foreach ((string name, string value) in endpoint.Params)
         {
-            if (firstOption)
+            if (firstParam)
             {
                 sb.Append('?');
-                firstOption = false;
+                firstParam = false;
             }
             else
             {

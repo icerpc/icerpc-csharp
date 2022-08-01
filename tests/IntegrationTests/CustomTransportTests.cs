@@ -17,9 +17,9 @@ public class CustomClientTransport : IMultiplexedClientTransport
 
     public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options)
     {
-        if (options.Endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+        if (options.Endpoint.Transport is string transport)
         {
-            if (endpointTransport != "tcp" && endpointTransport != "custom")
+            if (transport != "tcp" && transport != "custom")
             {
                 throw new ArgumentException(
                     $"cannot use custom transport with endpoint '{options.Endpoint}'",
@@ -31,7 +31,8 @@ public class CustomClientTransport : IMultiplexedClientTransport
         {
             Endpoint = options.Endpoint with
             {
-                Params = options.Endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+                Params = options.Endpoint.Params.Remove("custom-p"),
+                Transport = "tcp"
             }
         };
 
@@ -48,9 +49,9 @@ public class CustomServerTransport : IMultiplexedServerTransport
 
     public IMultiplexedListener Listen(MultiplexedListenerOptions options)
     {
-        if (options.Endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+        if (options.Endpoint.Transport is string transport)
         {
-            if (endpointTransport != "tcp" && endpointTransport != "custom")
+            if (transport != "tcp" && transport != "custom")
             {
                 throw new ArgumentException(
                     $"cannot use custom transport with endpoint '{options.Endpoint}'",
@@ -62,7 +63,8 @@ public class CustomServerTransport : IMultiplexedServerTransport
         {
             Endpoint = options.Endpoint with
             {
-                Params = options.Endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+                Params = options.Endpoint.Params.Remove("custom-p"),
+                Transport = "tcp"
             }
         };
 

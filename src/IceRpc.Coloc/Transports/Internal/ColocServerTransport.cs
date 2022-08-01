@@ -25,7 +25,8 @@ internal class ColocServerTransport : IDuplexServerTransport
             throw new FormatException($"cannot create a Coloc listener for endpoint '{options.Endpoint}'");
         }
 
-        var listener = new ColocListener(options with { Endpoint = options.Endpoint.WithTransport(Name) });
+        var listener = new ColocListener(options with { Endpoint = options.Endpoint with { Transport = Name } });
+
         if (!_listeners.TryAdd(listener.Endpoint, listener))
         {
             throw new TransportException($"endpoint '{listener.Endpoint}' is already in use");

@@ -17,7 +17,7 @@ public readonly record struct Endpoint
     /// <value>A supported protocol - either <see cref="Protocol.IceRpc"/> or <see cref="Protocol.Ice"/>.</value>
     public Protocol Protocol { get; }
 
-    /// <summary>Gets the endpoint's host name or address.</summary>
+    /// <summary>Gets or initializes the endpoint's host name or address.</summary>
     public string Host
     {
         get => _host;
@@ -33,7 +33,7 @@ public readonly record struct Endpoint
         }
     }
 
-    /// <summary>Gets the endpoint's port number.</summary>
+    /// <summary>Gets or initializes the endpoint's port number.</summary>
     public ushort Port
     {
         get => _port;
@@ -45,7 +45,7 @@ public readonly record struct Endpoint
         }
     }
 
-    /// <summary>Gets the endpoint's transport-specific parameters.</summary>
+    /// <summary>Gets or initializes the endpoint's transport-specific parameters.</summary>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -58,7 +58,7 @@ public readonly record struct Endpoint
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException($"invalid parameters", nameof(Params), ex);
+                throw new ArgumentException("invalid parameters", nameof(Params), ex);
             }
             _params = value;
             OriginalUri = null; // new params invalidates OriginalUri
@@ -68,9 +68,19 @@ public readonly record struct Endpoint
     /// <summary>Gets the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
     public Uri? OriginalUri { get; private init; }
 
+    /// <summary>Gets or initializes the transport of this endpoint, or null if the transport not specified.</summary>
+    public string? Transport
+    {
+        get => _transport;
+
+        init => _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
+            throw new ArgumentException($"`{value}` is not valid transport name", nameof(value));
+    }
+
     private readonly string _host = "::0";
     private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private readonly ushort _port;
+    private readonly string? _transport;
 
     /// <summary>Constructs an endpoint with default values.</summary>
     public Endpoint()
@@ -91,6 +101,7 @@ public readonly record struct Endpoint
 
         Protocol = protocol;
         _port = (ushort)Protocol.DefaultUriPort;
+        _transport = null;
         OriginalUri = null;
     }
 
@@ -136,7 +147,7 @@ public readonly record struct Endpoint
 
         try
         {
-            (_params, string? altEndpointValue) = uri.ParseQuery();
+            (_params, string? altEndpointValue, _transport) = uri.ParseQuery();
 
             if (altEndpointValue is not null)
             {
@@ -161,11 +172,12 @@ public readonly record struct Endpoint
         Protocol == other.Protocol &&
         Host == other.Host &&
         Port == other.Port &&
+        Transport == other.Transport &&
         Params.DictionaryEqual(other.Params);
 
     /// <summary>Computes the hash code for this endpoint.</summary>
     /// <returns>The hash code.</returns>
-    public override int GetHashCode() => HashCode.Combine(Protocol, Host, Port, Params.Count);
+    public override int GetHashCode() => HashCode.Combine(Protocol, Host, Port, Transport, Params.Count);
 
     /// <summary>Converts this endpoint into a string.</summary>
     /// <returns>The string representation of this endpoint.</returns>
@@ -184,11 +196,13 @@ public readonly record struct Endpoint
         Protocol protocol,
         string host,
         ushort port,
+        string? transport,
         ImmutableDictionary<string, string> endpointParams)
     {
         Protocol = protocol;
         _host = host;
         _port = port;
+        _transport = transport;
         _params = endpointParams;
         OriginalUri = null;
     }
@@ -197,18 +211,21 @@ public readonly record struct Endpoint
 /// <summary>Equality comparer for <see cref="Endpoint"/>.</summary>
 public abstract class EndpointComparer : EqualityComparer<Endpoint>
 {
-    /// <summary>Gets an endpoint comparer that compares all endpoint properties except the parameters.</summary>
-    public static EndpointComparer ParameterLess { get; } = new ParamLessEndpointComparer();
+    /// <summary>Gets an endpoint comparer that compares all endpoint properties, except a transport mismatch where the
+    /// transport of one of the endpoints is null results in equality.</summary>
+    public static EndpointComparer OptionalTransport { get; } = new OptionalTransportEndpointComparer();
 
-    private class ParamLessEndpointComparer : EndpointComparer
+    private class OptionalTransportEndpointComparer : EndpointComparer
     {
         public override bool Equals(Endpoint lhs, Endpoint rhs) =>
-                lhs.Protocol == rhs.Protocol &&
-                lhs.Host == rhs.Host &&
-                lhs.Port == rhs.Port;
+            lhs.Protocol == rhs.Protocol &&
+            lhs.Host == rhs.Host &&
+            lhs.Port == rhs.Port &&
+            (lhs.Transport == rhs.Transport || lhs.Transport is null || rhs.Transport is null) &&
+            lhs.Params.DictionaryEqual(rhs.Params);
 
         public override int GetHashCode(Endpoint endpoint) =>
-            HashCode.Combine(endpoint.Protocol, endpoint.Host, endpoint.Port);
+            HashCode.Combine(endpoint.Protocol, endpoint.Host, endpoint.Port, endpoint.Params.Count);
     }
 }
 

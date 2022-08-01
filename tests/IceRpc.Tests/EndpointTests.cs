@@ -8,7 +8,7 @@ namespace IceRpc.Tests;
 public class EndpointTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Create_endpoint_from_valid_uri(Uri, string, ushort, IDictionary{string, string})"/> test.
+    /// <see cref="Create_endpoint_from_valid_uri(Uri, string, ushort, string?, IDictionary{string, string})"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EndpointUriSource
     {
@@ -17,12 +17,14 @@ public class EndpointTests
             foreach ((Uri uri,
                       string host,
                       ushort port,
+                      string? transport,
                       IDictionary<string, string>? parameters) in _validEndpoints)
             {
                 yield return new TestCaseData(
                     uri,
                     host,
                     port,
+                    transport,
                     parameters ?? new Dictionary<string, string>());
             }
         }
@@ -33,55 +35,55 @@ public class EndpointTests
     {
         get
         {
-            foreach ((Uri uri, string _, ushort _, IDictionary<string, string>? _) in _validEndpoints)
+            foreach ((Uri uri, string _, ushort _, string? _, IDictionary<string, string>? _) in _validEndpoints)
             {
                 yield return new TestCaseData(uri);
             }
         }
     }
 
-    /// <summary>A collection of valid endpoint strings with its expected host, port, and parameters.</summary>
-    private static readonly (Uri Uri, string Host, ushort Port, IDictionary<string, string>? Parameters)[] _validEndpoints =
-        new (Uri, string, ushort, IDictionary<string, string>?)[]
+    /// <summary>A collection of valid endpoint strings with its expected host, port, transport and parameters.</summary>
+    private static readonly (Uri Uri, string Host, ushort Port, string? Transport, IDictionary<string, string>? Parameters)[] _validEndpoints =
+        new (Uri, string, ushort, string?, IDictionary<string, string>?)[]
         {
-            (new Uri("icerpc://host:10000"), "host", 10000, null),
-            (new Uri("icerpc://host:10000?transport=foobar"), "host", 10000, new Dictionary<string, string>() { ["transport"] = "foobar" }),
-            (new Uri("icerpc://host"), "host", 4062, null),
-            (new Uri("icerpc://[::0]"), "::", 4062, null),
+            (new Uri("icerpc://host:10000"), "host", 10000, null, null),
+            (new Uri("icerpc://host:10000?transport=foobar"), "host", 10000, "foobar", null),
+            (new Uri("icerpc://host"), "host", 4062, null, null),
+            (new Uri("icerpc://[::0]"), "::", 4062, null, null),
             (new Uri("ice://[::0]?foo=bar&xyz=true"),
              "::",
              4061,
+             null,
              new Dictionary<string, string>() { ["foo"] = "bar", ["xyz"] = "true" }),
             (new Uri("icerpc://[::0]?xyz=false&xyz=true&foo=&b="),
              "::",
              4062,
+             null,
              new Dictionary<string, string>() { ["xyz"] = "false,true", ["foo"] = "", ["b"] = "" }),
             (new Uri("icerpc://host:10000?xyz=foo"),
              "host",
              10000,
+             null,
              new Dictionary<string, string> { ["xyz"] = "foo" }),
-            (new Uri("icerpc://host:10000?transport=coloc"),
-             "host",
-             10000,
-             new Dictionary<string, string>() { ["transport"] = "coloc" }),
-            (new Uri("ice://localhost?transport=tcp"),
-             "localhost",
-             4061,
-             new Dictionary<string, string>{ ["transport"] = "tcp" }),
-            (new Uri("ice://host:10000"), "host", 10000, null),
+            (new Uri("icerpc://host:10000?transport=coloc"), "host", 10000, "coloc", null),
+            (new Uri("ice://localhost?transport=tcp"), "localhost", 4061, "tcp", null),
+            (new Uri("ice://host:10000"), "host", 10000, null, null),
             (new Uri("icerpc://host:10000?xyz"),
              "host",
              10000,
+             null,
              new Dictionary<string, string>{ ["xyz"] = "" }),
             (new Uri("icerpc://host:10000?xyz&adapter-id=ok"),
              "host",
              10000,
+             null,
              new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
-            (new Uri("IceRpc://host:10000"), "host", 10000, null),
+            (new Uri("IceRpc://host:10000"), "host", 10000, null, null),
             // parses ok even though not a valid name
             (new Uri("icerpc://host:10000? =bar"),
              "host",
              10000,
+             null,
              new Dictionary<string, string>() { ["%20"] = "bar" })
         };
 
@@ -109,6 +111,7 @@ public class EndpointTests
             Assert.That(endpoint.Protocol, Is.EqualTo(Protocol.IceRpc));
             Assert.That(endpoint.Host, Is.EqualTo("::0"));
             Assert.That(endpoint.Port, Is.EqualTo(Protocol.IceRpc.DefaultUriPort));
+            Assert.That(endpoint.Transport, Is.Null);
             Assert.That(endpoint.Params, Has.Count.EqualTo(0));
         });
     }
@@ -155,12 +158,14 @@ public class EndpointTests
     /// <param name="uri">The endpoint URI.</param>
     /// <param name="host">The expected host for the new endpoint.</param>
     /// <param name="port">The expected port for the new endpoint.</param>
+    /// <param name="transport">The expected transport for the new endpoint.</param>
     /// <param name="parameters">The expected parameters for the new endpoint.</param>
     [Test, TestCaseSource(nameof(EndpointUriSource))]
     public void Create_endpoint_from_valid_uri(
         Uri uri,
         string host,
         ushort port,
+        string? transport,
         IDictionary<string, string> parameters)
     {
         var endpoint = new Endpoint(uri);
@@ -169,6 +174,7 @@ public class EndpointTests
         {
             Assert.That(endpoint.Host, Is.EqualTo(host));
             Assert.That(endpoint.Port, Is.EqualTo(port));
+            Assert.That(endpoint.Transport, Is.EqualTo(transport));
             Assert.That(endpoint.Params, Is.EquivalentTo(parameters));
         });
     }

@@ -20,14 +20,6 @@ internal static class EndpointExtensions
         {
             switch (name)
             {
-                case "transport":
-                    if (value != TransportNames.Opaque)
-                    {
-                        throw new FormatException(
-                            $"invalid value for transport parameter in endpoint '{endpoint}'");
-                    }
-                    break;
-
                 case "e":
                     (encodingMajor, encodingMinor) = value switch
                     {
@@ -84,30 +76,5 @@ internal static class EndpointExtensions
         }
 
         return (transportCode.Value, encodingMajor, encodingMinor, bytes);
-    }
-
-    /// <summary>Adds the transport parameter to this endpoint if null, and does nothing if it's already set to the
-    /// correct value.</summary>
-    /// <exception cref="ArgumentException">Thrown if endpoint already holds another transport.</exception>
-    internal static Endpoint WithTransport(this Endpoint endpoint, string transport)
-    {
-        if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
-        {
-            if (endpointTransport != transport)
-            {
-                throw new ArgumentException(
-                    $"cannot use {transport} transport with endpoint '{endpoint}'",
-                    nameof(endpoint));
-            }
-        }
-        else
-        {
-            endpoint = endpoint with
-            {
-                Params = endpoint.Params.Add("transport", transport)
-            };
-        }
-
-        return endpoint;
     }
 }

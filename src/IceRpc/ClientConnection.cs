@@ -23,7 +23,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
     /// <summary>Gets the endpoint of this connection.</summary>
-    /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
+    /// <value>The endpoint (server address) of this connection. It has a non-null <see cref="Endpoint.Transport"/> even
     /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
     public Endpoint Endpoint { get; }
 
@@ -31,8 +31,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public Protocol Protocol => Endpoint.Protocol;
 
     private readonly IProtocolConnection _protocolConnection;
-
-    private readonly string _transportName;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -118,9 +116,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 #pragma warning restore CA2000
         }
 
-        // This will throws KeyNotFoundException if the transport did not set "transport" (= bug in the transport).
-        _transportName = Endpoint.Params["transport"];
-
         if (logger != NullLogger.Instance)
         {
             _protocolConnection = new LogProtocolConnectionDecorator(decoratee, logger);
@@ -193,26 +188,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         void CheckRequestEndpoints(Endpoint mainEndpoint, ImmutableList<Endpoint> altEndpoints)
         {
-            if (IsCompatible(mainEndpoint))
+            if (EndpointComparer.OptionalTransport.Equals(mainEndpoint, Endpoint))
             {
                 return;
             }
 
             foreach (Endpoint endpoint in altEndpoints)
             {
-                if (IsCompatible(endpoint))
+                if (EndpointComparer.OptionalTransport.Equals(endpoint, Endpoint))
                 {
                     return;
                 }
             }
 
             throw new InvalidOperationException(
-                $"none of the request's endpoint(s) is compatible with this connection's endpoint: {Endpoint}");
-
-            bool IsCompatible(Endpoint endpoint) =>
-                EndpointComparer.ParameterLess.Equals(endpoint, Endpoint) &&
-                    (!endpoint.Params.TryGetValue("transport", out string? otherTransportName) ||
-                     _transportName == otherTransportName);
+                $"none of the request's endpoint(s) matches this connection's endpoint: {Endpoint}");
         }
     }
 

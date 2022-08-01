@@ -31,7 +31,30 @@ public class TcpClientTransport : IDuplexClientTransport
     public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public bool CheckParams(Endpoint endpoint) => CheckParams(endpoint, out _);
+    public bool CheckParams(Endpoint endpoint)
+    {
+        if (endpoint.Protocol != Protocol.Ice)
+        {
+            return endpoint.Params.Count == 0;
+        }
+        else
+        {
+            foreach (string name in endpoint.Params.Keys)
+            {
+                switch (name)
+                {
+                    case "t":
+                    case "z":
+                        // we don't check the value since we ignore it
+                        break;
+
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+    }
 
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
@@ -39,18 +62,21 @@ public class TcpClientTransport : IDuplexClientTransport
         // This is the composition root of the tcp client transport, where we install log decorators when logging
         // is enabled.
         Endpoint endpoint = options.Endpoint;
-        if (!CheckParams(endpoint, out string? endpointTransport))
+        if ((endpoint.Transport is string transport &&
+            transport != TransportNames.Tcp &&
+            transport != TransportNames.Ssl) ||
+            !CheckParams(endpoint))
         {
             throw new FormatException($"cannot create a TCP connection to endpoint '{endpoint}'");
         }
 
-        if (endpointTransport is null)
+        if (endpoint.Transport is null)
         {
-            endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
+            endpoint = endpoint with { Transport = Name };
         }
 
         SslClientAuthenticationOptions? authenticationOptions = options.ClientAuthenticationOptions?.Clone() ??
-            (endpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+            (endpoint.Transport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
         if (authenticationOptions is not null)
         {
             // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
@@ -72,41 +98,6 @@ public class TcpClientTransport : IDuplexClientTransport
             _options);
     }
 
-    /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
-    /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
-    /// <returns><c>true</c> when the endpoint parameters are valid; otherwise, <c>false</c>.</returns>
-    internal static bool CheckParams(Endpoint endpoint, out string? transportValue)
-    {
-        transportValue = null;
-
-        foreach ((string name, string value) in endpoint.Params)
-        {
-            switch (name)
-            {
-                case "transport":
-                    if (value is TransportNames.Tcp or TransportNames.Ssl)
-                    {
-                        transportValue = value;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                    break;
-
-                case "t":
-                case "z":
-                    // we don't check the value since we ignore it
-                    break;
-
-                default:
-                    return false;
-            }
-        }
-
-        return true;
-    }
-
     /// <summary>Decodes the body of a tcp or ssl ice endpoint encoded using Slice1.</summary>
     internal static Endpoint DecodeEndpoint(ref SliceDecoder decoder, string transport)
     {
@@ -122,21 +113,17 @@ public class TcpClientTransport : IDuplexClientTransport
         int timeout = decoder.DecodeInt32();
         bool compress = decoder.DecodeBool();
 
-        ImmutableDictionary<string, string>.Builder builder =
-            ImmutableDictionary.CreateBuilder<string, string>();
-
-        builder.Add("transport", transport);
-
+        ImmutableDictionary<string, string> parameters = ImmutableDictionary<string, string>.Empty;
         if (timeout != DefaultTcpTimeout)
         {
-            builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
+            parameters = parameters.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
         }
         if (compress)
         {
-            builder.Add("z", "");
+            parameters = parameters.Add("z", "");
         }
 
-        return new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
+        return new Endpoint(Protocol.Ice, host, port, transport, parameters);
     }
 
     /// <summary>Encodes the body of a tcp or ssl ice endpoint using Slice1.</summary>

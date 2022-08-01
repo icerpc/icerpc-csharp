@@ -12,10 +12,10 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public class ConnectionTests
 {
-    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint include a coloc transport parameter when
-    /// the transport is coloc.</summary>
+    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint's Transport property is set to "coloc".
+    /// </summary>
     [Test]
-    public async Task Coloc_endpoint_gets_transport_param([Values("ice", "icerpc")] string protocol)
+    public async Task Coloc_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -25,14 +25,14 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Params["transport"], Is.EqualTo("coloc"));
-        Assert.That(connection.Endpoint.Params["transport"], Is.EqualTo("coloc"));
+        Assert.That(server.Endpoint.Transport, Is.EqualTo("coloc"));
+        Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
     }
 
-    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint include a tcp transport parameter when
-    /// the transport is tcp.</summary>
+    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint's Transport property is set to "tcp".
+    /// </summary>
     [Test]
-    public async Task Tcp_endpoint_gets_transport_param([Values("ice", "icerpc")] string protocol)
+    public async Task Tcp_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddTcpTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -42,12 +42,12 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Params["transport"], Is.EqualTo("tcp"));
-        Assert.That(connection.Endpoint.Params["transport"], Is.EqualTo("tcp"));
+        Assert.That(server.Endpoint.Transport, Is.EqualTo("tcp"));
+        Assert.That(connection.Endpoint.Transport, Is.EqualTo("tcp"));
     }
 
     [Test]
-    public async Task Coloc_ClientConnection_Endpoint_has_transport_param([Values("ice", "icerpc")] string protocol)
+    public async Task Coloc_ClientConnection_Endpoint_has_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -57,8 +57,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Params["transport"], Is.EqualTo("coloc"));
-        Assert.That(connection.Endpoint.Params["transport"], Is.EqualTo("coloc"));
+        Assert.That(server.Endpoint.Transport, Is.EqualTo("coloc"));
+        Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
     }
 
     /// <summary>Verifies that aborting the connection aborts the invocations.</summary>
@@ -207,7 +207,9 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
-    [TestCase("ice://foo.com", "ice://foo.com:10000/path")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
+    [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
     public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
     {
         // Arrange
