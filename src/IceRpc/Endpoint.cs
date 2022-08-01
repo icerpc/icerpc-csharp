@@ -17,7 +17,7 @@ public readonly record struct Endpoint
     /// <value>A supported protocol - either <see cref="Protocol.IceRpc"/> or <see cref="Protocol.Ice"/>.</value>
     public Protocol Protocol { get; }
 
-    /// <summary>Gets the endpoint's host name or address.</summary>
+    /// <summary>Gets or initializes the endpoint's host name or address.</summary>
     public string Host
     {
         get => _host;
@@ -33,7 +33,7 @@ public readonly record struct Endpoint
         }
     }
 
-    /// <summary>Gets the endpoint's port number.</summary>
+    /// <summary>Gets or initializes the endpoint's port number.</summary>
     public ushort Port
     {
         get => _port;
@@ -45,7 +45,7 @@ public readonly record struct Endpoint
         }
     }
 
-    /// <summary>Gets the endpoint's transport-specific parameters.</summary>
+    /// <summary>Gets or initializes the endpoint's transport-specific parameters.</summary>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -68,7 +68,7 @@ public readonly record struct Endpoint
     /// <summary>Gets the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
     public Uri? OriginalUri { get; private init; }
 
-    /// <summary>Gets the transport of this endpoint, or null if the transport not specified.</summary>
+    /// <summary>Gets or initializes the transport of this endpoint, or null if the transport not specified.</summary>
     public string? Transport
     {
         get => _transport;

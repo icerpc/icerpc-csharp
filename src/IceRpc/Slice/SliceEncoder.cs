@@ -680,7 +680,7 @@ public ref partial struct SliceEncoder
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
-        // If the endpoint does not specify a transport, we default to tcp.
+        // If the endpoint does not specify a transport, we default to TCP.
         string transport = endpoint.Transport ?? TransportNames.Tcp;
 
         // The Slice1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
