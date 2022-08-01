@@ -15,6 +15,7 @@ IInvoker pipeline = new Pipeline().UseMetrics(eventSource).Into(connection);
 // Create the proxy using the invocation pipeline
 var hello = new HelloProxy(pipeline);
 
+// Gather necessary user input
 Console.Write("Enter how many requests per second you want to send: ");
 
 var input = Console.ReadLine();
@@ -28,9 +29,9 @@ while (!double.TryParse(input, out requestsPerSecond))
 
 Console.Write($"Sending {requestsPerSecond} requests per second...");
 
-var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
+// Start invoking the remote method
+using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
 while (await periodicTimer.WaitForNextTickAsync())
 {
     await hello.SayHelloAsync();
 }
-periodicTimer.Dispose();
