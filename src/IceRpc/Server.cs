@@ -85,9 +85,7 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        _listenerFactory = CreateListener;
-
-        IDisposable CreateListener()
+        _listenerFactory = () =>
         {
             if (options.Endpoint.Protocol == Protocol.Ice)
             {
@@ -253,7 +251,7 @@ public sealed class Server : IAsyncDisposable
                     }
                 }
             }
-        }
+        };
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties

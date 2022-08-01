@@ -54,10 +54,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
-        _clientConnection = CreateClientConnection();
-        _clientConnectionFactory = CreateClientConnection;
-
-        ClientConnection CreateClientConnection()
+        _clientConnectionFactory = () =>
         {
             var clientConnection = new ClientConnection(
                 options,
@@ -73,7 +70,9 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             void OnShutdown(string message) => _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
 
             return clientConnection;
-        }
+        };
+
+        _clientConnection = _clientConnectionFactory();
     }
 
     /// <summary>Constructs a resumable client connection with the specified endpoint and client authentication options.
