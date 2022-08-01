@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;

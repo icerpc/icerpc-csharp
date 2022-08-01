@@ -2,9 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System.Net.Security;
 
 namespace IceRpc.IntegrationTests;
 

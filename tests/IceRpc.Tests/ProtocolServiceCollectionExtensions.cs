@@ -180,7 +180,7 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                             Logger = logger
                         }),
                 clientConnectionOptions.Value),
-            acceptServerConnectionAsync: async() => new IceRpcProtocolConnection(
+            acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                     await listener.AcceptAsync(),
                     serverOptions.Value.ConnectionOptions),
             logger)
