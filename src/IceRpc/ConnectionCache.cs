@@ -16,23 +16,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections =
         new(EndpointComparer.OptionalTransport);
 
+    private readonly Func<Endpoint, ClientConnection> _clientConnectionFactory;
+
     private bool _isReadOnly;
 
-    private readonly ILoggerFactory? _loggerFactory;
-    private readonly IMultiplexedClientTransport _multiplexedClientTransport;
-
     private readonly object _mutex = new();
-
-    private readonly ConnectionCacheOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections =
         new(EndpointComparer.OptionalTransport);
 
+    private readonly bool _preferExistingConnection;
+
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
-
-    private readonly IDuplexClientTransport _duplexClientTransport;
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
@@ -47,10 +44,18 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
-        _options = options;
-        _loggerFactory = loggerFactory;
-        _multiplexedClientTransport = multiplexedClientTransport ?? ClientConnection.DefaultMultiplexedClientTransport;
-        _duplexClientTransport = duplexClientTransport ?? ClientConnection.DefaultDuplexClientTransport;
+        _preferExistingConnection = options.PreferExistingConnection;
+
+        multiplexedClientTransport ??= ClientConnection.DefaultMultiplexedClientTransport;
+        duplexClientTransport ??= ClientConnection.DefaultDuplexClientTransport;
+
+        _clientConnectionFactory = CreateConnection;
+
+        ClientConnection CreateConnection(Endpoint endpoint) => new(
+            options.ClientConnectionOptions with { Endpoint = endpoint },
+            loggerFactory,
+            multiplexedClientTransport,
+            duplexClientTransport);
     }
 
     /// <summary>Constructs a connection cache.</summary>
@@ -147,12 +152,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             else
             {
-                connection = new ClientConnection(
-                    _options.ClientConnectionOptions with { Endpoint = endpoint },
-                    _loggerFactory,
-                    _multiplexedClientTransport,
-                    _duplexClientTransport);
-
+                connection = _clientConnectionFactory(endpoint);
                 created = true;
                 _pendingConnections.Add(endpoint, connection);
             }
@@ -280,7 +280,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         ClientConnection? connection = null;
         Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
 
-        if (_options.PreferExistingConnection)
+        if (_preferExistingConnection)
         {
             lock (_mutex)
             {
