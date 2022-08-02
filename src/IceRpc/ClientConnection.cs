@@ -64,10 +64,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         if (endpoint.Protocol == Protocol.Ice)
         {
             duplexClientTransport ??= DefaultDuplexClientTransport;
-            if (logger != NullLogger.Instance)
-            {
-                duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, logger);
-            }
 
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
                 endpoint,
@@ -85,12 +81,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-            if (logger != NullLogger.Instance)
-            {
-                multiplexedClientTransport = new LogMultiplexedClientTransportDecorator(
-                    multiplexedClientTransport,
-                    logger);
-            }
 
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
                 endpoint,
