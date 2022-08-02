@@ -26,12 +26,16 @@ public sealed class DispatchEventSourceTests
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
-        Assert.That(eventData.EventName, Is.EqualTo("RequestStart"));
-        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
-        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+                Assert.That(eventData.EventName, Is.EqualTo("RequestStart"));
+                Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
+                Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+                Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+                Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
+            });
     }
 
     [Test]
@@ -51,13 +55,17 @@ public sealed class DispatchEventSourceTests
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
-        Assert.That(eventData.EventName, Is.EqualTo("RequestStop"));
-        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
-        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
-        Assert.That(eventData.Payload![2], Is.EqualTo((int)ResultType.Success));
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+                Assert.That(eventData.EventName, Is.EqualTo("RequestStop"));
+                Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
+                Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+                Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+                Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
+                Assert.That(eventData.Payload![2], Is.EqualTo((int)ResultType.Success));
+            });
     }
 
     [Test]
@@ -77,12 +85,16 @@ public sealed class DispatchEventSourceTests
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
-        Assert.That(eventData.EventName, Is.EqualTo("RequestCancel"));
-        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
-        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+                Assert.That(eventData.EventName, Is.EqualTo("RequestCancel"));
+                Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
+                Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+                Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+                Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
+            });
     }
 
     [Test]
@@ -103,14 +115,18 @@ public sealed class DispatchEventSourceTests
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
-        Assert.That(eventData.EventName, Is.EqualTo("RequestFailure"));
-        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Error));
-        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
-        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
-        Assert.That(eventData.Payload![2], Is.EqualTo(ex.GetType().FullName));
-        Assert.That(eventData.Payload![3], Is.EqualTo(ex.ToString()));
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+                Assert.That(eventData.EventName, Is.EqualTo("RequestFailure"));
+                Assert.That(eventData.Level, Is.EqualTo(EventLevel.Error));
+                Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+                Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+                Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
+                Assert.That(eventData.Payload![2], Is.EqualTo(ex.GetType().FullName));
+                Assert.That(eventData.Payload![3], Is.EqualTo(ex.ToString()));
+            });
     }
 
     private class TestEventListener : EventListener
