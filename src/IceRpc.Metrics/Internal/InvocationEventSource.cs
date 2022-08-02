@@ -1,31 +1,33 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 
-namespace IceRpc.Metrics;
+namespace IceRpc.Metrics.Internal;
 
 /// <summary>An <see cref="EventSource"/> implementation used to log invocation dispatch events.</summary>
-public sealed class InvocationEventSource : EventSource
+internal sealed class InvocationEventSource : EventSource
 {
     /// <summary>The default <c>InvocationEventSource</c> used by <see cref="MetricsInterceptor"/>.
     /// </summary>
-    public static readonly InvocationEventSource Log = new("IceRpc.Invocation");
+    internal static readonly InvocationEventSource Log = new("IceRpc-Invocation");
+    private static readonly double _ticksPerMillisecond = Stopwatch.Frequency / 1000d;
 
-    private readonly PollingCounter _canceledRequestsCounter;
     private long _canceledRequests;
-    private readonly PollingCounter _currentRequestsCounter;
+    private readonly PollingCounter _canceledRequestsCounter;
     private long _currentRequests;
-    private readonly PollingCounter _failedRequestsCounter;
+    private readonly PollingCounter _currentRequestsCounter;
     private long _failedRequests;
+    private readonly PollingCounter _failedRequestsCounter;
     private readonly IncrementingPollingCounter _requestsPerSecondCounter;
-    private readonly PollingCounter _totalRequestsCounter;
     private long _totalRequests;
+    private readonly PollingCounter _totalRequestsCounter;
 
     /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
     /// </summary>
     /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
-    public InvocationEventSource(string eventSourceName)
+    internal InvocationEventSource(string eventSourceName)
         : base(eventSourceName)
     {
         _canceledRequestsCounter = new PollingCounter(
@@ -72,47 +74,53 @@ public sealed class InvocationEventSource : EventSource
     }
 
     [NonEvent]
-    internal void RequestStart(OutgoingRequest request)
+    internal void RequestCancel(OutgoingRequest request)
     {
+        Interlocked.Increment(ref _canceledRequests);
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        {
+            RequestCancel(request.ServiceAddress.Path, request.Operation);
+        }
+    }
+
+    [NonEvent]
+    internal void RequestFailure(OutgoingRequest request, Exception exception)
+    {
+        Interlocked.Increment(ref _failedRequests);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            RequestFailure(
+                request.ServiceAddress.Path,
+                request.Operation,
+                exception.GetType().FullName ?? "",
+                exception.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal long RequestStart(OutgoingRequest request)
+    {
+        var start = Stopwatch.GetTimestamp();
         Interlocked.Increment(ref _totalRequests);
         Interlocked.Increment(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             RequestStart(request.ServiceAddress.Path, request.Operation);
         }
+        return start;
     }
 
     [NonEvent]
-    internal void RequestStop(OutgoingRequest request)
+    internal void RequestStop(OutgoingRequest request, ResultType resultType, long start)
     {
         Interlocked.Decrement(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestStop(request.ServiceAddress.Path, request.Operation);
-        }
-    }
-
-    [NonEvent]
-    internal void RequestCanceled(OutgoingRequest request)
-    {
-        Interlocked.Increment(ref _canceledRequests);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-        {
-            RequestCanceled(request.ServiceAddress.Path, request.Operation);
-        }
-    }
-
-    [NonEvent]
-    internal void RequestFailed(OutgoingRequest request, Exception exception) =>
-        RequestFailed(request, exception?.GetType().ToString() ?? "");
-
-    [NonEvent]
-    internal void RequestFailed(OutgoingRequest request, string exception)
-    {
-        Interlocked.Increment(ref _failedRequests);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-        {
-            RequestFailed(request.ServiceAddress.Path, request.Operation, exception);
+            RequestStop(
+                request.ServiceAddress.Path,
+                request.Operation,
+                (int)resultType,
+                durationInMilliseconds: (Stopwatch.GetTimestamp() - start) / _ticksPerMillisecond);
         }
     }
 
@@ -127,15 +135,7 @@ public sealed class InvocationEventSource : EventSource
         base.Dispose(disposing);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(3, Level = EventLevel.Informational)]
-    private void RequestCanceled(string path, string operation) =>
-        WriteEvent(3, path, operation);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(4, Level = EventLevel.Informational)]
-    private void RequestFailed(string path, string operation, string exception) =>
-        WriteEvent(4, path, operation, exception);
+    // Event methods sorted by eventId
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
@@ -144,6 +144,20 @@ public sealed class InvocationEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void RequestStop(string path, string operation) =>
-        WriteEvent(2, path, operation);
+    private void RequestStop(string path, string operation, int resultType, double durationInMilliseconds) =>
+        WriteEvent(2, path, operation, resultType, durationInMilliseconds);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(3, Level = EventLevel.Informational)]
+    private void RequestCancel(string path, string operation) =>
+        WriteEvent(3, path, operation);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(4, Level = EventLevel.Error)]
+    private void RequestFailure(
+        string path,
+        string operation,
+        string exceptionType,
+        string exceptionDetails) =>
+        WriteEvent(4, path, operation, exceptionType, exceptionDetails);
 }

@@ -134,6 +134,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 CancellationToken cancel = _tasksCancelSource.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
+
                 InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
             },

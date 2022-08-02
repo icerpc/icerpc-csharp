@@ -785,7 +785,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 case IceFrameType.ValidateConnection:
                 {
-                    // Notify the control stream of the reception of a Ping frame.
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
