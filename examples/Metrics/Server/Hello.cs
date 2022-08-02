@@ -2,13 +2,14 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using System.Threading;
 
 namespace Demo;
 
 public class Hello : Service, IHello, IDisposable
 {
-    private int _totalRequests = 0;
-    private int _requestsInLastTimeSpan = 0;
+    volatile private int _totalRequests = 0;
+    volatile private int _requestsInLastTimeSpan = 0;
 
     private readonly PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
 
@@ -36,8 +37,8 @@ public class Hello : Service, IHello, IDisposable
 
     public ValueTask SayHelloAsync(IFeatureCollection features, CancellationToken cancel)
     {
-        _totalRequests++;
-        _requestsInLastTimeSpan++;
+        Interlocked.Increment(ref _totalRequests);
+        Interlocked.Increment(ref _requestsInLastTimeSpan);
         return default;
     }
 
