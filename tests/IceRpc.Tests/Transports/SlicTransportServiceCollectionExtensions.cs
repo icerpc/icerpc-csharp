@@ -7,6 +7,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using System.Net.Security;
 
 namespace IceRpc.Tests.Transports;
 
@@ -31,9 +32,6 @@ public static class SlicTransportServiceCollectionExtensions
                     slicTransportOptions ?? new SlicTransportOptions(),
                     provider.GetRequiredService<IDuplexClientTransport>()));
 
-        services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
 
@@ -52,10 +50,9 @@ public static class SlicTransportServiceCollectionExtensions
             var listener = provider.GetRequiredService<IMultiplexedListener>();
             var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
             var connection = clientTransport.CreateConnection(
-                provider.GetRequiredService<IOptions<MultiplexedClientConnectionOptions>>().Value with
-                {
-                    Endpoint = listener.Endpoint
-                });
+                listener.Endpoint,
+                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                null);
             return (SlicConnection)connection;
         });
         return services;

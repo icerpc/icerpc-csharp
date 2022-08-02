@@ -38,9 +38,6 @@ public static class ProtocolServiceCollectionExtensions
         services.AddSingleton<IDuplexListener, DuplexListenerDecorator>();
         services.AddSingleton<IMultiplexedListener, MultiplexedListenerDecorator>();
 
-        services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
 
@@ -163,15 +160,13 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
         ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
-        IOptions<MultiplexedClientConnectionOptions> multiplexedClientConnectionOptions)
+        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions)
         : base(
             clientProtocolConnection: new IceRpcProtocolConnection(
                     clientTransport.CreateConnection(
-                        multiplexedClientConnectionOptions.Value with
-                        {
-                            Endpoint = listener.Endpoint,
-                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions
-                        }),
+                        listener.Endpoint,
+                        multiplexedConnectionOptions.Value,
+                        clientConnectionOptions.Value.ClientAuthenticationOptions),
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                     await listener.AcceptAsync(),

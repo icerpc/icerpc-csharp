@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using System.Net.Security;
 
 namespace IceRpc.Transports;
 
@@ -33,16 +34,19 @@ public class SlicClientTransport : IMultiplexedClientTransport
     public bool CheckParams(Endpoint endpoint) => _duplexClientTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
+    public IMultiplexedConnection CreateConnection(
+        Endpoint endpoint,
+        MultiplexedConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions) =>
         new SlicConnection(
             _duplexClientTransport.CreateConnection(
-                options.Endpoint,
+                endpoint,
                 new DuplexConnectionOptions
                 {
                     MinSegmentSize = options.MinSegmentSize,
                     Pool = options.Pool
                 },
-                options.ClientAuthenticationOptions),
+                clientAuthenticationOptions),
             options,
             _slicTransportOptions,
             isServer: false);

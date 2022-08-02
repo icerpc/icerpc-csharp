@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -14,8 +15,12 @@ internal sealed class LogMultiplexedClientTransportDecorator : IMultiplexedClien
     public bool CheckParams(Endpoint endpoint) => _decoratee.CheckParams(endpoint);
 
     // This decorator does not log anything, it only provides a decorated multiplex connection.
-    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
-        new LogMultiplexedConnectionDecorator(_decoratee.CreateConnection(options), _logger);
+    public IMultiplexedConnection CreateConnection(
+        Endpoint endpoint,
+        MultiplexedConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions) => new LogMultiplexedConnectionDecorator(
+            _decoratee.CreateConnection(endpoint, options, clientAuthenticationOptions),
+            _logger);
 
     internal LogMultiplexedClientTransportDecorator(IMultiplexedClientTransport decoratee, ILogger logger)
     {

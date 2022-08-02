@@ -93,7 +93,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
-                new MultiplexedClientConnectionOptions
+                endpoint,
+                new MultiplexedConnectionOptions
                 {
                     MaxBidirectionalStreams =
                         options.Dispatcher is null ? 0 : options.MaxIceRpcBidirectionalStreams,
@@ -102,10 +103,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                         options.Dispatcher is null ? 1 : (options.MaxIceRpcUnidirectionalStreams + 1),
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
-                    Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
                     StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-                });
+                },
+                options.ClientAuthenticationOptions);
 
             Endpoint = transportConnection.Endpoint;
 #pragma warning disable CA2000 // Dispose objects before losing scope
