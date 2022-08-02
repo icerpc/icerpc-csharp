@@ -70,16 +70,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
-                new DuplexClientConnectionOptions
+                endpoint,
+                new DuplexConnectionOptions
                 {
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
-                    Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions
-                });
-
+                },
+                options.ClientAuthenticationOptions);
             Endpoint = transportConnection.Endpoint;
-
 #pragma warning disable CA2000
             decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
 #pragma warning restore CA2000
@@ -95,7 +93,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
-                new MultiplexedClientConnectionOptions
+                endpoint,
+                new MultiplexedConnectionOptions
                 {
                     MaxBidirectionalStreams =
                         options.Dispatcher is null ? 0 : options.MaxIceRpcBidirectionalStreams,
@@ -104,13 +103,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                         options.Dispatcher is null ? 1 : (options.MaxIceRpcUnidirectionalStreams + 1),
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
-                    Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
                     StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-                });
+                },
+                options.ClientAuthenticationOptions);
 
             Endpoint = transportConnection.Endpoint;
-
 #pragma warning disable CA2000
             decoratee = new IceRpcProtocolConnection(transportConnection, options);
 #pragma warning restore CA2000

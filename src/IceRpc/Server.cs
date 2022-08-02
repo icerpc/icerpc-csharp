@@ -89,18 +89,14 @@ public sealed class Server : IAsyncDisposable
         {
             if (options.Endpoint.Protocol == Protocol.Ice)
             {
-                var duplexListenerOptions = new DuplexListenerOptions
-                {
-                    ServerConnectionOptions = new()
+                IDuplexListener listener = duplexServerTransport.Listen(
+                    options.Endpoint,
+                    new DuplexConnectionOptions
                     {
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
-                        ServerAuthenticationOptions = options.ServerAuthenticationOptions
                     },
-                    Endpoint = options.Endpoint
-                };
-
-                IDuplexListener listener = duplexServerTransport.Listen(duplexListenerOptions);
+                    options.ServerAuthenticationOptions);
                 Endpoint = listener.Endpoint;
 
                 // Run task to start accepting new connections
@@ -124,22 +120,18 @@ public sealed class Server : IAsyncDisposable
             }
             else
             {
-                var multiplexedListenerOptions = new MultiplexedListenerOptions
-                {
-                    ServerConnectionOptions = new()
+                IMultiplexedListener listener = multiplexedServerTransport.Listen(
+                    options.Endpoint,
+                    new MultiplexedConnectionOptions
                     {
                         MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.
                         MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
-                        ServerAuthenticationOptions = options.ServerAuthenticationOptions,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
-                    Endpoint = options.Endpoint
-                };
-
-                IMultiplexedListener listener = multiplexedServerTransport.Listen(multiplexedListenerOptions);
+                    options.ServerAuthenticationOptions);
                 Endpoint = listener.Endpoint;
                 _listener = listener;
 

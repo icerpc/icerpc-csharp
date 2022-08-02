@@ -56,33 +56,30 @@ public static class ServiceCollectionExtensions
     {
         collection.AddSingleton(provider =>
         {
+            DuplexConnectionOptions? connectionOptions =
+                provider.GetService<DuplexConnectionOptions>();
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
             return serverTransport.Listen(
-                new DuplexListenerOptions
-                {
-                    Endpoint = endpoint,
-                    ServerConnectionOptions = new()
-                    {
-                        ServerAuthenticationOptions = serverAuthenticationOptions
-                    }
-                });
+                endpoint,
+                connectionOptions ?? new DuplexConnectionOptions(),
+                serverAuthenticationOptions);
         });
 
         collection.AddSingleton(provider =>
         {
+            DuplexConnectionOptions? connectionOptions =
+                provider.GetService<DuplexConnectionOptions>();
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
             IDuplexListener listener = provider.GetRequiredService<IDuplexListener>();
             IDuplexClientTransport clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
             return clientTransport.CreateConnection(
-                new DuplexClientConnectionOptions
-                {
-                    Endpoint = listener.Endpoint,
-                    ClientAuthenticationOptions = clientAuthenticationOptions
-                });
+                listener.Endpoint,
+                connectionOptions ?? new DuplexConnectionOptions(),
+                clientAuthenticationOptions);
         });
         return collection;
     }

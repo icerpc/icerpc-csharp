@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using System.Net.Security;
 
 namespace IceRpc.Transports;
 
@@ -23,31 +24,30 @@ public class TcpServerTransport : IDuplexServerTransport
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public IDuplexListener Listen(DuplexListenerOptions options)
+    public IDuplexListener Listen(
+        Endpoint endpoint,
+        DuplexConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
         // This is the composition root of the tcp server transport, where we install log decorators when logging
         // is enabled.
 
-        if (options.Endpoint.Params.Count > 0)
+        if (endpoint.Params.Count > 0)
         {
-            throw new FormatException($"cannot create a TCP listener for endpoint '{options.Endpoint}'");
+            throw new FormatException($"cannot create a TCP listener for endpoint '{endpoint}'");
         }
 
-        if (options.Endpoint.Transport is not string transport)
+        if (endpoint.Transport is not string transport)
         {
-            options = options with
-            {
-                Endpoint = options.Endpoint with { Transport = Name }
-            };
+            endpoint = endpoint with { Transport = Name };
         }
-        else if (transport == TransportNames.Ssl && options.ServerConnectionOptions.ServerAuthenticationOptions is null)
+        else if (transport == TransportNames.Ssl && serverAuthenticationOptions is null)
         {
             throw new ArgumentNullException(
-                nameof(options.ServerConnectionOptions.ServerAuthenticationOptions),
-                @$"{nameof(options.ServerConnectionOptions.ServerAuthenticationOptions)
-                    } cannot be null with the ssl transport");
+                nameof(serverAuthenticationOptions),
+                @$"{nameof(serverAuthenticationOptions)} cannot be null with the ssl transport");
         }
 
-        return new TcpListener(options, _options);
+        return new TcpListener(endpoint, options, serverAuthenticationOptions, _options);
     }
 }

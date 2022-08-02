@@ -88,7 +88,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         Assert.That(
-            () => serverTransport.Listen(new DuplexListenerOptions { Endpoint = listener.Endpoint }),
+            () => serverTransport.Listen(listener.Endpoint, new DuplexConnectionOptions(), null),
             Throws.TypeOf<TransportException>());
     }
 
@@ -202,7 +202,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(new DuplexClientConnectionOptions { Endpoint = endpoint }));
+            () => clientTransport.CreateConnection(endpoint, new DuplexConnectionOptions(), null));
     }
 
     [Test]
@@ -214,7 +214,7 @@ public abstract class DuplexTransportConformanceTests
         var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(() => serverTransport.Listen(new DuplexListenerOptions { Endpoint = endpoint }));
+        Assert.Throws<FormatException>(() => serverTransport.Listen(endpoint, new DuplexConnectionOptions(), null));
     }
 
     [Test]

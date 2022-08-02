@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Concurrent;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -13,20 +14,22 @@ internal class ColocServerTransport : IDuplexServerTransport
     private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    public IDuplexListener Listen(DuplexListenerOptions options)
+    public IDuplexListener Listen(
+        Endpoint endpoint,
+        DuplexConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticatioinOptions)
     {
-        if (options.ServerConnectionOptions.ServerAuthenticationOptions is not null)
+        if (serverAuthenticatioinOptions is not null)
         {
             throw new NotSupportedException("cannot create secure Coloc server");
         }
 
-        if (!ColocTransport.CheckParams(options.Endpoint))
+        if (!ColocTransport.CheckParams(endpoint))
         {
-            throw new FormatException($"cannot create a Coloc listener for endpoint '{options.Endpoint}'");
+            throw new FormatException($"cannot create a Coloc listener for endpoint '{endpoint}'");
         }
 
-        var listener = new ColocListener(options with { Endpoint = options.Endpoint with { Transport = Name } });
-
+        var listener = new ColocListener(endpoint with { Transport = Name }, options);
         if (!_listeners.TryAdd(listener.Endpoint, listener))
         {
             throw new TransportException($"endpoint '{listener.Endpoint}' is already in use");

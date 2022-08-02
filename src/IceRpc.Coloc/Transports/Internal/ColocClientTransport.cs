@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -17,25 +18,28 @@ internal class ColocClientTransport : IDuplexClientTransport
     public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
 
     /// <inheritdoc/>
-    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
+    public IDuplexConnection CreateConnection(
+        Endpoint endpoint,
+        DuplexConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if (options.ClientAuthenticationOptions is not null)
+        if (clientAuthenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create a secure Coloc connection");
         }
 
-        if (!CheckParams(options.Endpoint))
+        if (!CheckParams(endpoint))
         {
-            throw new FormatException($"cannot create a Coloc connection to endpoint '{options.Endpoint}'");
+            throw new FormatException($"cannot create a Coloc connection to endpoint '{endpoint}'");
         }
 
-        return new ColocConnection(options.Endpoint with { Transport = Name }, endpoint => Connect(endpoint, options));
+        return new ColocConnection(endpoint with { Transport = Name }, endpoint => Connect(endpoint, options));
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
         _listeners = listeners;
 
-    private (PipeReader, PipeWriter) Connect(Endpoint endpoint, DuplexClientConnectionOptions options)
+    private (PipeReader, PipeWriter) Connect(Endpoint endpoint, DuplexConnectionOptions options)
     {
         if (_listeners.TryGetValue(endpoint, out ColocListener? listener))
         {

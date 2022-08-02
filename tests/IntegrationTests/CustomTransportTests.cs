@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Net.Security;
 
 namespace IceRpc.IntegrationTests;
 
@@ -15,28 +16,28 @@ public class CustomClientTransport : IMultiplexedClientTransport
 
     public bool CheckParams(Endpoint endpoint) => true;
 
-    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options)
+    public IMultiplexedConnection CreateConnection(
+        Endpoint endpoint,
+        MultiplexedConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if (options.Endpoint.Transport is string transport)
+        if (endpoint.Transport is string transport)
         {
             if (transport != "tcp" && transport != "custom")
             {
                 throw new ArgumentException(
-                    $"cannot use custom transport with endpoint '{options.Endpoint}'",
-                    nameof(options));
+                    $"cannot use custom transport with endpoint '{endpoint}'",
+                    nameof(endpoint));
             }
         }
 
-        options = options with
+        endpoint = endpoint with
         {
-            Endpoint = options.Endpoint with
-            {
-                Params = options.Endpoint.Params.Remove("custom-p"),
-                Transport = "tcp"
-            }
+            Params = endpoint.Params.Remove("custom-p"),
+            Transport = "tcp"
         };
 
-        return _transport.CreateConnection(options);
+        return _transport.CreateConnection(endpoint, options, clientAuthenticationOptions);
     }
 }
 
@@ -47,28 +48,23 @@ public class CustomServerTransport : IMultiplexedServerTransport
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());
 
-    public IMultiplexedListener Listen(MultiplexedListenerOptions options)
+    public IMultiplexedListener Listen(
+        Endpoint endpoint,
+        MultiplexedConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (options.Endpoint.Transport is string transport)
+        if (endpoint.Transport is string transport && transport != "tcp" && transport != "custom")
         {
-            if (transport != "tcp" && transport != "custom")
-            {
-                throw new ArgumentException(
-                    $"cannot use custom transport with endpoint '{options.Endpoint}'",
-                    nameof(options));
-            }
+            throw new ArgumentException($"cannot use custom transport with endpoint '{endpoint}'", nameof(endpoint));
         }
 
-        options = options with
+        endpoint = endpoint with
         {
-            Endpoint = options.Endpoint with
-            {
-                Params = options.Endpoint.Params.Remove("custom-p"),
-                Transport = "tcp"
-            }
+            Params = endpoint.Params.Remove("custom-p"),
+            Transport = "tcp"
         };
 
-        return _transport.Listen(options);
+        return _transport.Listen(endpoint, options, serverAuthenticationOptions);
     }
 }
 

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
+using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -90,16 +91,12 @@ public abstract class MultiplexedTransportConformanceTests
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
         if (bidirectional)
         {
-            serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = streamMaxCount);
-            serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
         }
         else
         {
-            serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
-                options => options.MaxUnidirectionalStreams = streamMaxCount);
-            serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
         }
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -267,10 +264,11 @@ public abstract class MultiplexedTransportConformanceTests
 
         var listener = provider.GetRequiredService<IMultiplexedListener>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        var multiplexedClientConnectionOptions =
-            provider.GetService<IOptions<MultiplexedClientConnectionOptions>>()?.Value ?? new();
-        await using var clientConnection =
-            clientTransport.CreateConnection(multiplexedClientConnectionOptions with { Endpoint = listener.Endpoint });
+
+        await using var clientConnection = clientTransport.CreateConnection(
+            listener.Endpoint,
+            provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
+            null);
 
         var connectTask = clientConnection.ConnectAsync(default);
         await using var serverConnection = await listener.AcceptAsync();
@@ -309,10 +307,10 @@ public abstract class MultiplexedTransportConformanceTests
 
         var listener = provider.GetRequiredService<IMultiplexedListener>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        var multiplexedClientConnectionOptions =
-            provider.GetService<IOptions<MultiplexedClientConnectionOptions>>()?.Value ?? new();
-        await using var clientConnection =
-            clientTransport.CreateConnection(multiplexedClientConnectionOptions with { Endpoint = listener.Endpoint });
+        await using var clientConnection = clientTransport.CreateConnection(
+            listener.Endpoint,
+            provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
+            null);
 
         var connectTask = clientConnection.ConnectAsync(default);
         await using var serverConnection = await listener.AcceptAsync();
@@ -462,9 +460,7 @@ public abstract class MultiplexedTransportConformanceTests
         const int createStreamCount = 32;
 
         var serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = streamMaxCount);
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -559,9 +555,7 @@ public abstract class MultiplexedTransportConformanceTests
         const int createStreamCount = 32;
 
         var serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
-                options => options.MaxUnidirectionalStreams = streamMaxCount);
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -1015,7 +1009,7 @@ public abstract class MultiplexedTransportConformanceTests
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = 0);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -1041,7 +1035,7 @@ public abstract class MultiplexedTransportConformanceTests
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = 0);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -1070,7 +1064,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(new MultiplexedClientConnectionOptions { Endpoint = endpoint }));
+            () => clientTransport.CreateConnection(endpoint, new MultiplexedConnectionOptions(), null));
     }
 
     [Test]
@@ -1083,7 +1077,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => serverTransport.Listen(new MultiplexedListenerOptions { Endpoint = endpoint }));
+            () => serverTransport.Listen(endpoint, new MultiplexedConnectionOptions(), null));
     }
 
     /// <summary>Verifies that stream write can be canceled.</summary>
@@ -1223,10 +1217,10 @@ public static class MultiplexedTransportServiceCollectionExtensions
         {
             var listener = provider.GetRequiredService<IMultiplexedListener>();
             var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-            var multiplexedClientConnectionOptions =
-                provider.GetService<IOptions<MultiplexedClientConnectionOptions>>()?.Value ?? new();
             var connection = clientTransport.CreateConnection(
-                multiplexedClientConnectionOptions with { Endpoint = listener.Endpoint });
+                listener.Endpoint,
+                provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
+                null);
             return connection;
         });
 }

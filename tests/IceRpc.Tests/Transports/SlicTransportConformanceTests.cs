@@ -26,10 +26,9 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
                 var loggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
                 var transport = provider.GetRequiredService<IMultiplexedServerTransport>();
                 return transport.Listen(
-                    provider.GetRequiredService<IOptions<MultiplexedListenerOptions>>().Value with
-                    {
-                        Endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" }
-                    });
+                    new Endpoint(Protocol.IceRpc) { Host = "colochost" },
+                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                    null);
             });
 
         services.
@@ -47,14 +46,8 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
         services.AddOptions<SlicTransportOptions>("client");
         services.AddOptions<SlicTransportOptions>("server");
 
-        services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedServerConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedListenerOptions>().Configure<IOptions<MultiplexedServerConnectionOptions>>(
-            (options, serverConnectionOptions) => options.ServerConnectionOptions = serverConnectionOptions.Value);
 
         return services;
     }
