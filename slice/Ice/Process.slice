@@ -12,10 +12,10 @@ module Ice;
 /// for denial-of-service attacks, therefore proper security precautions
 /// should be taken. For example, the servant can use a UUID to make its
 /// identity harder to guess, and be registered in an object adapter with
-/// a secured serverAddress.
+/// a secured server address.
 interface Process
 {
-    /// Initiate a graceful shut-down.
+    /// Initiate a graceful shutdown.
     shutdown();
 
     /// Write a message on the process' stdout or stderr.
