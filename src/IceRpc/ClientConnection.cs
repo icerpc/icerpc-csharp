@@ -54,11 +54,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
-        if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
-        {
-            options = options with { Dispatcher = new LogDispatcherDecorator(dispatcher, logger) };
-        }
-
         ProtocolConnection decoratee;
 
         if (endpoint.Protocol == Protocol.Ice)
