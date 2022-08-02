@@ -122,7 +122,7 @@ public class RetryInterceptor : IInvoker
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
                             // We don't want to retry with this server address
-                            serverAddressFeature.RemoveEndpoint(mainServerAddress);
+                            serverAddressFeature.RemoveServerAddress(mainServerAddress);
                         }
 
                         decorator.Reset();

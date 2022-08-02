@@ -19,7 +19,7 @@ public sealed record class ServiceAddress
     /// <value>The secondary server addresses of this service address.</value>
     public ImmutableList<ServerAddress> AltServerAddresses
     {
-        get => _altEndpoints;
+        get => _altServerAddresses;
 
         init
         {
@@ -42,7 +42,7 @@ public sealed record class ServiceAddress
             }
             // else, no need to check anything, an empty list is always fine.
 
-            _altEndpoints = value;
+            _altServerAddresses = value;
             OriginalUri = null;
         }
     }
@@ -71,7 +71,7 @@ public sealed record class ServiceAddress
                         $"cannot set {nameof(ServerAddress)} on a service address with parameters");
                 }
             }
-            else if (_altEndpoints.Count > 0)
+            else if (_altServerAddresses.Count > 0)
             {
                 throw new InvalidOperationException(
                     $"cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty");
@@ -174,7 +174,7 @@ public sealed record class ServiceAddress
     /// address.</value>
     public Protocol? Protocol { get; }
 
-    private ImmutableList<ServerAddress> _altEndpoints = ImmutableList<ServerAddress>.Empty;
+    private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
     private ServerAddress? _serverAddress;
     private string _fragment = "";
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
@@ -218,7 +218,7 @@ public sealed record class ServiceAddress
                         nameof(uri));
                 }
 
-                (ImmutableDictionary<string, string> queryParams, string? altEndpointValue, string? transport) =
+                (ImmutableDictionary<string, string> queryParams, string? altServerValue, string? transport) =
                     uri.ParseQuery();
 
                 if (uri.Authority.Length > 0)
@@ -238,17 +238,17 @@ public sealed record class ServiceAddress
                         transport,
                         queryParams);
 
-                    if (altEndpointValue is not null)
+                    if (altServerValue is not null)
                     {
                         // Split and parse recursively each serverAddress
-                        foreach (string endpointStr in altEndpointValue.Split(','))
+                        foreach (string serverAddressStr in altServerValue.Split(','))
                         {
-                            string altUriString = $"{uri.Scheme}://{endpointStr}";
+                            string altUriString = $"{uri.Scheme}://{serverAddressStr}";
 
                             // The separator for server address parameters in alt-server is $, so we replace these '$'
                             // by '&' before sending the string (Uri) to the ServerAddress constructor which uses '&' as
                             // separator.
-                            _altEndpoints = _altEndpoints.Add(new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
+                            _altServerAddresses = _altServerAddresses.Add(new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
                         }
                     }
                 }
@@ -261,7 +261,7 @@ public sealed record class ServiceAddress
                             nameof(uri));
                     }
 
-                    if (altEndpointValue is not null)
+                    if (altServerValue is not null)
                     {
                         throw new ArgumentException(
                             $"invalid alt-server parameter in URI '{uri.OriginalString}'",
@@ -361,7 +361,7 @@ public sealed record class ServiceAddress
         hash.Add(Path);
         hash.Add(Fragment);
         hash.Add(_serverAddress);
-        hash.Add(_altEndpoints.Count);
+        hash.Add(_altServerAddresses.Count);
         return hash.ToHashCode();
     }
 
@@ -385,7 +385,7 @@ public sealed record class ServiceAddress
 
         if (ServerAddress is ServerAddress serverAddress)
         {
-            sb.AppendEndpoint(serverAddress, Path);
+            sb.AppendServerAddress(serverAddress, Path);
             firstOption = serverAddress.Params.Count == 0;
         }
         else
@@ -405,7 +405,7 @@ public sealed record class ServiceAddress
                 {
                     sb.Append(',');
                 }
-                sb.AppendEndpoint(AltServerAddresses[i], path: "", includeScheme: false, paramSeparator: '$');
+                sb.AppendServerAddress(AltServerAddresses[i], path: "", includeScheme: false, paramSeparator: '$');
             }
         }
 
@@ -502,7 +502,7 @@ public sealed record class ServiceAddress
         Protocol = protocol;
         _path = path;
         _serverAddress = serverAddress;
-        _altEndpoints = altServerAddresses;
+        _altServerAddresses = altServerAddresses;
         _params = serviceAddressParams;
         _fragment = fragment;
     }

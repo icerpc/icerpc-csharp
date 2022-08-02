@@ -107,16 +107,16 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
                     {
-                        ServerAddress altEndpoint = serverAddressFeature.AltServerAddresses[i];
-                        connection = GetActiveConnection(altEndpoint);
+                        ServerAddress altServer = serverAddressFeature.AltServerAddresses[i];
+                        connection = GetActiveConnection(altServer);
                         if (connection is not null)
                         {
-                            // This altEndpoint becomes the main serverAddress, and the existing main server address becomes
+                            // This altServer becomes the main serverAddress, and the existing main server address becomes
                             // the first alt server.
                             serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
                                 .RemoveAt(i)
                                 .Insert(0, mainServerAddress);
-                            serverAddressFeature.ServerAddress = altEndpoint;
+                            serverAddressFeature.ServerAddress = altServer;
 
                             break; // foreach
                         }

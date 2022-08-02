@@ -327,10 +327,10 @@ public ref partial struct SliceEncoder
             if (serviceAddress.ServerAddress is ServerAddress serverAddress)
             {
                 EncodeSize(1 + serviceAddress.AltServerAddresses.Count); // server address count
-                EncodeEndpoint(serverAddress);
-                foreach (ServerAddress altEndpoint in serviceAddress.AltServerAddresses)
+                EncodeServerAddress(serverAddress);
+                foreach (ServerAddress altServer in serviceAddress.AltServerAddresses)
                 {
-                    EncodeEndpoint(altEndpoint);
+                    EncodeServerAddress(altServer);
                 }
             }
             else
@@ -676,7 +676,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Encodes a server address in a nested encapsulation (Slice1 only).</summary>
     /// <param name="serverAddress">The server address to encode.</param>
-    private void EncodeEndpoint(ServerAddress serverAddress)
+    private void EncodeServerAddress(ServerAddress serverAddress)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
@@ -721,7 +721,7 @@ public ref partial struct SliceEncoder
             {
                 case TransportCode.Tcp:
                 case TransportCode.Ssl:
-                    Transports.TcpClientTransport.EncodeEndpoint(ref this, serverAddress);
+                    Transports.TcpClientTransport.EncodeServerAddress(ref this, serverAddress);
                     break;
 
                 default:

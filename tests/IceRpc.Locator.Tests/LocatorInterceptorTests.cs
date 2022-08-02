@@ -11,7 +11,7 @@ public class LocatorInterceptorTests
 {
     /// <summary>Verifies that the location resolver is not called when the request carries a server address.</summary>
     [Test]
-    public async Task Location_resolver_not_called_if_the_request_has_an_endpoint()
+    public async Task Location_resolver_not_called_if_the_request_has_an_server_address()
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
@@ -95,7 +95,7 @@ public class LocatorInterceptorTests
     /// <summary>Verifies that the locator interceptor does not set the refresh cache parameter on the second attempt
     /// to resolve a location if the first attempt returned a non cached result.</summary>
     [Test]
-    public async Task Resolve_does_not_refresh_cache_after_getting_a_fresh_endpoint()
+    public async Task Resolve_does_not_refresh_cache_after_getting_a_fresh_server_address()
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancel) =>

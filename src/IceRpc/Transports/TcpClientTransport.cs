@@ -101,7 +101,7 @@ public class TcpClientTransport : IDuplexClientTransport
     }
 
     /// <summary>Decodes the body of a tcp or ssl ice server address encoded using Slice1.</summary>
-    internal static ServerAddress DecodeEndpoint(ref SliceDecoder decoder, string transport)
+    internal static ServerAddress DecodeServerAddress(ref SliceDecoder decoder, string transport)
     {
         Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
 
@@ -129,7 +129,7 @@ public class TcpClientTransport : IDuplexClientTransport
     }
 
     /// <summary>Encodes the body of a tcp or ssl ice server address using Slice1.</summary>
-    internal static void EncodeEndpoint(ref SliceEncoder encoder, ServerAddress serverAddress)
+    internal static void EncodeServerAddress(ref SliceEncoder encoder, ServerAddress serverAddress)
     {
         Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
         Debug.Assert(serverAddress.Protocol == Protocol.Ice);

@@ -26,7 +26,7 @@ public sealed class IceProtocolConnectionTests
     {
         get
         {
-            // Service not found failure with endpointless service address gets OtherReplica retry policy response
+            // Service not found failure with with a server address -less service address gets OtherReplica retry policy response
             // field.
             yield return new TestCaseData(
                 new ServiceAddress(Protocol.Ice),

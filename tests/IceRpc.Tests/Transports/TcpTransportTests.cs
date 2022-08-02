@@ -85,7 +85,7 @@ public class TcpTransportTests
     /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalNetworkAddress"/> properties, sets
     /// the socket local server address.</summary>
     [Test]
-    public void Configure_client_connection_local_endpoint()
+    public void Configure_client_connection_local_server_address()
     {
         var localNetworkAddress = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 

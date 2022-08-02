@@ -5,12 +5,12 @@ using NUnit.Framework;
 namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class EndpointTests
+public class ServerAddressTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Create_endpoint_from_valid_uri(Uri, string, ushort, string?, IDictionary{string, string})"/> test.
+    /// <see cref="Create_server_address_from_valid_uri(Uri, string, ushort, string?, IDictionary{string, string})"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> EndpointUriSource
+    private static IEnumerable<TestCaseData> ServerAddressUriSource
     {
         get
         {
@@ -18,7 +18,7 @@ public class EndpointTests
                       string host,
                       ushort port,
                       string? transport,
-                      IDictionary<string, string>? parameters) in _validEndpoints)
+                      IDictionary<string, string>? parameters) in _validServerAddresss)
             {
                 yield return new TestCaseData(
                     uri,
@@ -30,12 +30,12 @@ public class EndpointTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_an_endpoint_into_a_string(Uri)"/> test.</summary>
-    private static IEnumerable<TestCaseData> EndpointToStringSource
+    /// <summary>Provides test case data for <see cref="Convert_an_server_address_into_a_string(Uri)"/> test.</summary>
+    private static IEnumerable<TestCaseData> ServerAddressToStringSource
     {
         get
         {
-            foreach ((Uri uri, string _, ushort _, string? _, IDictionary<string, string>? _) in _validEndpoints)
+            foreach ((Uri uri, string _, ushort _, string? _, IDictionary<string, string>? _) in _validServerAddresss)
             {
                 yield return new TestCaseData(uri);
             }
@@ -43,7 +43,7 @@ public class EndpointTests
     }
 
     /// <summary>A collection of valid server address strings with its expected host, port, transport and parameters.</summary>
-    private static readonly (Uri Uri, string Host, ushort Port, string? Transport, IDictionary<string, string>? Parameters)[] _validEndpoints =
+    private static readonly (Uri Uri, string Host, ushort Port, string? Transport, IDictionary<string, string>? Parameters)[] _validServerAddresss =
         new (Uri, string, ushort, string?, IDictionary<string, string>?)[]
         {
             (new Uri("icerpc://host:10000"), "host", 10000, null, null),
@@ -89,20 +89,20 @@ public class EndpointTests
 
     /// <summary>Verifies that a server address can be correctly converted into a string.</summary>
     /// <param name="uri1">The server address URI to test.</param>
-    [Test, TestCaseSource(nameof(EndpointToStringSource))]
-    public void Convert_an_endpoint_into_a_string(Uri uri1)
+    [Test, TestCaseSource(nameof(ServerAddressToStringSource))]
+    public void Convert_an_server_address_into_a_string(Uri uri1)
     {
-        var endpoint1 = new ServerAddress(uri1);
+        var serverAddress1 = new ServerAddress(uri1);
 
-        string str2 = endpoint1.ToString();
+        string str2 = serverAddress1.ToString();
 
-        Assert.That(endpoint1, Is.EqualTo(new ServerAddress(new Uri(str2))));
+        Assert.That(serverAddress1, Is.EqualTo(new ServerAddress(new Uri(str2))));
     }
 
     /// <summary>Verifies that the properties of a default constructed server address have the expected default values.
     /// </summary>
     [Test]
-    public void Endpoint_default_values()
+    public void ServerAddress_default_values()
     {
         var serverAddress = new ServerAddress();
 
@@ -119,7 +119,7 @@ public class EndpointTests
     /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri"/> property is set for a server address created from an
     /// URI.</summary>
     [Test]
-    public void Endpoint_original_URI()
+    public void ServerAddress_original_URI()
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://host:10000?transport=foobar"));
 
@@ -129,14 +129,14 @@ public class EndpointTests
     /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri"/> property of a server address is set to null after
     /// modifying the server address.</summary>
     [Test]
-    public void Endpoint_original_URI_is_null_after_updating_the_endpoint()
+    public void ServerAddress_original_URI_is_null_after_updating_the_server_address()
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://host:10000?transport=foobar"));
 
-        ServerAddress endpoint2 = serverAddress with { Host = "localhost", Port = 10001 };
+        ServerAddress serverAddress2 = serverAddress with { Host = "localhost", Port = 10001 };
 
         Assert.That(serverAddress.OriginalUri, Is.Not.Null);
-        Assert.That(endpoint2.OriginalUri, Is.Null);
+        Assert.That(serverAddress2.OriginalUri, Is.Null);
     }
 
     /// <summary>Verifies that ServerAddress's constructor fails when a URI is not a valid server address.</summary>
@@ -151,7 +151,7 @@ public class EndpointTests
     [TestCase("icerpc:")]                                          // no authority
     [TestCase("foo://host:10000")]                                 // protocol not supported
     [TestCase("icerpc://user:password@host:10000")]                // bad user-info
-    public void Cannot_create_endpoint_from_non_endpoint_uri(Uri uri) =>
+    public void Cannot_create_server_address_from_non_server_address_uri(Uri uri) =>
         Assert.Catch<ArgumentException>(() => new ServerAddress(uri));
 
     /// <summary>Verifies that a server address can be created from a URI.</summary>
@@ -160,8 +160,8 @@ public class EndpointTests
     /// <param name="port">The expected port for the new server address.</param>
     /// <param name="transport">The expected transport for the new server address.</param>
     /// <param name="parameters">The expected parameters for the new server address.</param>
-    [Test, TestCaseSource(nameof(EndpointUriSource))]
-    public void Create_endpoint_from_valid_uri(
+    [Test, TestCaseSource(nameof(ServerAddressUriSource))]
+    public void Create_server_address_from_valid_uri(
         Uri uri,
         string host,
         ushort port,
@@ -184,7 +184,7 @@ public class EndpointTests
     [TestCase("localhost")]
     [TestCase("[::0]")]
     [TestCase("::1")]
-    public void Setting_the_endpoint_host(string host)
+    public void Setting_the_server_address_host(string host)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
@@ -214,7 +214,7 @@ public class EndpointTests
     }
 
     [Test]
-    public void To_Uri_returns_uri_from_Endpoint_uri_constructor()
+    public void To_Uri_returns_uri_from_ServerAddress_uri_constructor()
     {
         // Arrange
         var uri = new Uri("icerpc://bar:1234");
@@ -249,7 +249,7 @@ public class EndpointTests
     /// <param name="value">The value of the server address parameter to set.</param>
     [TestCase("name", "value")]
     [TestCase("name%23[]", "value%25[]@!")]
-    public void Setting_the_endpoint_params(string name, string value)
+    public void Setting_the_server_address_params(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
@@ -264,7 +264,7 @@ public class EndpointTests
     /// <param name="host">The invalid value for <see cref="ServerAddress.Host"/> property.</param>
     [TestCase("")]
     [TestCase("::1.2")]
-    public void Setting_invalid_endpoint_host_fails(string host)
+    public void Setting_invalid_server_address_host_fails(string host)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 
@@ -282,7 +282,7 @@ public class EndpointTests
     [TestCase(" name", "value")]
     [TestCase("name", "valu#e")]
     [TestCase("name", "valu&e")]
-    public void Setting_invalid_endpoint_params_fails(string name, string value)
+    public void Setting_invalid_server_address_params_fails(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
 

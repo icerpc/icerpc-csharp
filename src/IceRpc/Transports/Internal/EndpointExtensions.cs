@@ -6,7 +6,7 @@ using System.Globalization;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>Extension methods for class ServerAddress.</summary>
-internal static class EndpointExtensions
+internal static class ServerAddressExtensions
 {
     internal static (TransportCode TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
        this ServerAddress serverAddress)

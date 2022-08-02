@@ -15,7 +15,7 @@ public class ConnectionTests
     /// <summary>Verifies that Server.ServerAddress and ClientConnection.ServerAddress's Transport property is set to "coloc".
     /// </summary>
     [Test]
-    public async Task Coloc_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
+    public async Task Coloc_server_address_gets_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -32,7 +32,7 @@ public class ConnectionTests
     /// <summary>Verifies that Server.ServerAddress and ClientConnection.ServerAddress's Transport property is set to "tcp".
     /// </summary>
     [Test]
-    public async Task Tcp_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
+    public async Task Tcp_server_address_gets_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddTcpTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -47,7 +47,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Coloc_ClientConnection_Endpoint_has_transport_property([Values("ice", "icerpc")] string protocol)
+    public async Task Coloc_ClientConnection_ServerAddress_has_transport_property([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(ServiceNotFoundDispatcher.Instance, Protocol.FromString(protocol))
@@ -179,7 +179,7 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com/path?alt-server=testhost.com")]
     [TestCase("icerpc:/path")]
     [TestCase("ice://testhost.com:4061/path")]
-    public async Task InvokeAsync_succeeds_with_a_compatible_endpoint(ServiceAddress serviceAddress)
+    public async Task InvokeAsync_succeeds_with_a_compatible_server_address(ServiceAddress serviceAddress)
     {
         // Arrange
         await using ServiceProvider provider =
@@ -209,7 +209,7 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
-    public async Task InvokeAsync_fails_without_a_compatible_endpoint(ServerAddress serverAddress, ServiceAddress serviceAddress)
+    public async Task InvokeAsync_fails_without_a_compatible_server_address(ServerAddress serverAddress, ServiceAddress serviceAddress)
     {
         // Arrange
         await using var connection = new ClientConnection(serverAddress);

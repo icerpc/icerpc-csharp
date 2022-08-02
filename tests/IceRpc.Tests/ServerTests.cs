@@ -11,7 +11,7 @@ public class ServerTests
     /// <summary>Verifies that using a DNS name in a server server address fails with <see cref="NotSupportedException"/>
     /// exception.</summary>
     [Test]
-    public async Task DNS_name_cannot_be_used_in_a_server_endpoint()
+    public async Task DNS_name_cannot_be_used_in_a_server_server_address()
     {
         await using var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://foo:10000"));
 

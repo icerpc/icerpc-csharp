@@ -102,7 +102,7 @@ public sealed class ConnectionCacheTests
 
     /// <summary>Verifies that the connection cache prefers connecting to the main server address.</summary>
     [Test]
-    public async Task Get_connection_for_main_endpoint()
+    public async Task Get_connection_for_main_server_address()
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));

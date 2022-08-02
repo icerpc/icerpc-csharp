@@ -9,7 +9,7 @@ public static class ServerAddressFeatureExtensions
     /// does nothing.</summary>
     /// <param name="feature">The server address feature.</param>
     /// <param name="serverAddress">The server address to remove from the server address feature.</param>
-    public static void RemoveEndpoint(this IServerAddressFeature feature, ServerAddress serverAddress)
+    public static void RemoveServerAddress(this IServerAddressFeature feature, ServerAddress serverAddress)
     {
         // Filter-out the serverAddress
         if (feature.ServerAddress == serverAddress)

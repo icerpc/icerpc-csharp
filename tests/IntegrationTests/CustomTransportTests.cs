@@ -98,7 +98,7 @@ public class CustomTransportTests
     }
 
     [Test]
-    public async Task CustomTransport_UnknownEndpointParameterAsync()
+    public async Task CustomTransport_UnknownServerAddressParameterAsync()
     {
         // Custom transport handles any params that start with custom-
         {

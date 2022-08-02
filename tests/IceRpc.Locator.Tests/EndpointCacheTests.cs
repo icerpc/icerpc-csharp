@@ -6,46 +6,46 @@ using NUnit.Framework;
 namespace IceRpc.Locator.Tests;
 
 [Parallelizable(ParallelScope.All)]
-public class EndpointCacheTests
+public class ServerAddressCacheTests
 {
     [Test]
-    public void Get_known_location_from_endpoint_cache()
+    public void Get_known_location_from_server_address_cache()
     {
         var expected = new ServiceAddress(new Uri("ice:/dummy"));
         var location = new Location { IsAdapterId = true, Value = "hello" };
-        IEndpointCache endpointCache = new EndpointCache(10);
-        endpointCache.Set(location, expected);
+        IServerAddressCache serverAddressCache = new ServerAddressCache(10);
+        serverAddressCache.Set(location, expected);
 
-        bool cached = endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
+        bool cached = serverAddressCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
 
         Assert.That(resolved.ServiceAddress, Is.EqualTo(expected));
         Assert.That(cached, Is.True);
     }
 
     [Test]
-    public void Get_unknown_location_from_endpoint_cache()
+    public void Get_unknown_location_from_server_address_cache()
     {
         var location = new Location { IsAdapterId = true, Value = "hello" };
-        IEndpointCache endpointCache = new EndpointCache(10);
+        IServerAddressCache serverAddressCache = new ServerAddressCache(10);
 
-        bool cached = endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
+        bool cached = serverAddressCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
 
         Assert.That(resolved.ServiceAddress, Is.Null);
         Assert.That(cached, Is.False);
     }
 
     [Test]
-    public void Remove_location_entry_from_endpoint_cache()
+    public void Remove_location_entry_from_server_address_cache()
     {
         // Arrange
-        IEndpointCache endpointCache = new EndpointCache(10);
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
+        IServerAddressCache serverAddressCache = new ServerAddressCache(10);
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
 
         // Act
-        endpointCache.Remove(new Location { IsAdapterId = true, Value = "hello-1" });
+        serverAddressCache.Remove(new Location { IsAdapterId = true, Value = "hello-1" });
 
         // Assert
-        bool cached = endpointCache.TryGetValue(
+        bool cached = serverAddressCache.TryGetValue(
             new Location { IsAdapterId = true, Value = "hello-1" },
             out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
 
@@ -54,20 +54,20 @@ public class EndpointCacheTests
     }
 
     [Test]
-    public void Endpoint_cache_prunes_oldest_entries_when_cache_reaches_max_cache_size()
+    public void ServerAddress_cache_prunes_oldest_entries_when_cache_reaches_max_cache_size()
     {
         // Arrange
         var expected = new ServiceAddress(new Uri("ice:/dummy"));
-        IEndpointCache endpointCache = new EndpointCache(2);
+        IServerAddressCache serverAddressCache = new ServerAddressCache(2);
 
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-2" }, expected);
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-2" }, expected);
 
         // Act
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-3" }, expected);
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-3" }, expected);
 
         // Assert
-        bool cached = endpointCache.TryGetValue(
+        bool cached = serverAddressCache.TryGetValue(
             new Location { IsAdapterId = true, Value = "hello-1" },
             out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
 
@@ -80,14 +80,14 @@ public class EndpointCacheTests
     {
         // Arrange
         var expected = new ServiceAddress(new Uri("ice:/expected"));
-        IEndpointCache endpointCache = new EndpointCache(10);
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
+        IServerAddressCache serverAddressCache = new ServerAddressCache(10);
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, new ServiceAddress(new Uri("ice:/dummy1")));
 
         // Act
-        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
+        serverAddressCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
 
         // Assert
-        bool cached = endpointCache.TryGetValue(
+        bool cached = serverAddressCache.TryGetValue(
             new Location { IsAdapterId = true, Value = "hello-1" },
             out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) resolved);
 

@@ -81,7 +81,7 @@ public class ServiceAddressTests
     {
         get
         {
-            foreach ((string str, ServerAddress[] altServerAddresses) in _altEndpoints)
+            foreach ((string str, ServerAddress[] altServerAddresses) in _altServerAddresses)
             {
                 yield return new TestCaseData(new ServiceAddress(new Uri(str)), altServerAddresses);
             }
@@ -280,7 +280,7 @@ public class ServiceAddressTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    private static readonly Dictionary<string, ServerAddress[]> _altEndpoints = new()
+    private static readonly Dictionary<string, ServerAddress[]> _altServerAddresses = new()
     {
         ["icerpc://localhost/path?alt-server=host1,host2"] = new ServerAddress[]
         {
@@ -329,7 +329,7 @@ public class ServiceAddressTests
     /// <summary>Verifies that the service address server address cannot be set when the service address contains any params.
     /// </summary>
     [Test]
-    public void Cannot_set_endpoint_on_a_service_address_with_parameters()
+    public void Cannot_set_server_address_on_a_service_address_with_parameters()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(Protocol.Ice)
@@ -349,7 +349,7 @@ public class ServiceAddressTests
     /// <summary>Verifies that the service address cannot contain alt servers when the service address server address is
     /// null.</summary>
     [Test]
-    public void Service_address_cannot_contain_alt_server_when_endpoint_is_null()
+    public void Service_address_cannot_contain_alt_server_when_server_address_is_null()
     {
         // Arrange
         // Construct a serviceAddress from a protocol since it will have an empty serverAddress.
@@ -367,7 +367,7 @@ public class ServiceAddressTests
     /// <summary>Verifies that the service address server address cannot be null when the service address contains has alt
     /// server addresses.</summary>
     [Test]
-    public void Cannot_clear_endpoint_when_alt_server_is_not_empty()
+    public void Cannot_clear_server_address_when_alt_server_is_not_empty()
     {
         // Arrange
         // Creating a proxy with an alternate serverAddress.
@@ -628,15 +628,15 @@ public class ServiceAddressTests
     /// <summary>Verifies that setting a server address that uses a protocol different than the service address protocol
     /// throws <see cref="ArgumentException"/>.</summary>
     [Test]
-    public void Setting_endpoint_with_a_different_protocol_fails()
+    public void Setting_server_address_with_a_different_protocol_fails()
     {
         var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com/hello"));
         ServerAddress? serverAddress = serviceAddress.ServerAddress;
-        ServerAddress newEndpoint = new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
+        ServerAddress newServerAddress = new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
 
         Assert.Multiple(() =>
         {
-            Assert.That(() => serviceAddress = serviceAddress with { ServerAddress = newEndpoint }, Throws.ArgumentException);
+            Assert.That(() => serviceAddress = serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
 
             // Ensure the server address wasn't updated
             Assert.That(serviceAddress.ServerAddress, Is.EqualTo(serverAddress));

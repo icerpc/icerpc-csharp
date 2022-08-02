@@ -6,7 +6,7 @@ using System.Text;
 namespace IceRpc.Internal;
 
 /// <summary>This class provides extension methods for <see cref="ServerAddress"/>.</summary>
-internal static class EndpointExtensions
+internal static class ServerAddressExtensions
 {
     /// <summary>Appends the server address and all its parameters (if any) to this string builder.</summary>
     /// <param name="sb">The string builder.</param>
@@ -17,7 +17,7 @@ internal static class EndpointExtensions
     /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.
     /// </param>
     /// <returns>The string builder <paramref name="sb"/>.</returns>
-    internal static StringBuilder AppendEndpoint(
+    internal static StringBuilder AppendServerAddress(
         this StringBuilder sb,
         ServerAddress serverAddress,
         string path = "",

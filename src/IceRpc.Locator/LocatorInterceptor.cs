@@ -162,30 +162,30 @@ public class LocatorLocationResolver : ILocationResolver
         bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
 
         // Create and decorate server address cache (if caching enabled):
-        IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
-            new EndpointCache(options.MaxCacheSize) : null;
+        IServerAddressCache? serverAddressCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
+            new ServerAddressCache(options.MaxCacheSize) : null;
 
-        if (endpointCache is not null && installLogDecorator)
+        if (serverAddressCache is not null && installLogDecorator)
         {
-            endpointCache = new LogEndpointCacheDecorator(endpointCache, logger);
+            serverAddressCache = new LogServerAddressCacheDecorator(serverAddressCache, logger);
         }
 
         // Create and decorate server address finder:
-        IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
+        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(locator);
         if (installLogDecorator)
         {
-            endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
+            serverAddressFinder = new LogServerAddressFinderDecorator(serverAddressFinder, logger);
         }
-        if (endpointCache is not null)
+        if (serverAddressCache is not null)
         {
-            endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
+            serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(serverAddressFinder, serverAddressCache);
         }
-        endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
+        serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder);
 
-        _locationResolver = endpointCache is null ? new CacheLessLocationResolver(endpointFinder) :
+        _locationResolver = serverAddressCache is null ? new CacheLessLocationResolver(serverAddressFinder) :
                 new LocationResolver(
-                    endpointFinder,
-                    endpointCache,
+                    serverAddressFinder,
+                    serverAddressCache,
                     options.Background,
                     options.RefreshThreshold,
                     options.Ttl);

@@ -887,7 +887,7 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a server address (Slice1).</summary>
     /// <param name="protocol">The protocol of this server address.</param>
     /// <returns>The server address decoded by this decoder.</returns>
-    private ServerAddress DecodeEndpoint(Protocol protocol)
+    private ServerAddress DecodeServerAddress(Protocol protocol)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
@@ -926,7 +926,7 @@ public ref partial struct SliceDecoder
                     case TransportCode.Tcp:
                     case TransportCode.Ssl:
                     {
-                        serverAddress = Transports.TcpClientTransport.DecodeEndpoint(
+                        serverAddress = Transports.TcpClientTransport.DecodeServerAddress(
                             ref this,
                             transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
                         break;
@@ -1135,19 +1135,19 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            serverAddress = DecodeEndpoint(protocol);
+            serverAddress = DecodeServerAddress(protocol);
             if (count >= 2)
             {
                 // A slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6 bytes
                 // for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
                 IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
 
-                var endpointArray = new ServerAddress[count - 1];
+                var serverAddressArray = new ServerAddress[count - 1];
                 for (int i = 0; i < count - 1; ++i)
                 {
-                    endpointArray[i] = DecodeEndpoint(protocol);
+                    serverAddressArray[i] = DecodeServerAddress(protocol);
                 }
-                altServerAddresses = endpointArray;
+                altServerAddresses = serverAddressArray;
             }
         }
 

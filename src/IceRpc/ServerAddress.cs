@@ -148,9 +148,9 @@ public readonly record struct ServerAddress
 
         try
         {
-            (_params, string? altEndpointValue, _transport) = uri.ParseQuery();
+            (_params, string? altServerValue, _transport) = uri.ParseQuery();
 
-            if (altEndpointValue is not null)
+            if (altServerValue is not null)
             {
                 throw new ArgumentException(
                     "cannot create a server address with an alt-server query parameter",
@@ -183,7 +183,7 @@ public readonly record struct ServerAddress
     /// <summary>Converts this server address into a string.</summary>
     /// <returns>The string representation of this server address.</returns>
     public override string ToString() =>
-        OriginalUri?.ToString() ?? new StringBuilder().AppendEndpoint(this).ToString();
+        OriginalUri?.ToString() ?? new StringBuilder().AppendServerAddress(this).ToString();
 
     /// <summary>Converts this server address into a URI.</summary>
     /// <returns>The URI.</returns>
@@ -198,13 +198,13 @@ public readonly record struct ServerAddress
         string host,
         ushort port,
         string? transport,
-        ImmutableDictionary<string, string> endpointParams)
+        ImmutableDictionary<string, string> serverAddressParams)
     {
         Protocol = protocol;
         _host = host;
         _port = port;
         _transport = transport;
-        _params = endpointParams;
+        _params = serverAddressParams;
         OriginalUri = null;
     }
 }

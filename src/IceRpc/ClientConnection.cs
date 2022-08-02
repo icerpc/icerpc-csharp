@@ -172,18 +172,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (serverAddressFeature.ServerAddress is ServerAddress mainServerAddress)
             {
-                CheckRequestEndpoints(mainServerAddress, serverAddressFeature.AltServerAddresses);
+                CheckRequestServerAddresses(mainServerAddress, serverAddressFeature.AltServerAddresses);
             }
         }
         else if (request.ServiceAddress.ServerAddress is ServerAddress mainServerAddress)
         {
-            CheckRequestEndpoints(mainServerAddress, request.ServiceAddress.AltServerAddresses);
+            CheckRequestServerAddresses(mainServerAddress, request.ServiceAddress.AltServerAddresses);
         }
         // If the request has no server address at all, we let it through.
 
         return _protocolConnection.InvokeAsync(request, cancel);
 
-        void CheckRequestEndpoints(ServerAddress mainServerAddress, ImmutableList<ServerAddress> altServerAddresses)
+        void CheckRequestServerAddresses(ServerAddress mainServerAddress, ImmutableList<ServerAddress> altServerAddresses)
         {
             if (ServerAddressComparer.OptionalTransport.Equals(mainServerAddress, ServerAddress))
             {
