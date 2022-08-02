@@ -38,13 +38,8 @@ public sealed class Server : IAsyncDisposable
 
     private readonly Func<IDisposable> _listenerFactory;
 
-    private readonly IMultiplexedServerTransport _multiplexedServerTransport;
-    private readonly IDuplexServerTransport _duplexServerTransport;
-
     // protects _shutdownTask
     private readonly object _mutex = new();
-
-    private readonly ServerOptions _options;
 
     private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -67,17 +62,16 @@ public sealed class Server : IAsyncDisposable
         }
 
         Endpoint = options.Endpoint;
-        _duplexServerTransport = duplexServerTransport ?? DefaultDuplexServerTransport;
-        _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
+        duplexServerTransport ??= DefaultDuplexServerTransport;
+        multiplexedServerTransport ??= DefaultMultiplexedServerTransport;
 
         loggerFactory ??= NullLoggerFactory.Instance;
         ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
 
         if (logger != NullLogger.Instance)
         {
-            _duplexServerTransport = new LogDuplexServerTransportDecorator(_duplexServerTransport, logger);
-            _multiplexedServerTransport =
-                new LogMultiplexedServerTransportDecorator(_multiplexedServerTransport, logger);
+            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, logger);
+            multiplexedServerTransport = new LogMultiplexedServerTransportDecorator(multiplexedServerTransport, logger);
 
             if (options.ConnectionOptions.Dispatcher is IDispatcher dispatcher)
             {
@@ -91,25 +85,22 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        _options = options;
-        _listenerFactory = CreateListener;
-
-        IDisposable CreateListener()
+        _listenerFactory = () =>
         {
-            if (_options.Endpoint.Protocol == Protocol.Ice)
+            if (options.Endpoint.Protocol == Protocol.Ice)
             {
                 var duplexListenerOptions = new DuplexListenerOptions
                 {
                     ServerConnectionOptions = new()
                     {
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
-                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions
+                        MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
+                        Pool = options.ConnectionOptions.Pool,
+                        ServerAuthenticationOptions = options.ServerAuthenticationOptions
                     },
-                    Endpoint = _options.Endpoint
+                    Endpoint = options.Endpoint
                 };
 
-                IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
+                IDuplexListener listener = duplexServerTransport.Listen(duplexListenerOptions);
                 Endpoint = listener.Endpoint;
 
                 // Run task to start accepting new connections
@@ -120,7 +111,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, _options.ConnectionOptions);
+                    new IceProtocolConnection(duplexConnection, isServer: true, options.ConnectionOptions);
 
                 IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
                 {
@@ -137,18 +128,18 @@ public sealed class Server : IAsyncDisposable
                 {
                     ServerConnectionOptions = new()
                     {
-                        MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
+                        MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.
-                        MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
-                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
+                        MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
+                        MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
+                        Pool = options.ConnectionOptions.Pool,
+                        ServerAuthenticationOptions = options.ServerAuthenticationOptions,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
-                    Endpoint = _options.Endpoint
+                    Endpoint = options.Endpoint
                 };
 
-                IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);
+                IMultiplexedListener listener = multiplexedServerTransport.Listen(multiplexedListenerOptions);
                 Endpoint = listener.Endpoint;
                 _listener = listener;
 
@@ -160,7 +151,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, _options.ConnectionOptions);
+                    new IceRpcProtocolConnection(multiplexedConnection, options.ConnectionOptions);
 
                 // TODO: reduce duplication with Duplex code above
                 IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
@@ -260,7 +251,7 @@ public sealed class Server : IAsyncDisposable
                     }
                 }
             }
-        }
+        };
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties

@@ -16,23 +16,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections =
         new(EndpointComparer.OptionalTransport);
 
+    private readonly Func<Endpoint, ClientConnection> _clientConnectionFactory;
+
     private bool _isReadOnly;
 
-    private readonly ILoggerFactory? _loggerFactory;
-    private readonly IMultiplexedClientTransport _multiplexedClientTransport;
-
     private readonly object _mutex = new();
-
-    private readonly ConnectionCacheOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections =
         new(EndpointComparer.OptionalTransport);
 
+    private readonly bool _preferExistingConnection;
+
     // Formerly pending or active connections that are closed but not shutdown yet.
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
-
-    private readonly IDuplexClientTransport _duplexClientTransport;
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
@@ -47,10 +44,16 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
-        _options = options;
-        _loggerFactory = loggerFactory;
-        _multiplexedClientTransport = multiplexedClientTransport ?? ClientConnection.DefaultMultiplexedClientTransport;
-        _duplexClientTransport = duplexClientTransport ?? ClientConnection.DefaultDuplexClientTransport;
+        _preferExistingConnection = options.PreferExistingConnection;
+
+        multiplexedClientTransport ??= ClientConnection.DefaultMultiplexedClientTransport;
+        duplexClientTransport ??= ClientConnection.DefaultDuplexClientTransport;
+
+        _clientConnectionFactory = endpoint => new ClientConnection(
+            options.ClientConnectionOptions with { Endpoint = endpoint },
+            loggerFactory,
+            multiplexedClientTransport,
+            duplexClientTransport);
     }
 
     /// <summary>Constructs a connection cache.</summary>
@@ -92,12 +95,109 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             throw new NoEndpointException(request.ServiceAddress);
         }
 
-        return PerformInvokeAsync();
+        ClientConnection? connection = null;
+        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
+
+        if (_preferExistingConnection)
+        {
+            lock (_mutex)
+            {
+                connection = GetActiveConnection(mainEndpoint);
+                if (connection is null)
+                {
+                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
+                    {
+                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
+                        connection = GetActiveConnection(altEndpoint);
+                        if (connection is not null)
+                        {
+                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
+                            // the first alt endpoint.
+                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
+                                .RemoveAt(i)
+                                .Insert(0, mainEndpoint);
+                            endpointFeature.Endpoint = altEndpoint;
+
+                            break; // foreach
+                        }
+                    }
+                }
+            }
+
+            ClientConnection? GetActiveConnection(Endpoint endpoint) =>
+                _activeConnections.TryGetValue(endpoint, out ClientConnection? connection) ? connection : null;
+        }
+
+        if (connection is not null)
+        {
+            try
+            {
+                return connection.InvokeAsync(request, cancel);
+            }
+            catch (ObjectDisposedException)
+            {
+                // This can occasionally happen if we find a connection that was just closed by the peer or transport
+                // and then automatically disposed by this connection cache.
+                throw new ConnectionClosedException();
+            }
+        }
+        else
+        {
+            return PerformInvokeAsync();
+        }
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            ClientConnection connection = await GetClientConnectionAsync(endpointFeature, cancel).ConfigureAwait(false);
-            return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            try
+            {
+                connection = await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                List<Exception>? exceptionList = null;
+
+                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
+                {
+                    // Rotate the endpoints before each new connection attempt: the first alt endpoint becomes the main
+                    // endpoint and the main endpoint becomes the last alt endpoint.
+                    endpointFeature.Endpoint = endpointFeature.AltEndpoints[0];
+                    endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(0).Add(mainEndpoint);
+                    mainEndpoint = endpointFeature.Endpoint.Value;
+
+                    try
+                    {
+                        connection = await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
+                        break; // for
+                    }
+                    catch (Exception altEx)
+                    {
+                        exceptionList ??= new List<Exception> { exception };
+                        exceptionList.Add(altEx);
+                        // and keep trying
+                    }
+                }
+
+                if (connection is null)
+                {
+                    if (exceptionList is null)
+                    {
+                        throw;
+                    }
+                    else
+                    {
+                        throw new AggregateException(exceptionList);
+                    }
+                }
+            }
+
+            try
+            {
+                return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                throw new ConnectionClosedException();
+            }
         }
     }
 
@@ -147,12 +247,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             else
             {
-                connection = new ClientConnection(
-                    _options.ClientConnectionOptions with { Endpoint = endpoint },
-                    _loggerFactory,
-                    _multiplexedClientTransport,
-                    _duplexClientTransport);
-
+                connection = _clientConnectionFactory(endpoint);
                 created = true;
                 _pendingConnections.Add(endpoint, connection);
             }
@@ -265,96 +360,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (!_isReadOnly)
                 {
                     _ = _shutdownPendingConnections.Remove(clientConnection);
-                }
-            }
-        }
-    }
-
-    /// <summary>Returns a client connection to one of the specified endpoints.</summary>
-    /// <param name="endpointFeature">The endpoint feature.</param>
-    /// <param name="cancel">The cancellation token.</param>
-    private ValueTask<ClientConnection> GetClientConnectionAsync(
-        IEndpointFeature endpointFeature,
-        CancellationToken cancel)
-    {
-        ClientConnection? connection = null;
-        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
-
-        if (_options.PreferExistingConnection)
-        {
-            lock (_mutex)
-            {
-                connection = GetActiveConnection(mainEndpoint);
-                if (connection is null)
-                {
-                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
-                    {
-                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
-                        connection = GetActiveConnection(altEndpoint);
-                        if (connection is not null)
-                        {
-                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
-                            // the first alt endpoint.
-                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
-                                .RemoveAt(i)
-                                .Insert(0, mainEndpoint);
-                            endpointFeature.Endpoint = altEndpoint;
-
-                            break; // foreach
-                        }
-                    }
-                }
-            }
-            if (connection is not null)
-            {
-                return new(connection);
-            }
-        }
-
-        return GetOrCreateAsync();
-
-        ClientConnection? GetActiveConnection(Endpoint endpoint) =>
-            _activeConnections.TryGetValue(endpoint, out ClientConnection? connection) ? connection : null;
-
-        // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
-        // a brand new connection.
-        async ValueTask<ClientConnection> GetOrCreateAsync()
-        {
-            try
-            {
-                return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                List<Exception>? exceptionList = null;
-
-                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
-                {
-                    // Rotate the endpoints before each new connection attempt: the first alt endpoint becomes the main
-                    // endpoint and the main endpoint becomes the last alt endpoint.
-                    endpointFeature.Endpoint = endpointFeature.AltEndpoints[0];
-                    endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(0).Add(mainEndpoint);
-                    mainEndpoint = endpointFeature.Endpoint.Value;
-
-                    try
-                    {
-                        return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
-                    }
-                    catch (Exception altEx)
-                    {
-                        exceptionList ??= new List<Exception> { exception };
-                        exceptionList.Add(altEx);
-                        // and keep trying
-                    }
-                }
-
-                if (exceptionList is null)
-                {
-                    throw;
-                }
-                else
-                {
-                    throw new AggregateException(exceptionList);
                 }
             }
         }
