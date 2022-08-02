@@ -4,12 +4,11 @@ using Demo;
 using IceRpc;
 using IceRpc.Metrics;
 
-using var cancellationSource = new CancellationTokenSource();
+// Add metrics middleware to the router
+Router router = new Router().UseMetrics(DispatchEventSource.Log);
 
-// Adding metrics middleware to the router
-using var eventSource = DispatchEventSource.Log;
-Router router = new Router().UseMetrics(eventSource);
-router.Map<IHello>(new Hello());
+var service = new Hello();
+router.Map<IHello>(service);
 
 await using var server = new Server(router);
 
@@ -25,4 +24,7 @@ server.Listen();
 
 Console.WriteLine("Server is waiting for connections...");
 
+// Wait for shutdown
 await server.ShutdownComplete;
+
+service.Dispose();

@@ -13,13 +13,13 @@ dotnet run --project Server/Server.csproj
 To monitor the counter metrics, in a separate window run:
 
 ```shell
-dotnet-counters monitor --name Server --counters IceRpc.Dispatch,IceRpc.Invocation
+dotnet-counters monitor --name Server --counters IceRpc.Dispatch
 ```
 
 To collect the trace metrics, in a separate window run:
 
 ```shell
-dotnet-trace collect --name Server --providers IceRpc.Dispatch,IceRpc.Invocation
+dotnet-trace collect --name Server --providers IceRpc.Dispatch
 ```
 
 In a separate window run the client program to simulate network activity to the server and observe the metrics:

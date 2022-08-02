@@ -9,8 +9,7 @@ using System.Diagnostics;
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
 // Setup the invocation pipeline with the metrics interceptor
-using var eventSource = InvocationEventSource.Log;
-IInvoker pipeline = new Pipeline().UseMetrics(eventSource).Into(connection);
+IInvoker pipeline = new Pipeline().UseMetrics(InvocationEventSource.Log).Into(connection);
 
 // Create the proxy using the invocation pipeline
 var hello = new HelloProxy(pipeline);
@@ -18,20 +17,32 @@ var hello = new HelloProxy(pipeline);
 // Gather necessary user input
 Console.Write("Enter how many requests per second you want to send: ");
 
-var input = Console.ReadLine();
 double requestsPerSecond;
-
-while (!double.TryParse(input, out requestsPerSecond))
+while (!double.TryParse(Console.ReadLine(), out requestsPerSecond))
 {
-    Console.Write("{0} is not a double. Please try again: ");
-    input = Console.ReadLine();
+    Console.Write($"{requestsPerSecond} is not a double. Please try again: ");
 }
 
-Console.Write($"Sending {requestsPerSecond} requests per second...");
+Console.WriteLine($"Sending {requestsPerSecond} requests per second...");
+
+// Cancel the client on Ctrl+C or Ctrl+Break
+using var cancellationTokenSource = new CancellationTokenSource();
+Console.CancelKeyPress += (sender, eventArgs) =>
+{
+    eventArgs.Cancel = true;
+    cancellationTokenSource.Cancel();
+};
 
 // Start invoking the remote method
 using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
-while (await periodicTimer.WaitForNextTickAsync())
+
+try
 {
-    await hello.SayHelloAsync();
+    while (await periodicTimer.WaitForNextTickAsync(cancellationTokenSource.Token))
+    {
+        await hello.SayHelloAsync(cancel: cancellationTokenSource.Token);
+    }
+}
+catch (OperationCanceledException)
+{
 }
