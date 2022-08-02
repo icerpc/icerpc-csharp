@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -57,11 +58,13 @@ public class TcpClientTransport : IDuplexClientTransport
     }
 
     /// <inheritdoc/>
-    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
+    public IDuplexConnection CreateConnection(
+        Endpoint endpoint,
+        DuplexConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
         // This is the composition root of the tcp client transport, where we install log decorators when logging
         // is enabled.
-        Endpoint endpoint = options.Endpoint;
         if ((endpoint.Transport is string transport &&
             transport != TransportNames.Tcp &&
             transport != TransportNames.Ssl) ||
@@ -75,7 +78,7 @@ public class TcpClientTransport : IDuplexClientTransport
             endpoint = endpoint with { Transport = Name };
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = options.ClientAuthenticationOptions?.Clone() ??
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
             (endpoint.Transport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
         if (authenticationOptions is not null)
         {

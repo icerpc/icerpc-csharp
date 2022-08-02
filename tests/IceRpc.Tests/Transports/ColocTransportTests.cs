@@ -14,9 +14,11 @@ public class ColocTransportTests
     {
         var colocTransport = new ColocTransport();
         Endpoint endpoint = new Endpoint(new Uri($"icerpc://{Guid.NewGuid()}"));
-        var listener = colocTransport.ServerTransport.Listen(new DuplexListenerOptions { Endpoint = endpoint });
+        var listener = colocTransport.ServerTransport.Listen(endpoint, new DuplexConnectionOptions(), null);
         var clientConnection = colocTransport.ClientTransport.CreateConnection(
-            new DuplexClientConnectionOptions { Endpoint = endpoint });
+            endpoint,
+            new DuplexConnectionOptions(),
+            null);
 
         var transportConnectionInformation = await clientConnection.ConnectAsync(default);
 

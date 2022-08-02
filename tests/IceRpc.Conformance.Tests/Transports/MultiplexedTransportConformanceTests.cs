@@ -92,14 +92,14 @@ public abstract class MultiplexedTransportConformanceTests
         {
             serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
-            serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
         }
         else
         {
             serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
-            serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
         }
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -464,7 +464,7 @@ public abstract class MultiplexedTransportConformanceTests
         var serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
         serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -561,7 +561,7 @@ public abstract class MultiplexedTransportConformanceTests
         var serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
         serviceCollection.AddOptions<MultiplexedClientConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -1015,7 +1015,7 @@ public abstract class MultiplexedTransportConformanceTests
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = 0);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -1041,7 +1041,7 @@ public abstract class MultiplexedTransportConformanceTests
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = 0);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -1083,7 +1083,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => serverTransport.Listen(new MultiplexedListenerOptions { Endpoint = endpoint }));
+            () => serverTransport.Listen(endpoint, new MultiplexedConnectionOptions(), null));
     }
 
     /// <summary>Verifies that stream write can be canceled.</summary>

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.IO.Pipelines;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -20,15 +21,15 @@ internal class ColocListener : IDuplexListener
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
 
-    internal ColocListener(DuplexListenerOptions options)
+    internal ColocListener(Endpoint endpoint, DuplexConnectionOptions options)
     {
-        Endpoint = options.Endpoint;
+        Endpoint = endpoint;
         _pipeOptions = new PipeOptions(
-            pool: options.ServerConnectionOptions.Pool,
-            minimumSegmentSize: options.ServerConnectionOptions.MinSegmentSize);
+            pool: options.Pool,
+            minimumSegmentSize: options.MinSegmentSize);
     }
 
-    internal (PipeReader, PipeWriter) NewClientConnection(DuplexClientConnectionOptions options)
+    internal (PipeReader, PipeWriter) NewClientConnection(DuplexConnectionOptions options)
     {
         // By default, the Pipe will pause writes on the PipeWriter when written data is more than 64KB. We could
         // eventually increase this size by providing a PipeOptions instance to the Pipe construction.

@@ -42,17 +42,21 @@ internal sealed class TcpListener : IDuplexListener
 
     public void Dispose() => _socket.Dispose();
 
-    internal TcpListener(DuplexListenerOptions options, TcpServerTransportOptions tcpOptions)
+    internal TcpListener(
+        Endpoint endpoint,
+        DuplexConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        TcpServerTransportOptions tcpOptions)
     {
-        if (!IPAddress.TryParse(options.Endpoint.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
         {
             throw new NotSupportedException(
-                $"endpoint '{options.Endpoint}' cannot accept connections because it has a DNS name");
+                $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
         }
 
-        _authenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions;
-        _minSegmentSize = options.ServerConnectionOptions.MinSegmentSize;
-        _pool = options.ServerConnectionOptions.Pool;
+        _authenticationOptions = serverAuthenticationOptions;
+        _minSegmentSize = options.MinSegmentSize;
+        _pool = options.Pool;
 
         if (_authenticationOptions is not null)
         {
@@ -60,11 +64,11 @@ internal sealed class TcpListener : IDuplexListener
             _authenticationOptions = _authenticationOptions.Clone();
             _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(options.Endpoint.Protocol.Name)
+                new SslApplicationProtocol(endpoint.Protocol.Name)
             };
         }
 
-        var address = new IPEndPoint(ipAddress, options.Endpoint.Port);
+        var address = new IPEndPoint(ipAddress, endpoint.Port);
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
@@ -93,6 +97,6 @@ internal sealed class TcpListener : IDuplexListener
             throw ex.ToTransportException();
         }
 
-        Endpoint = options.Endpoint with { Port = (ushort)address.Port };
+        Endpoint = endpoint with { Port = (ushort)address.Port };
     }
 }

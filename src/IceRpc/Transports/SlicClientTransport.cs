@@ -36,13 +36,14 @@ public class SlicClientTransport : IMultiplexedClientTransport
     public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options) =>
         new SlicConnection(
             _duplexClientTransport.CreateConnection(
-                new DuplexClientConnectionOptions
+                options.Endpoint,
+                new DuplexConnectionOptions
                 {
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
-                    Endpoint = options.Endpoint,
                     MinSegmentSize = options.MinSegmentSize,
                     Pool = options.Pool
-                }),
+                },
+                options.ClientAuthenticationOptions),
             options,
-            _slicTransportOptions);
+            _slicTransportOptions,
+            isServer: false);
 }

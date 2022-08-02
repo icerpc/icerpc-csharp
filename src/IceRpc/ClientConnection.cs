@@ -70,19 +70,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
-                new DuplexClientConnectionOptions
+                endpoint,
+                new DuplexConnectionOptions
                 {
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
-                    Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions
-                });
-
+                },
+                options.ClientAuthenticationOptions);
             Endpoint = transportConnection.Endpoint;
-
-#pragma warning disable CA2000
+#pragma warning disable CA2000 // Dispose objects before losing scope
             decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
-#pragma warning restore CA2000
+#pragma warning restore CA2000 // Dispose objects before losing scope
         }
         else
         {
@@ -110,10 +108,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 });
 
             Endpoint = transportConnection.Endpoint;
-
-#pragma warning disable CA2000
+#pragma warning disable CA2000 // Dispose objects before losing scope
             decoratee = new IceRpcProtocolConnection(transportConnection, options);
-#pragma warning restore CA2000
+#pragma warning restore CA2000 // Dispose objects before losing scope
         }
 
         if (logger != NullLogger.Instance)

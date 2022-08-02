@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -14,10 +15,15 @@ internal sealed class LogDuplexClientTransportDecorator : IDuplexClientTransport
     public bool CheckParams(Endpoint endpoint) => _decoratee.CheckParams(endpoint);
 
     // This decorator does not log anything, it only provides a decorated duplex connection.
-    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options) =>
-        new LogDuplexConnectionDecorator(_decoratee.CreateConnection(options), _logger);
+    public IDuplexConnection CreateConnection(
+        Endpoint endpoint,
+        DuplexConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions) =>
+        new LogDuplexConnectionDecorator(_decoratee.CreateConnection(endpoint, options, clientAuthenticationOptions), _logger);
 
-    internal LogDuplexClientTransportDecorator(IDuplexClientTransport decoratee, ILogger logger)
+    internal LogDuplexClientTransportDecorator(
+        IDuplexClientTransport decoratee,
+        ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;

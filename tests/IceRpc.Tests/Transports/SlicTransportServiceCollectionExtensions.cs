@@ -34,17 +34,16 @@ public static class SlicTransportServiceCollectionExtensions
         services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
 
-        services.AddOptions<MultiplexedServerConnectionOptions>().Configure(
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedListenerOptions>().Configure<IOptions<MultiplexedServerConnectionOptions>>(
-            (options, serverConnectionOptions) => options.ServerConnectionOptions = serverConnectionOptions.Value);
 
         services.AddSingleton(provider =>
         {
             var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
             var listener = serverTransport.Listen(
-                provider.GetRequiredService<IOptions<MultiplexedListenerOptions>>().Value with { Endpoint = endpoint });
+                endpoint,
+                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                null);
             return listener;
         });
 
