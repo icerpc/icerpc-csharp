@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An endpoint cache maintains a dictionary of location to endpoint(s), where the endpoints are held by a
+/// <summary>An server address cache maintains a dictionary of location to server address(es), where the server addresses are held by a
 /// dummy service address. It also keeps track of the insertion time of each entry. It's consumed by
 /// <see cref="LocationResolver"/>.</summary>
 internal interface IEndpointCache
@@ -94,7 +94,7 @@ internal sealed class EndpointCache : IEndpointCache
     }
 }
 
-/// <summary>A decorator that adds logging to an endpoint cache.</summary>
+/// <summary>A decorator that adds logging to a server address cache.</summary>
 internal class LogEndpointCacheDecorator : IEndpointCache
 {
     private readonly IEndpointCache _decoratee;

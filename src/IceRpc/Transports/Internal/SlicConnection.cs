@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal;
 /// cref="IDuplexConnection"/>.</summary>
 internal class SlicConnection : IMultiplexedConnection
 {
-    public Endpoint Endpoint => _duplexConnection.Endpoint;
+    public ServerAddress ServerAddress => _duplexConnection.ServerAddress;
 
     internal bool IsServer { get; }
 

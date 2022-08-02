@@ -4,20 +4,20 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Features;
 
-/// <summary>The default implementation of <see cref="IEndpointFeature"/>.</summary>
-public sealed class EndpointFeature : IEndpointFeature
+/// <summary>The default implementation of <see cref="IServerAddressFeature"/>.</summary>
+public sealed class ServerAddressFeature : IServerAddressFeature
 {
     /// <inheritdoc/>
-    public ImmutableList<Endpoint> AltEndpoints { get; set; }
+    public ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
     /// <inheritdoc/>
-    public Endpoint? Endpoint { get; set; }
+    public ServerAddress? ServerAddress { get; set; }
 
-    /// <summary>Constructs an endpoint feature that uses the endpoints of a service address.</summary>
-    /// <param name="serviceAddress">The service address to copy the endpoints from.</param>
-    public EndpointFeature(ServiceAddress serviceAddress)
+    /// <summary>Constructs a server address feature that uses the server addresses of a service address.</summary>
+    /// <param name="serviceAddress">The service address to copy the server addresses from.</param>
+    public ServerAddressFeature(ServiceAddress serviceAddress)
     {
-        Endpoint = serviceAddress.Endpoint;
-        AltEndpoints = serviceAddress.AltEndpoints;
+        ServerAddress = serviceAddress.ServerAddress;
+        AltServerAddresses = serviceAddress.AltServerAddresses;
     }
 }

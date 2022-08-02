@@ -15,14 +15,14 @@ public sealed record class ServerOptions
     /// <summary>Gets or sets the connection options for server connections.</summary>
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
-    /// <summary>Gets or sets the server's endpoint. The endpoint's host is usually an IP address, and it
+    /// <summary>Gets or sets the server's serverAddress. The server address host is usually an IP address, and it
     /// cannot be a DNS name.</summary>
-    public Endpoint Endpoint
+    public ServerAddress ServerAddress
     {
-        get => _endpoint;
-        set => _endpoint = value.Protocol.IsSupported ? value :
-            throw new NotSupportedException($"cannot set endpoint with protocol '{value.Protocol}'");
+        get => _serverAddress;
+        set => _serverAddress = value.Protocol.IsSupported ? value :
+            throw new NotSupportedException($"cannot set server address with protocol '{value.Protocol}'");
     }
 
-    private Endpoint _endpoint = new(Protocol.IceRpc);
+    private ServerAddress _serverAddress = new(Protocol.IceRpc);
 }

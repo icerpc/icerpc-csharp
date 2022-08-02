@@ -101,7 +101,7 @@ public class LocatorEndpointFinderTests
     }
 
     /// <summary>Verifies that <see cref="CacheUpdateEndpointFinderDecorator"/> adds found entries
-    /// to the endpoint cache.</summary>
+    /// to the server address cache.</summary>
     [Test]
     public async Task Cache_decorator_adds_found_entries_to_the_endpoint_cache()
     {
@@ -121,7 +121,7 @@ public class LocatorEndpointFinderTests
     }
 
     /// <summary>Verifies that <see cref="CacheUpdateEndpointFinderDecorator"/> removes not found entries
-    /// from the endpoint cache.</summary>
+    /// from the server address cache.</summary>
     [Test]
     public async Task Cache_decorator_removes_not_found_entries_from_the_endpoint_cache()
     {

@@ -15,18 +15,18 @@ public enum LocationEventId
     /// <summary>The location resolver failed to resolve a location.</summary>
     FailedToResolve,
 
-    /// <summary>The endpoint cache found the requested location.</summary>
+    /// <summary>The server address cache found the requested location.</summary>
     FoundEntry,
 
-    /// <summary>An entry was set in the endpoint cache.</summary>
+    /// <summary>An entry was set in the server address cache.</summary>
     SetEntry,
 
-    /// <summary>An entry was removed from the endpoint cache.</summary>
+    /// <summary>An entry was removed from the server address cache.</summary>
     RemovedEntry,
 
-    /// <summary>The endpoint finder failed to find endpoint(s) for the given location.</summary>
+    /// <summary>The server address finder failed to find server address(es) for the given location.</summary>
     FindFailed,
 
-    /// <summary>The endpoint finder found endpoint(s) for the given location.</summary>
+    /// <summary>The server address finder found server address(es) for the given location.</summary>
     Found
 }

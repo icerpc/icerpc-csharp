@@ -12,15 +12,15 @@ internal sealed class LogDuplexClientTransportDecorator : IDuplexClientTransport
 
     public string Name => _decoratee.Name;
 
-    public bool CheckParams(Endpoint endpoint) => _decoratee.CheckParams(endpoint);
+    public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
 
     // This decorator does not log anything, it only provides a decorated duplex connection.
     public IDuplexConnection CreateConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions) =>
         new LogDuplexConnectionDecorator(
-            _decoratee.CreateConnection(endpoint, options, clientAuthenticationOptions),
+            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
             _logger);
 
     internal LogDuplexClientTransportDecorator(IDuplexClientTransport decoratee, ILogger logger)

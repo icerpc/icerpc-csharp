@@ -8,8 +8,8 @@ namespace IceRpc.Internal;
 /// protocol.</summary>
 internal interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the endpoint that identifies this protocol connection.</summary>
-    Endpoint Endpoint { get; }
+    /// <summary>Gets the server address that identifies this protocol connection.</summary>
+    ServerAddress ServerAddress { get; }
 
     /// <summary>Connects the protocol connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

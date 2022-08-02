@@ -10,7 +10,7 @@ namespace IceRpc.Internal;
 /// correct order.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
-    public abstract Endpoint Endpoint { get; }
+    public abstract ServerAddress ServerAddress { get; }
 
     // When calling methods on IProtocolConnection, we have to call Decorator other we would bypass decoration.
     internal IProtocolConnection Decorator { get; set; }

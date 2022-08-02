@@ -15,28 +15,28 @@ namespace IceRpc;
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress
 {
-    /// <summary>Gets or initializes the secondary endpoints of this service address.</summary>
-    /// <value>The secondary endpoints of this service address.</value>
-    public ImmutableList<Endpoint> AltEndpoints
+    /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
+    /// <value>The secondary server addresses of this service address.</value>
+    public ImmutableList<ServerAddress> AltServerAddresses
     {
         get => _altEndpoints;
 
         init
         {
-            CheckSupportedProtocol(nameof(AltEndpoints));
+            CheckSupportedProtocol(nameof(AltServerAddresses));
 
             if (value.Count > 0)
             {
-                if (_endpoint is null)
+                if (_serverAddress is null)
                 {
                     throw new InvalidOperationException(
-                        $"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} is empty");
+                        $"cannot set {nameof(AltServerAddresses)} when {nameof(ServerAddress)} is empty");
                 }
 
                 if (value.Any(e => e.Protocol != Protocol))
                 {
                     throw new ArgumentException(
-                        $"the {nameof(AltEndpoints)} endpoints must use the service address's protocol {Protocol}",
+                        $"the {nameof(AltServerAddresses)} server addresses must use the service address's protocol {Protocol}",
                         nameof(value));
                 }
             }
@@ -47,19 +47,19 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets or initializes the main endpoint of this service address.</summary>
-    /// <value>The main endpoint of this service address, or null if this service address has no endpoint.</value>
-    public Endpoint? Endpoint
+    /// <summary>Gets or initializes the main server address of this service address.</summary>
+    /// <value>The main server address of this service address, or null if this service address has no server address.</value>
+    public ServerAddress? ServerAddress
     {
-        get => _endpoint;
+        get => _serverAddress;
 
         init
         {
-            CheckSupportedProtocol(nameof(Endpoint));
+            CheckSupportedProtocol(nameof(ServerAddress));
             if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
             {
                 throw new ArgumentException(
-                    $"the {nameof(Endpoint)} must use the service address's protocol: '{Protocol}'",
+                    $"the {nameof(ServerAddress)} must use the service address's protocol: '{Protocol}'",
                     nameof(value));
             }
 
@@ -68,15 +68,15 @@ public sealed record class ServiceAddress
                 if (_params.Count > 0)
                 {
                     throw new InvalidOperationException(
-                        $"cannot set {nameof(Endpoint)} on a service address with parameters");
+                        $"cannot set {nameof(ServerAddress)} on a service address with parameters");
                 }
             }
             else if (_altEndpoints.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"cannot clear {nameof(Endpoint)} when {nameof(AltEndpoints)} is not empty");
+                    $"cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty");
             }
-            _endpoint = value;
+            _serverAddress = value;
             OriginalUri = null;
         }
     }
@@ -109,7 +109,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the URI used to create this service address, if this service address was created from a URI and
-    /// URI-derived properties such as <see cref="Endpoint"/> have not been updated.</summary>
+    /// URI-derived properties such as <see cref="ServerAddress"/> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
 
     /// <summary>Gets or initializes the path of this service address.</summary>
@@ -139,7 +139,7 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets or initializes the parameters of this service address. Always empty when <see cref="Endpoint"/> is not
+    /// <summary>Gets or initializes the parameters of this service address. Always empty when <see cref="ServerAddress"/> is not
     /// null.</summary>
     public ImmutableDictionary<string, string> Params
     {
@@ -158,10 +158,10 @@ public sealed record class ServiceAddress
                 throw new ArgumentException("invalid parameters", nameof(Params), ex);
             }
 
-            if (_endpoint is not null && value.Count > 0)
+            if (_serverAddress is not null && value.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"cannot set {nameof(Params)} on a service address with an endpoint");
+                    $"cannot set {nameof(Params)} on a service address with an serverAddress");
             }
 
             _params = value;
@@ -174,8 +174,8 @@ public sealed record class ServiceAddress
     /// address.</value>
     public Protocol? Protocol { get; }
 
-    private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
-    private Endpoint? _endpoint;
+    private ImmutableList<ServerAddress> _altEndpoints = ImmutableList<ServerAddress>.Empty;
+    private ServerAddress? _serverAddress;
     private string _fragment = "";
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
@@ -225,13 +225,13 @@ public sealed record class ServiceAddress
                 {
                     if (uri.UserInfo.Length > 0)
                     {
-                        throw new ArgumentException("cannot create an endpoint with a user info", nameof(uri));
+                        throw new ArgumentException("cannot create a server address with a user info", nameof(uri));
                     }
 
                     string host = uri.IdnHost;
                     Debug.Assert(host.Length > 0); // the IdnHost provided by Uri is never empty
 
-                    _endpoint = new Endpoint(
+                    _serverAddress = new ServerAddress(
                         Protocol,
                         host,
                         port: checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port)),
@@ -240,15 +240,15 @@ public sealed record class ServiceAddress
 
                     if (altEndpointValue is not null)
                     {
-                        // Split and parse recursively each endpoint
+                        // Split and parse recursively each serverAddress
                         foreach (string endpointStr in altEndpointValue.Split(','))
                         {
                             string altUriString = $"{uri.Scheme}://{endpointStr}";
 
-                            // The separator for endpoint parameters in alt-endpoint is $, so we replace these '$'
-                            // by '&' before sending the string (Uri) to the Endpoint constructor which uses '&' as
+                            // The separator for server address parameters in alt-server is $, so we replace these '$'
+                            // by '&' before sending the string (Uri) to the ServerAddress constructor which uses '&' as
                             // separator.
-                            _altEndpoints = _altEndpoints.Add(new Endpoint(new Uri(altUriString.Replace('$', '&'))));
+                            _altEndpoints = _altEndpoints.Add(new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
                         }
                     }
                 }
@@ -264,7 +264,7 @@ public sealed record class ServiceAddress
                     if (altEndpointValue is not null)
                     {
                         throw new ArgumentException(
-                            $"invalid alt-endpoint parameter in URI '{uri.OriginalString}'",
+                            $"invalid alt-server parameter in URI '{uri.OriginalString}'",
                             nameof(uri));
                     }
 
@@ -335,8 +335,8 @@ public sealed record class ServiceAddress
         // Comparing 2 service addresses with the same supported protocol
         return Path == other.Path &&
             Fragment == other.Fragment &&
-            Endpoint == other.Endpoint &&
-            AltEndpoints.SequenceEqual(other.AltEndpoints) &&
+            ServerAddress == other.ServerAddress &&
+            AltServerAddresses.SequenceEqual(other.AltServerAddresses) &&
             Params.DictionaryEqual(other.Params);
     }
 
@@ -360,7 +360,7 @@ public sealed record class ServiceAddress
         hash.Add(Protocol);
         hash.Add(Path);
         hash.Add(Fragment);
-        hash.Add(_endpoint);
+        hash.Add(_serverAddress);
         hash.Add(_altEndpoints.Count);
         return hash.ToHashCode();
     }
@@ -383,10 +383,10 @@ public sealed record class ServiceAddress
         var sb = new StringBuilder();
         bool firstOption = true;
 
-        if (Endpoint is Endpoint endpoint)
+        if (ServerAddress is ServerAddress serverAddress)
         {
-            sb.AppendEndpoint(endpoint, Path);
-            firstOption = endpoint.Params.Count == 0;
+            sb.AppendEndpoint(serverAddress, Path);
+            firstOption = serverAddress.Params.Count == 0;
         }
         else
         {
@@ -395,17 +395,17 @@ public sealed record class ServiceAddress
             sb.Append(Path);
         }
 
-        if (AltEndpoints.Count > 0)
+        if (AltServerAddresses.Count > 0)
         {
             StartQueryOption(sb, ref firstOption);
-            sb.Append("alt-endpoint=");
-            for (int i = 0; i < AltEndpoints.Count; ++i)
+            sb.Append("alt-server=");
+            for (int i = 0; i < AltServerAddresses.Count; ++i)
             {
                 if (i > 0)
                 {
                     sb.Append(',');
                 }
-                sb.AppendEndpoint(AltEndpoints[i], path: "", includeScheme: false, paramSeparator: '$');
+                sb.AppendEndpoint(AltServerAddresses[i], path: "", includeScheme: false, paramSeparator: '$');
             }
         }
 
@@ -494,15 +494,15 @@ public sealed record class ServiceAddress
     internal ServiceAddress(
         Protocol protocol,
         string path,
-        Endpoint? endpoint,
-        ImmutableList<Endpoint> altEndpoints,
+        ServerAddress? serverAddress,
+        ImmutableList<ServerAddress> altServerAddresses,
         ImmutableDictionary<string, string> serviceAddressParams,
         string fragment)
     {
         Protocol = protocol;
         _path = path;
-        _endpoint = endpoint;
-        _altEndpoints = altEndpoints;
+        _serverAddress = serverAddress;
+        _altEndpoints = altServerAddresses;
         _params = serviceAddressParams;
         _fragment = fragment;
     }
@@ -537,7 +537,7 @@ public sealed record class ServiceAddress
         return true;
     }
 
-    /// <summary>Checks if <paramref name="name"/> is not empty, not equal to <c>alt-endpoint</c> nor equal to
+    /// <summary>Checks if <paramref name="name"/> is not empty, not equal to <c>alt-server</c> nor equal to
     /// <c>transport</c> and contains only unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>,
     /// <c>&#38;</c> and <c>=</c>.</summary>
     /// <param name="name">The name to check.</param>
@@ -547,7 +547,7 @@ public sealed record class ServiceAddress
     /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
     /// in a name.</remarks>
     private static bool IsValidParamName(string name) =>
-        name.Length > 0 && name != "alt-endpoint" && name != "transport" && IsValid(name, "\"<>#&=\\^`{|}");
+        name.Length > 0 && name != "alt-server" && name != "transport" && IsValid(name, "\"<>#&=\\^`{|}");
 
     private void CheckSupportedProtocol(string propertyName)
     {

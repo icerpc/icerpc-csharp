@@ -2,26 +2,26 @@
 
 namespace IceRpc.Features;
 
-/// <summary>Extension methods for interface <see cref="IEndpointFeature"/>.</summary>
-public static class EndpointFeatureExtensions
+/// <summary>Extension methods for interface <see cref="IServerAddressFeature"/>.</summary>
+public static class ServerAddressFeatureExtensions
 {
-    /// <summary>Tries to remove an endpoint from this endpoint feature. If the endpoint is not found, this method
+    /// <summary>Tries to remove a server address from this server address feature. If the server address is not found, this method
     /// does nothing.</summary>
-    /// <param name="feature">The endpoint feature.</param>
-    /// <param name="endpoint">The endpoint to remove from the endpoint feature.</param>
-    public static void RemoveEndpoint(this IEndpointFeature feature, Endpoint endpoint)
+    /// <param name="feature">The server address feature.</param>
+    /// <param name="serverAddress">The server address to remove from the server address feature.</param>
+    public static void RemoveEndpoint(this IServerAddressFeature feature, ServerAddress serverAddress)
     {
-        // Filter-out the endpoint
-        if (feature.Endpoint == endpoint)
+        // Filter-out the serverAddress
+        if (feature.ServerAddress == serverAddress)
         {
-            feature.Endpoint = null;
+            feature.ServerAddress = null;
         }
-        feature.AltEndpoints = feature.AltEndpoints.RemoveAll(e => e == endpoint);
+        feature.AltServerAddresses = feature.AltServerAddresses.RemoveAll(e => e == serverAddress);
 
-        if (feature.Endpoint is null && feature.AltEndpoints.Count > 0)
+        if (feature.ServerAddress is null && feature.AltServerAddresses.Count > 0)
         {
-            feature.Endpoint = feature.AltEndpoints[0];
-            feature.AltEndpoints = feature.AltEndpoints.RemoveAt(0);
+            feature.ServerAddress = feature.AltServerAddresses[0];
+            feature.AltServerAddresses = feature.AltServerAddresses.RemoveAt(0);
         }
     }
 }

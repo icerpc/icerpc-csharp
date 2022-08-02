@@ -7,8 +7,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator;
 
-/// <summary>A locator interceptor intercepts ice requests that have no endpoint, and attempts to assign a usable
-/// endpoint (and alt-endpoints) to such requests via the <see cref="IEndpointFeature"/>.</summary>
+/// <summary>A locator interceptor intercepts ice requests that have no serverAddress, and attempts to assign a usable
+/// server address (and alt-server addresses) to such requests via the <see cref="IServerAddressFeature"/>.</summary>
 public class LocatorInterceptor : IInvoker
 {
     private readonly IInvoker _next;
@@ -27,15 +27,15 @@ public class LocatorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.Protocol == Protocol.Ice && request.ServiceAddress.Endpoint is null)
+        if (request.Protocol == Protocol.Ice && request.ServiceAddress.ServerAddress is null)
         {
             Location location = default;
             bool refreshCache = false;
 
-            if (request.Features.Get<IEndpointFeature>() is not IEndpointFeature endpointFeature)
+            if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
             {
-                endpointFeature = new EndpointFeature(request.ServiceAddress);
-                request.Features = request.Features.With(endpointFeature);
+                serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
+                request.Features = request.Features.With(serverAddressFeature);
             }
 
             // We detect retries and don't use cached values for retries by setting refreshCache to true.
@@ -48,13 +48,13 @@ public class LocatorInterceptor : IInvoker
                 location = cachedResolution.Location;
                 refreshCache = true;
             }
-            else if (endpointFeature.Endpoint is null)
+            else if (serverAddressFeature.ServerAddress is null)
             {
                 location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ?
                     new Location { IsAdapterId = true, Value = adapterId } :
                     new Location { Value = request.ServiceAddress.Path };
             }
-            // else it could be a retry where the first attempt provided non-cached endpoint(s)
+            // else it could be a retry where the first attempt provided non-cached server address(es)
 
             if (location != default)
             {
@@ -81,10 +81,10 @@ public class LocatorInterceptor : IInvoker
                 if (serviceAddress is not null)
                 {
                     // A well behaved location resolver should never return a non-null service address with a null
-                    // endpoint.
-                    Debug.Assert(serviceAddress.Endpoint is not null);
-                    endpointFeature.Endpoint = serviceAddress.Endpoint;
-                    endpointFeature.AltEndpoints = serviceAddress.AltEndpoints;
+                    // serverAddress.
+                    Debug.Assert(serviceAddress.ServerAddress is not null);
+                    serverAddressFeature.ServerAddress = serviceAddress.ServerAddress;
+                    serverAddressFeature.AltServerAddresses = serviceAddress.AltServerAddresses;
                 }
                 // else, resolution failed and we don't update anything
             }
@@ -120,18 +120,18 @@ public readonly record struct Location
     public override string ToString() => Value;
 }
 
-/// <summary>A location resolver resolves a location into one or more endpoints carried by a dummy service address, and
+/// <summary>A location resolver resolves a location into one or more server addresses carried by a dummy service address, and
 /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>.
 /// </summary>
 public interface ILocationResolver
 {
-    /// <summary>Resolves a location into one or more endpoints carried by a dummy service address.</summary>
+    /// <summary>Resolves a location into one or more server addresses carried by a dummy service address.</summary>
     /// <param name="location">The location.</param>
     /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
     /// <param name="cancel">The cancellation token.</param>
-    /// <returns>A tuple with a nullable dummy service address that holds the endpoint(s) (if resolved), and a bool that
-    /// indicates whether these endpoints were retrieved from the implementation's cache. ServiceAddress is null when
-    /// the location resolver fails to resolve a location. When ServiceAddress is not null, its Endpoint must be not
+    /// <returns>A tuple with a nullable dummy service address that holds the server address(es) (if resolved), and a bool that
+    /// indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is null when
+    /// the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress must be not
     /// null.</returns>
     ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
@@ -161,7 +161,7 @@ public class LocatorLocationResolver : ILocationResolver
         ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
         bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
 
-        // Create and decorate endpoint cache (if caching enabled):
+        // Create and decorate server address cache (if caching enabled):
         IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
             new EndpointCache(options.MaxCacheSize) : null;
 
@@ -170,7 +170,7 @@ public class LocatorLocationResolver : ILocationResolver
             endpointCache = new LogEndpointCacheDecorator(endpointCache, logger);
         }
 
-        // Create and decorate endpoint finder:
+        // Create and decorate server address finder:
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
         if (installLogDecorator)
         {

@@ -5,7 +5,7 @@ encoding = 1;
 [cs::namespace("IceRpc")]
 module Ice;
 
-/// This exception is thrown when a server tries to register endpoints for an object adapter that is already active.
+/// This exception is thrown when a server tries to register server addresses for an object adapter that is already active.
 exception AdapterAlreadyActiveException
 {
 }
@@ -34,19 +34,19 @@ exception ServerNotFoundException
 /// server applications to retrieve a proxy to the LocatorRegistry service.
 interface Locator
 {
-    /// Finds a service by path and returns a proxy that provides a location or endpoint(s) that can be used to
+    /// Finds a service by path and returns a proxy that provides a location or server address(es) that can be used to
     /// reach the service using the ice protocol.
     /// @param path The path.
-    /// @return An ice proxy that provides a location or endpoint(s), or null if an object with the requested
+    /// @return An ice proxy that provides a location or server address(es), or null if an object with the requested
     /// path was not found.
     /// @throws ObjectNotFoundException Thrown if a service with the requested path was not found. The caller
     /// should treat this exception like a null return value.
     idempotent findObjectById(path: IdentityPath) -> IceRpc::Slice::Service?;
 
-    /// Finds an object adapter by id and returns a proxy that provides the object adapter's endpoint(s). This
+    /// Finds an object adapter by id and returns a proxy that provides the object adapter's server address(es). This
     /// operation is for object adapters using the ice protocol.
     /// @param id The adapter ID.
-    /// @return An ice proxy with the adapter's endpoint(s), or null if an object adapter with adapter ID 'id' was
+    /// @return An ice proxy with the adapter's server address(es), or null if an object adapter with adapter ID 'id' was
     /// not found.
     /// @throws AdapterNotFoundException Thrown if an object adapter with this adapter ID was not found. The caller
     /// should treat this exception like a null return value.
@@ -57,30 +57,30 @@ interface Locator
     idempotent getRegistry() -> LocatorRegistry?;
 }
 
-/// A server application registers the endpoints of its indirect object adapters with the LocatorRegistry service.
+/// A server application registers the server addresses of its indirect object adapters with the LocatorRegistry service.
 interface LocatorRegistry
 {
-    /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol.
+    /// Registers or unregisters the server addresses of an object adapter that uses the ice protocol.
     /// @param id The adapter ID.
     /// @param proxy A dummy direct proxy created by the object adapter that provides the object adapter's
-    /// endpoints. The locator considers an object adapter to be active after it has registered its endpoints. When
-    /// proxy is null, the endpoints are unregistered and the locator considers the object adapter inactive.
+    /// server addresses. The locator considers an object adapter to be active after it has registered its server addresses. When
+    /// proxy is null, the server addresses are unregistered and the locator considers the object adapter inactive.
     /// @throws AdapterNotFoundException Thrown if the locator only allows registered object adapters to register
-    /// their active endpoints and no object adapter with this adapter ID was registered with the locator.
+    /// their active server addresses and no object adapter with this adapter ID was registered with the locator.
     /// @throws AdapterAlreadyActiveException Thrown if an object adapter with the same adapter ID has already
-    /// registered its endpoints.
+    /// registered its server addresses.
     // Note: idempotent is not quite correct, and kept only for backwards compatibility with old implementations.
     idempotent setAdapterDirectProxy(id: string, proxy: IceRpc::Slice::Service?);
 
-    /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol. This object adapter
+    /// Registers or unregisters the server addresses of an object adapter that uses the ice protocol. This object adapter
     /// is member of a replica group.
     /// @param adapterId The adapter ID.
     /// @param replicaGroupId The replica group ID.
     /// @param proxy A dummy direct proxy created by the object adapter that provides the object adapter's
-    /// endpoints. The locator considers an object adapter to be active after it has registered its endpoints. When
-    /// proxy is null, the endpoints are unregistered and the locator considers the object adapter inactive.
+    /// server addresses. The locator considers an object adapter to be active after it has registered its server addresses. When
+    /// proxy is null, the server addresses are unregistered and the locator considers the object adapter inactive.
     /// @throws AdapterNotFoundException Thrown if the locator only allows registered object adapters to register
-    /// their active endpoints and no object adapter with this adapter ID was registered with the locator.
+    /// their active server addresses and no object adapter with this adapter ID was registered with the locator.
     /// @throws AdapterAlreadyActiveException Thrown if an object adapter with the same adapter ID has already
     /// @throws InvalidReplicaGroupIdException Thrown if the given replica group does not match the replica group
     /// associated with the adapter ID in the locator's database.
@@ -100,7 +100,7 @@ interface LocatorRegistry
 
 /// This interface is implemented by services that implement the Ice::Locator interface, and is advertised as a
 /// service with the path '/Ice/LocatorFinder'. This allows clients to retrieve the locator proxy with just the
-/// endpoint information of the service.
+/// server address information of the service.
 interface LocatorFinder
 {
     /// Gets the locator proxy implemented by the service hosting this finder service. The proxy might point to

@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public class ConnectionTests
 {
-    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint's Transport property is set to "coloc".
+    /// <summary>Verifies that Server.ServerAddress and ClientConnection.ServerAddress's Transport property is set to "coloc".
     /// </summary>
     [Test]
     public async Task Coloc_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
@@ -25,11 +25,11 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Transport, Is.EqualTo("coloc"));
-        Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
+        Assert.That(server.ServerAddress.Transport, Is.EqualTo("coloc"));
+        Assert.That(connection.ServerAddress.Transport, Is.EqualTo("coloc"));
     }
 
-    /// <summary>Verifies that Server.Endpoint and ClientConnection.Endpoint's Transport property is set to "tcp".
+    /// <summary>Verifies that Server.ServerAddress and ClientConnection.ServerAddress's Transport property is set to "tcp".
     /// </summary>
     [Test]
     public async Task Tcp_endpoint_gets_transport_property([Values("ice", "icerpc")] string protocol)
@@ -42,8 +42,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Transport, Is.EqualTo("tcp"));
-        Assert.That(connection.Endpoint.Transport, Is.EqualTo("tcp"));
+        Assert.That(server.ServerAddress.Transport, Is.EqualTo("tcp"));
+        Assert.That(connection.ServerAddress.Transport, Is.EqualTo("tcp"));
     }
 
     [Test]
@@ -57,8 +57,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        Assert.That(server.Endpoint.Transport, Is.EqualTo("coloc"));
-        Assert.That(connection.Endpoint.Transport, Is.EqualTo("coloc"));
+        Assert.That(server.ServerAddress.Transport, Is.EqualTo("coloc"));
+        Assert.That(connection.ServerAddress.Transport, Is.EqualTo("coloc"));
     }
 
     /// <summary>Verifies that aborting the connection aborts the invocations.</summary>
@@ -157,12 +157,12 @@ public class ConnectionTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         using var listener = slicServerTransport.Listen(
-            new Endpoint(new Uri("icerpc://127.0.0.1:0")),
+            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             new MultiplexedConnectionOptions(),
             null);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
-            Endpoint = listener.Endpoint,
+            ServerAddress = listener.ServerAddress,
             ConnectTimeout = TimeSpan.FromMilliseconds(100)
         });
 
@@ -172,11 +172,11 @@ public class ConnectionTests
             Throws.TypeOf<TimeoutException>());
     }
 
-    /// <summary>Verifies that InvokeAsync succeeds when there is a compatible endpoint.</summary>
+    /// <summary>Verifies that InvokeAsync succeeds when there is a compatible server address.</summary>
     [TestCase("icerpc://testhost.com?transport=coloc")]
     [TestCase("icerpc://testhost.com:4062")]
     [TestCase("icerpc://testhost.com")]
-    [TestCase("icerpc://foo.com/path?alt-endpoint=testhost.com")]
+    [TestCase("icerpc://foo.com/path?alt-server=testhost.com")]
     [TestCase("icerpc:/path")]
     [TestCase("ice://testhost.com:4061/path")]
     public async Task InvokeAsync_succeeds_with_a_compatible_endpoint(ServiceAddress serviceAddress)
@@ -201,7 +201,7 @@ public class ConnectionTests
             Throws.Nothing);
     }
 
-    /// <summary>Verifies that InvokeAsync fails when there is no compatible endpoint.</summary>
+    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address.</summary>
     [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
@@ -209,10 +209,10 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
-    public async Task InvokeAsync_fails_without_a_compatible_endpoint(Endpoint endpoint, ServiceAddress serviceAddress)
+    public async Task InvokeAsync_fails_without_a_compatible_endpoint(ServerAddress serverAddress, ServiceAddress serviceAddress)
     {
         // Arrange
-        await using var connection = new ClientConnection(endpoint);
+        await using var connection = new ClientConnection(serverAddress);
 
         // Assert
         Assert.That(

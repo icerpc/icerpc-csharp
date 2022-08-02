@@ -8,7 +8,7 @@ internal class SlicListener : IMultiplexedListener
     private readonly MultiplexedConnectionOptions _options;
     private readonly SlicTransportOptions _slicOptions;
 
-    public Endpoint Endpoint => _duplexListener.Endpoint;
+    public ServerAddress ServerAddress => _duplexListener.ServerAddress;
 
     public async Task<IMultiplexedConnection> AcceptAsync() =>
         new SlicConnection(

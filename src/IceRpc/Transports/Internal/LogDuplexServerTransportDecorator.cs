@@ -14,19 +14,19 @@ internal sealed class LogDuplexServerTransportDecorator : IDuplexServerTransport
     private readonly ILogger _logger;
 
     public IDuplexListener Listen(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
         try
         {
-            IDuplexListener listener = _decoratee.Listen(endpoint, options, serverAuthenticationOptions);
-            _logger.LogServerTransportListen(Kind, listener.Endpoint);
+            IDuplexListener listener = _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+            _logger.LogServerTransportListen(Kind, listener.ServerAddress);
             return new LogDuplexListenerDecorator(listener, _logger);
         }
         catch (Exception exception)
         {
-            _logger.LogServerTransportListenException(exception, Kind, endpoint);
+            _logger.LogServerTransportListenException(exception, Kind, serverAddress);
             throw;
         }
     }

@@ -884,17 +884,17 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Decodes an endpoint (Slice1).</summary>
-    /// <param name="protocol">The protocol of this endpoint.</param>
-    /// <returns>The endpoint decoded by this decoder.</returns>
-    private Endpoint DecodeEndpoint(Protocol protocol)
+    /// <summary>Decodes a server address (Slice1).</summary>
+    /// <param name="protocol">The protocol of this server address.</param>
+    /// <returns>The server address decoded by this decoder.</returns>
+    private ServerAddress DecodeEndpoint(Protocol protocol)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
-        // The Slice1 ice endpoints are transport-specific, and hard-coded here and in the
+        // The Slice1 ice server addresses are transport-specific, and hard-coded here and in the
         // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
 
-        Endpoint? endpoint = null;
+        ServerAddress? serverAddress = null;
         TransportCode transportCode = this.DecodeTransportCode();
 
         int size = DecodeInt32();
@@ -926,24 +926,24 @@ public ref partial struct SliceDecoder
                     case TransportCode.Tcp:
                     case TransportCode.Ssl:
                     {
-                        endpoint = Transports.TcpClientTransport.DecodeEndpoint(
+                        serverAddress = Transports.TcpClientTransport.DecodeEndpoint(
                             ref this,
                             transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
                         break;
                     }
 
                     case TransportCode.Uri:
-                        endpoint = new Endpoint(new Uri(DecodeString()));
-                        if (endpoint.Value.Protocol != protocol)
+                        serverAddress = new ServerAddress(new Uri(DecodeString()));
+                        if (serverAddress.Value.Protocol != protocol)
                         {
                             throw new InvalidDataException(
-                                $"expected endpoint for {protocol} but received '{endpoint.Value}'");
+                                $"expected server address for {protocol} but received '{serverAddress.Value}'");
                         }
                         break;
 
                     default:
                     {
-                        // Create an endpoint for transport opaque
+                        // Create a server address for transport opaque
 
                         using IMemoryOwner<byte>? memoryOwner =
                             _reader.UnreadSpan.Length < size ? MemoryPool<byte>.Shared.Rent(size) : null;
@@ -966,7 +966,7 @@ public ref partial struct SliceDecoder
                         builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
                         builder.Add("v", Convert.ToBase64String(vSpan));
 
-                        endpoint = new Endpoint(
+                        serverAddress = new ServerAddress(
                             Protocol.Ice,
                             OpaqueTransport.Host,
                             OpaqueTransport.Port,
@@ -978,36 +978,36 @@ public ref partial struct SliceDecoder
             }
             else if (transportCode == TransportCode.Uri)
             {
-                // The endpoints of Slice1 encoded icerpc proxies only use TransportCode.Uri.
+                // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
 
-                endpoint = new Endpoint(new Uri(DecodeString()));
-                if (endpoint.Value.Protocol != protocol)
+                serverAddress = new ServerAddress(new Uri(DecodeString()));
+                if (serverAddress.Value.Protocol != protocol)
                 {
                     throw new InvalidDataException(
-                        $"expected {protocol} endpoint but received '{endpoint.Value}'");
+                        $"expected {protocol} server address but received '{serverAddress.Value}'");
                 }
             }
 
-            if (endpoint is not null)
+            if (serverAddress is not null)
             {
                 // Make sure we read the full encapsulation.
                 if (_reader.Consumed != oldPos + size)
                 {
                     throw new InvalidDataException(
-                        $"{oldPos + size - _reader.Consumed} bytes left in endpoint encapsulation");
+                        $"{oldPos + size - _reader.Consumed} bytes left in server address encapsulation");
                 }
             }
         }
 
-        if (endpoint is null)
+        if (serverAddress is null)
         {
             throw new InvalidDataException(
-                @$"cannot decode endpoint for protocol '{protocol
+                @$"cannot decode server address for protocol '{protocol
                 }' and transport '{transportCode.ToString().ToLowerInvariant()
-                }' with endpoint encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
+                }' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
         }
 
-        return endpoint.Value;
+        return serverAddress.Value;
     }
 
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)
@@ -1099,8 +1099,8 @@ public ref partial struct SliceDecoder
         // - If Identity is not the null identity:
         //     - The fragment, invocation mode, protocol major and minor, and the
         //       encoding major and minor
-        //     - a sequence of endpoints that can be empty
-        //     - an adapter ID string present only when the sequence of endpoints is empty
+        //     - a sequence of server addresses that can be empty
+        //     - an adapter ID string present only when the sequence of server addresses is empty
 
         string fragment = FragmentSliceDecoderExtensions.DecodeFragment(ref this);
         _ = InvocationModeSliceDecoderExtensions.DecodeInvocationMode(ref this);
@@ -1121,8 +1121,8 @@ public ref partial struct SliceDecoder
 
         int count = DecodeSize();
 
-        Endpoint? endpoint = null;
-        IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
+        ServerAddress? serverAddress = null;
+        IEnumerable<ServerAddress> altServerAddresses = ImmutableList<ServerAddress>.Empty;
         var protocol = Protocol.FromByte(protocolMajor);
         ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
@@ -1135,19 +1135,19 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            endpoint = DecodeEndpoint(protocol);
+            serverAddress = DecodeEndpoint(protocol);
             if (count >= 2)
             {
-                // A slice1 encoded endpoint consumes at least 8 bytes (2 bytes for the endpoint type and 6 bytes
-                // for the encapsulation header). SizeOf Endpoint is large but less than 8 * 8.
-                IncreaseCollectionAllocation(count * Unsafe.SizeOf<Endpoint>());
+                // A slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6 bytes
+                // for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
+                IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
 
-                var endpointArray = new Endpoint[count - 1];
+                var endpointArray = new ServerAddress[count - 1];
                 for (int i = 0; i < count - 1; ++i)
                 {
                     endpointArray[i] = DecodeEndpoint(protocol);
                 }
-                altEndpoints = endpointArray;
+                altServerAddresses = endpointArray;
             }
         }
 
@@ -1161,8 +1161,8 @@ public ref partial struct SliceDecoder
             return new ServiceAddress(
                 protocol,
                 path,
-                endpoint,
-                altEndpoints.ToImmutableList(),
+                serverAddress,
+                altServerAddresses.ToImmutableList(),
                 serviceAddressParams,
                 fragment);
         }

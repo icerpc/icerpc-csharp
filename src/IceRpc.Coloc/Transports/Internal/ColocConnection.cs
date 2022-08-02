@@ -9,9 +9,9 @@ namespace IceRpc.Transports.Internal;
 /// buffer into the receive buffer.</summary>
 internal class ColocConnection : IDuplexConnection
 {
-    public Endpoint Endpoint { get; }
+    public ServerAddress ServerAddress { get; }
 
-    private readonly Func<Endpoint, (PipeReader, PipeWriter)> _connect;
+    private readonly Func<ServerAddress, (PipeReader, PipeWriter)> _connect;
 
     // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or
     // ReadAsync
@@ -22,8 +22,8 @@ internal class ColocConnection : IDuplexConnection
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        (_reader, _writer) = _connect(Endpoint);
-        var colocEndPoint = new ColocEndPoint(Endpoint);
+        (_reader, _writer) = _connect(ServerAddress);
+        var colocEndPoint = new ColocEndPoint(ServerAddress);
         return Task.FromResult(new TransportConnectionInformation(colocEndPoint, colocEndPoint, null));
     }
 
@@ -203,9 +203,9 @@ internal class ColocConnection : IDuplexConnection
         }
     }
 
-    public ColocConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
+    public ColocConnection(ServerAddress serverAddress, Func<ServerAddress, (PipeReader, PipeWriter)> connect)
     {
-        Endpoint = endpoint;
+        ServerAddress = serverAddress;
         _connect = connect;
     }
 

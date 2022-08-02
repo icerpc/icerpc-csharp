@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogMultiplexedConnectionDecorator : IMultiplexedConnection
 {
-    public Endpoint Endpoint => _decoratee.Endpoint;
+    public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
     private readonly IMultiplexedConnection _decoratee;
     private readonly ILogger _logger;

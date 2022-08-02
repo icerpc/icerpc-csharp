@@ -12,14 +12,14 @@ internal class ColocClientTransport : IDuplexClientTransport
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
 
-    private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
+    private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
+    public bool CheckParams(ServerAddress serverAddress) => ColocTransport.CheckParams(serverAddress);
 
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
@@ -28,20 +28,20 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new NotSupportedException("cannot create a secure Coloc connection");
         }
 
-        if (!CheckParams(endpoint))
+        if (!CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a Coloc connection to endpoint '{endpoint}'");
+            throw new FormatException($"cannot create a Coloc connection to server address '{serverAddress}'");
         }
 
-        return new ColocConnection(endpoint with { Transport = Name }, endpoint => Connect(endpoint, options));
+        return new ColocConnection(serverAddress with { Transport = Name }, serverAddress => Connect(serverAddress, options));
     }
 
-    internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
+    internal ColocClientTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>
         _listeners = listeners;
 
-    private (PipeReader, PipeWriter) Connect(Endpoint endpoint, DuplexConnectionOptions options)
+    private (PipeReader, PipeWriter) Connect(ServerAddress serverAddress, DuplexConnectionOptions options)
     {
-        if (_listeners.TryGetValue(endpoint, out ColocListener? listener))
+        if (_listeners.TryGetValue(serverAddress, out ColocListener? listener))
         {
             return listener.NewClientConnection(options);
         }

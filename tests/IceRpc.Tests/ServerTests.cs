@@ -8,7 +8,7 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServerTests
 {
-    /// <summary>Verifies that using a DNS name in a server endpoint fails with <see cref="NotSupportedException"/>
+    /// <summary>Verifies that using a DNS name in a server server address fails with <see cref="NotSupportedException"/>
     /// exception.</summary>
     [Test]
     public async Task DNS_name_cannot_be_used_in_a_server_endpoint()

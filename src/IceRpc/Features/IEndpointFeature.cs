@@ -4,13 +4,13 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Features;
 
-/// <summary>A feature used by the invocation pipeline to select the endpoint to use and share this selection.</summary>
-public interface IEndpointFeature
+/// <summary>A feature used by the invocation pipeline to select the server address to use and share this selection.</summary>
+public interface IServerAddressFeature
 {
-    /// <summary>Gets or sets the alternatives to <see cref="Endpoint"/>. It is empty when Endpoint is null.</summary>
-    ImmutableList<Endpoint> AltEndpoints { get; set; }
+    /// <summary>Gets or sets the alternatives to <see cref="ServerAddress"/>. It is empty when ServerAddress is null.</summary>
+    ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
-    /// <summary>Gets or sets the main endpoint for the invocation. When retrying, it represents the endpoint that was
+    /// <summary>Gets or sets the main server address for the invocation. When retrying, it represents the server address that was
     /// used by the preceding attempt.</summary>
-    Endpoint? Endpoint { get; set; }
+    ServerAddress? ServerAddress { get; set; }
 }

@@ -28,10 +28,10 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventId.Connect,
         EventName = nameof(ConnectionEventId.Connect),
         Level = LogLevel.Debug,
-        Message = "Connection for {Endpoint} established over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
+        Message = "Connection for {ServerAddress} established over {LocalNetworkAddress}<->{RemoteNetworkAddress}")]
     internal static partial void LogConnectionConnect(
         this ILogger logger,
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
 
@@ -39,11 +39,11 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventId.ConnectException,
         EventName = nameof(ConnectionEventId.ConnectException),
         Level = LogLevel.Debug,
-        Message = "Connection for {Endpoint} could not be established")]
+        Message = "Connection for {ServerAddress} could not be established")]
     internal static partial void LogConnectionConnectException(
         this ILogger logger,
         Exception exception,
-        Endpoint endpoint);
+        ServerAddress serverAddress);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventId.Dispatch,
@@ -63,8 +63,8 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventId.Dispose,
         EventName = nameof(ConnectionEventId.Dispose),
         Level = LogLevel.Debug,
-        Message = "Connection for {Endpoint} disposed")]
-    internal static partial void LogConnectionDispose(this ILogger logger, Endpoint endpoint);
+        Message = "Connection for {ServerAddress} disposed")]
+    internal static partial void LogConnectionDispose(this ILogger logger, ServerAddress serverAddress);
 
     [LoggerMessage(
        EventId = (int)ConnectionEventId.Invoke,
@@ -89,21 +89,21 @@ internal static partial class ConnectionLoggerExtensions
         EventId = (int)ConnectionEventId.Shutdown,
         EventName = nameof(ConnectionEventId.Shutdown),
         Level = LogLevel.Debug,
-        Message = "Connection for {Endpoint} shut down successfully: {Message}")]
+        Message = "Connection for {ServerAddress} shut down successfully: {Message}")]
     internal static partial void LogConnectionShutdown(
         this ILogger logger,
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         string message);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventId.ShutdownException,
         EventName = nameof(ConnectionEventId.ShutdownException),
         Level = LogLevel.Debug,
-        Message = "Connection {Endpoint} failed to shut down")]
+        Message = "Connection {ServerAddress} failed to shut down")]
     internal static partial void LogConnectionShutdownException(
         this ILogger logger,
         Exception exception,
-        Endpoint endpoint);
+        ServerAddress serverAddress);
 
     internal static IDisposable StartConnectionDispatchScope(this ILogger logger, IncomingRequest request) =>
         _dispatchScope(

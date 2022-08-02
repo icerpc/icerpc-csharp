@@ -5,46 +5,46 @@ using System.Text;
 
 namespace IceRpc.Internal;
 
-/// <summary>This class provides extension methods for <see cref="Endpoint"/>.</summary>
+/// <summary>This class provides extension methods for <see cref="ServerAddress"/>.</summary>
 internal static class EndpointExtensions
 {
-    /// <summary>Appends the endpoint and all its parameters (if any) to this string builder.</summary>
+    /// <summary>Appends the server address and all its parameters (if any) to this string builder.</summary>
     /// <param name="sb">The string builder.</param>
-    /// <param name="endpoint">The endpoint to append.</param>
-    /// <param name="path">The path of the endpoint URI. Use this parameter to start building a service address URI.
+    /// <param name="serverAddress">The server address to append.</param>
+    /// <param name="path">The path of the server address URI. Use this parameter to start building a service address URI.
     /// </param>
-    /// <param name="includeScheme">When true, first appends the endpoint's protocol followed by ://.</param>
+    /// <param name="includeScheme">When true, first appends the server address protocol followed by ://.</param>
     /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.
     /// </param>
     /// <returns>The string builder <paramref name="sb"/>.</returns>
     internal static StringBuilder AppendEndpoint(
         this StringBuilder sb,
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         string path = "",
         bool includeScheme = true,
         char paramSeparator = '&')
     {
         if (includeScheme)
         {
-            sb.Append(endpoint.Protocol);
+            sb.Append(serverAddress.Protocol);
             sb.Append("://");
         }
 
-        if (endpoint.Host.Contains(':', StringComparison.Ordinal))
+        if (serverAddress.Host.Contains(':', StringComparison.Ordinal))
         {
             sb.Append('[');
-            sb.Append(endpoint.Host);
+            sb.Append(serverAddress.Host);
             sb.Append(']');
         }
         else
         {
-            sb.Append(endpoint.Host);
+            sb.Append(serverAddress.Host);
         }
 
-        if (endpoint.Port != endpoint.Protocol.DefaultUriPort)
+        if (serverAddress.Port != serverAddress.Protocol.DefaultUriPort)
         {
             sb.Append(':');
-            sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+            sb.Append(serverAddress.Port.ToString(CultureInfo.InvariantCulture));
         }
 
         if (path.Length > 0)
@@ -53,13 +53,13 @@ internal static class EndpointExtensions
         }
 
         bool firstParam = true;
-        if (endpoint.Transport is not null)
+        if (serverAddress.Transport is not null)
         {
             firstParam = false;
-            sb.Append("?transport=").Append(endpoint.Transport);
+            sb.Append("?transport=").Append(serverAddress.Transport);
         }
 
-        foreach ((string name, string value) in endpoint.Params)
+        foreach ((string name, string value) in serverAddress.Params)
         {
             if (firstParam)
             {

@@ -9,9 +9,9 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
-    private readonly Endpoint _endpoint;
+    private readonly ServerAddress _serverAddress;
 
-    public Hello(Endpoint endpoint) => _endpoint = endpoint;
+    public Hello(ServerAddress serverAddress) => _serverAddress = serverAddress;
 
     public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
     {
@@ -26,7 +26,7 @@ public class Hello : Service, IHello
         else
         {
             Console.WriteLine($"{name} says hello!");
-            return new($"Hello, {name}, from server {_endpoint}!");
+            return new($"Hello, {name}, from server {_serverAddress}!");
         }
     }
 }

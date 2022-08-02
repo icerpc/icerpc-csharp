@@ -8,7 +8,7 @@ namespace IceRpc.Internal;
 /// <summary>A log decorator for protocol connections.</summary>
 internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
-    public Endpoint Endpoint => _decoratee.Endpoint;
+    public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
     private readonly IProtocolConnection _decoratee;
     private TransportConnectionInformation _information;
@@ -25,7 +25,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
                 _logger.LogConnectionConnect(
-                    Endpoint,
+                    ServerAddress,
                     _information.LocalNetworkAddress,
                     _information.RemoteNetworkAddress);
 
@@ -33,7 +33,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             }
             catch (Exception exception)
             {
-                _logger.LogConnectionConnectException(exception, Endpoint);
+                _logger.LogConnectionConnectException(exception, ServerAddress);
                 throw;
             }
         }
@@ -47,7 +47,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         {
             using IDisposable _ = _logger.StartConnectionShutdownScope(_information);
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.LogConnectionDispose(Endpoint);
+            _logger.LogConnectionDispose(ServerAddress);
         }
     }
 
@@ -93,11 +93,11 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             {
                 await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
 
-                _logger.LogConnectionShutdown(Endpoint, message);
+                _logger.LogConnectionShutdown(ServerAddress, message);
             }
             catch (Exception exception)
             {
-                _logger.LogConnectionShutdownException(exception, Endpoint);
+                _logger.LogConnectionShutdownException(exception, ServerAddress);
                 throw;
             }
         }

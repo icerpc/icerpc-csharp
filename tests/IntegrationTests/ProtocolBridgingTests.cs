@@ -20,8 +20,8 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)
     {
-        var forwarderEndpoint = new Endpoint(new Uri($"{forwarderProtocol}://colochost1"));
-        var targetEndpoint = new Endpoint(new Uri($"{targetProtocol}://colochost2"));
+        var forwarderEndpoint = new ServerAddress(new Uri($"{forwarderProtocol}://colochost1"));
+        var targetEndpoint = new ServerAddress(new Uri($"{targetProtocol}://colochost2"));
 
         var forwarderServiceProxy = new ProtocolBridgingTestProxy
         {
@@ -56,8 +56,8 @@ public sealed class ProtocolBridgingTests
                     .UseRequestContext()
                     .Into<ConnectionCache>());
 
-        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
-        services.AddOptions<ServerOptions>("target").Configure(options => options.Endpoint = targetEndpoint);
+        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.ServerAddress = forwarderEndpoint);
+        services.AddOptions<ServerOptions>("target").Configure(options => options.ServerAddress = targetEndpoint);
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -117,9 +117,9 @@ public sealed class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-        private readonly Endpoint _publishedEndpoint;
+        private readonly ServerAddress _publishedEndpoint;
 
-        public ProtocolBridgingTest(Endpoint publishedEndpoint) => _publishedEndpoint = publishedEndpoint;
+        public ProtocolBridgingTest(ServerAddress publishedEndpoint) => _publishedEndpoint = publishedEndpoint;
 
         public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
             new(x);
@@ -140,7 +140,7 @@ public sealed class ProtocolBridgingTests
             var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
             {
                 Path = dispatchInformation.Path,
-                Endpoint = _publishedEndpoint
+                ServerAddress = _publishedEndpoint
             };
 
             return new(new ProtocolBridgingTestProxy { ServiceAddress = serviceAddress });

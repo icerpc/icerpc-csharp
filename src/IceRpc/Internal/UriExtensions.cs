@@ -7,7 +7,7 @@ namespace IceRpc.Internal;
 /// <summary>Extension methods for <see cref="Uri"/>.</summary>
 internal static class UriExtensions
 {
-    /// <summary>Parses the query portion of a URI into a dictionary of name/value. The value of the alt-endpoint
+    /// <summary>Parses the query portion of a URI into a dictionary of name/value. The value of the alt-server
     /// and transport parameters, if set, are returned separately.</summary>
     internal static (ImmutableDictionary<string, string> QueryParams, string? AltEndpointValue, string? TransportValue) ParseQuery(
         this Uri uri)
@@ -29,7 +29,7 @@ internal static class UriExtensions
                 string name = equalPos == -1 ? p : p[..equalPos];
                 string value = equalPos == -1 ? "" : p[(equalPos + 1)..];
 
-                if (name == "alt-endpoint")
+                if (name == "alt-server")
                 {
                     altEndpoint = altEndpoint is null ? value : $"{altEndpoint},{value}";
                 }

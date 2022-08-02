@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogDuplexConnectionDecorator : IDuplexConnection
 {
-    public Endpoint Endpoint => _decoratee.Endpoint;
+    public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
     private readonly IDuplexConnection _decoratee;
     private readonly ILogger _logger;

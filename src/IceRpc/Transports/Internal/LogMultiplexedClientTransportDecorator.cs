@@ -12,14 +12,14 @@ internal sealed class LogMultiplexedClientTransportDecorator : IMultiplexedClien
 
     public string Name => _decoratee.Name;
 
-    public bool CheckParams(Endpoint endpoint) => _decoratee.CheckParams(endpoint);
+    public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
 
     // This decorator does not log anything, it only provides a decorated multiplex connection.
     public IMultiplexedConnection CreateConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions) => new LogMultiplexedConnectionDecorator(
-            _decoratee.CreateConnection(endpoint, options, clientAuthenticationOptions),
+            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
             _logger);
 
     internal LogMultiplexedClientTransportDecorator(IMultiplexedClientTransport decoratee, ILogger logger)
