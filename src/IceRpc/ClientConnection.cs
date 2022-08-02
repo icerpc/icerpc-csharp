@@ -23,8 +23,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
     /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address (server address) of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even
-    /// when <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
+    /// <value>The server address of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even when
+    /// <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
     public ServerAddress ServerAddress { get; }
 
     /// <summary>Gets the protocol of this connection.</summary>
@@ -128,7 +128,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// properties have their default values.</summary>
     /// <param name="serverAddress">The address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ClientConnection(ServerAddress serverAddress, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+    public ClientConnection(
+        ServerAddress serverAddress,
+        SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
@@ -137,8 +139,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a client connection with the specified server address URI and authentication options. All other
-    /// properties have their default values.</summary>
+    /// <summary>Constructs a client connection with the specified server address URI and authentication options. All
+    /// other properties have their default values.</summary>
     /// <param name="serverAddressUri">A URI that represents the address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(Uri serverAddressUri, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
@@ -183,7 +185,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         return _protocolConnection.InvokeAsync(request, cancel);
 
-        void CheckRequestServerAddresses(ServerAddress mainServerAddress, ImmutableList<ServerAddress> altServerAddresses)
+        void CheckRequestServerAddresses(
+            ServerAddress mainServerAddress,
+            ImmutableList<ServerAddress> altServerAddresses)
         {
             if (ServerAddressComparer.OptionalTransport.Equals(mainServerAddress, ServerAddress))
             {
@@ -199,7 +203,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             throw new InvalidOperationException(
-                $"none of the request's server address(es) matches this connection's server address: {ServerAddress}");
+                $"none of the server addresses of the request matches this connection's server address: {ServerAddress}");
         }
     }
 

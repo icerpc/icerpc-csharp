@@ -8,8 +8,8 @@ using System.Diagnostics;
 namespace IceRpc;
 
 /// <summary>A connection cache is an invoker that routes outgoing requests to connections it manages. This routing is
-/// based on the <see cref="IServerAddressFeature"/> and the server addresses of the service address carried by each outgoing
-/// request.</summary>
+/// based on the <see cref="IServerAddressFeature"/> and the server addresses of the service address carried by each
+/// outgoing request.</summary>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
@@ -107,16 +107,16 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
                     {
-                        ServerAddress altServer = serverAddressFeature.AltServerAddresses[i];
-                        connection = GetActiveConnection(altServer);
+                        ServerAddress altServerAddress = serverAddressFeature.AltServerAddresses[i];
+                        connection = GetActiveConnection(altServerAddress);
                         if (connection is not null)
                         {
-                            // This altServer becomes the main serverAddress, and the existing main server address becomes
-                            // the first alt server.
+                            // This altServerAddress becomes the main server address, and the existing main server
+                            // address becomes the first alt server address.
                             serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
                                 .RemoveAt(i)
                                 .Insert(0, mainServerAddress);
-                            serverAddressFeature.ServerAddress = altServer;
+                            serverAddressFeature.ServerAddress = altServerAddress;
 
                             break; // foreach
                         }
@@ -158,10 +158,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                 for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
                 {
-                    // Rotate the server addresses before each new connection attempt: the first alt server address becomes the main
-                    // server address and the main server address becomes the last alt server.
+                    // Rotate the server addresses before each new connection attempt: the first alt server address
+                    // becomes the main server address and the main server address becomes the last alt server address.
                     serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
-                    serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
+                    serverAddressFeature.AltServerAddresses =
+                        serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
                     mainServerAddress = serverAddressFeature.ServerAddress.Value;
 
                     try
@@ -222,7 +223,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
     /// connection for the desired server address.</summary>
-    /// <param name="serverAddress">The server address of the server.</param>
+    /// <param name="serverAddress">The server address.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A connected connection.</returns>
     private async ValueTask<ClientConnection> ConnectAsync(ServerAddress serverAddress, CancellationToken cancel)

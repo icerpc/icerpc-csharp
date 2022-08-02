@@ -15,40 +15,14 @@ namespace IceRpc;
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress
 {
-    /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
-    /// <value>The secondary server addresses of this service address.</value>
-    public ImmutableList<ServerAddress> AltServerAddresses
-    {
-        get => _altServerAddresses;
-
-        init
-        {
-            CheckSupportedProtocol(nameof(AltServerAddresses));
-
-            if (value.Count > 0)
-            {
-                if (_serverAddress is null)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot set {nameof(AltServerAddresses)} when {nameof(ServerAddress)} is empty");
-                }
-
-                if (value.Any(e => e.Protocol != Protocol))
-                {
-                    throw new ArgumentException(
-                        $"the {nameof(AltServerAddresses)} server addresses must use the service address's protocol {Protocol}",
-                        nameof(value));
-                }
-            }
-            // else, no need to check anything, an empty list is always fine.
-
-            _altServerAddresses = value;
-            OriginalUri = null;
-        }
-    }
+    /// <summary>Gets the protocol of this service address.</summary>
+    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a relative service
+    /// address.</value>
+    public Protocol? Protocol { get; }
 
     /// <summary>Gets or initializes the main server address of this service address.</summary>
-    /// <value>The main server address of this service address, or null if this service address has no server address.</value>
+    /// <value>The main server address of this service address, or null if this service address has no server address.
+    /// </value>
     public ServerAddress? ServerAddress
     {
         get => _serverAddress;
@@ -77,6 +51,96 @@ public sealed record class ServiceAddress
                     $"cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty");
             }
             _serverAddress = value;
+            OriginalUri = null;
+        }
+    }
+
+    /// <summary>Gets or initializes the path of this service address.</summary>
+    public string Path
+    {
+        get => _path;
+        init
+        {
+            if (Protocol is null || Protocol.IsSupported)
+            {
+                try
+                {
+                    CheckPath(value); // make sure it's properly escaped
+                    Protocol?.CheckPath(value); // make sure the protocol is happy with this path
+                }
+                catch (FormatException ex)
+                {
+                    throw new ArgumentException("invalid path", nameof(Path), ex);
+                }
+                _path = value;
+                OriginalUri = null;
+            }
+            else
+            {
+                throw new InvalidOperationException($"cannot set {nameof(Path)} on a '{Protocol}' service address");
+            }
+        }
+    }
+
+    /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
+    /// <value>The secondary server addresses of this service address.</value>
+    public ImmutableList<ServerAddress> AltServerAddresses
+    {
+        get => _altServerAddresses;
+
+        init
+        {
+            CheckSupportedProtocol(nameof(AltServerAddresses));
+
+            if (value.Count > 0)
+            {
+                if (_serverAddress is null)
+                {
+                    throw new InvalidOperationException(
+                        $"cannot set {nameof(AltServerAddresses)} when {nameof(ServerAddress)} is empty");
+                }
+
+                if (value.Any(e => e.Protocol != Protocol))
+                {
+                    throw new ArgumentException(
+                        @$"the {nameof(AltServerAddresses)
+                        } server addresses must use the service address's protocol {Protocol}",
+                        nameof(value));
+                }
+            }
+            // else, no need to check anything, an empty list is always fine.
+
+            _altServerAddresses = value;
+            OriginalUri = null;
+        }
+    }
+
+    /// <summary>Gets or initializes the parameters of this service address. Always empty when
+    /// <see cref="ServerAddress"/> is not null.</summary>
+    public ImmutableDictionary<string, string> Params
+    {
+        get => _params;
+        init
+        {
+            CheckSupportedProtocol(nameof(Params));
+
+            try
+            {
+                CheckParams(value); // general checking (properly escape, no empty name)
+                Protocol!.CheckServiceAddressParams(value); // protocol-specific checking
+            }
+            catch (FormatException ex)
+            {
+                throw new ArgumentException("invalid parameters", nameof(Params), ex);
+            }
+
+            if (_serverAddress is not null && value.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"cannot set {nameof(Params)} on a service address with an serverAddress");
+            }
+
+            _params = value;
             OriginalUri = null;
         }
     }
@@ -111,68 +175,6 @@ public sealed record class ServiceAddress
     /// <summary>Gets the URI used to create this service address, if this service address was created from a URI and
     /// URI-derived properties such as <see cref="ServerAddress"/> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
-
-    /// <summary>Gets or initializes the path of this service address.</summary>
-    public string Path
-    {
-        get => _path;
-        init
-        {
-            if (Protocol is null || Protocol.IsSupported)
-            {
-                try
-                {
-                    CheckPath(value); // make sure it's properly escaped
-                    Protocol?.CheckPath(value); // make sure the protocol is happy with this path
-                }
-                catch (FormatException ex)
-                {
-                    throw new ArgumentException("invalid path", nameof(Path), ex);
-                }
-                _path = value;
-                OriginalUri = null;
-            }
-            else
-            {
-                throw new InvalidOperationException($"cannot set {nameof(Path)} on a '{Protocol}' service address");
-            }
-        }
-    }
-
-    /// <summary>Gets or initializes the parameters of this service address. Always empty when <see cref="ServerAddress"/> is not
-    /// null.</summary>
-    public ImmutableDictionary<string, string> Params
-    {
-        get => _params;
-        init
-        {
-            CheckSupportedProtocol(nameof(Params));
-
-            try
-            {
-                CheckParams(value); // general checking (properly escape, no empty name)
-                Protocol!.CheckServiceAddressParams(value); // protocol-specific checking
-            }
-            catch (FormatException ex)
-            {
-                throw new ArgumentException("invalid parameters", nameof(Params), ex);
-            }
-
-            if (_serverAddress is not null && value.Count > 0)
-            {
-                throw new InvalidOperationException(
-                    $"cannot set {nameof(Params)} on a service address with an serverAddress");
-            }
-
-            _params = value;
-            OriginalUri = null;
-        }
-    }
-
-    /// <summary>Gets the protocol of this service address.</summary>
-    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a relative service
-    /// address.</value>
-    public Protocol? Protocol { get; }
 
     private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
     private ServerAddress? _serverAddress;
@@ -248,7 +250,8 @@ public sealed record class ServiceAddress
                             // The separator for server address parameters in alt-server is $, so we replace these '$'
                             // by '&' before sending the string (Uri) to the ServerAddress constructor which uses '&' as
                             // separator.
-                            _altServerAddresses = _altServerAddresses.Add(new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
+                            _altServerAddresses = _altServerAddresses.Add(
+                                new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
                         }
                     }
                 }
@@ -517,7 +520,8 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, "\"<>\\^`{|}"))
         {
             throw new FormatException(
-                @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                @$"invalid fragment '{fragment
+                }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
         }
     }
 
