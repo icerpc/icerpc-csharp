@@ -20,13 +20,13 @@ public class MetricsInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        _eventSource.RequestStart(request);
+        TimeSpan startTime = _eventSource.RequestStart(request);
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             if (response.ResultType != ResultType.Success)
             {
-                _eventSource.RequestFailed(request, "IceRpc.RemoteException"); // TODO: fix exception name
+                _eventSource.RequestFailure(request, response.ResultType);
             }
             return response;
         }
@@ -37,12 +37,12 @@ public class MetricsInterceptor : IInvoker
         }
         catch (Exception ex)
         {
-            _eventSource.RequestFailed(request, ex);
+            _eventSource.RequestException(request, ex);
             throw;
         }
         finally
         {
-            _eventSource.RequestStop(request);
+            _eventSource.RequestStop(request, startTime);
         }
     }
 }

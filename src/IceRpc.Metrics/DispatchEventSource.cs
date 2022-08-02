@@ -10,7 +10,7 @@ public sealed class DispatchEventSource : EventSource
 {
     /// <summary>The default <c>DispatchEventSource</c> used by <see cref="MetricsMiddleware"/>.
     /// </summary>
-    public static readonly DispatchEventSource Log = new("IceRpc.Dispatch");
+    public static readonly DispatchEventSource Log = new("IceRpc-Dispatch");
 
     private readonly PollingCounter _canceledRequestsCounter;
     private long _canceledRequests;
@@ -72,53 +72,63 @@ public sealed class DispatchEventSource : EventSource
     }
 
     [NonEvent]
-    internal void RequestStart(IncomingRequest request)
-    {
-        Interlocked.Increment(ref _totalRequests);
-        Interlocked.Increment(ref _currentRequests);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-        {
-            RequestStart(request.Path, request.Operation);
-        }
-    }
-
-    [NonEvent]
-    internal void RequestStop(IncomingRequest request)
-    {
-        Interlocked.Decrement(ref _currentRequests);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-        {
-            RequestStop(request.Path, request.Operation);
-        }
-    }
-
-    [NonEvent]
     internal void RequestCanceled(IncomingRequest request)
     {
         Interlocked.Increment(ref _canceledRequests);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
             RequestCanceled(request.Path, request.Operation);
         }
     }
 
     [NonEvent]
-    internal void RequestFailed(IncomingRequest request, Exception exception)
+    internal void RequestException(IncomingRequest request, Exception exception)
     {
         Interlocked.Increment(ref _failedRequests);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
-            RequestFailed(request.Path, request.Operation, exception?.GetType().ToString() ?? "");
+            RequestException(
+                request.Path,
+                request.Operation,
+                exception.GetType().FullName ?? "",
+                exception.Message,
+                exception.ToString());
         }
     }
 
     [NonEvent]
-    internal void RequestFailed(IncomingRequest request, string exception)
+    internal void RequestFailure(IncomingRequest request, ResultType resultType)
     {
         Interlocked.Increment(ref _failedRequests);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            RequestFailure(request.Path, request.Operation, (int)resultType);
+        }
+    }
+
+    [NonEvent]
+    internal TimeSpan RequestStart(IncomingRequest request)
+    {
+        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        Interlocked.Increment(ref _totalRequests);
+        Interlocked.Increment(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestFailed(request.Path, request.Operation, exception);
+            RequestStart(request.Path, request.Operation);
+        }
+        return start;
+    }
+
+    [NonEvent]
+    internal void RequestStop(IncomingRequest request, TimeSpan start)
+    {
+        Interlocked.Decrement(ref _currentRequests);
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        {
+            RequestStop(
+                request.Path,
+                request.Operation,
+                TimeSpan.FromMilliseconds(Environment.TickCount64).TotalMilliseconds - start.TotalMilliseconds);
         }
     }
 
@@ -133,15 +143,7 @@ public sealed class DispatchEventSource : EventSource
         base.Dispose(disposing);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(3, Level = EventLevel.Informational)]
-    private void RequestCanceled(string path, string operation) =>
-        WriteEvent(3, path, operation);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(4, Level = EventLevel.Informational)]
-    private void RequestFailed(string path, string operation, string exception) =>
-        WriteEvent(4, path, operation, exception);
+    // Event methods sorted by eventId
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
@@ -150,6 +152,26 @@ public sealed class DispatchEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void RequestStop(string path, string operation) =>
-        WriteEvent(2, path, operation);
+    private void RequestStop(string path, string operation, double durationInMilliseconds) =>
+        WriteEvent(2, path, operation, durationInMilliseconds);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(3, Level = EventLevel.Error)]
+    private void RequestCanceled(string path, string operation) =>
+        WriteEvent(3, path, operation);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(4, Level = EventLevel.Error)]
+    private void RequestException(
+        string path,
+        string operation,
+        string exceptionType,
+        string exceptionMessage,
+        string exceptionDetails) =>
+        WriteEvent(4, path, operation, exceptionType, exceptionMessage, exceptionDetails);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(5, Level = EventLevel.Error)]
+    private void RequestFailure(string path, string operation, int resultType) =>
+        WriteEvent(5, path, operation, resultType);
 }

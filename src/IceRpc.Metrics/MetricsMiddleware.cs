@@ -20,13 +20,13 @@ public class MetricsMiddleware : IDispatcher
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
-        _eventSource.RequestStart(request);
+        TimeSpan startTime = _eventSource.RequestStart(request);
         try
         {
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             if (response.ResultType != ResultType.Success)
             {
-                _eventSource.RequestFailed(request, "IceRpc.RemoteException"); // TODO: fix exception name
+                _eventSource.RequestFailure(request, response.ResultType);
             }
             return response;
         }
@@ -37,12 +37,12 @@ public class MetricsMiddleware : IDispatcher
         }
         catch (Exception ex)
         {
-            _eventSource.RequestFailed(request, ex);
+            _eventSource.RequestException(request, ex);
             throw;
         }
         finally
         {
-            _eventSource.RequestStop(request);
+            _eventSource.RequestStop(request, startTime);
         }
     }
 }

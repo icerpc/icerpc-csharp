@@ -88,7 +88,7 @@ public sealed class InvocationEventSourceTests
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
         Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
-        Assert.That(eventData.EventName, Is.EqualTo("RequestFailed"));
+        Assert.That(eventData.EventName, Is.EqualTo("RequestFailure"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(eventSource));
         Assert.That(eventData.Payload![0], Is.EqualTo(request.ServiceAddress.Path));
