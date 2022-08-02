@@ -19,7 +19,9 @@ internal sealed class LogDuplexClientTransportDecorator : IDuplexClientTransport
         Endpoint endpoint,
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions) =>
-        new LogDuplexConnectionDecorator(_decoratee.CreateConnection(endpoint, options, clientAuthenticationOptions), _logger);
+        new LogDuplexConnectionDecorator(
+            _decoratee.CreateConnection(endpoint, options, clientAuthenticationOptions),
+            _logger);
 
     internal LogDuplexClientTransportDecorator(IDuplexClientTransport decoratee, ILogger logger)
     {

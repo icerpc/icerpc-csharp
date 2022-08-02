@@ -20,7 +20,7 @@ public interface IMultiplexedClientTransport
     /// <summary>Creates a new transport connection to the specified endpoint.</summary>
     /// <param name="endpoint">The endpoint of the new connection it corresponds to the address of the server-end of
     /// that connection.</param>
-    /// <param name="options">The multiplexed client connection options.</param>
+    /// <param name="options">The multiplexed connection options.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
     IMultiplexedConnection CreateConnection(

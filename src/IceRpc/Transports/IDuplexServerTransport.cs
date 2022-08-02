@@ -12,7 +12,7 @@ public interface IDuplexServerTransport
 
     /// <summary>Starts listening on an endpoint.</summary>
     /// <param name="endpoint">The endpoint of the listener.</param>
-    /// <param name="options">The listener options.</param>
+    /// <param name="options">The duplex connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
     IDuplexListener Listen(

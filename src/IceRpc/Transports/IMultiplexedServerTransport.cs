@@ -13,7 +13,7 @@ public interface IMultiplexedServerTransport
 
     /// <summary>Starts listening on an endpoint.</summary>
     /// <param name="endpoint">The endpoint of the listener.</param>
-    /// <param name="options">The listener options.</param>
+    /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
     IMultiplexedListener Listen(
