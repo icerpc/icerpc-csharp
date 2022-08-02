@@ -1,16 +1,17 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 
-namespace IceRpc.Metrics;
+namespace IceRpc.Metrics.Internal;
 
-/// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events.</summary>
-public sealed class DispatchEventSource : EventSource
+/// <summary>An <see cref="EventSource"/> implementation used to log invocation dispatch events.</summary>
+internal sealed class InvocationEventSource : EventSource
 {
-    /// <summary>The default <c>DispatchEventSource</c> used by <see cref="MetricsMiddleware"/>.
+    /// <summary>The default <c>InvocationEventSource</c> used by <see cref="MetricsInterceptor"/>.
     /// </summary>
-    public static readonly DispatchEventSource Log = new("IceRpc-Dispatch");
+    internal static readonly InvocationEventSource Log = new("IceRpc-Invocation");
 
     private readonly PollingCounter _canceledRequestsCounter;
     private long _canceledRequests;
@@ -22,10 +23,10 @@ public sealed class DispatchEventSource : EventSource
     private readonly PollingCounter _totalRequestsCounter;
     private long _totalRequests;
 
-    /// <summary>Creates a new instance of the <see cref="DispatchEventSource"/> class with the specified name.
+    /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
     /// </summary>
     /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
-    public DispatchEventSource(string eventSourceName)
+    internal InvocationEventSource(string eventSourceName)
         : base(eventSourceName)
     {
         _canceledRequestsCounter = new PollingCounter(
@@ -72,63 +73,53 @@ public sealed class DispatchEventSource : EventSource
     }
 
     [NonEvent]
-    internal void RequestCanceled(IncomingRequest request)
+    internal void RequestCancel(OutgoingRequest request)
     {
         Interlocked.Increment(ref _canceledRequests);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestCanceled(request.Path, request.Operation);
+            RequestCancel(request.ServiceAddress.Path, request.Operation);
         }
     }
 
     [NonEvent]
-    internal void RequestException(IncomingRequest request, Exception exception)
+    internal void RequestFailure(OutgoingRequest request, Exception exception)
     {
         Interlocked.Increment(ref _failedRequests);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
-            RequestException(
-                request.Path,
+            RequestFailure(
+                request.ServiceAddress.Path,
                 request.Operation,
                 exception.GetType().FullName ?? "",
-                exception.Message,
                 exception.ToString());
         }
     }
 
     [NonEvent]
-    internal void RequestFailure(IncomingRequest request, ResultType resultType)
+    internal long RequestStart(OutgoingRequest request)
     {
-        Interlocked.Increment(ref _failedRequests);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
-        {
-            RequestFailure(request.Path, request.Operation, (int)resultType);
-        }
-    }
-
-    [NonEvent]
-    internal TimeSpan RequestStart(IncomingRequest request)
-    {
-        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        var start = Stopwatch.GetTimestamp();
         Interlocked.Increment(ref _totalRequests);
         Interlocked.Increment(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestStart(request.Path, request.Operation);
+            RequestStart(request.ServiceAddress.Path, request.Operation);
         }
         return start;
     }
 
     [NonEvent]
-    internal void RequestStop(IncomingRequest request, TimeSpan start)
+    internal void RequestStop(OutgoingRequest request, ResultType resultType, long start)
     {
         Interlocked.Decrement(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             RequestStop(
-                request.Path,
+                request.ServiceAddress.Path,
                 request.Operation,
-                TimeSpan.FromMilliseconds(Environment.TickCount64).TotalMilliseconds - start.TotalMilliseconds);
+                (int)resultType,
+                (Stopwatch.GetTimestamp() - start) / (Stopwatch.Frequency / 1000d));
         }
     }
 
@@ -152,26 +143,20 @@ public sealed class DispatchEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void RequestStop(string path, string operation, double durationInMilliseconds) =>
-        WriteEvent(2, path, operation, durationInMilliseconds);
+    private void RequestStop(string path, string operation, int resultType, double durationInMilliseconds) =>
+        WriteEvent(2, path, operation, resultType, durationInMilliseconds);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(3, Level = EventLevel.Error)]
-    private void RequestCanceled(string path, string operation) =>
+    [Event(3, Level = EventLevel.Informational)]
+    private void RequestCancel(string path, string operation) =>
         WriteEvent(3, path, operation);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(4, Level = EventLevel.Error)]
-    private void RequestException(
+    private void RequestFailure(
         string path,
         string operation,
         string exceptionType,
-        string exceptionMessage,
         string exceptionDetails) =>
-        WriteEvent(4, path, operation, exceptionType, exceptionMessage, exceptionDetails);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(5, Level = EventLevel.Error)]
-    private void RequestFailure(string path, string operation, int resultType) =>
-        WriteEvent(5, path, operation, resultType);
+        WriteEvent(4, path, operation, exceptionType, exceptionDetails);
 }
