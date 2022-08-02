@@ -78,9 +78,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 },
                 options.ClientAuthenticationOptions);
             Endpoint = transportConnection.Endpoint;
-#pragma warning disable CA2000 // Dispose objects before losing scope
+#pragma warning disable CA2000
             decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
-#pragma warning restore CA2000 // Dispose objects before losing scope
+#pragma warning restore CA2000
         }
         else
         {
@@ -108,9 +108,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 options.ClientAuthenticationOptions);
 
             Endpoint = transportConnection.Endpoint;
-#pragma warning disable CA2000 // Dispose objects before losing scope
+#pragma warning disable CA2000
             decoratee = new IceRpcProtocolConnection(transportConnection, options);
-#pragma warning restore CA2000 // Dispose objects before losing scope
+#pragma warning restore CA2000
         }
 
         if (logger != NullLogger.Instance)
