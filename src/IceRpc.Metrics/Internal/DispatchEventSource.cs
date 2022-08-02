@@ -12,16 +12,17 @@ internal sealed class DispatchEventSource : EventSource
     /// <summary>The default <c>DispatchEventSource</c> used by <see cref="MetricsMiddleware"/>.
     /// </summary>
     internal static readonly DispatchEventSource Log = new("IceRpc-Dispatch");
+    private static readonly double _ticksPerMillisecond = Stopwatch.Frequency / 1000d;
 
-    private readonly PollingCounter _canceledRequestsCounter;
     private long _canceledRequests;
-    private readonly PollingCounter _currentRequestsCounter;
+    private readonly PollingCounter _canceledRequestsCounter;
     private long _currentRequests;
-    private readonly PollingCounter _failedRequestsCounter;
+    private readonly PollingCounter _currentRequestsCounter;
     private long _failedRequests;
+    private readonly PollingCounter _failedRequestsCounter;
     private readonly IncrementingPollingCounter _requestsPerSecondCounter;
-    private readonly PollingCounter _totalRequestsCounter;
     private long _totalRequests;
+    private readonly PollingCounter _totalRequestsCounter;
 
     /// <summary>Creates a new instance of the <see cref="DispatchEventSource"/> class with the specified name.
     /// </summary>
@@ -119,7 +120,7 @@ internal sealed class DispatchEventSource : EventSource
                 request.Path,
                 request.Operation,
                 (int)resultType,
-                (Stopwatch.GetTimestamp() - start) / (Stopwatch.Frequency / 1000d));
+                durationInMilliseconds: (Stopwatch.GetTimestamp() - start) / _ticksPerMillisecond);
         }
     }
 

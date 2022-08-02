@@ -10,6 +10,13 @@ public class MetricsInterceptor : IInvoker
     private readonly InvocationEventSource _eventSource;
     private readonly IInvoker _next;
 
+    /// <summary>Constructs a metrics interceptor.</summary>
+    /// <param name="next">The next invoker in the invocation pipeline.</param>
+    public MetricsInterceptor(IInvoker next)
+        : this(next, InvocationEventSource.Log)
+    {
+    }
+
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {

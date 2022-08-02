@@ -12,16 +12,17 @@ internal sealed class InvocationEventSource : EventSource
     /// <summary>The default <c>InvocationEventSource</c> used by <see cref="MetricsInterceptor"/>.
     /// </summary>
     internal static readonly InvocationEventSource Log = new("IceRpc-Invocation");
+    private static readonly double _ticksPerMillisecond = Stopwatch.Frequency / 1000d;
 
-    private readonly PollingCounter _canceledRequestsCounter;
     private long _canceledRequests;
-    private readonly PollingCounter _currentRequestsCounter;
+    private readonly PollingCounter _canceledRequestsCounter;
     private long _currentRequests;
-    private readonly PollingCounter _failedRequestsCounter;
+    private readonly PollingCounter _currentRequestsCounter;
     private long _failedRequests;
+    private readonly PollingCounter _failedRequestsCounter;
     private readonly IncrementingPollingCounter _requestsPerSecondCounter;
-    private readonly PollingCounter _totalRequestsCounter;
     private long _totalRequests;
+    private readonly PollingCounter _totalRequestsCounter;
 
     /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
     /// </summary>
@@ -119,7 +120,7 @@ internal sealed class InvocationEventSource : EventSource
                 request.ServiceAddress.Path,
                 request.Operation,
                 (int)resultType,
-                (Stopwatch.GetTimestamp() - start) / (Stopwatch.Frequency / 1000d));
+                durationInMilliseconds: (Stopwatch.GetTimestamp() - start) / _ticksPerMillisecond);
         }
     }
 

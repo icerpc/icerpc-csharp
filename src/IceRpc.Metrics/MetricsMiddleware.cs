@@ -10,6 +10,13 @@ public class MetricsMiddleware : IDispatcher
     private readonly DispatchEventSource _eventSource;
     private readonly IDispatcher _next;
 
+    /// <summary>Constructs a metrics middleware.</summary>
+    /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
+    public MetricsMiddleware(IDispatcher next)
+        : this(next, DispatchEventSource.Log)
+    {
+    }
+
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {

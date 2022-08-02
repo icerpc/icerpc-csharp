@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Metrics;
-using IceRpc.Metrics.Internal;
 
 namespace IceRpc.Builder;
 
@@ -13,5 +12,5 @@ public static class MetricsInvokerBuilderExtensions
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseMetrics(this IInvokerBuilder builder) =>
-        builder.Use(next => new MetricsInterceptor(next, InvocationEventSource.Log));
+        builder.Use(next => new MetricsInterceptor(next));
 }

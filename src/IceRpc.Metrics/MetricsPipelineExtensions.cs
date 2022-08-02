@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Metrics;
-using IceRpc.Metrics.Internal;
 
 namespace IceRpc;
 
@@ -13,5 +12,5 @@ public static class MetricsPipelineExtensions
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseMetrics(this Pipeline pipeline) =>
-        pipeline.Use(next => new MetricsInterceptor(next, InvocationEventSource.Log));
+        pipeline.Use(next => new MetricsInterceptor(next));
 }
