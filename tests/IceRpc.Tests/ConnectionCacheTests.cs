@@ -62,7 +62,7 @@ public sealed class ConnectionCacheTests
         });
     }
 
-    /// <summary>Verifies that the connection cache uses the alt-server when it cannot connect to the main serverAddress.
+    /// <summary>Verifies that the connection cache uses the alt-server when it cannot connect to the main server address.
     /// </summary>
     [Test]
     public async Task Get_connection_for_alt_server()
