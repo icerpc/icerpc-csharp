@@ -9,7 +9,7 @@ using System.Diagnostics;
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
 // Setup the invocation pipeline with the metrics interceptor
-IInvoker pipeline = new Pipeline().UseMetrics(InvocationEventSource.Log).Into(connection);
+IInvoker pipeline = new Pipeline().UseMetrics().Into(connection);
 
 // Create the proxy using the invocation pipeline
 var proxy = new MetricsProxy(pipeline);

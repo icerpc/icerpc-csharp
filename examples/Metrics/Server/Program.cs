@@ -5,7 +5,7 @@ using IceRpc;
 using IceRpc.Metrics;
 
 // Add metrics middleware to the router
-Router router = new Router().UseMetrics(DispatchEventSource.Log);
+Router router = new Router().UseMetrics();
 
 using var service = new Metrics();
 router.Map<IMetrics>(service);
