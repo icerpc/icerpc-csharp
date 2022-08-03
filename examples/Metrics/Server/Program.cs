@@ -7,8 +7,7 @@ using IceRpc.Metrics;
 // Add metrics middleware to the router
 Router router = new Router().UseMetrics();
 
-using var service = new Metrics();
-router.Map<IMetrics>(service);
+router.Map<IHello>(new Hello());
 
 await using var server = new Server(router);
 

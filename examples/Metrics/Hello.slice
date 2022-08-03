@@ -2,7 +2,7 @@
 
 module Demo;
 
-interface Metrics
+interface Hello
 {
-    ping();
+    sayHello();
 }

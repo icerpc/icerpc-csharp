@@ -2,17 +2,11 @@
 
 using Demo;
 using IceRpc;
-using IceRpc.Metrics;
-using System.Diagnostics;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
-// Setup the invocation pipeline with the metrics interceptor
-IInvoker pipeline = new Pipeline().UseMetrics().Into(connection);
-
-// Create the proxy using the invocation pipeline
-var proxy = new MetricsProxy(pipeline);
+IHelloProxy hello = new HelloProxy(connection);
 
 // Gather necessary user input
 Console.Write("Enter how many requests per second you want to send: ");
@@ -39,7 +33,7 @@ try
 {
     while (await periodicTimer.WaitForNextTickAsync())
     {
-        await proxy.PingAsync();
+        await hello.SayHelloAsync();
     }
 }
 catch (OperationCanceledException)
