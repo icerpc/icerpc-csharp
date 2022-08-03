@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator;
 
-/// <summary>A locator interceptor intercepts ice requests that have no serverAddress, and attempts to assign a usable
+/// <summary>A locator interceptor intercepts ice requests that have no server address and attempts to assign a usable
 /// server address (and alt-server addresses) to such requests via the <see cref="IServerAddressFeature"/>.</summary>
 public class LocatorInterceptor : IInvoker
 {
