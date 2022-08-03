@@ -36,6 +36,3 @@ try
         await hello.SayHelloAsync();
     }
 }
-catch (OperationCanceledException)
-{
-}
