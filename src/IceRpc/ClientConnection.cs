@@ -29,7 +29,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => ServerAddress.Protocol;
 
-    private readonly IProtocolConnection _protocolConnection;
+    private readonly ProtocolConnection _protocolConnection;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>

@@ -12,7 +12,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
+    internal override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
@@ -106,7 +106,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
 

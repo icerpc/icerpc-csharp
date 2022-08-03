@@ -55,8 +55,8 @@ public static class ProtocolServiceCollectionExtensions
 
 internal interface IClientServerProtocolConnection
 {
-    IProtocolConnection Client { get; }
-    IProtocolConnection Server { get; }
+    ProtocolConnection Client { get; }
+    ProtocolConnection Server { get; }
 
     Task ConnectAsync();
 }
@@ -65,17 +65,17 @@ internal interface IClientServerProtocolConnection
 /// the connections are correctly disposed.</summary>
 internal abstract class ClientServerProtocolConnection : IClientServerProtocolConnection, IDisposable
 {
-    public IProtocolConnection Client { get; }
+    public ProtocolConnection Client { get; }
 
-    public IProtocolConnection Server
+    public ProtocolConnection Server
     {
         get => _server ?? throw new InvalidOperationException("server connection not initialized");
         private protected set => _server = value;
     }
 
-    private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
+    private readonly Func<Task<ProtocolConnection>> _acceptServerConnectionAsync;
     private readonly ILogger _logger;
-    private IProtocolConnection? _server;
+    private ProtocolConnection? _server;
 
     public async Task ConnectAsync()
     {
@@ -92,8 +92,8 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
     }
 
     private protected ClientServerProtocolConnection(
-        IProtocolConnection clientProtocolConnection,
-        Func<Task<IProtocolConnection>> acceptServerConnectionAsync,
+        ProtocolConnection clientProtocolConnection,
+        Func<Task<ProtocolConnection>> acceptServerConnectionAsync,
         ILogger logger)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;

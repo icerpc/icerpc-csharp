@@ -30,7 +30,7 @@ public sealed class Server : IAsyncDisposable
     /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<IProtocolConnection> _connections = new();
+    private readonly HashSet<ProtocolConnection> _connections = new();
 
     private bool _isReadOnly;
 
@@ -131,11 +131,11 @@ public sealed class Server : IAsyncDisposable
 
             async Task AcceptAsync<T>(
                 Func<Task<T>> acceptTransportConnection,
-                Func<T, IProtocolConnection> createProtocolConnection)
+                Func<T, ProtocolConnection> createProtocolConnection)
             {
                 while (true)
                 {
-                    IProtocolConnection connection;
+                    ProtocolConnection connection;
                     try
                     {
                         connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
@@ -182,7 +182,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
+            async Task RemoveFromCollectionAsync(ProtocolConnection connection, bool graceful)
             {
                 lock (_mutex)
                 {

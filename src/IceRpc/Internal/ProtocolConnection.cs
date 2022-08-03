@@ -8,12 +8,9 @@ namespace IceRpc.Internal;
 /// <summary>The protocol connection abstract base class provides the idle timeout implementation and also ensures that
 /// the protocol implementation of connection establishment, shutdown and disposal are only called once and in the
 /// correct order.</summary>
-internal abstract class ProtocolConnection : IProtocolConnection
+internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 {
-    public abstract ServerAddress ServerAddress { get; }
-
-    // When calling methods on IProtocolConnection, we have to call Decorator other we would bypass decoration.
-    internal IProtocolConnection Decorator { get; set; }
+    internal abstract ServerAddress ServerAddress { get; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
     private Task<TransportConnectionInformation>? _connectTask;
@@ -37,7 +34,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
             else if (_shutdownTask is not null)
             {
@@ -177,7 +174,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
         if (_shutdownTask is not null)
         {
@@ -197,7 +194,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             // Perform the connection establishment without a cancellation token. It will eventually timeout if the
             // connect timeout is reached.
-            await Decorator.ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
+            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
 
             return await InvokeAsyncCore(request, cancel).ConfigureAwait(false);
         }
@@ -256,7 +253,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
             else if (_connectTask is null)
             {
@@ -315,8 +312,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown("idle connection");
                 }
             });
-
-        Decorator = this;
         _observer = observer;
     }
 
