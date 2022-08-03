@@ -325,7 +325,7 @@ public sealed class Server : IAsyncDisposable
     /// port selected by the operating system.</summary>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
-    /// <exception cref="TransportException">Thrown when another server is already listening on the same serverAddress.
+    /// <exception cref="TransportException">Thrown when another server is already listening on the same server address.
     /// </exception>
     public void Listen()
     {
