@@ -10,6 +10,7 @@ namespace IceRpc;
 
 /// <summary>An server address specifies the address of the server-end of an ice or icerpc connection: a server listens
 /// on a server address and a client establishes a connection to a server address.</summary>
+// The properties of this struct are sorted in URI order.
 [TypeConverter(typeof(ServerAddressTypeConverter))]
 public readonly record struct ServerAddress
 {

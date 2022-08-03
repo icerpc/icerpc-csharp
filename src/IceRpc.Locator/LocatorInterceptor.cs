@@ -129,10 +129,10 @@ public interface ILocationResolver
     /// <param name="location">The location.</param>
     /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
     /// <param name="cancel">The cancellation token.</param>
-    /// <returns>A tuple with a nullable dummy service address that holds the server address(es) (if resolved), and a bool that
-    /// indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is null when
-    /// the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress must be not
-    /// null.</returns>
+    /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
+    /// that indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is
+    /// null whe the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress
+    /// must be not null.</returns>
     ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,

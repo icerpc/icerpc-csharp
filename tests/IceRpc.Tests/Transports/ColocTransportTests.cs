@@ -13,7 +13,7 @@ public class ColocTransportTests
     public async Task Coloc_transport_connection_information()
     {
         var colocTransport = new ColocTransport();
-        ServerAddress serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
         var listener = colocTransport.ServerTransport.Listen(serverAddress, new DuplexConnectionOptions(), null);
         var clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
@@ -23,11 +23,11 @@ public class ColocTransportTests
         var transportConnectionInformation = await clientConnection.ConnectAsync(default);
 
         Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.TypeOf<ColocEndPoint>());
-        var endPoint = (ColocEndPoint?)transportConnectionInformation.LocalNetworkAddress;
-        Assert.That(endPoint?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+        var localNetworkAddress = (ColocEndPoint?)transportConnectionInformation.LocalNetworkAddress;
+        Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
         Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
-        endPoint = (ColocEndPoint?)transportConnectionInformation.RemoteNetworkAddress;
-        Assert.That(endPoint?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+        var remoteNetworkAddress = (ColocEndPoint?)transportConnectionInformation.RemoteNetworkAddress;
+        Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
         Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
     }
 }

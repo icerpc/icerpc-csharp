@@ -12,6 +12,7 @@ namespace IceRpc;
 /// <summary>A service address corresponds to the URI of a service, parsed and processed for easier consumption by
 /// interceptors, <see cref="ConnectionCache"/> and other elements of the invocation pipeline. It's used to construct
 /// an <see cref="OutgoingRequest"/>.</summary>
+// The properties of this class are sorted in URI order.
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress
 {
@@ -177,10 +178,10 @@ public sealed record class ServiceAddress
     public Uri? OriginalUri { get; private set; }
 
     private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
-    private ServerAddress? _serverAddress;
     private string _fragment = "";
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
+    private ServerAddress? _serverAddress;
 
     /// <summary>Constructs a service address from a protocol.</summary>
     /// <param name="protocol">The protocol, or null for a relative service address.</param>

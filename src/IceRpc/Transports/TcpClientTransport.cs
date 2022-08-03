@@ -62,8 +62,6 @@ public class TcpClientTransport : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        // This is the composition root of the tcp client transport, where we install log decorators when logging
-        // is enabled.
         if ((serverAddress.Transport is string transport &&
             transport != TransportNames.Tcp &&
             transport != TransportNames.Ssl) ||
