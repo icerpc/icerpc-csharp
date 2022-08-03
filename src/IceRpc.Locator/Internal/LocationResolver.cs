@@ -40,9 +40,9 @@ internal static partial class LocatorLoggerExtensions
 /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
 internal class CacheLessLocationResolver : ILocationResolver
 {
-    private readonly IEndpointFinder _endpointFinder;
+    private readonly IServerAddressFinder _serverAddressFinder;
 
-    internal CacheLessLocationResolver(IEndpointFinder endpointFinder) => _endpointFinder = endpointFinder;
+    internal CacheLessLocationResolver(IServerAddressFinder serverAddressFinder) => _serverAddressFinder = serverAddressFinder;
 
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
@@ -53,7 +53,7 @@ internal class CacheLessLocationResolver : ILocationResolver
         Location location,
         CancellationToken cancel)
     {
-        ServiceAddress? serviceAddress = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
+        ServiceAddress? serviceAddress = await _serverAddressFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
@@ -71,21 +71,21 @@ internal class CacheLessLocationResolver : ILocationResolver
 internal class LocationResolver : ILocationResolver
 {
     private readonly bool _background;
-    private readonly IEndpointCache _endpointCache;
-    private readonly IEndpointFinder _endpointFinder;
+    private readonly IServerAddressCache _serverAddressCache;
+    private readonly IServerAddressFinder _serverAddressFinder;
     private readonly TimeSpan _refreshThreshold;
 
     private readonly TimeSpan _ttl;
 
     internal LocationResolver(
-        IEndpointFinder endpointFinder,
-        IEndpointCache endpointCache,
+        IServerAddressFinder serverAddressFinder,
+        IServerAddressCache serverAddressCache,
         bool background,
         TimeSpan refreshThreshold,
         TimeSpan ttl)
     {
-        _endpointFinder = endpointFinder;
-        _endpointCache = endpointCache;
+        _serverAddressFinder = serverAddressFinder;
+        _serverAddressCache = serverAddressCache;
         _background = background;
         _refreshThreshold = refreshThreshold;
         _ttl = ttl;
@@ -106,7 +106,7 @@ internal class LocationResolver : ILocationResolver
         bool justRefreshed = false;
         bool resolved = false;
 
-        if (_endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) entry))
+        if (_serverAddressCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) entry))
         {
             serviceAddress = entry.ServiceAddress;
             TimeSpan cacheEntryAge = TimeSpan.FromMilliseconds(Environment.TickCount64) - entry.InsertionTime;
@@ -116,13 +116,13 @@ internal class LocationResolver : ILocationResolver
 
         if (serviceAddress is null || (!_background && expired) || (refreshCache && !justRefreshed))
         {
-            serviceAddress = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
+            serviceAddress = await _serverAddressFinder.FindAsync(location, cancel).ConfigureAwait(false);
             resolved = true;
         }
         else if (_background && expired)
         {
             // We retrieved an expired service address from the cache, so we launch a refresh in the background.
-            _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
+            _ = _serverAddressFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
         }
 
         // A well-known service address resolution can return a service address with an adapter-id.
@@ -148,7 +148,7 @@ internal class LocationResolver : ILocationResolver
                 // resolution, since the overall resolution is a failure.
                 if (serviceAddress is null)
                 {
-                    _endpointCache.Remove(location);
+                    _serverAddressCache.Remove(location);
                 }
             }
         }

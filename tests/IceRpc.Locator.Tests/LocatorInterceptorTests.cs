@@ -9,9 +9,9 @@ namespace IceRpc.Locator.Tests;
 
 public class LocatorInterceptorTests
 {
-    /// <summary>Verifies that the location resolver is not called when the request carries an endpoint.</summary>
+    /// <summary>Verifies that the location resolver is not called when the request carries a server address.</summary>
     [Test]
-    public async Task Location_resolver_not_called_if_the_request_has_an_endpoint()
+    public async Task Location_resolver_not_called_if_the_request_has_an_server_address()
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
@@ -45,9 +45,9 @@ public class LocatorInterceptorTests
 
         await sut.InvokeAsync(request, default);
 
-        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
-        Assert.That(endpointFeature, Is.Not.Null);
-        Assert.That(endpointFeature.Endpoint, Is.EqualTo(expected.Endpoint));
+        IServerAddressFeature? serverAddressFeature = request.Features.Get<IServerAddressFeature>();
+        Assert.That(serverAddressFeature, Is.Not.Null);
+        Assert.That(serverAddressFeature.ServerAddress, Is.EqualTo(expected.ServerAddress));
     }
 
     /// <summary>Verifies that the locator interceptor correctly resolves a well-known proxy using the given
@@ -65,9 +65,9 @@ public class LocatorInterceptorTests
 
         await sut.InvokeAsync(request, default);
 
-        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
-        Assert.That(endpointFeature, Is.Not.Null);
-        Assert.That(endpointFeature.Endpoint, Is.EqualTo(expected.Endpoint));
+        IServerAddressFeature? serverAddressFeature = request.Features.Get<IServerAddressFeature>();
+        Assert.That(serverAddressFeature, Is.Not.Null);
+        Assert.That(serverAddressFeature.ServerAddress, Is.EqualTo(expected.ServerAddress));
     }
 
     /// <summary>Verifies that the locator interceptor set the refresh cache parameter on the second attempt to resolve
@@ -95,7 +95,7 @@ public class LocatorInterceptorTests
     /// <summary>Verifies that the locator interceptor does not set the refresh cache parameter on the second attempt
     /// to resolve a location if the first attempt returned a non cached result.</summary>
     [Test]
-    public async Task Resolve_does_not_refresh_cache_after_getting_a_fresh_endpoint()
+    public async Task Resolve_does_not_refresh_cache_after_getting_a_fresh_server_address()
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancel) =>
@@ -147,7 +147,7 @@ public class LocatorInterceptorTests
             CancellationToken cancel) => new((_adapterId == location.IsAdapterId ? _serviceAddress : null, false));
     }
 
-    // A mock location resolver that return cached and non cached endpoints depending on the refreshCache parameter
+    // A mock location resolver that return cached and non cached server addresses depending on the refreshCache parameter
     private class MockCachedLocationResolver : ILocationResolver
     {
         /// <summary>True if the last call asked to refresh the cache otherwise, false.</summary>
@@ -164,7 +164,7 @@ public class LocatorInterceptorTests
         }
     }
 
-    // A mock location resolver that always return non cached endpoints
+    // A mock location resolver that always return non cached server addresses
     private class MockNonCachedLocationResolver : ILocationResolver
     {
         /// <summary>True if the last call asked to refresh the cache otherwise, false.</summary>

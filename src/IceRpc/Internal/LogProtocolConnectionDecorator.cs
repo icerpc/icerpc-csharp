@@ -8,7 +8,7 @@ namespace IceRpc.Internal;
 /// <summary>A log decorator for protocol connections.</summary>
 internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
-    public Endpoint Endpoint => _decoratee.Endpoint;
+    public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
     private readonly IProtocolConnection _decoratee;
     private TransportConnectionInformation _information;
@@ -25,7 +25,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
                 _logger.LogConnectionConnect(
-                    Endpoint,
+                    ServerAddress,
                     _information.LocalNetworkAddress,
                     _information.RemoteNetworkAddress);
 
@@ -33,7 +33,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             }
             catch (Exception exception)
             {
-                _logger.LogConnectionConnectException(exception, Endpoint);
+                _logger.LogConnectionConnectException(exception, ServerAddress);
                 throw;
             }
         }
@@ -46,7 +46,10 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         async ValueTask PerformDisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.LogConnectionDispose(Endpoint, _information.LocalNetworkAddress, _information.RemoteNetworkAddress);
+            _logger.LogConnectionDispose(
+                ServerAddress,
+                _information.LocalNetworkAddress,
+                _information.RemoteNetworkAddress);
         }
     }
 
@@ -68,7 +71,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
 
                 _logger.LogConnectionShutdown(
-                    Endpoint,
+                    ServerAddress,
                     _information.LocalNetworkAddress,
                     _information.RemoteNetworkAddress,
                     message);
@@ -77,7 +80,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             {
                 _logger.LogConnectionShutdownException(
                     exception,
-                    Endpoint,
+                    ServerAddress,
                     _information.LocalNetworkAddress,
                     _information.RemoteNetworkAddress);
                 throw;

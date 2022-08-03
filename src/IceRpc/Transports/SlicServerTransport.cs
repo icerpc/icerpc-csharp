@@ -32,12 +32,12 @@ public class SlicServerTransport : IMultiplexedServerTransport
 
     /// <inheritdoc/>
     public IMultiplexedListener Listen(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions) =>
         new SlicListener(
             _duplexServerTransport.Listen(
-                endpoint,
+                serverAddress,
                 new DuplexConnectionOptions
                 {
                     MinSegmentSize = options.MinSegmentSize,

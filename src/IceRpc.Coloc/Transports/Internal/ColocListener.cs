@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The listener implementation for the colocated transport.</summary>
 internal class ColocListener : IDuplexListener
 {
-    public Endpoint Endpoint { get; }
+    public ServerAddress ServerAddress { get; }
 
     private readonly PipeOptions _pipeOptions;
     private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
@@ -15,14 +15,14 @@ internal class ColocListener : IDuplexListener
     public async Task<IDuplexConnection> AcceptAsync()
     {
         (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-        return new ColocConnection(Endpoint, _ => (reader, writer));
+        return new ColocConnection(ServerAddress, _ => (reader, writer));
     }
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
 
-    internal ColocListener(Endpoint endpoint, DuplexConnectionOptions options)
+    internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
     {
-        Endpoint = endpoint;
+        ServerAddress = serverAddress;
         _pipeOptions = new PipeOptions(
             pool: options.Pool,
             minimumSegmentSize: options.MinSegmentSize);

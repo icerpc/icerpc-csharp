@@ -6,7 +6,7 @@ namespace IceRpc.Transports.Internal;
 
 internal sealed class LogDuplexListenerDecorator : IDuplexListener
 {
-    public Endpoint Endpoint => _decoratee.Endpoint;
+    public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
     private const string Kind = "Duplex";
     private readonly IDuplexListener _decoratee;
@@ -26,18 +26,18 @@ internal sealed class LogDuplexListenerDecorator : IDuplexListener
         }
         catch (Exception exception)
         {
-            _logger.LogListenerAcceptException(exception, Kind, _decoratee.Endpoint);
+            _logger.LogListenerAcceptException(exception, Kind, _decoratee.ServerAddress);
             throw;
         }
 
-        _logger.LogListenerAccept(Kind, _decoratee.Endpoint);
+        _logger.LogListenerAccept(Kind, _decoratee.ServerAddress);
         return connection;
     }
 
     public void Dispose()
     {
         _decoratee.Dispose();
-        _logger.LogListenerDispose(Kind, _decoratee.Endpoint);
+        _logger.LogListenerDispose(Kind, _decoratee.ServerAddress);
     }
 
     public override string? ToString() => _decoratee.ToString();

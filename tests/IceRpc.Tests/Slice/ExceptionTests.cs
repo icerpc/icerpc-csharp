@@ -437,7 +437,7 @@ public sealed class ExceptionTests
                 {
                     Dispatcher = new Slice2ExceptionOperations(throwException),
                 },
-                Endpoint = new Endpoint(new Uri($"icerpc://{Guid.NewGuid()}/"))
+                ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
             },
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
@@ -445,7 +445,7 @@ public sealed class ExceptionTests
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                Endpoint = server.Endpoint,
+                ServerAddress = server.ServerAddress,
             },
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
         var proxy = new Slice2ExceptionOperationsProxy(connection);
@@ -469,7 +469,7 @@ public sealed class ExceptionTests
                 {
                     Dispatcher = new Slice1ExceptionOperations(throwException),
                 },
-                Endpoint = new Endpoint(new Uri($"icerpc://{Guid.NewGuid()}/"))
+                ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
             },
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
@@ -477,7 +477,7 @@ public sealed class ExceptionTests
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                Endpoint = server.Endpoint,
+                ServerAddress = server.ServerAddress,
             },
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
         var proxy = new Slice1ExceptionOperationsProxy(connection);

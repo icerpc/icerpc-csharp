@@ -7,9 +7,9 @@ namespace IceRpc.Transports;
 /// <summary>Represents a transport connection created by a duplex transport.</summary>
 public interface IDuplexConnection : IDisposable
 {
-    /// <summary>Gets the endpoint of this connection. The Transport property of this endpoint is always non-null.
+    /// <summary>Gets the server address of this connection. The Transport property of this server address is always non-null.
     /// </summary>
-    Endpoint Endpoint { get; }
+    ServerAddress ServerAddress { get; }
 
     /// <summary>Connects this connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

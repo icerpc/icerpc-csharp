@@ -1,8 +1,0 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
-
-encoding = 1;
-
-[cs::namespace("IceRpc")]
-module Ice;
-
-typealias IdentityPath = IceRpc::Slice::IdentityPath;

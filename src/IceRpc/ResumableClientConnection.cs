@@ -10,10 +10,10 @@ namespace IceRpc;
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
 public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the endpoint of this connection.</summary>
-    /// <value>The endpoint (server address) of this connection. It has a non-null <see cref="Endpoint.Transport"/> even
-    /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
-    public Endpoint Endpoint => _clientConnection.Endpoint;
+    /// <summary>Gets the server address of this connection.</summary>
+    /// <value>The server address of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even
+    /// when <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
+    public ServerAddress ServerAddress => _clientConnection.ServerAddress;
 
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => _clientConnection.Protocol;
@@ -75,29 +75,29 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         _clientConnection = _clientConnectionFactory();
     }
 
-    /// <summary>Constructs a resumable client connection with the specified endpoint and client authentication options.
+    /// <summary>Constructs a resumable client connection with the specified server address and client authentication options.
     /// All other properties have their default values.</summary>
-    /// <param name="endpoint">The connection endpoint.</param>
+    /// <param name="serverAddress">The connection server address.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ResumableClientConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            Endpoint = endpoint
+            ServerAddress = serverAddress
         })
     {
     }
 
-    /// <summary>Constructs a resumable client connection with the specified endpoint URI and client authentication
+    /// <summary>Constructs a resumable client connection with the specified server address URI and client authentication
     /// options. All other properties have their default values.</summary>
-    /// <param name="endpointUri">The connection endpoint URI.</param>
+    /// <param name="serverAddressUri">The connection server address URI.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ResumableClientConnection(
-        Uri endpointUri,
+        Uri serverAddressUri,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
-        : this(new Endpoint(endpointUri), clientAuthenticationOptions)
+        : this(new ServerAddress(serverAddressUri), clientAuthenticationOptions)
     {
     }
 
