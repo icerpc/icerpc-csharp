@@ -13,5 +13,7 @@ internal interface IProtocolConnectionObserver
 
     void Disposed(ServerAddress serverAddress);
 
-    void ShutDown(string message, ServerAddress serverAddress);
+    void ShutdownComplete(string message, ServerAddress serverAddress);
+
+    void ShutdownException(Exception exception, string message, ServerAddress serverAddress);
 }

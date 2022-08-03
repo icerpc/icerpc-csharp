@@ -392,32 +392,40 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 
         try
         {
-            cancelSource.Token.ThrowIfCancellationRequested();
-
-            // Wait for connect to complete first.
-            await _connectTask.WaitAsync(cancelSource.Token).ConfigureAwait(false);
-
-            if (cancelDispatchesAndInvocations)
+            try
             {
-                CancelDispatchesAndInvocations(new ConnectionAbortedException(message));
+                cancelSource.Token.ThrowIfCancellationRequested();
+
+                // Wait for connect to complete first.
+                await _connectTask.WaitAsync(cancelSource.Token).ConfigureAwait(false);
+
+                if (cancelDispatchesAndInvocations)
+                {
+                    CancelDispatchesAndInvocations(new ConnectionAbortedException(message));
+                }
+
+                // Wait for shutdown to complete.
+                await ShutdownAsyncCore(message, cancelSource.Token).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
+            {
+                throw new ConnectionAbortedException(
+                    _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Assert(cancelSource.IsCancellationRequested);
 
-            // Wait for shutdown to complete.
-            await ShutdownAsyncCore(message, cancelSource.Token).ConfigureAwait(false);
+                // Triggered by the CancelAfter above.
+                throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            }
         }
-        catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
+        catch (Exception exception)
         {
-            throw new ConnectionAbortedException(
-                _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
-        }
-        catch (OperationCanceledException)
-        {
-            Debug.Assert(cancelSource.IsCancellationRequested);
-
-            // Triggered by the CancelAfter above.
-            throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            _observer?.ShutdownException(exception, message, ServerAddress);
+            throw;
         }
 
-        _observer?.ShutDown(message, ServerAddress);
+        _observer?.ShutdownComplete(message, ServerAddress);
     }
 }

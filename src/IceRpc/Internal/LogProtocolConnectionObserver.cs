@@ -29,9 +29,16 @@ internal sealed class LogProtocolConnectionObserver : IProtocolConnectionObserve
             _connectionInformation.LocalNetworkAddress,
             _connectionInformation.RemoteNetworkAddress);
 
-    public void ShutDown(string message, ServerAddress serverAddress) =>
+    public void ShutdownComplete(string message, ServerAddress serverAddress) =>
         _logger.LogConnectionShutdown(
             message,
+            serverAddress,
+            _connectionInformation.LocalNetworkAddress,
+            _connectionInformation.RemoteNetworkAddress);
+
+    public void ShutdownException(Exception exception, string message, ServerAddress serverAddress) =>
+        _logger.LogConnectionShutdownException(
+            exception,
             serverAddress,
             _connectionInformation.LocalNetworkAddress,
             _connectionInformation.RemoteNetworkAddress);

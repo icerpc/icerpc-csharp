@@ -16,4 +16,7 @@ public enum ConnectionEventId
 
     /// <summary>The shutdown operation for an ice or icerpc connection completed successfully.</summary>
     Shutdown,
+
+    /// <summary>The shutdown operation for an ice or icerpc connection failed with an exception.</summary>
+    ShutdownException,
 }
