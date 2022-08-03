@@ -31,7 +31,7 @@ internal sealed class LogDuplexListenerDecorator : IDuplexListener
         }
 
         _logger.LogListenerAccept(Kind, _decoratee.ServerAddress);
-        return new LogDuplexConnectionDecorator(connection, _logger);
+        return connection;
     }
 
     public void Dispose()

@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
@@ -54,20 +53,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
-        if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
-        {
-            options = options with { Dispatcher = new LogDispatcherDecorator(dispatcher, logger) };
-        }
-
         ProtocolConnection decoratee;
 
         if (serverAddress.Protocol == Protocol.Ice)
         {
             duplexClientTransport ??= DefaultDuplexClientTransport;
-            if (logger != NullLogger.Instance)
-            {
-                duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, logger);
-            }
 
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
                 serverAddress,
@@ -85,12 +75,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-            if (logger != NullLogger.Instance)
-            {
-                multiplexedClientTransport = new LogMultiplexedClientTransportDecorator(
-                    multiplexedClientTransport,
-                    logger);
-            }
 
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
                 serverAddress,

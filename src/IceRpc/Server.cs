@@ -72,17 +72,6 @@ public sealed class Server : IAsyncDisposable
         {
             duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, logger);
             multiplexedServerTransport = new LogMultiplexedServerTransportDecorator(multiplexedServerTransport, logger);
-
-            if (options.ConnectionOptions.Dispatcher is IDispatcher dispatcher)
-            {
-                options = options with
-                {
-                    ConnectionOptions = options.ConnectionOptions with
-                    {
-                        Dispatcher = new LogDispatcherDecorator(dispatcher, logger)
-                    }
-                };
-            }
         }
 
         _listenerFactory = () =>

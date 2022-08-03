@@ -31,7 +31,7 @@ internal sealed class LogMultiplexedListenerDecorator : IMultiplexedListener
         }
 
         _logger.LogListenerAccept(Kind, _decoratee.ServerAddress);
-        return new LogMultiplexedConnectionDecorator(connection, _logger);
+        return connection;
     }
 
     public void Dispose()
