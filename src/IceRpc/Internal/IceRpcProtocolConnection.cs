@@ -12,7 +12,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    public override Endpoint Endpoint => _transportConnection.Endpoint;
+    public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
@@ -134,6 +134,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 CancellationToken cancel = _tasksCancelSource.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
+
                 InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
             },

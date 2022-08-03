@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The listener implementation for the colocated transport.</summary>
 internal class ColocListener : IDuplexListener
 {
-    public Endpoint Endpoint { get; }
+    public ServerAddress ServerAddress { get; }
 
     private readonly PipeOptions _pipeOptions;
     private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
@@ -15,20 +15,20 @@ internal class ColocListener : IDuplexListener
     public async Task<IDuplexConnection> AcceptAsync()
     {
         (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-        return new ColocConnection(Endpoint, _ => (reader, writer));
+        return new ColocConnection(ServerAddress, _ => (reader, writer));
     }
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
 
-    internal ColocListener(DuplexListenerOptions options)
+    internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
     {
-        Endpoint = options.Endpoint;
+        ServerAddress = serverAddress;
         _pipeOptions = new PipeOptions(
-            pool: options.ServerConnectionOptions.Pool,
-            minimumSegmentSize: options.ServerConnectionOptions.MinSegmentSize);
+            pool: options.Pool,
+            minimumSegmentSize: options.MinSegmentSize);
     }
 
-    internal (PipeReader, PipeWriter) NewClientConnection(DuplexClientConnectionOptions options)
+    internal (PipeReader, PipeWriter) NewClientConnection(DuplexConnectionOptions options)
     {
         // By default, the Pipe will pause writes on the PipeWriter when written data is more than 64KB. We could
         // eventually increase this size by providing a PipeOptions instance to the Pipe construction.

@@ -10,9 +10,10 @@ namespace IceRpc;
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
 public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the endpoint of this connection. This endpoint includes a transport parameter even when
-    /// <see cref="ClientConnectionOptions.Endpoint"/> does not.</summary>
-    public Endpoint Endpoint => _clientConnection.Endpoint;
+    /// <summary>Gets the server address of this connection.</summary>
+    /// <value>The server address of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even
+    /// when <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
+    public ServerAddress ServerAddress => _clientConnection.ServerAddress;
 
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => _clientConnection.Protocol;
@@ -30,21 +31,15 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private ClientConnection _clientConnection;
 
+    private readonly Func<ClientConnection> _clientConnectionFactory;
+
     private bool _isResumable = true;
-
-    private readonly ILoggerFactory? _loggerFactory;
-
-    private readonly IMultiplexedClientTransport? _multiplexedClientTransport;
 
     private readonly object _mutex = new();
 
     private Action<Exception>? _onAbort;
 
     private Action<string>? _onShutdown;
-
-    private readonly ClientConnectionOptions _options;
-
-    private readonly IDuplexClientTransport? _duplexClientTransport;
 
     /// <summary>Constructs a resumable client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -59,37 +54,50 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
-        _options = options;
-        _multiplexedClientTransport = multiplexedClientTransport;
-        _duplexClientTransport = duplexClientTransport;
-        _loggerFactory = loggerFactory;
+        _clientConnectionFactory = () =>
+        {
+            var clientConnection = new ClientConnection(
+                options,
+                loggerFactory,
+                multiplexedClientTransport,
+                duplexClientTransport);
 
-        _clientConnection = CreateClientConnection();
+            // only called from the constructor or with _mutex locked
+            clientConnection.OnAbort(_onAbort + OnAbort);
+            clientConnection.OnShutdown(_onShutdown + OnShutdown);
+
+            void OnAbort(Exception exception) => _ = RefreshClientConnectionAsync(clientConnection, graceful: false);
+            void OnShutdown(string message) => _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+
+            return clientConnection;
+        };
+
+        _clientConnection = _clientConnectionFactory();
     }
 
-    /// <summary>Constructs a resumable client connection with the specified endpoint and client authentication options.
+    /// <summary>Constructs a resumable client connection with the specified server address and client authentication options.
     /// All other properties have their default values.</summary>
-    /// <param name="endpoint">The connection endpoint.</param>
+    /// <param name="serverAddress">The connection server address.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ResumableClientConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            Endpoint = endpoint
+            ServerAddress = serverAddress
         })
     {
     }
 
-    /// <summary>Constructs a resumable client connection with the specified endpoint URI and client authentication
+    /// <summary>Constructs a resumable client connection with the specified server address URI and client authentication
     /// options. All other properties have their default values.</summary>
-    /// <param name="endpointUri">The connection endpoint URI.</param>
+    /// <param name="serverAddressUri">The connection server address URI.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ResumableClientConnection(
-        Uri endpointUri,
+        Uri serverAddressUri,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
-        : this(new Endpoint(endpointUri), clientAuthenticationOptions)
+        : this(new ServerAddress(serverAddressUri), clientAuthenticationOptions)
     {
     }
 
@@ -196,24 +204,6 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         return _clientConnection.ShutdownAsync(message, cancel);
     }
 
-    private ClientConnection CreateClientConnection()
-    {
-        var clientConnection = new ClientConnection(
-            _options,
-            _loggerFactory,
-            _multiplexedClientTransport,
-            _duplexClientTransport);
-
-        // only called from the constructor or with _mutex locked
-        clientConnection.OnAbort(_onAbort + OnAbort);
-        clientConnection.OnShutdown(_onShutdown + OnShutdown);
-
-        void OnAbort(Exception exception) => _ = RefreshClientConnectionAsync(clientConnection, graceful: false);
-        void OnShutdown(string message) => _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
-
-        return clientConnection;
-    }
-
     private async Task RefreshClientConnectionAsync(ClientConnection clientConnection, bool graceful)
     {
         bool closeOldConnection = false;
@@ -223,7 +213,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
             if (_isResumable && clientConnection == _clientConnection)
             {
-                _clientConnection = CreateClientConnection();
+                _clientConnection = _clientConnectionFactory();
                 closeOldConnection = true;
             }
         }

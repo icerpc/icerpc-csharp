@@ -6,7 +6,7 @@ namespace IceRpc.Locator;
 public sealed record class LocatorOptions
 {
     /// <summary>Gets or sets a value indicating whether or not the locator must enable background lookups.</summary>
-    /// <value>When <c>true</c>, if the lookup finds a stale cache entry, it returns the stale entry's endpoint(s)
+    /// <value>When <c>true</c>, if the lookup finds a stale cache entry, it returns the stale entry's server address(es)
     /// and executes a call "in the background" to refresh this entry. The default is <c>false</c>, meaning the
     /// lookup does not return stale values.</value>
     public bool Background { get; set; }

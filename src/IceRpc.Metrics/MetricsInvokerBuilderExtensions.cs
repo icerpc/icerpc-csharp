@@ -8,13 +8,9 @@ namespace IceRpc.Builder;
 /// </summary>
 public static class MetricsInvokerBuilderExtensions
 {
-    /// <summary>Adds a <see cref="MetricsInterceptor"/> to the builder. This interceptor relies on the
-    /// <see cref="InvocationEventSource"/> service managed by the service provider.</summary>
+    /// <summary>Adds a <see cref="MetricsInterceptor"/> to the builder.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseMetrics(this IInvokerBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(InvocationEventSource)) is InvocationEventSource eventSource ?
-        builder.Use(next => new MetricsInterceptor(next, eventSource)) :
-        throw new InvalidOperationException(
-            $"could not find service of type {nameof(InvocationEventSource)} in service container");
+        builder.Use(next => new MetricsInterceptor(next));
 }

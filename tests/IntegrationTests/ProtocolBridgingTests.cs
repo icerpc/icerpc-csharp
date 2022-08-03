@@ -20,20 +20,20 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)
     {
-        var forwarderEndpoint = new Endpoint(new Uri($"{forwarderProtocol}://colochost1"));
-        var targetEndpoint = new Endpoint(new Uri($"{targetProtocol}://colochost2"));
+        var forwarderServerAddress = new ServerAddress(new Uri($"{forwarderProtocol}://colochost1"));
+        var targetServerAddress = new ServerAddress(new Uri($"{targetProtocol}://colochost2"));
 
         var forwarderServiceProxy = new ProtocolBridgingTestProxy
         {
-            ServiceAddress = new(new Uri($"{forwarderEndpoint}forward"))
+            ServiceAddress = new(new Uri($"{forwarderServerAddress}forward"))
         };
 
         var targetServiceProxy = new ProtocolBridgingTestProxy
         {
-            ServiceAddress = new(new Uri($"{targetEndpoint}target"))
+            ServiceAddress = new(new Uri($"{targetServerAddress}target"))
         };
 
-        var targetService = new ProtocolBridgingTest(targetEndpoint);
+        var targetService = new ProtocolBridgingTest(targetServerAddress);
 
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
@@ -56,8 +56,8 @@ public sealed class ProtocolBridgingTests
                     .UseRequestContext()
                     .Into<ConnectionCache>());
 
-        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
-        services.AddOptions<ServerOptions>("target").Configure(options => options.Endpoint = targetEndpoint);
+        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.ServerAddress = forwarderServerAddress);
+        services.AddOptions<ServerOptions>("target").Configure(options => options.ServerAddress = targetServerAddress);
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -117,9 +117,9 @@ public sealed class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-        private readonly Endpoint _publishedEndpoint;
+        private readonly ServerAddress _publishedServerAddress;
 
-        public ProtocolBridgingTest(Endpoint publishedEndpoint) => _publishedEndpoint = publishedEndpoint;
+        public ProtocolBridgingTest(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
 
         public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
             new(x);
@@ -140,7 +140,7 @@ public sealed class ProtocolBridgingTests
             var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
             {
                 Path = dispatchInformation.Path,
-                Endpoint = _publishedEndpoint
+                ServerAddress = _publishedServerAddress
             };
 
             return new(new ProtocolBridgingTestProxy { ServiceAddress = serviceAddress });

@@ -7,6 +7,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using System.Net.Security;
 
 namespace IceRpc.Tests.Transports;
 
@@ -17,7 +18,7 @@ public static class SlicTransportServiceCollectionExtensions
         SlicTransportOptions? slicTransportOptions = null)
     {
         services.AddColocTransport();
-        var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
+        var serverAddress = new ServerAddress(Protocol.IceRpc) { Host = "colochost" };
 
         services.
             TryAddSingleton<IMultiplexedServerTransport>(
@@ -31,20 +32,16 @@ public static class SlicTransportServiceCollectionExtensions
                     slicTransportOptions ?? new SlicTransportOptions(),
                     provider.GetRequiredService<IDuplexClientTransport>()));
 
-        services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedServerConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedListenerOptions>().Configure<IOptions<MultiplexedServerConnectionOptions>>(
-            (options, serverConnectionOptions) => options.ServerConnectionOptions = serverConnectionOptions.Value);
 
         services.AddSingleton(provider =>
         {
             var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
             var listener = serverTransport.Listen(
-                provider.GetRequiredService<IOptions<MultiplexedListenerOptions>>().Value with { Endpoint = endpoint });
+                serverAddress,
+                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                null);
             return listener;
         });
 
@@ -53,10 +50,9 @@ public static class SlicTransportServiceCollectionExtensions
             var listener = provider.GetRequiredService<IMultiplexedListener>();
             var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
             var connection = clientTransport.CreateConnection(
-                provider.GetRequiredService<IOptions<MultiplexedClientConnectionOptions>>().Value with
-                {
-                    Endpoint = listener.Endpoint
-                });
+                listener.ServerAddress,
+                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                null);
             return (SlicConnection)connection;
         });
         return services;

@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IMultiplexedServerTransport"/> using Slic over a duplex server
-/// transport.</summary>
+/// <summary>Implements <see cref="IMultiplexedServerTransport"/> using Slic over a duplex server transport.</summary>
 public class SlicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
@@ -17,46 +16,34 @@ public class SlicServerTransport : IMultiplexedServerTransport
 
     /// <summary>Constructs a Slic server transport.</summary>
     /// <param name="options">The options to configure the transport.</param>
-    /// <param name="duplexServerTransport">The single server transport.</param>
-    public SlicServerTransport(
-        SlicTransportOptions options,
-        IDuplexServerTransport duplexServerTransport)
+    /// <param name="duplexServerTransport">The duplex server transport.</param>
+    public SlicServerTransport(SlicTransportOptions options, IDuplexServerTransport duplexServerTransport)
     {
         _slicTransportOptions = options;
         _duplexServerTransport = duplexServerTransport;
     }
 
     /// <summary>Constructs a Slic server transport.</summary>
-    /// <param name="duplexServerTransport">The single server transport.</param>
+    /// <param name="duplexServerTransport">The duplex server transport.</param>
     public SlicServerTransport(IDuplexServerTransport duplexServerTransport)
         : this(new(), duplexServerTransport)
     {
     }
 
     /// <inheritdoc/>
-    public IMultiplexedListener Listen(MultiplexedListenerOptions options)
-    {
-        // TODO: temporary until #1536 is fixed
-        IDuplexServerTransport duplexServerTransport = _duplexServerTransport;
-        if (options.Logger != NullLogger.Instance)
-        {
-            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, options.Logger);
-        }
-
-        return new SlicListener(
-            duplexServerTransport.Listen(
-                new DuplexListenerOptions
+    public IMultiplexedListener Listen(
+        ServerAddress serverAddress,
+        MultiplexedConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+        new SlicListener(
+            _duplexServerTransport.Listen(
+                serverAddress,
+                new DuplexConnectionOptions
                 {
-                    ServerConnectionOptions = new()
-                    {
-                        MinSegmentSize = options.ServerConnectionOptions.MinSegmentSize,
-                        Pool = options.ServerConnectionOptions.Pool,
-                        ServerAuthenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions
-                    },
-                    Endpoint = options.Endpoint,
-                    Logger = options.Logger
-                }),
+                    MinSegmentSize = options.MinSegmentSize,
+                    Pool = options.Pool
+                },
+                serverAuthenticationOptions),
             options,
             _slicTransportOptions);
-    }
 }

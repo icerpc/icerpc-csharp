@@ -8,7 +8,7 @@ enum Retryable : uint8
     /// do not retry
     No,
 
-    /// retry same endpoint after delay ms
+    /// retry same server address after delay ms
     AfterDelay,
 
     /// retry another replica known to the caller (if any)

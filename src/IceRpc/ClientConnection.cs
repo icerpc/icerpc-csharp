@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
@@ -22,17 +21,15 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets the default client transport for ice protocol connections.</summary>
     public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
-    /// <summary>Gets the endpoint of this connection.</summary>
-    /// <value>The endpoint (server address) of this connection. Its value always includes a transport parameter even
-    /// when <see cref="ClientConnectionOptions.Endpoint"/> does not.</value>
-    public Endpoint Endpoint { get; }
+    /// <summary>Gets the server address of this connection.</summary>
+    /// <value>The server address of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even when
+    /// <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
+    public ServerAddress ServerAddress { get; }
 
     /// <summary>Gets the protocol of this connection.</summary>
-    public Protocol Protocol => Endpoint.Protocol;
+    public Protocol Protocol => ServerAddress.Protocol;
 
     private readonly IProtocolConnection _protocolConnection;
-
-    private readonly string _transportName;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -47,42 +44,30 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
-        Endpoint endpoint = options.Endpoint ??
+        ServerAddress serverAddress = options.ServerAddress ??
             throw new ArgumentException(
-                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
+                $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
-        if (options.Dispatcher is IDispatcher dispatcher && logger != NullLogger.Instance)
-        {
-            options = options with { Dispatcher = new LogDispatcherDecorator(dispatcher, logger) };
-        }
-
         ProtocolConnection decoratee;
 
-        if (endpoint.Protocol == Protocol.Ice)
+        if (serverAddress.Protocol == Protocol.Ice)
         {
             duplexClientTransport ??= DefaultDuplexClientTransport;
-            if (logger != NullLogger.Instance)
-            {
-                duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, logger);
-            }
 
             IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
-                new DuplexClientConnectionOptions
+                serverAddress,
+                new DuplexConnectionOptions
                 {
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
-                    Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
-                    Logger = logger
-                });
-
-            Endpoint = transportConnection.Endpoint;
-
+                },
+                options.ClientAuthenticationOptions);
+            ServerAddress = transportConnection.ServerAddress;
 #pragma warning disable CA2000
             decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
 #pragma warning restore CA2000
@@ -90,15 +75,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         else
         {
             multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-            if (logger != NullLogger.Instance)
-            {
-                multiplexedClientTransport = new LogMultiplexedClientTransportDecorator(
-                    multiplexedClientTransport,
-                    logger);
-            }
 
             IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
-                new MultiplexedClientConnectionOptions
+                serverAddress,
+                new MultiplexedConnectionOptions
                 {
                     MaxBidirectionalStreams =
                         options.Dispatcher is null ? 0 : options.MaxIceRpcBidirectionalStreams,
@@ -107,21 +87,15 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                         options.Dispatcher is null ? 1 : (options.MaxIceRpcUnidirectionalStreams + 1),
                     Pool = options.Pool,
                     MinSegmentSize = options.MinSegmentSize,
-                    Endpoint = endpoint,
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
-                    Logger = logger,
                     StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-                });
+                },
+                options.ClientAuthenticationOptions);
 
-            Endpoint = transportConnection.Endpoint;
-
+            ServerAddress = transportConnection.ServerAddress;
 #pragma warning disable CA2000
             decoratee = new IceRpcProtocolConnection(transportConnection, options);
 #pragma warning restore CA2000
         }
-
-        // This will throws KeyNotFoundException if the transport did not set "transport" (= bug in the transport).
-        _transportName = Endpoint.Params["transport"];
 
         if (logger != NullLogger.Instance)
         {
@@ -134,25 +108,27 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Constructs a client connection with the specified endpoint and authentication options. All other
+    /// <summary>Constructs a client connection with the specified server address and authentication options. All other
     /// properties have their default values.</summary>
-    /// <param name="endpoint">The address of the server.</param>
+    /// <param name="serverAddress">The address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+    public ClientConnection(
+        ServerAddress serverAddress,
+        SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            Endpoint = endpoint
+            ServerAddress = serverAddress
         })
     {
     }
 
-    /// <summary>Constructs a client connection with the specified endpoint URI and authentication options. All other
-    /// properties have their default values.</summary>
-    /// <param name="endpointUri">A URI that represents the address of the server.</param>
+    /// <summary>Constructs a client connection with the specified server address URI and authentication options. All
+    /// other properties have their default values.</summary>
+    /// <param name="serverAddressUri">A URI that represents the address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ClientConnection(Uri endpointUri, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
-        : this(new Endpoint(endpointUri), clientAuthenticationOptions)
+    public ClientConnection(Uri serverAddressUri, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+        : this(new ServerAddress(serverAddressUri), clientAuthenticationOptions)
     {
     }
 
@@ -178,43 +154,40 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
-        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
+        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
-            if (endpointFeature.Endpoint is Endpoint mainEndpoint)
+            if (serverAddressFeature.ServerAddress is ServerAddress mainServerAddress)
             {
-                CheckRequestEndpoints(mainEndpoint, endpointFeature.AltEndpoints);
+                CheckRequestServerAddresses(mainServerAddress, serverAddressFeature.AltServerAddresses);
             }
         }
-        else if (request.ServiceAddress.Endpoint is Endpoint mainEndpoint)
+        else if (request.ServiceAddress.ServerAddress is ServerAddress mainServerAddress)
         {
-            CheckRequestEndpoints(mainEndpoint, request.ServiceAddress.AltEndpoints);
+            CheckRequestServerAddresses(mainServerAddress, request.ServiceAddress.AltServerAddresses);
         }
-        // If the request has no endpoint at all, we let it through.
+        // If the request has no server address at all, we let it through.
 
         return _protocolConnection.InvokeAsync(request, cancel);
 
-        void CheckRequestEndpoints(Endpoint mainEndpoint, ImmutableList<Endpoint> altEndpoints)
+        void CheckRequestServerAddresses(
+            ServerAddress mainServerAddress,
+            ImmutableList<ServerAddress> altServerAddresses)
         {
-            if (IsCompatible(mainEndpoint))
+            if (ServerAddressComparer.OptionalTransport.Equals(mainServerAddress, ServerAddress))
             {
                 return;
             }
 
-            foreach (Endpoint endpoint in altEndpoints)
+            foreach (ServerAddress serverAddress in altServerAddresses)
             {
-                if (IsCompatible(endpoint))
+                if (ServerAddressComparer.OptionalTransport.Equals(serverAddress, ServerAddress))
                 {
                     return;
                 }
             }
 
             throw new InvalidOperationException(
-                $"none of the request's endpoint(s) is compatible with this connection's endpoint: {Endpoint}");
-
-            bool IsCompatible(Endpoint endpoint) =>
-                EndpointComparer.ParameterLess.Equals(endpoint, Endpoint) &&
-                    (!endpoint.Params.TryGetValue("transport", out string? otherTransportName) ||
-                     _transportName == otherTransportName);
+                $"none of the server addresses of the request matches this connection's server address: {ServerAddress}");
         }
     }
 

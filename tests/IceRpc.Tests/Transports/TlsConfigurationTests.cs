@@ -31,7 +31,7 @@ public class TlsConfigurationTests
             });
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.Endpoint,
+            listener.ServerAddress,
             authenticationOptions: new SslClientAuthenticationOptions
             {
                 ClientCertificates = new X509CertificateCollection()
@@ -78,7 +78,7 @@ public class TlsConfigurationTests
             });
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.Endpoint,
+            listener.ServerAddress,
             authenticationOptions: new SslClientAuthenticationOptions
             {
                 LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) =>
@@ -129,7 +129,7 @@ public class TlsConfigurationTests
             });
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.Endpoint,
+            listener.ServerAddress,
             authenticationOptions: new SslClientAuthenticationOptions
             {
                 ClientCertificates = new X509CertificateCollection()
@@ -170,7 +170,7 @@ public class TlsConfigurationTests
             });
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
-            listener.Endpoint,
+            listener.ServerAddress,
             authenticationOptions: new SslClientAuthenticationOptions
             {
                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false
@@ -187,30 +187,26 @@ public class TlsConfigurationTests
     }
 
     private static IDuplexListener CreateTcpListener(
-        Endpoint? endpoint = null,
+        ServerAddress? serverAddress = null,
         TcpServerTransportOptions? options = null,
         SslServerAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
-            new DuplexListenerOptions
-            {
-                Endpoint = endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
-                ServerConnectionOptions = new() { ServerAuthenticationOptions = authenticationOptions }
-            });
+            serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "::1", Port = 0 },
+            new DuplexConnectionOptions(),
+            authenticationOptions);
     }
 
     private static TcpClientConnection CreateTcpClientConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         TcpClientTransportOptions? options = null,
         SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexClientTransport transport = new TcpClientTransport(options ?? new());
         return (TcpClientConnection)transport.CreateConnection(
-            new DuplexClientConnectionOptions
-            {
-                Endpoint = endpoint,
-                ClientAuthenticationOptions = authenticationOptions
-            });
+            serverAddress,
+            new DuplexConnectionOptions(),
+            authenticationOptions);
     }
 }

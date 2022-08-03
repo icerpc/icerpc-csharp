@@ -8,7 +8,7 @@ module IceRpc::Slice::Internal;
 // it from an int16, and without ": int16", it would get encoded/decoded as a single-byte size.
 unchecked enum TransportCode : int16
 {
-    /// This endpoint encapsulation contains an endpoint URI string.
+    /// This server address encapsulation contains a server address URI string.
     Uri = 0,
 
     /// TCP transport.

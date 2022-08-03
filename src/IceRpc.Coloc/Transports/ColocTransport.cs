@@ -21,12 +21,10 @@ public sealed class ColocTransport
     /// <summary>Constructs a <see cref="ColocTransport"/>.</summary>
     public ColocTransport()
     {
-        var listeners = new ConcurrentDictionary<Endpoint, ColocListener>();
+        var listeners = new ConcurrentDictionary<ServerAddress, ColocListener>();
         ClientTransport = new ColocClientTransport(listeners);
         ServerTransport = new ColocServerTransport(listeners);
     }
 
-    internal static bool CheckParams(Endpoint endpoint) =>
-        endpoint.Params.TryGetValue("transport", out string? transportValue) ?
-            transportValue == Name && endpoint.Params.Count == 1 : endpoint.Params.Count == 0;
+    internal static bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;
 }

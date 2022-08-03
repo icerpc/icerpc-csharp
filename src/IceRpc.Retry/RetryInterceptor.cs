@@ -54,7 +54,7 @@ public class RetryInterceptor : IInvoker
                     RetryPolicy retryPolicy = RetryPolicy.NoRetry;
 
                     // At this point, response can be non-null and carry a failure for which we're retrying. If
-                    // _next.InvokeAsync throws NoEndpointException, we return this previous failure.
+                    // _next.InvokeAsync throws NoServerAddressException, we return this previous failure.
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -70,10 +70,10 @@ public class RetryInterceptor : IInvoker
                             ResponseFieldKey.RetryPolicy,
                             (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
                     }
-                    catch (NoEndpointException ex)
+                    catch (NoServerAddressException ex)
                     {
-                        // NoEndpointException is always considered non-retryable; it typically occurs because we
-                        // removed endpoints from endpoinFeature.
+                        // NoServerAddressException is always considered non-retryable; it typically occurs because we
+                        // removed server addresses from endpoinFeature.
                         return response ?? throw RethrowException(exception ?? ex);
                     }
                     catch (OperationCanceledException)
@@ -117,12 +117,12 @@ public class RetryInterceptor : IInvoker
                             await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
-                        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature &&
-                            endpointFeature.Endpoint is Endpoint mainEndpoint &&
+                        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature &&
+                            serverAddressFeature.ServerAddress is ServerAddress mainServerAddress &&
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            // We don't want to retry with this endpoint
-                            endpointFeature.RemoveEndpoint(mainEndpoint);
+                            // We don't want to retry with this server address
+                            serverAddressFeature.RemoveServerAddress(mainServerAddress);
                         }
 
                         decorator.Reset();

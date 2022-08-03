@@ -20,11 +20,11 @@ public sealed class Server : IAsyncDisposable
     public static IMultiplexedServerTransport DefaultMultiplexedServerTransport { get; } =
         new SlicServerTransport(new TcpServerTransport());
 
-    /// <summary>Gets the endpoint of this server.</summary>
-    /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
-    /// listening endpoint returned by the transport and always includes a transport parameter even when
-    /// <see cref="ServerOptions.Endpoint"/> does not.</value>
-    public Endpoint Endpoint { get; private set; }
+    /// <summary>Gets the server address of this server.</summary>
+    /// <value>The server address of this server. Once <see cref="Listen"/> is called, the server address value is the
+    /// listening server address returned by the transport. It has a non-null Transport property even when
+    /// <see cref="ServerOptions.ServerAddress"/> does not.</value>
+    public ServerAddress ServerAddress { get; private set; }
 
     /// <summary>Gets a task that completes when the server's shutdown is complete: see <see
     /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
@@ -38,13 +38,8 @@ public sealed class Server : IAsyncDisposable
 
     private readonly Func<IDisposable> _listenerFactory;
 
-    private readonly IMultiplexedServerTransport _multiplexedServerTransport;
-    private readonly IDuplexServerTransport _duplexServerTransport;
-
     // protects _shutdownTask
     private readonly object _mutex = new();
-
-    private readonly ServerOptions _options;
 
     private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -66,52 +61,32 @@ public sealed class Server : IAsyncDisposable
                 $"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
 
-        Endpoint = options.Endpoint;
-        _duplexServerTransport = duplexServerTransport ?? DefaultDuplexServerTransport;
-        _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
+        ServerAddress = options.ServerAddress;
+        duplexServerTransport ??= DefaultDuplexServerTransport;
+        multiplexedServerTransport ??= DefaultMultiplexedServerTransport;
 
         loggerFactory ??= NullLoggerFactory.Instance;
         ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
 
         if (logger != NullLogger.Instance)
         {
-            _duplexServerTransport = new LogDuplexServerTransportDecorator(_duplexServerTransport, logger);
-            _multiplexedServerTransport =
-                new LogMultiplexedServerTransportDecorator(_multiplexedServerTransport, logger);
-
-            if (options.ConnectionOptions.Dispatcher is IDispatcher dispatcher)
-            {
-                options = options with
-                {
-                    ConnectionOptions = options.ConnectionOptions with
-                    {
-                        Dispatcher = new LogDispatcherDecorator(dispatcher, logger)
-                    }
-                };
-            }
+            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, logger);
+            multiplexedServerTransport = new LogMultiplexedServerTransportDecorator(multiplexedServerTransport, logger);
         }
 
-        _options = options;
-        _listenerFactory = CreateListener;
-
-        IDisposable CreateListener()
+        _listenerFactory = () =>
         {
-            if (_options.Endpoint.Protocol == Protocol.Ice)
+            if (options.ServerAddress.Protocol == Protocol.Ice)
             {
-                var duplexListenerOptions = new DuplexListenerOptions
-                {
-                    ServerConnectionOptions = new()
+                IDuplexListener listener = duplexServerTransport.Listen(
+                    options.ServerAddress,
+                    new DuplexConnectionOptions
                     {
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
-                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions
+                        MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
+                        Pool = options.ConnectionOptions.Pool,
                     },
-                    Endpoint = _options.Endpoint,
-                    Logger = logger // TODO: temporary until #1536 is fixed
-                };
-
-                IDuplexListener listener = _duplexServerTransport.Listen(duplexListenerOptions);
-                Endpoint = listener.Endpoint;
+                    options.ServerAuthenticationOptions);
+                ServerAddress = listener.ServerAddress;
 
                 // Run task to start accepting new connections
                 _ = Task.Run(() => AcceptAsync(
@@ -121,7 +96,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, _options.ConnectionOptions);
+                    new IceProtocolConnection(duplexConnection, isServer: true, options.ConnectionOptions);
 
                 IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
                 {
@@ -134,24 +109,19 @@ public sealed class Server : IAsyncDisposable
             }
             else
             {
-                var multiplexedListenerOptions = new MultiplexedListenerOptions
-                {
-                    ServerConnectionOptions = new()
+                IMultiplexedListener listener = multiplexedServerTransport.Listen(
+                    options.ServerAddress,
+                    new MultiplexedConnectionOptions
                     {
-                        MaxBidirectionalStreams = _options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
+                        MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.
-                        MaxUnidirectionalStreams = _options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
-                        MinSegmentSize = _options.ConnectionOptions.MinSegmentSize,
-                        Pool = _options.ConnectionOptions.Pool,
-                        ServerAuthenticationOptions = _options.ServerAuthenticationOptions,
+                        MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
+                        MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
+                        Pool = options.ConnectionOptions.Pool,
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
-                    Endpoint = _options.Endpoint,
-                    Logger = logger
-                };
-
-                IMultiplexedListener listener = _multiplexedServerTransport.Listen(multiplexedListenerOptions);
-                Endpoint = listener.Endpoint;
+                    options.ServerAuthenticationOptions);
+                ServerAddress = listener.ServerAddress;
                 _listener = listener;
 
                 // Run task to start accepting new connections
@@ -162,7 +132,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, _options.ConnectionOptions);
+                    new IceRpcProtocolConnection(multiplexedConnection, options.ConnectionOptions);
 
                 // TODO: reduce duplication with Duplex code above
                 IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
@@ -262,7 +232,7 @@ public sealed class Server : IAsyncDisposable
                     }
                 }
             }
-        }
+        };
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
@@ -281,15 +251,15 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a server with the specified dispatcher, endpoint and authentication options. All other
+    /// <summary>Constructs a server with the specified dispatcher, server address and authentication options. All other
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="endpoint">The endpoint of the server.</param>
+    /// <param name="serverAddress">The server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
     /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         SslServerAuthenticationOptions? authenticationOptions = null,
         ILoggerFactory? loggerFactory = null)
         : this(
@@ -300,24 +270,24 @@ public sealed class Server : IAsyncDisposable
                 {
                     Dispatcher = dispatcher,
                 },
-                Endpoint = endpoint
+                ServerAddress = serverAddress
             },
             loggerFactory)
     {
     }
 
-    /// <summary>Constructs a server with the specified dispatcher, endpoint URI and authentication options. All other
+    /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All other
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="endpointUri">A URI that represents the endpoint of the server.</param>
+    /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
     /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
-        Uri endpointUri,
+        Uri serverAddressUri,
         SslServerAuthenticationOptions? authenticationOptions = null,
         ILoggerFactory? loggerFactory = null)
-        : this(dispatcher, new Endpoint(endpointUri), authenticationOptions, loggerFactory)
+        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions, loggerFactory)
     {
     }
 
@@ -339,12 +309,12 @@ public sealed class Server : IAsyncDisposable
         _ = _shutdownCompleteSource.TrySetResult(null);
     }
 
-    /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
-    /// configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the actual
+    /// <summary>Starts listening on the configured server address and dispatching requests from clients. If the
+    /// configured server address is an IP server address with port 0, this method updates the server address to include the actual
     /// port selected by the operating system.</summary>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
-    /// <exception cref="TransportException">Thrown when another server is already listening on the same endpoint.
+    /// <exception cref="TransportException">Thrown when another server is already listening on the same server address.
     /// </exception>
     public void Listen()
     {
@@ -394,5 +364,5 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public override string ToString() => Endpoint.ToString();
+    public override string ToString() => ServerAddress.ToString();
 }

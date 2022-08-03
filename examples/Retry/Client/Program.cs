@@ -45,10 +45,10 @@ var pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connectionCache);
 
-string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-endpoint=127.0.0.1:10001";
+string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-server=127.0.0.1:10001";
 for (int i = 2; i < serverInstances; i++)
 {
-    helloServiceAddress += $"&alt-endpoint=127.0.0.1:{10000 + i}";
+    helloServiceAddress += $"&alt-server=127.0.0.1:{10000 + i}";
 }
 var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
 
@@ -69,7 +69,7 @@ if (Console.ReadLine() is string name)
     }
     catch (DispatchException ex)
     {
-        // The request failed because we reached the allowed max attempts or because all endpoints were excluded due
+        // The request failed because we reached the allowed max attempts or because all server addresses were excluded due
         // to the failure retry policy.
         Console.WriteLine(ex);
     }

@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>This class contains ILogger extension methods used by LogEndpointFinderDecorator.</summary>
-internal static partial class EndpointFinderLoggerExtensions
+/// <summary>This class contains ILogger extension methods used by LogServerAddressFinderDecorator.</summary>
+internal static partial class ServerAddressFinderLoggerExtensions
 {
     [LoggerMessage(
         EventId = (int)LocationEventId.FindFailed,
