@@ -58,8 +58,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    internal IceProtocolConnection(IDuplexConnection duplexConnection, bool isServer, ConnectionOptions options)
-        : base(options)
+    internal IceProtocolConnection(
+        IDuplexConnection duplexConnection,
+        bool isServer,
+        IProtocolConnectionObserver? observer,
+        ConnectionOptions options)
+        : base(observer, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
@@ -190,8 +194,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
 
-        // This needs to be set before starting the read frames task bellow.
-        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
+        // This needs to be set before starting the read frames task below.
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         // Wait for the transport connection establishment to enable the idle timeout check.
         _duplexConnectionReader.EnableIdleCheck();

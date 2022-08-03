@@ -53,7 +53,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
 
-        ProtocolConnection decoratee;
+        IProtocolConnectionObserver? observer = logger == NullLogger.Instance ? null :
+            new LogProtocolConnectionObserver(logger);
 
         if (serverAddress.Protocol == Protocol.Ice)
         {
@@ -68,9 +69,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 },
                 options.ClientAuthenticationOptions);
             ServerAddress = transportConnection.ServerAddress;
-#pragma warning disable CA2000
-            decoratee = new IceProtocolConnection(transportConnection, isServer: false, options);
-#pragma warning restore CA2000
+            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, observer, options);
         }
         else
         {
@@ -92,19 +91,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 options.ClientAuthenticationOptions);
 
             ServerAddress = transportConnection.ServerAddress;
-#pragma warning disable CA2000
-            decoratee = new IceRpcProtocolConnection(transportConnection, options);
-#pragma warning restore CA2000
-        }
-
-        if (logger != NullLogger.Instance)
-        {
-            _protocolConnection = new LogProtocolConnectionDecorator(decoratee, logger);
-            decoratee.Decorator = _protocolConnection;
-        }
-        else
-        {
-            _protocolConnection = decoratee;
+            _protocolConnection = new IceRpcProtocolConnection(transportConnection, observer, options);
         }
     }
 

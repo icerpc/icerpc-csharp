@@ -44,8 +44,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private Task? _waitForConnectionFailure;
 
-    internal IceRpcProtocolConnection(IMultiplexedConnection transportConnection, ConnectionOptions options)
-        : base(options)
+    internal IceRpcProtocolConnection(
+        IMultiplexedConnection transportConnection,
+        IProtocolConnectionObserver? observer,
+        ConnectionOptions options)
+        : base(observer, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;

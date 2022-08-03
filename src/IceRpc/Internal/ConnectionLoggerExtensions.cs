@@ -48,19 +48,7 @@ internal static partial class ConnectionLoggerExtensions
             "successfully: {Message}")]
     internal static partial void LogConnectionShutdown(
         this ILogger logger,
-        ServerAddress serverAddress,
-        EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress,
-        string message);
-
-    [LoggerMessage(
-        EventId = (int)ConnectionEventId.ShutdownException,
-        EventName = nameof(ConnectionEventId.ShutdownException),
-        Level = LogLevel.Debug,
-        Message = "Connection for {ServerAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} failed to shut down")]
-    internal static partial void LogConnectionShutdownException(
-        this ILogger logger,
-        Exception exception,
+        string message,
         ServerAddress serverAddress,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);

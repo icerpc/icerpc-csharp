@@ -22,6 +22,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
+    private readonly IProtocolConnectionObserver? _observer;
     private Action<Exception>? _onAbort;
     private Exception? _onAbortException;
     private Action<string>? _onShutdown;
@@ -76,29 +77,41 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
-            using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_connectCancelSource.Token);
-            cancelSource.CancelAfter(_connectTimeout);
+            TransportConnectionInformation information;
 
             try
             {
-                cancelSource.Token.ThrowIfCancellationRequested();
+                using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_connectCancelSource.Token);
+                cancelSource.CancelAfter(_connectTimeout);
 
-                TransportConnectionInformation information = await ConnectAsyncCore(cancelSource.Token)
-                    .ConfigureAwait(false);
-                EnableIdleCheck();
-                return information;
+                try
+                {
+                    cancelSource.Token.ThrowIfCancellationRequested();
+
+                    information = await ConnectAsyncCore(cancelSource.Token).ConfigureAwait(false);
+                    EnableIdleCheck();
+                }
+                catch (OperationCanceledException) when (_connectCancelSource.IsCancellationRequested)
+                {
+                    throw new ConnectionAbortedException(_disposeTask is null ?
+                        "connection establishment canceled" :
+                        "connection disposed");
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Assert(cancelSource.IsCancellationRequested);
+                    throw new TimeoutException(
+                        $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+                }
             }
-            catch (OperationCanceledException) when (_connectCancelSource.IsCancellationRequested)
+            catch (Exception exception)
             {
-                throw new ConnectionAbortedException(_disposeTask is null ?
-                    "connection establishment canceled" :
-                    "connection disposed");
+                _observer?.ConnectException(exception, ServerAddress);
+                throw;
             }
-            catch (OperationCanceledException)
-            {
-                Debug.Assert(cancelSource.IsCancellationRequested);
-                throw new TimeoutException($"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
-            }
+
+            _observer?.Connected(ServerAddress, information);
+            return information;
         }
     }
 
@@ -159,6 +172,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
             _connectCancelSource.Dispose();
             _shutdownCancelSource.Dispose();
+
+            _observer?.Disposed(ServerAddress);
         }
     }
 
@@ -288,7 +303,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options)
+    internal ProtocolConnection(IProtocolConnectionObserver? observer, ConnectionOptions options)
     {
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
@@ -302,6 +317,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             });
 
         Decorator = this;
+        _observer = observer;
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);
@@ -406,5 +422,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Triggered by the CancelAfter above.
             throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
         }
+
+        _observer?.ShutDown(message, ServerAddress);
     }
 }
