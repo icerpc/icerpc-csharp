@@ -18,8 +18,7 @@ public interface IMultiplexedClientTransport
     bool CheckParams(ServerAddress serverAddress);
 
     /// <summary>Creates a new transport connection to the specified server address.</summary>
-    /// <param name="serverAddress">The server address of the new connection it corresponds to the address of the server-end of
-    /// that connection.</param>
+    /// <param name="serverAddress">The server address of the connection.</param>
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
