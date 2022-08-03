@@ -24,6 +24,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly object _mutex = new();
     private Action<Exception>? _onAbort;
     private Exception? _onAbortException;
+    private Action? _onDispose;
     private Action<string>? _onShutdown;
     private string? _onShutdownMessage;
     private readonly CancellationTokenSource _shutdownCancelSource = new();
@@ -155,6 +156,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             await DisposeAsyncCore().ConfigureAwait(false);
 
+            _onDispose?.Invoke();
+
             // Clean up disposable resources.
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
             _connectCancelSource.Dispose();
@@ -208,6 +211,29 @@ internal abstract class ProtocolConnection : IProtocolConnection
         if (executeCallback)
         {
             callback(_onAbortException!);
+        }
+    }
+
+    /// <summary>Registers a callback that will be called when the connection is disposed.</summary>
+    public void OnDispose(Action callback)
+    {
+        bool executeCallback = false;
+
+        lock (_mutex)
+        {
+            if (_disposeTask is null)
+            {
+                _onDispose += callback;
+            }
+            else
+            {
+                executeCallback = true;
+            }
+        }
+
+        if (executeCallback)
+        {
+            callback();
         }
     }
 

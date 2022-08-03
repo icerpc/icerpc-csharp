@@ -190,6 +190,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
 
+        ServerEventSource.Log.ConnectionStart(Protocol.Ice, transportConnectionInformation);
+        OnAbort(exception =>
+            ServerEventSource.Log.ConnectionFailure(Protocol.Ice, transportConnectionInformation, exception));
+        OnDispose(() => ServerEventSource.Log.ConnectionStop(Protocol.Ice, transportConnectionInformation));
+
         // This needs to be set before starting the read frames task bellow.
         _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
 
