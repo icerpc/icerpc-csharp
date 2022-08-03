@@ -12,7 +12,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"))
 IInvoker pipeline = new Pipeline().UseMetrics(InvocationEventSource.Log).Into(connection);
 
 // Create the proxy using the invocation pipeline
-var hello = new HelloProxy(pipeline);
+var proxy = new MetricsProxy(pipeline);
 
 // Gather necessary user input
 Console.Write("Enter how many requests per second you want to send: ");
@@ -26,21 +26,20 @@ while (!double.TryParse(Console.ReadLine(), out requestsPerSecond))
 Console.WriteLine($"Sending {requestsPerSecond} requests per second...");
 
 // Cancel the client on Ctrl+C or Ctrl+Break
-using var cancellationTokenSource = new CancellationTokenSource();
+using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
+
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    cancellationTokenSource.Cancel();
+    periodicTimer.Dispose();
 };
 
 // Start invoking the remote method
-using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
-
 try
 {
-    while (await periodicTimer.WaitForNextTickAsync(cancellationTokenSource.Token))
+    while (await periodicTimer.WaitForNextTickAsync())
     {
-        await hello.SayHelloAsync(cancel: cancellationTokenSource.Token);
+        await proxy.PingAsync();
     }
 }
 catch (OperationCanceledException)

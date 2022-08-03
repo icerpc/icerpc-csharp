@@ -1,5 +1,5 @@
 This example application illustrates how to use the metrics middleware with `dotnet-counters` and `dotnet-trace` to
-monitor invocations made to a server.
+monitor the requests dispatched by a server.
 
 For build instructions check the top-level [README.md](../../README.md).
 To collect trace and counter metrics, install the `dotnet-counters` and `dotnet-trace` tools.
@@ -22,7 +22,7 @@ To collect the trace metrics, in a separate window run:
 dotnet-trace collect --name Server --providers IceRpc.Dispatch
 ```
 
-In a separate window run the client program to simulate network activity to the server and observe the metrics:
+In a separate window run the client program to send requests to the server:
 
 ```shell
 dotnet run --project Client/Client.csproj

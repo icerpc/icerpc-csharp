@@ -7,8 +7,8 @@ using IceRpc.Metrics;
 // Add metrics middleware to the router
 Router router = new Router().UseMetrics(DispatchEventSource.Log);
 
-var service = new Hello();
-router.Map<IHello>(service);
+using var service = new Metrics();
+router.Map<IMetrics>(service);
 
 await using var server = new Server(router);
 
@@ -26,5 +26,3 @@ Console.WriteLine("Server is waiting for connections...");
 
 // Wait for shutdown
 await server.ShutdownComplete;
-
-service.Dispose();
