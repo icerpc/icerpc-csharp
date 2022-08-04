@@ -13,7 +13,7 @@ pub struct GeneratedCode {
     /// Generated "top-level" code blocks
     pub code_blocks: Vec<CodeBlock>,
 
-    /// Private map of scoped module names to their code blocks.
+    /// Map of scoped module names to their code blocks.
     pub scoped_code_blocks: HashMap<String, Vec<CodeBlock>>,
 }
 
