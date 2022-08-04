@@ -34,7 +34,7 @@ fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
 fn report_unexpected_attribute(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     error_reporter.report(
         LogicKind::UnexpectedAttribute(format!("cs::{}", attribute.directive)),
-        Some(&attribute.location),
+        Some(&attribute.span),
     );
 }
 
@@ -43,11 +43,11 @@ fn validate_cs_attribute(attribute: &Attribute, error_reporter: &mut ErrorReport
         1 => (), // Expected 1 argument
         0 => error_reporter.report(
             LogicKind::MissingRequiredArgument(r#"cs::attribute("<attribute-value>")"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         ),
         _ => error_reporter.report(
             LogicKind::TooManyArguments(r#"cs::attribute("<attribute-value>")"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         ),
     }
 }
@@ -56,7 +56,7 @@ fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporte
     if !attribute.arguments.is_empty() {
         error_reporter.report(
             LogicKind::TooManyArguments(r#"cs::internal"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         );
     }
 }
@@ -65,7 +65,7 @@ fn validate_cs_encoded_result(attribute: &Attribute, error_reporter: &mut ErrorR
     if !attribute.arguments.is_empty() {
         error_reporter.report(
             LogicKind::TooManyArguments(r#"cs::encodedResult"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         );
     }
 }
@@ -75,11 +75,11 @@ fn validate_cs_generic(attribute: &Attribute, error_reporter: &mut ErrorReporter
         1 => (), // Expected 1 argument
         0 => error_reporter.report(
             LogicKind::MissingRequiredArgument(r#"cs::generic("<generic-type>")"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         ),
         _ => error_reporter.report(
             LogicKind::TooManyArguments(r#"cs::generic("<generic-type>")"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         ),
     }
 }
@@ -89,11 +89,11 @@ fn validate_cs_type(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
         1 => (), // Expected 1 argument
         0 => error_reporter.report(
             LogicKind::MissingRequiredArgument(r#"cs::type("<type>")"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         ),
         _ => error_reporter.report(
             LogicKind::TooManyArguments(r#"cs::type("<type>")"#.to_owned()),
-            Some(&attribute.location),
+            Some(&attribute.span),
         ),
     }
 }
@@ -146,13 +146,13 @@ impl Visitor for CsValidator<'_> {
                             LogicKind::MissingRequiredArgument(
                                 r#"cs::namespace("<namespace>")"#.to_owned(),
                             ),
-                            Some(&attribute.location),
+                            Some(&attribute.span),
                         ),
                         _ => self.error_reporter.report(
                             LogicKind::TooManyArguments(
                                 r#"cs::namespace("<namespace>")"#.to_owned(),
                             ),
-                            Some(&attribute.location),
+                            Some(&attribute.span),
                         ),
                     }
                     if !module_def.is_top_level() {
@@ -160,7 +160,7 @@ impl Visitor for CsValidator<'_> {
                             LogicKind::AttributeOnlyValidForTopLevelModules(
                                 "cs::namespace".to_owned(),
                             ),
-                            Some(&attribute.location),
+                            Some(&attribute.span),
                         );
                     }
                 }
@@ -177,7 +177,7 @@ impl Visitor for CsValidator<'_> {
                     if !attribute.arguments.is_empty() {
                         self.error_reporter.report(
                             LogicKind::TooManyArguments(r#"cs::readonly"#.to_owned()),
-                            Some(&attribute.location),
+                            Some(&attribute.span),
                         );
                     }
                 }
@@ -247,7 +247,7 @@ impl Visitor for CsValidator<'_> {
         if !custom_type.has_attribute("cs::type", false) {
             self.error_reporter.report(
                 LogicKind::MissingRequiredAttribute("cs::type".to_owned()),
-                Some(&custom_type.location),
+                Some(&custom_type.span),
             );
         }
 
