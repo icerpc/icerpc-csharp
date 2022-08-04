@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
 namespace IceRpc.Transports;
@@ -25,34 +24,30 @@ public class TcpServerTransport : IDuplexServerTransport
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public IDuplexListener Listen(DuplexListenerOptions options)
+    public IDuplexListener Listen(
+        ServerAddress serverAddress,
+        DuplexConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
         // This is the composition root of the tcp server transport, where we install log decorators when logging
         // is enabled.
 
-        if (TcpClientTransport.CheckParams(options.Endpoint, out string? endpointTransport))
+        if (serverAddress.Params.Count > 0)
         {
-            if (endpointTransport is null)
-            {
-                options = options with
-                {
-                    Endpoint = options.Endpoint with { Params = options.Endpoint.Params.Add("transport", Name) }
-                };
-            }
-            else if (endpointTransport == TransportNames.Ssl &&
-                     options.ServerConnectionOptions.ServerAuthenticationOptions is null)
-            {
-                throw new ArgumentNullException(
-                    nameof(options.ServerConnectionOptions.ServerAuthenticationOptions),
-                    @$"{nameof(options.ServerConnectionOptions.ServerAuthenticationOptions)
-                        } cannot be null with the ssl transport");
-            }
-        }
-        else
-        {
-            throw new FormatException($"cannot create a TCP listener for endpoint '{options.Endpoint}'");
+            throw new FormatException($"cannot create a TCP listener for server address '{serverAddress}'");
         }
 
-        return new TcpListener(options, _options);
+        if (serverAddress.Transport is not string transport)
+        {
+            serverAddress = serverAddress with { Transport = Name };
+        }
+        else if (transport == TransportNames.Ssl && serverAuthenticationOptions is null)
+        {
+            throw new ArgumentNullException(
+                nameof(serverAuthenticationOptions),
+                @$"{nameof(serverAuthenticationOptions)} cannot be null with the ssl transport");
+        }
+
+        return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);
     }
 }

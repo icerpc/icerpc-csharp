@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.Security;
 
 namespace IceRpc.Transports;
 
@@ -16,46 +16,38 @@ public class SlicClientTransport : IMultiplexedClientTransport
 
     /// <summary>Constructs a Slic client transport.</summary>
     /// <param name="options">The options to configure the Slic transport.</param>
-    /// <param name="duplexClientTransport">The single client transport.</param>
-    public SlicClientTransport(
-        SlicTransportOptions options,
-        IDuplexClientTransport duplexClientTransport)
+    /// <param name="duplexClientTransport">The duplex client transport.</param>
+    public SlicClientTransport(SlicTransportOptions options, IDuplexClientTransport duplexClientTransport)
     {
         _duplexClientTransport = duplexClientTransport;
         _slicTransportOptions = options;
     }
 
     /// <summary>Constructs a Slic client transport.</summary>
-    /// <param name="duplexClientTransport">The single client transport.</param>
+    /// <param name="duplexClientTransport">The duplex client transport.</param>
     public SlicClientTransport(IDuplexClientTransport duplexClientTransport)
         : this(new(), duplexClientTransport)
     {
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(Endpoint endpoint) => _duplexClientTransport.CheckParams(endpoint);
+    public bool CheckParams(ServerAddress serverAddress) => _duplexClientTransport.CheckParams(serverAddress);
 
     /// <inheritdoc/>
-    public IMultiplexedConnection CreateConnection(MultiplexedClientConnectionOptions options)
-    {
-        // TODO: temporary until #1536 is fixed
-        IDuplexClientTransport duplexClientTransport = _duplexClientTransport;
-        if (options.Logger != NullLogger.Instance)
-        {
-            duplexClientTransport = new LogDuplexClientTransportDecorator(duplexClientTransport, options.Logger);
-        }
-
-        return new SlicConnection(
-            duplexClientTransport.CreateConnection(
-                new DuplexClientConnectionOptions
+    public IMultiplexedConnection CreateConnection(
+        ServerAddress serverAddress,
+        MultiplexedConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions) =>
+        new SlicConnection(
+            _duplexClientTransport.CreateConnection(
+                serverAddress,
+                new DuplexConnectionOptions
                 {
-                    ClientAuthenticationOptions = options.ClientAuthenticationOptions,
-                    Endpoint = options.Endpoint,
-                    Logger = options.Logger,
                     MinSegmentSize = options.MinSegmentSize,
                     Pool = options.Pool
-                }),
+                },
+                clientAuthenticationOptions),
             options,
-            _slicTransportOptions);
-    }
+            _slicTransportOptions,
+            isServer: false);
 }

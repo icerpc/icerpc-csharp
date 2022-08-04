@@ -6,9 +6,9 @@ namespace IceRpc.Transports;
 /// when it accepts a connection from a client.</summary>
 public interface IMultiplexedListener : IDisposable
 {
-    /// <summary>Gets the endpoint this listener is listening on. This endpoint can be different from the endpoint used
+    /// <summary>Gets the server address this listener is listening on. This server address can be different from the server address used
     /// to create the listener if for example the binding of the server socket assigned a port.</summary>
-    Endpoint Endpoint { get; }
+    ServerAddress ServerAddress { get; }
 
     /// <summary>Accepts a new multiplexed connection.</summary>
     /// <returns>The accepted multiplexed connection.</returns>

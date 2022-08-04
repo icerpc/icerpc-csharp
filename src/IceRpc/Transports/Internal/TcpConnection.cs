@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 
 internal abstract class TcpConnection : IDuplexConnection
 {
-    public Endpoint Endpoint { get; }
+    public ServerAddress ServerAddress { get; }
 
     internal abstract Socket Socket { get; }
 
@@ -206,11 +206,11 @@ internal abstract class TcpConnection : IDuplexConnection
     }
 
     private protected TcpConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MemoryPool<byte> pool,
         int minimumSegmentSize)
     {
-        Endpoint = endpoint;
+        ServerAddress = serverAddress;
         _pool = pool;
         _minSegmentSize = minimumSegmentSize;
     }
@@ -273,16 +273,16 @@ internal class TcpClientConnection : TcpConnection
     }
 
     internal TcpClientConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         SslClientAuthenticationOptions? authenticationOptions,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         TcpClientTransportOptions options)
-        : base(endpoint, pool, minimumSegmentSize)
+        : base(serverAddress, pool, minimumSegmentSize)
     {
-        _addr = IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) ?
-            new IPEndPoint(ipAddress, endpoint.Port) :
-            new DnsEndPoint(endpoint.Host, endpoint.Port);
+        _addr = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?
+            new IPEndPoint(ipAddress, serverAddress.Port) :
+            new DnsEndPoint(serverAddress.Host, serverAddress.Port);
 
         _authenticationOptions = authenticationOptions;
 
@@ -369,12 +369,12 @@ internal class TcpServerConnection : TcpConnection
     }
 
     internal TcpServerConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         Socket socket,
         SslServerAuthenticationOptions? authenticationOptions,
         MemoryPool<byte> pool,
         int minimumSegmentSize)
-        : base(endpoint, pool, minimumSegmentSize)
+        : base(serverAddress, pool, minimumSegmentSize)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;

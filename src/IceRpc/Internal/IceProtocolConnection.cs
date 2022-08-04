@@ -13,7 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    public override Endpoint Endpoint => _duplexConnection.Endpoint;
+    public override ServerAddress ServerAddress => _duplexConnection.ServerAddress;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -219,7 +219,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
                 throw new InvalidDataException(
-                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{
+                       validateConnectionFrame.FrameType}'");
             }
         }
 
@@ -510,7 +511,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             // For compatibility with ZeroC Ice "indirect" proxies
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.Endpoint is null ?
+                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.ServerAddress is null ?
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
@@ -785,7 +786,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 case IceFrameType.ValidateConnection:
                 {
-                    // Notify the control stream of the reception of a Ping frame.
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(

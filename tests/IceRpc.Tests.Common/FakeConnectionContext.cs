@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using System.Net;
-using System.Net.Sockets;
 
 namespace IceRpc.Tests.Common;
 

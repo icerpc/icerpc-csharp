@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -107,7 +106,7 @@ public class Protocol : IEquatable<Protocol>
     /// <param name="serviceAddressParams">The service address parameters to check.</param>
     /// <exception cref="FormatException">Thrown if the service address parameters are not valid.</exception>
     /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
-    /// it does not check for the invalid empty and alt-endpoint parameter names either.</remarks>
+    /// it does not check for the invalid empty and alt-server parameter names either.</remarks>
     internal virtual void CheckServiceAddressParams(ImmutableDictionary<string, string> serviceAddressParams) =>
         // by default, any dictionary is ok
         Debug.Assert(IsSupported);

@@ -2,9 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
-using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -90,7 +88,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         Assert.That(
-            () => serverTransport.Listen(new DuplexListenerOptions { Endpoint = listener.Endpoint }),
+            () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null),
             Throws.TypeOf<TransportException>());
     }
 
@@ -195,28 +193,28 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Create_client_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
+    public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
-        var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(new DuplexClientConnectionOptions { Endpoint = endpoint }));
+            () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null));
     }
 
     [Test]
-    public async Task Create_server_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
+    public async Task Create_server_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
-        var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(() => serverTransport.Listen(new DuplexListenerOptions { Endpoint = endpoint }));
+        Assert.Throws<FormatException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
     }
 
     [Test]

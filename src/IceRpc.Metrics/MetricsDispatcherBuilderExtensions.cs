@@ -12,8 +12,5 @@ public static class MetricsDispatcherBuilderExtensions
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IDispatcherBuilder UseMetrics(this IDispatcherBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(DispatchEventSource)) is DispatchEventSource eventSource ?
-        builder.Use(next => new MetricsMiddleware(next, eventSource)) :
-        throw new InvalidOperationException(
-            $"could not find service of type {nameof(DispatchEventSource)} in service container");
+        builder.Use(next => new MetricsMiddleware(next));
 }

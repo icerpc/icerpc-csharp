@@ -76,14 +76,14 @@ public class ServiceAddressTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Create_service_address_with_alt_endpoints(ServiceAddress, Endpoint[])"/> test.</summary>
-    private static IEnumerable<TestCaseData> AltEndpointsSource
+    /// <see cref="Create_service_address_with_alt_server(ServiceAddress, ServerAddress[])"/> test.</summary>
+    private static IEnumerable<TestCaseData> AltServerAddressesSource
     {
         get
         {
-            foreach ((string str, Endpoint[] altEndpoints) in _altEndpoints)
+            foreach ((string str, ServerAddress[] altServerAddresses) in _altServerAddresses)
             {
-                yield return new TestCaseData(new ServiceAddress(new Uri(str)), altEndpoints);
+                yield return new TestCaseData(new ServiceAddress(new Uri(str)), altServerAddresses);
             }
         }
     }
@@ -137,10 +137,10 @@ public class ServiceAddressTests
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?def=456&abc=123")),
                     true
                 ),
-                //  AltEndpoints (Order matters)
+                //  AltServerAddresses (Order matters)
                 (
-                    new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-endpoint=localhost:10000,localhost:10101")),
-                    new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-endpoint=localhost:10101,localhost:10000")),
+                    new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-server=localhost:10000,localhost:10101")),
+                    new ServiceAddress(new Uri("ice://localhost:8080/foo?alt-server=localhost:10101,localhost:10000")),
                     false
                 ),
             };
@@ -151,13 +151,13 @@ public class ServiceAddressTests
     {
         get
         {
-            // Service address with alt endpoints
-            var serviceAddressWithAltEndpoints = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
-            serviceAddressWithAltEndpoints = serviceAddressWithAltEndpoints with
+            // Service address with alt servers
+            var serviceAddressWithAltServerAddresses = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
+            serviceAddressWithAltServerAddresses = serviceAddressWithAltServerAddresses with
             {
-                AltEndpoints = ImmutableList.Create(
-                    new Endpoint(new Uri("ice://localhost:10000?transport=fizz")),
-                    new Endpoint(new Uri("ice://localhost:10101?transport=buzz"))
+                AltServerAddresses = ImmutableList.Create(
+                    new ServerAddress(new Uri("ice://localhost:10000?transport=fizz")),
+                    new ServerAddress(new Uri("ice://localhost:10101?transport=buzz"))
                 )
             };
 
@@ -169,8 +169,8 @@ public class ServiceAddressTests
             return new[]
             {
                 (
-                    serviceAddressWithAltEndpoints,
-                    "ice://localhost:8080/foo?abc=123&alt-endpoint=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"
+                    serviceAddressWithAltServerAddresses,
+                    "ice://localhost:8080/foo?abc=123&alt-server=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"
                 ),
                 (
                     serviceAddressWithParams,
@@ -202,9 +202,9 @@ public class ServiceAddressTests
     /// <summary>A collection of service address URIs that are valid URIs but invalid service addresses.</summary>
     private static readonly string[] _invalidServiceAddressUris = new string[]
         {
-            "icerpc://host/path?alt-endpoint=", // alt-endpoint authority cannot be empty
-            "icerpc://host/path?alt-endpoint=/foo", // alt-endpoint cannot have a path
-            "icerpc://host/path?alt-endpoint=icerpc://host", // alt-endpoint cannot have a scheme
+            "icerpc://host/path?alt-server=", // alt-server authority cannot be empty
+            "icerpc://host/path?alt-server=/foo", // alt-server cannot have a path
+            "icerpc://host/path?alt-server=icerpc://host", // alt-server cannot have a scheme
             "icerpc:path",                  // bad path
             "icerpc:/host/path#fragment",   // bad fragment
             "icerpc:/path#fragment",        // bad fragment
@@ -213,7 +213,7 @@ public class ServiceAddressTests
             "ice://host/cat/",              // empty identity name
             "ice://host/",                  // empty identity name
             "ice://host//",                 // empty identity name
-            "ice:/path?alt-endpoint=foo",   // alt-endpoint service address parameter
+            "ice:/path?alt-server=foo",   // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
             "ice:/path?adapter-id=foo&foo", // extra parameter
         };
@@ -237,13 +237,13 @@ public class ServiceAddressTests
             ("icerpc://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space", ""),
             ("icerpc://host.zeroc.com/category/name with space", "/category/name%20with%20space", ""),
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
-            ("icerpc://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com", "//identity", ""),
-            ("icerpc://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000", "//identity", ""),
-            ("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4", "/identity", ""),
-            ("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]",
+            ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com", "//identity", ""),
+            ("icerpc://host.zeroc.com//identity?alt-server=host2.zeroc.com:10000", "//identity", ""),
+            ("icerpc://[::1]:10000/identity?alt-server=host1:10000,host2,host3,host4", "/identity", ""),
+            ("icerpc://[::1]:10000/identity?alt-server=host1:10000&alt-server=host2,host3&alt-server=[::2]",
              "/identity",
              ""),
-            ("icerpc://[::1]/path?alt-endpoint=host1?adapter-id=foo=bar$name=value&alt-endpoint=host2?foo=bar$123=456",
+            ("icerpc://[::1]/path?alt-server=host1?adapter-id=foo=bar$name=value&alt-server=host2?foo=bar$123=456",
              "/path",
              ""),
             ("ice:/location/identity#facet", "/location/identity", "facet"),
@@ -264,7 +264,7 @@ public class ServiceAddressTests
             ("icerpc://host:10000?transport=coloc", "/", ""),
             ("icerpc:/tcp -p 10000", "/tcp%20-p%2010000", ""), // not recommended
             ("icerpc://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar", "/identity", ""),
-            ("ice://0.0.0.0/identity#facet", "/identity", "facet"), // Any IPv4 in service address endpoint (unusable but parses ok)
+            ("ice://0.0.0.0/identity#facet", "/identity", "facet"), // Any IPv4 in service address server address (unusable but parses ok)
             ("ice://[::0]/identity#facet", "/identity", "facet"), // Any IPv6 in service address (unusable but parses ok)
             // IDN
             ("icerpc://München-Ost:10000/path", "/path", ""),
@@ -280,22 +280,22 @@ public class ServiceAddressTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    private static readonly Dictionary<string, Endpoint[]> _altEndpoints = new()
+    private static readonly Dictionary<string, ServerAddress[]> _altServerAddresses = new()
     {
-        ["icerpc://localhost/path?alt-endpoint=host1,host2"] = new Endpoint[]
+        ["icerpc://localhost/path?alt-server=host1,host2"] = new ServerAddress[]
         {
-            new Endpoint { Host = "host1" },
-            new Endpoint { Host = "host2" },
+            new ServerAddress { Host = "host1" },
+            new ServerAddress { Host = "host2" },
         },
-        ["icerpc://localhost/path?alt-endpoint=host1:10001,host2:10002"] = new Endpoint[]
+        ["icerpc://localhost/path?alt-server=host1:10001,host2:10002"] = new ServerAddress[]
         {
-            new Endpoint { Host = "host1", Port = 10001 },
-            new Endpoint { Host = "host2", Port = 10002 },
+            new ServerAddress { Host = "host1", Port = 10001 },
+            new ServerAddress { Host = "host2", Port = 10002 },
         },
-        ["icerpc://localhost/path?alt-endpoint=host1:10001&alt-endpoint=host2:10002"] = new Endpoint[]
+        ["icerpc://localhost/path?alt-server=host1:10001&alt-server=host2:10002"] = new ServerAddress[]
         {
-            new Endpoint { Host = "host1", Port = 10001 },
-            new Endpoint { Host = "host2", Port = 10002 },
+            new ServerAddress { Host = "host1", Port = 10001 },
+            new ServerAddress { Host = "host2", Port = 10002 },
         },
     };
 
@@ -312,24 +312,24 @@ public class ServiceAddressTests
     }
 
     [Test]
-    public void Cannot_set_alt_endpoints_on_unsupported_protocol()
+    public void Cannot_set_alt_server_on_unsupported_protocol()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(new Uri("foobar://localhost/hello"));
 
-        // Constructing alternate endpoints.
-        var altEndpoints = ImmutableList.Create(new Endpoint(new Uri("icerpc://localhost:10000?transport=foobar")));
+        // Constructing alternate server addresses.
+        var altServerAddresses = ImmutableList.Create(new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() =>
-            serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }
+            serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }
         );
     }
 
-    /// <summary>Verifies that the service address endpoint cannot be set when the service address contains any params.
+    /// <summary>Verifies that the service address server address cannot be set when the service address contains any params.
     /// </summary>
     [Test]
-    public void Cannot_set_endpoint_on_a_service_address_with_parameters()
+    public void Cannot_set_server_address_on_a_service_address_with_parameters()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(Protocol.Ice)
@@ -341,40 +341,40 @@ public class ServiceAddressTests
         Assert.That(
             () => serviceAddress = serviceAddress with
             {
-                Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" }
+                ServerAddress = new ServerAddress(serviceAddress.Protocol!) { Host = "localhost" }
             },
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies that the service address cannot contain alt endpoints when the service address endpoint is
+    /// <summary>Verifies that the service address cannot contain alt servers when the service address server address is
     /// null.</summary>
     [Test]
-    public void Service_address_cannot_contain_alt_endpoints_when_endpoint_is_null()
+    public void Service_address_cannot_contain_alt_server_when_server_address_is_null()
     {
         // Arrange
-        // Construct a serviceAddress from a protocol since it will have an empty endpoint.
+        // Construct a serviceAddress from a protocol since it will have an empty serverAddress.
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
-        // Constructing alternate endpoints.
-        var altEndpoints = ImmutableList.Create(new Endpoint(new Uri("icerpc://localhost:10000?transport=foobar")));
+        // Constructing alternate server addresses.
+        var altServerAddresses = ImmutableList.Create(new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() =>
-            serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }
+            serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }
         );
     }
 
-    /// <summary>Verifies that the service address endpoint cannot be null when the service address contains has alt
-    /// endpoints.</summary>
+    /// <summary>Verifies that the service address server address cannot be null when the service address contains has alt
+    /// server addresses.</summary>
     [Test]
-    public void Cannot_clear_endpoint_when_alt_endpoints_is_not_empty()
+    public void Cannot_clear_server_address_when_alt_server_is_not_empty()
     {
         // Arrange
-        // Creating a proxy with an alternate endpoint.
-        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost:8080/foo?alt-endpoint=localhost:10000"));
+        // Creating a proxy with an alternate serverAddress.
+        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost:8080/foo?alt-server=localhost:10000"));
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { Endpoint = null });
+        Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { ServerAddress = null });
     }
 
     [Test]
@@ -403,10 +403,10 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Verifies that the service address params cannot be set when the service address has an endpoint.
+    /// <summary>Verifies that the service address params cannot be set when the service address has an server address.
     /// </summary>
     [Test]
-    public void Cannot_set_params_on_a_service_address_with_endpoints()
+    public void Cannot_set_params_on_a_service_address_with_a_server_address()
     {
         var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost/hello"));
         var myParams = new Dictionary<string, string> { ["name"] = "value" }.ToImmutableDictionary();
@@ -443,7 +443,7 @@ public class ServiceAddressTests
         });
     }
 
-    /// <summary>Verifies that a service address created from a path has the expected protocol, path and endpoint
+    /// <summary>Verifies that a service address created from a path has the expected protocol, path and serverAddress
     /// properties.</summary>
     [TestCase("/")]
     [TestCase("/foo/bar/")]
@@ -455,7 +455,7 @@ public class ServiceAddressTests
         {
             Assert.That(serviceAddress.Protocol, Is.Null);
             Assert.That(serviceAddress.Path, Is.EqualTo(path));
-            Assert.That(serviceAddress.Endpoint, Is.Null);
+            Assert.That(serviceAddress.ServerAddress, Is.Null);
         });
     }
 
@@ -501,10 +501,10 @@ public class ServiceAddressTests
     public void Create_service_address_from_invalid_uri(Uri uri) =>
         Assert.Throws(Is.InstanceOf<ArgumentException>(), () => new ServiceAddress(uri));
 
-    [Test, TestCaseSource(nameof(AltEndpointsSource))]
-    public void Create_service_address_with_alt_endpoints(ServiceAddress serviceAddress, Endpoint[] altEndpoints)
+    [Test, TestCaseSource(nameof(AltServerAddressesSource))]
+    public void Create_service_address_with_alt_server(ServiceAddress serviceAddress, ServerAddress[] altServerAddresses)
     {
-        Assert.That(serviceAddress.AltEndpoints, Is.EqualTo(altEndpoints));
+        Assert.That(serviceAddress.AltServerAddresses, Is.EqualTo(altServerAddresses));
     }
 
     /// <summary>Verifies that the proxy invoker for proxies decoded from incoming requests can be set using the Slice
@@ -600,46 +600,46 @@ public class ServiceAddressTests
         Assert.That(result, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the
+    /// <summary>Verifies that setting the alt servers containing server addresses that uses a protocol different than the
     /// proxy protocol throws <see cref="ArgumentException"/>.</summary>
     [Test]
-    public void Setting_alt_endpoints_with_a_different_protocol_fails()
+    public void Setting_alt_server_with_a_different_protocol_fails()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com:10000/hello"));
-        var altEndpoints = new Endpoint[]
+        var altServerAddresses = new ServerAddress[]
         {
-            new Endpoint(Protocol.Ice),
-            new Endpoint(Protocol.IceRpc)
+            new ServerAddress(Protocol.Ice),
+            new ServerAddress(Protocol.IceRpc)
         }.ToImmutableList();
 
         // Act/Assert
         Assert.Multiple(() =>
         {
             Assert.That(() =>
-                serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }, Throws.ArgumentException
+                serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }, Throws.ArgumentException
             );
 
-            // Ensure the alt endpoints weren't updated
-            Assert.That(serviceAddress.AltEndpoints, Is.Empty);
+            // Ensure the alt servers weren't updated
+            Assert.That(serviceAddress.AltServerAddresses, Is.Empty);
         });
     }
 
-    /// <summary>Verifies that setting an endpoint that uses a protocol different than the service address protocol
+    /// <summary>Verifies that setting a server address that uses a protocol different than the service address protocol
     /// throws <see cref="ArgumentException"/>.</summary>
     [Test]
-    public void Setting_endpoint_with_a_different_protocol_fails()
+    public void Setting_server_address_with_a_different_protocol_fails()
     {
         var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com/hello"));
-        Endpoint? endpoint = serviceAddress.Endpoint;
-        Endpoint newEndpoint = new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello")).Endpoint!.Value;
+        ServerAddress? serverAddress = serviceAddress.ServerAddress;
+        ServerAddress newServerAddress = new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
 
         Assert.Multiple(() =>
         {
-            Assert.That(() => serviceAddress = serviceAddress with { Endpoint = newEndpoint }, Throws.ArgumentException);
+            Assert.That(() => serviceAddress = serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
 
-            // Ensure the endpoint wasn't updated
-            Assert.That(serviceAddress.Endpoint, Is.EqualTo(endpoint));
+            // Ensure the server address wasn't updated
+            Assert.That(serviceAddress.ServerAddress, Is.EqualTo(serverAddress));
         });
     }
 

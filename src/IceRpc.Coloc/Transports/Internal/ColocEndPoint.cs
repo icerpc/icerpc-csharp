@@ -6,13 +6,13 @@ namespace IceRpc.Transports.Internal;
 
 internal class ColocEndPoint : System.Net.EndPoint
 {
-    private readonly Endpoint _endpoint;
+    private readonly ServerAddress _serverAddress;
 
     /// <inheritdoc/>
     public override AddressFamily AddressFamily => AddressFamily.Unspecified;
 
     /// <inheritdoc/>
-    public override string ToString() => _endpoint.ToString();
+    public override string ToString() => _serverAddress.ToString();
 
-    internal ColocEndPoint(Endpoint endpoint) => _endpoint = endpoint;
+    internal ColocEndPoint(ServerAddress serverAddress) => _serverAddress = serverAddress;
 }

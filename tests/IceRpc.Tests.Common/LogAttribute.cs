@@ -33,7 +33,7 @@ public sealed class LogAttributeLoggerFactory : ILoggerFactory
 
     private readonly List<ILoggerProvider> _providers = new();
 
-    void ILoggerFactory.AddProvider(ILoggerProvider provider) => _providers.Add(provider);
+    public void AddProvider(ILoggerProvider provider) => _providers.Add(provider);
 
     public ILogger CreateLogger(string categoryName)
     {

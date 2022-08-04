@@ -8,13 +8,13 @@ namespace IceRpc.Internal;
 /// <summary>A log decorator for protocol connections.</summary>
 internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
-    public Endpoint Endpoint => _decoratee.Endpoint;
+    public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
     private readonly IProtocolConnection _decoratee;
     private TransportConnectionInformation _information;
     private readonly ILogger _logger;
 
-    Task<TransportConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformConnectAsync() : _decoratee.ConnectAsync(cancel);
 
@@ -25,7 +25,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
                 _logger.LogConnectionConnect(
-                    Endpoint,
+                    ServerAddress,
                     _information.LocalNetworkAddress,
                     _information.RemoteNetworkAddress);
 
@@ -33,71 +33,56 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             }
             catch (Exception exception)
             {
-                _logger.LogConnectionConnectException(exception, Endpoint);
+                _logger.LogConnectionConnectException(exception, ServerAddress);
                 throw;
             }
         }
     }
 
-    ValueTask IAsyncDisposable.DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformDisposeAsync() : _decoratee.DisposeAsync();
 
         async ValueTask PerformDisposeAsync()
         {
-            using IDisposable _ = _logger.StartConnectionShutdownScope(_information);
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.LogConnectionDispose(Endpoint);
+            _logger.LogConnectionDispose(
+                ServerAddress,
+                _information.LocalNetworkAddress,
+                _information.RemoteNetworkAddress);
         }
     }
 
-    Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
-    {
-        return _logger.IsEnabled(LogLevel.Debug) ? PerformInvokeAsync() : _decoratee.InvokeAsync(request, cancel);
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
+        _decoratee.InvokeAsync(request, cancel);
 
-        async Task<IncomingResponse> PerformInvokeAsync()
-        {
-            using IDisposable _ = _logger.StartConnectionInvocationScope(request);
+    public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
-            try
-            {
-                IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
-                _logger.LogConnectionInvoke(
-                    response.ResultType,
-                    _information.LocalNetworkAddress,
-                    _information.RemoteNetworkAddress);
+    public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-                return response;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogConnectionInvokeException(exception);
-                throw;
-            }
-        }
-    }
-
-    void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
-
-    void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
-
-    Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
+    public Task ShutdownAsync(string message, CancellationToken cancel)
     {
         return _logger.IsEnabled(LogLevel.Debug) ? PerformShutdownAsync() : _decoratee.ShutdownAsync(message, cancel);
 
         async Task PerformShutdownAsync()
         {
-            using IDisposable _ = _logger.StartConnectionShutdownScope(_information);
-
             try
             {
                 await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
 
-                _logger.LogConnectionShutdown(Endpoint, message);
+                _logger.LogConnectionShutdown(
+                    ServerAddress,
+                    _information.LocalNetworkAddress,
+                    _information.RemoteNetworkAddress,
+                    message);
             }
             catch (Exception exception)
             {
-                _logger.LogConnectionShutdownException(exception, Endpoint);
+                _logger.LogConnectionShutdownException(
+                    exception,
+                    ServerAddress,
+                    _information.LocalNetworkAddress,
+                    _information.RemoteNetworkAddress);
                 throw;
             }
         }

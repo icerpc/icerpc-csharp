@@ -11,12 +11,11 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The listener implementation for the TCP transport.</summary>
 internal sealed class TcpListener : IDuplexListener
 {
-    public Endpoint Endpoint { get; }
+    public ServerAddress ServerAddress { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private readonly ILogger _logger;
-    private int _minSegmentSize;
-    private MemoryPool<byte> _pool;
+    private readonly int _minSegmentSize;
+    private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
     public async Task<IDuplexConnection> AcceptAsync()
@@ -33,50 +32,43 @@ internal sealed class TcpListener : IDuplexListener
             throw new ObjectDisposedException(nameof(TcpListener), ex);
         }
 
-#pragma warning disable CA2000 // the connection is disposed by the caller
-        var serverConnection = new TcpServerConnection(
-            Endpoint,
+        return new TcpServerConnection(
+            ServerAddress,
             acceptedSocket,
             _authenticationOptions,
             _pool,
             _minSegmentSize);
-        if (_logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
-        {
-            return new LogTcpConnectionDecorator(serverConnection, _logger);
-        }
-        else
-        {
-            return serverConnection;
-        }
-#pragma warning restore CA2000
     }
 
     public void Dispose() => _socket.Dispose();
 
-    internal TcpListener(DuplexListenerOptions options, TcpServerTransportOptions tcpOptions)
+    internal TcpListener(
+        ServerAddress serverAddress,
+        DuplexConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        TcpServerTransportOptions tcpOptions)
     {
-        if (!IPAddress.TryParse(options.Endpoint.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
             throw new NotSupportedException(
-                $"endpoint '{options.Endpoint}' cannot accept connections because it has a DNS name");
+                $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
         }
 
-        _authenticationOptions = options.ServerConnectionOptions.ServerAuthenticationOptions;
-        _logger = options.Logger;
-        _minSegmentSize = options.ServerConnectionOptions.MinSegmentSize;
-        _pool = options.ServerConnectionOptions.Pool;
+        _authenticationOptions = serverAuthenticationOptions;
+        _minSegmentSize = options.MinSegmentSize;
+        _pool = options.Pool;
 
         if (_authenticationOptions is not null)
         {
-            // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
+            // Add the server address protocol to the SSL application protocols (used by TLS ALPN)
             _authenticationOptions = _authenticationOptions.Clone();
             _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(options.Endpoint.Protocol.Name)
+                new SslApplicationProtocol(serverAddress.Protocol.Name)
             };
         }
 
-        var address = new IPEndPoint(ipAddress, options.Endpoint.Port);
+        var address = new IPEndPoint(ipAddress, serverAddress.Port);
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
@@ -105,6 +97,6 @@ internal sealed class TcpListener : IDuplexListener
             throw ex.ToTransportException();
         }
 
-        Endpoint = options.Endpoint with { Port = (ushort)address.Port };
+        ServerAddress = serverAddress with { Port = (ushort)address.Port };
     }
 }

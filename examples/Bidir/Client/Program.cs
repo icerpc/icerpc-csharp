@@ -6,7 +6,7 @@ using IceRpc;
 var options = new ClientConnectionOptions
 {
     Dispatcher = new AlertObserver(),
-    Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1")),
+    ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1")),
 };
 
 await using var connection = new ClientConnection(options);

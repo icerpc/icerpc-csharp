@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
@@ -12,17 +13,20 @@ internal sealed class LogMultiplexedServerTransportDecorator : IMultiplexedServe
     private readonly IMultiplexedServerTransport _decoratee;
     private readonly ILogger _logger;
 
-    public IMultiplexedListener Listen(MultiplexedListenerOptions options)
+    public IMultiplexedListener Listen(
+        ServerAddress serverAddress,
+        MultiplexedConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
         try
         {
-            IMultiplexedListener listener = _decoratee.Listen(options);
-            _logger.LogServerTransportListen(Kind, listener.Endpoint);
+            IMultiplexedListener listener = _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+            _logger.LogServerTransportListen(Kind, listener.ServerAddress);
             return new LogMultiplexedListenerDecorator(listener, _logger);
         }
         catch (Exception exception)
         {
-            _logger.LogServerTransportListenException(exception, Kind, options.Endpoint);
+            _logger.LogServerTransportListenException(exception, Kind, serverAddress);
             throw;
         }
     }

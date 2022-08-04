@@ -17,8 +17,8 @@ public record class MultiplexedConnectionOptions
     /// <value>The maximum number of remote unidirectional streams.</value>
     public int MaxUnidirectionalStreams { get; set; } = DefaultMaxUnidirectionalStreams;
 
-    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
+    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool"/>.</summary>
+    /// <value>The minimum size of the segment requested from the <see cref="Pool"/>.</value>
     public int MinSegmentSize { get; set; } = 4096;
 
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>

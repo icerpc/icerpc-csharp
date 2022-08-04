@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -16,7 +15,7 @@ public class TcpClientTransport : IDuplexClientTransport
     /// <inheritdoc/>
     public string Name => TransportNames.Tcp;
 
-    /// <summary>The default timeout value for tcp/ssl endpoints with Slice1.</summary>
+    /// <summary>The default timeout value for tcp/ssl server addresses with Slice1.</summary>
     private const int DefaultTcpTimeout = 60_000; // 60s
 
     private readonly TcpClientTransportOptions _options;
@@ -32,92 +31,75 @@ public class TcpClientTransport : IDuplexClientTransport
     public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public bool CheckParams(Endpoint endpoint) => CheckParams(endpoint, out _);
+    public bool CheckParams(ServerAddress serverAddress)
+    {
+        if (serverAddress.Protocol != Protocol.Ice)
+        {
+            return serverAddress.Params.Count == 0;
+        }
+        else
+        {
+            foreach (string name in serverAddress.Params.Keys)
+            {
+                switch (name)
+                {
+                    case "t":
+                    case "z":
+                        // we don't check the value since we ignore it
+                        break;
+
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+    }
 
     /// <inheritdoc/>
-    public IDuplexConnection CreateConnection(DuplexClientConnectionOptions options)
+    public IDuplexConnection CreateConnection(
+        ServerAddress serverAddress,
+        DuplexConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        // This is the composition root of the tcp client transport, where we install log decorators when logging
-        // is enabled.
-        Endpoint endpoint = options.Endpoint;
-        if (!CheckParams(endpoint, out string? endpointTransport))
+        if ((serverAddress.Transport is string transport &&
+            transport != TransportNames.Tcp &&
+            transport != TransportNames.Ssl) ||
+            !CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a TCP connection to endpoint '{endpoint}'");
+            throw new FormatException($"cannot create a TCP connection to server address '{serverAddress}'");
         }
 
-        if (endpointTransport is null)
+        if (serverAddress.Transport is null)
         {
-            endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
+            serverAddress = serverAddress with { Transport = Name };
         }
 
-        SslClientAuthenticationOptions? authenticationOptions = options.ClientAuthenticationOptions?.Clone() ??
-            (endpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+        SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
+            (serverAddress.Transport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
         if (authenticationOptions is not null)
         {
-            // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
-            // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
+            // Add the server address protocol to the SSL application protocols (used by TLS ALPN) and set the
+            // TargetHost to the server address host. On the client side, the application doesn't necessarily
             // need to provide authentication options if it relies on system certificates and doesn't specify
             // certificate validation.
-            authenticationOptions.TargetHost ??= endpoint.Host;
+            authenticationOptions.TargetHost ??= serverAddress.Host;
             authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(endpoint.Protocol.Name)
+                new SslApplicationProtocol(serverAddress.Protocol.Name)
             };
         }
 
-        var clientConnection = new TcpClientConnection(
-            endpoint,
+        return new TcpClientConnection(
+            serverAddress,
             authenticationOptions,
             options.Pool,
             options.MinSegmentSize,
             _options);
-        if (options.Logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel))
-        {
-            return new LogTcpConnectionDecorator(clientConnection, options.Logger);
-        }
-        else
-        {
-            return clientConnection;
-        }
     }
 
-    /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
-    /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
-    /// <returns><c>true</c> when the endpoint parameters are valid; otherwise, <c>false</c>.</returns>
-    internal static bool CheckParams(Endpoint endpoint, out string? transportValue)
-    {
-        transportValue = null;
-
-        foreach ((string name, string value) in endpoint.Params)
-        {
-            switch (name)
-            {
-                case "transport":
-                    if (value is TransportNames.Tcp or TransportNames.Ssl)
-                    {
-                        transportValue = value;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                    break;
-
-                case "t":
-                case "z":
-                    // we don't check the value since we ignore it
-                    break;
-
-                default:
-                    return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>Decodes the body of a tcp or ssl ice endpoint encoded using Slice1.</summary>
-    internal static Endpoint DecodeEndpoint(ref SliceDecoder decoder, string transport)
+    /// <summary>Decodes the body of a tcp or ssl ice server address encoded using Slice1.</summary>
+    internal static ServerAddress DecodeServerAddress(ref SliceDecoder decoder, string transport)
     {
         Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
 
@@ -131,35 +113,31 @@ public class TcpClientTransport : IDuplexClientTransport
         int timeout = decoder.DecodeInt32();
         bool compress = decoder.DecodeBool();
 
-        ImmutableDictionary<string, string>.Builder builder =
-            ImmutableDictionary.CreateBuilder<string, string>();
-
-        builder.Add("transport", transport);
-
+        ImmutableDictionary<string, string> parameters = ImmutableDictionary<string, string>.Empty;
         if (timeout != DefaultTcpTimeout)
         {
-            builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
+            parameters = parameters.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
         }
         if (compress)
         {
-            builder.Add("z", "");
+            parameters = parameters.Add("z", "");
         }
 
-        return new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
+        return new ServerAddress(Protocol.Ice, host, port, transport, parameters);
     }
 
-    /// <summary>Encodes the body of a tcp or ssl ice endpoint using Slice1.</summary>
-    internal static void EncodeEndpoint(ref SliceEncoder encoder, Endpoint endpoint)
+    /// <summary>Encodes the body of a tcp or ssl ice server address using Slice1.</summary>
+    internal static void EncodeServerAddress(ref SliceEncoder encoder, ServerAddress serverAddress)
     {
         Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
-        Debug.Assert(endpoint.Protocol == Protocol.Ice);
+        Debug.Assert(serverAddress.Protocol == Protocol.Ice);
 
-        encoder.EncodeString(endpoint.Host);
-        encoder.EncodeInt32(endpoint.Port);
-        int timeout = endpoint.Params.TryGetValue("t", out string? timeoutValue) ?
+        encoder.EncodeString(serverAddress.Host);
+        encoder.EncodeInt32(serverAddress.Port);
+        int timeout = serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
             timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture) :
             DefaultTcpTimeout;
         encoder.EncodeInt32(timeout);
-        encoder.EncodeBool(endpoint.Params.ContainsKey("z"));
+        encoder.EncodeBool(serverAddress.Params.ContainsKey("z"));
     }
 }

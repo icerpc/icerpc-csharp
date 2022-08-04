@@ -20,20 +20,20 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)
     {
-        var forwarderEndpoint = new Endpoint(new Uri($"{forwarderProtocol}://colochost1"));
-        var targetEndpoint = new Endpoint(new Uri($"{targetProtocol}://colochost2"));
+        var forwarderServerAddress = new ServerAddress(new Uri($"{forwarderProtocol}://colochost1"));
+        var targetServerAddress = new ServerAddress(new Uri($"{targetProtocol}://colochost2"));
 
         var forwarderServiceProxy = new ProtocolBridgingTestProxy
         {
-            ServiceAddress = new(new Uri($"{forwarderEndpoint}forward"))
+            ServiceAddress = new(new Uri($"{forwarderServerAddress}forward"))
         };
 
         var targetServiceProxy = new ProtocolBridgingTestProxy
         {
-            ServiceAddress = new(new Uri($"{targetEndpoint}target"))
+            ServiceAddress = new(new Uri($"{targetServerAddress}target"))
         };
 
-        var targetService = new ProtocolBridgingTest(targetEndpoint);
+        var targetService = new ProtocolBridgingTest(targetServerAddress);
 
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
@@ -56,8 +56,8 @@ public sealed class ProtocolBridgingTests
                     .UseRequestContext()
                     .Into<ConnectionCache>());
 
-        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
-        services.AddOptions<ServerOptions>("target").Configure(options => options.Endpoint = targetEndpoint);
+        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.ServerAddress = forwarderServerAddress);
+        services.AddOptions<ServerOptions>("target").Configure(options => options.ServerAddress = targetServerAddress);
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -117,9 +117,9 @@ public sealed class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-        private readonly Endpoint _publishedEndpoint;
+        private readonly ServerAddress _publishedServerAddress;
 
-        public ProtocolBridgingTest(Endpoint publishedEndpoint) => _publishedEndpoint = publishedEndpoint;
+        public ProtocolBridgingTest(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
 
         public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
             new(x);
@@ -140,7 +140,7 @@ public sealed class ProtocolBridgingTests
             var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
             {
                 Path = dispatchInformation.Path,
-                Endpoint = _publishedEndpoint
+                ServerAddress = _publishedServerAddress
             };
 
             return new(new ProtocolBridgingTestProxy { ServiceAddress = serviceAddress });
@@ -158,8 +158,8 @@ public sealed class ProtocolBridgingTests
     {
         private readonly ServiceProxy _target;
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
-            IncomingRequest incomingRequest,
+        public async ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
             CancellationToken cancel)
         {
             // First create an outgoing request to _target from the incoming request:
@@ -168,10 +168,10 @@ public sealed class ProtocolBridgingTests
 
             var outgoingRequest = new OutgoingRequest(_target.ServiceAddress)
             {
-                IsOneway = incomingRequest.IsOneway,
-                Operation = incomingRequest.Operation,
-                Payload = incomingRequest.Payload,
-                Features = incomingRequest.Features,
+                IsOneway = request.IsOneway,
+                Operation = request.Operation,
+                Payload = request.Payload,
+                Features = request.Features,
             };
 
             // Then invoke
@@ -182,7 +182,7 @@ public sealed class ProtocolBridgingTests
 
             // When ResultType == Failure and the protocols are different, we need to transcode the exception
             // (typically a dispatch exception). Fortunately, we can simply decode it and throw it.
-            if (incomingRequest.Protocol != incomingResponse.Protocol &&
+            if (request.Protocol != incomingResponse.Protocol &&
                 incomingResponse.ResultType == ResultType.Failure)
             {
                 RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
@@ -201,7 +201,7 @@ public sealed class ProtocolBridgingTests
                             new OutgoingFieldValue(pair.Value))));
             _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
-            return new OutgoingResponse(incomingRequest)
+            return new OutgoingResponse(request)
             {
                 Fields = fields,
                 Payload = incomingResponse.Payload,

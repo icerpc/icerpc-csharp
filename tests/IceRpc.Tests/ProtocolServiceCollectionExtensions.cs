@@ -24,7 +24,7 @@ public static class ProtocolServiceCollectionExtensions
         services.AddOptions<ServerOptions>().Configure(
             options =>
             {
-                options.Endpoint = new Endpoint(protocol) { Host = "colochost" };
+                options.ServerAddress = new ServerAddress(protocol) { Host = "colochost" };
                 options.ConnectionOptions.Dispatcher = dispatcher ?? ServiceNotFoundDispatcher.Instance;
             });
 
@@ -38,14 +38,8 @@ public static class ProtocolServiceCollectionExtensions
         services.AddSingleton<IDuplexListener, DuplexListenerDecorator>();
         services.AddSingleton<IMultiplexedListener, MultiplexedListenerDecorator>();
 
-        services.AddOptions<MultiplexedClientConnectionOptions>().Configure(
+        services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedServerConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
-
-        services.AddOptions<MultiplexedListenerOptions>().Configure<IOptions<MultiplexedServerConnectionOptions>>(
-            (options, serverConnectionOptions) => options.ServerConnectionOptions = serverConnectionOptions.Value);
 
         if (protocol == Protocol.Ice)
         {
@@ -133,16 +127,13 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
         ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
-        IOptions<DuplexClientConnectionOptions> duplexClientConnectionOptions)
+        IOptions<DuplexConnectionOptions> duplexConnectionOptions)
         : base(
             clientProtocolConnection: new IceProtocolConnection(
                     clientTransport.CreateConnection(
-                        duplexClientConnectionOptions.Value with
-                        {
-                            Endpoint = listener.Endpoint,
-                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions,
-                            Logger = logger
-                        }),
+                        listener.ServerAddress,
+                        duplexConnectionOptions.Value,
+                        clientConnectionOptions.Value.ClientAuthenticationOptions),
                 isServer: false,
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceProtocolConnection(
@@ -169,18 +160,15 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
         ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
-        IOptions<MultiplexedClientConnectionOptions> multiplexedClientConnectionOptions)
+        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions)
         : base(
             clientProtocolConnection: new IceRpcProtocolConnection(
                     clientTransport.CreateConnection(
-                        multiplexedClientConnectionOptions.Value with
-                        {
-                            Endpoint = listener.Endpoint,
-                            ClientAuthenticationOptions = clientConnectionOptions.Value.ClientAuthenticationOptions,
-                            Logger = logger
-                        }),
+                        listener.ServerAddress,
+                        multiplexedConnectionOptions.Value,
+                        clientConnectionOptions.Value.ClientAuthenticationOptions),
                 clientConnectionOptions.Value),
-            acceptServerConnectionAsync: async() => new IceRpcProtocolConnection(
+            acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                     await listener.AcceptAsync(),
                     serverOptions.Value.ConnectionOptions),
             logger)
@@ -197,24 +185,18 @@ internal class DuplexListenerDecorator : IDuplexListener
 {
     private readonly IDuplexListener _listener;
 
-    public Endpoint Endpoint => _listener.Endpoint;
+    public ServerAddress ServerAddress => _listener.ServerAddress;
 
     public DuplexListenerDecorator(
         IDuplexServerTransport serverTransport,
         ILogger logger,
         IOptions<ServerOptions> serverOptions,
-        IOptions<DuplexListenerOptions> duplexListenerOptions)
+        IOptions<DuplexConnectionOptions> duplexConnectionOptions)
     {
         _listener = serverTransport.Listen(
-            duplexListenerOptions.Value with
-            {
-                ServerConnectionOptions = duplexListenerOptions.Value.ServerConnectionOptions with
-                {
-                    ServerAuthenticationOptions = serverOptions.Value.ServerAuthenticationOptions,
-                },
-                Endpoint = serverOptions.Value.Endpoint,
-                Logger = logger
-            });
+            serverOptions.Value.ServerAddress,
+            duplexConnectionOptions.Value,
+            serverOptions.Value.ServerAuthenticationOptions);
         if (logger != NullLogger.Instance)
         {
             _listener = new LogDuplexListenerDecorator(_listener, logger);
@@ -234,24 +216,18 @@ internal class MultiplexedListenerDecorator : IMultiplexedListener
 {
     private readonly IMultiplexedListener _listener;
 
-    public Endpoint Endpoint => _listener.Endpoint;
+    public ServerAddress ServerAddress => _listener.ServerAddress;
 
     public MultiplexedListenerDecorator(
         IMultiplexedServerTransport serverTransport,
         ILogger logger,
         IOptions<ServerOptions> serverOptions,
-        IOptions<MultiplexedListenerOptions> multiplexedListenerOptions)
+        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions)
     {
         _listener = serverTransport.Listen(
-            multiplexedListenerOptions.Value with
-            {
-                ServerConnectionOptions = multiplexedListenerOptions.Value.ServerConnectionOptions with
-                {
-                    ServerAuthenticationOptions = serverOptions.Value.ServerAuthenticationOptions,
-                },
-                Endpoint = serverOptions.Value.Endpoint,
-                Logger = logger,
-            });
+            serverOptions.Value.ServerAddress,
+            multiplexedConnectionOptions.Value,
+            serverOptions.Value.ServerAuthenticationOptions);
         if (logger != NullLogger.Instance)
         {
             _listener = new LogMultiplexedListenerDecorator(_listener, logger);

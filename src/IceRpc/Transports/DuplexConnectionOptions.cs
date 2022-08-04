@@ -7,8 +7,8 @@ namespace IceRpc.Transports;
 /// <summary>A property bag used to configure a <see cref="IDuplexConnection"/>.</summary>
 public record class DuplexConnectionOptions
 {
-    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
+    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool"/>.</summary>
+    /// <value>The minimum size of the segment requested from the <see cref="Pool"/>.</value>
     public int MinSegmentSize
     {
         get => _minSegmentSize;

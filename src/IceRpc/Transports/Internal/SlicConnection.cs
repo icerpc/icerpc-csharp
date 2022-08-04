@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal;
 /// cref="IDuplexConnection"/>.</summary>
 internal class SlicConnection : IMultiplexedConnection
 {
-    public Endpoint Endpoint => _duplexConnection.Endpoint;
+    public ServerAddress ServerAddress => _duplexConnection.ServerAddress;
 
     internal bool IsServer { get; }
 
@@ -301,14 +301,15 @@ internal class SlicConnection : IMultiplexedConnection
     internal SlicConnection(
         IDuplexConnection duplexConnection,
         MultiplexedConnectionOptions options,
-        SlicTransportOptions slicOptions)
+        SlicTransportOptions slicOptions,
+        bool isServer)
     {
         if (options.StreamErrorCodeConverter is null)
         {
             throw new ArgumentException(nameof(options), $"{nameof(options.StreamErrorCodeConverter)} is null");
         }
 
-        IsServer = options is MultiplexedServerConnectionOptions;
+        IsServer = isServer;
         ErrorCodeConverter = options.StreamErrorCodeConverter;
 
         Pool = options.Pool;

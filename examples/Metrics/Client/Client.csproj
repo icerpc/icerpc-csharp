@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>10.0</LangVersion>
+    <ImplicitUsings>true</ImplicitUsings>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <SliceCompile Include="../Hello.slice" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview5" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="0.1.0-preview1" />
+  </ItemGroup>
+</Project>

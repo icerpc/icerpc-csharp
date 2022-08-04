@@ -5,22 +5,23 @@ namespace IceRpc.Transports.Internal;
 internal class SlicListener : IMultiplexedListener
 {
     private readonly IDuplexListener _duplexListener;
-    private readonly MultiplexedListenerOptions _options;
+    private readonly MultiplexedConnectionOptions _options;
     private readonly SlicTransportOptions _slicOptions;
 
-    public Endpoint Endpoint => _duplexListener.Endpoint;
+    public ServerAddress ServerAddress => _duplexListener.ServerAddress;
 
     public async Task<IMultiplexedConnection> AcceptAsync() =>
         new SlicConnection(
             await _duplexListener.AcceptAsync().ConfigureAwait(false),
-            _options.ServerConnectionOptions,
-            _slicOptions);
+            _options,
+            _slicOptions,
+            isServer: true);
 
     public void Dispose() => _duplexListener.Dispose();
 
     internal SlicListener(
         IDuplexListener duplexListener,
-        MultiplexedListenerOptions options,
+        MultiplexedConnectionOptions options,
         SlicTransportOptions slicOptions)
     {
         _duplexListener = duplexListener;
