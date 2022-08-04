@@ -37,7 +37,7 @@ internal static class IncomingFrameExtensions
         // All the logic is in this local function.
         T DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol);
+            readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
 
             var decoder = new SliceDecoder(
                 readResult.Buffer,
@@ -85,7 +85,7 @@ internal static class IncomingFrameExtensions
         // All the logic is in this local function.
         void DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol);
+            readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
 
             if (!readResult.Buffer.IsEmpty)
             {
@@ -132,7 +132,7 @@ internal static class IncomingFrameExtensions
         // this thread since frames are not thread-safe.
         _ = Task.Run(
             () => FillWriterAsync(
-                frame.Protocol,
+                frame,
                 payload,
                 encoding,
                 feature,
@@ -164,7 +164,7 @@ internal static class IncomingFrameExtensions
         }
 
         async static Task FillWriterAsync(
-            Protocol protocol,
+            IncomingFrame frame,
             PipeReader payload,
             SliceEncoding encoding,
             ISliceFeature feature,
@@ -189,7 +189,7 @@ internal static class IncomingFrameExtensions
                         feature.MaxSegmentSize,
                         cancel).ConfigureAwait(false);
 
-                    readResult.ThrowIfCanceled(protocol);
+                    readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
 
                     if (!readResult.Buffer.IsEmpty)
                     {
@@ -249,7 +249,7 @@ internal static class IncomingFrameExtensions
         // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
         // this thread since frames are not thread-safe.
         _ = Task.Run(
-            () => _ = FillWriterAsync(frame.Protocol, payload, encoding, feature, streamDecoder, elementSize),
+            () => _ = FillWriterAsync(frame, payload, encoding, feature, streamDecoder, elementSize),
             CancellationToken.None);
 
         // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
@@ -277,7 +277,7 @@ internal static class IncomingFrameExtensions
         }
 
         async static Task FillWriterAsync(
-            Protocol protocol,
+            IncomingFrame frame,
             PipeReader payload,
             SliceEncoding encoding,
             ISliceFeature feature,
@@ -300,7 +300,7 @@ internal static class IncomingFrameExtensions
                 try
                 {
                     readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
-                    readResult.ThrowIfCanceled(protocol);
+                    readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
                 }
                 catch (Exception ex)
                 {

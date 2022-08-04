@@ -636,7 +636,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                 }
 
-                readResult.ThrowIfCanceled(Protocol.IceRpc);
+                readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
 
                 if (readResult.IsCompleted)
                 {
@@ -750,10 +750,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var dispatchCancelSource = new CancellationTokenSource();
 
-            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
+            // If the peer is no longer interested in the response of the readingRequest, we cancel the readingRequest.
             _ = CancelDispatchOnWritesClosedAsync();
 
-            // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
+            // Cancel the readingRequest cancellation token source if dispatches and invocations are canceled.
             using CancellationTokenRegistration tokenRegistration =
                 _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
@@ -958,7 +958,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         while (true)
         {
             ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
-            readResult.ThrowIfCanceled(Protocol.IceRpc);
+            readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
 
             if (readResult.Buffer.IsEmpty)
             {
@@ -989,7 +989,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
 
-        readResult.ThrowIfCanceled(Protocol.IceRpc);
+        readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
 
         try
         {
@@ -1013,7 +1013,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
 
-        readResult.ThrowIfCanceled(Protocol.IceRpc);
+        readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
 
         try
         {

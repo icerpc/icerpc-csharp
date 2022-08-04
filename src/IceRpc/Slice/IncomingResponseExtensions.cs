@@ -203,7 +203,7 @@ public static class IncomingResponseExtensions
                 feature.MaxSegmentSize,
                 cancel).ConfigureAwait(false);
 
-            readResult.ThrowIfCanceled(response.Protocol);
+            readResult.ThrowIfCanceled(response.Protocol, readingRequest: false);
 
             if (readResult.Buffer.IsEmpty)
             {
