@@ -750,10 +750,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var dispatchCancelSource = new CancellationTokenSource();
 
-            // If the peer is no longer interested in the response of the readingRequest, we cancel the readingRequest.
+            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
             _ = CancelDispatchOnWritesClosedAsync();
 
-            // Cancel the readingRequest cancellation token source if dispatches and invocations are canceled.
+            // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
             using CancellationTokenRegistration tokenRegistration =
                 _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),

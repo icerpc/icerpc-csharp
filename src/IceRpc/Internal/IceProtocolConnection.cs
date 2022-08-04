@@ -660,7 +660,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
         // closure here. We can't just return and close the underlying transport since this could abort the receive of
-        // the readingRequest responses and close connection frame by the peer.
+        // the dispatch responses and close connection frame by the peer.
         await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
 
         static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
@@ -966,7 +966,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             else
             {
                 // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
-                // cleanup the readingRequest if DisposeAsync is called.
+                // cleanup the dispatch if DisposeAsync is called.
                 _ = Task.Run(
                     () => DispatchRequestAsync(request, contextReader),
                     CancellationToken.None);
@@ -996,7 +996,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         dispatchException.ConvertToUnhandled)
                     {
                         dispatchException = exception is OperationCanceledException ?
-                            new DispatchException("readingRequest canceled by peer", DispatchErrorCode.Canceled) :
+                            new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled) :
                             new DispatchException(
                                 message: null,
                                 exception is InvalidDataException ?
