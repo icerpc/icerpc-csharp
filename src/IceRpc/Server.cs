@@ -312,8 +312,8 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Starts listening on the configured server address and dispatching requests from clients. If the
     /// configured server address is an IP server address with port 0, this method updates the server address to include the actual
     /// port selected by the operating system.</summary>
-    /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or
+    /// shutting down.</exception>
     /// <exception cref="TransportException">Thrown when another server is already listening on the same server address.
     /// </exception>
     public void Listen()
