@@ -14,8 +14,8 @@ internal sealed class TcpListener : IDuplexListener
     public ServerAddress ServerAddress { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private int _minSegmentSize;
-    private MemoryPool<byte> _pool;
+    private readonly int _minSegmentSize;
+    private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
     public async Task<IDuplexConnection> AcceptAsync()

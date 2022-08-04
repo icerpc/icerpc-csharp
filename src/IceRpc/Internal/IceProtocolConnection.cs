@@ -219,7 +219,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
                 throw new InvalidDataException(
-                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{
+                       validateConnectionFrame.FrameType}'");
             }
         }
 
