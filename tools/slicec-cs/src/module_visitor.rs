@@ -30,7 +30,19 @@ impl ModuleVisitor<'_> {
     fn module_code_block(&mut self, module: &Module, module_prefix: Option<String>) -> CodeBlock {
         let code_blocks = self.generated_code.remove_scoped(module);
 
-        let module_identifier = module_identifier(module, module_prefix.clone());
+        let module_identifier = match &module_prefix {
+            Some(prefix) => {
+                // If there is a prefix the previous module was empty and we keep the prefix in the
+                // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
+                format!("{}.{}", prefix, module.identifier())
+            }
+            None => match module.get_attribute("cs::namespace", false) {
+                // If a top-level module has a 'cs::namespace' attribute, use its argument as module
+                // identifier otherwise use the module identifier.
+                Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
+                _ => module.identifier().to_owned(),
+            },
+        };
 
         // If this module has any code blocks the submodules are mapped to namespaces inside the
         // current namespace (not using a prefix), otherwise if the current module doesn't
@@ -83,21 +95,5 @@ impl ModuleVisitor<'_> {
         } else {
             submodules_code
         }
-    }
-}
-
-fn module_identifier(module: &Module, module_prefix: Option<String>) -> String {
-    match &module_prefix {
-        Some(prefix) => {
-            // If there is a prefix the previous module was empty and we keep the prefix in the
-            // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
-            format!("{}.{}", prefix, module.identifier())
-        }
-        None => match module.get_attribute("cs::namespace", false) {
-            // If a top-level module has a 'cs::namespace' attribute, use its argument as module
-            // identifier otherwise use the module identifier.
-            Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
-            _ => module.identifier().to_owned(),
-        },
     }
 }
