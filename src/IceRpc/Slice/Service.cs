@@ -77,15 +77,15 @@ public class Service : IService, IDispatcher
     }
 
     /// <inheritdoc/>
-    public ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancel) =>
+    public virtual ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancel) =>
         new(_typeIds);
 
     /// <inheritdoc/>
-    public ValueTask<bool> IceIsAAsync(string id, IFeatureCollection features, CancellationToken cancel) =>
+    public virtual ValueTask<bool> IceIsAAsync(string id, IFeatureCollection features, CancellationToken cancel) =>
         new(_typeIds.Contains(id));
 
     /// <inheritdoc/>
-    public ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancel) => default;
+    public virtual ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancel) => default;
 
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)

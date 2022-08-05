@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +20,7 @@ public class ServiceTests
             .AddIceRpcProxy<IServiceProxy, ServiceProxy>(new Uri($"{protocol}:/service"))
             .BuildServiceProvider(validateScopes: true);
         IServiceProxy proxy = provider.GetRequiredService<IServiceProxy>();
-        var server = provider.GetRequiredService<Server>();
+        Server server = provider.GetRequiredService<Server>();
         server.Listen();
 
         string[] ids = new string[]
@@ -27,9 +28,12 @@ public class ServiceTests
             "::IceRpc::Slice::Service",
         };
 
-        Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
-        Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
-        Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
-        Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
+            Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
+            Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
+            Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
+        });
     }
 }
