@@ -30,7 +30,7 @@ public sealed class Server : IAsyncDisposable
     /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<IProtocolConnection> _connections = new();
+    private readonly HashSet<ProtocolConnection> _connections = new();
 
     private bool _isReadOnly;
 
@@ -89,23 +89,16 @@ public sealed class Server : IAsyncDisposable
                 ServerAddress = listener.ServerAddress;
 
                 // Run task to start accepting new connections
-                _ = Task.Run(() => AcceptAsync(
-                    () => listener.AcceptAsync(),
-                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
+                _ = Task.Run(() => AcceptAsync(() => listener.AcceptAsync(), CreateProtocolConnection));
 
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(duplexConnection, isServer: true, options.ConnectionOptions);
-
-                IProtocolConnection CreateProtocolConnectionWithLogger(IDuplexConnection duplexConnection)
-                {
-                    ProtocolConnection decoratee = CreateProtocolConnection(duplexConnection);
-
-                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
-                    decoratee.Decorator = decorator;
-                    return decorator;
-                }
+                    new IceProtocolConnection(
+                        duplexConnection,
+                        isServer: true,
+                        observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
+                        options.ConnectionOptions);
             }
             else
             {
@@ -125,34 +118,24 @@ public sealed class Server : IAsyncDisposable
                 _listener = listener;
 
                 // Run task to start accepting new connections
-                _ = Task.Run(() => AcceptAsync(
-                    () => listener.AcceptAsync(),
-                    logger == NullLogger.Instance ? CreateProtocolConnection : CreateProtocolConnectionWithLogger));
+                _ = Task.Run(() => AcceptAsync(() => listener.AcceptAsync(), CreateProtocolConnection));
 
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(multiplexedConnection, options.ConnectionOptions);
-
-                // TODO: reduce duplication with Duplex code above
-                IProtocolConnection CreateProtocolConnectionWithLogger(IMultiplexedConnection multiplexedConnection)
-                {
-                    ProtocolConnection decoratee = CreateProtocolConnection(multiplexedConnection);
-
-                    IProtocolConnection decorator = new LogProtocolConnectionDecorator(decoratee, logger);
-                    decoratee.Decorator = decorator;
-
-                    return decorator;
-                }
+                    new IceRpcProtocolConnection(
+                        multiplexedConnection,
+                        observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
+                        options.ConnectionOptions);
             }
 
             async Task AcceptAsync<T>(
                 Func<Task<T>> acceptTransportConnection,
-                Func<T, IProtocolConnection> createProtocolConnection)
+                Func<T, ProtocolConnection> createProtocolConnection)
             {
                 while (true)
                 {
-                    IProtocolConnection connection;
+                    ProtocolConnection connection;
                     try
                     {
                         connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
@@ -199,7 +182,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
+            async Task RemoveFromCollectionAsync(ProtocolConnection connection, bool graceful)
             {
                 lock (_mutex)
                 {

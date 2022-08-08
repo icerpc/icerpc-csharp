@@ -102,10 +102,10 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        IProtocolConnection? serverConnection = null;
+        ProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
+            serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
@@ -307,11 +307,11 @@ public class ConnectionTests
         [Values("icerpc", "ice")] string protocol)
     {
         // Arrange
-        IProtocolConnection? serverConnection = null;
+        ProtocolConnection? serverConnection = null;
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) =>
             {
-                serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
+                serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
                 return new(new OutgoingResponse(request));
             }),
             Protocol.FromString(protocol));
@@ -352,12 +352,12 @@ public class ConnectionTests
         [Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        IProtocolConnection? serverConnection = null;
+        ProtocolConnection? serverConnection = null;
 
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) =>
             {
-                serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
+                serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
                 return new(new OutgoingResponse(request));
             }),
             Protocol.FromString(protocol));
@@ -426,10 +426,10 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        IProtocolConnection? serverConnection = null;
+        ProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
+            serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
             start.Release();
             await hold.WaitAsync(CancellationToken.None);
             return new OutgoingResponse(request);
@@ -480,14 +480,14 @@ public class ConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        IProtocolConnection? serverConnection = null;
+        ProtocolConnection? serverConnection = null;
         using var shutdownCancellationSource = new CancellationTokenSource();
         var dispatchCompletionSource = new TaskCompletionSource();
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             try
             {
-                serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
+                serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
                 start.Release();
                 await hold.WaitAsync(cancel);
                 return new OutgoingResponse(request);
@@ -575,10 +575,10 @@ public class ConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        IProtocolConnection? serverConnection = null;
+        ProtocolConnection? serverConnection = null;
         IDispatcher dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
+            serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);

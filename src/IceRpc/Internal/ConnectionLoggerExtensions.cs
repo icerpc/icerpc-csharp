@@ -48,10 +48,10 @@ internal static partial class ConnectionLoggerExtensions
             "successfully: {Message}")]
     internal static partial void LogConnectionShutdown(
         this ILogger logger,
+        string message,
         ServerAddress serverAddress,
         EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress,
-        string message);
+        EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventId.ShutdownException,
