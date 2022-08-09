@@ -342,8 +342,6 @@ internal class TcpServerConnection : TcpConnection
                 await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
             }
 
-            var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
-
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,

@@ -22,7 +22,7 @@ public class TlsConfigurationTests
     public async Task Tls_client_certificate_not_trusted()
     {
         // Arrange
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ClientCertificateRequired = true,
@@ -44,7 +44,7 @@ public class TlsConfigurationTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         _ = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await listener.AcceptAsync();
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
 
         // Act/Assert
         Assert.That(
@@ -65,7 +65,7 @@ public class TlsConfigurationTests
         using var expectedCertificate = new X509Certificate2("../../../certs/client.p12", "password");
         X509Certificate? clientCertificate = null;
         bool localCertificateSelectionCallbackCalled = false;
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -94,7 +94,7 @@ public class TlsConfigurationTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await listener.AcceptAsync();
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -116,7 +116,7 @@ public class TlsConfigurationTests
         // Arrange
         bool serverCertificateValidationCallback = false;
         bool clientCertificateValidationCallback = false;
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -148,7 +148,7 @@ public class TlsConfigurationTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await listener.AcceptAsync();
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -163,7 +163,7 @@ public class TlsConfigurationTests
     public async Task Tls_server_certificate_not_trusted()
     {
         // Arrange
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -179,14 +179,14 @@ public class TlsConfigurationTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await listener.AcceptAsync();
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
         await serverConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
     }
 
-    private static IDuplexListener CreateTcpListener(
+    private static IListener<IDuplexConnection> CreateTcpListener(
         ServerAddress? serverAddress = null,
         TcpServerTransportOptions? options = null,
         SslServerAuthenticationOptions? authenticationOptions = null)

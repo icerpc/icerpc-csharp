@@ -4,7 +4,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>A class to create a <see cref="IDuplexListener"/> to accept incoming duplex connections.</summary>
+/// <summary>A class to create a <see cref="IListener{T}"/> to accept incoming duplex connections.</summary>
 public interface IDuplexServerTransport
 {
     /// <summary>Gets the transport's name.</summary>
@@ -15,7 +15,7 @@ public interface IDuplexServerTransport
     /// <param name="options">The duplex connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
-    IDuplexListener Listen(
+    IListener<IDuplexConnection> Listen(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions);

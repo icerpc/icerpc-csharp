@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Net;
 using System.Net.Security;
@@ -9,7 +8,7 @@ using System.Net.Sockets;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the TCP transport.</summary>
-internal sealed class TcpListener : IDuplexListener
+internal sealed class TcpListener : IListener<IDuplexConnection>
 {
     public ServerAddress ServerAddress { get; }
 
@@ -18,7 +17,7 @@ internal sealed class TcpListener : IDuplexListener
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
-    public async Task<IDuplexConnection> AcceptAsync()
+    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync()
     {
         Socket acceptedSocket;
         try
@@ -32,12 +31,14 @@ internal sealed class TcpListener : IDuplexListener
             throw new ObjectDisposedException(nameof(TcpListener), ex);
         }
 
-        return new TcpServerConnection(
+        var tcpConnection = new TcpServerConnection(
             ServerAddress,
             acceptedSocket,
             _authenticationOptions,
             _pool,
             _minSegmentSize);
+
+        return (tcpConnection, acceptedSocket.RemoteEndPoint!);
     }
 
     public void Dispose() => _socket.Dispose();

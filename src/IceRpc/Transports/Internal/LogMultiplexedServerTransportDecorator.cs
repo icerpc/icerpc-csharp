@@ -13,16 +13,16 @@ internal sealed class LogMultiplexedServerTransportDecorator : IMultiplexedServe
     private readonly IMultiplexedServerTransport _decoratee;
     private readonly ILogger _logger;
 
-    public IMultiplexedListener Listen(
+    public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
         try
         {
-            IMultiplexedListener listener = _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+            IListener<IMultiplexedConnection> listener = _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
             _logger.LogServerTransportListen(Kind, listener.ServerAddress);
-            return new LogMultiplexedListenerDecorator(listener, _logger);
+            return new LogListenerDecorator<IMultiplexedConnection>(listener, Kind, _logger);
         }
         catch (Exception exception)
         {

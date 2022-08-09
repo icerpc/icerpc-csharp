@@ -5,12 +5,13 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net;
 using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
-/// the corresponding responses.</summary>
+/// <summary>A server serves clients by listening for the requests they send, processing these requests and sending the
+/// corresponding responses.</summary>
 public sealed class Server : IAsyncDisposable
 {
     /// <summary>Gets the default server transport for ice protocol connections.</summary>
@@ -21,25 +22,27 @@ public sealed class Server : IAsyncDisposable
         new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets the server address of this server.</summary>
-    /// <value>The server address of this server. Once <see cref="Listen"/> is called, the server address value is the
-    /// listening server address returned by the transport. It has a non-null Transport property even when
-    /// <see cref="ServerOptions.ServerAddress"/> does not.</value>
-    public ServerAddress ServerAddress { get; private set; }
+    /// <value>The server address of this server. Its <see cref="ServerAddress.Transport"/> property is always non-null.
+    /// When the address's host is an IP address and the port is 0, <see cref="Listen"/> replaces the port by the actual
+    /// port the server is listening on.</value>
+    public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
 
-    /// <summary>Gets a task that completes when the server's shutdown is complete: see <see
-    /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
+    /// <summary>Gets a task that completes when the server's shutdown is complete: see <see cref="ShutdownAsync"/>.
+    /// This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
     private readonly HashSet<ProtocolConnection> _connections = new();
 
     private bool _isReadOnly;
 
-    private IDisposable? _listener;
+    private IListener? _listener;
 
-    private readonly Func<IDisposable> _listenerFactory;
+    private readonly Func<IListener> _listenerFactory;
 
     // protects _shutdownTask
     private readonly object _mutex = new();
+
+    private readonly ServerAddress _serverAddress;
 
     private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -61,9 +64,18 @@ public sealed class Server : IAsyncDisposable
                 $"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
 
-        ServerAddress = options.ServerAddress;
+        _serverAddress = options.ServerAddress;
         duplexServerTransport ??= DefaultDuplexServerTransport;
         multiplexedServerTransport ??= DefaultMultiplexedServerTransport;
+
+        if (_serverAddress.Transport is null)
+        {
+            _serverAddress = ServerAddress with
+            {
+                Transport = _serverAddress.Protocol == Protocol.Ice ?
+                    duplexServerTransport.Name : multiplexedServerTransport.Name
+            };
+        }
 
         loggerFactory ??= NullLoggerFactory.Instance;
         ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
@@ -76,17 +88,16 @@ public sealed class Server : IAsyncDisposable
 
         _listenerFactory = () =>
         {
-            if (options.ServerAddress.Protocol == Protocol.Ice)
+            if (_serverAddress.Protocol == Protocol.Ice)
             {
-                IDuplexListener listener = duplexServerTransport.Listen(
-                    options.ServerAddress,
+                IListener<IDuplexConnection> listener = duplexServerTransport.Listen(
+                    _serverAddress,
                     new DuplexConnectionOptions
                     {
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
                     },
                     options.ServerAuthenticationOptions);
-                ServerAddress = listener.ServerAddress;
 
                 // Run task to start accepting new connections
                 _ = Task.Run(() => AcceptAsync(() => listener.AcceptAsync(), CreateProtocolConnection));
@@ -102,8 +113,8 @@ public sealed class Server : IAsyncDisposable
             }
             else
             {
-                IMultiplexedListener listener = multiplexedServerTransport.Listen(
-                    options.ServerAddress,
+                IListener<IMultiplexedConnection> listener = multiplexedServerTransport.Listen(
+                    _serverAddress,
                     new MultiplexedConnectionOptions
                     {
                         MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
@@ -114,7 +125,6 @@ public sealed class Server : IAsyncDisposable
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
                     options.ServerAuthenticationOptions);
-                ServerAddress = listener.ServerAddress;
                 _listener = listener;
 
                 // Run task to start accepting new connections
@@ -130,7 +140,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             async Task AcceptAsync<T>(
-                Func<Task<T>> acceptTransportConnection,
+                Func<Task<(T, EndPoint)>> acceptTransportConnection,
                 Func<T, ProtocolConnection> createProtocolConnection)
             {
                 while (true)
@@ -138,7 +148,8 @@ public sealed class Server : IAsyncDisposable
                     ProtocolConnection connection;
                     try
                     {
-                        connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
+                        (T transportConnection, EndPoint _) = await acceptTransportConnection().ConfigureAwait(false);
+                        connection = createProtocolConnection(transportConnection);
                     }
                     catch
                     {
@@ -292,9 +303,7 @@ public sealed class Server : IAsyncDisposable
         _ = _shutdownCompleteSource.TrySetResult(null);
     }
 
-    /// <summary>Starts listening on the configured server address and dispatching requests from clients. If the
-    /// configured server address is an IP server address with port 0, this method updates the server address to include the actual
-    /// port selected by the operating system.</summary>
+    /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or
     /// shutting down.</exception>
     /// <exception cref="TransportException">Thrown when another server is already listening on the same server address.
@@ -331,7 +340,6 @@ public sealed class Server : IAsyncDisposable
 
                 // Stop accepting new connections by disposing of the listener.
                 _listener?.Dispose();
-                _listener = null;
             }
 
             await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync("server shutdown", cancel)))
