@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 
@@ -12,13 +11,13 @@ internal sealed class ServerEventSource : EventSource
 {
     internal static readonly ServerEventSource Log = new("IceRpc-Server");
 
-    private readonly PollingCounter _currentConnectionsCounter;
-    private long _currentConnections;
-    private readonly PollingCounter _failedConnectionsCounter;
-    private long _failedConnections;
     private readonly IncrementingPollingCounter _connectionsPerSecondCounter;
-    private readonly PollingCounter _totalConnectionsCounter;
+    private long _currentConnections;
+    private readonly PollingCounter _currentConnectionsCounter;
+    private long _failedConnections;
+    private readonly PollingCounter _failedConnectionsCounter;
     private long _totalConnections;
+    private readonly PollingCounter _totalConnectionsCounter;
 
     /// <summary>Creates a new instance of the <see cref="ServerEventSource"/> class with the specified name.
     /// </summary>
@@ -26,6 +25,15 @@ internal sealed class ServerEventSource : EventSource
     internal ServerEventSource(string eventSourceName)
         : base(eventSourceName)
     {
+        _connectionsPerSecondCounter = new IncrementingPollingCounter(
+            "connections-per-second",
+            this,
+            () => Volatile.Read(ref _totalConnections))
+        {
+            DisplayName = "Connections Rate",
+            DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+        };
+
         _currentConnectionsCounter = new PollingCounter(
             "current-connections",
             this,
@@ -38,18 +46,9 @@ internal sealed class ServerEventSource : EventSource
             "failed-connections",
             this,
             () => Volatile.Read(ref _failedConnections))
-        {
-            DisplayName = "Failed Connections",
-        };
-
-        _connectionsPerSecondCounter = new IncrementingPollingCounter(
-            "connections-per-second",
-            this,
-            () => Volatile.Read(ref _totalConnections))
-        {
-            DisplayName = "Connections Rate",
-            DisplayRateTimeScale = TimeSpan.FromSeconds(1)
-        };
+                {
+                    DisplayName = "Failed Connections",
+                };
 
         _totalConnectionsCounter = new PollingCounter(
             "total-connections",
@@ -71,9 +70,9 @@ internal sealed class ServerEventSource : EventSource
         {
             ConnectionFailure(
                 protocol.Name,
-                connectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                connectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
-                exception.GetType().FullName ?? "",
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString(),
+                exception.GetType().FullName,
                 exception.ToString());
         }
     }
@@ -87,8 +86,8 @@ internal sealed class ServerEventSource : EventSource
         {
             ConnectionStart(
                 protocol.Name,
-                connectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                connectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined");
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString());
         }
     }
 
@@ -102,8 +101,8 @@ internal sealed class ServerEventSource : EventSource
         {
             ConnectionStop(
                 protocol.Name,
-                connectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
-                connectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined");
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString());
         }
     }
 
@@ -121,24 +120,24 @@ internal sealed class ServerEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectionStart(string protocol, string localNetworkAddress, string remoteNetworkAddress) =>
+    private void ConnectionStart(string protocol, string? localNetworkAddress, string? remoteNetworkAddress) =>
         WriteEvent(1, protocol, localNetworkAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
     private void ConnectionStop(
         string protocol,
-        string localNetworkAddress,
-        string remoteNetworkAddress) =>
+        string? localNetworkAddress,
+        string? remoteNetworkAddress) =>
         WriteEvent(2, protocol, localNetworkAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(3, Level = EventLevel.Error)]
     private void ConnectionFailure(
         string protocol,
-        string localNetworkAddress,
-        string remoteNetworkAddress,
-        string exceptionType,
+        string? localNetworkAddress,
+        string? remoteNetworkAddress,
+        string? exceptionType,
         string exceptionDetails) =>
         WriteEvent(3, protocol, localNetworkAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
 }
