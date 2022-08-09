@@ -105,7 +105,7 @@ public static class IncomingRequestExtensions
             encoding,
             feature,
             feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
+            feature.ServiceProxyFactory,
             decodeFunc,
             cancel);
     }
@@ -163,26 +163,7 @@ public static class IncomingRequestExtensions
             encoding,
             feature,
             feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
+            feature.ServiceProxyFactory,
             decodeFunc);
     }
-
-    private static Func<ServiceAddress, ServiceProxy> CreateServiceProxyFactory(
-        IncomingRequest request,
-        ISliceFeature feature) =>
-        serviceAddress => serviceAddress.Protocol is null ?
-            // relative service address
-            new ServiceProxy
-            {
-                EncodeOptions = feature.EncodeOptions,
-                Invoker = request.ConnectionContext.Invoker,
-                ServiceAddress = new(request.ConnectionContext.Protocol) { Path = serviceAddress.Path },
-            }
-            :
-            new ServiceProxy
-            {
-                EncodeOptions = feature.EncodeOptions,
-                Invoker = null,
-                ServiceAddress = serviceAddress
-            };
 }

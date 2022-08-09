@@ -15,16 +15,14 @@ public static class IncomingResponseExtensions
     /// <summary>Decodes a response with a <see cref="ResultType.Failure"/> result type.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="sender">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeOptions">The encode options of the proxy that sent the request.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The decoded failure.</returns>
     public static ValueTask<RemoteException> DecodeFailureAsync(
         this IncomingResponse response,
         OutgoingRequest request,
-        IInvoker sender,
-        SliceEncodeOptions? encodeOptions = null,
+        ServiceProxy sender,
         IActivator? defaultActivator = null,
         CancellationToken cancel = default)
     {
@@ -36,7 +34,7 @@ public static class IncomingResponseExtensions
                 response.Protocol.SliceEncoding,
                 feature,
                 feature.Activator ?? defaultActivator,
-                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(response, feature, sender, encodeOptions),
+                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender),
                 cancel) :
             throw new ArgumentException(
                 $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -48,8 +46,7 @@ public static class IncomingResponseExtensions
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
-    /// <param name="sender">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeOptions">The encode options of the proxy that sent the request.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the return value.</param>
     /// <param name="cancel">The cancellation token.</param>
@@ -58,8 +55,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        IInvoker sender,
-        SliceEncodeOptions? encodeOptions,
+        ServiceProxy sender,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel = default)
@@ -67,7 +63,7 @@ public static class IncomingResponseExtensions
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         Func<ServiceAddress, ServiceProxy> serviceProxyFactory =
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(response, feature, sender, encodeOptions);
+            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender);
 
         IActivator? activator = feature.Activator ?? defaultActivator;
 
@@ -120,8 +116,7 @@ public static class IncomingResponseExtensions
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
-    /// <param name="sender">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeOptions">The encode options of the proxy that sent the request.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
@@ -129,8 +124,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        IInvoker sender,
-        SliceEncodeOptions? encodeOptions,
+        ServiceProxy sender,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc)
     {
@@ -140,7 +134,7 @@ public static class IncomingResponseExtensions
             encoding,
             feature,
             feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(response, feature, sender, encodeOptions),
+            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender),
             decodeFunc);
     }
 
@@ -148,8 +142,7 @@ public static class IncomingResponseExtensions
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
-    /// <param name="sender">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeOptions">The encode options of the proxy that sent the request.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
@@ -157,8 +150,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        IInvoker sender,
-        SliceEncodeOptions? encodeOptions,
+        ServiceProxy sender,
         IActivator? defaultActivator = null,
         CancellationToken cancel = default)
     {
@@ -175,7 +167,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 feature,
                 feature.Activator ?? defaultActivator,
-                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(response, feature, sender, encodeOptions),
+                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender),
                 cancel).ConfigureAwait(false);
         }
     }
@@ -252,23 +244,14 @@ public static class IncomingResponseExtensions
     }
 
     private static Func<ServiceAddress, ServiceProxy> CreateServiceProxyFactory(
-        IncomingResponse response,
         ISliceFeature feature,
-        IInvoker sender,
-        SliceEncodeOptions? encodeOptions) =>
-        serviceAddress => serviceAddress.Protocol is null ?
-            // relative service address
+        ServiceProxy sender) =>
+        serviceAddress =>
             new ServiceProxy
             {
-                EncodeOptions = feature.EncodeOptions ?? encodeOptions,
-                Invoker = response.ConnectionContext.Invoker,
-                ServiceAddress = new(response.ConnectionContext.Protocol) { Path = serviceAddress.Path },
-            }
-            :
-            new ServiceProxy
-            {
-                EncodeOptions = feature.EncodeOptions ?? encodeOptions,
-                Invoker = sender,
-                ServiceAddress = serviceAddress
+                EncodeOptions = feature.EncodeOptions ?? sender.EncodeOptions,
+                Invoker = sender.Invoker,
+                ServiceAddress = serviceAddress.Protocol is null ?
+                    sender.ServiceAddress with { Path = serviceAddress.Path } : serviceAddress
             };
 }

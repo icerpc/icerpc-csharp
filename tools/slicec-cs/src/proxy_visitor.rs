@@ -471,13 +471,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
-        builder.add_parameter("IceRpc.IInvoker", "sender", None, None);
-        builder.add_parameter(
-            "SliceEncodeOptions?",
-            "encodeOptions",
-            None, // TODO: switch to null
-            None,
-        );
+        builder.add_parameter("ServiceProxy", "sender", None, None);
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancel",
@@ -508,7 +502,6 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     sender,
-    encodeOptions,
     _defaultActivator,
     cancel).ConfigureAwait(false);
 
@@ -532,7 +525,6 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     sender,
-    encodeOptions,
     _defaultActivator,
     {response_decode_func},
     cancel).ConfigureAwait(false);
@@ -563,7 +555,6 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     sender,
-    encodeOptions,
     _defaultActivator,
     {response_decode_func},
     cancel)",

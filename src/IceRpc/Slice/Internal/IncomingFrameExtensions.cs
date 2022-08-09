@@ -24,7 +24,7 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceFeature feature,
         IActivator? activator,
-        Func<ServiceAddress, ServiceProxy> serviceProxyFactory,
+        Func<ServiceAddress, ServiceProxy>? serviceProxyFactory,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
@@ -117,7 +117,7 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceFeature feature,
         IActivator? activator,
-        Func<ServiceAddress, ServiceProxy> serviceProxyFactory,
+        Func<ServiceAddress, ServiceProxy>? serviceProxyFactory,
         DecodeFunc<T> decodeFunc)
     {
         var streamDecoder = new StreamDecoder<T>(

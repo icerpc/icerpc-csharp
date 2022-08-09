@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -25,8 +26,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
         Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -48,8 +48,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
         Assert.That(r, Is.EqualTo(new int[] { 1, 2, 3 }));
@@ -98,8 +97,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
         Assert.That(await result, Is.EqualTo(data));
@@ -125,8 +123,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
         Assert.That(await result, Is.EqualTo(data));
