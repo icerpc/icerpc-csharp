@@ -48,7 +48,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());
 
-    public IMultiplexedListener Listen(
+    public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)

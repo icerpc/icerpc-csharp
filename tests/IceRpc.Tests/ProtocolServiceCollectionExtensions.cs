@@ -35,8 +35,8 @@ public static class ProtocolServiceCollectionExtensions
         services.AddSingleton<IMultiplexedClientTransport>(
             provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
 
-        services.AddSingleton<IDuplexListener, DuplexListenerDecorator>();
-        services.AddSingleton<IMultiplexedListener, MultiplexedListenerDecorator>();
+        services.AddSingleton<IListener<IDuplexConnection>, DuplexListenerDecorator>();
+        services.AddSingleton<IListener<IMultiplexedConnection>, MultiplexedListenerDecorator>();
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
@@ -112,7 +112,7 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
 #pragma warning disable CA2000 // the connection is disposed by the base class Dispose method
     public ClientServerIceProtocolConnection(
         IDuplexClientTransport clientTransport,
-        IDuplexListener listener,
+        IListener<IDuplexConnection> listener,
         ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
@@ -147,7 +147,7 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
 #pragma warning disable CA2000 // the connection is disposed by the base class Dispose method
     public ClientServerIceRpcProtocolConnection(
         IMultiplexedClientTransport clientTransport,
-        IMultiplexedListener listener,
+        IListener<IMultiplexedConnection> listener,
         ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
@@ -174,11 +174,11 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal class DuplexListenerDecorator : IDuplexListener
+internal class DuplexListenerDecorator : IListener<IDuplexConnection>
 {
-    private readonly IDuplexListener _listener;
-
     public ServerAddress ServerAddress => _listener.ServerAddress;
+
+    private readonly IListener<IDuplexConnection> _listener;
 
     public DuplexListenerDecorator(
         IDuplexServerTransport serverTransport,
@@ -192,7 +192,7 @@ internal class DuplexListenerDecorator : IDuplexListener
             serverOptions.Value.ServerAuthenticationOptions);
         if (logger != NullLogger.Instance)
         {
-            _listener = new LogDuplexListenerDecorator(_listener, logger);
+            _listener = new LogListenerDecorator<IDuplexConnection>(_listener, "Duplex", logger);
         }
     }
 
@@ -205,11 +205,11 @@ internal class DuplexListenerDecorator : IDuplexListener
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
-internal class MultiplexedListenerDecorator : IMultiplexedListener
+internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
 {
-    private readonly IMultiplexedListener _listener;
-
     public ServerAddress ServerAddress => _listener.ServerAddress;
+
+    private readonly IListener<IMultiplexedConnection> _listener;
 
     public MultiplexedListenerDecorator(
         IMultiplexedServerTransport serverTransport,
@@ -223,7 +223,7 @@ internal class MultiplexedListenerDecorator : IMultiplexedListener
             serverOptions.Value.ServerAuthenticationOptions);
         if (logger != NullLogger.Instance)
         {
-            _listener = new LogMultiplexedListenerDecorator(_listener, logger);
+            _listener = new LogListenerDecorator<IMultiplexedConnection>(_listener, "Multiplexed", logger);
         }
     }
 

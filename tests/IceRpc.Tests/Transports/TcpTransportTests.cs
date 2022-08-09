@@ -109,7 +109,7 @@ public class TcpTransportTests
     public async Task Configure_server_connection_buffer_size(int bufferSize)
     {
         // Arrange
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
@@ -172,7 +172,7 @@ public class TcpTransportTests
     public async Task Configure_server_connection_listen_backlog()
     {
         // Arrange
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 18
@@ -216,7 +216,7 @@ public class TcpTransportTests
     public async Task Connect_cancellation()
     {
         // Arrange
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 1
@@ -270,7 +270,7 @@ public class TcpTransportTests
         // Arrange
 
         using var cancellationSource = new CancellationTokenSource();
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
@@ -300,7 +300,7 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
@@ -336,7 +336,7 @@ public class TcpTransportTests
     public async Task Tls_server_connection_connect_failed_exception()
     {
         // Arrange
-        using IDuplexListener listener =
+        using IListener<IDuplexConnection> listener =
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
         using TcpClientConnection clientConnection =
             CreateTcpClientConnection(listener.ServerAddress, authenticationOptions: DefaultSslClientAuthenticationOptions);
@@ -359,7 +359,7 @@ public class TcpTransportTests
     public async Task Tls_server_connect_operation_canceled_exception()
     {
         // Arrange
-        using IDuplexListener listener = CreateTcpListener(
+        using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -382,7 +382,7 @@ public class TcpTransportTests
         Assert.That(async () => await serverConnectTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    private static IDuplexListener CreateTcpListener(
+    private static IListener<IDuplexConnection> CreateTcpListener(
         ServerAddress? serverAddress = null,
         TcpServerTransportOptions? options = null,
         SslServerAuthenticationOptions? authenticationOptions = null)

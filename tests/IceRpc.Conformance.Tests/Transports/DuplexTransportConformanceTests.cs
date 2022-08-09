@@ -15,7 +15,7 @@ public abstract class DuplexTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IDuplexListener>();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
 
         Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
@@ -38,7 +38,7 @@ public abstract class DuplexTransportConformanceTests
         var payload = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
 
         int writtenSize = 0;
@@ -83,7 +83,7 @@ public abstract class DuplexTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IDuplexListener>();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
         // Act/Assert
@@ -96,9 +96,9 @@ public abstract class DuplexTransportConformanceTests
     public async Task Read_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IDuplexListener>();
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         var buffer = new Memory<byte>(new byte[1]);
 
@@ -115,7 +115,7 @@ public abstract class DuplexTransportConformanceTests
         using var canceled = new CancellationTokenSource();
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         ValueTask<int> readTask = sut.ClientConnection.ReadAsync(new byte[1], canceled.Token);
 
@@ -135,7 +135,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
 
         IDuplexConnection readFrom = readFromServer ? sut.ServerConnection : sut.ClientConnection;
@@ -157,7 +157,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         IDuplexConnection disposedConnection = disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
 
@@ -174,7 +174,7 @@ public abstract class DuplexTransportConformanceTests
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
 
         // Act
@@ -222,7 +222,7 @@ public abstract class DuplexTransportConformanceTests
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
 
@@ -238,7 +238,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         using var canceled = new CancellationTokenSource();
@@ -275,7 +275,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
 
         // Act
@@ -308,7 +308,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         IDuplexConnection disposedConnection =
             disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
@@ -328,7 +328,7 @@ public abstract class DuplexTransportConformanceTests
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
 
@@ -347,7 +347,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IDuplexListener>(),
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         byte[] writeBuffer = Enumerable.Range(0, size).Select(i => (byte)(i % 255)).ToArray();
 
@@ -376,7 +376,7 @@ public abstract class DuplexTransportConformanceTests
     protected abstract IServiceCollection CreateServiceCollection();
 
     private static async Task<ClientServerDuplexConnection> ConnectAndAcceptAsync(
-        IDuplexListener listener,
+        IListener<IDuplexConnection> listener,
         IDuplexConnection clientConnection)
     {
         Task<IDuplexConnection> acceptTask = listener.AcceptAsync();

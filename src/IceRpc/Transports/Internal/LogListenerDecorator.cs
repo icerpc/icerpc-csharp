@@ -4,17 +4,18 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
 
-internal sealed class LogDuplexListenerDecorator : IDuplexListener
+internal sealed class LogListenerDecorator<T> : IListener<T>
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    private const string Kind = "Duplex";
-    private readonly IDuplexListener _decoratee;
+    private readonly IListener<T> _decoratee;
     private readonly ILogger _logger;
 
-    public async Task<IDuplexConnection> AcceptAsync()
+    private readonly string _kind;
+
+    public async Task<T> AcceptAsync()
     {
-        IDuplexConnection connection;
+        T connection;
         try
         {
             connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
@@ -26,25 +27,26 @@ internal sealed class LogDuplexListenerDecorator : IDuplexListener
         }
         catch (Exception exception)
         {
-            _logger.LogListenerAcceptException(exception, Kind, _decoratee.ServerAddress);
+            _logger.LogListenerAcceptException(exception, _kind, _decoratee.ServerAddress);
             throw;
         }
 
-        _logger.LogListenerAccept(Kind, _decoratee.ServerAddress);
+        _logger.LogListenerAccept(_kind, _decoratee.ServerAddress);
         return connection;
     }
 
     public void Dispose()
     {
         _decoratee.Dispose();
-        _logger.LogListenerDispose(Kind, _decoratee.ServerAddress);
+        _logger.LogListenerDispose(_kind, _decoratee.ServerAddress);
     }
 
     public override string? ToString() => _decoratee.ToString();
 
-    internal LogDuplexListenerDecorator(IDuplexListener decoratee, ILogger logger)
+    internal LogListenerDecorator(IListener<T> decoratee, string kind, ILogger logger)
     {
         _decoratee = decoratee;
+        _kind = kind;
         _logger = logger;
     }
 }

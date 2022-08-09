@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Net;
 using System.Net.Security;
@@ -9,8 +8,10 @@ using System.Net.Sockets;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the TCP transport.</summary>
-internal sealed class TcpListener : IDuplexListener
+internal sealed class TcpListener : IListener<IDuplexConnection>
 {
+    public EndPoint NetworkAddress { get; }
+
     public ServerAddress ServerAddress { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
@@ -97,6 +98,7 @@ internal sealed class TcpListener : IDuplexListener
             throw ex.ToTransportException();
         }
 
+        NetworkAddress = address;
         ServerAddress = serverAddress with { Port = (ushort)address.Port };
     }
 }
