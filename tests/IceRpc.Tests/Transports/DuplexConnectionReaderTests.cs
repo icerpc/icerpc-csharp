@@ -6,6 +6,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
+using System.Net;
 
 namespace IceRpc.Tests.Transports;
 
@@ -25,9 +26,9 @@ public class DuplexConnectionReaderTests
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await acceptTask;
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
@@ -65,9 +66,9 @@ public class DuplexConnectionReaderTests
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await acceptTask;
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
@@ -99,9 +100,9 @@ public class DuplexConnectionReaderTests
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = await acceptTask;
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 

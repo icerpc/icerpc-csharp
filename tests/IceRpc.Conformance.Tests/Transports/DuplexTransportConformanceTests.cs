@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Net;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -18,14 +19,14 @@ public abstract class DuplexTransportConformanceTests
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
 
-        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         _ = clientConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(
             async () =>
             {
-                using IDuplexConnection _ = await acceptTask;
+                using IDuplexConnection _ = (await acceptTask).Connection;
             },
             Throws.Nothing);
     }
@@ -379,9 +380,9 @@ public abstract class DuplexTransportConformanceTests
         IListener<IDuplexConnection> listener,
         IDuplexConnection clientConnection)
     {
-        Task<IDuplexConnection> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection, EndPoint)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        IDuplexConnection serverConnection = await acceptTask;
+        (IDuplexConnection serverConnection, EndPoint _) = await acceptTask;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
         return new ClientServerDuplexConnection(clientConnection, serverConnection);

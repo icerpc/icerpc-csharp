@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Net;
+
 namespace IceRpc.Transports;
 
 /// <summary>The base interface for listeners.</summary>
@@ -14,6 +16,6 @@ public interface IListener : IDisposable
 public interface IListener<T> : IListener
 {
     /// <summary>Accepts a new transport connection.</summary>
-    /// <returns>The accepted transport connection.</returns>
-    Task<T> AcceptAsync();
+    /// <returns>The accepted transport connection plus its remote network address.</returns>
+    Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync();
 }

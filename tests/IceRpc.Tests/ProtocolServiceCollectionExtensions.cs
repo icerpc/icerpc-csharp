@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using System.Net;
 
 namespace IceRpc.Tests;
 
@@ -127,7 +128,7 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
                 observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceProtocolConnection(
-                await listener.AcceptAsync(),
+                (await listener.AcceptAsync()).Connection,
                 isServer: true,
                 observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 serverOptions.Value.ConnectionOptions),
@@ -161,7 +162,7 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                 observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
-                await listener.AcceptAsync(),
+                (await listener.AcceptAsync()).Connection,
                 observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 serverOptions.Value.ConnectionOptions),
             logger)
@@ -196,7 +197,7 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
         }
     }
 
-    public Task<IDuplexConnection> AcceptAsync() => _listener.AcceptAsync();
+    public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();
 }
@@ -227,7 +228,8 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
         }
     }
 
-    public Task<IMultiplexedConnection> AcceptAsync() => _listener.AcceptAsync();
+    public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() =>
+        _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();
 }

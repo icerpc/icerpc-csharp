@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.IO.Pipelines;
+using System.Net;
 
 namespace IceRpc.Transports.Internal;
 
@@ -9,13 +10,14 @@ internal class ColocListener : IListener<IDuplexConnection>
 {
     public ServerAddress ServerAddress { get; }
 
+    private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
     private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
 
-    public async Task<IDuplexConnection> AcceptAsync()
+    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync()
     {
         (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-        return new ColocConnection(ServerAddress, _ => (reader, writer));
+        return (new ColocConnection(ServerAddress, _ => (reader, writer)), _networkAddress);
     }
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
@@ -24,6 +26,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     {
         ServerAddress = serverAddress;
 
+        _networkAddress = new ColocEndPoint(serverAddress);
         _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
     }
 

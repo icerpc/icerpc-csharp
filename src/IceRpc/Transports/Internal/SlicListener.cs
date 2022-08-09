@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Net;
+
 namespace IceRpc.Transports.Internal;
 
 internal class SlicListener : IListener<IMultiplexedConnection>
@@ -10,12 +12,13 @@ internal class SlicListener : IListener<IMultiplexedConnection>
     private readonly MultiplexedConnectionOptions _options;
     private readonly SlicTransportOptions _slicOptions;
 
-    public async Task<IMultiplexedConnection> AcceptAsync() =>
-        new SlicConnection(
-            await _duplexListener.AcceptAsync().ConfigureAwait(false),
-            _options,
-            _slicOptions,
-            isServer: true);
+    public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync()
+    {
+        (IDuplexConnection duplexConnection, EndPoint remoteNetworkAddress) =
+            await _duplexListener.AcceptAsync().ConfigureAwait(false);
+
+        return (new SlicConnection(duplexConnection, _options, _slicOptions, isServer: true), remoteNetworkAddress);
+    }
 
     public void Dispose() => _duplexListener.Dispose();
 

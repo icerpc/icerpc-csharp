@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace IceRpc.Transports.Internal;
 
@@ -13,12 +14,13 @@ internal sealed class LogListenerDecorator<T> : IListener<T>
 
     private readonly string _kind;
 
-    public async Task<T> AcceptAsync()
+    public async Task<(T, EndPoint)> AcceptAsync()
     {
         T connection;
+        EndPoint remoteNetworkAddress;
         try
         {
-            connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
+            (connection, remoteNetworkAddress) = await _decoratee.AcceptAsync().ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -32,7 +34,7 @@ internal sealed class LogListenerDecorator<T> : IListener<T>
         }
 
         _logger.LogListenerAccept(_kind, _decoratee.ServerAddress);
-        return connection;
+        return (connection, remoteNetworkAddress);
     }
 
     public void Dispose()

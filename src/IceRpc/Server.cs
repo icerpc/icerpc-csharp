@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -139,7 +140,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             async Task AcceptAsync<T>(
-                Func<Task<T>> acceptTransportConnection,
+                Func<Task<(T, EndPoint)>> acceptTransportConnection,
                 Func<T, ProtocolConnection> createProtocolConnection)
             {
                 while (true)
@@ -147,7 +148,8 @@ public sealed class Server : IAsyncDisposable
                     ProtocolConnection connection;
                     try
                     {
-                        connection = createProtocolConnection(await acceptTransportConnection().ConfigureAwait(false));
+                        (T transportConnection, EndPoint _) = await acceptTransportConnection().ConfigureAwait(false);
+                        connection = createProtocolConnection(transportConnection);
                     }
                     catch
                     {
