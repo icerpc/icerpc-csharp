@@ -19,7 +19,7 @@ public sealed class RetryInterceptorTests
         get
         {
             yield return new OperationCanceledException();
-            yield return new NoEndpointException();
+            yield return new NoServerAddressException();
         }
     }
 
@@ -293,17 +293,17 @@ public sealed class RetryInterceptorTests
         await using var connection1 = new ClientConnection(new Uri("icerpc://host1"));
         await using var connection2 = new ClientConnection(new Uri("icerpc://host2"));
         await using var connection3 = new ClientConnection(new Uri("icerpc://host3"));
-        var endpoints = new List<Endpoint>();
+        var serverAddresses = new List<ServerAddress>();
         var invoker = new InlineInvoker((request, cancel) =>
         {
-            if (request.Features.Get<IEndpointFeature>() is not IEndpointFeature endpointFeature)
+            if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
             {
-                endpointFeature = new EndpointFeature(request.ServiceAddress);
-                request.Features = request.Features.With(endpointFeature);
+                serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
+                request.Features = request.Features.With(serverAddressFeature);
             }
-            if (endpointFeature.Endpoint is Endpoint endpoint)
+            if (serverAddressFeature.ServerAddress is ServerAddress serverAddress)
             {
-                endpoints.Add(endpoint);
+                serverAddresses.Add(serverAddress);
             }
 
             return Task.FromResult(new IncomingResponse(
@@ -321,11 +321,11 @@ public sealed class RetryInterceptorTests
         var serviceAddress = new ServiceAddress(connection1.Protocol)
         {
             Path = "/path",
-            Endpoint = connection1.Endpoint,
-            AltEndpoints = new List<Endpoint>
+            ServerAddress = connection1.ServerAddress,
+            AltServerAddresses = new List<ServerAddress>
             {
-                connection2.Endpoint,
-                connection3.Endpoint
+                connection2.ServerAddress,
+                connection3.ServerAddress
             }.ToImmutableList()
         };
 
@@ -339,10 +339,10 @@ public sealed class RetryInterceptorTests
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        Assert.That(endpoints.Count, Is.EqualTo(3));
-        Assert.That(endpoints[0], Is.EqualTo(serviceAddress.Endpoint));
-        Assert.That(endpoints[1], Is.EqualTo(serviceAddress.AltEndpoints[0]));
-        Assert.That(endpoints[2], Is.EqualTo(serviceAddress.AltEndpoints[1]));
+        Assert.That(serverAddresses.Count, Is.EqualTo(3));
+        Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
+        Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));
+        Assert.That(serverAddresses[2], Is.EqualTo(serviceAddress.AltServerAddresses[1]));
     }
 
     private static ReadOnlySequence<byte> EncodeRetryPolicy(RetryPolicy retryPolicy)

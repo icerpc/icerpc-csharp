@@ -14,30 +14,30 @@ public class CustomClientTransport : IMultiplexedClientTransport
     private readonly IMultiplexedClientTransport _transport =
         new SlicClientTransport(new TcpClientTransport());
 
-    public bool CheckParams(Endpoint endpoint) => true;
+    public bool CheckParams(ServerAddress serverAddress) => true;
 
     public IMultiplexedConnection CreateConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if (endpoint.Transport is string transport)
+        if (serverAddress.Transport is string transport)
         {
             if (transport != "tcp" && transport != "custom")
             {
                 throw new ArgumentException(
-                    $"cannot use custom transport with endpoint '{endpoint}'",
-                    nameof(endpoint));
+                    $"cannot use custom transport with server address '{serverAddress}'",
+                    nameof(serverAddress));
             }
         }
 
-        endpoint = endpoint with
+        serverAddress = serverAddress with
         {
-            Params = endpoint.Params.Remove("custom-p"),
+            Params = serverAddress.Params.Remove("custom-p"),
             Transport = "tcp"
         };
 
-        return _transport.CreateConnection(endpoint, options, clientAuthenticationOptions);
+        return _transport.CreateConnection(serverAddress, options, clientAuthenticationOptions);
     }
 }
 
@@ -49,22 +49,22 @@ public class CustomServerTransport : IMultiplexedServerTransport
         new SlicServerTransport(new TcpServerTransport());
 
     public IMultiplexedListener Listen(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (endpoint.Transport is string transport && transport != "tcp" && transport != "custom")
+        if (serverAddress.Transport is string transport && transport != "tcp" && transport != "custom")
         {
-            throw new ArgumentException($"cannot use custom transport with endpoint '{endpoint}'", nameof(endpoint));
+            throw new ArgumentException($"cannot use custom transport with server address '{serverAddress}'", nameof(serverAddress));
         }
 
-        endpoint = endpoint with
+        serverAddress = serverAddress with
         {
-            Params = endpoint.Params.Remove("custom-p"),
+            Params = serverAddress.Params.Remove("custom-p"),
             Transport = "tcp"
         };
 
-        return _transport.Listen(endpoint, options, serverAuthenticationOptions);
+        return _transport.Listen(serverAddress, options, serverAuthenticationOptions);
     }
 }
 
@@ -76,7 +76,7 @@ public class CustomTransportTests
         await using var server = new Server(
             new ServerOptions
             {
-                Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1:0?transport=custom")),
+                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom")),
                 ConnectionOptions = new()
                 {
                     Dispatcher = new MyService()
@@ -89,7 +89,7 @@ public class CustomTransportTests
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                Endpoint = server.Endpoint
+                ServerAddress = server.ServerAddress
             },
             multiplexedClientTransport: new CustomClientTransport());
 
@@ -98,13 +98,13 @@ public class CustomTransportTests
     }
 
     [Test]
-    public async Task CustomTransport_UnknownEndpointParameterAsync()
+    public async Task CustomTransport_UnknownServerAddressParameterAsync()
     {
         // Custom transport handles any params that start with custom-
         {
             await using var server = new Server(new ServerOptions
             {
-                Endpoint = new Endpoint(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
+                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
                 ConnectionOptions = new ConnectionOptions()
                 {
                     Dispatcher = new MyService()
@@ -116,11 +116,11 @@ public class CustomTransportTests
             await using var connection1 = new ClientConnection(
                 new ClientConnectionOptions
                 {
-                    // We add the custom endpoint here because listen updates the endpoint and the custom transport
+                    // We add the custom server address here because listen updates the server address and the custom transport
                     // removes the parameter
-                    Endpoint = server.Endpoint with
+                    ServerAddress = server.ServerAddress with
                     {
-                        Params = server.Endpoint.Params.Add("custom-p", "bar")
+                        Params = server.ServerAddress.Params.Add("custom-p", "bar")
                     }
                 },
                 multiplexedClientTransport: new CustomClientTransport());

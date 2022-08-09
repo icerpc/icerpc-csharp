@@ -18,7 +18,7 @@ public static class SlicTransportServiceCollectionExtensions
         SlicTransportOptions? slicTransportOptions = null)
     {
         services.AddColocTransport();
-        var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
+        var serverAddress = new ServerAddress(Protocol.IceRpc) { Host = "colochost" };
 
         services.
             TryAddSingleton<IMultiplexedServerTransport>(
@@ -39,7 +39,7 @@ public static class SlicTransportServiceCollectionExtensions
         {
             var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
             var listener = serverTransport.Listen(
-                endpoint,
+                serverAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 null);
             return listener;
@@ -50,7 +50,7 @@ public static class SlicTransportServiceCollectionExtensions
             var listener = provider.GetRequiredService<IMultiplexedListener>();
             var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
             var connection = clientTransport.CreateConnection(
-                listener.Endpoint,
+                listener.ServerAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 null);
             return (SlicConnection)connection;

@@ -12,7 +12,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    public override Endpoint Endpoint => _transportConnection.Endpoint;
+    internal override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
@@ -44,8 +44,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private Task? _waitForConnectionFailure;
 
-    internal IceRpcProtocolConnection(IMultiplexedConnection transportConnection, ConnectionOptions options)
-        : base(options)
+    internal IceRpcProtocolConnection(
+        IMultiplexedConnection transportConnection,
+        IProtocolConnectionObserver? observer,
+        ConnectionOptions options)
+        : base(observer, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
@@ -108,7 +111,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         OnDispose(() => ServerEventSource.Log.ConnectionStop(Protocol.Ice, transportConnectionInformation));
 
         // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
 
@@ -139,6 +142,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 CancellationToken cancel = _tasksCancelSource.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
+
                 InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
             },

@@ -1,0 +1,245 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using IceRpc.Internal;
+using System.Collections.Immutable;
+using System.ComponentModel;
+using System.Globalization;
+using System.Text;
+
+namespace IceRpc;
+
+/// <summary>An server address specifies the address of the server-end of an ice or icerpc connection: a server listens
+/// on a server address and a client establishes a connection to a server address.</summary>
+// The properties of this struct are sorted in URI order.
+[TypeConverter(typeof(ServerAddressTypeConverter))]
+public readonly record struct ServerAddress
+{
+    /// <summary>Gets the protocol of this server address.</summary>
+    /// <value>Either <see cref="Protocol.IceRpc"/> or <see cref="Protocol.Ice"/>.</value>
+    public Protocol Protocol { get; }
+
+    /// <summary>Gets or initializes the host.</summary>
+    public string Host
+    {
+        get => _host;
+
+        init
+        {
+            if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
+            {
+                throw new ArgumentException($"cannot set {nameof(Host)} to '{value}'", nameof(value));
+            }
+            _host = value;
+            OriginalUri = null; // new host invalidates OriginalUri
+        }
+    }
+
+    /// <summary>Gets or initializes the port number.</summary>
+    public ushort Port
+    {
+        get => _port;
+
+        init
+        {
+            _port = value;
+            OriginalUri = null; // new port invalidates OriginalUri
+        }
+    }
+
+    /// <summary>Gets or initializes the transport.</summary>
+    /// <value>The name of the transport, or null if the transport is unspecified.</value>
+    public string? Transport
+    {
+        get => _transport;
+
+        init => _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
+            throw new ArgumentException($"`{value}` is not valid transport name", nameof(value));
+    }
+
+    /// <summary>Gets or initializes transport-specific parameters.</summary>
+    public ImmutableDictionary<string, string> Params
+    {
+        get => _params;
+
+        init
+        {
+            try
+            {
+                ServiceAddress.CheckParams(value);
+            }
+            catch (FormatException ex)
+            {
+                throw new ArgumentException("invalid parameters", nameof(Params), ex);
+            }
+            _params = value;
+            OriginalUri = null; // new params invalidates OriginalUri
+        }
+    }
+
+    /// <summary>Gets the URI used to create this server address, if this server address was created from a URI.</summary>
+    public Uri? OriginalUri { get; private init; }
+
+    private readonly string _host = "::0";
+    private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
+    private readonly ushort _port;
+    private readonly string? _transport;
+
+    /// <summary>Constructs a server address with default values.</summary>
+    public ServerAddress()
+        : this(Protocol.IceRpc)
+    {
+    }
+
+    /// <summary>Constructs a server address from a supported protocol.</summary>
+    /// <param name="protocol">The protocol.</param>
+    public ServerAddress(Protocol protocol)
+    {
+        if (!protocol.IsSupported)
+        {
+            throw new ArgumentException(
+                "cannot create a server address with a non-supported protocol",
+                nameof(protocol));
+        }
+
+        Protocol = protocol;
+        _port = (ushort)Protocol.DefaultUriPort;
+        _transport = null;
+        OriginalUri = null;
+    }
+
+    /// <summary>Constructs a server address from a <see cref="Uri"/>.</summary>
+    /// <param name="uri">An absolute URI.</param>
+    /// <exception cref="ArgumentException">Thrown if the <paramref name="uri"/> is not an absolute URI, or if its
+    /// scheme is not a supported protocol, or if it has a non-empty path or fragment, or if it has an empty host,
+    /// or if its query can't be parsed or if it has an alt-server query parameter.</exception>
+    public ServerAddress(Uri uri)
+    {
+        if (!uri.IsAbsoluteUri)
+        {
+            throw new ArgumentException("cannot create a server address from a relative URI", nameof(uri));
+        }
+        Protocol = Protocol.FromString(uri.Scheme);
+        if (!Protocol.IsSupported)
+        {
+            throw new ArgumentException($"cannot create a server address with protocol '{Protocol}'", nameof(uri));
+        }
+        _host = uri.IdnHost;
+        if (_host.Length == 0)
+        {
+            throw new ArgumentException("cannot create a server address with an empty host", nameof(uri));
+        }
+
+        // bug if it throws OverflowException
+        _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port));
+
+        if (uri.UserInfo.Length > 0)
+        {
+            throw new ArgumentException("cannot create a server address with a user info", nameof(uri));
+        }
+
+        if (uri.AbsolutePath.Length > 1)
+        {
+            throw new ArgumentException("cannot create a server address with a path", nameof(uri));
+        }
+
+        if (uri.Fragment.Length > 0)
+        {
+            throw new ArgumentException("cannot create a server address with a fragment", nameof(uri));
+        }
+
+        try
+        {
+            (_params, string? altServerValue, _transport) = uri.ParseQuery();
+
+            if (altServerValue is not null)
+            {
+                throw new ArgumentException(
+                    "cannot create a server address with an alt-server query parameter",
+                    nameof(uri));
+            }
+        }
+        catch (FormatException exception)
+        {
+            throw new ArgumentException("cannot parse query of server address URI", nameof(uri), exception);
+        }
+
+        OriginalUri = uri;
+    }
+
+    /// <summary>Checks if this server address is equal to another server address.</summary>
+    /// <param name="other">The other server address.</param>
+    /// <returns><c>true</c>when the two server addresses have the same properties, including the same parameters;
+    /// otherwise, <c>false</c>.</returns>
+    public bool Equals(ServerAddress other) =>
+        Protocol == other.Protocol &&
+        Host == other.Host &&
+        Port == other.Port &&
+        Transport == other.Transport &&
+        Params.DictionaryEqual(other.Params);
+
+    /// <summary>Computes the hash code for this server address.</summary>
+    /// <returns>The hash code.</returns>
+    public override int GetHashCode() => HashCode.Combine(Protocol, Host, Port, Transport, Params.Count);
+
+    /// <summary>Converts this server address into a string.</summary>
+    /// <returns>The string representation of this server address.</returns>
+    public override string ToString() =>
+        OriginalUri?.ToString() ?? new StringBuilder().AppendServerAddress(this).ToString();
+
+    /// <summary>Converts this server address into a URI.</summary>
+    /// <returns>The URI.</returns>
+    public Uri ToUri() => OriginalUri ?? new Uri(ToString(), UriKind.Absolute);
+
+    /// <summary>Constructs a server address from a protocol, a host, a port and parsed parameters, without parameter
+    /// validation.</summary>
+    /// <remarks>This constructor is used by <see cref="ServiceAddress"/> for its main server address and by the Slice
+    /// decoder for Slice1 server addresses.</remarks>
+    internal ServerAddress(
+        Protocol protocol,
+        string host,
+        ushort port,
+        string? transport,
+        ImmutableDictionary<string, string> serverAddressParams)
+    {
+        Protocol = protocol;
+        _host = host;
+        _port = port;
+        _transport = transport;
+        _params = serverAddressParams;
+        OriginalUri = null;
+    }
+}
+
+/// <summary>Equality comparer for <see cref="ServerAddress"/>.</summary>
+public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
+{
+    /// <summary>Gets a server address comparer that compares all server address properties, except a transport mismatch
+    /// where the transport of one of the server addresses is null results in equality.</summary>
+    public static ServerAddressComparer OptionalTransport { get; } = new OptionalTransportServerAddressComparer();
+
+    private class OptionalTransportServerAddressComparer : ServerAddressComparer
+    {
+        public override bool Equals(ServerAddress lhs, ServerAddress rhs) =>
+            lhs.Protocol == rhs.Protocol &&
+            lhs.Host == rhs.Host &&
+            lhs.Port == rhs.Port &&
+            (lhs.Transport == rhs.Transport || lhs.Transport is null || rhs.Transport is null) &&
+            lhs.Params.DictionaryEqual(rhs.Params);
+
+        public override int GetHashCode(ServerAddress serverAddress) =>
+            HashCode.Combine(serverAddress.Protocol, serverAddress.Host, serverAddress.Port, serverAddress.Params.Count);
+    }
+}
+
+/// <summary>The server address type converter specifies how to convert a string to an serverAddress. It's used by
+/// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServerAddress properties.</summary>
+public class ServerAddressTypeConverter : TypeConverter
+{
+    /// <inheritdoc/>
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
+        sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+    /// <inheritdoc/>
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
+        value is string valueStr ? new ServerAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
+}

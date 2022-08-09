@@ -11,11 +11,11 @@ internal class ColocServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
 
-    private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
+    private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
 
     /// <inheritdoc/>
     public IDuplexListener Listen(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticatioinOptions)
     {
@@ -24,19 +24,19 @@ internal class ColocServerTransport : IDuplexServerTransport
             throw new NotSupportedException("cannot create secure Coloc server");
         }
 
-        if (!ColocTransport.CheckParams(endpoint))
+        if (!ColocTransport.CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a Coloc listener for endpoint '{endpoint}'");
+            throw new FormatException($"cannot create a Coloc listener for server address '{serverAddress}'");
         }
 
-        var listener = new ColocListener(endpoint with { Transport = Name }, options);
-        if (!_listeners.TryAdd(listener.Endpoint, listener))
+        var listener = new ColocListener(serverAddress with { Transport = Name }, options);
+        if (!_listeners.TryAdd(listener.ServerAddress, listener))
         {
-            throw new TransportException($"endpoint '{listener.Endpoint}' is already in use");
+            throw new TransportException($"serverAddress '{listener.ServerAddress}' is already in use");
         }
         return listener;
     }
 
-    internal ColocServerTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
+    internal ColocServerTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>
         _listeners = listeners;
 }

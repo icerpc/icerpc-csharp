@@ -11,11 +11,11 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The listener implementation for the TCP transport.</summary>
 internal sealed class TcpListener : IDuplexListener
 {
-    public Endpoint Endpoint { get; }
+    public ServerAddress ServerAddress { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private int _minSegmentSize;
-    private MemoryPool<byte> _pool;
+    private readonly int _minSegmentSize;
+    private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
     public async Task<IDuplexConnection> AcceptAsync()
@@ -33,7 +33,7 @@ internal sealed class TcpListener : IDuplexListener
         }
 
         return new TcpServerConnection(
-            Endpoint,
+            ServerAddress,
             acceptedSocket,
             _authenticationOptions,
             _pool,
@@ -43,15 +43,15 @@ internal sealed class TcpListener : IDuplexListener
     public void Dispose() => _socket.Dispose();
 
     internal TcpListener(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions,
         TcpServerTransportOptions tcpOptions)
     {
-        if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
+        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
             throw new NotSupportedException(
-                $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
+                $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
         }
 
         _authenticationOptions = serverAuthenticationOptions;
@@ -60,15 +60,15 @@ internal sealed class TcpListener : IDuplexListener
 
         if (_authenticationOptions is not null)
         {
-            // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
+            // Add the server address protocol to the SSL application protocols (used by TLS ALPN)
             _authenticationOptions = _authenticationOptions.Clone();
             _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(endpoint.Protocol.Name)
+                new SslApplicationProtocol(serverAddress.Protocol.Name)
             };
         }
 
-        var address = new IPEndPoint(ipAddress, endpoint.Port);
+        var address = new IPEndPoint(ipAddress, serverAddress.Port);
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
@@ -97,6 +97,6 @@ internal sealed class TcpListener : IDuplexListener
             throw ex.ToTransportException();
         }
 
-        Endpoint = endpoint with { Port = (ushort)address.Port };
+        ServerAddress = serverAddress with { Port = (ushort)address.Port };
     }
 }

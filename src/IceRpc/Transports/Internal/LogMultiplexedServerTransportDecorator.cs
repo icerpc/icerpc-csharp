@@ -14,19 +14,19 @@ internal sealed class LogMultiplexedServerTransportDecorator : IMultiplexedServe
     private readonly ILogger _logger;
 
     public IMultiplexedListener Listen(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
         try
         {
-            IMultiplexedListener listener = _decoratee.Listen(endpoint, options, serverAuthenticationOptions);
-            _logger.LogServerTransportListen(Kind, listener.Endpoint);
+            IMultiplexedListener listener = _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+            _logger.LogServerTransportListen(Kind, listener.ServerAddress);
             return new LogMultiplexedListenerDecorator(listener, _logger);
         }
         catch (Exception exception)
         {
-            _logger.LogServerTransportListenException(exception, Kind, endpoint);
+            _logger.LogServerTransportListenException(exception, Kind, serverAddress);
             throw;
         }
     }

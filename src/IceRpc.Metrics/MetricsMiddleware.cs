@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Metrics.Internal;
+
 namespace IceRpc.Metrics;
 
 /// <summary>A middleware that publishes dispatch metrics using a dispatch event source.</summary>
@@ -10,39 +12,44 @@ public class MetricsMiddleware : IDispatcher
 
     /// <summary>Constructs a metrics middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="eventSource">The dispatch event source used to publish the metrics events.</param>
-    public MetricsMiddleware(IDispatcher next, DispatchEventSource eventSource)
+    public MetricsMiddleware(IDispatcher next)
+        : this(next, DispatchEventSource.Log)
     {
-        _next = next;
-        _eventSource = eventSource;
     }
 
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
-        _eventSource.RequestStart(request);
+        long startTime = _eventSource.RequestStart(request);
+        var resultType = ResultType.Failure;
         try
         {
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-            if (response.ResultType != ResultType.Success)
-            {
-                _eventSource.RequestFailed(request, "IceRpc.RemoteException"); // TODO: fix exception name
-            }
+            resultType = response.ResultType;
             return response;
         }
         catch (OperationCanceledException)
         {
-            _eventSource.RequestCanceled(request);
+            _eventSource.RequestCancel(request);
             throw;
         }
         catch (Exception ex)
         {
-            _eventSource.RequestFailed(request, ex);
+            _eventSource.RequestFailure(request, ex);
             throw;
         }
         finally
         {
-            _eventSource.RequestStop(request);
+            _eventSource.RequestStop(request, resultType, startTime);
         }
+    }
+
+    /// <summary>Constructs a metrics middleware.</summary>
+    /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
+    /// <param name="eventSource">The dispatch event source used to publish the metrics events.</param>
+    internal MetricsMiddleware(IDispatcher next, DispatchEventSource eventSource)
+    {
+        _next = next;
+        _eventSource = eventSource;
     }
 }

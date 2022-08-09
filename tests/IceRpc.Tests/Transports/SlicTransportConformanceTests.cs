@@ -26,7 +26,7 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
                 var loggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
                 var transport = provider.GetRequiredService<IMultiplexedServerTransport>();
                 return transport.Listen(
-                    new Endpoint(Protocol.IceRpc) { Host = "colochost" },
+                    new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                     null);
             });

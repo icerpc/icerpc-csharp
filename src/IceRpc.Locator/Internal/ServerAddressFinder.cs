@@ -5,23 +5,23 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An endpoint finder finds the endpoint(s) of a location. These endpoint(s) are carried by a dummy service
-/// address. When this dummy service address is not null, its Endpoint property is guaranteed to be not null.
-/// Unlike <see cref="ILocationResolver"/>, an endpoint finder does not provide cache-related parameters and typically
+/// <summary>An server address finder finds the server address(es) of a location. These server address(es) are carried by a dummy service
+/// address. When this dummy service address is not null, its ServerAddress property is guaranteed to be not null.
+/// Unlike <see cref="ILocationResolver"/>, a server address finder does not provide cache-related parameters and typically
 /// does not maintain a cache.</summary>
-internal interface IEndpointFinder
+internal interface IServerAddressFinder
 {
     Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel);
 }
 
-/// <summary>The main implementation of IEndpointFinder. It uses a locator proxy to "find" the endpoints.</summary>
-internal class LocatorEndpointFinder : IEndpointFinder
+/// <summary>The main implementation of IServerAddressFinder. It uses a locator proxy to "find" the server addresses.</summary>
+internal class LocatorServerAddressFinder : IServerAddressFinder
 {
     private readonly ILocatorProxy _locator;
 
-    internal LocatorEndpointFinder(ILocatorProxy locator) => _locator = locator;
+    internal LocatorServerAddressFinder(ILocatorProxy locator) => _locator = locator;
 
-    async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
     {
         if (location.IsAdapterId)
         {
@@ -32,7 +32,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
-                    return serviceAddress.Protocol == Protocol.Ice && serviceAddress.Endpoint is not null ?
+                    return serviceAddress.Protocol == Protocol.Ice && serviceAddress.ServerAddress is not null ?
                         serviceAddress :
                         throw new InvalidDataException(
                             $"findAdapterById returned invalid service address '{serviceAddress}'");
@@ -59,7 +59,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
                 {
                     // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress.Protocol == Protocol.Ice &&
-                        (serviceAddress.Endpoint is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
+                        (serviceAddress.ServerAddress is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
                             serviceAddress :
                             throw new InvalidDataException(
                                 $"findObjectById returned invalid service address '{serviceAddress}'");
@@ -78,19 +78,19 @@ internal class LocatorEndpointFinder : IEndpointFinder
     }
 }
 
-/// <summary>A decorator that adds logging to an endpoint finder.</summary>
-internal class LogEndpointFinderDecorator : IEndpointFinder
+/// <summary>A decorator that adds logging to a server address finder.</summary>
+internal class LogServerAddressFinderDecorator : IServerAddressFinder
 {
-    private readonly IEndpointFinder _decoratee;
+    private readonly IServerAddressFinder _decoratee;
     private readonly ILogger _logger;
 
-    internal LogEndpointFinderDecorator(IEndpointFinder decoratee, ILogger logger)
+    internal LogServerAddressFinderDecorator(IServerAddressFinder decoratee, ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;
     }
 
-    async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
     {
         try
         {
@@ -116,30 +116,30 @@ internal class LogEndpointFinderDecorator : IEndpointFinder
     }
 }
 
-/// <summary>A decorator that updates its endpoint cache after a call to its decoratee (e.g. remote locator). It
+/// <summary>A decorator that updates its server address cache after a call to its decoratee (e.g. remote locator). It
 /// needs to execute downstream from the Coalesce decorator.</summary>
-internal class CacheUpdateEndpointFinderDecorator : IEndpointFinder
+internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
 {
-    private readonly IEndpointFinder _decoratee;
-    private readonly IEndpointCache _endpointCache;
+    private readonly IServerAddressFinder _decoratee;
+    private readonly IServerAddressCache _serverAddressCache;
 
-    internal CacheUpdateEndpointFinderDecorator(IEndpointFinder decoratee, IEndpointCache endpointCache)
+    internal CacheUpdateServerAddressFinderDecorator(IServerAddressFinder decoratee, IServerAddressCache serverAddressCache)
     {
-        _endpointCache = endpointCache;
+        _serverAddressCache = serverAddressCache;
         _decoratee = decoratee;
     }
 
-    async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
     {
         ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
 
         if (serviceAddress is not null)
         {
-            _endpointCache.Set(location, serviceAddress);
+            _serverAddressCache.Set(location, serviceAddress);
         }
         else
         {
-            _endpointCache.Remove(location);
+            _serverAddressCache.Remove(location);
         }
         return serviceAddress;
     }
@@ -147,16 +147,16 @@ internal class CacheUpdateEndpointFinderDecorator : IEndpointFinder
 
 /// <summary>A decorator that detects multiple concurrent identical FindAsync and "coalesce" them to avoid
 /// overloading the decoratee (e.g. the remote locator).</summary>
-internal class CoalesceEndpointFinderDecorator : IEndpointFinder
+internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
 {
-    private readonly IEndpointFinder _decoratee;
+    private readonly IServerAddressFinder _decoratee;
     private readonly object _mutex = new();
     private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
 
-    internal CoalesceEndpointFinderDecorator(IEndpointFinder decoratee) =>
+    internal CoalesceServerAddressFinderDecorator(IServerAddressFinder decoratee) =>
         _decoratee = decoratee;
 
-    Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
     {
         Task<ServiceAddress?>? task;
 

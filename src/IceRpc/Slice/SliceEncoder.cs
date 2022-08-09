@@ -304,8 +304,8 @@ public ref partial struct SliceEncoder
         // - If Identity is not the null identity:
         //     - The fragment, invocation mode, protocol major and minor, and the
         //       encoding major and minor
-        //     - a sequence of endpoints that can be empty
-        //     - an adapter ID string present only when the sequence of endpoints is empty
+        //     - a sequence of server addresses that can be empty
+        //     - an adapter ID string present only when the sequence of server addresses is empty
 
         if (Encoding == SliceEncoding.Slice1)
         {
@@ -324,18 +324,18 @@ public ref partial struct SliceEncoder
             EncodeUInt8(1); // Encoding Major
             EncodeUInt8(1); // Encoding Minor
 
-            if (serviceAddress.Endpoint is Endpoint endpoint)
+            if (serviceAddress.ServerAddress is ServerAddress serverAddress)
             {
-                EncodeSize(1 + serviceAddress.AltEndpoints.Count); // endpoint count
-                EncodeEndpoint(endpoint);
-                foreach (Endpoint altEndpoint in serviceAddress.AltEndpoints)
+                EncodeSize(1 + serviceAddress.AltServerAddresses.Count); // server address count
+                EncodeServerAddress(serverAddress);
+                foreach (ServerAddress altServer in serviceAddress.AltServerAddresses)
                 {
-                    EncodeEndpoint(altEndpoint);
+                    EncodeServerAddress(altServer);
                 }
             }
             else
             {
-                EncodeSize(0); // 0 endpoints
+                EncodeSize(0); // 0 server addresses
                 int maxCount = serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
 
                 if (serviceAddress.Params.Count > maxCount)
@@ -674,24 +674,24 @@ public ref partial struct SliceEncoder
         EncodedByteCount += count;
     }
 
-    /// <summary>Encodes an endpoint in a nested encapsulation (Slice1 only).</summary>
-    /// <param name="endpoint">The endpoint to encode.</param>
-    private void EncodeEndpoint(Endpoint endpoint)
+    /// <summary>Encodes a server address in a nested encapsulation (Slice1 only).</summary>
+    /// <param name="serverAddress">The server address to encode.</param>
+    private void EncodeServerAddress(ServerAddress serverAddress)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
-        // If the endpoint does not specify a transport, we default to TCP.
-        string transport = endpoint.Transport ?? TransportNames.Tcp;
+        // If the server address does not specify a transport, we default to TCP.
+        string transport = serverAddress.Transport ?? TransportNames.Tcp;
 
-        // The Slice1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
+        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
         // fallback encoding for new transports is TransportCode.Uri.
 
-        if (endpoint.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
+        if (serverAddress.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
         {
-            // Opaque endpoint encoding
+            // Opaque server address encoding
 
             (TransportCode transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
-                endpoint.ParseOpaqueParams();
+                serverAddress.ParseOpaqueParams();
 
             this.EncodeTransportCode(transportCode);
             EncodeInt32(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
@@ -701,7 +701,7 @@ public ref partial struct SliceEncoder
         }
         else
         {
-            TransportCode transportCode = endpoint.Protocol == Protocol.Ice ?
+            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice ?
                 transport switch
                 {
                     TransportNames.Ssl => TransportCode.Ssl,
@@ -721,12 +721,12 @@ public ref partial struct SliceEncoder
             {
                 case TransportCode.Tcp:
                 case TransportCode.Ssl:
-                    Transports.TcpClientTransport.EncodeEndpoint(ref this, endpoint);
+                    Transports.TcpClientTransport.EncodeServerAddress(ref this, serverAddress);
                     break;
 
                 default:
                     Debug.Assert(transportCode == TransportCode.Uri);
-                    EncodeString(endpoint.ToString());
+                    EncodeString(serverAddress.ToString());
                     break;
             }
 

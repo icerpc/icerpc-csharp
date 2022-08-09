@@ -21,7 +21,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
@@ -30,7 +30,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://bar")),
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar")),
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
@@ -39,12 +39,12 @@ public sealed class ConnectionCacheTests
             new ConnectionCacheOptions { PreferExistingConnection = false },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        Endpoint? endpoint = null;
+        ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
+                    serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
             .Into(cache);
@@ -52,20 +52,20 @@ public sealed class ConnectionCacheTests
         await new ServiceProxy(cache, new Uri("icerpc://bar")).IcePingAsync();
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-endpoint=bar")).IcePingAsync();
+        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
-            Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
+            Assert.That(serverAddress?.Host, Is.EqualTo(server1.ServerAddress.Host));
+            Assert.That(server1.ServerAddress, Is.Not.EqualTo(server2.ServerAddress));
         });
     }
 
-    /// <summary>Verifies that the connection cache uses the alt-endpoint when it cannot connect to the main endpoint.
+    /// <summary>Verifies that the connection cache uses the alt-server when it cannot connect to the main server address.
     /// </summary>
     [Test]
-    public async Task Get_connection_for_alt_endpoint()
+    public async Task Get_connection_for_alt_server()
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
@@ -74,7 +74,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
@@ -83,26 +83,26 @@ public sealed class ConnectionCacheTests
             new ConnectionCacheOptions() { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        Endpoint? endpoint = null;
+        ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
+                    serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
             .Into(cache);
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://bar/?alt-endpoint=foo")).IcePingAsync();
+        await new ServiceProxy(pipeline, new Uri("icerpc://bar/?alt-server=foo")).IcePingAsync();
 
         // Assert
-        Assert.That(endpoint?.Host, Is.EqualTo(server.Endpoint.Host));
+        Assert.That(serverAddress?.Host, Is.EqualTo(server.ServerAddress.Host));
     }
 
-    /// <summary>Verifies that the connection cache prefers connecting to the main endpoint.</summary>
+    /// <summary>Verifies that the connection cache prefers connecting to the main server address.</summary>
     [Test]
-    public async Task Get_connection_for_main_endpoint()
+    public async Task Get_connection_for_main_server_address()
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
@@ -111,7 +111,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
@@ -120,7 +120,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://bar"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
@@ -129,21 +129,21 @@ public sealed class ConnectionCacheTests
             new ConnectionCacheOptions(),
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        Endpoint? endpoint = null;
+        ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
+                    serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
             .Into(cache);
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-endpoint=bar")).IcePingAsync();
+        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
 
         // Assert
-        Assert.That(endpoint?.Host, Is.EqualTo(server1.Endpoint.Host));
+        Assert.That(serverAddress?.Host, Is.EqualTo(server1.ServerAddress.Host));
     }
 
     /// <summary>Verifies that the connection cache prefers reusing an existing connection when
@@ -158,7 +158,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://foo"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
@@ -167,7 +167,7 @@ public sealed class ConnectionCacheTests
             new ServerOptions()
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                Endpoint = new Endpoint(new Uri("icerpc://bar"))
+                ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
@@ -176,12 +176,12 @@ public sealed class ConnectionCacheTests
            new ConnectionCacheOptions { PreferExistingConnection = true },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        Endpoint? endpoint = null;
+        ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    endpoint = request.Features.Get<IEndpointFeature>()?.Endpoint;
+                    serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
             .Into(cache);
@@ -189,13 +189,13 @@ public sealed class ConnectionCacheTests
         await new ServiceProxy(cache, new Uri("icerpc://bar")).IcePingAsync();
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-endpoint=bar")).IcePingAsync();
+        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(endpoint?.Host, Is.EqualTo(server2.Endpoint.Host));
-            Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
+            Assert.That(serverAddress?.Host, Is.EqualTo(server2.ServerAddress.Host));
+            Assert.That(server1.ServerAddress, Is.Not.EqualTo(server2.ServerAddress));
         });
     }
 }

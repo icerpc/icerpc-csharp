@@ -31,16 +31,16 @@ public class SlicClientTransport : IMultiplexedClientTransport
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(Endpoint endpoint) => _duplexClientTransport.CheckParams(endpoint);
+    public bool CheckParams(ServerAddress serverAddress) => _duplexClientTransport.CheckParams(serverAddress);
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
-        Endpoint endpoint,
+        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions) =>
         new SlicConnection(
             _duplexClientTransport.CreateConnection(
-                endpoint,
+                serverAddress,
                 new DuplexConnectionOptions
                 {
                     MinSegmentSize = options.MinSegmentSize,

@@ -8,12 +8,9 @@ namespace IceRpc.Internal;
 /// <summary>The protocol connection abstract base class provides the idle timeout implementation and also ensures that
 /// the protocol implementation of connection establishment, shutdown and disposal are only called once and in the
 /// correct order.</summary>
-internal abstract class ProtocolConnection : IProtocolConnection
+internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 {
-    public abstract Endpoint Endpoint { get; }
-
-    // When calling methods on IProtocolConnection, we have to call Decorator other we would bypass decoration.
-    internal IProtocolConnection Decorator { get; set; }
+    internal abstract ServerAddress ServerAddress { get; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
     private Task<TransportConnectionInformation>? _connectTask;
@@ -22,6 +19,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
+    private readonly IProtocolConnectionObserver? _observer;
     private Action<Exception>? _onAbort;
     private Exception? _onAbortException;
     private Action? _onDispose;
@@ -30,78 +28,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly CancellationTokenSource _shutdownCancelSource = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
-
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
-    {
-        lock (_mutex)
-        {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
-            }
-            else if (_shutdownTask is not null)
-            {
-                Debug.Assert(_connectTask is not null);
-                // await on _connectTask to report the connection establishment failure.
-            }
-            else if (_connectTask is null)
-            {
-                _connectTask = PerformConnectAsync();
-            }
-        }
-
-        return PerformWaitForConnectAsync();
-
-        async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
-        {
-            try
-            {
-                return await _connectTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
-            {
-                // Cancel pending connect if any of the ConnectAsync calls are canceled.
-                try
-                {
-                    _connectCancelSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-                throw;
-            }
-        }
-
-        async Task<TransportConnectionInformation> PerformConnectAsync()
-        {
-            // Make sure we execute the function without holding the connection mutex lock.
-            await Task.Yield();
-
-            using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_connectCancelSource.Token);
-            cancelSource.CancelAfter(_connectTimeout);
-
-            try
-            {
-                cancelSource.Token.ThrowIfCancellationRequested();
-
-                TransportConnectionInformation information = await ConnectAsyncCore(cancelSource.Token)
-                    .ConfigureAwait(false);
-                EnableIdleCheck();
-                return information;
-            }
-            catch (OperationCanceledException) when (_connectCancelSource.IsCancellationRequested)
-            {
-                throw new ConnectionAbortedException(_disposeTask is null ?
-                    "connection establishment canceled" :
-                    "connection disposed");
-            }
-            catch (OperationCanceledException)
-            {
-                Debug.Assert(cancelSource.IsCancellationRequested);
-                throw new TimeoutException($"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
-            }
-        }
-    }
 
     public ValueTask DisposeAsync()
     {
@@ -162,10 +88,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
             _connectCancelSource.Dispose();
             _shutdownCancelSource.Dispose();
+
+            _observer?.Disposed(ServerAddress);
         }
     }
 
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
         if (_shutdownTask is not null)
         {
@@ -185,14 +113,113 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             // Perform the connection establishment without a cancellation token. It will eventually timeout if the
             // connect timeout is reached.
-            await Decorator.ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
+            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
 
             return await InvokeAsyncCore(request, cancel).ConfigureAwait(false);
         }
     }
 
+    internal ProtocolConnection(IProtocolConnectionObserver? observer, ConnectionOptions options)
+    {
+        _connectTimeout = options.ConnectTimeout;
+        _shutdownTimeout = options.ShutdownTimeout;
+        _idleTimeout = options.IdleTimeout;
+        _idleTimeoutTimer = new Timer(_ =>
+            {
+                if (CheckIfIdle())
+                {
+                    InitiateShutdown("idle connection");
+                }
+            });
+        _observer = observer;
+    }
+
+    internal Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    {
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+            }
+            else if (_shutdownTask is not null)
+            {
+                Debug.Assert(_connectTask is not null);
+                // await on _connectTask to report the connection establishment failure.
+            }
+            else if (_connectTask is null)
+            {
+                _connectTask = PerformConnectAsync();
+            }
+        }
+
+        return PerformWaitForConnectAsync();
+
+        async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
+        {
+            try
+            {
+                return await _connectTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
+            {
+                // Cancel pending connect if any of the ConnectAsync calls are canceled.
+                try
+                {
+                    _connectCancelSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+                throw;
+            }
+        }
+
+        async Task<TransportConnectionInformation> PerformConnectAsync()
+        {
+            // Make sure we execute the function without holding the connection mutex lock.
+            await Task.Yield();
+
+            TransportConnectionInformation information;
+
+            try
+            {
+                using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_connectCancelSource.Token);
+                cancelSource.CancelAfter(_connectTimeout);
+
+                try
+                {
+                    cancelSource.Token.ThrowIfCancellationRequested();
+
+                    information = await ConnectAsyncCore(cancelSource.Token).ConfigureAwait(false);
+                    EnableIdleCheck();
+                }
+                catch (OperationCanceledException) when (_connectCancelSource.IsCancellationRequested)
+                {
+                    throw new ConnectionAbortedException(_disposeTask is null ?
+                        "connection establishment canceled" :
+                        "connection disposed");
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Assert(cancelSource.IsCancellationRequested);
+                    throw new TimeoutException(
+                        $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+                }
+            }
+            catch (Exception exception)
+            {
+                _observer?.ConnectException(exception, ServerAddress);
+                throw;
+            }
+
+            _observer?.Connected(ServerAddress, information);
+            return information;
+        }
+    }
+
     /// <summary>Registers a callback that will be called when the connection is aborted by the peer.</summary>
-    public void OnAbort(Action<Exception> callback)
+    internal void OnAbort(Action<Exception> callback)
     {
         bool executeCallback = false;
 
@@ -239,7 +266,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     /// <summary>Registers a callback that will be called when the connection is shutdown by the idle timeout or by
     /// by the peer.</summary>
-    public void OnShutdown(Action<string> callback)
+    internal void OnShutdown(Action<string> callback)
     {
         bool executeCallback = false;
 
@@ -261,13 +288,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    public Task ShutdownAsync(string message, CancellationToken cancel = default)
+    internal Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
         lock (_mutex)
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
             else if (_connectTask is null)
             {
@@ -312,22 +339,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw;
             }
         }
-    }
-
-    internal ProtocolConnection(ConnectionOptions options)
-    {
-        _connectTimeout = options.ConnectTimeout;
-        _shutdownTimeout = options.ShutdownTimeout;
-        _idleTimeout = options.IdleTimeout;
-        _idleTimeoutTimer = new Timer(_ =>
-            {
-                if (CheckIfIdle())
-                {
-                    InitiateShutdown("idle connection");
-                }
-            });
-
-        Decorator = this;
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);
@@ -407,30 +418,40 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         try
         {
-            cancelSource.Token.ThrowIfCancellationRequested();
-
-            // Wait for connect to complete first.
-            await _connectTask.WaitAsync(cancelSource.Token).ConfigureAwait(false);
-
-            if (cancelDispatchesAndInvocations)
+            try
             {
-                CancelDispatchesAndInvocations(new ConnectionAbortedException(message));
+                cancelSource.Token.ThrowIfCancellationRequested();
+
+                // Wait for connect to complete first.
+                await _connectTask.WaitAsync(cancelSource.Token).ConfigureAwait(false);
+
+                if (cancelDispatchesAndInvocations)
+                {
+                    CancelDispatchesAndInvocations(new ConnectionAbortedException(message));
+                }
+
+                // Wait for shutdown to complete.
+                await ShutdownAsyncCore(message, cancelSource.Token).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
+            {
+                throw new ConnectionAbortedException(
+                    _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Assert(cancelSource.IsCancellationRequested);
 
-            // Wait for shutdown to complete.
-            await ShutdownAsyncCore(message, cancelSource.Token).ConfigureAwait(false);
+                // Triggered by the CancelAfter above.
+                throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            }
         }
-        catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
+        catch (Exception exception)
         {
-            throw new ConnectionAbortedException(
-                _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
+            _observer?.ShutdownException(exception, message, ServerAddress);
+            throw;
         }
-        catch (OperationCanceledException)
-        {
-            Debug.Assert(cancelSource.IsCancellationRequested);
 
-            // Triggered by the CancelAfter above.
-            throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
-        }
+        _observer?.ShutdownComplete(message, ServerAddress);
     }
 }

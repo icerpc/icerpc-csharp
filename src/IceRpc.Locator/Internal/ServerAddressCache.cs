@@ -6,10 +6,10 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An endpoint cache maintains a dictionary of location to endpoint(s), where the endpoints are held by a
+/// <summary>An server address cache maintains a dictionary of location to server address(es), where the server addresses are held by a
 /// dummy service address. It also keeps track of the insertion time of each entry. It's consumed by
 /// <see cref="LocationResolver"/>.</summary>
-internal interface IEndpointCache
+internal interface IServerAddressCache
 {
     void Remove(Location location);
 
@@ -18,8 +18,8 @@ internal interface IEndpointCache
     bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value);
 }
 
-/// <summary>The main implementation for IEndpointCache.</summary>
-internal sealed class EndpointCache : IEndpointCache
+/// <summary>The main implementation for IServerAddressCache.</summary>
+internal sealed class ServerAddressCache : IServerAddressCache
 {
     private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node)> _cache;
 
@@ -31,16 +31,16 @@ internal sealed class EndpointCache : IEndpointCache
     // _mutex protects _cacheKeys and updates to _cache
     private readonly object _mutex = new();
 
-    internal EndpointCache(int maxCacheSize)
+    internal ServerAddressCache(int maxCacheSize)
     {
         Debug.Assert(maxCacheSize > 0);
         _maxCacheSize = maxCacheSize;
         _cache = new(concurrencyLevel: 1, capacity: _maxCacheSize + 1);
     }
 
-    void IEndpointCache.Remove(Location location) => Remove(location);
+    void IServerAddressCache.Remove(Location location) => Remove(location);
 
-    void IEndpointCache.Set(Location location, ServiceAddress serviceAddress)
+    void IServerAddressCache.Set(Location location, ServiceAddress serviceAddress)
     {
         lock (_mutex)
         {
@@ -59,7 +59,7 @@ internal sealed class EndpointCache : IEndpointCache
         }
     }
 
-    bool IEndpointCache.TryGetValue(
+    bool IServerAddressCache.TryGetValue(
         Location location,
         out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
     {
@@ -94,31 +94,31 @@ internal sealed class EndpointCache : IEndpointCache
     }
 }
 
-/// <summary>A decorator that adds logging to an endpoint cache.</summary>
-internal class LogEndpointCacheDecorator : IEndpointCache
+/// <summary>A decorator that adds logging to a server address cache.</summary>
+internal class LogServerAddressCacheDecorator : IServerAddressCache
 {
-    private readonly IEndpointCache _decoratee;
+    private readonly IServerAddressCache _decoratee;
     private readonly ILogger _logger;
 
-    internal LogEndpointCacheDecorator(IEndpointCache decoratee, ILogger logger)
+    internal LogServerAddressCacheDecorator(IServerAddressCache decoratee, ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;
     }
 
-    void IEndpointCache.Remove(Location location)
+    void IServerAddressCache.Remove(Location location)
     {
         _decoratee.Remove(location);
         _logger.LogRemovedEntry(location.Kind, location);
     }
 
-    void IEndpointCache.Set(Location location, ServiceAddress serviceAddress)
+    void IServerAddressCache.Set(Location location, ServiceAddress serviceAddress)
     {
         _decoratee.Set(location, serviceAddress);
         _logger.LogSetEntry(location.Kind, location, serviceAddress);
     }
 
-    bool IEndpointCache.TryGetValue(
+    bool IServerAddressCache.TryGetValue(
         Location location,
         out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
     {

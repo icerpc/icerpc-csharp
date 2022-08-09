@@ -13,7 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    public override Endpoint Endpoint => _duplexConnection.Endpoint;
+    internal override ServerAddress ServerAddress => _duplexConnection.ServerAddress;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -58,8 +58,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    internal IceProtocolConnection(IDuplexConnection duplexConnection, bool isServer, ConnectionOptions options)
-        : base(options)
+    internal IceProtocolConnection(
+        IDuplexConnection duplexConnection,
+        bool isServer,
+        IProtocolConnectionObserver? observer,
+        ConnectionOptions options)
+        : base(observer, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
@@ -190,13 +194,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
 
-        ServerEventSource.Log.ConnectionStart(Protocol.Ice, transportConnectionInformation);
-        OnAbort(exception =>
-            ServerEventSource.Log.ConnectionFailure(Protocol.Ice, transportConnectionInformation, exception));
-        OnDispose(() => ServerEventSource.Log.ConnectionStop(Protocol.Ice, transportConnectionInformation));
-
-        // This needs to be set before starting the read frames task bellow.
-        _connectionContext = new ConnectionContext(Decorator, transportConnectionInformation);
+        // This needs to be set before starting the read frames task below.
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         // Wait for the transport connection establishment to enable the idle timeout check.
         _duplexConnectionReader.EnableIdleCheck();
@@ -224,7 +223,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
                 throw new InvalidDataException(
-                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{
+                       validateConnectionFrame.FrameType}'");
             }
         }
 
@@ -515,7 +515,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             // For compatibility with ZeroC Ice "indirect" proxies
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.Endpoint is null ?
+                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.ServerAddress is null ?
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
@@ -790,7 +790,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 case IceFrameType.ValidateConnection:
                 {
-                    // Notify the control stream of the reception of a Ping frame.
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(

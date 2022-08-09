@@ -266,7 +266,7 @@ public abstract class MultiplexedTransportConformanceTests
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
         await using var clientConnection = clientTransport.CreateConnection(
-            listener.Endpoint,
+            listener.ServerAddress,
             provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
             null);
 
@@ -308,7 +308,7 @@ public abstract class MultiplexedTransportConformanceTests
         var listener = provider.GetRequiredService<IMultiplexedListener>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         await using var clientConnection = clientTransport.CreateConnection(
-            listener.Endpoint,
+            listener.ServerAddress,
             provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
             null);
 
@@ -1055,29 +1055,29 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Create_client_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
+    public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
-        var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => clientTransport.CreateConnection(endpoint, new MultiplexedConnectionOptions(), null));
+            () => clientTransport.CreateConnection(serverAddress, new MultiplexedConnectionOptions(), null));
     }
 
     [Test]
-    public async Task Create_server_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
+    public async Task Create_server_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
 
-        var endpoint = new Endpoint(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => serverTransport.Listen(endpoint, new MultiplexedConnectionOptions(), null));
+            () => serverTransport.Listen(serverAddress, new MultiplexedConnectionOptions(), null));
     }
 
     /// <summary>Verifies that stream write can be canceled.</summary>
@@ -1218,7 +1218,7 @@ public static class MultiplexedTransportServiceCollectionExtensions
             var listener = provider.GetRequiredService<IMultiplexedListener>();
             var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
             var connection = clientTransport.CreateConnection(
-                listener.Endpoint,
+                listener.ServerAddress,
                 provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
                 null);
             return connection;

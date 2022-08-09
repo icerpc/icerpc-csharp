@@ -14,7 +14,7 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool refreshCache)
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/dummy"));
-        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedServiceAddress));
+        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
@@ -32,7 +32,7 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool refreshCache)
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/dummy"));
-        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedServiceAddress));
+        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
@@ -44,13 +44,13 @@ public class CacheLessLocationResolverTests
         Assert.That(fromCache, Is.False);
     }
 
-    private class FakeEndpointFinder : IEndpointFinder
+    private class FakeServerAddressFinder : IServerAddressFinder
     {
         private readonly ServiceAddress _serviceAddress;
 
-        public FakeEndpointFinder(ServiceAddress serviceAddress) => _serviceAddress = serviceAddress;
+        public FakeServerAddressFinder(ServiceAddress serviceAddress) => _serviceAddress = serviceAddress;
 
-        Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
+        Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel) =>
             Task.FromResult(location.Value == "good" ? _serviceAddress : null);
     }
 }

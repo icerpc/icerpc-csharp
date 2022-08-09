@@ -19,7 +19,7 @@ public static class ServiceCollectionExtensions
         IDispatcher dispatcher,
         Protocol protocol,
         string host = "colochost") =>
-        services.AddColocTransport().AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = host });
+        services.AddColocTransport().AddClientServerTest(dispatcher, new ServerAddress(protocol) { Host = host });
 
     public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddColocTest(dispatcher, Protocol.IceRpc);
@@ -30,7 +30,7 @@ public static class ServiceCollectionExtensions
         Action<IDispatcherBuilder> configure,
         Protocol protocol,
         string host = "colochost") =>
-        services.AddColocTransport().AddClientServerTest(configure, new Endpoint(protocol) { Host = host });
+        services.AddColocTransport().AddClientServerTest(configure, new ServerAddress(protocol) { Host = host });
 
     public static IServiceCollection AddColocTest(
         this IServiceCollection services,
@@ -50,9 +50,9 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IDispatcher dispatcher,
         Protocol protocol) =>
-        services.AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "127.0.0.1", Port = 0 });
+        services.AddClientServerTest(dispatcher, new ServerAddress(protocol) { Host = "127.0.0.1", Port = 0 });
 
-    public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, Endpoint endpoint)
+    public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, ServerAddress serverAddress)
     {
         collection.AddSingleton(provider =>
         {
@@ -62,7 +62,7 @@ public static class ServiceCollectionExtensions
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
             return serverTransport.Listen(
-                endpoint,
+                serverAddress,
                 connectionOptions ?? new DuplexConnectionOptions(),
                 serverAuthenticationOptions);
         });
@@ -77,24 +77,24 @@ public static class ServiceCollectionExtensions
             IDuplexClientTransport clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
             return clientTransport.CreateConnection(
-                listener.Endpoint,
+                listener.ServerAddress,
                 connectionOptions ?? new DuplexConnectionOptions(),
                 clientAuthenticationOptions);
         });
         return collection;
     }
 
-    public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, Uri endpointUri) =>
-        collection.UseDuplexTransport(new Endpoint(endpointUri));
+    public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, Uri serverAddressUri) =>
+        collection.UseDuplexTransport(new ServerAddress(serverAddressUri));
 
-    /// <summary>Adds a Server and ClientConnection singletons, with the server listening on the specified endpoint and
-    /// the client connection connecting to the server's endpoint.</summary>
-    /// <remarks>When the endpoint's port is 0 and transport is not coloc, you need to create the server and call Listen
+    /// <summary>Adds a Server and ClientConnection singletons, with the server listening on the specified server address and
+    /// the client connection connecting to the server's server address.</summary>
+    /// <remarks>When the server address port is 0 and transport is not coloc, you need to create the server and call Listen
     /// on it before creating the client connection.</remarks>
     private static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         IDispatcher dispatcher,
-        Endpoint endpoint)
+        ServerAddress serverAddress)
     {
         services.AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance);
         services.AddSingleton(LogAttributeLoggerFactory.Instance.Logger);
@@ -102,13 +102,13 @@ public static class ServiceCollectionExtensions
         services.AddOptions<ServerOptions>().Configure(options =>
         {
             options.ConnectionOptions.Dispatcher = dispatcher;
-            options.Endpoint = endpoint;
+            options.ServerAddress = serverAddress;
         });
         services.AddIceRpcServer();
 
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.Endpoint = server.Endpoint);
+            .Configure<Server>((options, server) => options.ServerAddress = server.ServerAddress);
 
         services.AddIceRpcClientConnection();
 
@@ -118,7 +118,7 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure,
-        Endpoint endpoint)
+        ServerAddress serverAddress)
     {
         services.AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance);
         services.AddSingleton(provider =>
@@ -127,12 +127,12 @@ public static class ServiceCollectionExtensions
             return factory.CreateLogger("Test");
         });
 
-        services.AddOptions<ServerOptions>().Configure(options => options.Endpoint = endpoint);
+        services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
         services.AddIceRpcServer(configure);
 
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.Endpoint = server.Endpoint);
+            .Configure<Server>((options, server) => options.ServerAddress = server.ServerAddress);
 
         services.AddIceRpcClientConnection();
 
