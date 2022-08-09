@@ -11,8 +11,8 @@ namespace IceRpc;
 public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even
-    /// when <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
+    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
+    /// non-null.</value>
     public ServerAddress ServerAddress => _clientConnection.ServerAddress;
 
     /// <summary>Gets the protocol of this connection.</summary>

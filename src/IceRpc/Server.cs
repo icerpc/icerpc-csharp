@@ -22,9 +22,9 @@ public sealed class Server : IAsyncDisposable
         new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets the server address of this server.</summary>
-    /// <value>The server address of this server. It has a non-null Transport property even when
-    /// <see cref="ServerOptions.ServerAddress"/> does not. When the address's host is an IP address and the port is 0,
-    /// <see cref="Listen"/> replaces the port by the actual port the server is listening on.</value>
+    /// <value>The server address of this server. Its <see cref="ServerAddress.Transport"/> property is always non-null.
+    /// When the address's host is an IP address and the port is 0, <see cref="Listen"/> replaces the port by the actual
+    /// port the server is listening on.</value>
     public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
 
     /// <summary>Gets a task that completes when the server's shutdown is complete: see <see cref="ShutdownAsync"/>.
