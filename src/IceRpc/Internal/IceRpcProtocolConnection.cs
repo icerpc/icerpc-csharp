@@ -16,7 +16,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
-    private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher? _dispatcher;
@@ -105,8 +104,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
 
+        if (_isReadOnly)
+        {
+            ServerEventSource.Log.ConnectionStart(Protocol.Ice, transportConnectionInformation);
+            OnAbort(exception =>
+                ServerEventSource.Log.ConnectionFailure(Protocol.Ice, transportConnectionInformation, exception));
+        }
+
         // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        ConnectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
 
@@ -328,7 +334,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             if (request.IsOneway)
             {
-                return new IncomingResponse(request, _connectionContext!);
+                return new IncomingResponse(request, ConnectionContext!);
             }
 
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -348,7 +354,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            return new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
+            return new IncomingResponse(request, ConnectionContext!, fields, fieldsPipeReader)
             {
                 Payload = stream.Input,
                 ResultType = header.ResultType
@@ -717,7 +723,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            var request = new IncomingRequest(_connectionContext!)
+            var request = new IncomingRequest(ConnectionContext!)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,

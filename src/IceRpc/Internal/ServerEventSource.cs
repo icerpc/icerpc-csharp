@@ -11,13 +11,24 @@ internal sealed class ServerEventSource : EventSource
 {
     internal static readonly ServerEventSource Log = new("IceRpc-Server");
 
-    private readonly IncrementingPollingCounter _connectionsPerSecondCounter;
+    // The number of connections that were accepted and are being connected
+    private long _currentBacklog;
+    private readonly PollingCounter _currentBacklogCounter;
+
+    // The number of connections that were accepted and connected and are not lost or shutdown (“active” connections).
     private long _currentConnections;
     private readonly PollingCounter _currentConnectionsCounter;
-    private long _failedConnections;
-    private readonly PollingCounter _failedConnectionsCounter;
+
+    // Tracks the connection rate
+    private readonly IncrementingPollingCounter _connectionsPerSecondCounter;
+
+    // The number of connection that have been accepted and connected.
     private long _totalConnections;
     private readonly PollingCounter _totalConnectionsCounter;
+
+    // The number of connection that have been accepted and connected.
+    private long _totalFailedConnections;
+    private readonly PollingCounter _totalFailedConnectionsCounter;
 
     /// <summary>Creates a new instance of the <see cref="ServerEventSource"/> class with the specified name.
     /// </summary>
@@ -25,13 +36,13 @@ internal sealed class ServerEventSource : EventSource
     internal ServerEventSource(string eventSourceName)
         : base(eventSourceName)
     {
-        _connectionsPerSecondCounter = new IncrementingPollingCounter(
-            "connections-per-second",
+
+        _currentBacklogCounter = new PollingCounter(
+            "current-backlog",
             this,
-            () => Volatile.Read(ref _totalConnections))
+            () => Volatile.Read(ref _currentBacklog))
         {
-            DisplayName = "Connections Rate",
-            DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+            DisplayName = "Current Backlog",
         };
 
         _currentConnectionsCounter = new PollingCounter(
@@ -42,13 +53,14 @@ internal sealed class ServerEventSource : EventSource
             DisplayName = "Current Connections",
         };
 
-        _failedConnectionsCounter = new PollingCounter(
-            "failed-connections",
+        _connectionsPerSecondCounter = new IncrementingPollingCounter(
+            "connections-per-second",
             this,
-            () => Volatile.Read(ref _failedConnections))
-                {
-                    DisplayName = "Failed Connections",
-                };
+            () => Volatile.Read(ref _totalConnections))
+        {
+            DisplayName = "Connections Rate",
+            DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+        };
 
         _totalConnectionsCounter = new PollingCounter(
             "total-connections",
@@ -57,6 +69,71 @@ internal sealed class ServerEventSource : EventSource
         {
             DisplayName = "Total Connections",
         };
+
+        _totalFailedConnectionsCounter = new PollingCounter(
+            "total-failed-connections",
+            this,
+            () => Volatile.Read(ref _totalFailedConnections))
+                {
+                    DisplayName = "Total Failed Connections",
+                };
+    }
+
+    [NonEvent]
+    internal void ConnectFailure(
+        Protocol protocol,
+        TransportConnectionInformation connectionInformation,
+        Exception exception)
+    {
+        Interlocked.Increment(ref _totalFailedConnections);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectFailure(
+                protocol.Name,
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString(),
+                exception.GetType().FullName,
+                exception.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal void ConnectStart(Protocol protocol, TransportConnectionInformation connectionInformation)
+    {
+        Interlocked.Increment(ref _currentBacklog);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectStart(
+                protocol.Name,
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal void ConnectStop(Protocol protocol, TransportConnectionInformation connectionInformation)
+    {
+        Interlocked.Decrement(ref _currentBacklog);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectStop(
+                protocol.Name,
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal void ConnectSuccess(Protocol protocol, TransportConnectionInformation connectionInformation)
+    {
+        Interlocked.Increment(ref _currentConnections);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectSuccess(
+                protocol.Name,
+                connectionInformation.LocalNetworkAddress?.ToString(),
+                connectionInformation.RemoteNetworkAddress?.ToString());
+        }
     }
 
     [NonEvent]
@@ -65,8 +142,8 @@ internal sealed class ServerEventSource : EventSource
         TransportConnectionInformation connectionInformation,
         Exception exception)
     {
-        Interlocked.Increment(ref _failedConnections);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        Interlocked.Increment(ref _totalFailedConnections);
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionFailure(
                 protocol.Name,
@@ -81,7 +158,6 @@ internal sealed class ServerEventSource : EventSource
     internal void ConnectionStart(Protocol protocol, TransportConnectionInformation connectionInformation)
     {
         Interlocked.Increment(ref _totalConnections);
-        Interlocked.Increment(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionStart(
@@ -92,11 +168,8 @@ internal sealed class ServerEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectionStop(
-        Protocol protocol,
-        TransportConnectionInformation connectionInformation)
+    internal void ConnectionStop(Protocol protocol, TransportConnectionInformation connectionInformation)
     {
-        Interlocked.Decrement(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionStop(
@@ -110,9 +183,10 @@ internal sealed class ServerEventSource : EventSource
     protected override void Dispose(bool disposing)
     {
         _currentConnectionsCounter.Dispose();
-        _failedConnectionsCounter.Dispose();
+        _currentBacklogCounter.Dispose();
         _connectionsPerSecondCounter.Dispose();
         _totalConnectionsCounter.Dispose();
+        _totalFailedConnectionsCounter.Dispose();
         base.Dispose(disposing);
     }
 
@@ -120,15 +194,15 @@ internal sealed class ServerEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectionStart(string protocol, string? localNetworkAddress, string? remoteNetworkAddress) =>
+    private void ConnectionStart(
+        string protocol,
+        string? localNetworkAddress,
+        string? remoteNetworkAddress) =>
         WriteEvent(1, protocol, localNetworkAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectionStop(
-        string protocol,
-        string? localNetworkAddress,
-        string? remoteNetworkAddress) =>
+    private void ConnectionStop(string protocol, string? localNetworkAddress, string? remoteNetworkAddress) =>
         WriteEvent(2, protocol, localNetworkAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -139,5 +213,42 @@ internal sealed class ServerEventSource : EventSource
         string? remoteNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
-        WriteEvent(3, protocol, localNetworkAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
+        WriteEvent(
+            3,
+            protocol,
+            localNetworkAddress,
+            remoteNetworkAddress,
+            exceptionType,
+            exceptionDetails);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+    private void ConnectStart(string protocol, string? localNetworkAddress, string? remoteNetworkAddress) =>
+        WriteEvent(4, protocol, localNetworkAddress, remoteNetworkAddress);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(5, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
+    private void ConnectStop(string protocol, string? localNetworkAddress, string? remoteNetworkAddress) =>
+        WriteEvent(5, protocol, localNetworkAddress, remoteNetworkAddress);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(6, Level = EventLevel.Error)]
+    private void ConnectFailure(
+        string protocol,
+        string? localNetworkAddress,
+        string? remoteNetworkAddress,
+        string? exceptionType,
+        string exceptionDetails) =>
+        WriteEvent(
+            6,
+            protocol,
+            localNetworkAddress,
+            remoteNetworkAddress,
+            exceptionType,
+            exceptionDetails);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(7, Level = EventLevel.Informational)]
+    private void ConnectSuccess(string protocol, string? localNetworkAddress, string? remoteNetworkAddress) =>
+        WriteEvent(7, protocol, localNetworkAddress, remoteNetworkAddress);
 }

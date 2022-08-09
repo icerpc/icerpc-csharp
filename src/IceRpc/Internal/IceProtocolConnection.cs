@@ -30,7 +30,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
-    private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
     private Exception? _invocationCanceledException;
@@ -195,13 +194,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task below.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        ConnectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         // Wait for the transport connection establishment to enable the idle timeout check.
         _duplexConnectionReader.EnableIdleCheck();
 
         if (_isServer)
         {
+            ServerEventSource.Log.ConnectionStart(Protocol.Ice, transportConnectionInformation);
             EncodeValidateConnectionFrame(_duplexConnectionWriter);
             await _duplexConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
         }
@@ -455,7 +455,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request, _connectionContext!);
+                return new IncomingResponse(request, ConnectionContext!);
             }
 
             Debug.Assert(responseCompletionSource is not null);
@@ -519,7 +519,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            return new IncomingResponse(request, _connectionContext!, fields)
+            return new IncomingResponse(request, ConnectionContext!, fields)
             {
                 Payload = frameReader,
                 ResultType = replyStatus switch
@@ -910,7 +910,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            var request = new IncomingRequest(_connectionContext!)
+            var request = new IncomingRequest(ConnectionContext!)
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,

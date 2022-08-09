@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -168,7 +169,15 @@ public sealed class Server : IAsyncDisposable
 
                     // Schedule removal after addition. We do this outside the mutex lock otherwise
                     // await serverConnection.ShutdownAsync could be called within this lock.
-                    connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
+                    connection.OnAbort(exception =>
+                        {
+                            ServerEventSource.Log.ConnectionFailure(
+                                connection.ServerAddress.Protocol,
+                                connection.ConnectionContext?.TransportConnectionInformation ?? default,
+                                exception);
+                            _ = RemoveFromCollectionAsync(connection, graceful: false);
+                        });
+
                     connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
@@ -177,7 +186,12 @@ public sealed class Server : IAsyncDisposable
                     // Waiting could also cause a security issue if the client doesn't respond to the connection
                     // initialization as we wouldn't be able to accept new connections in the meantime. The call will
                     // eventually timeout if the ConnectTimeout expires.
-                    _ = connection.ConnectAsync(CancellationToken.None);
+                    _ = Task.Run(async () =>
+                        {
+                            TransportConnectionInformation connectionInformation =
+                                await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                            ServerEventSource.Log.ConnectSuccess(connection.ServerAddress.Protocol, connectionInformation);
+                        });
                 }
             }
 
@@ -205,6 +219,10 @@ public sealed class Server : IAsyncDisposable
                 }
 
                 await connection.DisposeAsync().ConfigureAwait(false);
+
+                ServerEventSource.Log.ConnectionStop(
+                    connection.ServerAddress.Protocol,
+                    connection.ConnectionContext?.TransportConnectionInformation ?? default);
 
                 lock (_mutex)
                 {

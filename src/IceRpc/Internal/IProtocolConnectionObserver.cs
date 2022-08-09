@@ -7,6 +7,9 @@ namespace IceRpc.Internal;
 /// <summary>An observer for <see cref="ProtocolConnection"/>.</summary>
 internal interface IProtocolConnectionObserver
 {
+    /// <summary>The connect operation started.</summary>
+    void ConnectStart(ServerAddress serverAddress);
+
     /// <summary>The connection establishment was successful.</summary>
     void Connected(ServerAddress serverAddress, TransportConnectionInformation connectionInformation);
 
