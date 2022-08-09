@@ -1,15 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.IO.Pipelines;
-using System.Net;
 
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The listener implementation for the colocated transport.</summary>
 internal class ColocListener : IListener<IDuplexConnection>
 {
-    public EndPoint NetworkAddress { get; }
-
     public ServerAddress ServerAddress { get; }
 
     private readonly PipeOptions _pipeOptions;
@@ -25,7 +22,6 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
     {
-        NetworkAddress = new ColocEndPoint(serverAddress);
         ServerAddress = serverAddress;
 
         _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
