@@ -10,7 +10,7 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets the stream ID.</summary>
     /// <exception cref="InvalidOperationException">Raised if the stream is not started. Local streams are not
     /// started until data is written. A remote stream is always started.</exception>
-    long Id { get; }
+    ulong Id { get; }
 
     /// <summary>Gets a value indicating whether the stream is bidirectional.</summary>
     bool IsBidirectional { get; }

@@ -27,9 +27,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
     private bool _isReadOnly;
-    private long _lastRemoteBidirectionalStreamId = -1;
+    private ulong? _lastRemoteBidirectionalStreamId;
     // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
-    private long _lastRemoteUnidirectionalStreamId = -1;
+    private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
@@ -442,17 +442,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // initiated by the peer.
         IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancel).ConfigureAwait(false);
 
-        // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
+        // Abort streams for requests that were not dispatched by the peer. The invocations will throw
         // ConnectionClosedException which can be retried.
         IEnumerable<IMultiplexedStream> invocations;
         lock (_mutex)
         {
-            // Cancel the invocations that were not dispatched by the peer.
             invocations = _streams.Where(stream =>
                 !stream.IsRemote &&
-                (!stream.IsStarted || (stream.Id > (stream.IsBidirectional ?
-                    peerGoAwayFrame.LastBidirectionalStreamId :
-                    peerGoAwayFrame.LastUnidirectionalStreamId)))).ToArray();
+                (!stream.IsStarted || (stream.IsBidirectional ?
+                    peerGoAwayFrame.LastBidirectionalStreamId is null ||
+                    stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
+                    peerGoAwayFrame.LastUnidirectionalStreamId is null ||
+                    stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId))).ToArray();
         }
 
         var closedException = new ConnectionClosedException(message);
@@ -968,18 +969,36 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw new InvalidDataException("invalid empty control frame");
             }
 
-            IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
-            input.AdvanceTo(readResult.Buffer.GetPosition(1));
-
-            if (frameType != expectedFrameType)
+            if (TryDecodeFrameType(readResult.Buffer, out IceRpcControlFrameType frameType, out long consumed))
             {
-                throw new InvalidDataException(
-                   $"received frame type {frameType} but expected {expectedFrameType}");
+                input.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                break; // while
             }
             else
             {
-                // Received expected frame type, returning.
-                break; // while
+                input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+            }
+        }
+
+        bool TryDecodeFrameType(ReadOnlySequence<byte> buffer, out IceRpcControlFrameType frameType, out long consumed)
+        {
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            if (decoder.TryDecodeVarUInt62(out ulong value))
+            {
+                frameType = value.AsIceRpcControlFrameType();
+                if (frameType != expectedFrameType)
+                {
+                    throw new InvalidDataException(
+                       $"received frame type {frameType} but expected {expectedFrameType}");
+                }
+                consumed = decoder.Consumed;
+                return true;
+            }
+            else
+            {
+                frameType = IceRpcControlFrameType.GoAway;
+                consumed = 0;
+                return false;
             }
         }
     }
@@ -1071,24 +1090,20 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
-        EncodeAction? encodeAction,
+        EncodeAction encodeAction,
         bool endStream,
         CancellationToken cancel)
     {
         PipeWriter output = _controlStream!.Output;
-        output.GetSpan()[0] = (byte)frameType;
-        output.Advance(1);
 
-        if (encodeAction is not null)
-        {
-            EncodeFrame(output);
-        }
+        EncodeFrame(output);
 
         return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream, cancel); // Flush
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {
             var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+            encoder.EncodeIceRpcControlFrameType(frameType);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
             int startPos = encoder.EncodedByteCount; // does not include the size
             encodeAction.Invoke(ref encoder);
