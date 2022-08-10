@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System.Diagnostics.Tracing;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -27,13 +26,13 @@ internal sealed class ServerEventSource : EventSource
     private long _totalConnections;
     private readonly PollingCounter _totalConnectionsCounter;
 
-    // The number of connection that have been accepted and connected.
+    // The number of connections that were accepted but failed to connect plus lost connections.
     private long _totalFailedConnections;
     private readonly PollingCounter _totalFailedConnectionsCounter;
 
     /// <summary>Creates a new instance of the <see cref="ServerEventSource"/> class with the specified name.
     /// </summary>
-    /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
+    /// <param name="eventSourceName">The name to apply to the event source.</param>
     internal ServerEventSource(string eventSourceName)
         : base(eventSourceName)
     {
