@@ -14,7 +14,7 @@ internal class ColocServerTransport : IDuplexServerTransport
     private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    public IDuplexListener Listen(
+    public IListener<IDuplexConnection> Listen(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticatioinOptions)
@@ -32,7 +32,7 @@ internal class ColocServerTransport : IDuplexServerTransport
         var listener = new ColocListener(serverAddress with { Transport = Name }, options);
         if (!_listeners.TryAdd(listener.ServerAddress, listener))
         {
-            throw new TransportException($"serverAddress '{listener.ServerAddress}' is already in use");
+            throw new TransportException($"server address '{listener.ServerAddress}' is already in use");
         }
         return listener;
     }

@@ -22,8 +22,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
 
     /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. It has a non-null <see cref="ServerAddress.Transport"/> even when
-    /// <see cref="ClientConnectionOptions.ServerAddress"/> does not.</value>
+    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
+    /// non-null.</value>
     public ServerAddress ServerAddress { get; }
 
     /// <summary>Gets the protocol of this connection.</summary>

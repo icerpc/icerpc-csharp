@@ -5,8 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports;
 
-/// <summary>The transport connection information returned on <see cref="ITransportConnection"/> connection
-/// establishment.</summary>
+/// <summary>The transport connection information returned on connection establishment.</summary>
 public readonly record struct TransportConnectionInformation
 {
     /// <summary>Gets the network address of the local end of the connection.</summary>

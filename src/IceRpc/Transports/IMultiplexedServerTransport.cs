@@ -4,8 +4,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>A class to create a <see cref="IMultiplexedListener"/> to accept incoming multiplexed
-/// connections.</summary>
+/// <summary>A class to create a <see cref="IListener{T}"/> to accept incoming multiplexed connections.</summary>
 public interface IMultiplexedServerTransport
 {
     /// <summary>Gets the transport's name.</summary>
@@ -16,7 +15,7 @@ public interface IMultiplexedServerTransport
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
-    IMultiplexedListener Listen(
+    IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions);

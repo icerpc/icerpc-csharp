@@ -5,7 +5,6 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
 
@@ -56,8 +55,7 @@ public static class ServiceCollectionExtensions
     {
         collection.AddSingleton(provider =>
         {
-            DuplexConnectionOptions? connectionOptions =
-                provider.GetService<DuplexConnectionOptions>();
+            DuplexConnectionOptions? connectionOptions = provider.GetService<DuplexConnectionOptions>();
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
@@ -69,11 +67,10 @@ public static class ServiceCollectionExtensions
 
         collection.AddSingleton(provider =>
         {
-            DuplexConnectionOptions? connectionOptions =
-                provider.GetService<DuplexConnectionOptions>();
+            DuplexConnectionOptions? connectionOptions = provider.GetService<DuplexConnectionOptions>();
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
-            IDuplexListener listener = provider.GetRequiredService<IDuplexListener>();
+            IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
             IDuplexClientTransport clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
             return clientTransport.CreateConnection(

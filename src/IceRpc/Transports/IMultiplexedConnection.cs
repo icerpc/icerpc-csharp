@@ -8,7 +8,8 @@ namespace IceRpc.Transports;
 /// <summary>Represents a transport connection created by a multiplexed transport.</summary>
 public interface IMultiplexedConnection : IAsyncDisposable
 {
-    /// <summary>Gets the server address of this connection. This server address Transport property is non-null.</summary>
+    /// <summary>Gets the server address of this connection. This server address Transport property is non-null.
+    /// </summary>
     ServerAddress ServerAddress { get; }
 
     /// <summary>Connects this connection.</summary>

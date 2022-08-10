@@ -31,7 +31,7 @@ public class SlicServerTransport : IMultiplexedServerTransport
     }
 
     /// <inheritdoc/>
-    public IMultiplexedListener Listen(
+    public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions) =>
