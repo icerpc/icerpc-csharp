@@ -10,7 +10,7 @@ public interface ISliceFeature
     /// the Slice generated code.</value>
     IActivator? Activator { get; }
 
-    /// <summary>Gets the options to use when encoding the payload of outgoing response.</summary>
+    /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
     /// <value>The Slice encode options. Null is equivalent to <see cref="SliceEncodeOptions.Default"/>.</value>
     SliceEncodeOptions? EncodeOptions { get; }
 
