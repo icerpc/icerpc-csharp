@@ -518,7 +518,7 @@ public class ServiceAddressTests
         var router = new Router();
         router.Map<ISendProxyTest>(service);
         router.UseFeature<ISliceFeature>(
-            new SliceFeature(serviceProxyFactory: serviceAddress => new ServiceProxy(pipeline, serviceAddress)));
+            new SliceFeature(serviceProxyFactory: (serviceAddress, _) => new ServiceProxy(pipeline, serviceAddress)));
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(router)

@@ -26,7 +26,7 @@ public interface ISliceFeature
     int MaxSegmentSize { get; }
 
     /// <summary>Gets the service proxy factory to use when decoding proxies in request or response payloads.</summary>
-    Func<ServiceAddress, ServiceProxy>? ServiceProxyFactory { get; }
+    Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory { get; }
 
     /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async
     /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.
