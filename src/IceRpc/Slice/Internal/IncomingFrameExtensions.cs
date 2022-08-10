@@ -15,7 +15,7 @@ internal static class IncomingFrameExtensions
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="feature">The Slice feature.</param>
     /// <param name="activator">The activator.</param>
-    /// <param name="serviceProxyFactory">The service proxy factory.</param>
+    /// <param name="templateProxy">The template proxy.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The decode value.</returns>
@@ -24,7 +24,7 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceFeature feature,
         IActivator? activator,
-        Func<ServiceAddress, ServiceProxy> serviceProxyFactory,
+        ServiceProxy? templateProxy,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
@@ -43,7 +43,8 @@ internal static class IncomingFrameExtensions
                 readResult.Buffer,
                 encoding,
                 activator,
-                serviceProxyFactory,
+                feature.ServiceProxyFactory,
+                templateProxy,
                 feature.MaxCollectionAllocation,
                 feature.MaxDepth);
             T value = decodeFunc(ref decoder);
@@ -109,7 +110,7 @@ internal static class IncomingFrameExtensions
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="feature">The Slice feature.</param>
     /// <param name="activator">The activator.</param>
-    /// <param name="serviceProxyFactory">The service proxy factory.</param>
+    /// <param name="templateProxy">The template proxy.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -117,7 +118,7 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceFeature feature,
         IActivator? activator,
-        Func<ServiceAddress, ServiceProxy> serviceProxyFactory,
+        ServiceProxy? templateProxy,
         DecodeFunc<T> decodeFunc)
     {
         var streamDecoder = new StreamDecoder<T>(
@@ -149,7 +150,8 @@ internal static class IncomingFrameExtensions
                 buffer,
                 encoding,
                 activator,
-                serviceProxyFactory,
+                feature.ServiceProxyFactory,
+                templateProxy,
                 feature.MaxCollectionAllocation,
                 feature.MaxDepth);
 

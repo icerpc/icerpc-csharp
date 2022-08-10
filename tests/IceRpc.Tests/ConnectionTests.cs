@@ -135,7 +135,7 @@ public class ConnectionTests
                 async () =>
                 {
                     IncomingResponse response = await invokeTask;
-                    throw await response.DecodeFailureAsync(request, connection);
+                    throw await response.DecodeFailureAsync(request, new ServiceProxy(connection, serviceAddress));
                 },
                 Throws.TypeOf<DispatchException>());
         }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -25,8 +26,7 @@ public class DictionaryMappingTests
             await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
         Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
@@ -48,8 +48,7 @@ public class DictionaryMappingTests
         Dictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
-            NotImplementedInvoker.Instance,
-            encodeOptions: null,
+            new ServiceProxy(NotImplementedInvoker.Instance),
             default);
 
         Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));

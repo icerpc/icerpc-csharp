@@ -209,7 +209,7 @@ public sealed class ProtocolConnectionTests
                 async () =>
                 {
                     IncomingResponse response = await invokeTask;
-                    throw await response.DecodeFailureAsync(request, sut.Client);
+                    throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
                 },
                 Throws.TypeOf<DispatchException>());
         }

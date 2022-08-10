@@ -588,7 +588,6 @@ pub fn decode_operation_stream(
         .add_argument_unless(dispatch, "request")
         .add_argument(cs_encoding)
         .add_argument_unless(dispatch || param_type.is_fixed_size(), "sender")
-        .add_argument_unless(dispatch || param_type.is_fixed_size(), "encodeOptions")
         .add_argument_unless(param_type.is_fixed_size(), "_defaultActivator")
         .add_argument(decode_func(param_type, namespace, encoding).indent())
         .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())
