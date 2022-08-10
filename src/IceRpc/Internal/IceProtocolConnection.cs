@@ -30,6 +30,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
+    private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
     private Exception? _invocationCanceledException;
@@ -193,7 +194,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task below.
-        ConnectionContext = new ConnectionContext(this, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         // Wait for the transport connection establishment to enable the idle timeout check.
         _duplexConnectionReader.EnableIdleCheck();
@@ -453,7 +454,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request, ConnectionContext!);
+                return new IncomingResponse(request, _connectionContext!);
             }
 
             Debug.Assert(responseCompletionSource is not null);

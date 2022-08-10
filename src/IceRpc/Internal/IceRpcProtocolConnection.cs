@@ -16,6 +16,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
+    private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher? _dispatcher;
@@ -104,7 +105,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             .ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
-        ConnectionContext = new ConnectionContext(this, transportConnectionInformation);
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _controlStream = _transportConnection.CreateStream(false);
 
@@ -326,7 +327,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             if (request.IsOneway)
             {
-                return new IncomingResponse(request, ConnectionContext!);
+                return new IncomingResponse(request, _connectionContext!);
             }
 
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -346,7 +347,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            return new IncomingResponse(request, ConnectionContext!, fields, fieldsPipeReader)
+            return new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
             {
                 Payload = stream.Input,
                 ResultType = header.ResultType
@@ -715,7 +716,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            var request = new IncomingRequest(ConnectionContext!)
+            var request = new IncomingRequest(_connectionContext!)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,

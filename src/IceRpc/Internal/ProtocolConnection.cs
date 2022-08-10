@@ -10,9 +10,6 @@ namespace IceRpc.Internal;
 /// correct order.</summary>
 internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 {
-    // non-null once the connection is established
-    internal IConnectionContext? ConnectionContext { get; private protected set; }
-
     internal abstract ServerAddress ServerAddress { get; }
 
     private readonly CancellationTokenSource _connectCancelSource = new();
