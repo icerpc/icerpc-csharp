@@ -518,7 +518,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            return new IncomingResponse(request, ConnectionContext!, fields)
+            return new IncomingResponse(request, _connectionContext!, fields)
             {
                 Payload = frameReader,
                 ResultType = replyStatus switch
@@ -909,7 +909,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            var request = new IncomingRequest(ConnectionContext!)
+            var request = new IncomingRequest(_connectionContext!)
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
