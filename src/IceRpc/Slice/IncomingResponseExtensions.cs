@@ -34,7 +34,7 @@ public static class IncomingResponseExtensions
                 response.Protocol.SliceEncoding,
                 feature,
                 feature.Activator ?? defaultActivator,
-                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender),
+                sender,
                 cancel) :
             throw new ArgumentException(
                 $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -62,9 +62,6 @@ public static class IncomingResponseExtensions
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        Func<ServiceAddress, ServiceProxy> serviceProxyFactory =
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender);
-
         IActivator? activator = feature.Activator ?? defaultActivator;
 
         return response.ResultType == ResultType.Success ?
@@ -72,7 +69,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 feature,
                 activator,
-                serviceProxyFactory,
+                sender,
                 decodeFunc,
                 cancel) :
             ThrowRemoteExceptionAsync();
@@ -84,7 +81,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 feature,
                 activator,
-                serviceProxyFactory,
+                sender,
                 cancel).ConfigureAwait(false);
         }
     }
@@ -134,7 +131,7 @@ public static class IncomingResponseExtensions
             encoding,
             feature,
             feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender),
+            sender,
             decodeFunc);
     }
 
@@ -167,7 +164,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 feature,
                 feature.Activator ?? defaultActivator,
-                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(feature, sender),
+                sender,
                 cancel).ConfigureAwait(false);
         }
     }
@@ -178,7 +175,7 @@ public static class IncomingResponseExtensions
         SliceEncoding encoding,
         ISliceFeature feature,
         IActivator? activator,
-        Func<ServiceAddress, ServiceProxy> serviceProxyFactory,
+        ServiceProxy sender,
         CancellationToken cancel)
     {
         Debug.Assert(response.ResultType != ResultType.Success);
@@ -218,7 +215,8 @@ public static class IncomingResponseExtensions
                 buffer,
                 encoding,
                 activator,
-                serviceProxyFactory,
+                feature.ServiceProxyFactory,
+                sender,
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 maxDepth: feature.MaxDepth);
 
@@ -242,16 +240,4 @@ public static class IncomingResponseExtensions
                 new UnknownException(typeId, decoder.DecodeString());
         }
     }
-
-    private static Func<ServiceAddress, ServiceProxy> CreateServiceProxyFactory(
-        ISliceFeature feature,
-        ServiceProxy sender) =>
-        serviceAddress =>
-            new ServiceProxy
-            {
-                EncodeOptions = feature.EncodeOptions ?? sender.EncodeOptions,
-                Invoker = sender.Invoker,
-                ServiceAddress = serviceAddress.Protocol is null ?
-                    sender.ServiceAddress with { Path = serviceAddress.Path } : serviceAddress
-            };
 }

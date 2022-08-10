@@ -105,7 +105,7 @@ public static class IncomingRequestExtensions
             encoding,
             feature,
             feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory,
+            templateProxy: null,
             decodeFunc,
             cancel);
     }
@@ -163,7 +163,7 @@ public static class IncomingRequestExtensions
             encoding,
             feature,
             feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory,
+            templateProxy: null,
             decodeFunc);
     }
 }

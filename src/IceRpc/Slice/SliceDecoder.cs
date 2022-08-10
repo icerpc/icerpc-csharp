@@ -69,12 +69,14 @@ public ref partial struct SliceDecoder
     private SequenceReader<byte> _reader;
 
     private readonly Func<ServiceAddress, ServiceProxy>? _serviceProxyFactory;
+    private readonly ServiceProxy? _templateProxy;
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
+    /// <param name="templateProxy">A template proxy used when <paramref name="serviceProxyFactory"/> is null.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -84,6 +86,7 @@ public ref partial struct SliceDecoder
         SliceEncoding encoding,
         IActivator? activator = null,
         Func<ServiceAddress, ServiceProxy>? serviceProxyFactory = null,
+        ServiceProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
     {
@@ -96,6 +99,7 @@ public ref partial struct SliceDecoder
         _currentDepth = 0;
 
         _serviceProxyFactory = serviceProxyFactory;
+        _templateProxy = templateProxy;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -114,6 +118,7 @@ public ref partial struct SliceDecoder
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
+    /// <param name="templateProxy">A template proxy used when <paramref name="serviceProxyFactory"/> is null.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -123,6 +128,7 @@ public ref partial struct SliceDecoder
         SliceEncoding encoding,
         IActivator? activator = null,
         Func<ServiceAddress, ServiceProxy>? serviceProxyFactory = null,
+        ServiceProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
         : this(
@@ -130,6 +136,7 @@ public ref partial struct SliceDecoder
             encoding,
             activator,
             serviceProxyFactory,
+            templateProxy,
             maxCollectionAllocation,
             maxDepth)
     {
@@ -870,7 +877,16 @@ public ref partial struct SliceDecoder
     {
         if (_serviceProxyFactory is null)
         {
-            return new TProxy { ServiceAddress = serviceAddress };
+            return _templateProxy is ServiceProxy templateProxy ?
+                new TProxy
+                {
+                    EncodeOptions = templateProxy.EncodeOptions,
+                    Invoker = templateProxy.Invoker,
+                    ServiceAddress = serviceAddress.Protocol is null ?
+                        templateProxy.ServiceAddress with { Path = serviceAddress.Path } : serviceAddress
+                }
+                :
+                new TProxy { ServiceAddress = serviceAddress };
         }
         else
         {
