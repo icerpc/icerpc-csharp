@@ -12,8 +12,8 @@ internal sealed class ConnectionCacheEventSource : EventSource
     internal static readonly ConnectionCacheEventSource Log = new("IceRpc-ConnectionCache");
 
     // The number of connections that were created and are being connected
-    private long _currentBacklog;
-    private readonly PollingCounter _currentBacklogCounter;
+    private long _currentQueue;
+    private readonly PollingCounter _currentQueueCounter;
 
     // The number of active connections
     private long _currentConnections;
@@ -36,12 +36,12 @@ internal sealed class ConnectionCacheEventSource : EventSource
     internal ConnectionCacheEventSource(string eventSourceName)
         : base(eventSourceName)
     {
-        _currentBacklogCounter = new PollingCounter(
-            "current-backlog",
+        _currentQueueCounter = new PollingCounter(
+            "current-queue",
             this,
-            () => Volatile.Read(ref _currentBacklog))
+            () => Volatile.Read(ref _currentQueue))
         {
-            DisplayName = "Current Backlog",
+            DisplayName = "Current Queue",
         };
 
         _currentConnectionsCounter = new PollingCounter(
@@ -79,83 +79,66 @@ internal sealed class ConnectionCacheEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectFailure(ServerAddress serverAddress, EndPoint remoteNetworkAddress, Exception exception)
+    internal void ConnectFailure(string name, ServerAddress serverAddress, Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
             ConnectFailure(
+                name,
                 serverAddress.ToString(),
-                remoteNetworkAddress?.ToString(),
                 exception.GetType().FullName,
                 exception.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectStart(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    internal void ConnectStart(string name, ServerAddress serverAddress)
     {
-        Interlocked.Increment(ref _currentBacklog);
+        Interlocked.Increment(ref _currentQueue);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
-            ConnectStart(serverAddress.ToString(), remoteNetworkAddress?.ToString());
+            ConnectStart(name, serverAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectStop(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    internal void ConnectStop(string name, ServerAddress serverAddress)
     {
-        Interlocked.Decrement(ref _currentBacklog);
+        Interlocked.Decrement(ref _currentQueue);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
-            ConnectStop(serverAddress.ToString(), remoteNetworkAddress.ToString());
+            ConnectStop(name, serverAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectSuccess(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    internal void ConnectSuccess(string name, ServerAddress serverAddress, EndPoint localNetworkAddress)
     {
         Interlocked.Increment(ref _currentConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
-            ConnectSuccess(serverAddress.ToString(), remoteNetworkAddress.ToString());
+            ConnectSuccess(name, serverAddress.ToString(), localNetworkAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectionFailure(
-        ServerAddress serverAddress,
-        EndPoint remoteNetworkAddress,
-        Exception exception)
-    {
-        Interlocked.Increment(ref _totalFailedConnections);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-        {
-            ConnectionFailure(
-                serverAddress.ToString(),
-                remoteNetworkAddress.ToString(),
-                exception.GetType().FullName,
-                exception.ToString());
-        }
-    }
-
-    [NonEvent]
-    internal void ConnectionStart(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    internal void ConnectionStart(string name, ServerAddress serverAddress)
     {
         Interlocked.Increment(ref _totalConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionStart(serverAddress.ToString(), remoteNetworkAddress?.ToString());
+            ConnectionStart(name, serverAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectionStop(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    internal void ConnectionStop(string name, ServerAddress serverAddress)
     {
         Interlocked.Increment(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionStop(serverAddress.ToString(), remoteNetworkAddress.ToString());
+            ConnectionStop(name, serverAddress.ToString());
         }
     }
 
@@ -163,7 +146,7 @@ internal sealed class ConnectionCacheEventSource : EventSource
     protected override void Dispose(bool disposing)
     {
         _currentConnectionsCounter.Dispose();
-        _currentBacklogCounter.Dispose();
+        _currentQueueCounter.Dispose();
         _connectionsPerSecondCounter.Dispose();
         _totalConnectionsCounter.Dispose();
         _totalFailedConnectionsCounter.Dispose();
@@ -174,56 +157,40 @@ internal sealed class ConnectionCacheEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectionStart(
-        string serverAddress,
-        string? remoteNetworkAddress) =>
-        WriteEvent(1, serverAddress, remoteNetworkAddress);
+    private void ConnectionStart(string name, string serverAddress) =>
+        WriteEvent(1, name, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectionStop(string serverAddress, string? remoteNetworkAddress) =>
-        WriteEvent(2, serverAddress, remoteNetworkAddress);
+    private void ConnectionStop(string name, string serverAddress) =>
+        WriteEvent(2, name, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(3, Level = EventLevel.Error)]
-    private void ConnectionFailure(
-        string serverAddress,
-        string? remoteNetworkAddress,
-        string? exceptionType,
-        string exceptionDetails) =>
-        WriteEvent(
-            3,
-            serverAddress,
-            remoteNetworkAddress,
-            exceptionType,
-            exceptionDetails);
+    [Event(3, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+    private void ConnectStart(string name, string serverAddress) =>
+        WriteEvent(3, name, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectStart(string serverAddress, string? remoteNetworkAddress) =>
-        WriteEvent(4, serverAddress, remoteNetworkAddress);
+    [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
+    private void ConnectStop(string name, string serverAddress) =>
+        WriteEvent(4, name, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(5, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectStop(string serverAddress, string? remoteNetworkAddress) =>
-        WriteEvent(5, serverAddress, remoteNetworkAddress);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(6, Level = EventLevel.Error)]
+    [Event(5, Level = EventLevel.Error)]
     private void ConnectFailure(
+        string name,
         string serverAddress,
-        string? remoteNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
         WriteEvent(
-            6,
+            5,
+            name,
             serverAddress,
-            remoteNetworkAddress,
             exceptionType,
             exceptionDetails);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(7, Level = EventLevel.Informational)]
-    private void ConnectSuccess(string serverAddress, string? remoteNetworkAddress) =>
-        WriteEvent(7, serverAddress, remoteNetworkAddress);
+    [Event(6, Level = EventLevel.Informational)]
+    private void ConnectSuccess(string name, string serverAddress, string? localNetworkAddress) =>
+        WriteEvent(6, name, serverAddress, localNetworkAddress);
 }
