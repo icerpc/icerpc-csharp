@@ -52,12 +52,11 @@ unchecked enum IceRpcSettingKey : varuint62
     MaxHeaderSize = 0,
 }
 
-/// The GoAway frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations and to
-/// provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to these stream IDs
-/// can safely be retried. A null stream ID value indicates that no invocation was dispatch.
-[cs::readonly]
-compact struct IceRpcGoAway
-{
+/// The GoAway frame is sent on connection shutdown to notify the remote peer that it shouldn't send additional requests
+/// and to provide the stream IDs of the requests already dispatched or that are still being dispatched by the local
+/// peer. Requests carried by streams with IDs superior to these stream IDs can safely be retried since the local peer
+/// did not process them at all. A null stream ID value indicates that no request was dispatched by the local peer.
+[cs::readonly] compact struct IceRpcGoAway {
     lastBidirectionalStreamId: varuint62?,
     lastUnidirectionalStreamId: varuint62?,
     message: string,

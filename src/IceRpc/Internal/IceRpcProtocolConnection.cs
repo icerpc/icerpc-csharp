@@ -442,12 +442,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // initiated by the peer.
         IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancel).ConfigureAwait(false);
 
-        // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
+        // Abort streams for requests that were not dispatched by the peer. The invocations will throw
         // ConnectionClosedException which can be retried.
         IEnumerable<IMultiplexedStream> invocations;
         lock (_mutex)
         {
-            // Cancel the invocations that were not dispatched by the peer.
             invocations = _streams.Where(stream =>
                 !stream.IsRemote &&
                 (!stream.IsStarted || (stream.IsBidirectional ?
