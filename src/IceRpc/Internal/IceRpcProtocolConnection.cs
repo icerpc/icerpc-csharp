@@ -636,7 +636,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                 }
 
-                readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
+                readResult.ThrowIfCanceled(Protocol.IceRpc);
 
                 if (readResult.IsCompleted)
                 {
@@ -958,7 +958,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         while (true)
         {
             ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
-            readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
+            readResult.ThrowIfCanceled(Protocol.IceRpc);
 
             if (readResult.Buffer.IsEmpty)
             {
@@ -989,7 +989,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
 
-        readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
 
         try
         {
@@ -1013,7 +1013,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
 
-        readResult.ThrowIfCanceled(Protocol.IceRpc, readingRequest: false);
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
 
         try
         {

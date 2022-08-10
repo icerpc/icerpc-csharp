@@ -8,22 +8,13 @@ namespace IceRpc.Internal;
 /// <summary>Extension methods for struct <see cref="ReadResult"/>.</summary>
 internal static class ReadResultExtensions
 {
-    internal static void ThrowIfCanceled(this ReadResult readResult, Protocol protocol, bool readingRequest)
+    internal static void ThrowIfCanceled(this ReadResult readResult, Protocol protocol)
     {
         if (readResult.IsCanceled)
         {
-            if (protocol == Protocol.Ice)
-            {
-                throw new ConnectionClosedException();
-            }
-            else if (readingRequest)
-            {
-                throw new DispatchException(DispatchErrorCode.Canceled);
-            }
-            else
-            {
-                throw new IceRpcProtocolStreamException(IceRpcStreamErrorCode.OperationCanceled);
-            }
+            throw protocol == Protocol.Ice ?
+                new ConnectionClosedException() :
+                new IceRpcProtocolStreamException(IceRpcStreamErrorCode.OperationCanceled);
         }
     }
 }

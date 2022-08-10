@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.IO.Pipelines;
 
@@ -92,7 +93,7 @@ public static class IncomingRequestExtensions
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
-    public static ValueTask<T> DecodeArgsAsync<T>(
+    public static async ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
@@ -101,13 +102,21 @@ public static class IncomingRequestExtensions
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return request.DecodeValueAsync(
-            encoding,
-            feature,
-            feature.Activator ?? defaultActivator,
-            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
-            decodeFunc,
-            cancel);
+        try
+        {
+            return await request.DecodeValueAsync(
+                encoding,
+                feature,
+                feature.Activator ?? defaultActivator,
+                feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
+                decodeFunc,
+                cancel).ConfigureAwait(false);
+        }
+        catch (IceRpcProtocolStreamException exception)
+            when (exception.ErrorCode == IceRpcStreamErrorCode.OperationCanceled)
+        {
+            throw new DispatchException(DispatchErrorCode.Canceled);
+        }
     }
 
     /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
@@ -115,14 +124,24 @@ public static class IncomingRequestExtensions
     /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that completes when the checking is complete.</returns>
-    public static ValueTask DecodeEmptyArgsAsync(
+    public static async ValueTask DecodeEmptyArgsAsync(
         this IncomingRequest request,
         SliceEncoding encoding,
-        CancellationToken cancel = default) =>
-        request.DecodeVoidAsync(
-            encoding,
-            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
-            cancel);
+        CancellationToken cancel = default)
+    {
+        try
+        {
+            await request.DecodeVoidAsync(
+                encoding,
+                request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
+                cancel).ConfigureAwait(false);
+        }
+        catch (IceRpcProtocolStreamException exception)
+            when (exception.ErrorCode == IceRpcStreamErrorCode.OperationCanceled)
+        {
+            throw new DispatchException(DispatchErrorCode.Canceled);
+        }
+    }
 
     /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
     /// streamed elements.</summary>

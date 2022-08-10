@@ -37,7 +37,7 @@ internal static class IncomingFrameExtensions
         // All the logic is in this local function.
         T DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
+            readResult.ThrowIfCanceled(frame.Protocol);
 
             var decoder = new SliceDecoder(
                 readResult.Buffer,
@@ -85,7 +85,7 @@ internal static class IncomingFrameExtensions
         // All the logic is in this local function.
         void DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
+            readResult.ThrowIfCanceled(frame.Protocol);
 
             if (!readResult.Buffer.IsEmpty)
             {
@@ -189,7 +189,7 @@ internal static class IncomingFrameExtensions
                         feature.MaxSegmentSize,
                         cancel).ConfigureAwait(false);
 
-                    readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
+                    readResult.ThrowIfCanceled(frame.Protocol);
 
                     if (!readResult.Buffer.IsEmpty)
                     {
@@ -300,7 +300,7 @@ internal static class IncomingFrameExtensions
                 try
                 {
                     readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
-                    readResult.ThrowIfCanceled(frame.Protocol, readingRequest: frame is IncomingRequest);
+                    readResult.ThrowIfCanceled(frame.Protocol);
                 }
                 catch (Exception ex)
                 {

@@ -495,27 +495,46 @@ return new IceRpc.OutgoingResponse(request)
         }
     }
 
-    format!(
+    let mut code = CodeBlock::new();
+    code.add_block(&check_and_decode);
+    writeln!(
+        code,
         "
-{check_and_decode}
 try
 {{
     {dispatch_and_return}
-}}
-catch (RemoteException remoteException)
+}}",
+        dispatch_and_return = dispatch_and_return.indent()
+    );
+
+    if let Some(_) = operation.streamed_parameter() {
+        writeln!(
+            code,
+            "\
+catch (IceRpc.IceRpcProtocolStreamException streamException)
+    when (streamException.ErrorCode == IceRpc.Internal.IceRpcStreamErrorCode.OperationCanceled)
 {{
-    if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
+    throw new IceRpc.Slice.DispatchException(IceRpc.Slice.DispatchErrorCode.Canceled);
+}}"
+        );
+    }
+
+    writeln!(
+        code,
+        "\
+catch (IceRpc.Slice.RemoteException remoteException)
+{{
+    if (remoteException is IceRpc.Slice.DispatchException || remoteException.ConvertToUnhandled)
     {{
         throw;
     }}
 
     return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
-        check_and_decode = check_and_decode,
-        dispatch_and_return = dispatch_and_return.indent(),
         encoding = encoding
-    )
-    .into()
+    );
+
+    code
 }
 
 // only called for non-void operations
