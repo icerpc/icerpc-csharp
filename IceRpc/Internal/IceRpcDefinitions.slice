@@ -6,7 +6,7 @@ module IceRpc::Internal;
 // These definitions help with the encoding of icerpc frames.
 
 /// Each icerpc control frame has a type identified by this enumeration.
-enum IceRpcControlFrameType : uint8
+enum IceRpcControlFrameType : varuint62
 {
     /// The Settings frame is sent by each peer on connection establishment to exchange settings.
     Settings = 0,
@@ -52,14 +52,13 @@ unchecked enum IceRpcSettingKey : varuint62
     MaxHeaderSize = 0,
 }
 
-/// The GoAway frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations and to
-/// provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to these stream IDs
-/// can safely be retried.
-[cs::readonly]
-compact struct IceRpcGoAway
-{
-    lastBidirectionalStreamId: varint62,
-    lastUnidirectionalStreamId: varint62,
+/// The GoAway frame is sent on connection shutdown to notify the remote peer that it shouldn't send additional requests
+/// and to provide the stream IDs of the requests already dispatched or that are still being dispatched by the local
+/// peer. Requests carried by streams with IDs superior to these stream IDs can safely be retried since the local peer
+/// did not process them at all. A null stream ID value indicates that no request was dispatched by the local peer.
+[cs::readonly] compact struct IceRpcGoAway {
+    lastBidirectionalStreamId: varuint62?,
+    lastUnidirectionalStreamId: varuint62?,
     message: string,
 }
 
