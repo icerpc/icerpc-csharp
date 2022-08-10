@@ -45,9 +45,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
-        IProtocolConnectionObserver? observer,
         ConnectionOptions options)
-        : base(observer, options)
+        : base(options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
@@ -103,13 +102,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Connect the transport connection
         TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
-
-        if (_isReadOnly)
-        {
-            ServerEventSource.Log.ConnectionStart(Protocol.Ice, transportConnectionInformation);
-            OnAbort(exception =>
-                ServerEventSource.Log.ConnectionFailure(Protocol.Ice, transportConnectionInformation, exception));
-        }
 
         // This needs to be set before starting the accept requests task bellow.
         ConnectionContext = new ConnectionContext(this, transportConnectionInformation);

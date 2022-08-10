@@ -51,7 +51,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         _clientConnectionFactory = serverAddress => new ClientConnection(
             options.ClientConnectionOptions with { ServerAddress = serverAddress },
-            loggerFactory,
             multiplexedClientTransport,
             duplexClientTransport);
     }

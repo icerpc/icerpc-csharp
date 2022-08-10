@@ -106,11 +106,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(
-                        duplexConnection,
-                        isServer: true,
-                        observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
-                        options.ConnectionOptions);
+                    new IceProtocolConnection(duplexConnection, isServer: true, options.ConnectionOptions);
             }
             else
             {
@@ -134,22 +130,23 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(
-                        multiplexedConnection,
-                        observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
-                        options.ConnectionOptions);
+                    new IceRpcProtocolConnection(multiplexedConnection, options.ConnectionOptions);
             }
 
             async Task AcceptAsync<T>(
                 Func<Task<(T, EndPoint)>> acceptTransportConnection,
                 Func<T, ProtocolConnection> createProtocolConnection)
             {
+                Debug.Assert(_listener != null);
                 while (true)
                 {
                     ProtocolConnection connection;
+                    EndPoint remoteNetworkAddress;
                     try
                     {
-                        (T transportConnection, EndPoint _) = await acceptTransportConnection().ConfigureAwait(false);
+                        (T transportConnection, remoteNetworkAddress) =
+                            await acceptTransportConnection().ConfigureAwait(false);
+                        ServerEventSource.Log.ConnectionStart(_listener.ServerAddress, remoteNetworkAddress);
                         connection = createProtocolConnection(transportConnection);
                     }
                     catch
@@ -183,13 +180,13 @@ public sealed class Server : IAsyncDisposable
                     connection.OnAbort(exception =>
                         {
                             ServerEventSource.Log.ConnectionFailure(
-                                connection.ServerAddress.Protocol,
-                                connection.ConnectionContext?.TransportConnectionInformation ?? default,
+                                _listener.ServerAddress,
+                                remoteNetworkAddress,
                                 exception);
-                            _ = RemoveFromCollectionAsync(connection, graceful: false);
+                            _ = RemoveFromCollectionAsync(connection, graceful: false, remoteNetworkAddress);
                         });
 
-                    connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
+                    connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true, remoteNetworkAddress));
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client and
@@ -199,15 +196,27 @@ public sealed class Server : IAsyncDisposable
                     // eventually timeout if the ConnectTimeout expires.
                     _ = Task.Run(async () =>
                         {
-                            TransportConnectionInformation connectionInformation =
-                                await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
-                            ServerEventSource.Log.ConnectSuccess(connection.ServerAddress.Protocol, connectionInformation);
+                            try
+                            {
+                                ServerEventSource.Log.ConnectStart(connection.ServerAddress, remoteNetworkAddress);
+                                TransportConnectionInformation connectionInformation =
+                                    await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                                ServerEventSource.Log.ConnectSuccess(connection.ServerAddress, remoteNetworkAddress);
+                            }
+                            catch (Exception exception)
+                            {
+                                ServerEventSource.Log.ConnectFailure(connection.ServerAddress, remoteNetworkAddress, exception);
+                            }
+                            finally
+                            {
+                                ServerEventSource.Log.ConnectStop(connection.ServerAddress, remoteNetworkAddress);
+                            }
                         });
                 }
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(ProtocolConnection connection, bool graceful)
+            async Task RemoveFromCollectionAsync(ProtocolConnection connection, bool graceful, EndPoint remoteNetworkAddress)
             {
                 lock (_mutex)
                 {
@@ -231,9 +240,7 @@ public sealed class Server : IAsyncDisposable
 
                 await connection.DisposeAsync().ConfigureAwait(false);
 
-                ServerEventSource.Log.ConnectionStop(
-                    connection.ServerAddress.Protocol,
-                    connection.ConnectionContext?.TransportConnectionInformation ?? default);
+                ServerEventSource.Log.ConnectionStop(connection.ServerAddress, remoteNetworkAddress);
 
                 lock (_mutex)
                 {

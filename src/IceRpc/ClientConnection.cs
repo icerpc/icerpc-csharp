@@ -33,14 +33,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
-    /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
-    /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ClientConnection(
         ClientConnectionOptions options,
-        ILoggerFactory? loggerFactory = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
@@ -49,12 +46,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        // This is the composition root of client Connections, where we install log decorators when logging is enabled.
-
-        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
-
-        IProtocolConnectionObserver? observer = logger == NullLogger.Instance ? null :
-            new LogProtocolConnectionObserver(logger);
+        // This is the composition root of client Connections.
 
         if (serverAddress.Protocol == Protocol.Ice)
         {
@@ -69,7 +61,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 },
                 options.ClientAuthenticationOptions);
             ServerAddress = transportConnection.ServerAddress;
-            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, observer, options);
+            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
         }
         else
         {
@@ -91,7 +83,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 options.ClientAuthenticationOptions);
 
             ServerAddress = transportConnection.ServerAddress;
-            _protocolConnection = new IceRpcProtocolConnection(transportConnection, observer, options);
+            _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
         }
     }
 
