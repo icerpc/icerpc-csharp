@@ -11,8 +11,7 @@ internal static class ReadResultExtensions
     {
         if (readResult.IsCanceled)
         {
-            throw protocol == Protocol.Ice ? new ConnectionClosedException() :
-                throw new IceRpcProtocolStreamException(IceRpc.Internal.IceRpcStreamErrorCode.OperationCanceled);
+            throw protocol == Protocol.Ice ? new ConnectionClosedException() : new OperationCanceledException();
         }
     }
 }
