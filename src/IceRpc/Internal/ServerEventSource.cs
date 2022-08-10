@@ -152,6 +152,7 @@ internal sealed class ServerEventSource : EventSource
     [NonEvent]
     internal void ConnectionStop(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
     {
+        Interlocked.Increment(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionStop(serverAddress.ToString(), remoteNetworkAddress.ToString());
