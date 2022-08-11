@@ -4,5 +4,5 @@ namespace IceRpc.Transports.Internal;
 
 internal static class SlicDefinitions
 {
-    internal const uint V1 = 1;
+    internal const ulong V1 = 1;
 }

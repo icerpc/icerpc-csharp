@@ -12,12 +12,12 @@ namespace IceRpc.Transports.Internal;
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
 internal class SlicStream : IMultiplexedStream
 {
-    public long Id
+    public ulong Id
     {
         get
         {
-            long id = Thread.VolatileRead(ref _id);
-            if (id == -1)
+            ulong id = Thread.VolatileRead(ref _id);
+            if (id == ulong.MaxValue)
             {
                 throw new InvalidOperationException("stream ID isn't allocated yet");
             }
@@ -26,7 +26,7 @@ internal class SlicStream : IMultiplexedStream
 
         set
         {
-            Debug.Assert(_id == -1);
+            Debug.Assert(_id == ulong.MaxValue);
             Thread.VolatileWrite(ref _id, value);
         }
     }
@@ -39,10 +39,10 @@ internal class SlicStream : IMultiplexedStream
     public bool IsBidirectional { get; }
 
     /// <inheritdoc/>
-    public bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+    public bool IsRemote => _id != ulong.MaxValue && _id % 2 == (_connection.IsServer ? 0ul : 1ul);
 
     /// <inheritdoc/>
-    public bool IsStarted => Thread.VolatileRead(ref _id) != -1;
+    public bool IsStarted => Thread.VolatileRead(ref _id) != ulong.MaxValue;
 
     public PipeWriter Output => !IsRemote || IsBidirectional ?
         _outputPipeWriter :
@@ -59,7 +59,7 @@ internal class SlicStream : IMultiplexedStream
     internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
 
     private readonly SlicConnection _connection;
-    private long _id = -1;
+    private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader _inputPipeReader;
     private readonly SlicPipeWriter _outputPipeWriter;
     private volatile int _sendCredit = int.MaxValue;

@@ -41,18 +41,18 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private Exception? _exception;
     private readonly TimeSpan _localIdleTimeout;
-    private long _lastRemoteBidirectionalStreamId = -1;
-    private long _lastRemoteUnidirectionalStreamId = -1;
+    private ulong? _lastRemoteBidirectionalStreamId;
+    private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly int _maxBidirectionalStreams;
     private readonly int _maxUnidirectionalStreams;
     // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
     // an atomic operation.
     private readonly object _mutex = new();
-    private long _nextBidirectionalId;
-    private long _nextUnidirectionalId;
+    private ulong _nextBidirectionalId;
+    private ulong _nextUnidirectionalId;
     private readonly int _packetMaxSize;
     private Task? _readFramesTask;
-    private readonly ConcurrentDictionary<long, SlicStream> _streams = new();
+    private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
     private readonly CancellationTokenSource _tasksCancelSource = new();
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -74,7 +74,7 @@ internal class SlicConnection : IMultiplexedConnection
         _duplexConnectionReader.EnableIdleCheck();
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
-        (FrameType FrameType, int FrameSize, long?)? header;
+        (FrameType FrameType, int FrameSize, ulong?)? header;
 
         // Initialize the Slic connection.
         if (IsServer)
@@ -87,7 +87,7 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new InvalidDataException("invalid empty initialize frame");
             }
 
-            (uint version, InitializeBody? initializeBody) = await ReadFrameAsync(
+            (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
                 header.Value.FrameSize,
                 DecodeInitialize,
                 cancel).ConfigureAwait(false);
@@ -99,7 +99,7 @@ internal class SlicConnection : IMultiplexedConnection
                 await SendFrameAsync(
                     stream: null,
                     FrameType.Version,
-                    new VersionBody(new uint[] { SlicDefinitions.V1 }).Encode,
+                    new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
                     cancel).ConfigureAwait(false);
 
                 // Read again the Initialize frame sent by the client.
@@ -154,7 +154,7 @@ internal class SlicConnection : IMultiplexedConnection
                 FrameType.Initialize,
                 (ref SliceEncoder encoder) =>
                 {
-                    encoder.EncodeVarUInt32(SlicDefinitions.V1);
+                    encoder.EncodeVarUInt62(SlicDefinitions.V1);
                     initializeBody.Encode(ref encoder);
                 },
                 cancel).ConfigureAwait(false);
@@ -362,37 +362,6 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    internal void AddStream(long id, SlicStream stream)
-    {
-        lock (_mutex)
-        {
-            if (_exception is not null)
-            {
-                throw ExceptionUtil.Throw(_exception);
-            }
-
-            _streams[id] = stream;
-
-            // Assign the stream ID within the mutex to ensure that the addition of the stream to the
-            // connection and the stream ID assignment are atomic.
-            stream.Id = id;
-
-            // Keep track of the last assigned stream ID. This is used to figure out if the stream is
-            // known or unknown.
-            if (stream.IsRemote)
-            {
-                if (stream.IsBidirectional)
-                {
-                    _lastRemoteBidirectionalStreamId = id;
-                }
-                else
-                {
-                    _lastRemoteUnidirectionalStreamId = id;
-                }
-            }
-        }
-    }
-
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
@@ -477,8 +446,7 @@ internal class SlicConnection : IMultiplexedConnection
             await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send
-                // semaphore.
+                // Allocate stream ID if the stream isn't started. Thread-safety is provided by the write semaphore.
                 if (!stream.IsStarted)
                 {
                     if (stream.IsBidirectional)
@@ -581,9 +549,39 @@ internal class SlicConnection : IMultiplexedConnection
         return true;
     }
 
-    private Dictionary<int, IList<byte>> GetParameters()
+    private void AddStream(ulong id, SlicStream stream)
     {
-        var parameters = new List<KeyValuePair<int, IList<byte>>>
+        lock (_mutex)
+        {
+            if (_exception is not null)
+            {
+                throw ExceptionUtil.Throw(_exception);
+            }
+
+            _streams[id] = stream;
+
+            // Assign the stream ID within the mutex to ensure that the addition of the stream to the connection and the
+            // stream ID assignment are atomic.
+            stream.Id = id;
+
+            // Keep track of the last assigned stream ID. This is used to figure out if the stream is known or unknown.
+            if (stream.IsRemote)
+            {
+                if (stream.IsBidirectional)
+                {
+                    _lastRemoteBidirectionalStreamId = id;
+                }
+                else
+                {
+                    _lastRemoteUnidirectionalStreamId = id;
+                }
+            }
+        }
+    }
+
+    private Dictionary<ParameterKey, IList<byte>> GetParameters()
+    {
+        var parameters = new List<KeyValuePair<ParameterKey, IList<byte>>>
         {
             EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_maxBidirectionalStreams),
             EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_maxUnidirectionalStreams),
@@ -595,14 +593,14 @@ internal class SlicConnection : IMultiplexedConnection
         {
             parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)_localIdleTimeout.TotalMilliseconds));
         }
-        return new Dictionary<int, IList<byte>>(parameters);
+        return new Dictionary<ParameterKey, IList<byte>>(parameters);
 
-        static KeyValuePair<int, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
+        static KeyValuePair<ParameterKey, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
         {
             int sizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             byte[] buffer = new byte[sizeLength];
             SliceEncoder.EncodeVarUInt62(value, buffer);
-            return new((int)key, buffer);
+            return new(key, buffer);
         }
     }
 
@@ -626,7 +624,7 @@ internal class SlicConnection : IMultiplexedConnection
         return decodedFrame;
     }
 
-    private async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)?> ReadFrameHeaderAsync(
+    private async ValueTask<(FrameType FrameType, int FrameSize, ulong? StreamId)?> ReadFrameHeaderAsync(
         CancellationToken cancel)
     {
         while (true)
@@ -644,7 +642,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (TryDecodeHeader(
                 buffer,
-                out (FrameType FrameType, int FrameSize, long? StreamId) header,
+                out (FrameType FrameType, int FrameSize, ulong? StreamId) header,
                 out int consumed))
             {
                 _duplexConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
@@ -658,7 +656,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         static bool TryDecodeHeader(
             ReadOnlySequence<byte> buffer,
-            out (FrameType FrameType, int FrameSize, long? StreamId) header,
+            out (FrameType FrameType, int FrameSize, ulong? StreamId) header,
             out int consumed)
         {
             header = default;
@@ -667,12 +665,12 @@ internal class SlicConnection : IMultiplexedConnection
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
             // Decode the frame type and frame size.
-            if (!decoder.TryDecodeUInt8(out byte frameType) ||
+            if (!decoder.TryDecodeVarUInt62(out ulong frameType) ||
                 !decoder.TryDecodeSize(out header.FrameSize))
             {
                 return false;
             }
-            header.FrameType = (FrameType)frameType;
+            header.FrameType = frameType.AsFrameType();
 
             // If it's a stream frame, try to decode the stream ID
             if (header.FrameType >= FrameType.Stream)
@@ -682,7 +680,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     return false;
                 }
-                header.StreamId = (long)streamId;
+                header.StreamId = streamId;
                 header.FrameSize -= (int)decoder.Consumed - consumed;
             }
 
@@ -695,7 +693,7 @@ internal class SlicConnection : IMultiplexedConnection
     {
         while (true)
         {
-            (FrameType, int, long?)? header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            (FrameType, int, ulong?)? header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
             if (header is null)
             {
                 lock (_mutex)
@@ -712,7 +710,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
             }
 
-            (FrameType type, int dataSize, long? streamId) = header.Value;
+            (FrameType type, int dataSize, ulong? streamId) = header.Value;
 
             // Only stream frames are expected at this point. Non stream frames are only exchanged at the
             // initialization step.
@@ -749,7 +747,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     Debug.Assert(streamId is not null);
                     bool endStream = type == FrameType.StreamLast;
-                    bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
+                    bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
                     bool isBidirectional = streamId % 4 < 2;
 
                     if (!isBidirectional && !isRemote)
@@ -937,27 +935,31 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        bool IsKnownRemoteStream(long streamId, bool bidirectional)
+        bool IsKnownRemoteStream(ulong streamId, bool bidirectional)
         {
-            lock (_mutex)
+            if (bidirectional)
             {
-                if (bidirectional)
-                {
-                    return streamId <= _lastRemoteBidirectionalStreamId;
-                }
-                else
-                {
-                    return streamId <= _lastRemoteUnidirectionalStreamId;
-                }
+                return _lastRemoteBidirectionalStreamId is not null && streamId <= _lastRemoteBidirectionalStreamId;
+            }
+            else
+            {
+                return _lastRemoteUnidirectionalStreamId is not null && streamId <= _lastRemoteUnidirectionalStreamId;
             }
         }
     }
 
-    private void SetParameters(IDictionary<int, IList<byte>> parameters)
+    private void SetParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
         TimeSpan? peerIdleTimeout = null;
 
-        foreach ((ParameterKey key, ulong value) in parameters.DecodedParameters())
+        IEnumerable<(ParameterKey Key, ulong Value)> decodedParameters =
+            parameters.Select(pair =>
+                (pair.Key,
+                 SliceEncoding.Slice2.DecodeBuffer(
+                     new ReadOnlySequence<byte>(pair.Value.ToArray()), // TODO: fix to avoid copy
+                     (ref SliceDecoder decoder) => decoder.DecodeVarUInt62())));
+
+        foreach ((ParameterKey key, ulong value) in decodedParameters)
         {
             if (key == ParameterKey.MaxBidirectionalStreams)
             {
@@ -981,7 +983,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                // Ignore unsupported parameters
+                // Ignore unsupported parameter.
             }
         }
 
@@ -1011,18 +1013,18 @@ internal class SlicConnection : IMultiplexedConnection
 
     private ValueTask WriteFrameAsync(
         FrameType frameType,
-        long? streamId,
+        ulong? streamId,
         EncodeAction? encode,
         CancellationToken cancel)
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
-        encoder.EncodeUInt8((byte)frameType);
+        encoder.EncodeFrameType(frameType);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
 
         if (streamId is not null)
         {
-            encoder.EncodeVarUInt62((ulong)streamId);
+            encoder.EncodeVarUInt62(streamId.Value);
         }
         encode?.Invoke(ref encoder);
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
@@ -1031,17 +1033,17 @@ internal class SlicConnection : IMultiplexedConnection
     }
 
     private ValueTask WriteStreamFrameAsync(
-        long streamId,
+        ulong streamId,
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
         CancellationToken cancel)
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
-        encoder.EncodeUInt8((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
+        encoder.EncodeFrameType(endStream ? FrameType.StreamLast : FrameType.Stream);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
-        encoder.EncodeVarUInt62((ulong)streamId);
+        encoder.EncodeVarUInt62(streamId);
         SliceEncoder.EncodeVarUInt62(
             (ulong)(encoder.EncodedByteCount - startPos + source1.Length + source2.Length), sizePlaceholder);
 

@@ -334,8 +334,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
@@ -381,8 +380,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default),
             Is.EqualTo(p));
     }
@@ -428,8 +426,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
-                NotImplementedInvoker.Instance,
-                null,
+                new ServiceProxy(NotImplementedInvoker.Instance),
                 default),
             Is.EqualTo(p));
     }

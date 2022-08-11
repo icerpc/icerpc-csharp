@@ -40,7 +40,7 @@ public sealed class Server : IAsyncDisposable
 
     private readonly Func<IListener> _listenerFactory;
 
-    // protects _shutdownTask
+    // protects _listener, _connections and _isReadOnly
     private readonly object _mutex = new();
 
     private readonly ServerAddress _serverAddress;

@@ -28,7 +28,7 @@ public sealed class SliceFeature : ISliceFeature
     public int MaxSegmentSize { get; }
 
     /// <inheritdoc/>
-    public Func<ServiceAddress, ServiceProxy>? ServiceProxyFactory { get; }
+    public Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory { get; }
 
     /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async
     /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.
@@ -61,7 +61,7 @@ public sealed class SliceFeature : ISliceFeature
         int maxCollectionAllocation = -1,
         int maxDepth = -1,
         int maxSegmentSize = -1,
-        Func<ServiceAddress, ServiceProxy>? serviceProxyFactory = null,
+        Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
         int streamPauseWriterThreshold = -1,
         int streamResumeWriterThreshold = -1,
         ISliceFeature? defaultFeature = null)
@@ -100,7 +100,7 @@ public sealed class SliceFeature : ISliceFeature
 
         public int MaxSegmentSize => 1024 * 1024;
 
-        public Func<ServiceAddress, ServiceProxy>? ServiceProxyFactory => null;
+        public Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory => null;
 
         public int StreamPauseWriterThreshold => 64 * 1024;
 

@@ -38,7 +38,9 @@ public class InvocationTests
         IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
 
         // Assert
-        var exception = await response.DecodeFailureAsync(request, callbackInvoker);
+        var exception = await response.DecodeFailureAsync(
+            request,
+            new ServiceProxy(callbackInvoker, callback.ServiceAddress));
         Assert.That(exception, Is.InstanceOf<DispatchException>());
         Assert.That(((DispatchException)exception).ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
