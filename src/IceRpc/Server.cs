@@ -355,6 +355,8 @@ public sealed class Server : IAsyncDisposable
                 _listener?.Dispose();
             }
 
+            // TODO call ServerEventSource.Log.ShutdownAsyncFailure in shutdown fails, we need the remote EndPoint
+            // but it is not available here.
             await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync("server shutdown", cancel)))
                 .ConfigureAwait(false);
         }
