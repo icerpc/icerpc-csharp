@@ -79,66 +79,62 @@ internal sealed class ConnectionCacheEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectFailure(string name, ServerAddress serverAddress, Exception exception)
+    internal void ConnectFailure(ServerAddress serverAddress, Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
-            ConnectFailure(
-                name,
-                serverAddress.ToString(),
-                exception.GetType().FullName,
-                exception.ToString());
+            ConnectFailure(serverAddress.ToString(), exception.GetType().FullName, exception.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectStart(string name, ServerAddress serverAddress)
+    internal void ConnectStart(ServerAddress serverAddress)
     {
         Interlocked.Increment(ref _currentQueue);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectStart(name, serverAddress.ToString());
+            ConnectStart(serverAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectStop(string name, ServerAddress serverAddress)
+    internal void ConnectStop(ServerAddress serverAddress)
     {
         Interlocked.Decrement(ref _currentQueue);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectStop(name, serverAddress.ToString());
+            ConnectStop(serverAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectSuccess(string name, ServerAddress serverAddress, EndPoint localNetworkAddress)
+    internal void ConnectSuccess(ServerAddress serverAddress, EndPoint localNetworkAddress)
     {
         Interlocked.Increment(ref _currentConnections);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectSuccess(name, serverAddress.ToString(), localNetworkAddress.ToString());
+            ConnectSuccess(serverAddress.ToString(), localNetworkAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectionStart(string name, ServerAddress serverAddress)
+    internal void ConnectionStart(ServerAddress serverAddress)
     {
         Interlocked.Increment(ref _totalConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionStart(name, serverAddress.ToString());
+            ConnectionStart(serverAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectionStop(string name, ServerAddress serverAddress)
+    internal void ConnectionStop(ServerAddress serverAddress)
     {
         Interlocked.Increment(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionStop(name, serverAddress.ToString());
+            ConnectionStop(serverAddress.ToString());
         }
     }
 
@@ -157,40 +153,31 @@ internal sealed class ConnectionCacheEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectionStart(string name, string serverAddress) =>
-        WriteEvent(1, name, serverAddress);
+    private void ConnectionStart(string serverAddress) =>
+        WriteEvent(1, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectionStop(string name, string serverAddress) =>
-        WriteEvent(2, name, serverAddress);
+    private void ConnectionStop(string serverAddress) =>
+        WriteEvent(2, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(3, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectStart(string name, string serverAddress) =>
-        WriteEvent(3, name, serverAddress);
+    private void ConnectStart(string serverAddress) =>
+        WriteEvent(3, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectStop(string name, string serverAddress) =>
-        WriteEvent(4, name, serverAddress);
+    private void ConnectStop(string serverAddress) =>
+        WriteEvent(4, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(5, Level = EventLevel.Error)]
-    private void ConnectFailure(
-        string name,
-        string serverAddress,
-        string? exceptionType,
-        string exceptionDetails) =>
-        WriteEvent(
-            5,
-            name,
-            serverAddress,
-            exceptionType,
-            exceptionDetails);
+    private void ConnectFailure(string serverAddress, string? exceptionType, string exceptionDetails) =>
+        WriteEvent(5, serverAddress, exceptionType, exceptionDetails);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(6, Level = EventLevel.Informational)]
-    private void ConnectSuccess(string name, string serverAddress, string? localNetworkAddress) =>
-        WriteEvent(6, name, serverAddress, localNetworkAddress);
+    private void ConnectSuccess(string serverAddress, string? localNetworkAddress) =>
+        WriteEvent(6, serverAddress, localNetworkAddress);
 }

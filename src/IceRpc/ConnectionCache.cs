@@ -22,7 +22,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private bool _isReadOnly;
 
     private readonly object _mutex = new();
-    private readonly string _name;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<ServerAddress, ClientConnection> _pendingConnections =
@@ -56,7 +55,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             loggerFactory,
             multiplexedClientTransport,
             duplexClientTransport);
-        _name = options.Name;
     }
 
     /// <summary>Constructs a connection cache.</summary>
@@ -252,7 +250,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             else
             {
                 connection = _clientConnectionFactory(serverAddress);
-                ConnectionCacheEventSource.Log.ConnectionStart(_name, serverAddress);
+                ConnectionCacheEventSource.Log.ConnectionStart(serverAddress);
                 created = true;
                 _pendingConnections.Add(serverAddress, connection);
             }
@@ -263,17 +261,16 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             try
             {
                 // TODO: add cancellation token to cancel when ConnectionCache is shut down / disposed.
-                ConnectionCacheEventSource.Log.ConnectStart(_name, serverAddress);
+                ConnectionCacheEventSource.Log.ConnectStart(serverAddress);
                 TransportConnectionInformation transportConnectionInformation =
                     await connection.ConnectAsync(cancel).ConfigureAwait(false);
                 ConnectionCacheEventSource.Log.ConnectSuccess(
-                    _name,
                     serverAddress,
                     transportConnectionInformation.LocalNetworkAddress!);
             }
             catch (Exception exception)
             {
-                ConnectionCacheEventSource.Log.ConnectFailure(_name, serverAddress, exception);
+                ConnectionCacheEventSource.Log.ConnectFailure(serverAddress, exception);
                 bool scheduleRemoveFromClosed = false;
 
                 lock (_mutex)
@@ -367,7 +364,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             await clientConnection.DisposeAsync().ConfigureAwait(false);
 
-            ConnectionCacheEventSource.Log.ConnectionStop(_name, serverAddress);
+            ConnectionCacheEventSource.Log.ConnectionStop(serverAddress);
 
             lock (_mutex)
             {

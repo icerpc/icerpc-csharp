@@ -9,9 +9,6 @@ public record class ConnectionCacheOptions
     /// </summary>
     public ClientConnectionOptions ClientConnectionOptions { get; set; } = new();
 
-    /// <summary>Gets or sets a name that identifies the connection cache, default value is ConnectionCache.</summary>
-    public string Name { get; set; } = "ConnectionCache";
-
     /// <summary>Gets or sets a value indicating whether or not the cache prefers an existing connection over
     /// creating a new one.</summary>
     public bool PreferExistingConnection { get; set; } = true;
