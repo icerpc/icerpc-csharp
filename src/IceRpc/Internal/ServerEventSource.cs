@@ -13,22 +13,22 @@ internal sealed class ServerEventSource : EventSource
 
     // The number of connections that were accepted and are being connected.
     private long _currentBacklog;
-    private readonly PollingCounter _currentBacklogCounter;
+    private PollingCounter? _currentBacklogCounter;
 
     // The number of connections that were accepted and connected and are not lost or shutdown.
     private long _currentConnections;
-    private readonly PollingCounter _currentConnectionsCounter;
+    private PollingCounter? _currentConnectionsCounter;
 
     // Tracks the connection rate
-    private readonly IncrementingPollingCounter _connectionsPerSecondCounter;
+    private IncrementingPollingCounter? _connectionsPerSecondCounter;
 
     // The number of connection that have been accepted and connected.
     private long _totalConnections;
-    private readonly PollingCounter _totalConnectionsCounter;
+    private PollingCounter? _totalConnectionsCounter;
 
     // The number of connections that were accepted but failed to connect plus lost connections.
     private long _totalFailedConnections;
-    private readonly PollingCounter _totalFailedConnectionsCounter;
+    private PollingCounter? _totalFailedConnectionsCounter;
 
     /// <summary>Creates a new instance of the <see cref="ServerEventSource"/> class with the specified name.
     /// </summary>
@@ -36,46 +36,6 @@ internal sealed class ServerEventSource : EventSource
     internal ServerEventSource(string eventSourceName)
         : base(eventSourceName)
     {
-        _currentBacklogCounter = new PollingCounter(
-            "current-backlog",
-            this,
-            () => Volatile.Read(ref _currentBacklog))
-        {
-            DisplayName = "Current Backlog",
-        };
-
-        _currentConnectionsCounter = new PollingCounter(
-            "current-connections",
-            this,
-            () => Volatile.Read(ref _currentConnections))
-        {
-            DisplayName = "Current Connections",
-        };
-
-        _connectionsPerSecondCounter = new IncrementingPollingCounter(
-            "connections-per-second",
-            this,
-            () => Volatile.Read(ref _totalConnections))
-        {
-            DisplayName = "Connections Rate",
-            DisplayRateTimeScale = TimeSpan.FromSeconds(1)
-        };
-
-        _totalConnectionsCounter = new PollingCounter(
-            "total-connections",
-            this,
-            () => Volatile.Read(ref _totalConnections))
-        {
-            DisplayName = "Total Connections",
-        };
-
-        _totalFailedConnectionsCounter = new PollingCounter(
-            "total-failed-connections",
-            this,
-            () => Volatile.Read(ref _totalFailedConnections))
-                {
-                    DisplayName = "Total Failed Connections",
-                };
     }
 
     [NonEvent]
@@ -123,10 +83,7 @@ internal sealed class ServerEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectionFailure(
-        ServerAddress serverAddress,
-        EndPoint remoteNetworkAddress,
-        Exception exception)
+    internal void ConnectionFailure(ServerAddress serverAddress, EndPoint remoteNetworkAddress, Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
@@ -141,9 +98,9 @@ internal sealed class ServerEventSource : EventSource
 
     [NonEvent]
     internal void ConnectionShutdownFailure(
-    ServerAddress serverAddress,
-    EndPoint remoteNetworkAddress,
-    Exception exception)
+        ServerAddress serverAddress,
+        EndPoint remoteNetworkAddress,
+        Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
@@ -169,7 +126,7 @@ internal sealed class ServerEventSource : EventSource
     [NonEvent]
     internal void ConnectionStop(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
     {
-        Interlocked.Increment(ref _currentConnections);
+        Interlocked.Decrement(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionStop(serverAddress.ToString(), remoteNetworkAddress.ToString());
@@ -179,21 +136,69 @@ internal sealed class ServerEventSource : EventSource
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        _currentConnectionsCounter.Dispose();
-        _currentBacklogCounter.Dispose();
-        _connectionsPerSecondCounter.Dispose();
-        _totalConnectionsCounter.Dispose();
-        _totalFailedConnectionsCounter.Dispose();
+        _currentConnectionsCounter?.Dispose();
+        _currentBacklogCounter?.Dispose();
+        _connectionsPerSecondCounter?.Dispose();
+        _totalConnectionsCounter?.Dispose();
+        _totalFailedConnectionsCounter?.Dispose();
         base.Dispose(disposing);
+    }
+
+    /// <inheritdoc/>
+    protected override void OnEventCommand(EventCommandEventArgs command)
+    {
+        if (command.Command == EventCommand.Enable)
+        {
+            // Initializing counters lazily on the first enable command, they aren't disabled afterwards...
+
+            _currentBacklogCounter ??= new PollingCounter(
+                "current-backlog",
+                this,
+                () => Volatile.Read(ref _currentBacklog))
+                {
+                    DisplayName = "Current Backlog",
+                };
+
+            _currentConnectionsCounter ??= new PollingCounter(
+                "current-connections",
+                this,
+                () => Volatile.Read(ref _currentConnections))
+                {
+                    DisplayName = "Current Connections",
+                };
+
+            _connectionsPerSecondCounter ??= new IncrementingPollingCounter(
+                "connections-per-second",
+                this,
+                () => Volatile.Read(ref _totalConnections))
+                {
+                    DisplayName = "Connections Rate",
+                    DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+                };
+
+            _totalConnectionsCounter ??= new PollingCounter(
+                "total-connections",
+                this,
+                () => Volatile.Read(ref _totalConnections))
+                {
+                    DisplayName = "Total Connections",
+                };
+
+            _totalFailedConnectionsCounter ??= new PollingCounter(
+                "total-failed-connections",
+                this,
+                () => Volatile.Read(ref _totalFailedConnections))
+                {
+                    DisplayName = "Total Failed Connections",
+                };
+        }
     }
 
     // Event methods sorted by eventId
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectionStart(
-        string serverAddress,
-        string? remoteNetworkAddress) =>
+    private void ConnectionStart(string serverAddress, string? remoteNetworkAddress) =>
         WriteEvent(1, serverAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -208,12 +213,7 @@ internal sealed class ServerEventSource : EventSource
         string? remoteNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
-        WriteEvent(
-            3,
-            serverAddress,
-            remoteNetworkAddress,
-            exceptionType,
-            exceptionDetails);
+        WriteEvent(3, serverAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
@@ -232,12 +232,7 @@ internal sealed class ServerEventSource : EventSource
         string? remoteNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
-        WriteEvent(
-            6,
-            serverAddress,
-            remoteNetworkAddress,
-            exceptionType,
-            exceptionDetails);
+        WriteEvent(6, serverAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(7, Level = EventLevel.Informational)]
@@ -251,10 +246,5 @@ internal sealed class ServerEventSource : EventSource
         string? remoteNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
-        WriteEvent(
-            10,
-            serverAddress,
-            remoteNetworkAddress,
-            exceptionType,
-            exceptionDetails);
+        WriteEvent(8, serverAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
 }

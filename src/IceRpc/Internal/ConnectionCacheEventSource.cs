@@ -13,22 +13,22 @@ internal sealed class ConnectionCacheEventSource : EventSource
 
     // The number of connections that were created and are being connected
     private long _currentQueue;
-    private readonly PollingCounter _currentQueueCounter;
+    private PollingCounter? _currentQueueCounter;
 
     // The number of active connections
     private long _currentConnections;
-    private readonly PollingCounter _currentConnectionsCounter;
+    private PollingCounter? _currentConnectionsCounter;
 
     // Tracks the connection rate
-    private readonly IncrementingPollingCounter _connectionsPerSecondCounter;
+    private IncrementingPollingCounter? _connectionsPerSecondCounter;
 
     // The number of connection that have been accepted and connected.
     private long _totalConnections;
-    private readonly PollingCounter _totalConnectionsCounter;
+    private PollingCounter? _totalConnectionsCounter;
 
     // The number of connections that were accepted but failed to connect plus lost connections.
     private long _totalFailedConnections;
-    private readonly PollingCounter _totalFailedConnectionsCounter;
+    private PollingCounter? _totalFailedConnectionsCounter;
 
     /// <summary>Creates a new instance of the <see cref="ConnectionCacheEventSource"/> class with the specified name.
     /// </summary>
@@ -36,46 +36,6 @@ internal sealed class ConnectionCacheEventSource : EventSource
     internal ConnectionCacheEventSource(string eventSourceName)
         : base(eventSourceName)
     {
-        _currentQueueCounter = new PollingCounter(
-            "current-queue",
-            this,
-            () => Volatile.Read(ref _currentQueue))
-        {
-            DisplayName = "Current Queue",
-        };
-
-        _currentConnectionsCounter = new PollingCounter(
-            "current-connections",
-            this,
-            () => Volatile.Read(ref _currentConnections))
-        {
-            DisplayName = "Current Connections",
-        };
-
-        _connectionsPerSecondCounter = new IncrementingPollingCounter(
-            "connections-per-second",
-            this,
-            () => Volatile.Read(ref _totalConnections))
-        {
-            DisplayName = "Connections Rate",
-            DisplayRateTimeScale = TimeSpan.FromSeconds(1)
-        };
-
-        _totalConnectionsCounter = new PollingCounter(
-            "total-connections",
-            this,
-            () => Volatile.Read(ref _totalConnections))
-        {
-            DisplayName = "Total Connections",
-        };
-
-        _totalFailedConnectionsCounter = new PollingCounter(
-            "total-failed-connections",
-            this,
-            () => Volatile.Read(ref _totalFailedConnections))
-                {
-                    DisplayName = "Total Failed Connections",
-                };
     }
 
     [NonEvent]
@@ -161,12 +121,62 @@ internal sealed class ConnectionCacheEventSource : EventSource
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        _currentConnectionsCounter.Dispose();
-        _currentQueueCounter.Dispose();
-        _connectionsPerSecondCounter.Dispose();
-        _totalConnectionsCounter.Dispose();
-        _totalFailedConnectionsCounter.Dispose();
+        _currentConnectionsCounter?.Dispose();
+        _currentQueueCounter?.Dispose();
+        _connectionsPerSecondCounter?.Dispose();
+        _totalConnectionsCounter?.Dispose();
+        _totalFailedConnectionsCounter?.Dispose();
         base.Dispose(disposing);
+    }
+
+    /// <inheritdoc/>
+    protected override void OnEventCommand(EventCommandEventArgs command)
+    {
+        if (command.Command == EventCommand.Enable)
+        {
+            // Initializing counters lazily on the first enable command, they aren't disabled afterwards...
+
+            _currentQueueCounter ??= new PollingCounter(
+                "current-queue",
+                this,
+                () => Volatile.Read(ref _currentQueue))
+                {
+                    DisplayName = "Current Queue",
+                };
+
+            _currentConnectionsCounter ??= new PollingCounter(
+                "current-connections",
+                this,
+                () => Volatile.Read(ref _currentConnections))
+                {
+                    DisplayName = "Current Connections",
+                };
+
+            _connectionsPerSecondCounter ??= new IncrementingPollingCounter(
+                "connections-per-second",
+                this,
+                () => Volatile.Read(ref _totalConnections))
+                {
+                    DisplayName = "Connections Rate",
+                    DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+                };
+
+            _totalConnectionsCounter ??= new PollingCounter(
+                "total-connections",
+                this,
+                () => Volatile.Read(ref _totalConnections))
+                {
+                    DisplayName = "Total Connections",
+                };
+
+            _totalFailedConnectionsCounter ??= new PollingCounter(
+                "total-failed-connections",
+                this,
+                () => Volatile.Read(ref _totalFailedConnections))
+                {
+                    DisplayName = "Total Failed Connections",
+                };
+        }
     }
 
     // Event methods sorted by eventId
