@@ -37,7 +37,6 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ConnectionCache(
                     provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IMultiplexedClientTransport>(),
                     provider.GetRequiredService<IDuplexClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());

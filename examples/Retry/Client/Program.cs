@@ -32,9 +32,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
     });
 
-await using var connectionCache = new ConnectionCache(
-    new ConnectionCacheOptions { PreferExistingConnection = true },
-    loggerFactory: loggerFactory);
+await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions { PreferExistingConnection = true });
 
 // Create an invocation pipeline with the retry and logger interceptors.
 var pipeline = new Pipeline()
