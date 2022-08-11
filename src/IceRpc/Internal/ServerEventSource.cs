@@ -140,6 +140,43 @@ internal sealed class ServerEventSource : EventSource
     }
 
     [NonEvent]
+    internal void ConnectionShutdownFailure(
+    ServerAddress serverAddress,
+    EndPoint remoteNetworkAddress,
+    Exception exception)
+    {
+        Interlocked.Increment(ref _totalFailedConnections);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectionShutdownFailure(
+                serverAddress.ToString(),
+                remoteNetworkAddress.ToString(),
+                exception.GetType().FullName,
+                exception.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal void ConnectionShutdownStart(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    {
+        Interlocked.Increment(ref _totalConnections);
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        {
+            ConnectionShutdownStart(serverAddress.ToString(), remoteNetworkAddress?.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal void ConnectionShutdownStop(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
+    {
+        Interlocked.Increment(ref _currentConnections);
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        {
+            ConnectionShutdownStop(serverAddress.ToString(), remoteNetworkAddress.ToString());
+        }
+    }
+
+    [NonEvent]
     internal void ConnectionStart(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
     {
         Interlocked.Increment(ref _totalConnections);
@@ -226,4 +263,28 @@ internal sealed class ServerEventSource : EventSource
     [Event(7, Level = EventLevel.Informational)]
     private void ConnectSuccess(string serverAddress, string? remoteNetworkAddress) =>
         WriteEvent(7, serverAddress, remoteNetworkAddress);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(8, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+    private void ConnectionShutdownStart(string serverAddress, string? remoteNetworkAddress) =>
+        WriteEvent(8, serverAddress, remoteNetworkAddress);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(9, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
+    private void ConnectionShutdownStop(string serverAddress, string? remoteNetworkAddress) =>
+        WriteEvent(9, serverAddress, remoteNetworkAddress);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(10, Level = EventLevel.Error)]
+    private void ConnectionShutdownFailure(
+        string serverAddress,
+        string? remoteNetworkAddress,
+        string? exceptionType,
+        string exceptionDetails) =>
+        WriteEvent(
+            10,
+            serverAddress,
+            remoteNetworkAddress,
+            exceptionType,
+            exceptionDetails);
 }
