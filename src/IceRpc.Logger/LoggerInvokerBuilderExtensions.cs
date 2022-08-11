@@ -10,12 +10,12 @@ namespace IceRpc.Builder;
 public static class LoggerInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="LoggerInterceptor"/> to the builder. This interceptor relies on the
-    /// <see cref="ILoggerFactory"/> service managed by the service provider.</summary>
+    /// <see cref="ILogger{T}"/> service managed by the service provider.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseLogger(this IInvokerBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(ILoggerFactory)) is ILoggerFactory loggerFactory ?
-        builder.Use(next => new LoggerInterceptor(next, loggerFactory)) :
+        builder.ServiceProvider.GetService(typeof(ILogger<LoggerInterceptor>)) is ILogger logger ?
+        builder.Use(next => new LoggerInterceptor(next, logger)) :
         throw new InvalidOperationException(
-            $"could not find service of type {nameof(ILoggerFactory)} in service container");
+            $"could not find service of type {nameof(ILogger<LoggerInterceptor>)} in service container");
 }
