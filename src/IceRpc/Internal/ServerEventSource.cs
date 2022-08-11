@@ -15,7 +15,7 @@ internal sealed class ServerEventSource : EventSource
     private long _currentBacklog;
     private readonly PollingCounter _currentBacklogCounter;
 
-    // The number of connections that were accepted and connected and are not lost or shutdown (“active” connections).
+    // The number of connections that were accepted and connected and are not lost or shutdown.
     private long _currentConnections;
     private readonly PollingCounter _currentConnectionsCounter;
 

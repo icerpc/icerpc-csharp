@@ -186,7 +186,8 @@ public sealed class Server : IAsyncDisposable
                             _ = RemoveFromCollectionAsync(connection, graceful: false, remoteNetworkAddress);
                         });
 
-                    connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true, remoteNetworkAddress));
+                    connection.OnShutdown(
+                        message => _ = RemoveFromCollectionAsync(connection, graceful: true, remoteNetworkAddress));
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client and
