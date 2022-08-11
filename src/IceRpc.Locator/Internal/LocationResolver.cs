@@ -1,48 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-
 namespace IceRpc.Locator.Internal;
-
-/// <summary>This class contains ILogger extension methods used by LogLocationResolverDecorator.</summary>
-internal static partial class LocatorLoggerExtensions
-{
-    [LoggerMessage(
-        EventId = (int)LocationEventId.Resolving,
-        EventName = nameof(LocationEventId.Resolving),
-        Level = LogLevel.Trace,
-        Message = "resolving {LocationKind} {Location}")]
-    internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
-
-    [LoggerMessage(
-        EventId = (int)LocationEventId.Resolved,
-        EventName = nameof(LocationEventId.Resolved),
-        Level = LogLevel.Debug,
-        Message = "resolved {LocationKind} '{Location}' = '{ServiceAddress}'")]
-    internal static partial void LogResolved(
-        this ILogger logger,
-        string locationKind,
-        Location location,
-        ServiceAddress serviceAddress);
-
-    [LoggerMessage(
-        EventId = (int)LocationEventId.FailedToResolve,
-        EventName = nameof(LocationEventId.FailedToResolve),
-        Level = LogLevel.Debug,
-        Message = "failed to resolve {LocationKind} '{Location}'")]
-    internal static partial void LogFailedToResolve(
-        this ILogger logger,
-        string locationKind,
-        Location location,
-        Exception? exception = null);
-}
 
 /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
 internal class CacheLessLocationResolver : ILocationResolver
 {
     private readonly IServerAddressFinder _serverAddressFinder;
 
-    internal CacheLessLocationResolver(IServerAddressFinder serverAddressFinder) => _serverAddressFinder = serverAddressFinder;
+    internal CacheLessLocationResolver(IServerAddressFinder serverAddressFinder) =>
+        _serverAddressFinder = serverAddressFinder;
 
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
@@ -157,45 +123,36 @@ internal class LocationResolver : ILocationResolver
     }
 }
 
-/// <summary>A decorator that adds logging to a location resolver.</summary>
+/// <summary>A decorator that adds event source logging to a location resolver.</summary>
 internal class LogLocationResolverDecorator : ILocationResolver
 {
     private readonly ILocationResolver _decoratee;
-    private readonly ILogger _logger;
-
-    internal LogLocationResolverDecorator(ILocationResolver decoratee, ILogger logger)
-    {
-        _decoratee = decoratee;
-        _logger = logger;
-    }
 
     public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel)
     {
-        _logger.LogResolving(location.Kind, location);
+        LocatorEventSource.Log.ResolveStart(location);
+        ServiceAddress? serviceAddress = null;
 
         try
         {
-            (ServiceAddress? serviceAddress, bool fromCache) =
+            (serviceAddress, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancel).ConfigureAwait(false);
-
-            if (serviceAddress is null)
-            {
-                _logger.LogFailedToResolve(location.Kind, location);
-            }
-            else
-            {
-                _logger.LogResolved(location.Kind, location, serviceAddress);
-            }
 
             return (serviceAddress, fromCache);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogFailedToResolve(location.Kind, location, ex);
+            LocatorEventSource.Log.ResolveFailure(location, exception);
             throw;
         }
+        finally
+        {
+            LocatorEventSource.Log.ResolveStop(location, serviceAddress);
+        }
     }
+
+    internal LogLocationResolverDecorator(ILocationResolver decoratee) => _decoratee = decoratee;
 }

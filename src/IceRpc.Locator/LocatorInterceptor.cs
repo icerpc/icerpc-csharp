@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Locator.Internal;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc.Locator;
@@ -120,19 +119,20 @@ public readonly record struct Location
     public override string ToString() => Value;
 }
 
-/// <summary>A location resolver resolves a location into one or more server addresses carried by a dummy service address, and
-/// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>.
+/// <summary>A location resolver resolves a location into one or more server addresses carried by a dummy service
+/// address, and optionally maintains a cache for these resolutions. It's the "brain" of
+/// <see cref="LocatorInterceptor"/>. The same location resolver can be shared by multiple locator interceptors.
 /// </summary>
 public interface ILocationResolver
 {
     /// <summary>Resolves a location into one or more server addresses carried by a dummy service address.</summary>
-    /// <param name="location">The location.</param>
+    /// <param name="location">The location to resolve.</param>
     /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
     /// that indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is
     /// null whe the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress
-    /// must be not null.</returns>
+    /// is not null.</returns>
     ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
@@ -146,9 +146,8 @@ public class LocatorLocationResolver : ILocationResolver
 
     /// <summary>Constructs a locator location resolver.</summary>
     /// <param name="locator">The locator proxy.</param>
-    /// <param name="loggerFactory">The logger factory.</param>
     /// <param name="options">The locator options.</param>
-    public LocatorLocationResolver(ILocatorProxy locator, ILoggerFactory loggerFactory, LocatorOptions options)
+    public LocatorLocationResolver(ILocatorProxy locator, LocatorOptions options)
     {
         // This is the composition root of this locator location resolver.
 
@@ -158,42 +157,28 @@ public class LocatorLocationResolver : ILocationResolver
                 $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
         }
 
-        ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
-        bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
-
         // Create and decorate server address cache (if caching enabled):
         IServerAddressCache? serverAddressCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
-            new ServerAddressCache(options.MaxCacheSize) : null;
-
-        if (serverAddressCache is not null && installLogDecorator)
-        {
-            serverAddressCache = new LogServerAddressCacheDecorator(serverAddressCache, logger);
-        }
+            new LogServerAddressCacheDecorator(new ServerAddressCache(options.MaxCacheSize)) : null;
 
         // Create and decorate server address finder:
-        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(locator);
-        if (installLogDecorator)
-        {
-            serverAddressFinder = new LogServerAddressFinderDecorator(serverAddressFinder, logger);
-        }
+        IServerAddressFinder serverAddressFinder =
+            new LogServerAddressFinderDecorator(new LocatorServerAddressFinder(locator));
+
         if (serverAddressCache is not null)
         {
             serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(serverAddressFinder, serverAddressCache);
         }
         serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder);
 
-        _locationResolver = serverAddressCache is null ? new CacheLessLocationResolver(serverAddressFinder) :
-                new LocationResolver(
-                    serverAddressFinder,
-                    serverAddressCache,
-                    options.Background,
-                    options.RefreshThreshold,
-                    options.Ttl);
-
-        if (installLogDecorator)
-        {
-            _locationResolver = new LogLocationResolverDecorator(_locationResolver, logger);
-        }
+        _locationResolver = new LogLocationResolverDecorator(
+                serverAddressCache is null ? new CacheLessLocationResolver(serverAddressFinder) :
+                    new LocationResolver(
+                        serverAddressFinder,
+                        serverAddressCache,
+                        options.Background,
+                        options.RefreshThreshold,
+                        options.Ttl));
     }
 
     /// <inheritdoc/>

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Locator;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc;
 
@@ -15,18 +14,12 @@ public static class LocatorPipelineExtensions
     /// <param name="locator">The locator proxy used for the resolutions.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator) =>
-        UseLocator(
-            pipeline,
-            new LocatorLocationResolver(
-                locator,
-                NullLoggerFactory.Instance,
-                new LocatorOptions()));
+        UseLocator(pipeline, new LocatorLocationResolver(locator, new LocatorOptions()));
 
     /// <summary>Adds a <see cref="LocatorInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locationResolver">The location resolver, usually created using a
-    /// <see cref="LocatorLocationResolver"/>.</param>
+    /// <param name="locatorLocationResolver">The locator-based location resolver instance.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocationResolver locationResolver) =>
-        pipeline.Use(next => new LocatorInterceptor(next, locationResolver));
+    public static Pipeline UseLocator(this Pipeline pipeline, LocatorLocationResolver locatorLocationResolver) =>
+        pipeline.Use(next => new LocatorInterceptor(next, locatorLocationResolver));
 }
