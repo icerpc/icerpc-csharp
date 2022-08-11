@@ -32,7 +32,7 @@ public sealed class Server : IAsyncDisposable
     /// This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<ProtocolConnection> _connections = new();
+    private readonly Dictionary<ProtocolConnection, EndPoint> _connections = new();
 
     private bool _isReadOnly;
 
@@ -171,7 +171,7 @@ public sealed class Server : IAsyncDisposable
                             connection.DisposeAsync().AsTask();
                             return;
                         }
-                        _ = _connections.Add(connection);
+                        _ = _connections[connection] = remoteNetworkAddress;
                     }
 
                     // Schedule removal after addition. We do this outside the mutex lock otherwise
@@ -310,8 +310,13 @@ public sealed class Server : IAsyncDisposable
             _listener = null;
         }
 
-        await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
-            .ConfigureAwait(false);
+        await Task.WhenAll(
+            _connections.Select(
+                async (entry) =>
+                {
+                    await entry.Key.DisposeAsync().ConfigureAwait(false);
+                    ServerEventSource.Log.ConnectionStop(entry.Key.ServerAddress, entry.Value);
+                })).ConfigureAwait(false);
 
         _ = _shutdownCompleteSource.TrySetResult(null);
     }
@@ -355,10 +360,22 @@ public sealed class Server : IAsyncDisposable
                 _listener?.Dispose();
             }
 
-            // TODO call ServerEventSource.Log.ShutdownAsyncFailure in shutdown fails, we need the remote EndPoint
-            // but it is not available here.
-            await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync("server shutdown", cancel)))
-                .ConfigureAwait(false);
+            await Task.WhenAll(
+                _connections.Select(
+                    async (entry) =>
+                    {
+                        try
+                        {
+                            await entry.Key.ShutdownAsync("server shutdown", cancel).ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            ServerEventSource.Log.ConnectionShutdownFailure(
+                                entry.Key.ServerAddress,
+                                entry.Value,
+                                exception);
+                        }
+                    })).ConfigureAwait(false);
         }
         finally
         {
