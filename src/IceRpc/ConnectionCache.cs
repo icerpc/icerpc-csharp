@@ -219,7 +219,19 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancel)));
+            allConnections.Select(
+                async (connection) =>
+                {
+                    try
+                    {
+                        await connection.ShutdownAsync("connection cache shutdown", cancel).ConfigureAwait(false);
+                    }
+                    catch (Exception exception)
+                    {
+                        ConnectionCacheEventSource.Log.ConnectionShutdownFailure(connection.ServerAddress, exception);
+                        throw;
+                    }
+                }));
     }
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
@@ -314,7 +326,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // call await ShutdownAsync or DisposeAsync on the connection within this lock.
                 connection.OnAbort(exception =>
                 {
-                    ConnectionCacheEventSource.Log.ConnectionFailure(serverAddress, exception);
+                    ConnectionCacheEventSource.Log.ConnectionFailure(
+                        serverAddress,
+                        exception);
                     RemoveFromActive(graceful: false);
                 });
                 connection.OnShutdown(message => RemoveFromActive(graceful: true));
