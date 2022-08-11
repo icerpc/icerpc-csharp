@@ -28,7 +28,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private int _headerSizeLength = 2;
     private bool _isReadOnly;
     private ulong? _lastRemoteBidirectionalStreamId;
-    // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
@@ -266,26 +265,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 stream);
 
             // Keep track of the invocation for the shutdown logic.
-            if (!request.IsOneway || request.PayloadStream is not null)
+            lock (_mutex)
             {
-                lock (_mutex)
+                if (_isReadOnly)
                 {
-                    if (_isReadOnly)
+                    // Don't process the invocation if the connection is in the process of shutting down or it's
+                    // already closed.
+                    throw new ConnectionClosedException();
+                }
+                else
+                {
+                    if (_streams.Count == 0)
                     {
-                        // Don't process the invocation if the connection is in the process of shutting down or it's
-                        // already closed.
-                        throw new ConnectionClosedException();
+                        DisableIdleCheck();
                     }
-                    else
-                    {
-                        if (_streams.Count == 0)
-                        {
-                            DisableIdleCheck();
-                        }
-                        _streams.Add(stream);
+                    _streams.Add(stream);
 
-                        _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
-                    }
+                    _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
                 }
             }
 
