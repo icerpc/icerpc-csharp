@@ -11,8 +11,9 @@ public static class LoggerPipelineExtensions
 {
     /// <summary>Adds a <see cref="LoggerInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="loggerFactory">The logger factory used to create the logger.</param>
+    /// <param name="logger">The logger to log to. It's typically an <see cref="ILogger{TCategoryName}"/> for
+    /// <see cref="LoggerInterceptor"/>.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLogger(this Pipeline pipeline, ILoggerFactory loggerFactory) =>
-        pipeline.Use(next => new LoggerInterceptor(next, loggerFactory));
+    public static Pipeline UseLogger(this Pipeline pipeline, ILogger logger) =>
+        pipeline.Use(next => new LoggerInterceptor(next, logger));
 }

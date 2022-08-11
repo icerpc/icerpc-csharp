@@ -6,9 +6,9 @@ using System.Net;
 
 namespace IceRpc.Logger;
 
-/// <summary>A middleware that logs request and response messages using a logger with the "IceRpc" category. When
-/// used in conjunction with the telemetry middleware, install the logger middleware after the telemetry middleware,
-/// this way the logger can include the scopes created by the telemetry activities.</summary>
+/// <summary>A middleware that logs request and response messages to a <see cref="ILogger"/>. When used in conjunction
+/// with the telemetry middleware, install the logger middleware after the telemetry middleware, this way the logger
+/// includes the scopes created by the telemetry activities.</summary>
 public class LoggerMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
@@ -16,11 +16,11 @@ public class LoggerMiddleware : IDispatcher
 
     /// <summary>Constructs a logger middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="loggerFactory">The logger factory used to create the logger.</param>
-    public LoggerMiddleware(IDispatcher next, ILoggerFactory loggerFactory)
+    /// <param name="logger">The logger to log to.</param>
+    public LoggerMiddleware(IDispatcher next, ILogger logger)
     {
         _next = next;
-        _logger = loggerFactory.CreateLogger(GetType().FullName!);
+        _logger = logger;
     }
 
     /// <inheritdoc/>

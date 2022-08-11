@@ -11,8 +11,9 @@ public static class LoggerRouterExtensions
 {
     /// <summary>Adds a <see cref="LoggerMiddleware"/> to this router.</summary>
     /// <param name="router">The router being configured.</param>
-    /// <param name="loggerFactory">The logger factory used to create the logger.</param>
+    /// <param name="logger">The logger to log to. It's typically an <see cref="ILogger{TCategoryName}"/> for
+    /// <see cref="LoggerMiddleware"/>.</param>
     /// <returns>The router being configured.</returns>
-    public static Router UseLogger(this Router router, ILoggerFactory loggerFactory) =>
-        router.Use(next => new LoggerMiddleware(next, loggerFactory));
+    public static Router UseLogger(this Router router, ILogger logger) =>
+        router.Use(next => new LoggerMiddleware(next, logger));
 }

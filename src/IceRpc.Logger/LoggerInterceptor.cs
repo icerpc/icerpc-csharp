@@ -5,9 +5,9 @@ using System.Net;
 
 namespace IceRpc.Logger;
 
-/// <summary>An interceptor that logs invocations using a logger with the "IceRpc.Logger" category. When used in
-/// conjunction with the telemetry interceptor, install the logger interceptor after the telemetry interceptor; this
-/// way, the logger include the scopes created by the telemetry activities.</summary>
+/// <summary>An interceptor that logs invocations to a <see cref="ILogger"/>. When used in conjunction with the
+/// telemetry interceptor, install the logger interceptor after the telemetry interceptor; this way, the logger includes
+/// the scopes created by the telemetry activities.</summary>
 public class LoggerInterceptor : IInvoker
 {
     private readonly ILogger _logger;
@@ -15,11 +15,11 @@ public class LoggerInterceptor : IInvoker
 
     /// <summary>Constructs a logger interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="loggerFactory">The logger factory used to create the logger.</param>
-    public LoggerInterceptor(IInvoker next, ILoggerFactory loggerFactory)
+    /// <param name="logger">The logger to log to.</param>
+    public LoggerInterceptor(IInvoker next, ILogger logger)
     {
         _next = next;
-        _logger = loggerFactory.CreateLogger(GetType().FullName!);
+        _logger = logger;
     }
 
     /// <inheritdoc/>
