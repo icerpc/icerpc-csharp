@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -218,7 +219,19 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancel)));
+            allConnections.Select(
+                async (connection) =>
+                {
+                    try
+                    {
+                        await connection.ShutdownAsync("connection cache shutdown", cancel).ConfigureAwait(false);
+                    }
+                    catch (Exception exception)
+                    {
+                        ConnectionCacheEventSource.Log.ConnectionShutdownFailure(connection.ServerAddress, exception);
+                        throw;
+                    }
+                }));
     }
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
@@ -249,6 +262,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             else
             {
                 connection = _clientConnectionFactory(serverAddress);
+                ConnectionCacheEventSource.Log.ConnectionStart(serverAddress);
                 created = true;
                 _pendingConnections.Add(serverAddress, connection);
             }
@@ -259,10 +273,16 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             try
             {
                 // TODO: add cancellation token to cancel when ConnectionCache is shut down / disposed.
-                await connection.ConnectAsync(cancel).ConfigureAwait(false);
+                ConnectionCacheEventSource.Log.ConnectStart(serverAddress);
+                TransportConnectionInformation transportConnectionInformation =
+                    await connection.ConnectAsync(cancel).ConfigureAwait(false);
+                ConnectionCacheEventSource.Log.ConnectSuccess(
+                    serverAddress,
+                    transportConnectionInformation.LocalNetworkAddress!);
             }
-            catch
+            catch (Exception exception)
             {
+                ConnectionCacheEventSource.Log.ConnectFailure(serverAddress, exception);
                 bool scheduleRemoveFromClosed = false;
 
                 lock (_mutex)
@@ -304,7 +324,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
                 // call await ShutdownAsync or DisposeAsync on the connection within this lock.
-                connection.OnAbort(exception => RemoveFromActive(graceful: false));
+                connection.OnAbort(exception =>
+                {
+                    ConnectionCacheEventSource.Log.ConnectionFailure(
+                        serverAddress,
+                        exception);
+                    RemoveFromActive(graceful: false);
+                });
                 connection.OnShutdown(message => RemoveFromActive(graceful: true));
             }
         }
@@ -349,12 +375,15 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception exception)
                 {
+                    ConnectionCacheEventSource.Log.ConnectionShutdownFailure(clientConnection.ServerAddress, exception);
                 }
             }
 
             await clientConnection.DisposeAsync().ConfigureAwait(false);
+
+            ConnectionCacheEventSource.Log.ConnectionStop(serverAddress);
 
             lock (_mutex)
             {
