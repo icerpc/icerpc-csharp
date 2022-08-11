@@ -77,17 +77,25 @@ public class TcpClientTransport : IDuplexClientTransport
 
         SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
             (serverAddress.Transport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+
         if (authenticationOptions is not null)
         {
-            // Add the server address protocol to the SSL application protocols (used by TLS ALPN) and set the
-            // TargetHost to the server address host. On the client side, the application doesn't necessarily
-            // need to provide authentication options if it relies on system certificates and doesn't specify
-            // certificate validation.
+            // We are establishing a secure TLS connection. It can rely on system certificates.
+
             authenticationOptions.TargetHost ??= serverAddress.Host;
-            authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+
+            // When not using the default port, set ApplicationProtocols to "ice" or "icerpc" in the common situation
+            // where the application does not specify any application protocol. This way, a proxy server listening on
+            // a port shared by multiple application protocols can use this ALPN protocol ID to forward all ice/icerpc
+            // traffic to an ice/icerpc back-end server.
+            if (authenticationOptions.ApplicationProtocols is null &&
+                serverAddress.Port != serverAddress.Protocol.DefaultUriPort)
             {
-                new SslApplicationProtocol(serverAddress.Protocol.Name)
-            };
+                authenticationOptions.ApplicationProtocols = new List<SslApplicationProtocol>
+                {
+                    new SslApplicationProtocol(serverAddress.Protocol.Name)
+                };
+            }
         }
 
         return new TcpClientConnection(
