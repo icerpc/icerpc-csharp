@@ -2,9 +2,12 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Transports;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Net.Security;
+using System.Net;
 
 namespace IceRpc.Tests;
 
@@ -27,22 +30,7 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Dispose_cancels_dispatches()
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        var tcs = new TaskCompletionSource();
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            try
-            {
-                await hold.WaitAsync(cancel);
-            }
-            catch (OperationCanceledException)
-            {
-                tcs.SetResult();
-            }
-            return new OutgoingResponse(request);
-        });
+        using var dispatcher = new TestDispatcher();
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -52,14 +40,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
-        await start.WaitAsync(); // Wait for the dispatch to start
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await tcs.Task, Throws.Nothing);
-        hold.Release();
+        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the
@@ -92,6 +79,44 @@ public sealed class IceRpcProtocolConnectionTests
             new ServiceProxy(sut.Client, request.ServiceAddress)) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
+    }
+
+    [Test]
+    public async Task Not_dispatched_request_gets_connection_closed_on_server_connection_shutdown()
+    {
+        // Arrange
+        HoldMultiplexedServerTransport? serverTransport = null;
+        using var dispatcher = new TestDispatcher();
+
+        await using var provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddSingleton<IMultiplexedServerTransport>(
+                provider => serverTransport = new HoldMultiplexedServerTransport(
+                    new SlicServerTransport(
+                        provider.GetRequiredService<IDuplexServerTransport>())))
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Ensure the server transport hold on AcceptStreamAsync to prevent the stream for the dispatch from being
+        // returned to the icerpc protocol connection.
+        serverTransport!.Hold();
+        var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+
+        // Act
+        var shutdownTask = sut.Server.ShutdownAsync("");
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(invokeTask.IsCompleted, Is.False);
+            Assert.That(async () => await invokeTask2, Throws.InstanceOf<ConnectionClosedException>());
+        });
+        dispatcher.ReleaseDispatch();
+        Assert.That(async () => await invokeTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
@@ -343,5 +368,83 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
+    }
+
+    private sealed class HoldMultiplexedServerTransport : IMultiplexedServerTransport, IDisposable
+    {
+        private readonly IMultiplexedServerTransport _decoratee;
+        private HoldMultiplexedListener? _listener;
+
+        public string Name => _decoratee.Name;
+
+        public void Dispose() => _listener?.Dispose();
+
+        public IListener<IMultiplexedConnection> Listen(
+            ServerAddress serverAddress,
+            MultiplexedConnectionOptions options,
+            SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+            _listener = new HoldMultiplexedListener(
+                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions));
+
+        internal HoldMultiplexedServerTransport(IMultiplexedServerTransport decoratee) => _decoratee = decoratee;
+
+        internal void Hold() => _listener?.Hold();
+    }
+
+    private sealed class HoldMultiplexedListener : IListener<IMultiplexedConnection>
+    {
+        private readonly IListener<IMultiplexedConnection> _decoratee;
+        private readonly List<HoldMultiplexedConnection> _connections = new();
+
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync()
+        {
+            (IMultiplexedConnection connection, EndPoint address) = await _decoratee.AcceptAsync();
+            var holdConnection = new HoldMultiplexedConnection(connection);
+            _connections.Add(holdConnection);
+            return (holdConnection, address);
+        }
+
+        public void Dispose() => _decoratee.Dispose();
+
+        internal void Hold()
+        {
+            foreach (HoldMultiplexedConnection connection in _connections)
+            {
+                connection.Hold();
+            }
+        }
+
+        internal HoldMultiplexedListener(IListener<IMultiplexedConnection> decoratee) => _decoratee = decoratee;
+    }
+
+    private sealed class HoldMultiplexedConnection : IMultiplexedConnection
+    {
+        private readonly IMultiplexedConnection _decoratee;
+        private bool _hold;
+
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel)
+        {
+            IMultiplexedStream stream = await _decoratee.AcceptStreamAsync(cancel);
+            if (_hold)
+            {
+                await Task.Delay(-1, cancel);
+            }
+            return stream;
+        }
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel) =>
+            _decoratee.ConnectAsync(cancel);
+        public IMultiplexedStream CreateStream(bool bidirectional) => _decoratee.CreateStream(bidirectional);
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+        public Task ShutdownAsync(Exception completeException, CancellationToken cancel) =>
+            _decoratee.ShutdownAsync(completeException, cancel);
+
+        internal HoldMultiplexedConnection(IMultiplexedConnection decoratee) => _decoratee = decoratee;
+
+        internal void Hold() => _hold = true;
     }
 }

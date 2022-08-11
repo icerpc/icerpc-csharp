@@ -75,7 +75,6 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
     }
 
     private readonly Func<Task<ProtocolConnection>> _acceptServerConnectionAsync;
-    private readonly ILogger _logger;
     private ProtocolConnection? _server;
 
     public async Task ConnectAsync()
@@ -94,11 +93,9 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
 
     private protected ClientServerProtocolConnection(
         ProtocolConnection clientProtocolConnection,
-        Func<Task<ProtocolConnection>> acceptServerConnectionAsync,
-        ILogger logger)
+        Func<Task<ProtocolConnection>> acceptServerConnectionAsync)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;
-        _logger = logger;
         Client = clientProtocolConnection;
     }
 }
@@ -131,8 +128,7 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
                 (await listener.AcceptAsync()).Connection,
                 isServer: true,
                 observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
-                serverOptions.Value.ConnectionOptions),
-            logger)
+                serverOptions.Value.ConnectionOptions))
     {
     }
 #pragma warning restore CA2000
@@ -164,8 +160,7 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                 (await listener.AcceptAsync()).Connection,
                 observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
-                serverOptions.Value.ConnectionOptions),
-            logger)
+                serverOptions.Value.ConnectionOptions))
     {
     }
 #pragma warning restore CA2000
