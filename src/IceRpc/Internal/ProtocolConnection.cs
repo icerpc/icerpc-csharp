@@ -173,8 +173,6 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
-            TransportConnectionInformation information;
-
             using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_connectCancelSource.Token);
             cancelSource.CancelAfter(_connectTimeout);
 
@@ -182,8 +180,10 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             {
                 cancelSource.Token.ThrowIfCancellationRequested();
 
-                information = await ConnectAsyncCore(cancelSource.Token).ConfigureAwait(false);
+                TransportConnectionInformation information =
+                    await ConnectAsyncCore(cancelSource.Token).ConfigureAwait(false);
                 EnableIdleCheck();
+                return information;
             }
             catch (OperationCanceledException) when (_connectCancelSource.IsCancellationRequested)
             {
@@ -197,7 +197,6 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
                 throw new TimeoutException(
                     $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
             }
-            return information;
         }
     }
 

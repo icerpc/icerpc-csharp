@@ -195,18 +195,24 @@ public sealed class Server : IAsyncDisposable
                     // Waiting could also cause a security issue if the client doesn't respond to the connection
                     // initialization as we wouldn't be able to accept new connections in the meantime. The call will
                     // eventually timeout if the ConnectTimeout expires.
+
+                    ServerEventSource.Log.ConnectStart(connection.ServerAddress, remoteNetworkAddress);
+                    Task<TransportConnectionInformation> connectTask = connection.ConnectAsync(CancellationToken.None);
+
                     _ = Task.Run(async () =>
                         {
                             try
                             {
-                                ServerEventSource.Log.ConnectStart(connection.ServerAddress, remoteNetworkAddress);
                                 TransportConnectionInformation connectionInformation =
-                                    await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                                    await connectTask.ConfigureAwait(false);
                                 ServerEventSource.Log.ConnectSuccess(connection.ServerAddress, remoteNetworkAddress);
                             }
                             catch (Exception exception)
                             {
-                                ServerEventSource.Log.ConnectFailure(connection.ServerAddress, remoteNetworkAddress, exception);
+                                ServerEventSource.Log.ConnectFailure(
+                                    connection.ServerAddress,
+                                    remoteNetworkAddress,
+                                    exception);
                             }
                             finally
                             {
@@ -217,7 +223,10 @@ public sealed class Server : IAsyncDisposable
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(ProtocolConnection connection, bool graceful, EndPoint remoteNetworkAddress)
+            async Task RemoveFromCollectionAsync(
+                ProtocolConnection connection,
+                bool graceful,
+                EndPoint remoteNetworkAddress)
             {
                 lock (_mutex)
                 {
