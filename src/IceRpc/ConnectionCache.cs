@@ -312,7 +312,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
                 // call await ShutdownAsync or DisposeAsync on the connection within this lock.
-                connection.OnAbort(exception => RemoveFromActive(graceful: false));
+                connection.OnAbort(exception =>
+                {
+                    ConnectionCacheEventSource.Log.ConnectionFailure(serverAddress, exception);
+                    RemoveFromActive(graceful: false);
+                });
                 connection.OnShutdown(message => RemoveFromActive(graceful: true));
             }
         }
@@ -357,8 +361,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception exception)
                 {
+                    ConnectionCacheEventSource.Log.ConnectionShutdownFailure(clientConnection.ServerAddress, exception);
                 }
             }
 

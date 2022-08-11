@@ -119,6 +119,26 @@ internal sealed class ConnectionCacheEventSource : EventSource
     }
 
     [NonEvent]
+    internal void ConnectionFailure(ServerAddress serverAddress, Exception exception)
+    {
+        Interlocked.Increment(ref _totalFailedConnections);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectionFailure(serverAddress.ToString(), exception.GetType().FullName, exception.ToString());
+        }
+    }
+
+    [NonEvent]
+    internal void ConnectionShutdownFailure(ServerAddress serverAddress, Exception exception)
+    {
+        Interlocked.Increment(ref _totalFailedConnections);
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        {
+            ConnectionShutdownFailure(serverAddress.ToString(), exception.GetType().FullName, exception.ToString());
+        }
+    }
+
+    [NonEvent]
     internal void ConnectionStart(ServerAddress serverAddress)
     {
         Interlocked.Increment(ref _totalConnections);
@@ -131,7 +151,7 @@ internal sealed class ConnectionCacheEventSource : EventSource
     [NonEvent]
     internal void ConnectionStop(ServerAddress serverAddress)
     {
-        Interlocked.Increment(ref _currentConnections);
+        Interlocked.Decrement(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionStop(serverAddress.ToString());
@@ -162,22 +182,32 @@ internal sealed class ConnectionCacheEventSource : EventSource
         WriteEvent(2, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(3, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-    private void ConnectStart(string serverAddress) =>
-        WriteEvent(3, serverAddress);
+    [Event(3, Level = EventLevel.Error)]
+    private void ConnectionFailure(string serverAddress, string? exceptionType, string exceptionDetails) =>
+        WriteEvent(3, serverAddress, exceptionType, exceptionDetails);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectStop(string serverAddress) =>
+    [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+    private void ConnectStart(string serverAddress) =>
         WriteEvent(4, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(5, Level = EventLevel.Error)]
-    private void ConnectFailure(string serverAddress, string? exceptionType, string exceptionDetails) =>
-        WriteEvent(5, serverAddress, exceptionType, exceptionDetails);
+    [Event(5, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
+    private void ConnectStop(string serverAddress) =>
+        WriteEvent(5, serverAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(6, Level = EventLevel.Informational)]
+    [Event(6, Level = EventLevel.Error)]
+    private void ConnectFailure(string serverAddress, string? exceptionType, string exceptionDetails) =>
+        WriteEvent(6, serverAddress, exceptionType, exceptionDetails);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(7, Level = EventLevel.Informational)]
     private void ConnectSuccess(string serverAddress, string? localNetworkAddress) =>
-        WriteEvent(6, serverAddress, localNetworkAddress);
+        WriteEvent(7, serverAddress, localNetworkAddress);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(8, Level = EventLevel.Error)]
+    private void ConnectionShutdownFailure(string serverAddress, string? exceptionType, string exceptionDetails) =>
+        WriteEvent(8, serverAddress, exceptionType, exceptionDetails);
 }
