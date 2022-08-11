@@ -42,7 +42,7 @@ var pipeline = new Pipeline()
         // Make up to 5 attempts before giving up
         new RetryOptions { MaxAttempts = 5 },
         loggerFactory)
-    .UseLogger(loggerFactory.CreateLogger<IceRpc.Logger.LoggerInterceptor>())
+    .UseLogger(loggerFactory)
     .Into(connectionCache);
 
 string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-server=127.0.0.1:10001";
