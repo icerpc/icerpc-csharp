@@ -137,7 +137,6 @@ public sealed class Server : IAsyncDisposable
                 Func<Task<(T, EndPoint)>> acceptTransportConnection,
                 Func<T, ProtocolConnection> createProtocolConnection)
             {
-                Debug.Assert(_listener != null);
                 while (true)
                 {
                     ProtocolConnection connection;
@@ -146,7 +145,7 @@ public sealed class Server : IAsyncDisposable
                     {
                         (T transportConnection, remoteNetworkAddress) =
                             await acceptTransportConnection().ConfigureAwait(false);
-                        ServerEventSource.Log.ConnectionStart(_listener.ServerAddress, remoteNetworkAddress);
+                        ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
                         connection = createProtocolConnection(transportConnection);
                     }
                     catch
@@ -180,7 +179,7 @@ public sealed class Server : IAsyncDisposable
                     connection.OnAbort(exception =>
                         {
                             ServerEventSource.Log.ConnectionFailure(
-                                _listener.ServerAddress,
+                                ServerAddress,
                                 remoteNetworkAddress,
                                 exception);
                             _ = RemoveFromCollectionAsync(connection, graceful: false, remoteNetworkAddress);
@@ -229,7 +228,7 @@ public sealed class Server : IAsyncDisposable
 
                 await connection.DisposeAsync().ConfigureAwait(false);
 
-                ServerEventSource.Log.ConnectionStop(connection.ServerAddress, remoteNetworkAddress);
+                ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
 
                 lock (_mutex)
                 {
