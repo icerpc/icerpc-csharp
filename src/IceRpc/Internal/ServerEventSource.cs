@@ -11,7 +11,7 @@ internal sealed class ServerEventSource : EventSource
 {
     internal static readonly ServerEventSource Log = new("IceRpc-Server");
 
-    // The number of connections that were accepted and are being connected
+    // The number of connections that were accepted and are being connected.
     private long _currentBacklog;
     private readonly PollingCounter _currentBacklogCounter;
 
@@ -96,7 +96,7 @@ internal sealed class ServerEventSource : EventSource
     internal void ConnectStart(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
     {
         Interlocked.Increment(ref _currentBacklog);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectStart(serverAddress.ToString(), remoteNetworkAddress?.ToString());
         }
@@ -106,7 +106,7 @@ internal sealed class ServerEventSource : EventSource
     internal void ConnectStop(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
     {
         Interlocked.Decrement(ref _currentBacklog);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectStop(serverAddress.ToString(), remoteNetworkAddress.ToString());
         }
@@ -116,7 +116,7 @@ internal sealed class ServerEventSource : EventSource
     internal void ConnectSuccess(ServerAddress serverAddress, EndPoint remoteNetworkAddress)
     {
         Interlocked.Increment(ref _currentConnections);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectSuccess(serverAddress.ToString(), remoteNetworkAddress.ToString());
         }
@@ -129,7 +129,7 @@ internal sealed class ServerEventSource : EventSource
         Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
-        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
             ConnectionFailure(
                 serverAddress.ToString(),
