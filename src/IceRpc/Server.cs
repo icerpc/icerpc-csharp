@@ -196,29 +196,7 @@ public sealed class Server : IAsyncDisposable
                     // initialization as we wouldn't be able to accept new connections in the meantime. The call will
                     // eventually timeout if the ConnectTimeout expires.
 
-                    ServerEventSource.Log.ConnectStart(connection.ServerAddress, remoteNetworkAddress);
-                    Task<TransportConnectionInformation> connectTask = connection.ConnectAsync(CancellationToken.None);
-
-                    _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                TransportConnectionInformation connectionInformation =
-                                    await connectTask.ConfigureAwait(false);
-                                ServerEventSource.Log.ConnectSuccess(connection.ServerAddress, remoteNetworkAddress);
-                            }
-                            catch (Exception exception)
-                            {
-                                ServerEventSource.Log.ConnectFailure(
-                                    connection.ServerAddress,
-                                    remoteNetworkAddress,
-                                    exception);
-                            }
-                            finally
-                            {
-                                ServerEventSource.Log.ConnectStop(connection.ServerAddress, remoteNetworkAddress);
-                            }
-                        });
+                    _ = await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
                 }
             }
 
