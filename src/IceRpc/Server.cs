@@ -232,16 +232,11 @@ public sealed class Server : IAsyncDisposable
                     // Wait for the current shutdown to complete
                     try
                     {
-                        ServerEventSource.Log.ConnectionShutdownStart(ServerAddress, remoteNetworkAddress);
                         await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
                         ServerEventSource.Log.ConnectionShutdownFailure(ServerAddress, remoteNetworkAddress, exception);
-                    }
-                    finally
-                    {
-                        ServerEventSource.Log.ConnectionShutdownStop(ServerAddress, remoteNetworkAddress);
                     }
                 }
 
