@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc;
@@ -34,14 +33,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
-    /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
-    /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
     /// connections.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ConnectionCache(
         ConnectionCacheOptions options,
-        ILoggerFactory? loggerFactory = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
@@ -52,7 +48,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         _clientConnectionFactory = serverAddress => new ClientConnection(
             options.ClientConnectionOptions with { ServerAddress = serverAddress },
-            loggerFactory,
             multiplexedClientTransport,
             duplexClientTransport);
     }
@@ -78,8 +73,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IEnumerable<ClientConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
-        await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
-            .ConfigureAwait(false);
+        await Task.WhenAll(
+            allConnections.Select(
+                async (connection) =>
+                {
+                    await connection.DisposeAsync().ConfigureAwait(false);
+                    ConnectionCacheEventSource.Log.ConnectionStop(connection.ServerAddress);
+                })).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
