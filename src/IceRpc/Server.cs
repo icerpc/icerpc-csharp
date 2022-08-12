@@ -5,7 +5,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 
@@ -139,14 +138,12 @@ public sealed class Server : IAsyncDisposable
             {
                 while (true)
                 {
-                    ProtocolConnection connection;
+                    T transportConnection;
                     EndPoint remoteNetworkAddress;
                     try
                     {
-                        (T transportConnection, remoteNetworkAddress) =
-                            await acceptTransportConnection().ConfigureAwait(false);
-                        ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-                        connection = createProtocolConnection(transportConnection);
+                        (transportConnection, remoteNetworkAddress) = await acceptTransportConnection()
+                            .ConfigureAwait(false);
                     }
                     catch
                     {
@@ -154,7 +151,7 @@ public sealed class Server : IAsyncDisposable
                         {
                             if (_isReadOnly)
                             {
-                                return;
+                                return; // server is shutting down or being disposed
                             }
                         }
 
@@ -164,14 +161,27 @@ public sealed class Server : IAsyncDisposable
                         continue;
                     }
 
+                    ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
+                    ProtocolConnection connection = createProtocolConnection(transportConnection); // does not throw
+
+                    bool done = false;
                     lock (_mutex)
                     {
                         if (_isReadOnly)
                         {
-                            connection.DisposeAsync().AsTask();
-                            return;
+                            done = true;
                         }
-                        _ = _connections[connection] = remoteNetworkAddress;
+                        else
+                        {
+                            _ = _connections[connection] = remoteNetworkAddress;
+                        }
+                    }
+
+                    if (done)
+                    {
+                        await connection.DisposeAsync().ConfigureAwait(false);
+                        ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
+                        return;
                     }
 
                     // Schedule removal after addition. We do this outside the mutex lock otherwise
@@ -244,15 +254,20 @@ public sealed class Server : IAsyncDisposable
 
                 await connection.DisposeAsync().ConfigureAwait(false);
 
-                ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
+                bool removed = false;
 
                 lock (_mutex)
                 {
                     // the _connections collection is read-only when shutting down or disposing.
                     if (!_isReadOnly)
                     {
-                        _ = _connections.Remove(connection);
+                        removed = _connections.Remove(connection);
                     }
+                }
+
+                if (removed)
+                {
+                    ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
                 }
             }
         };
@@ -317,21 +332,35 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
+        bool logConnectionStop = false;
+
         lock (_mutex)
         {
             _isReadOnly = true;
 
-            // Stop accepting new connections by disposing of the listener
-            _listener?.Dispose();
-            _listener = null;
+            if (_listener is not null)
+            {
+                // Stop accepting new connections by disposing of the listener
+                _listener.Dispose();
+                _listener = null;
+                logConnectionStop = true;
+            }
         }
 
         await Task.WhenAll(
             _connections.Select(
                 async (entry) =>
                 {
+                    // Several threads can call DisposeAsync on the same connection; we wait for this DisposeAsync to
+                    // complete.
                     await entry.Key.DisposeAsync().ConfigureAwait(false);
-                    ServerEventSource.Log.ConnectionStop(entry.Key.ServerAddress, entry.Value);
+
+                    if (logConnectionStop)
+                    {
+                        // We only call ConnectionStop when we dispose the listener to avoid double-counting. If the
+                        // listener was never created, _connections is empty.
+                        ServerEventSource.Log.ConnectionStop(entry.Key.ServerAddress, entry.Value);
+                    }
                 })).ConfigureAwait(false);
 
         _ = _shutdownCompleteSource.TrySetResult(null);
