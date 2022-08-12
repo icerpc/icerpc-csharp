@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An server address cache maintains a dictionary of location to server address(es), where the server addresses are held by a
+/// <summary>A server address cache maintains a dictionary of location to server address(es), where the server addresses are held by a
 /// dummy service address. It also keeps track of the insertion time of each entry. It's consumed by
 /// <see cref="LocationResolver"/>.</summary>
 internal interface IServerAddressCache

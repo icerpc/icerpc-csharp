@@ -104,8 +104,7 @@ public sealed record class ServiceAddress
                 if (value.Any(e => e.Protocol != Protocol))
                 {
                     throw new ArgumentException(
-                        @$"the {nameof(AltServerAddresses)
-                        } server addresses must use the service address's protocol {Protocol}",
+                        @$"the {nameof(AltServerAddresses)} server addresses must use the service address's protocol {Protocol}",
                         nameof(value));
                 }
             }
@@ -138,7 +137,7 @@ public sealed record class ServiceAddress
             if (_serverAddress is not null && value.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"cannot set {nameof(Params)} on a service address with an serverAddress");
+                    $"cannot set {nameof(Params)} on a service address with a serverAddress");
             }
 
             _params = value;
@@ -521,8 +520,7 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, "\"<>\\^`{|}"))
         {
             throw new FormatException(
-                @$"invalid fragment '{fragment
-                }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
         }
     }
 
