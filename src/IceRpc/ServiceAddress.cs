@@ -138,7 +138,7 @@ public sealed record class ServiceAddress
             if (_serverAddress is not null && value.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"cannot set {nameof(Params)} on a service address with an serverAddress");
+                    $"cannot set {nameof(Params)} on a service address with a serverAddress");
             }
 
             _params = value;

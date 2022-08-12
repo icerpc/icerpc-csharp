@@ -1,27 +1,25 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An server address finder finds the server address(es) of a location. These server address(es) are carried by a dummy service
-/// address. When this dummy service address is not null, its ServerAddress property is guaranteed to be not null.
-/// Unlike <see cref="ILocationResolver"/>, a server address finder does not provide cache-related parameters and typically
-/// does not maintain a cache.</summary>
+/// <summary>A server address finder finds the server address(es) of a location. These server address(es) are carried
+/// by a dummy service address. When this dummy service address is not null, its ServerAddress property is guaranteed to
+/// be not null. Unlike <see cref="ILocationResolver"/>, a server address finder does not provide cache-related
+/// parameters and typically does not maintain a cache.</summary>
 internal interface IServerAddressFinder
 {
     Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel);
 }
 
-/// <summary>The main implementation of IServerAddressFinder. It uses a locator proxy to "find" the server addresses.</summary>
+/// <summary>The main implementation of IServerAddressFinder. It uses a locator proxy to "find" the server addresses.
+/// </summary>
 internal class LocatorServerAddressFinder : IServerAddressFinder
 {
     private readonly ILocatorProxy _locator;
 
-    internal LocatorServerAddressFinder(ILocatorProxy locator) => _locator = locator;
-
-    async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
+    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
     {
         if (location.IsAdapterId)
         {
@@ -76,44 +74,33 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
             }
         }
     }
+
+    internal LocatorServerAddressFinder(ILocatorProxy locator) => _locator = locator;
 }
 
-/// <summary>A decorator that adds logging to a server address finder.</summary>
+/// <summary>A decorator that adds event source logging to a server address finder.</summary>
 internal class LogServerAddressFinderDecorator : IServerAddressFinder
 {
     private readonly IServerAddressFinder _decoratee;
-    private readonly ILogger _logger;
 
-    internal LogServerAddressFinderDecorator(IServerAddressFinder decoratee, ILogger logger)
+    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
     {
-        _decoratee = decoratee;
-        _logger = logger;
-    }
+        ServiceAddress? serviceAddress = null;
 
-    async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
-    {
         try
         {
-            ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
-
-            if (serviceAddress is not null)
-            {
-                _logger.LogFound(location.Kind, location, serviceAddress);
-            }
-            else
-            {
-                _logger.LogFindFailed(location.Kind, location);
-            }
+            serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
             return serviceAddress;
         }
-        catch
+        finally
         {
-            // We don't log the exception here because we expect another logger further up in chain to log this
+            // We don't log the exception here because we expect another decorator further up in chain to log this
             // exception.
-            _logger.LogFindFailed(location.Kind, location);
-            throw;
+            LocatorEventSource.Log.Find(location, serviceAddress);
         }
     }
+
+    internal LogServerAddressFinderDecorator(IServerAddressFinder decoratee) => _decoratee = decoratee;
 }
 
 /// <summary>A decorator that updates its server address cache after a call to its decoratee (e.g. remote locator). It
@@ -123,13 +110,7 @@ internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
     private readonly IServerAddressFinder _decoratee;
     private readonly IServerAddressCache _serverAddressCache;
 
-    internal CacheUpdateServerAddressFinderDecorator(IServerAddressFinder decoratee, IServerAddressCache serverAddressCache)
-    {
-        _serverAddressCache = serverAddressCache;
-        _decoratee = decoratee;
-    }
-
-    async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
+    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
     {
         ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
 
@@ -143,20 +124,25 @@ internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
         }
         return serviceAddress;
     }
+
+    internal CacheUpdateServerAddressFinderDecorator(
+        IServerAddressFinder decoratee,
+        IServerAddressCache serverAddressCache)
+    {
+        _serverAddressCache = serverAddressCache;
+        _decoratee = decoratee;
+    }
 }
 
-/// <summary>A decorator that detects multiple concurrent identical FindAsync and "coalesce" them to avoid
-/// overloading the decoratee (e.g. the remote locator).</summary>
+/// <summary>A decorator that detects multiple concurrent identical FindAsync and "coalesce" them to avoid overloading
+/// the decoratee (e.g. the remote locator).</summary>
 internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
 {
     private readonly IServerAddressFinder _decoratee;
     private readonly object _mutex = new();
     private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
 
-    internal CoalesceServerAddressFinderDecorator(IServerAddressFinder decoratee) =>
-        _decoratee = decoratee;
-
-    Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
+    public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
     {
         Task<ServiceAddress?>? task;
 
@@ -196,4 +182,7 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
             }
         }
     }
+
+    internal CoalesceServerAddressFinderDecorator(IServerAddressFinder decoratee) =>
+        _decoratee = decoratee;
 }

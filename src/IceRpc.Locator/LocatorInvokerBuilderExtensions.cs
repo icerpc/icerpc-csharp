@@ -9,12 +9,12 @@ namespace IceRpc.Builder;
 public static class LocatorInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="LocatorInterceptor"/> to the builder. This interceptor relies on the
-    /// <see cref="ILocationResolver"/> service managed by the service provider.</summary>
+    /// <see cref="LocatorLocationResolver"/> service managed by the service provider.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseLocator(this IInvokerBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(ILocationResolver)) is ILocationResolver locationResolver ?
+        builder.ServiceProvider.GetService(typeof(LocatorLocationResolver)) is ILocationResolver locationResolver ?
         builder.Use(next => new LocatorInterceptor(next, locationResolver)) :
         throw new InvalidOperationException(
-            $"could not find service of type {nameof(ILocationResolver)} in service container");
+            $"could not find service of type {nameof(LocatorLocationResolver)} in service container");
 }

@@ -403,7 +403,7 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Verifies that the service address params cannot be set when the service address has an server address.
+    /// <summary>Verifies that the service address params cannot be set when the service address has a server address.
     /// </summary>
     [Test]
     public void Cannot_set_params_on_a_service_address_with_a_server_address()
