@@ -84,7 +84,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    public async Task Not_dispatched_request_gets_connection_closed_on_server_connection_shutdown()
+    public async Task Not_dispatched_twoway_request_gets_connection_closed_on_server_connection_shutdown()
     {
         // Arrange
         HoldMultiplexedServerTransport? serverTransport = null;
@@ -106,13 +106,15 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Act
-        var shutdownTask = sut.Server.ShutdownAsync("");
+        var shutdownTask = sut.Server.ShutdownAsync("server shutdown message");
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
-            Assert.That(async () => await invokeTask2, Throws.InstanceOf<ConnectionClosedException>());
+            ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
+                async () => await invokeTask2);
+            Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -146,13 +148,15 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        var shutdownTask = sut.Server.ShutdownAsync("");
+        var shutdownTask = sut.Server.ShutdownAsync("server shutdown message");
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
-            Assert.That(async () => await invokeTask2, Throws.InstanceOf<ConnectionClosedException>());
+            ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
+                async () => await invokeTask2);
+            Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
