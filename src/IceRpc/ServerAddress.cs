@@ -8,7 +8,7 @@ using System.Text;
 
 namespace IceRpc;
 
-/// <summary>An server address specifies the address of the server-end of an ice or icerpc connection: a server listens
+/// <summary>A server address specifies the address of the server-end of an ice or icerpc connection: a server listens
 /// on a server address and a client establishes a connection to a server address.</summary>
 // The properties of this struct are sorted in URI order.
 [TypeConverter(typeof(ServerAddressTypeConverter))]
@@ -231,7 +231,7 @@ public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
     }
 }
 
-/// <summary>The server address type converter specifies how to convert a string to an serverAddress. It's used by
+/// <summary>The server address type converter specifies how to convert a string to a serverAddress. It's used by
 /// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServerAddress properties.</summary>
 public class ServerAddressTypeConverter : TypeConverter
 {

@@ -4,7 +4,7 @@ using IceRpc.Slice;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An server address finder finds the server address(es) of a location. These server address(es) are carried
+/// <summary>A server address finder finds the server address(es) of a location. These server address(es) are carried
 /// by a dummy service address. When this dummy service address is not null, its ServerAddress property is guaranteed to
 /// be not null. Unlike <see cref="ILocationResolver"/>, a server address finder does not provide cache-related
 /// parameters and typically does not maintain a cache.</summary>

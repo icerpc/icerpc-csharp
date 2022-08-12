@@ -23,7 +23,6 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IMultiplexedClientTransport>(),
                     provider.GetRequiredService<IDuplexClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
@@ -38,7 +37,6 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ConnectionCache(
                     provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IMultiplexedClientTransport>(),
                     provider.GetRequiredService<IDuplexClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
@@ -83,7 +81,6 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton<ResumableClientConnection>(provider =>
                 new ResumableClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IMultiplexedClientTransport>(),
                     provider.GetRequiredService<IDuplexClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ResumableClientConnection>());

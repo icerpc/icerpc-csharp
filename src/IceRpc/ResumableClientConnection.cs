@@ -43,14 +43,11 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a resumable client connection.</summary>
     /// <param name="options">The client connection options.</param>
-    /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
-    /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     public ResumableClientConnection(
         ClientConnectionOptions options,
-        ILoggerFactory? loggerFactory = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
@@ -58,7 +55,6 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         {
             var clientConnection = new ClientConnection(
                 options,
-                loggerFactory,
                 multiplexedClientTransport,
                 duplexClientTransport);
 
