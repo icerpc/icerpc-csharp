@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 
@@ -31,7 +32,7 @@ public sealed class Server : IAsyncDisposable
     /// This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<ProtocolConnection> _connections = new();
+    private readonly Dictionary<ProtocolConnection, EndPoint> _connections = new();
 
     private bool _isReadOnly;
 
@@ -105,11 +106,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-                    new IceProtocolConnection(
-                        duplexConnection,
-                        isServer: true,
-                        observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
-                        options.ConnectionOptions);
+                    new IceProtocolConnection(duplexConnection, isServer: true, options.ConnectionOptions);
             }
             else
             {
@@ -133,10 +130,7 @@ public sealed class Server : IAsyncDisposable
                 return listener;
 
                 ProtocolConnection CreateProtocolConnection(IMultiplexedConnection multiplexedConnection) =>
-                    new IceRpcProtocolConnection(
-                        multiplexedConnection,
-                        observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
-                        options.ConnectionOptions);
+                    new IceRpcProtocolConnection(multiplexedConnection, options.ConnectionOptions);
             }
 
             async Task AcceptAsync<T>(
@@ -146,9 +140,12 @@ public sealed class Server : IAsyncDisposable
                 while (true)
                 {
                     ProtocolConnection connection;
+                    EndPoint remoteNetworkAddress;
                     try
                     {
-                        (T transportConnection, EndPoint _) = await acceptTransportConnection().ConfigureAwait(false);
+                        (T transportConnection, remoteNetworkAddress) =
+                            await acceptTransportConnection().ConfigureAwait(false);
+                        ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
                         connection = createProtocolConnection(transportConnection);
                     }
                     catch
@@ -174,13 +171,22 @@ public sealed class Server : IAsyncDisposable
                             connection.DisposeAsync().AsTask();
                             return;
                         }
-                        _ = _connections.Add(connection);
+                        _ = _connections[connection] = remoteNetworkAddress;
                     }
 
                     // Schedule removal after addition. We do this outside the mutex lock otherwise
                     // await serverConnection.ShutdownAsync could be called within this lock.
-                    connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
-                    connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
+                    connection.OnAbort(exception =>
+                        {
+                            ServerEventSource.Log.ConnectionFailure(
+                                ServerAddress,
+                                remoteNetworkAddress,
+                                exception);
+                            _ = RemoveFromCollectionAsync(connection, graceful: false, remoteNetworkAddress);
+                        });
+
+                    connection.OnShutdown(
+                        message => _ = RemoveFromCollectionAsync(connection, graceful: true, remoteNetworkAddress));
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client and
@@ -188,12 +194,16 @@ public sealed class Server : IAsyncDisposable
                     // Waiting could also cause a security issue if the client doesn't respond to the connection
                     // initialization as we wouldn't be able to accept new connections in the meantime. The call will
                     // eventually timeout if the ConnectTimeout expires.
-                    _ = connection.ConnectAsync(CancellationToken.None);
+
+                    _ = await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
                 }
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(ProtocolConnection connection, bool graceful)
+            async Task RemoveFromCollectionAsync(
+                ProtocolConnection connection,
+                bool graceful,
+                EndPoint remoteNetworkAddress)
             {
                 lock (_mutex)
                 {
@@ -210,12 +220,15 @@ public sealed class Server : IAsyncDisposable
                     {
                         await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                     }
-                    catch
+                    catch (Exception exception)
                     {
+                        ServerEventSource.Log.ConnectionShutdownFailure(ServerAddress, remoteNetworkAddress, exception);
                     }
                 }
 
                 await connection.DisposeAsync().ConfigureAwait(false);
+
+                ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
 
                 lock (_mutex)
                 {
@@ -297,8 +310,13 @@ public sealed class Server : IAsyncDisposable
             _listener = null;
         }
 
-        await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
-            .ConfigureAwait(false);
+        await Task.WhenAll(
+            _connections.Select(
+                async (entry) =>
+                {
+                    await entry.Key.DisposeAsync().ConfigureAwait(false);
+                    ServerEventSource.Log.ConnectionStop(entry.Key.ServerAddress, entry.Value);
+                })).ConfigureAwait(false);
 
         _ = _shutdownCompleteSource.TrySetResult(null);
     }
@@ -342,8 +360,22 @@ public sealed class Server : IAsyncDisposable
                 _listener?.Dispose();
             }
 
-            await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync("server shutdown", cancel)))
-                .ConfigureAwait(false);
+            await Task.WhenAll(
+                _connections.Select(
+                    async (entry) =>
+                    {
+                        try
+                        {
+                            await entry.Key.ShutdownAsync("server shutdown", cancel).ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            ServerEventSource.Log.ConnectionShutdownFailure(
+                                entry.Key.ServerAddress,
+                                entry.Value,
+                                exception);
+                        }
+                    })).ConfigureAwait(false);
         }
         finally
         {

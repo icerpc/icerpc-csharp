@@ -61,9 +61,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
         bool isServer,
-        IProtocolConnectionObserver? observer,
         ConnectionOptions options)
-        : base(observer, options)
+        : base(options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes

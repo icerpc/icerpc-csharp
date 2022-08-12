@@ -111,7 +111,6 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
     public ClientServerIceProtocolConnection(
         IDuplexClientTransport clientTransport,
         IListener<IDuplexConnection> listener,
-        ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
         IOptions<DuplexConnectionOptions> duplexConnectionOptions)
@@ -122,12 +121,10 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
                     duplexConnectionOptions.Value,
                     clientConnectionOptions.Value.ClientAuthenticationOptions),
                 isServer: false,
-                observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceProtocolConnection(
                 (await listener.AcceptAsync()).Connection,
                 isServer: true,
-                observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 serverOptions.Value.ConnectionOptions))
     {
     }
@@ -145,7 +142,6 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
     public ClientServerIceRpcProtocolConnection(
         IMultiplexedClientTransport clientTransport,
         IListener<IMultiplexedConnection> listener,
-        ILogger logger,
         IOptions<ClientConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions,
         IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions)
@@ -155,11 +151,9 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                     listener.ServerAddress,
                     multiplexedConnectionOptions.Value,
                     clientConnectionOptions.Value.ClientAuthenticationOptions),
-                observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                 (await listener.AcceptAsync()).Connection,
-                observer: logger == NullLogger.Instance ? null : new LogProtocolConnectionObserver(logger),
                 serverOptions.Value.ConnectionOptions))
     {
     }

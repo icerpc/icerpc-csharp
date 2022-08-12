@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace IceRpc.Logger.Tests;
@@ -14,7 +15,7 @@ public sealed class LoggerMiddlewareTests
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
         var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };
-        var sut = new LoggerMiddleware(dispatcher, loggerFactory);
+        var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
 
         // Act
         await sut.DispatchAsync(request, default);
@@ -46,7 +47,7 @@ public sealed class LoggerMiddlewareTests
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
         var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };
-        var sut = new LoggerMiddleware(dispatcher, loggerFactory);
+        var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
 
         try
         {

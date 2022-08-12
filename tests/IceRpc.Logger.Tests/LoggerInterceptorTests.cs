@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace IceRpc.Logger.Tests;
@@ -15,7 +16,7 @@ public sealed class LoggerInterceptorTests
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
-        var sut = new LoggerInterceptor(invoker, loggerFactory);
+        var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
         await sut.InvokeAsync(request, default);
 
@@ -44,7 +45,7 @@ public sealed class LoggerInterceptorTests
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
-        var sut = new LoggerInterceptor(invoker, loggerFactory);
+        var sut = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
 
         try
         {
