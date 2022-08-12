@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_util::escape_keyword;
-use slice::code_gen_util::{fix_case, CaseStyle};
 use slice::grammar::Entity;
+use slice::utils::code_gen_util::{fix_case, CaseStyle};
 
 pub trait EntityExt: Entity {
     /// Escapes and returns the definition's identifier, without any scoping.

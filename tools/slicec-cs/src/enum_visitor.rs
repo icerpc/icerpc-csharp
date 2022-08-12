@@ -8,8 +8,8 @@ use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 
-use slice::code_gen_util::{fix_case, CaseStyle};
 use slice::grammar::*;
+use slice::utils::code_gen_util::{fix_case, CaseStyle};
 use slice::visitor::Visitor;
 
 #[derive(Debug)]

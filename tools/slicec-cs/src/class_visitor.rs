@@ -12,8 +12,8 @@ use crate::encoding::encode_data_members;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_gen_util::TypeContext;
 use slice::grammar::{Class, DataMember, Encoding};
+use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
