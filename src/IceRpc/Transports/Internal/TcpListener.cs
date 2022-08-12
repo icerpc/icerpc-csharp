@@ -59,17 +59,19 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
 
-        if (_authenticationOptions is not null)
+        if (_authenticationOptions is not null && _authenticationOptions.ApplicationProtocols is null)
         {
-            // Add the server address protocol to the SSL application protocols (used by TLS ALPN)
-            _authenticationOptions = _authenticationOptions.Clone();
-            _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+            // Set ApplicationProtocols to "ice" or "icerpc" in the common situation where the application does not
+            // specify any application protocol. This way, a connection request that carries an ALPN protocol ID can
+            // only succeed if this protocol ID is a match.
+            _authenticationOptions.ApplicationProtocols = new List<SslApplicationProtocol>
             {
                 new SslApplicationProtocol(serverAddress.Protocol.Name)
             };
         }
 
         var address = new IPEndPoint(ipAddress, serverAddress.Port);
+
         // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
         // dual-mode socket are used in platforms that support them.
         _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
