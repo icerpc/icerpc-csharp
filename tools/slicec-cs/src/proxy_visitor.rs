@@ -11,8 +11,8 @@ use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_gen_util::*;
 use slice::grammar::*;
+use slice::utils::code_gen_util::*;
 use slice::visitor::Visitor;
 
 pub struct ProxyVisitor<'a> {

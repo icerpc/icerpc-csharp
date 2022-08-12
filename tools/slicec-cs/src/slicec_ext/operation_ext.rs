@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
-use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
+use slice::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
     /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.

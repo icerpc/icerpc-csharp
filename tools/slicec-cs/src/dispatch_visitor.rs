@@ -11,8 +11,8 @@ use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
-use slice::code_gen_util::*;
 use slice::grammar::*;
+use slice::utils::code_gen_util::*;
 use slice::visitor::Visitor;
 
 pub struct DispatchVisitor<'a> {

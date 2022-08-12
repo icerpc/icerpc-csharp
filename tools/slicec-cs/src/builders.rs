@@ -4,9 +4,9 @@ use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
-use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
+use slice::utils::code_gen_util::TypeContext;
 use std::collections::HashMap;
 
 pub trait Builder {
@@ -205,7 +205,7 @@ impl CommentBuilder for ContainerBuilder {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FunctionType {
     Declaration,
     BlockBody,

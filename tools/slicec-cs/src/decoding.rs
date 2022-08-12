@@ -4,8 +4,8 @@ use crate::builders::{Builder, FunctionCallBuilder};
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use slice::code_gen_util::*;
 use slice::grammar::*;
+use slice::utils::code_gen_util::*;
 
 pub fn decode_data_members(
     members: &[&DataMember],

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::code_gen_util::TypeContext;
 use slice::grammar::*;
+use slice::utils::code_gen_util::TypeContext;
 
 use crate::builders::{Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
