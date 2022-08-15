@@ -17,23 +17,13 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
 }
 
 pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) -> String {
-    let type_string = data_member.data_type().to_type_string(
-        &data_member.namespace(),
-        TypeContext::DataMember,
-        false,
-    );
+    let type_string = data_member
+        .data_type()
+        .to_type_string(&data_member.namespace(), TypeContext::DataMember, false);
     let mut prelude = CodeBlock::new();
 
-    prelude.writeln(&CommentTag::new(
-        "summary",
-        &doc_comment_message(data_member),
-    ));
-    prelude.writeln(
-        &data_member
-            .custom_attributes()
-            .into_iter()
-            .collect::<CodeBlock>(),
-    );
+    prelude.writeln(&CommentTag::new("summary", &doc_comment_message(data_member)));
+    prelude.writeln(&data_member.custom_attributes().into_iter().collect::<CodeBlock>());
     if let Some(obsolete) = data_member.obsolete_attribute(true) {
         prelude.writeln(&format!("[{}]", obsolete));
     }
@@ -49,10 +39,7 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
     )
 }
 
-pub fn initialize_non_nullable_fields(
-    members: &[&impl Member],
-    field_type: FieldType,
-) -> CodeBlock {
+pub fn initialize_non_nullable_fields(members: &[&impl Member], field_type: FieldType) -> CodeBlock {
     // This helper should only be used for classes and exceptions
     assert!(field_type == FieldType::Class || field_type == FieldType::Exception);
 
@@ -67,11 +54,7 @@ pub fn initialize_non_nullable_fields(
 
         let suppress = match data_type.concrete_type() {
             Types::Class(_) | Types::Sequence(_) | Types::Dictionary(_) => true,
-            Types::Primitive(primitive)
-                if matches!(primitive, Primitive::String | Primitive::AnyClass) =>
-            {
-                true
-            }
+            Types::Primitive(primitive) if matches!(primitive, Primitive::String | Primitive::AnyClass) => true,
             _ => false,
         };
 

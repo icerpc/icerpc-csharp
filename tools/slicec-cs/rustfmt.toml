@@ -10,13 +10,8 @@
 # wrap_comments (https://github.com/rust-lang/rustfmt/issues/3347)
 unstable_features = true
 
-max_width = 100
-array_width = 90
-comment_width = 100
-fn_call_width = 60
-single_line_if_else_max_width = 60
-struct_lit_width = 70
-struct_variant_width = 40
+max_width = 120
+comment_width = 120
 
 format_code_in_doc_comments = true
 format_macro_matchers = true
