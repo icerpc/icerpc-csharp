@@ -5,7 +5,6 @@ using IceRpc.Builder;
 using IceRpc.Builder.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -95,7 +94,6 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton<Server>(provider =>
                 new Server(
                     provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName),
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IMultiplexedServerTransport>(),
                     provider.GetRequiredService<IDuplexServerTransport>()));
 
@@ -150,7 +148,6 @@ public static class IceRpcServiceCollectionExtensions
 
                 return new Server(
                     options,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IMultiplexedServerTransport>(),
                     provider.GetRequiredService<IDuplexServerTransport>());
             });

@@ -3,9 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 
@@ -50,12 +47,10 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections.</param>
     public Server(
         ServerOptions options,
-        ILoggerFactory? loggerFactory = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null,
         IDuplexServerTransport? duplexServerTransport = null)
     {
@@ -76,15 +71,6 @@ public sealed class Server : IAsyncDisposable
                 Transport = _serverAddress.Protocol == Protocol.Ice ?
                     duplexServerTransport.Name : multiplexedServerTransport.Name
             };
-        }
-
-        loggerFactory ??= NullLoggerFactory.Instance;
-        ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
-
-        if (logger != NullLogger.Instance)
-        {
-            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, logger);
-            multiplexedServerTransport = new LogMultiplexedServerTransportDecorator(multiplexedServerTransport, logger);
         }
 
         _listenerFactory = () =>
@@ -279,12 +265,10 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
         ServerAddress serverAddress,
-        SslServerAuthenticationOptions? authenticationOptions = null,
-        ILoggerFactory? loggerFactory = null)
+        SslServerAuthenticationOptions? authenticationOptions = null)
         : this(
             new ServerOptions
             {
@@ -294,8 +278,7 @@ public sealed class Server : IAsyncDisposable
                     Dispatcher = dispatcher,
                 },
                 ServerAddress = serverAddress
-            },
-            loggerFactory)
+            })
     {
     }
 
@@ -304,13 +287,11 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
         Uri serverAddressUri,
-        SslServerAuthenticationOptions? authenticationOptions = null,
-        ILoggerFactory? loggerFactory = null)
-        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions, loggerFactory)
+        SslServerAuthenticationOptions? authenticationOptions = null)
+        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions)
     {
     }
 
