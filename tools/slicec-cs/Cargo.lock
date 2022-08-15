@@ -329,7 +329,7 @@ dependencies = [
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#b362afc73405b0d70b17f7f736247dce116bb85f"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#3d922d3181908778d022bd7e0fdac219482e2dbe"
 dependencies = [
  "convert_case",
  "pest",
