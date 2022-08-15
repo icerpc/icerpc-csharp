@@ -28,16 +28,18 @@ internal static class IncomingFrameExtensions
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
-        return frame.Payload.TryReadSegment(
-            encoding,
-            feature.MaxSegmentSize,
-            out ReadResult readResult) ? new(DecodeSegment(readResult)) :
+        return frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult) ?
+            new(DecodeSegment(readResult)) :
             PerformDecodeAsync();
 
         // All the logic is in this local function.
         T DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol);
+            // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+            if (readResult.IsCanceled)
+            {
+                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+            }
 
             var decoder = new SliceDecoder(
                 readResult.Buffer,
@@ -72,10 +74,7 @@ internal static class IncomingFrameExtensions
         ISliceFeature feature,
         CancellationToken cancel)
     {
-        if (frame.Payload.TryReadSegment(
-                encoding,
-                feature.MaxSegmentSize,
-                out ReadResult readResult))
+        if (frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult))
         {
             DecodeSegment(readResult);
             return default;
@@ -86,7 +85,11 @@ internal static class IncomingFrameExtensions
         // All the logic is in this local function.
         void DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol);
+            // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+            if (readResult.IsCanceled)
+            {
+                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+            }
 
             if (!readResult.Buffer.IsEmpty)
             {
