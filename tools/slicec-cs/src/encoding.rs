@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
-
 use crate::builders::{Builder, FunctionCallBuilder};
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
+
+use convert_case::{Case, Casing};
+use slice::grammar::*;
+use slice::utils::code_gen_util::*;
 
 pub fn encode_data_members(
     members: &[&DataMember],
@@ -155,7 +156,7 @@ fn encode_type(
                     "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
                     encoder_extensions_class =
                         enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
-                    name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
+                    name = enum_ref.identifier().to_case(Case::Pascal),
                     param = value,
                     encoder_param = encoder_param
                 ),
@@ -477,7 +478,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
                 encoder_extensions_class = enum_ref.escape_scoped_identifier_with_suffix(
                     "SliceEncoderExtensions",
                     namespace),
-                name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
+                name = enum_ref.identifier().to_case(Case::Pascal),
                 value = value
             )
         }

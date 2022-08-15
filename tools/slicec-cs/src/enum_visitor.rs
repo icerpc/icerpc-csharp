@@ -6,8 +6,8 @@ use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 
+use convert_case::{Case, Casing};
 use slice::grammar::*;
-use slice::utils::code_gen_util::{fix_case, CaseStyle};
 use slice::visitor::Visitor;
 
 #[derive(Debug)]
@@ -61,8 +61,8 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         &format!("{} static class", access),
         &format!(
             "{}{}Extensions",
-            fix_case(enum_def.identifier(), CaseStyle::Pascal),
-            fix_case(&cs_type, CaseStyle::Pascal),
+            enum_def.identifier().to_case(Case::Pascal),
+            &cs_type.to_case(Case::Pascal),
         ),
     );
 
@@ -174,10 +174,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
-        &format!(
-            "{}SliceEncoderExtensions",
-            fix_case(enum_def.identifier(), CaseStyle::Pascal),
-        ),
+        &format!("{}SliceEncoderExtensions", enum_def.identifier().to_case(Case::Pascal)),
     );
 
     builder.add_comment(
@@ -218,10 +215,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
-        &format!(
-            "{}SliceDecoderExtensions",
-            fix_case(enum_def.identifier(), CaseStyle::Pascal),
-        ),
+        &format!("{}SliceDecoderExtensions", enum_def.identifier().to_case(Case::Pascal)),
     );
 
     builder.add_comment(
@@ -234,8 +228,8 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",
-        fix_case(enum_def.identifier(), CaseStyle::Pascal),
-        fix_case(&cs_type, CaseStyle::Pascal),
+        enum_def.identifier().to_case(Case::Pascal),
+        &cs_type.to_case(Case::Pascal)
     );
 
     // Enum decoding

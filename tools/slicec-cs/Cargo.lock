@@ -343,6 +343,7 @@ name = "slicec-cs"
 version = "0.1.0"
 dependencies = [
  "blake2",
+ "convert_case",
  "regex",
  "slicec",
  "structopt",
