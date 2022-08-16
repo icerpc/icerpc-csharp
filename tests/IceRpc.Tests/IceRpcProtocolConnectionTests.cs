@@ -2,14 +2,14 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Net.Security;
-using System.Net;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Net;
+using System.Net.Security;
 
 namespace IceRpc.Tests;
 
@@ -106,7 +106,7 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Act
-        var shutdownTask = sut.Server.ShutdownAsync("server shutdown message");
+        _ = sut.Server.ShutdownAsync("server shutdown message");
 
         // Assert
         Assert.Multiple(() =>
@@ -148,7 +148,7 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        var shutdownTask = sut.Server.ShutdownAsync("server shutdown message");
+        _ = sut.Server.ShutdownAsync("server shutdown message");
 
         // Assert
         Assert.Multiple(() =>
