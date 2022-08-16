@@ -185,7 +185,8 @@ public class ConnectionTests
             Throws.Nothing);
     }
 
-    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address.</summary>
+    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address or the protocols don't
+    /// match.</summary>
     [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
@@ -193,6 +194,8 @@ public class ConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
+    [TestCase("icerpc://foo.com", "ice:/path")]
+    [TestCase("ice://foo.com", "icerpc:/path")]
     public async Task InvokeAsync_fails_without_a_compatible_server_address(
         ServerAddress serverAddress,
         ServiceAddress serviceAddress)
@@ -207,9 +210,11 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
+    public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocolString)
     {
         // Arrange
+        var protocol = Protocol.FromString(protocolString);
+
         IServiceCollection services = new ServiceCollection();
 
         services
@@ -221,9 +226,7 @@ public class ConnectionTests
             .Configure(options => options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         await using ServiceProvider provider = services
-            .AddTcpTest(
-                new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
-                Protocol.FromString(protocol))
+            .AddTcpTest(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))), protocol)
             .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
@@ -240,7 +243,7 @@ public class ConnectionTests
 
         // Act/Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)), default),
             Throws.TypeOf<ConnectionClosedException>());
     }
 
