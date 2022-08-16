@@ -192,7 +192,11 @@ public static class IncomingResponseExtensions
                 feature.MaxSegmentSize,
                 cancel).ConfigureAwait(false);
 
-            readResult.ThrowIfCanceled(response.Protocol);
+            // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
+            if (readResult.IsCanceled)
+            {
+                throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
+            }
 
             if (readResult.Buffer.IsEmpty)
             {

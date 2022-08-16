@@ -28,16 +28,18 @@ internal static class IncomingFrameExtensions
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
-        return frame.Payload.TryReadSegment(
-            encoding,
-            feature.MaxSegmentSize,
-            out ReadResult readResult) ? new(DecodeSegment(readResult)) :
+        return frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult) ?
+            new(DecodeSegment(readResult)) :
             PerformDecodeAsync();
 
         // All the logic is in this local function.
         T DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol);
+            // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+            if (readResult.IsCanceled)
+            {
+                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+            }
 
             var decoder = new SliceDecoder(
                 readResult.Buffer,
@@ -72,10 +74,7 @@ internal static class IncomingFrameExtensions
         ISliceFeature feature,
         CancellationToken cancel)
     {
-        if (frame.Payload.TryReadSegment(
-                encoding,
-                feature.MaxSegmentSize,
-                out ReadResult readResult))
+        if (frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult))
         {
             DecodeSegment(readResult);
             return default;
@@ -86,7 +85,11 @@ internal static class IncomingFrameExtensions
         // All the logic is in this local function.
         void DecodeSegment(ReadResult readResult)
         {
-            readResult.ThrowIfCanceled(frame.Protocol);
+            // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+            if (readResult.IsCanceled)
+            {
+                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+            }
 
             if (!readResult.Buffer.IsEmpty)
             {
@@ -179,7 +182,8 @@ internal static class IncomingFrameExtensions
                 // If the reader of the async enumerable misbehaves, we can be left "hanging" in a paused
                 // streamDecoder.WriteAsync. The fix is to fix the application code: set the cancellation token
                 // with WithCancellation and cancel when the async enumerable reader is done and the iteration is
-                // not over (= streamDecoder writer is not completed).
+                // not over (= streamDecoder writer is not completed). The cancellation of this async enumerable reader
+                // unblocks the streamDecoder.WriteAsync.
                 CancellationToken cancel = CancellationToken.None;
 
                 ReadResult readResult;
@@ -190,8 +194,6 @@ internal static class IncomingFrameExtensions
                         encoding,
                         feature.MaxSegmentSize,
                         cancel).ConfigureAwait(false);
-
-                    readResult.ThrowIfCanceled(protocol);
 
                     if (!readResult.Buffer.IsEmpty)
                     {
@@ -209,7 +211,9 @@ internal static class IncomingFrameExtensions
                     break; // done
                 }
 
-                if (streamReaderCompleted || readResult.IsCompleted)
+                // readResult is canceled when the application cancels the async enumerable using WithCancellation; in
+                // this case, we just want to exit and not report any exception.
+                if (streamReaderCompleted || readResult.IsCanceled || readResult.IsCompleted)
                 {
                     streamDecoder.CompleteWriter();
                     await payload.CompleteAsync().ConfigureAwait(false);
@@ -293,7 +297,8 @@ internal static class IncomingFrameExtensions
                 // If the reader of the async enumerable misbehaves, we can be left "hanging" in a paused
                 // streamDecoder.WriteAsync. The fix is to fix the application code: set the cancellation token
                 // with WithCancellation and cancel when the async enumerable reader is done and the iteration is
-                // not over (= streamDecoder writer is not completed).
+                // not over (= streamDecoder writer is not completed). The cancellation of this async enumerable reader
+                // unblocks the streamDecoder.WriteAsync.
                 CancellationToken cancel = CancellationToken.None;
 
                 ReadResult readResult;
@@ -302,7 +307,6 @@ internal static class IncomingFrameExtensions
                 try
                 {
                     readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
-                    readResult.ThrowIfCanceled(protocol);
                 }
                 catch (Exception ex)
                 {
@@ -311,29 +315,34 @@ internal static class IncomingFrameExtensions
                     break; // done
                 }
 
-                if (readResult.Buffer.Length < elementSize)
+                if (!readResult.IsCanceled)
                 {
-                    payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                }
-                else
-                {
-                    try
+                    if (readResult.Buffer.Length < elementSize)
                     {
-                        long remaining = readResult.Buffer.Length % elementSize;
-                        var buffer = readResult.Buffer.Slice(0, readResult.Buffer.Length - remaining);
-                        streamReaderCompleted =
-                            await streamDecoder.WriteAsync(buffer, cancel).ConfigureAwait(false);
-                        payload.AdvanceTo(buffer.End);
+                        payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        streamDecoder.CompleteWriter();
-                        await payload.CompleteAsync(ex).ConfigureAwait(false);
-                        break;
+                        try
+                        {
+                            long remaining = readResult.Buffer.Length % elementSize;
+                            var buffer = readResult.Buffer.Slice(0, readResult.Buffer.Length - remaining);
+                            streamReaderCompleted =
+                                await streamDecoder.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                            payload.AdvanceTo(buffer.End);
+                        }
+                        catch (Exception ex)
+                        {
+                            streamDecoder.CompleteWriter();
+                            await payload.CompleteAsync(ex).ConfigureAwait(false);
+                            break;
+                        }
                     }
                 }
 
-                if (streamReaderCompleted || readResult.IsCompleted)
+                // readResult is canceled when the application cancels the async enumerable using WithCancellation; in
+                // this case, we just want to exit and not report any exception.
+                if (streamReaderCompleted || readResult.IsCanceled || readResult.IsCompleted)
                 {
                     streamDecoder.CompleteWriter();
                     await payload.CompleteAsync().ConfigureAwait(false);
