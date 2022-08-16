@@ -6,18 +6,15 @@ namespace IceRpc.Retry.Internal;
 
 internal static partial class RetryInterceptorLoggerExtensions
 {
-    [LoggerMessage(
-        EventId = (int)RetryInterceptorEventId.RetryRequest,
-        EventName = nameof(RetryInterceptorEventId.RetryRequest),
-        Level = LogLevel.Information,
-        Message = "retrying request because of retryable exception (Path={Path}, Operation={Operation}, " +
-                  "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]
-    internal static partial void LogRetryRequest(
-        this ILogger logger,
-        string path,
-        string operation,
-        RetryPolicy retryPolicy,
+    private static readonly Func<ILogger, int, int, RetryPolicy, IDisposable> _retryScope =
+        LoggerMessage.DefineScope<int, int, RetryPolicy>(
+            "Retry (Attempt = {Attempt}, MaxAttempts = {MaxAttempts}, RetryPolicy = {RetryPolicy})");
+
+    internal static IDisposable RetryScope(
+        this ILogger
+        logger,
         int attempt,
         int maxAttempts,
-        Exception? ex);
+        RetryPolicy retryPolicy) =>
+        _retryScope(logger, attempt, maxAttempts, retryPolicy);
 }
