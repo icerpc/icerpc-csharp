@@ -10,22 +10,25 @@ Firt start the Zipkin service as documented in the Zipkin quick start guide:
 - https://zipkin.io/pages/quickstart.html
 
 In a separate window start the CRM Server program:
+
 ```
-dotnet run --project CRMServer/CRMServer.csproj
+dotnet run --project CRMServer/CrmServer.csproj
 ```
 
 In a separate window start the Hello Server program:
+
 ```
 dotnet run --project HelloServer/HelloServer.csproj
 ```
 
 In a separate window, start the Client program:
+
 ```
 dotnet run --project Client/Client.csproj
 ```
 
 The trace information should now be available in the Zipkin local service:
 
- - http://localhost:9411/zipkin
+- http://localhost:9411/zipkin
 
 ![Zipkin](./zipkin.png)
