@@ -614,19 +614,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                if (readResult.IsCanceled)
+                if (readResult.Buffer.IsEmpty && !readResult.IsCompleted)
                 {
-                    Debug.Assert(readResult.Buffer.IsEmpty);
+                    Debug.Assert(readResult.IsCanceled);
 
                     // If the peer's input pipe reader was completed with an exception, this will throw this exception.
                     flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
-
-                    if (!flushResult.IsCompleted)
-                    {
-                        throw new InvalidOperationException(
-                            "unexpected CancelPendingRead on payload or payload stream");
-                    }
-                    // else, the peer's input pipe reader completed without an exception.
                 }
                 else
                 {
@@ -641,6 +634,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         reader.AdvanceTo(readResult.Buffer.End);
                     }
+                }
+
+                // We only expect CancelPendingRead from CancelPendingReadOnWritesClosedAsync below.
+                // When CancelPendingReadOnWritesClosedAsync is called, FlushAsync/WriteAsync either throws an exception
+                // or returns a flushResult with IsCompleted set to true.
+                if (readResult.IsCanceled && !flushResult.IsCompleted)
+                {
+                    throw new InvalidOperationException(
+                        "unexpected call to CancelPendingRead on payload or payload stream");
                 }
 
                 if (readResult.IsCompleted)
