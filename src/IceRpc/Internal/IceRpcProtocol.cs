@@ -52,8 +52,6 @@ internal sealed class IceRpcProtocol : Protocol
 
                 IceRpcProtocolStreamException streamException => (ulong)streamException.ErrorCode,
 
-                OperationCanceledException => (ulong)IceRpcStreamErrorCode.OperationCanceled,
-
                 InvalidDataException => (ulong)IceRpcStreamErrorCode.InvalidData,
 
                 _ => (ulong)IceRpcStreamErrorCode.Unspecified
