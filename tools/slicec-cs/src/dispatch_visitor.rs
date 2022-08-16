@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
-};
+use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
 use crate::cs_util::*;
@@ -24,8 +22,7 @@ impl Visitor for DispatchVisitor<'_> {
         let bases = interface_def.base_interfaces();
         let interface_name = interface_def.interface_name();
         let access = interface_def.access_modifier();
-        let mut interface_builder =
-            ContainerBuilder::new(&format!("{} partial interface", access), &interface_name);
+        let mut interface_builder = ContainerBuilder::new(&format!("{} partial interface", access), &interface_name);
 
         let summary_comment = format!(
             r#"Interface used to implement services for Slice interface {}. <seealso cref="{}"/>.
@@ -134,12 +131,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         );
 
         builder.add_parameter("IceRpc.IncomingRequest", "request", None, None);
-        builder.add_parameter(
-            "global::System.Threading.CancellationToken",
-            "cancel",
-            None,
-            None,
-        );
+        builder.add_parameter("global::System.Threading.CancellationToken", "cancel", None, None);
         builder.set_body(request_decode_body(operation));
 
         class_builder.add_block(builder.build());
@@ -192,10 +184,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder
             .add_comment(
                 "summary",
-                &format!(
-                    "Creates a response payload for operation {}.",
-                    &operation_name
-                ),
+                &format!("Creates a response payload for operation {}.", &operation_name),
             )
             .add_comment("returns", "A new response payload.");
 
@@ -252,14 +241,8 @@ await request.DecodeEmptyArgsAsync({encoding}, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
-                decode_operation_stream = decode_operation_stream(
-                    stream_member,
-                    namespace,
-                    encoding,
-                    true,
-                    false,
-                    operation.encoding
-                )
+                decode_operation_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, true, false, operation.encoding)
             );
         } else {
             writeln!(
@@ -277,14 +260,8 @@ return {args_and_stream};",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
                 encoding = encoding,
                 decode_func = request_decode_func(operation).indent(),
-                decode_request_stream = decode_operation_stream(
-                    stream_member,
-                    namespace,
-                    encoding,
-                    true,
-                    true,
-                    operation.encoding
-                ),
+                decode_request_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, true, true, operation.encoding),
                 args_and_stream = operation.parameters().to_argument_tuple("sliceP_")
             );
         }
@@ -312,9 +289,8 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
     let parameters = operation.nonstreamed_parameters();
     assert!(!parameters.is_empty());
 
-    let use_default_decode_func = parameters.len() == 1
-        && get_bit_sequence_size(&parameters) == 0
-        && parameters.first().unwrap().tag.is_none();
+    let use_default_decode_func =
+        parameters.len() == 1 && get_bit_sequence_size(&parameters) == 0 && parameters.first().unwrap().tag.is_none();
 
     // TODO: simplify code for single stream param
 
@@ -476,10 +452,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
         );
 
         if operation.return_type.is_empty() {
-            writeln!(
-                dispatch_and_return,
-                "return new IceRpc.OutgoingResponse(request);"
-            )
+            writeln!(dispatch_and_return, "return new IceRpc.OutgoingResponse(request);")
         } else {
             writeln!(
                 dispatch_and_return,
@@ -555,16 +528,11 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
             let stream_arg = if return_values.len() == 1 {
                 "returnValue".to_owned()
             } else {
-                format!(
-                    "returnValue.{}",
-                    &stream_return.field_name(FieldType::NonMangled)
-                )
+                format!("returnValue.{}", &stream_return.field_name(FieldType::NonMangled))
             };
 
             match stream_type.concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
-                    stream_arg.into()
-                }
+                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => stream_arg.into(),
                 _ => format!(
                     "\
 {encoding}.CreatePayloadStream(
@@ -575,13 +543,8 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                     encoding = encoding,
                     stream_arg = stream_arg,
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
-                    encode_action = encode_action(
-                        stream_type,
-                        TypeContext::Encode,
-                        namespace,
-                        operation.encoding
-                    )
-                    .indent(),
+                    encode_action =
+                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding).indent(),
                     use_segments = !stream_type.is_fixed_size()
                 )
                 .into(),

@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder,
-    FunctionCallBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, *};
@@ -36,10 +35,7 @@ impl Visitor for ProxyVisitor<'_> {
             .collect();
 
         // proxy bases
-        let proxy_bases: Vec<String> = bases
-            .into_iter()
-            .map(|b| b.scoped_proxy_name(&namespace))
-            .collect();
+        let proxy_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
 
         let summary_message = format!(
             r#"The client-side interface for Slice interface {}. <seealso cref="{}"/>.
@@ -60,10 +56,8 @@ impl Visitor for ProxyVisitor<'_> {
                 .build(),
         );
 
-        let mut proxy_impl_builder = ContainerBuilder::new(
-            &format!("{} readonly partial record struct", access),
-            &proxy_impl,
-        );
+        let mut proxy_impl_builder =
+            ContainerBuilder::new(&format!("{} readonly partial record struct", access), &proxy_impl);
 
         proxy_impl_builder.add_bases(&proxy_impl_bases)
             .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, proxy_interface))
@@ -157,7 +151,8 @@ public {proxy_impl}()
 {{
 }}"#,
         proxy_impl = interface_def.proxy_implementation_name(),
-    ).into()
+    )
+    .into()
 }
 
 /// The actual implementation of the proxy operation.
@@ -183,8 +178,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
         FunctionType::ExpressionBody
     };
 
-    let mut builder =
-        FunctionBuilder::new("public", &return_task, &async_operation_name, body_type);
+    let mut builder = FunctionBuilder::new("public", &return_task, &async_operation_name, body_type);
     builder.set_inherit_doc(true);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
@@ -252,13 +246,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
                     .add_argument(stream_parameter_name)
                     .add_argument("this.EncodeOptions")
                     .add_argument(
-                        encode_action(
-                            stream_type,
-                            TypeContext::Encode,
-                            namespace,
-                            operation.encoding,
-                        )
-                        .indent(),
+                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding).indent(),
                     )
                     .add_argument(!stream_type.is_fixed_size())
                     .build(),
@@ -270,8 +258,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
     }
 
     invocation_builder.add_argument_if(void_return && stream_return.is_none(), "_defaultActivator");
-    invocation_builder
-        .add_argument_unless(void_return, format!("Response.{}", async_operation_name));
+    invocation_builder.add_argument_unless(void_return, format!("Response.{}", async_operation_name));
 
     invocation_builder.add_argument(features_parameter);
 
@@ -306,12 +293,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
     operation_params.push(escape_parameter_name(&operation.parameters(), "features"));
     operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
 
-    let mut builder = FunctionBuilder::new(
-        "public",
-        &return_task,
-        &async_name,
-        FunctionType::ExpressionBody,
-    );
+    let mut builder = FunctionBuilder::new("public", &return_task, &async_name, FunctionType::ExpressionBody);
     builder.set_inherit_doc(true);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
@@ -385,10 +367,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment(
             "summary",
-            &format!(
-                "Creates the request payload for operation {}.",
-                operation.identifier()
-            ),
+            &format!("Creates the request payload for operation {}.", operation.identifier()),
         );
 
         for param in &params {
@@ -468,16 +447,17 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             function_type,
         );
 
-        builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
+        builder.add_comment(
+            "summary",
+            &format!(
+                r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#,
+                operation.identifier()
+            ),
+        );
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter("ServiceProxy", "sender", None, None);
-        builder.add_parameter(
-            "global::System.Threading.CancellationToken",
-            "cancel",
-            None,
-            None,
-        );
+        builder.add_parameter("global::System.Threading.CancellationToken", "cancel", None, None);
 
         builder.set_body(response_operation_body(operation));
 
@@ -508,14 +488,8 @@ await response.DecodeVoidReturnValueAsync(
 return {decode_operation_stream}
 ",
                 encoding = encoding,
-                decode_operation_stream = decode_operation_stream(
-                    stream_member,
-                    namespace,
-                    encoding,
-                    false,
-                    false,
-                    operation.encoding
-                )
+                decode_operation_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, false, false, operation.encoding)
             );
         } else {
             writeln!(
@@ -536,14 +510,8 @@ return {return_value_and_stream};
                 encoding = encoding,
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 response_decode_func = response_decode_func(operation).indent(),
-                decode_response_stream = decode_operation_stream(
-                    stream_member,
-                    namespace,
-                    encoding,
-                    false,
-                    true,
-                    operation.encoding
-                ),
+                decode_response_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, false, true, operation.encoding),
                 return_value_and_stream = operation.return_members().to_argument_tuple("sliceP_")
             );
         }
@@ -572,15 +540,8 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     let members = operation.nonstreamed_return_members();
     assert!(!members.is_empty());
 
-    if members.len() == 1
-        && get_bit_sequence_size(&members) == 0
-        && members.first().unwrap().tag.is_none()
-    {
-        decode_func(
-            members.first().unwrap().data_type(),
-            namespace,
-            operation.encoding,
-        )
+    if members.len() == 1 && get_bit_sequence_size(&members) == 0 && members.first().unwrap().tag.is_none() {
+        decode_func(members.first().unwrap().data_type(), namespace, operation.encoding)
     } else {
         format!(
             "\

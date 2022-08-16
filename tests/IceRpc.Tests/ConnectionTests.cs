@@ -66,14 +66,7 @@ public class ConnectionTests
     public async Task Disposing_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
+        using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
@@ -86,7 +79,7 @@ public class ConnectionTests
         var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
 
         var invokeTask = connection.InvokeAsync(new OutgoingRequest(serviceAddress));
-        await start.WaitAsync(); // Wait for dispatch to start
+        await dispatcher.DispatchStart; // Wait for dispatch to start
 
         // Act
         await connection.DisposeAsync();
@@ -100,16 +93,7 @@ public class ConnectionTests
     public async Task Disposing_the_server_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        ProtocolConnection? serverConnection = null;
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
+        using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
@@ -123,10 +107,10 @@ public class ConnectionTests
 
         var request = new OutgoingRequest(serviceAddress);
         var invokeTask = connection.InvokeAsync(request);
-        await start.WaitAsync(); // Wait for dispatch to start
+        var serverConnection = (ProtocolConnection)(await dispatcher.DispatchStart)!.Invoker;
 
         // Act
-        await serverConnection!.DisposeAsync();
+        await serverConnection.DisposeAsync();
 
         // Assert
         if (protocol == "ice")
@@ -212,7 +196,9 @@ public class ConnectionTests
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
     [TestCase("icerpc://foo.com", "ice:/path")]
     [TestCase("ice://foo.com", "icerpc:/path")]
-    public async Task InvokeAsync_fails_without_a_compatible_server_address(ServerAddress serverAddress, ServiceAddress serviceAddress)
+    public async Task InvokeAsync_fails_without_a_compatible_server_address(
+        ServerAddress serverAddress,
+        ServiceAddress serviceAddress)
     {
         // Arrange
         await using var connection = new ClientConnection(serverAddress);
@@ -427,16 +413,7 @@ public class ConnectionTests
         [Values] bool closeClientSide)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        ProtocolConnection? serverConnection = null;
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
-            start.Release();
-            await hold.WaitAsync(CancellationToken.None);
-            return new OutgoingResponse(request);
-        });
+        using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
@@ -447,17 +424,17 @@ public class ConnectionTests
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = proxy.IcePingAsync();
-        await start.WaitAsync();
+        var serverConnection = (ProtocolConnection)(await dispatcher.DispatchStart)!.Invoker;
 
         // Act
         Task shutdownTask = closeClientSide ?
             clientConnection.ShutdownAsync(default) :
-            serverConnection!.ShutdownAsync("", default);
+            serverConnection.ShutdownAsync("", default);
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(hold.Release(), Is.EqualTo(0));
+            Assert.That(dispatcher.ReleaseDispatch(), Is.EqualTo(0));
             Assert.That(async () => await shutdownTask, Throws.Nothing);
             Assert.That(async () => await pingTask, Throws.Nothing);
         });
@@ -480,27 +457,7 @@ public class ConnectionTests
         [Values(true, false)] bool closeClientSide)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        ProtocolConnection? serverConnection = null;
-        using var shutdownCancellationSource = new CancellationTokenSource();
-        var dispatchCompletionSource = new TaskCompletionSource();
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            try
-            {
-                serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
-                start.Release();
-                await hold.WaitAsync(cancel);
-                return new OutgoingResponse(request);
-            }
-            catch (OperationCanceledException)
-            {
-                dispatchCompletionSource.SetResult();
-                throw;
-            }
-        });
+        using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
@@ -511,8 +468,8 @@ public class ConnectionTests
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = proxy.IcePingAsync();
-        await start.WaitAsync();
-        Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection!.ShutdownAsync("");
+        var serverConnection = (ProtocolConnection)(await dispatcher.DispatchStart)!.Invoker;
+        Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection.ShutdownAsync("");
 
         // Act
         if (closeClientSide)
@@ -521,14 +478,14 @@ public class ConnectionTests
         }
         else
         {
-            await serverConnection!.DisposeAsync();
+            await serverConnection.DisposeAsync();
         }
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(async () => await shutdownTask, Throws.Nothing);
-            Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
+            Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
             if (closeClientSide)
             {
                 Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionAbortedException>());
@@ -575,20 +532,9 @@ public class ConnectionTests
         [Values] bool closeClientSide)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        ProtocolConnection? serverConnection = null;
-        IDispatcher dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            serverConnection = (ProtocolConnection)request.ConnectionContext.Invoker;
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
+        using var dispatcher = new TestDispatcher();
 
         IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
-
         services
             .AddOptions<ClientConnectionOptions>()
             .Configure(
@@ -608,7 +554,7 @@ public class ConnectionTests
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = new ServiceProxy(clientConnection, new Uri($"{protocol}:/path"));
         var pingTask = proxy.IcePingAsync();
-        await start.WaitAsync();
+        var serverConnection = (ProtocolConnection)(await dispatcher.DispatchStart).Invoker;
 
         // Act
         Task shutdownTask;
@@ -618,7 +564,7 @@ public class ConnectionTests
         }
         else
         {
-            shutdownTask = serverConnection!.ShutdownAsync("");
+            shutdownTask = serverConnection.ShutdownAsync("");
         }
 
         // Assert
@@ -637,6 +583,5 @@ public class ConnectionTests
                 exception,
                 Is.InstanceOf<ConnectionLostException>());
         }
-        hold.Release();
     }
 }

@@ -228,12 +228,7 @@ pub struct FunctionBuilder {
 }
 
 impl FunctionBuilder {
-    pub fn new(
-        access: &str,
-        return_type: &str,
-        name: &str,
-        function_type: FunctionType,
-    ) -> FunctionBuilder {
+    pub fn new(access: &str, return_type: &str, name: &str, function_type: FunctionType) -> FunctionBuilder {
         FunctionBuilder {
             parameters: Vec::new(),
             access: String::from(access),
@@ -297,15 +292,12 @@ impl FunctionBuilder {
 
     pub fn add_never_editor_browsable_attribute(&mut self) -> &mut Self {
         self.add_attribute(
-            "global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)");
+            "global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)",
+        );
         self
     }
 
-    pub fn add_operation_parameters(
-        &mut self,
-        operation: &Operation,
-        context: TypeContext,
-    ) -> &mut Self {
+    pub fn add_operation_parameters(&mut self, operation: &Operation, context: TypeContext) -> &mut Self {
         let parameters = operation.parameters();
 
         for parameter in &parameters {
@@ -313,12 +305,7 @@ impl FunctionBuilder {
             // eg. [attribute1] [attribute2]
             let parameter_attributes = parameter.get_attribute("cs::attribute", false).map_or_else(
                 || "".to_owned(),
-                |vec| {
-                    vec.iter()
-                        .map(|a| format!("[{}]", a))
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                },
+                |vec| vec.iter().map(|a| format!("[{}]", a)).collect::<Vec<_>>().join("\n"),
             );
 
             let parameter_type = parameter.to_type_string(&operation.namespace(), context, false);
@@ -326,8 +313,7 @@ impl FunctionBuilder {
 
             // TODO: it would be better if we could use parameter.comment() to get the parameter
             // comment instead
-            let parameter_comment =
-                operation_parameter_doc_comment(operation, parameter.identifier());
+            let parameter_comment = operation_parameter_doc_comment(operation, parameter.identifier());
 
             self.add_parameter(
                 &format!("{}{}", parameter_attributes, &parameter_type),
@@ -460,17 +446,8 @@ impl FunctionCallBuilder {
         }
     }
 
-    pub fn new_with_condition(
-        condition: bool,
-        true_case: &str,
-        false_case: &str,
-        function: &str,
-    ) -> Self {
-        let callable = format!(
-            "{}.{}",
-            if condition { true_case } else { false_case },
-            function
-        );
+    pub fn new_with_condition(condition: bool, true_case: &str, false_case: &str, function: &str) -> Self {
+        let callable = format!("{}.{}", if condition { true_case } else { false_case }, function);
 
         FunctionCallBuilder {
             callable,
@@ -508,12 +485,7 @@ impl FunctionCallBuilder {
         self
     }
 
-    pub fn add_argument_if_else<T>(
-        &mut self,
-        condition: bool,
-        true_case: T,
-        false_case: T,
-    ) -> &mut Self
+    pub fn add_argument_if_else<T>(&mut self, condition: bool, true_case: T, false_case: T) -> &mut Self
     where
         T: ParamDisplay,
     {
@@ -532,12 +504,7 @@ impl FunctionCallBuilder {
 impl Builder for FunctionCallBuilder {
     fn build(&self) -> CodeBlock {
         let mut function_call: CodeBlock = if self.arguments_on_newline {
-            format!(
-                "{}(\n    {})",
-                self.callable,
-                self.arguments.join(",\n    ")
-            )
-            .into()
+            format!("{}(\n    {})", self.callable, self.arguments.join(",\n    ")).into()
         } else {
             format!("{}({})", self.callable, self.arguments.join(", ")).into()
         };
@@ -617,31 +584,29 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
     fn build(&self) -> CodeBlock {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
-            [encoding] => {
-                format!("\
+            [encoding] => format!(
+                "\
 {encoding_check}
 {encode_block}
 ",
-                    encoding_check =
-                        if self.encoding_check {
-                            format!(
-r#"if ({encoding_variable} != {encoding})
+                encoding_check = if self.encoding_check {
+                    format!(
+                        r#"if ({encoding_variable} != {encoding})
 {{
     throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding");
 }}
 "#,
-                                identifier = self.identifier,
-                                encoding_variable = self.encoding_variable,
-                                encoding = encoding.to_cs_encoding(),
-                                encoding_name = encoding,
-                            )
-                        } else {
-                            "".to_owned()
-                        },
-                    encode_block = self.encoding_blocks[encoding](),
-                )
-                .into()
-            }
+                        identifier = self.identifier,
+                        encoding_variable = self.encoding_variable,
+                        encoding = encoding.to_cs_encoding(),
+                        encoding_name = encoding,
+                    )
+                } else {
+                    "".to_owned()
+                },
+                encode_block = self.encoding_blocks[encoding](),
+            )
+            .into(),
             _ => {
                 let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1]();
                 let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2]();

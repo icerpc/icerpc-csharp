@@ -3,8 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
 using System.Net.Security;
 

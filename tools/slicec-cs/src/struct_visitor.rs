@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder,
-    FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -63,10 +62,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
         main_constructor.add_comment(
             "summary",
-            &format!(
-                r#"Constructs a new instance of <see cref="{}"/>."#,
-                &escaped_identifier
-            ),
+            &format!(r#"Constructs a new instance of <see cref="{}"/>."#, &escaped_identifier),
         );
 
         for member in &members {
@@ -101,20 +97,10 @@ impl<'a> Visitor for StructVisitor<'a> {
             false, // No encoding check for structs
         )
         .add_encoding_block(Encoding::Slice1, || {
-            decode_data_members(
-                &members,
-                &namespace,
-                FieldType::NonMangled,
-                Encoding::Slice1,
-            )
+            decode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            decode_data_members(
-                &members,
-                &namespace,
-                FieldType::NonMangled,
-                Encoding::Slice2,
-            )
+            decode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice2)
         })
         .build();
 
@@ -148,28 +134,15 @@ impl<'a> Visitor for StructVisitor<'a> {
             false, // No encoding check for structs
         )
         .add_encoding_block(Encoding::Slice1, || {
-            encode_data_members(
-                &members,
-                &namespace,
-                FieldType::NonMangled,
-                Encoding::Slice1,
-            )
+            encode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            encode_data_members(
-                &members,
-                &namespace,
-                FieldType::NonMangled,
-                Encoding::Slice2,
-            )
+            encode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice2)
         })
         .build();
 
         if !struct_def.is_compact {
-            writeln!(
-                encode_body,
-                "encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);"
-            );
+            writeln!(encode_body, "encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
         }
         builder.add_block(
             FunctionBuilder::new(
@@ -186,26 +159,21 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         // EncodeTrait method
         builder.add_block(
-                FunctionBuilder::new(
-                    "public readonly",
-                    "void",
-                    "EncodeTrait",
-                    FunctionType::BlockBody,
+            FunctionBuilder::new("public readonly", "void", "EncodeTrait", FunctionType::BlockBody)
+                .add_comment(
+                    "summary",
+                    "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
                 )
-                    .add_comment(
-                        "summary",
-                        "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
-                    )
-                    .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-                    .set_body(
-                        r#"
+                .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+                .set_body(
+                    r#"
 encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);"#.into(),
-                    )
-                    .build(),
-            );
+this.Encode(ref encoder);"#
+                        .into(),
+                )
+                .build(),
+        );
 
-        self.generated_code
-            .insert_scoped(struct_def, builder.build());
+        self.generated_code.insert_scoped(struct_def, builder.build());
     }
 }

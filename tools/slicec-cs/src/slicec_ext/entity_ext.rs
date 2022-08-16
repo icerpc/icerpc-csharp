@@ -19,10 +19,8 @@ pub trait EntityExt: Entity {
     /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     /// one.
     fn escape_scoped_identifier(&self, current_namespace: &str) -> String;
-    fn escape_scoped_identifier_with_prefix(&self, suffix: &str, current_namespace: &str)
-        -> String;
-    fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str)
-        -> String;
+    fn escape_scoped_identifier_with_prefix(&self, suffix: &str, current_namespace: &str) -> String;
+    fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str) -> String;
     fn escape_scoped_identifier_with_prefix_and_suffix(
         &self,
         prefix: &str,
@@ -89,18 +87,10 @@ where
     /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     /// one.
     fn escape_scoped_identifier(&self, current_namespace: &str) -> String {
-        scoped_identifier(
-            &self.escape_identifier(),
-            &self.namespace(),
-            current_namespace,
-        )
+        scoped_identifier(&self.escape_identifier(), &self.namespace(), current_namespace)
     }
 
-    fn escape_scoped_identifier_with_prefix(
-        &self,
-        prefix: &str,
-        current_namespace: &str,
-    ) -> String {
+    fn escape_scoped_identifier_with_prefix(&self, prefix: &str, current_namespace: &str) -> String {
         scoped_identifier(
             &self.escape_identifier_with_prefix(prefix),
             &self.namespace(),
@@ -108,11 +98,7 @@ where
         )
     }
 
-    fn escape_scoped_identifier_with_suffix(
-        &self,
-        suffix: &str,
-        current_namespace: &str,
-    ) -> String {
+    fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str) -> String {
         scoped_identifier(
             &self.escape_identifier_with_suffix(suffix),
             &self.namespace(),
@@ -143,10 +129,7 @@ where
         let mut chars = identifier.chars();
 
         // Check if the interface already follows the 'I' prefix convention.
-        if identifier.chars().count() > 2
-            && chars.next().unwrap() == 'I'
-            && chars.next().unwrap().is_uppercase()
-        {
+        if identifier.chars().count() > 2 && chars.next().unwrap() == 'I' && chars.next().unwrap().is_uppercase() {
             identifier.to_owned()
         } else {
             format!("I{}", identifier)
@@ -182,10 +165,7 @@ where
     }
 
     fn type_id_attribute(&self) -> String {
-        format!(
-            r#"IceRpc.Slice.TypeId("::{}")"#,
-            self.module_scoped_identifier()
-        )
+        format!(r#"IceRpc.Slice.TypeId("::{}")"#, self.module_scoped_identifier())
     }
 
     fn access_modifier(&self) -> String {
@@ -217,11 +197,7 @@ fn escape_identifier_impl(identifier: &str) -> String {
     escape_keyword(&fix_case(identifier, CaseStyle::Pascal))
 }
 
-fn scoped_identifier(
-    identifier: &str,
-    identifier_namespace: &str,
-    current_namespace: &str,
-) -> String {
+fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_namespace: &str) -> String {
     if current_namespace == identifier_namespace {
         identifier.to_owned()
     } else {

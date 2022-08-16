@@ -14,8 +14,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     let namespace = operation.namespace();
     let access = operation.access_modifier();
 
-    let mut container_builder =
-        ContainerBuilder::new(&format!("{} readonly record struct", access), &struct_name);
+    let mut container_builder = ContainerBuilder::new(&format!("{} readonly record struct", access), &struct_name);
 
     container_builder.add_comment(
         "summary",
@@ -36,8 +35,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
         .into(),
     );
 
-    let mut constructor_builder =
-        FunctionBuilder::new(&access, "", &struct_name, FunctionType::ExpressionBody);
+    let mut constructor_builder = FunctionBuilder::new(&access, "", &struct_name, FunctionType::ExpressionBody);
 
     constructor_builder.add_comment(
         "summary",
@@ -58,12 +56,7 @@ immediately encodes the return value of operation {operation_name}."#,
                 None,
             );
 
-            constructor_builder.add_parameter(
-                "IceRpc.Features.IFeatureCollection",
-                "features",
-                None,
-                None,
-            );
+            constructor_builder.add_parameter("IceRpc.Features.IFeatureCollection", "features", None, None);
 
             constructor_builder.set_body(
                 format!(
@@ -75,19 +68,13 @@ immediately encodes the return value of operation {operation_name}."#,
         }
         parameters => {
             for parameter in parameters {
-                let parameter_type =
-                    parameter.to_type_string(&namespace, TypeContext::Encode, false);
+                let parameter_type = parameter.to_type_string(&namespace, TypeContext::Encode, false);
                 let parameter_name = parameter.parameter_name();
 
                 constructor_builder.add_parameter(&parameter_type, &parameter_name, None, None);
             }
 
-            constructor_builder.add_parameter(
-                "IceRpc.Features.IFeatureCollection",
-                "features",
-                None,
-                None,
-            );
+            constructor_builder.add_parameter("IceRpc.Features.IFeatureCollection", "features", None, None);
 
             constructor_builder.set_body(
                 format!(

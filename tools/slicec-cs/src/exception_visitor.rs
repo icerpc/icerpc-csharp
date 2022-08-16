@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder,
-    FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -29,14 +28,10 @@ impl Visitor for ExceptionVisitor<'_> {
 
         let members = exception_def.members();
 
-        let has_public_parameter_constructor = exception_def
-            .all_members()
-            .iter()
-            .all(|m| m.is_default_initialized());
+        let has_public_parameter_constructor = exception_def.all_members().iter().all(|m| m.is_default_initialized());
         let access = exception_def.access_modifier();
 
-        let mut exception_class_builder =
-            ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
+        let mut exception_class_builder = ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
 
         exception_class_builder
             .add_comment("summary", &doc_comment_message(exception_def))
@@ -105,12 +100,7 @@ impl Visitor for ExceptionVisitor<'_> {
                             "\
 {}
 decoder.SkipTagged(useTagEndMarker: true);",
-                            decode_data_members(
-                                &members,
-                                namespace,
-                                FieldType::Exception,
-                                Encoding::Slice2,
-                            )
+                            decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2,)
                         )
                         .into()
                     })
@@ -120,42 +110,31 @@ decoder.SkipTagged(useTagEndMarker: true);",
                 .build(),
         );
 
-        if exception_def
-            .supported_encodings()
-            .supports(&Encoding::Slice2)
-        {
+        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
             exception_class_builder.add_block(encode_trait_method());
         }
 
-        if exception_def
-            .supported_encodings()
-            .supports(&Encoding::Slice1)
-        {
+        if exception_def.supported_encodings().supports(&Encoding::Slice1) {
             exception_class_builder.add_block(
-                FunctionBuilder::new(
-                    "protected override",
-                    "void",
-                    "DecodeCore",
-                    FunctionType::BlockBody,
-                )
-                .add_parameter("ref SliceDecoder", "decoder", None, None)
-                .set_body({
-                    let mut code = CodeBlock::new();
-                    code.writeln("decoder.StartSlice();");
-                    code.writeln(&decode_data_members(
-                        &members,
-                        namespace,
-                        FieldType::Exception,
-                        Encoding::Slice1,
-                    ));
-                    code.writeln("decoder.EndSlice();");
+                FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
+                    .add_parameter("ref SliceDecoder", "decoder", None, None)
+                    .set_body({
+                        let mut code = CodeBlock::new();
+                        code.writeln("decoder.StartSlice();");
+                        code.writeln(&decode_data_members(
+                            &members,
+                            namespace,
+                            FieldType::Exception,
+                            Encoding::Slice1,
+                        ));
+                        code.writeln("decoder.EndSlice();");
 
-                    if has_base {
-                        code.writeln("base.DecodeCore(ref decoder);");
-                    }
-                    code
-                })
-                .build(),
+                        if has_base {
+                            code.writeln("base.DecodeCore(ref decoder);");
+                        }
+                        code
+                    })
+                    .build(),
             );
         }
 
@@ -167,26 +146,16 @@ decoder.SkipTagged(useTagEndMarker: true);",
 }
 
 fn encode_trait_method() -> CodeBlock {
-    FunctionBuilder::new(
-        "public override",
-        "void",
-        "EncodeTrait",
-        FunctionType::BlockBody,
-    )
-    .add_parameter(
-        "ref SliceEncoder",
-        "encoder",
-        None,
-        Some("The Slice encoder."),
-    )
-    .set_inherit_doc(true)
-    .set_body(
-        "\
+    FunctionBuilder::new("public override", "void", "EncodeTrait", FunctionType::BlockBody)
+        .add_parameter("ref SliceEncoder", "encoder", None, Some("The Slice encoder."))
+        .set_inherit_doc(true)
+        .set_body(
+            "\
 encoder.EncodeString(SliceTypeId);
 this.Encode(ref encoder);"
-            .into(),
-    )
-    .build()
+                .into(),
+        )
+        .build()
 }
 
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {
@@ -207,8 +176,7 @@ encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-            encode_data_members =
-                &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice1),
+            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice1),
             is_last_slice = !has_base,
             encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
         )
@@ -220,28 +188,19 @@ encoder.EndSlice(lastSlice: {is_last_slice});
 encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
-            encode_data_members =
-                &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice2),
+            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice2),
         )
         .into()
     })
     .build();
 
-    FunctionBuilder::new(
-        "protected override",
-        "void",
-        "EncodeCore",
-        FunctionType::BlockBody,
-    )
-    .add_parameter("ref SliceEncoder", "encoder", None, None)
-    .set_body(body)
-    .build()
+    FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
+        .add_parameter("ref SliceEncoder", "encoder", None, None)
+        .set_body(body)
+        .build()
 }
 
-fn one_shot_constructor(
-    exception_def: &Exception,
-    add_message_and_exception_parameters: bool,
-) -> CodeBlock {
+fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_parameters: bool) -> CodeBlock {
     let access = exception_def.access_modifier();
     let exception_name = exception_def.escape_identifier();
 
@@ -266,15 +225,11 @@ fn one_shot_constructor(
         vec![]
     };
 
-    let mut ctor_builder =
-        FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody);
+    let mut ctor_builder = FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody);
 
     ctor_builder.add_comment(
         "summary",
-        &format!(
-            r#"Constructs a new instance of <see cref="{}"/>."#,
-            &exception_name
-        ),
+        &format!(r#"Constructs a new instance of <see cref="{}"/>."#, &exception_name),
     );
 
     if add_message_and_exception_parameters {

@@ -6,7 +6,9 @@ use slice::parse_result::{ParsedData, ParserResult};
 use slice::visitor::Visitor;
 
 pub(crate) fn validate_cs_attributes(mut parsed_data: ParsedData) -> ParserResult {
-    let mut visitor = CsValidator { diagnostic_reporter: &mut parsed_data.diagnostic_reporter };
+    let mut visitor = CsValidator {
+        diagnostic_reporter: &mut parsed_data.diagnostic_reporter,
+    };
     for slice_file in parsed_data.files.values() {
         slice_file.visit_with(&mut visitor);
     }
@@ -25,16 +27,11 @@ fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
     attributes
         .iter()
         .cloned()
-        .filter(|attribute| {
-            attribute.prefix.is_some() && attribute.prefix.as_ref().unwrap() == "cs"
-        })
+        .filter(|attribute| attribute.prefix.is_some() && attribute.prefix.as_ref().unwrap() == "cs")
         .collect::<Vec<_>>()
 }
 
-fn report_unexpected_attribute(
-    attribute: &Attribute,
-    diagnostic_reporter: &mut DiagnosticReporter,
-) {
+fn report_unexpected_attribute(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     diagnostic_reporter.report(
         LogicErrorKind::UnexpectedAttribute(format!("cs::{}", attribute.directive)),
         Some(&attribute.span),
@@ -45,9 +42,7 @@ fn validate_cs_attribute(attribute: &Attribute, diagnostic_reporter: &mut Diagno
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
         0 => diagnostic_reporter.report(
-            LogicErrorKind::MissingRequiredArgument(
-                r#"cs::attribute("<attribute-value>")"#.to_owned(),
-            ),
+            LogicErrorKind::MissingRequiredArgument(r#"cs::attribute("<attribute-value>")"#.to_owned()),
             Some(&attribute.span),
         ),
         _ => diagnostic_reporter.report(
@@ -103,10 +98,7 @@ fn validate_cs_type(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticR
     }
 }
 
-fn validate_collection_attributes<T: Attributable>(
-    attributable: &T,
-    diagnostic_reporter: &mut DiagnosticReporter,
-) {
+fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_reporter: &mut DiagnosticReporter) {
     for attribute in &cs_attributes(attributable.attributes()) {
         match attribute.directive.as_ref() {
             "generic" => validate_cs_generic(attribute, diagnostic_reporter),
@@ -122,14 +114,9 @@ fn validate_common_attributes(attribute: &Attribute, diagnostic_reporter: &mut D
     }
 }
 
-fn validate_data_type_attributes(
-    data_type: &TypeRef,
-    diagnostic_reporter: &mut DiagnosticReporter,
-) {
+fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut DiagnosticReporter) {
     match data_type.concrete_type() {
-        Types::Sequence(_) | Types::Dictionary(_) => {
-            validate_collection_attributes(data_type, diagnostic_reporter)
-        }
+        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, diagnostic_reporter),
         _ => report_typeref_unexpected_attributes(data_type, diagnostic_reporter),
     }
 }
@@ -151,23 +138,17 @@ impl Visitor for CsValidator<'_> {
                     match attribute.arguments.len() {
                         1 => (), // Expected 1 argument
                         0 => self.diagnostic_reporter.report(
-                            LogicErrorKind::MissingRequiredArgument(
-                                r#"cs::namespace("<namespace>")"#.to_owned(),
-                            ),
+                            LogicErrorKind::MissingRequiredArgument(r#"cs::namespace("<namespace>")"#.to_owned()),
                             Some(&attribute.span),
                         ),
                         _ => self.diagnostic_reporter.report(
-                            LogicErrorKind::TooManyArguments(
-                                r#"cs::namespace("<namespace>")"#.to_owned(),
-                            ),
+                            LogicErrorKind::TooManyArguments(r#"cs::namespace("<namespace>")"#.to_owned()),
                             Some(&attribute.span),
                         ),
                     }
                     if !module_def.is_top_level() {
                         self.diagnostic_reporter.report(
-                            LogicErrorKind::AttributeOnlyValidForTopLevelModules(
-                                "cs::namespace".to_owned(),
-                            ),
+                            LogicErrorKind::AttributeOnlyValidForTopLevelModules("cs::namespace".to_owned()),
                             Some(&attribute.span),
                         );
                     }

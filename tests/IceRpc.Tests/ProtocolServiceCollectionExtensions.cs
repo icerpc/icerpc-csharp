@@ -3,11 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net;
 
@@ -28,8 +24,6 @@ public static class ProtocolServiceCollectionExtensions
                 options.ServerAddress = new ServerAddress(protocol) { Host = "colochost" };
                 options.ConnectionOptions.Dispatcher = dispatcher ?? ServiceNotFoundDispatcher.Instance;
             });
-
-        services.TryAddSingleton<ILogger>(NullLogger.Instance);
 
         services.AddSingleton<IMultiplexedServerTransport>(
             provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()));
@@ -172,19 +166,12 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
 
     public DuplexListenerDecorator(
         IDuplexServerTransport serverTransport,
-        ILogger logger,
         IOptions<ServerOptions> serverOptions,
-        IOptions<DuplexConnectionOptions> duplexConnectionOptions)
-    {
+        IOptions<DuplexConnectionOptions> duplexConnectionOptions) =>
         _listener = serverTransport.Listen(
             serverOptions.Value.ServerAddress,
             duplexConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
-        if (logger != NullLogger.Instance)
-        {
-            _listener = new LogListenerDecorator<IDuplexConnection>(_listener, "Duplex", logger);
-        }
-    }
 
     public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
 
@@ -203,19 +190,12 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
 
     public MultiplexedListenerDecorator(
         IMultiplexedServerTransport serverTransport,
-        ILogger logger,
         IOptions<ServerOptions> serverOptions,
-        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions)
-    {
+        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions) =>
         _listener = serverTransport.Listen(
             serverOptions.Value.ServerAddress,
             multiplexedConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
-        if (logger != NullLogger.Instance)
-        {
-            _listener = new LogListenerDecorator<IMultiplexedConnection>(_listener, "Multiplexed", logger);
-        }
-    }
 
     public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() =>
         _listener.AcceptAsync();
