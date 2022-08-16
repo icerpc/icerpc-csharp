@@ -179,16 +179,7 @@ public sealed class ProtocolConnectionTests
     public async Task Disposing_server_connection_cancels_dispatches(Protocol protocol)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-
-        });
+        using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
@@ -197,7 +188,7 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
         var request = new OutgoingRequest(new ServiceAddress(protocol));
         var invokeTask = sut.Client.InvokeAsync(request);
-        await start.WaitAsync(); // Wait for the dispatch to start
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
         await sut.Server.DisposeAsync();
@@ -217,7 +208,6 @@ public sealed class ProtocolConnectionTests
         {
             Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
         }
-        hold.Release();
     }
 
     /// <summary>Verifies that disposing the client connection aborts pending invocations, the invocations will fail
@@ -226,30 +216,21 @@ public sealed class ProtocolConnectionTests
     public async Task Disposing_client_connection_aborts_pending_invocations(Protocol protocol)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
+        using var dispatcher = new TestDispatcher();
 
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
-        await start.WaitAsync(); // Wait for the dispatch to start
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
         await sut.Client.DisposeAsync();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
-
-        hold.Release();
     }
 
     /// <summary>Ensures that the sending a request after shutdown fails.</summary>
@@ -543,55 +524,13 @@ public sealed class ProtocolConnectionTests
         Assert.That(receivedPayload, Is.EqualTo(expectedPayload));
     }
 
-    /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
-    /// allow pending dispatches to finish.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Shutdown_let_pending_dispatches_complete(Protocol protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        var shutdownTask = sut.Server.ShutdownAsync("");
-
-        // Assert
-        hold.Release();
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await invokeTask, Throws.Nothing);
-            Assert.That(async () => await shutdownTask, Throws.Nothing);
-        });
-    }
-
-    /// <summary>Verifies that the connection shutdown waits for invocations to finish.</summary>
+    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to finish.</summary>
     [Test]
-    public async Task Shutdown_waits_for_pending_invocations_to_finish()
+    public async Task Shutdown_waits_for_pending_invocation_and_dispatch_to_finish(
+        [Values(false, true)] bool closeClientSide)
     {
         // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
+        using var dispatcher = new TestDispatcher();
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
@@ -599,13 +538,11 @@ public sealed class ProtocolConnectionTests
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
-
-        await start.WaitAsync(); // Wait for the dispatch to start
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        var shutdownTask = sut.Client.ShutdownAsync("");
+        var shutdownTask = (closeClientSide? sut.Client : sut.Server).ShutdownAsync("");
 
         // Assert
         Assert.Multiple(() =>
@@ -613,7 +550,7 @@ public sealed class ProtocolConnectionTests
             Assert.That(invokeTask.IsCompleted, Is.False);
             Assert.That(shutdownTask.IsCompleted, Is.False);
         });
-        hold.Release();
+        dispatcher.ReleaseDispatch();
         Assert.Multiple(() =>
         {
             Assert.That(async () => await invokeTask, Throws.Nothing);
