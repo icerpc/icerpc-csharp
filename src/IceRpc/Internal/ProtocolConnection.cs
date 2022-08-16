@@ -89,6 +89,12 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
+        if (request.Protocol != ServerAddress.Protocol)
+        {
+            throw new InvalidOperationException(
+                $"cannot send {request.Protocol} request on {ServerAddress.Protocol} connection");
+        }
+
         if (_shutdownTask is not null)
         {
             throw new ConnectionClosedException(

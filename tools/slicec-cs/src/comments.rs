@@ -23,12 +23,7 @@ impl CommentTag {
         }
     }
 
-    pub fn with_tag_attribute(
-        tag: &str,
-        attribute_name: &str,
-        attribute_value: &str,
-        content: &str,
-    ) -> Self {
+    pub fn with_tag_attribute(tag: &str, attribute_name: &str, attribute_value: &str, content: &str) -> Self {
         Self {
             tag: tag.to_owned(),
             content: content.to_owned(),
@@ -55,10 +50,7 @@ impl fmt::Display for CommentTag {
             "/// <{tag}{attribute}>{content}</{tag}>",
             tag = self.tag,
             attribute = attribute,
-            content = self
-                .content
-                .trim_matches(char::is_whitespace)
-                .replace('\n', "\n/// ")
+            content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// ")
         )
     }
 }
@@ -83,9 +75,7 @@ impl CsharpComment {
         // TODO: ${see} should actually be replaced by the real Csharp identifier (see
         // csharpIdentifier in C++)
         let re: regex::Regex = Regex::new(r"\{@see\s+(?P<see>\w+)\s?\}").unwrap();
-        comment.overview = re
-            .replace_all(&comment.overview, r#"<see cref="${see}"/>"#)
-            .to_string();
+        comment.overview = re.replace_all(&comment.overview, r#"<see cref="${see}"/>"#).to_string();
 
         CsharpComment(comment)
     }
@@ -135,10 +125,7 @@ pub fn doc_comment_message(entity: &dyn Commentable) -> String {
 
 // TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`
 // for the operation param
-pub fn operation_parameter_doc_comment<'a>(
-    operation: &'a Operation,
-    parameter_name: &str,
-) -> Option<&'a str> {
+pub fn operation_parameter_doc_comment<'a>(operation: &'a Operation, parameter_name: &str) -> Option<&'a str> {
     operation.comment().and_then(|comment| {
         comment
             .params
