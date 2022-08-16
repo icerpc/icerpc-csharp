@@ -606,66 +606,85 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             bool endStream,
             CancellationToken cancel)
         {
-            // If the peer is no longer interested to receive the payload, cancel the reading of the payload.
-            _ = CancelPendingReadOnWritesClosedAsync();
+            var readsCompleteSource = new TaskCompletionSource();
+
+            // If the peer is no longer interested to receive the payload, call reader.CancelPendingRead to unblock
+            // ReadAsync.
+            Task cancelPendingReadTask = CancelPendingReadOnWritesClosedAsync(readsCompleteSource.Task);
 
             FlushResult flushResult;
-            do
+
+            try
             {
-                ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                if (readResult.Buffer.IsEmpty && !readResult.IsCompleted)
+                ReadResult readResult;
+                do
                 {
-                    Debug.Assert(readResult.IsCanceled);
+                    readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                    // If the peer's input pipe reader was completed with an exception, this will throw this exception.
-                    flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    try
+                    if (readResult.IsCompleted)
                     {
-                        flushResult = await writer.WriteAsync(
-                            readResult.Buffer,
-                            readResult.IsCompleted && endStream,
-                            cancel).ConfigureAwait(false);
+                        // When we're done reading, we don't want a call to CancelPendingRead. This is essential for
+                        // the retry interceptor which uses the same reader over and over.
+                        readsCompleteSource.SetResult();
                     }
-                    finally
+
+                    if (readResult.Buffer.IsEmpty && !readResult.IsCompleted)
                     {
-                        reader.AdvanceTo(readResult.Buffer.End);
+                        Debug.Assert(readResult.IsCanceled);
+
+                        // If the peer's input pipe reader was completed with an exception, this will throw this
+                        // exception.
+                        flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            flushResult = await writer.WriteAsync(
+                                readResult.Buffer,
+                                readResult.IsCompleted && endStream,
+                                cancel).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            reader.AdvanceTo(readResult.Buffer.End);
+                        }
+                    }
+
+                    // We only expect CancelPendingRead from CancelPendingReadOnWritesClosedAsync below.
+                    // When CancelPendingReadOnWritesClosedAsync is called, FlushAsync/WriteAsync either throws an
+                    // exception or returns a flushResult with IsCompleted set to true.
+                    if (readResult.IsCanceled && !flushResult.IsCompleted)
+                    {
+                        throw new InvalidOperationException(
+                            "unexpected call to CancelPendingRead on payload or payload stream");
                     }
                 }
-
-                // We only expect CancelPendingRead from CancelPendingReadOnWritesClosedAsync below.
-                // When CancelPendingReadOnWritesClosedAsync is called, FlushAsync/WriteAsync either throws an exception
-                // or returns a flushResult with IsCompleted set to true.
-                if (readResult.IsCanceled && !flushResult.IsCompleted)
-                {
-                    throw new InvalidOperationException(
-                        "unexpected call to CancelPendingRead on payload or payload stream");
-                }
-
-                if (readResult.IsCompleted)
-                {
-                    // We're done if there's no more data to send for the payload.
-                    break;
-                }
+                while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
             }
-            while (!flushResult.IsCanceled && !flushResult.IsCompleted);
+            finally
+            {
+                _ = readsCompleteSource.TrySetResult();
+                await cancelPendingReadTask.ConfigureAwait(false);
+            }
+
             return flushResult;
 
-            async Task CancelPendingReadOnWritesClosedAsync()
+            async Task CancelPendingReadOnWritesClosedAsync(Task readsComplete)
             {
                 try
                 {
-                    await stream.WritesClosed.ConfigureAwait(false);
+                    await Task.WhenAny(stream.WritesClosed, readsComplete).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // Ignore the reason of the writes close.
+                    // Ignore the reason of the writes close; readsComplete never throws.
                 }
 
-                reader.CancelPendingRead();
+                if (!readsComplete.IsCompleted)
+                {
+                    reader.CancelPendingRead();
+                }
             }
         }
     }
