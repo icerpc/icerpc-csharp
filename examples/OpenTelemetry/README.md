@@ -12,7 +12,7 @@ Firt start the Zipkin service as documented in the Zipkin quick start guide:
 In a separate window start the CRM Server program:
 
 ```
-dotnet run --project CRMServer/CrmServer.csproj
+dotnet run --project CrmServer/CrmServer.csproj
 ```
 
 In a separate window start the Hello Server program:
