@@ -143,8 +143,8 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             }
             else if (_shutdownTask is not null)
             {
-                Debug.Assert(_connectTask is not null);
-                // await on _connectTask to report the connection establishment failure.
+                throw new ConnectionClosedException(
+                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
             }
             else if (_connectTask is null)
             {

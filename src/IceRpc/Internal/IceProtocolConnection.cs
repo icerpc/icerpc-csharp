@@ -249,7 +249,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Notify the OnShutdown callback and complete invocations which are still pending with the
                     // retryable ConnectionClosedException exception.
-                    InvokeOnShutdown("connection shutdown by peer");
+                    InitiateShutdown("connection shutdown by peer");
                     completeException = new ConnectionClosedException("connection shutdown by peer");
                 }
                 catch (ConnectionLostException) when (
