@@ -808,6 +808,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _ => DispatchErrorCode.UnhandledException
                     };
 
+                    // We pass null for message to get the message computed from the exception by DefaultMessage.
                     remoteException = new DispatchException(message: null, errorCode, exception);
                 }
 

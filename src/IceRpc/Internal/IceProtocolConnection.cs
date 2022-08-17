@@ -1000,12 +1000,22 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
-                        // We pass null for message to get the message computed by DefaultMessage.
-                        dispatchException = new DispatchException(
-                            message: null,
-                            exception is InvalidDataException ?
-                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
-                            exception);
+                        if (exception is OperationCanceledException)
+                        {
+                            dispatchException = new DispatchException("dispatch canceled", DispatchErrorCode.Canceled);
+                        }
+                        else
+                        {
+                            DispatchErrorCode errorCode = exception switch
+                            {
+                                InvalidDataException _ => DispatchErrorCode.InvalidData,
+                                _ => DispatchErrorCode.UnhandledException
+                            };
+
+                            // We pass null for message to get the message computed from the exception by
+                            // DefaultMessage.
+                            dispatchException = new DispatchException(message: null, errorCode, exception);
+                        }
                     }
 
                     response = new OutgoingResponse(request)
