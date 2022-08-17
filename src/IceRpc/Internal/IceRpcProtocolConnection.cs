@@ -614,10 +614,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                if (readResult.IsCanceled)
+                if (readResult.Buffer.IsEmpty && !readResult.IsCompleted)
                 {
-                    // If the peer input pipe reader was completed, this will throw with the reason of the pipe
-                    // reader completion.
+                    Debug.Assert(readResult.IsCanceled);
+
+                    // If the peer's input pipe reader was completed with an exception, this will throw this exception.
                     flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
                 }
                 else
@@ -635,7 +636,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                 }
 
-                readResult.ThrowIfCanceled(Protocol.IceRpc);
+                // We only expect CancelPendingRead from CancelPendingReadOnWritesClosedAsync below.
+                // When CancelPendingReadOnWritesClosedAsync is called, FlushAsync/WriteAsync either throws an exception
+                // or returns a flushResult with IsCompleted set to true.
+                if (readResult.IsCanceled && !flushResult.IsCompleted)
+                {
+                    throw new InvalidOperationException(
+                        "unexpected call to CancelPendingRead on payload or payload stream");
+                }
 
                 if (readResult.IsCompleted)
                 {
@@ -781,11 +789,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                 {
-                    remoteException = new DispatchException(
-                        message: null,
-                        exception is InvalidDataException ?
-                            DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
-                        exception);
+                    DispatchErrorCode errorCode = exception switch
+                    {
+                        InvalidDataException _ => DispatchErrorCode.InvalidData,
+                        _ => DispatchErrorCode.UnhandledException
+                    };
+
+                    remoteException = new DispatchException(message: null, errorCode, exception);
                 }
 
                 // Attempt to encode this exception. If the encoding fails, we encode a DispatchException.
@@ -957,7 +967,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         while (true)
         {
             ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
-            readResult.ThrowIfCanceled(Protocol.IceRpc);
+
+            // We don't call CancelPendingRead on _remoteControlStream.Input.
+            Debug.Assert(!readResult.IsCanceled);
 
             if (readResult.Buffer.IsEmpty)
             {
@@ -1006,7 +1018,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
 
-        readResult.ThrowIfCanceled(Protocol.IceRpc);
+        // We don't call CancelPendingRead on _remoteControlStream.Input
+        Debug.Assert(!readResult.IsCanceled);
 
         try
         {
@@ -1030,7 +1043,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
 
-        readResult.ThrowIfCanceled(Protocol.IceRpc);
+        // We don't call CancelPendingRead on _remoteControlStream.Input
+        Debug.Assert(!readResult.IsCanceled);
 
         try
         {
