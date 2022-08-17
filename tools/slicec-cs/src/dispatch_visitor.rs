@@ -545,7 +545,7 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                     stream_arg = stream_arg,
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
                     encode_action =
-                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding).indent(),
+                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
                     use_segments = !stream_type.is_fixed_size()
                 )
                 .into(),

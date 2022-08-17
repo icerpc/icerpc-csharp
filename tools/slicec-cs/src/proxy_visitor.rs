@@ -247,7 +247,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
                     .add_argument(stream_parameter_name)
                     .add_argument("this.EncodeOptions")
                     .add_argument(
-                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding).indent(),
+                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
                     )
                     .add_argument(!stream_type.is_fixed_size())
                     .build(),
