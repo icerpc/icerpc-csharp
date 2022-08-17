@@ -1,9 +1,10 @@
 This example application illustrates how IceRPC can interact with ZeroC IceGrid.
-The server application uses ZeroC Ice and the client application uses IceRPC.
+The server application uses ZeroC Ice, and the client application uses IceRPC.
 
 For build instructions check the top-level [README.md](../../README.md).
 
-First, start an IceGrid registry by following the instructions provided in any of the following `simple` IceGrid example applications:
+First, start an IceGrid registry by following the instructions provided in any of the following `simple` IceGrid example
+applications:
 
 - [cpp11][1]
 - [cpp98][2]
