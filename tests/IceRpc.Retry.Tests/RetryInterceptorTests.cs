@@ -2,10 +2,12 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Logger;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -28,7 +30,7 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancel) =>
+        IInvoker invoker = new InlineInvoker((request, cancel) =>
         {
             if (++attempts == 1)
             {
@@ -42,7 +44,10 @@ public sealed class RetryInterceptorTests
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         using var loggerFactory = new TestLoggerFactory();
-        var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory);
+
+        invoker = new LoggerInterceptor(invoker, loggerFactory.CreateLogger<LoggerInterceptor>());
+
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory.CreateLogger<RetryInterceptor>());
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
@@ -52,18 +57,15 @@ public sealed class RetryInterceptorTests
         // Assert
         Assert.That(attempts, Is.EqualTo(2));
 
-        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc.Retry.RetryInterceptor"));
-        Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(1));
-        TestLoggerEntry entry = loggerFactory.Logger!.Entries[0];
-        Assert.That(entry.State["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));
-        Assert.That(entry.State["Attempt"], Is.EqualTo(2));
-        Assert.That(entry.State["MaxAttempts"], Is.EqualTo(2));
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)RetryInterceptorEventId.RetryRequest));
+        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc.Logger.LoggerInterceptor"));
+        Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
+        TestLoggerEntry entry = loggerFactory.Logger!.Entries[1];
+        Assert.That(entry.Scope["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));
+        Assert.That(entry.Scope["Attempt"], Is.EqualTo(2));
+        Assert.That(entry.Scope["MaxAttempts"], Is.EqualTo(2));
         Assert.That(entry.LogLevel, Is.EqualTo(LogLevel.Information));
-        Assert.That(entry.State["Path"], Is.EqualTo("/"));
+        Assert.That(entry.State["ServiceAddress"], Is.EqualTo(serviceAddress));
         Assert.That(entry.State["Operation"], Is.EqualTo("Op"));
-        Assert.That(entry.Message, Does.StartWith("retrying request because of retryable exception"));
-        Assert.That(entry.Exception, Is.TypeOf<ConnectionClosedException>());
     }
 
     [Test, TestCaseSource(nameof(NotRetryableExceptionSource))]
@@ -78,7 +80,7 @@ public sealed class RetryInterceptorTests
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
@@ -102,7 +104,7 @@ public sealed class RetryInterceptorTests
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
@@ -143,7 +145,7 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
@@ -183,7 +185,7 @@ public sealed class RetryInterceptorTests
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
@@ -211,7 +213,7 @@ public sealed class RetryInterceptorTests
             throw new InvalidOperationException();
         });
 
-        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttempts });
+        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttempts }, NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -240,7 +242,7 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
@@ -268,7 +270,7 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -329,7 +331,7 @@ public sealed class RetryInterceptorTests
             }.ToImmutableList()
         };
 
-        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
+        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 }, NullLogger.Instance);
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);

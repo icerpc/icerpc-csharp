@@ -21,8 +21,8 @@ public static class RetryInvokerBuilderExtensions
     /// <param name="options">The options to configure the <see cref="RetryInterceptor"/>.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseRetry(this IInvokerBuilder builder, RetryOptions options) =>
-        builder.ServiceProvider.GetService(typeof(ILoggerFactory)) is ILoggerFactory loggerFactory ?
-        builder.Use(next => new RetryInterceptor(next, options, loggerFactory)) :
+        builder.ServiceProvider.GetService(typeof(ILogger<RetryInterceptor>)) is ILogger logger ?
+        builder.Use(next => new RetryInterceptor(next, options, logger)) :
         throw new InvalidOperationException(
-            $"could not find service of type {nameof(ILoggerFactory)} in service container");
+            $"could not find service of type {nameof(ILogger<RetryInterceptor>)} in service container");
 }
