@@ -18,7 +18,7 @@ public class Protocol : IEquatable<Protocol>
 
     /// <summary>Gets the default port for this protocol.</summary>
     /// <value>The value is either -1 (no default port) or between 0 and 65,535.</value>
-    public virtual int DefaultUriPort => -1;
+    public virtual int DefaultPort => -1;
 
     /// <summary>Gets a value indicating whether or not this protocol supports fields.</summary>
     /// <returns><c>true</c> if the protocol supports fields; otherwise, <c>false</c>.</returns>

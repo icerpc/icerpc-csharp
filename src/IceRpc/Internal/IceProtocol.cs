@@ -8,7 +8,7 @@ namespace IceRpc.Internal;
 /// <summary>The Ice protocol class.</summary>
 internal sealed class IceProtocol : Protocol
 {
-    public override int DefaultUriPort => 4061;
+    public override int DefaultPort => 4061;
 
     public override bool HasFragment => true;
 

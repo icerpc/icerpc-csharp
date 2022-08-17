@@ -237,7 +237,7 @@ public sealed record class ServiceAddress
                     _serverAddress = new ServerAddress(
                         Protocol,
                         host,
-                        port: checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port)),
+                        port: checked((ushort)(uri.Port == -1 ? Protocol.DefaultPort : uri.Port)),
                         transport,
                         queryParams);
 
