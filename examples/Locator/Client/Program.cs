@@ -4,7 +4,7 @@ using Demo;
 using IceRpc;
 using IceRpc.Locator;
 
-await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions { });
+await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions());
 
 // Create a proxy to the IceGrid locator
 var locator = new LocatorProxy(connectionCache, new Uri("ice://localhost:4061/DemoIceGrid/Locator"));
