@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
-};
+use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
@@ -203,8 +201,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
             encode_enum = match &enum_def.underlying {
-                Some(underlying) =>
-                    format!("encoder.Encode{}", underlying.definition().type_suffix()),
+                Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
             },
             underlying_type = cs_type,
@@ -255,8 +252,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
             escaped_identifier = escaped_identifier,
             underlying_extensions_class = underlying_extensions_class,
             decode_enum = match &enum_def.underlying {
-                Some(underlying) =>
-                    format!("decoder.Decode{}()", underlying.definition().type_suffix()),
+                Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
                 _ => "decoder.DecodeSize()".to_owned(),
             }
         )

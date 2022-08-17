@@ -73,7 +73,8 @@ fn encode_type(
             format!(
                 "{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);",
                 encoder_param = encoder_param,
-                param = param)
+                param = param
+            )
         }
         _ if type_ref.is_class_type() => {
             assert!(encoding == Encoding::Slice1);
@@ -126,9 +127,8 @@ fn encode_type(
                 TypeRefs::CustomType(custom_type_ref) => {
                     format!(
                         "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
-                        encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_suffix(
-                            "SliceEncoderExtensions",
-                            namespace),
+                        encoder_extensions_class =
+                            custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
                         identifier = custom_type_ref.identifier(),
                         encoder_param = encoder_param,
                         value = value
@@ -145,15 +145,16 @@ fn encode_type(
                     )
                 }
                 TypeRefs::Interface(_) => {
-                    format!("{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);", encoder_param = encoder_param, value = value)
+                    format!(
+                        "{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);",
+                        encoder_param = encoder_param,
+                        value = value
+                    )
                 }
                 TypeRefs::Enum(enum_ref) => format!(
                     "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
-                    encoder_extensions_class = enum_ref
-                        .escape_scoped_identifier_with_suffix(
-                            "SliceEncoderExtensions",
-                            namespace
-                    ),
+                    encoder_extensions_class =
+                        enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
                     name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
                     param = value,
                     encoder_param = encoder_param
@@ -239,20 +240,12 @@ fn encode_tagged_type(
         }
         Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
             if primitive_def.is_unsigned_numeric() {
-                (
-                    Some(format!("SliceEncoder.GetVarUInt62EncodedSize({})", value)),
-                    None,
-                )
+                (Some(format!("SliceEncoder.GetVarUInt62EncodedSize({})", value)), None)
             } else {
-                (
-                    Some(format!("SliceEncoder.GetVarInt62EncodedSize({})", value)),
-                    None,
-                )
+                (Some(format!("SliceEncoder.GetVarInt62EncodedSize({})", value)), None)
             }
         }
-        Types::Struct(struct_def) if struct_def.is_fixed_size() => {
-            (Some(struct_def.min_wire_size().to_string()), None)
-        }
+        Types::Struct(struct_def) if struct_def.is_fixed_size() => (Some(struct_def.min_wire_size().to_string()), None),
         Types::Exception(exception_def) if exception_def.is_fixed_size() => {
             (Some(exception_def.min_wire_size().to_string()), None)
         }
@@ -264,9 +257,7 @@ fn encode_tagged_type(
             }
         }
         Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() => {
-            if sequence_def.element_type.is_fixed_size()
-                && sequence_def.element_type.min_wire_size() == 1
-            {
+            if sequence_def.element_type.is_fixed_size() && sequence_def.element_type.min_wire_size() == 1 {
                 (None, None)
             } else if read_only_memory {
                 (
@@ -290,15 +281,13 @@ fn encode_tagged_type(
             }
         }
         Types::Dictionary(dictionary_def)
-            if dictionary_def.key_type.is_fixed_size()
-                && dictionary_def.value_type.is_fixed_size() =>
+            if dictionary_def.key_type.is_fixed_size() && dictionary_def.value_type.is_fixed_size() =>
         {
             (
                 Some(format!(
                     "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
                     encoder_param = encoder_param,
-                    min_wire_size = dictionary_def.key_type.min_wire_size()
-                        + dictionary_def.value_type.min_wire_size()
+                    min_wire_size = dictionary_def.key_type.min_wire_size() + dictionary_def.value_type.min_wire_size()
                 )),
                 Some(value.clone()),
             )
@@ -386,8 +375,7 @@ fn encode_sequence(
 {encoder_param}.EncodeSequence{with_bit_sequence}(
     {param},
     {encode_action})",
-            with_bit_sequence = if encoding != Encoding::Slice1
-                && sequence_ref.element_type.is_bit_sequence_encodable()
+            with_bit_sequence = if encoding != Encoding::Slice1 && sequence_ref.element_type.is_bit_sequence_encodable()
             {
                 "WithBitSequence"
             } else {
@@ -395,13 +383,8 @@ fn encode_sequence(
             },
             encoder_param = encoder_param,
             param = value,
-            encode_action = encode_action(
-                &sequence_ref.element_type,
-                TypeContext::Nested,
-                namespace,
-                encoding
-            )
-            .indent()
+            encode_action =
+                encode_action(&sequence_ref.element_type, TypeContext::Nested, namespace, encoding).indent()
         )
     }
     .into()
@@ -420,39 +403,20 @@ fn encode_dictionary(
     {param},
     {encode_key},
     {encode_value})",
-        method = if encoding != Encoding::Slice1
-            && dictionary_def.value_type.is_bit_sequence_encodable()
-        {
+        method = if encoding != Encoding::Slice1 && dictionary_def.value_type.is_bit_sequence_encodable() {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
         },
         encoder_param = encoder_param,
         param = param,
-        encode_key = encode_action(
-            &dictionary_def.key_type,
-            TypeContext::Nested,
-            namespace,
-            encoding
-        )
-        .indent(),
-        encode_value = encode_action(
-            &dictionary_def.value_type,
-            TypeContext::Nested,
-            namespace,
-            encoding
-        )
-        .indent()
+        encode_key = encode_action(&dictionary_def.key_type, TypeContext::Nested, namespace, encoding).indent(),
+        encode_value = encode_action(&dictionary_def.value_type, TypeContext::Nested, namespace, encoding).indent()
     )
     .into()
 }
 
-pub fn encode_action(
-    type_ref: &TypeRef,
-    type_context: TypeContext,
-    namespace: &str,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::new();
     let is_optional = type_ref.is_optional;
 
@@ -522,8 +486,7 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}",
                 value_type = value_type,
-                encode_dictionary =
-                    encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
+                encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
             );
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -533,14 +496,7 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_sequence}",
                 value_type = value_type,
-                encode_sequence = encode_sequence(
-                    sequence_ref,
-                    namespace,
-                    "value",
-                    type_context,
-                    "encoder",
-                    encoding
-                )
+                encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding)
             )
         }
         TypeRefs::Struct(_) => {
@@ -582,11 +538,7 @@ pub fn encode_action(
     code
 }
 
-fn encode_operation_parameters(
-    operation: &Operation,
-    return_type: bool,
-    encoder_param: &str,
-) -> CodeBlock {
+fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder_param: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
     let namespace = &operation.namespace();
 
@@ -651,11 +603,7 @@ fn encode_operation_parameters(
     code
 }
 
-pub fn encode_operation(
-    operation: &Operation,
-    return_type: bool,
-    assign_pipe_reader: &str,
-) -> CodeBlock {
+pub fn encode_operation(operation: &Operation, return_type: bool, assign_pipe_reader: &str) -> CodeBlock {
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(
@@ -672,7 +620,8 @@ pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to tru
 {assign_pipe_reader} pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
             Encoding::Slice1 => "",
-            _ => "\
+            _ =>
+                "\
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;",
         },

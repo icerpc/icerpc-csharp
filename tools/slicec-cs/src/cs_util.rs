@@ -125,9 +125,7 @@ pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
     ];
 
     let needs_mangling = match field_type {
-        FieldType::Exception => {
-            OBJECT_BASE_NAMES.contains(&identifier) | EXCEPTION_BASE_NAMES.contains(&identifier)
-        }
+        FieldType::Exception => OBJECT_BASE_NAMES.contains(&identifier) | EXCEPTION_BASE_NAMES.contains(&identifier),
         FieldType::Class => OBJECT_BASE_NAMES.contains(&identifier),
         FieldType::NonMangled => false,
     };

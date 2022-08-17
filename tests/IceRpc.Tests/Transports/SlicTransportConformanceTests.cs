@@ -6,8 +6,6 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
@@ -23,7 +21,6 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
             .AddColocTransport()
             .AddSingleton(provider =>
             {
-                var loggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
                 var transport = provider.GetRequiredService<IMultiplexedServerTransport>();
                 return transport.Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "colochost" },

@@ -12,44 +12,28 @@ pub trait TypeRefExt {
     fn is_value_type(&self) -> bool;
 
     /// The C# mapped type for this type reference.
-    fn to_type_string(
-        &self,
-        namespace: &str,
-        context: TypeContext,
-        ignore_optional: bool,
-    ) -> String;
+    fn to_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
 }
 
 impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn is_value_type(&self) -> bool {
         match self.concrete_type() {
-            Types::Primitive(primitive) => {
-                !matches!(primitive, Primitive::String | Primitive::AnyClass)
-            }
+            Types::Primitive(primitive) => !matches!(primitive, Primitive::String | Primitive::AnyClass),
             Types::Enum(_) | Types::Struct(_) | Types::Interface(_) => true,
             _ => false,
         }
     }
 
-    fn to_type_string(
-        &self,
-        namespace: &str,
-        context: TypeContext,
-        mut ignore_optional: bool,
-    ) -> String {
+    fn to_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
         let type_str = match &self.concrete_typeref() {
-            TypeRefs::Struct(struct_ref) => {
-                match struct_ref.definition().get_attribute("cs::type", false) {
-                    Some(args) => args.first().unwrap().to_owned(),
-                    None => struct_ref.escape_scoped_identifier(namespace),
-                }
-            }
+            TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute("cs::type", false) {
+                Some(args) => args.first().unwrap().to_owned(),
+                None => struct_ref.escape_scoped_identifier(namespace),
+            },
             TypeRefs::Exception(exception_ref) => exception_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
-            TypeRefs::Interface(interface_ref) => {
-                interface_ref.scoped_proxy_implementation_name(namespace)
-            }
+            TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_implementation_name(namespace),
             TypeRefs::Trait(trait_ref) => trait_ref.scoped_interface_name(namespace),
             TypeRefs::CustomType(custom_type_ref) => custom_type_ref
                 .definition()
@@ -69,9 +53,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 }
                 sequence_type_to_string(sequence_ref, namespace, context)
             }
-            TypeRefs::Dictionary(dictionary_ref) => {
-                dictionary_type_to_string(dictionary_ref, namespace, context)
-            }
+            TypeRefs::Dictionary(dictionary_ref) => dictionary_type_to_string(dictionary_ref, namespace, context),
             TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_keyword().to_owned(),
         };
 
@@ -84,15 +66,10 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 }
 
 /// Helper method to convert a sequence type into a string
-fn sequence_type_to_string(
-    sequence_ref: &TypeRef<Sequence>,
-    namespace: &str,
-    context: TypeContext,
-) -> String {
-    let element_type =
-        sequence_ref
-            .element_type
-            .to_type_string(namespace, TypeContext::Nested, false);
+fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, context: TypeContext) -> String {
+    let element_type = sequence_ref
+        .element_type
+        .to_type_string(namespace, TypeContext::Nested, false);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
@@ -106,33 +83,23 @@ fn sequence_type_to_string(
         },
         TypeContext::Encode => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-            if sequence_ref.has_fixed_size_numeric_elements()
-                && !sequence_ref.has_attribute("cs::generic", false)
-            {
+            if sequence_ref.has_fixed_size_numeric_elements() && !sequence_ref.has_attribute("cs::generic", false) {
                 format!("global::System.ReadOnlyMemory<{}>", element_type)
             } else {
-                format!(
-                    "global::System.Collections.Generic.IEnumerable<{}>",
-                    element_type
-                )
+                format!("global::System.Collections.Generic.IEnumerable<{}>", element_type)
             }
         }
     }
 }
 
 /// Helper method to convert a dictionary type into a string
-fn dictionary_type_to_string(
-    dictionary_ref: &TypeRef<Dictionary>,
-    namespace: &str,
-    context: TypeContext,
-) -> String {
+fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, context: TypeContext) -> String {
     let key_type = dictionary_ref
         .key_type
         .to_type_string(namespace, TypeContext::Nested, false);
-    let value_type =
-        dictionary_ref
-            .value_type
-            .to_type_string(namespace, TypeContext::Nested, false);
+    let value_type = dictionary_ref
+        .value_type
+        .to_type_string(namespace, TypeContext::Nested, false);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {

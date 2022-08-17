@@ -46,12 +46,7 @@ pub fn decode_data_members(
     code
 }
 
-fn decode_member(
-    member: &impl Member,
-    namespace: &str,
-    param: &str,
-    encoding: Encoding,
-) -> CodeBlock {
+fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
     let type_string = data_type.to_type_string(namespace, TypeContext::Decode, true);
@@ -95,18 +90,14 @@ fn decode_member(
         TypeRefs::Exception(_) => {
             write!(code, "new {}(ref decoder)", type_string)
         }
-        TypeRefs::Dictionary(dictionary_ref) => {
-            code.write(&decode_dictionary(dictionary_ref, namespace, encoding))
-        }
-        TypeRefs::Sequence(sequence_ref) => {
-            code.write(&decode_sequence(sequence_ref, namespace, encoding))
-        }
+        TypeRefs::Dictionary(dictionary_ref) => code.write(&decode_dictionary(dictionary_ref, namespace, encoding)),
+        TypeRefs::Sequence(sequence_ref) => code.write(&decode_sequence(sequence_ref, namespace, encoding)),
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
-                decoder_extensions_class = enum_ref
-                    .escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
+                decoder_extensions_class =
+                    enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
             );
         }
@@ -117,8 +108,8 @@ fn decode_member(
             write!(
                 code,
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
-                decoder_extensions_class = custom_type_ref
-                    .escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
+                decoder_extensions_class =
+                    custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = fix_case(custom_type_ref.identifier(), CaseStyle::Pascal)
             );
         }
@@ -156,11 +147,7 @@ pub fn decode_tagged(
     format!("{} = {};", param, decode).into()
 }
 
-pub fn decode_dictionary(
-    dictionary_ref: &TypeRef<Dictionary>,
-    namespace: &str,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let key_type = &dictionary_ref.key_type;
     let value_type = &dictionary_ref.value_type;
 
@@ -169,10 +156,7 @@ pub fn decode_dictionary(
 
     // decode value
     let mut decode_value = decode_func(value_type, namespace, encoding);
-    if matches!(
-        value_type.concrete_type(),
-        Types::Sequence(_) | Types::Dictionary(_)
-    ) {
+    if matches!(value_type.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
         write!(
             decode_value,
             " as {}",
@@ -206,11 +190,7 @@ decoder.DecodeDictionary(
     .into()
 }
 
-pub fn decode_sequence(
-    sequence_ref: &TypeRef<Sequence>,
-    namespace: &str,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
     if sequence_ref.get_attribute("cs::generic", false).is_none()
@@ -227,9 +207,7 @@ pub fn decode_sequence(
 
     if sequence_ref.get_attribute("cs::generic", false).is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
-            Types::Primitive(primitive)
-                if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
-            {
+            Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.is_fixed_size() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
                 Some(format!(
@@ -250,16 +228,14 @@ pub fn decode_sequence(
                         "\
 decoder.DecodeSequence(
     ({enum_type_name} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
-                        enum_type_name =
-                            element_type.to_type_string(namespace, TypeContext::Decode, false),
-                        underlying_extensions_class = enum_def
-                            .escape_scoped_identifier_with_suffix(
-                                &format!(
-                                    "{}Extensions",
-                                    fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
-                                ),
-                                namespace
+                        enum_type_name = element_type.to_type_string(namespace, TypeContext::Decode, false),
+                        underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
+                            &format!(
+                                "{}Extensions",
+                                fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
                             ),
+                            namespace
+                        ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
                         underlying_type = enum_def.get_underlying_cs_type(),
                     ))
@@ -273,8 +249,7 @@ decoder.DecodeSequence(
 decoder.DecodeSequenceWithBitSequence(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
-                        sequence_type =
-                            sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
+                        sequence_type = sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace, encoding).indent()
                     );
                 } else {
@@ -284,8 +259,7 @@ decoder.DecodeSequenceWithBitSequence(
 decoder.DecodeSequence(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
-                        sequence_type =
-                            sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
+                        sequence_type = sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace, encoding).indent()
                     );
                 }
@@ -333,16 +307,14 @@ decoder.DecodeSequenceWithBitSequence(
                         "\
 decoder.DecodeSequence(
     ({enum_type} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
-                        enum_type =
-                            element_type.to_type_string(namespace, TypeContext::Decode, false),
-                        underlying_extensions_class = enum_def
-                            .escape_scoped_identifier_with_suffix(
-                                &format!(
-                                    "{}Extensions",
-                                    fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
-                                ),
-                                namespace
+                        enum_type = element_type.to_type_string(namespace, TypeContext::Decode, false),
+                        underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
+                            &format!(
+                                "{}Extensions",
+                                fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
                             ),
+                            namespace
+                        ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
                         underlying_type = enum_def.get_underlying_cs_type(),
                     );
@@ -379,10 +351,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                     type_name
                 )
             } else {
-                format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodeProxy<{}>()",
-                    type_name
-                )
+                format!("(ref SliceDecoder decoder) => decoder.DecodeProxy<{}>()", type_name)
             }
         }
         _ if type_ref.is_class_type() => {
@@ -394,10 +363,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                     type_ref.to_type_string(namespace, TypeContext::Decode, true)
                 )
             } else {
-                format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodeClass<{}>()",
-                    type_name
-                )
+                format!("(ref SliceDecoder decoder) => decoder.DecodeClass<{}>()", type_name)
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
@@ -426,39 +392,25 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         TypeRefs::Enum(enum_ref) => {
             format!(
                 "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
-                decoder_extensions_class = enum_ref.escape_scoped_identifier_with_suffix(
-                    "SliceDecoderExtensions",
-                    namespace
-                ),
+                decoder_extensions_class =
+                    enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = fix_case(enum_ref.identifier(), CaseStyle::Pascal)
             )
         }
         TypeRefs::Struct(_) => {
-            format!(
-                "(ref SliceDecoder decoder) => new {}(ref decoder)",
-                type_name,
-            )
+            format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name,)
         }
         TypeRefs::Exception(_) => {
-            format!(
-                "(ref SliceDecoder decoder) => new {}(ref decoder)",
-                type_name
-            )
+            format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name)
         }
         TypeRefs::Trait(_) => {
-            format!(
-                "(ref SliceDecoder decoder) => decoder.DecodeTrait<{}>()",
-                type_name
-            )
+            format!("(ref SliceDecoder decoder) => decoder.DecodeTrait<{}>()", type_name)
         }
         TypeRefs::CustomType(custom_type_ref) => {
             format!(
                 "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
-                decoder_extensions_class = custom_type_ref
-                    .escape_scoped_identifier_with_suffix(
-                        "SliceDecoderExtensions",
-                        namespace
-                    ),
+                decoder_extensions_class =
+                    custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = fix_case(custom_type_ref.identifier(), CaseStyle::Pascal)
             )
         }
@@ -508,11 +460,8 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             "{param_type} {decode}",
             // For optional value types we have to use the full type as the compiler cannot
             // disambiguate between null and the actual value type.
-            param_type = match member.data_type().is_optional && member.data_type().is_value_type()
-            {
-                true => member
-                    .data_type()
-                    .to_type_string(namespace, TypeContext::Decode, false),
+            param_type = match member.data_type().is_optional && member.data_type().is_value_type() {
+                true => member.data_type().to_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
             decode = decode_member(
@@ -531,9 +480,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             // For optional value types we have to use the full type as the compiler cannot
             // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_value_type() {
-                true => member
-                    .data_type()
-                    .to_type_string(namespace, TypeContext::Decode, false),
+                true => member.data_type().to_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
             decode = decode_tagged(
@@ -546,11 +493,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         )
     }
 
-    writeln!(
-        code,
-        "return {};",
-        non_streamed_members.to_argument_tuple("sliceP_")
-    );
+    writeln!(code, "return {};", non_streamed_members.to_argument_tuple("sliceP_"));
 
     code
 }
@@ -570,13 +513,7 @@ pub fn decode_operation_stream(
 
     let create_stream_param: CodeBlock = match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
-            FunctionCallBuilder::new_with_condition(
-                dispatch,
-                "request",
-                "response",
-                "DetachPayload",
-            )
-            .build()
+            FunctionCallBuilder::new_with_condition(dispatch, "request", "response", "DetachPayload").build()
         }
         _ => FunctionCallBuilder::new_with_condition(
             dispatch,

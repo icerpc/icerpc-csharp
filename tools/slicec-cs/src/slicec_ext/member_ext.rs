@@ -23,10 +23,7 @@ impl<T: Member> MemberExt for T {
     }
 
     fn field_name(&self, field_type: FieldType) -> String {
-        mangle_name(
-            &fix_case(&self.escape_identifier(), CaseStyle::Pascal),
-            field_type,
-        )
+        mangle_name(&fix_case(&self.escape_identifier(), CaseStyle::Pascal), field_type)
     }
 
     fn is_default_initialized(&self) -> bool {
@@ -37,52 +34,34 @@ impl<T: Member> MemberExt for T {
         }
 
         match data_type.concrete_type() {
-            Types::Struct(struct_def) => struct_def
-                .members()
-                .iter()
-                .all(|m| m.is_default_initialized()),
+            Types::Struct(struct_def) => struct_def.members().iter().all(|m| m.is_default_initialized()),
             _ => data_type.is_value_type(),
         }
     }
 }
 
 pub trait ParameterExt {
-    fn to_type_string(
-        &self,
-        namespace: &str,
-        context: TypeContext,
-        ignore_optional: bool,
-    ) -> String;
+    fn to_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
 }
 
 impl ParameterExt for Parameter {
-    fn to_type_string(
-        &self,
-        namespace: &str,
-        context: TypeContext,
-        ignore_optional: bool,
-    ) -> String {
+    fn to_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
         if self.is_streamed {
             let type_str = self.data_type().to_type_string(namespace, context, true);
             if type_str == "byte" {
                 "global::System.IO.Pipelines.PipeReader".to_owned()
             } else {
-                format!(
-                    "global::System.Collections.Generic.IAsyncEnumerable<{}>",
-                    type_str
-                )
+                format!("global::System.Collections.Generic.IAsyncEnumerable<{}>", type_str)
             }
         } else {
-            self.data_type()
-                .to_type_string(namespace, context, ignore_optional)
+            self.data_type().to_type_string(namespace, context, ignore_optional)
         }
     }
 }
 
 pub trait ParameterSliceExt {
     fn to_argument_tuple(&self, prefix: &str) -> String;
-    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool)
-        -> String;
+    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
 }
 
 impl ParameterSliceExt for [&Parameter] {
@@ -100,12 +79,7 @@ impl ParameterSliceExt for [&Parameter] {
         }
     }
 
-    fn to_tuple_type(
-        &self,
-        namespace: &str,
-        context: TypeContext,
-        ignore_optional: bool,
-    ) -> String {
+    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
         match self {
             [] => panic!("tuple type with no members"),
             [member] => member.to_type_string(namespace, context, ignore_optional),

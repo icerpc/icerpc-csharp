@@ -2,10 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 
@@ -50,12 +46,10 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections.</param>
     public Server(
         ServerOptions options,
-        ILoggerFactory? loggerFactory = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null,
         IDuplexServerTransport? duplexServerTransport = null)
     {
@@ -76,15 +70,6 @@ public sealed class Server : IAsyncDisposable
                 Transport = _serverAddress.Protocol == Protocol.Ice ?
                     duplexServerTransport.Name : multiplexedServerTransport.Name
             };
-        }
-
-        loggerFactory ??= NullLoggerFactory.Instance;
-        ILogger logger = loggerFactory.CreateLogger(GetType().FullName!);
-
-        if (logger != NullLogger.Instance)
-        {
-            duplexServerTransport = new LogDuplexServerTransportDecorator(duplexServerTransport, logger);
-            multiplexedServerTransport = new LogMultiplexedServerTransportDecorator(multiplexedServerTransport, logger);
         }
 
         _listenerFactory = () =>
@@ -139,14 +124,12 @@ public sealed class Server : IAsyncDisposable
             {
                 while (true)
                 {
-                    ProtocolConnection connection;
+                    T transportConnection;
                     EndPoint remoteNetworkAddress;
                     try
                     {
-                        (T transportConnection, remoteNetworkAddress) =
-                            await acceptTransportConnection().ConfigureAwait(false);
-                        ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-                        connection = createProtocolConnection(transportConnection);
+                        (transportConnection, remoteNetworkAddress) = await acceptTransportConnection()
+                            .ConfigureAwait(false);
                     }
                     catch
                     {
@@ -154,7 +137,7 @@ public sealed class Server : IAsyncDisposable
                         {
                             if (_isReadOnly)
                             {
-                                return;
+                                return; // server is shutting down or being disposed
                             }
                         }
 
@@ -164,14 +147,27 @@ public sealed class Server : IAsyncDisposable
                         continue;
                     }
 
+                    ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
+                    ProtocolConnection connection = createProtocolConnection(transportConnection); // does not throw
+
+                    bool done = false;
                     lock (_mutex)
                     {
                         if (_isReadOnly)
                         {
-                            connection.DisposeAsync().AsTask();
-                            return;
+                            done = true;
                         }
-                        _ = _connections[connection] = remoteNetworkAddress;
+                        else
+                        {
+                            _ = _connections[connection] = remoteNetworkAddress;
+                        }
+                    }
+
+                    if (done)
+                    {
+                        await connection.DisposeAsync().ConfigureAwait(false);
+                        ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
+                        return;
                     }
 
                     // Schedule removal after addition. We do this outside the mutex lock otherwise
@@ -244,15 +240,20 @@ public sealed class Server : IAsyncDisposable
 
                 await connection.DisposeAsync().ConfigureAwait(false);
 
-                ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
+                bool removed = false;
 
                 lock (_mutex)
                 {
                     // the _connections collection is read-only when shutting down or disposing.
                     if (!_isReadOnly)
                     {
-                        _ = _connections.Remove(connection);
+                        removed = _connections.Remove(connection);
                     }
+                }
+
+                if (removed)
+                {
+                    ServerEventSource.Log.ConnectionStop(ServerAddress, remoteNetworkAddress);
                 }
             }
         };
@@ -279,12 +280,10 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
         ServerAddress serverAddress,
-        SslServerAuthenticationOptions? authenticationOptions = null,
-        ILoggerFactory? loggerFactory = null)
+        SslServerAuthenticationOptions? authenticationOptions = null)
         : this(
             new ServerOptions
             {
@@ -294,8 +293,7 @@ public sealed class Server : IAsyncDisposable
                     Dispatcher = dispatcher,
                 },
                 ServerAddress = serverAddress
-            },
-            loggerFactory)
+            })
     {
     }
 
@@ -304,34 +302,46 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public Server(
         IDispatcher dispatcher,
         Uri serverAddressUri,
-        SslServerAuthenticationOptions? authenticationOptions = null,
-        ILoggerFactory? loggerFactory = null)
-        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions, loggerFactory)
+        SslServerAuthenticationOptions? authenticationOptions = null)
+        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions)
     {
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
+        bool logConnectionStop = false;
+
         lock (_mutex)
         {
             _isReadOnly = true;
 
-            // Stop accepting new connections by disposing of the listener
-            _listener?.Dispose();
-            _listener = null;
+            if (_listener is not null)
+            {
+                // Stop accepting new connections by disposing of the listener
+                _listener.Dispose();
+                _listener = null;
+                logConnectionStop = true;
+            }
         }
 
         await Task.WhenAll(
             _connections.Select(
                 async (entry) =>
                 {
+                    // Several threads can call DisposeAsync on the same connection; we wait for this DisposeAsync to
+                    // complete.
                     await entry.Key.DisposeAsync().ConfigureAwait(false);
-                    ServerEventSource.Log.ConnectionStop(entry.Key.ServerAddress, entry.Value);
+
+                    if (logConnectionStop)
+                    {
+                        // We only call ConnectionStop when we dispose the listener to avoid double-counting. If the
+                        // listener was never created, _connections is empty.
+                        ServerEventSource.Log.ConnectionStop(entry.Key.ServerAddress, entry.Value);
+                    }
                 })).ConfigureAwait(false);
 
         _ = _shutdownCompleteSource.TrySetResult(null);

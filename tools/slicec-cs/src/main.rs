@@ -31,7 +31,7 @@ use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
-use slice::errors::ErrorKind;
+use slice::diagnostics::DiagnosticKind;
 use slice::parse_result::ParserResult;
 use slice::slice_file::SliceFile;
 use std::fs::File;
@@ -55,8 +55,7 @@ pub fn main() {
 fn try_main() -> ParserResult {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
-    let mut parsed_data =
-        slice::parse_from_options(slice_options).and_then(validate_cs_attributes)?;
+    let mut parsed_data = slice::parse_from_options(slice_options).and_then(validate_cs_attributes)?;
 
     if !slice_options.validate {
         for slice_file in parsed_data.files.values().filter(|file| file.is_source) {
@@ -64,28 +63,44 @@ fn try_main() -> ParserResult {
 
             generated_code.preamble.push(preamble(slice_file));
 
-            let mut struct_visitor = StructVisitor { generated_code: &mut generated_code };
+            let mut struct_visitor = StructVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut struct_visitor);
 
-            let mut proxy_visitor = ProxyVisitor { generated_code: &mut generated_code };
+            let mut proxy_visitor = ProxyVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut proxy_visitor);
 
-            let mut dispatch_visitor = DispatchVisitor { generated_code: &mut generated_code };
+            let mut dispatch_visitor = DispatchVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut dispatch_visitor);
 
-            let mut exception_visitor = ExceptionVisitor { generated_code: &mut generated_code };
+            let mut exception_visitor = ExceptionVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut exception_visitor);
 
-            let mut enum_visitor = EnumVisitor { generated_code: &mut generated_code };
+            let mut enum_visitor = EnumVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut enum_visitor);
 
-            let mut class_visitor = ClassVisitor { generated_code: &mut generated_code };
+            let mut class_visitor = ClassVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut class_visitor);
 
-            let mut trait_visitor = TraitVisitor { generated_code: &mut generated_code };
+            let mut trait_visitor = TraitVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut trait_visitor);
 
-            let mut module_visitor = ModuleVisitor { generated_code: &mut generated_code };
+            let mut module_visitor = ModuleVisitor {
+                generated_code: &mut generated_code,
+            };
             slice_file.visit_with(&mut module_visitor);
 
             {
@@ -114,12 +129,8 @@ fn try_main() -> ParserResult {
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
                     Err(err) => {
-                        parsed_data.error_reporter.report(
-                            ErrorKind::IO(format!(
-                                "failed to write to file {}: {}",
-                                &path.display(),
-                                err
-                            )),
+                        parsed_data.diagnostic_reporter.report(
+                            DiagnosticKind::IOError(format!("failed to write to file {}: {}", &path.display(), err)),
                             None,
                         );
 

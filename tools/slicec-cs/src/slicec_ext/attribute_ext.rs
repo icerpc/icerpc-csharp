@@ -17,13 +17,12 @@ impl<T: Attributable + ?Sized> AttributeExt for T {
     }
 
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
-        self.get_deprecated_attribute(check_parent)
-            .map(|arguments| {
-                let reason = match arguments.as_slice() {
-                    [] => format!("This {} has been deprecated", self.kind()),
-                    _ => arguments.join("\n"),
-                };
-                format!(r#"global::System.Obsolete("{}")"#, reason)
-            })
+        self.get_deprecated_attribute(check_parent).map(|arguments| {
+            let reason = match arguments.as_slice() {
+                [] => format!("This {} has been deprecated", self.kind()),
+                _ => arguments.join("\n"),
+            };
+            format!(r#"global::System.Obsolete("{}")"#, reason)
+        })
     }
 }
