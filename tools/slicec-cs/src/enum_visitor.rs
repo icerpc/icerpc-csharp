@@ -62,7 +62,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         &format!(
             "{}{}Extensions",
             enum_def.identifier().to_case(Case::Pascal),
-            &cs_type.to_case(Case::Pascal),
+            cs_type.to_case(Case::Pascal),
         ),
     );
 
@@ -229,7 +229,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let underlying_extensions_class = format!(
         "{}{}Extensions",
         enum_def.identifier().to_case(Case::Pascal),
-        &cs_type.to_case(Case::Pascal)
+        cs_type.to_case(Case::Pascal),
     );
 
     // Enum decoding

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_util::escape_keyword;
+
 use convert_case::{Case, Casing};
 use slice::grammar::Entity;
 

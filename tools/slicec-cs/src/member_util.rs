@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::{DataMember, Member, Primitive, Types};
-use slice::utils::code_gen_util::TypeContext;
-
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::cs_util::*;
 use crate::slicec_ext::*;
+
+use slice::grammar::{DataMember, Member, Primitive, Types};
+use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
     if parameters.iter().any(|p| p.identifier() == name) {

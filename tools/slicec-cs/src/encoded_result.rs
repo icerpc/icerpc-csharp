@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::TypeContext;
-
 use crate::builders::{Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
 use crate::slicec_ext::*;
+
+use slice::grammar::*;
+use slice::utils::code_gen_util::TypeContext;
 
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     assert!(operation.has_encoded_result());
