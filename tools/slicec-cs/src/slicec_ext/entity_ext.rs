@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_util::escape_keyword;
+
+use convert_case::{Case, Casing};
 use slice::grammar::Entity;
-use slice::utils::code_gen_util::{fix_case, CaseStyle};
 
 pub trait EntityExt: Entity {
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -125,7 +126,7 @@ where
     }
 
     fn interface_name(&self) -> String {
-        let identifier = fix_case(self.identifier(), CaseStyle::Pascal);
+        let identifier = self.identifier().to_case(Case::Pascal);
         let mut chars = identifier.chars();
 
         // Check if the interface already follows the 'I' prefix convention.
@@ -152,7 +153,7 @@ where
             .iter()
             .enumerate()
             .map(|(i, segment)| {
-                let mut escaped_module = escape_keyword(&fix_case(segment, CaseStyle::Pascal));
+                let mut escaped_module = escape_keyword(&segment.to_case(Case::Pascal));
                 if i == 0 {
                     if let Some(attribute) = self.get_attribute("cs::namespace", true) {
                         escaped_module = attribute.first().unwrap().to_owned();
@@ -194,7 +195,7 @@ where
 }
 
 fn escape_identifier_impl(identifier: &str) -> String {
-    escape_keyword(&fix_case(identifier, CaseStyle::Pascal))
+    escape_keyword(&identifier.to_case(Case::Pascal))
 }
 
 fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_namespace: &str) -> String {

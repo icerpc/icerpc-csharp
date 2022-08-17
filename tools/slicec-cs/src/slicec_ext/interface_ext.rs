@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use super::entity_ext::EntityExt;
+
 use slice::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {

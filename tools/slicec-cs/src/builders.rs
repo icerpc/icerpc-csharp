@@ -1,13 +1,15 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use std::collections::HashMap;
+
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
+
 use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::TypeContext;
-use std::collections::HashMap;
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;

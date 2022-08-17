@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::code_block::CodeBlock;
 use std::collections::HashMap;
+
+use crate::code_block::CodeBlock;
 
 use slice::grammar::{Module, NamedSymbol, ScopedSymbol};
 

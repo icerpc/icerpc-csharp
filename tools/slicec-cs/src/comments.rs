@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::{Commentable, DocComment, Operation};
 use std::fmt;
 
 use regex::Regex;
+use slice::grammar::{Commentable, DocComment, Operation};
 
 #[derive(Clone, Debug)]
 pub struct CommentTag {

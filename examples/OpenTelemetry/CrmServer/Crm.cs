@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace Demo;
 
-public class CRM : Service, ICRM
+public class Crm : Service, ICrm
 {
     private readonly List<string> _customers = new();
 
