@@ -998,16 +998,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
-                    if (exception is not DispatchException dispatchException ||
-                        dispatchException.ConvertToUnhandled)
+                    if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
-                        dispatchException = exception is OperationCanceledException ?
-                            new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled) :
-                            new DispatchException(
-                                message: null,
-                                exception is InvalidDataException ?
-                                    DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
-                                exception);
+                        // We pass null for message to get the message computed by DefaultMessage.
+                        dispatchException = new DispatchException(
+                            message: null,
+                            exception is InvalidDataException ?
+                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
+                            exception);
                     }
 
                     response = new OutgoingResponse(request)

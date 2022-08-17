@@ -25,9 +25,6 @@ unchecked enum DispatchErrorCode
     /// The dispatch failed because the request header or the request payload could not be decoded.
     InvalidData,
 
-    /// The dispatch was canceled.
-    Canceled,
-
     /// The request's deadline has expired.
     DeadlineExpired,
 }
