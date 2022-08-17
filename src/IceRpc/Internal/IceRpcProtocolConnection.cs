@@ -14,7 +14,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     internal override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
-    private Exception? _invocationCanceledException;
+    private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -57,7 +57,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            if (_invocationCanceledException is not null)
+            if (_dispatchesAndInvocationsCanceledException is not null)
             {
                 return;
             }
@@ -65,7 +65,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
             // Set the abort exception for invocations.
-            _invocationCanceledException = exception;
+            _dispatchesAndInvocationsCanceledException = exception;
 
             if (_streams.Count == 0)
             {
@@ -289,9 +289,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // SendPayloadAsync takes care of the completion of the stream output.
             await SendPayloadAsync(request, stream, _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCanceledException is not null)
         {
-            completeException = _invocationCanceledException;
+            completeException = _dispatchesAndInvocationsCanceledException;
             throw completeException;
         }
         catch (Exception exception)
@@ -349,9 +349,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ResultType = header.ResultType
             };
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCanceledException is not null)
         {
-            completeException = _invocationCanceledException;
+            completeException = _dispatchesAndInvocationsCanceledException;
             throw completeException;
         }
         catch (Exception exception)
@@ -779,7 +779,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (dispatchCancelSource.IsCancellationRequested)
             {
-                await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                if (_dispatchesAndInvocationsCanceledException is null)
+                {
+                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                }
+                else
+                {
+                    await stream.Output.CompleteAsync(_dispatchesAndInvocationsCanceledException).ConfigureAwait(false);
+                }
                 request.Complete();
                 return;
             }

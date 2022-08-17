@@ -206,7 +206,7 @@ public sealed class ProtocolConnectionTests
         }
         else
         {
-            Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+            Assert.That(async () => await invokeTask, Throws.InstanceOf<ConnectionAbortedException>());
         }
     }
 

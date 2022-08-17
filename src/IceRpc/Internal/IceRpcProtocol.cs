@@ -34,6 +34,9 @@ internal sealed class IceRpcProtocol : Protocol
             {
                 IceRpcStreamErrorCode.NoError => null,
 
+                IceRpcStreamErrorCode.ConnectionAborted =>
+                    new ConnectionAbortedException("the connection was aborted by the remote peer"),
+
                 IceRpcStreamErrorCode.ConnectionShutdown =>
                     new ConnectionClosedException("the connection was shut down by the remote peer"),
 
@@ -47,6 +50,8 @@ internal sealed class IceRpcProtocol : Protocol
             exception switch
             {
                 null => (ulong)IceRpcStreamErrorCode.NoError,
+
+                ConnectionAbortedException => (ulong)IceRpcStreamErrorCode.ConnectionAborted,
 
                 ConnectionClosedException => (ulong)IceRpcStreamErrorCode.ConnectionShutdown,
 

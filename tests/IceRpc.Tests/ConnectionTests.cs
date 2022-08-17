@@ -125,7 +125,7 @@ public class ConnectionTests
         }
         else
         {
-            Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+            Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
         }
     }
 
@@ -498,7 +498,7 @@ public class ConnectionTests
                 }
                 else
                 {
-                    Assert.That(async () => await pingTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+                    Assert.That(async () => await pingTask, Throws.TypeOf<ConnectionAbortedException>());
                 }
             }
         });
