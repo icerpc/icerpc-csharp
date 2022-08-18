@@ -2,19 +2,21 @@ This example application illustrates how IceRPC can interact with ZeroC Ice usin
 The server application uses ZeroC Ice and the client application uses IceRPC.
 
 Before building the `Server` project ensure that the slice2cs compiler is installed, for Windows the slice2cs compiler
-is included  with the `zeroc.ice.net` NuGet package used by the Server project and no additional steps are necessary,
+is included with the `zeroc.ice.net` NuGet package used by the Server project and no additional steps are necessary,
 for macOS and Linux see:
 
 - https://bit.ly/3Ho7BTh
 
-For build instructions check the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../../.../README.md).
 
 First start the Server program:
+
 ```
 dotnet run --project Server/Server.csproj
 ```
 
 In a separate window, start the Client program:
+
 ```
 dotnet run --project Client/Client.csproj
 ```

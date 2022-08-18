@@ -39,7 +39,7 @@ The Metrics example application shows how to use the metric interceptor and midd
 ## [OpenTelemetry](./OpenTelemetry/)
 
 The OpenTelemetry example shows how to use the telemetry interceptor and middleware and how they can be integrated with
-[OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin][3].
+[OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin][2].
 
 ## [RequestContext](./RequestContext/)
 
@@ -63,5 +63,4 @@ The Stream example shows how to stream data from a client to a server.
 The Upload example shows how to upload a file from a client to a sever using streaming.
 
 [1]: https://github.com/zeroc-ice/ice
-[2]: https://zeroc.com/products/ice/services/icegrid
-[3]: https://zipkin.io/
+[2]: https://zipkin.io/
