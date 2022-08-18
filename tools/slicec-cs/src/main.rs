@@ -21,7 +21,6 @@ mod slicec_ext;
 mod struct_visitor;
 mod trait_visitor;
 
-use blake3::{hash, Hasher};
 use class_visitor::ClassVisitor;
 use cs_options::CsOptions;
 use cs_validator::validate_cs_attributes;
@@ -120,9 +119,8 @@ fn try_main() -> ParserResult {
                     .collect::<CodeBlock>()
                     .into_string();
 
-                // If the file already exits and the hash of its contents match the generated code,
-                // we don't need to write it.
-                if file_is_up_to_date(&code_string, &path) {
+                // If the file already exists and its contents match the generated code, we don't re-write it.
+                if matches!(std::fs::read(&path), Ok(file_bytes) if file_bytes == code_string.as_bytes()) {
                     continue;
                 }
 
@@ -164,22 +162,6 @@ using IceRpc.Slice;
         file = slice_file.filename
     )
     .into()
-}
-
-/// Returns `true` if the contents of the given file are up to date.
-fn file_is_up_to_date(generated_code: &str, path: &Path) -> bool {
-    let generated_code_hash = hash(generated_code.as_bytes());
-    if let Ok(mut file) = File::open(path) {
-        let mut hasher = Hasher::new();
-
-        if io::copy(&mut file, &mut hasher).is_ok() {
-            let file_hash = hasher.finalize();
-            if generated_code_hash == file_hash {
-                return true;
-            }
-        }
-    }
-    false
 }
 
 fn write_file(path: &Path, contents: &str) -> Result<(), io::Error> {
