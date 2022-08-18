@@ -790,16 +790,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException exception) when (dispatchCancelSource.IsCancellationRequested)
+            catch (OperationCanceledException) when (_dispatchesAndInvocationsCanceledException is not null)
             {
-                if (_dispatchesAndInvocationsCanceledException is null)
-                {
-                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                }
-                else
-                {
-                    await stream.Output.CompleteAsync(_dispatchesAndInvocationsCanceledException).ConfigureAwait(false);
-                }
+                // TODO: or should this throw a DispatchException with a ConnectionAborted error code?
+                await stream.Output.CompleteAsync(_dispatchesAndInvocationsCanceledException).ConfigureAwait(false);
                 request.Complete();
                 return;
             }
