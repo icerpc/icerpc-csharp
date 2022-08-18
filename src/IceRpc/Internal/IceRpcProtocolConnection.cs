@@ -608,9 +608,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 
-            // If the peer is no longer interested to receive the payload, call reader.CancelPendingRead to unblock
-            // ReadAsync.
-            Task cancelPendingReadTask = CancelOnWritesClosedAsync(readCts);
+            // If the peer is no longer reading the payload, call Cancel on readCts.
+            Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
 
             FlushResult flushResult;
 
@@ -660,7 +659,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             finally
             {
                 readCts.Cancel();
-                await cancelPendingReadTask.ConfigureAwait(false);
+                await cancelOnWritesClosedTask.ConfigureAwait(false);
             }
 
             return flushResult;
