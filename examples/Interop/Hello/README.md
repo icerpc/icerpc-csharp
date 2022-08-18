@@ -5,7 +5,7 @@ Before building the `Server` project ensure that the slice2cs compiler is instal
 is included with the `zeroc.ice.net` NuGet package used by the Server project and no additional steps are necessary,
 for macOS and Linux see:
 
-- https://bit.ly/3Ho7BTh
+- (Building Ice Applications for .NET with the .NET Core SDK)[https://doc.zeroc.com/ice/3.7/release-notes/building-ice-applications-for-net#id-.BuildingIceApplicationsfor.NETv3.7-BuildingIceApplicationsfor.NETwiththe.NETCoreSDK]
 
 For build instructions check the top-level [README.md](../../.../README.md).
 
