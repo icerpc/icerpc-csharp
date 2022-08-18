@@ -136,7 +136,7 @@ public sealed class IceRpcProtocolConnectionTests
             {
                 try
                 {
-                    // Look until ReadAsync throws IceRpcProtocolStreamException
+                    // Loop until ReadAsync throws IceRpcProtocolStreamException
                     while(true)
                     {
                         ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
