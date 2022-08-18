@@ -995,27 +995,30 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             "the dispatcher did not return the last response created for this request");
                     }
                 }
+                catch (OperationCanceledException exception) when
+                    (exception.CancellationToken == _dispatchesAndInvocationsCancelSource.Token)
+                {
+                    response = new OutgoingResponse(request)
+                    {
+                        Payload = CreateExceptionPayload(
+                            new DispatchException("dispatch canceled", DispatchErrorCode.Canceled),
+                            request),
+                        ResultType = ResultType.Failure
+                    };
+                }
                 catch (Exception exception)
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
-                        if (exception is OperationCanceledException)
+                        DispatchErrorCode errorCode = exception switch
                         {
-                            dispatchException = new DispatchException("dispatch canceled", DispatchErrorCode.Canceled);
-                        }
-                        else
-                        {
-                            DispatchErrorCode errorCode = exception switch
-                            {
-                                InvalidDataException _ => DispatchErrorCode.InvalidData,
-                                _ => DispatchErrorCode.UnhandledException
-                            };
+                            InvalidDataException _ => DispatchErrorCode.InvalidData,
+                            _ => DispatchErrorCode.UnhandledException
+                        };
 
-                            // We pass null for message to get the message computed from the exception by
-                            // DefaultMessage.
-                            dispatchException = new DispatchException(message: null, errorCode, exception);
-                        }
+                        // We pass null for message to get the message computed by DispatchException.DefaultMessage.
+                        dispatchException = new DispatchException(message: null, errorCode, exception);
                     }
 
                     response = new OutgoingResponse(request)
@@ -1023,25 +1026,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         Payload = CreateExceptionPayload(dispatchException, request),
                         ResultType = ResultType.Failure
                     };
-
-                    static PipeReader CreateExceptionPayload(
-                        DispatchException dispatchException,
-                        IncomingRequest request)
-                    {
-                        SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
-                            SliceEncodeOptions.Default;
-
-                        var pipe = new Pipe(encodeOptions.PipeOptions);
-
-                        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
-                        encoder.EncodeSystemException(
-                            dispatchException,
-                            request.Path,
-                            request.Fragment,
-                            request.Operation);
-                        pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
-                        return pipe.Reader;
-                    }
                 }
                 finally
                 {
@@ -1158,6 +1142,23 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             }
                         }
                     }
+                }
+
+                static PipeReader CreateExceptionPayload(DispatchException dispatchException, IncomingRequest request)
+                {
+                    SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
+                        SliceEncodeOptions.Default;
+
+                    var pipe = new Pipe(encodeOptions.PipeOptions);
+
+                    var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
+                    encoder.EncodeSystemException(
+                        dispatchException,
+                        request.Path,
+                        request.Fragment,
+                        request.Operation);
+                    pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+                    return pipe.Reader;
                 }
 
                 static void EncodeResponseHeader(
