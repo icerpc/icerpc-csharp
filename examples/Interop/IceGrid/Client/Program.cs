@@ -2,6 +2,7 @@
 
 using Demo;
 using IceRpc;
+using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 
 await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions());
@@ -23,7 +24,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
 // Add the locator interceptor and logger interceptor to the pipeline
-pipeline = pipeline.UseLocator(locator).UseLogger(loggerFactory).Into(connectionCache);
+pipeline = pipeline.UseRetry().UseLocator(locator).UseLogger(loggerFactory).Into(connectionCache);
 
 // Interactive prompt to the user
 menu();

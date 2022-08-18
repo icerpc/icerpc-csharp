@@ -17,5 +17,6 @@
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Locator" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Retry" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>
