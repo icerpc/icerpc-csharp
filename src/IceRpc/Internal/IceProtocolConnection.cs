@@ -605,19 +605,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             requestHeader.Encode(ref encoder);
             if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
             {
-                if (requestField.EncodeAction is null)
-                {
-                    encoder.WriteByteSequence(requestField.ByteSequence);
-                }
-                else
-                {
-                    requestField.EncodeAction(ref encoder);
-                }
+                requestField.Encode(ref encoder);
             }
             else
             {
                 encoder.EncodeSize(0);
             }
+
+            // We ignore all other fields. They can't be sent over ice.
+
             new EncapsulationHeader(
                 encapsulationSize: payloadSize + 6,
                 encodingMajor,
