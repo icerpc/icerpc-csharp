@@ -90,7 +90,7 @@ build()
         if [ "$srcdist" == "yes" ]; then
             install
         fi
-        for solution in examples/*/*.sln
+        for solution in examples/*/*.sln examples/*/*/*.sln
         do
             run_command dotnet "build" "-c" "$dotnet_config" "$solution"
         done
