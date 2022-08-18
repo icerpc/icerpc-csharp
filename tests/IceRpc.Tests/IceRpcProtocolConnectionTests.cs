@@ -53,7 +53,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await invokeTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.ConnectionAborted));
     }
 
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the

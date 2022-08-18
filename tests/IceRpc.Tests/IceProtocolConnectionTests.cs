@@ -203,13 +203,16 @@ public sealed class IceProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(
+        var ex = Assert.ThrowsAsync<DispatchException>(
             async () =>
             {
                 IncomingResponse response = await invokeTask;
                 throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
-            },
-            Throws.TypeOf<DispatchException>());
+            });
+        // TODO: should this be DispatchErrorCode.ConnectionAborted instead of DispatchErrorCode.Canceled to match the
+        // icerpc stream error code? Right now, we don't include the error code in the message. Just the following
+        // message.
+        Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
     }
 
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
