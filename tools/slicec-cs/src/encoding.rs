@@ -416,7 +416,7 @@ pub fn encode_action(
         (true, true) => "value!.Value",
         _ => "value",
     };
-    let value_type = type_ref.to_type_string(namespace, type_context, false);
+    let value_type = type_ref.to_type_string(namespace, type_context, is_tagged);
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
