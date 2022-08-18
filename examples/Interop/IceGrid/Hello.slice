@@ -5,5 +5,5 @@ module Demo;
 interface Hello
 {
     idempotent sayHello();
-    void shutdown();
+    shutdown();
 }

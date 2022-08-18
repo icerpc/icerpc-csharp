@@ -31,7 +31,7 @@ do
                 await hello.SayHelloAsync();
                 break;
             case "s":
-                await hello.SayHelloAsync();
+                await hello.ShutdownAsync();
                 break;
             case "x":
                 break;
