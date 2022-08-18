@@ -1,4 +1,4 @@
-This example application illustrates how IceRPC can interact with ZeroC IceGrid.
+This example application illustrates how an IceRPC client can call services in a Ice server managed by IceGrid.
 The server application uses ZeroC Ice, and the client application uses IceRPC.
 
 For build instructions check the top-level [README.md](../../README.md).

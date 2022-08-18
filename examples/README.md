@@ -29,11 +29,7 @@ example.
 
 ## [Interop](./Interop/)
 
-The Interop example application shows how IceRPC interoperates with [ZeroC Ice][1].
-
-## [Locator](./Locator/)
-
-The Locator example application shows how IceRPC interoperates with [ZeroC IceGrid][2].
+Contains example applications that shows how IceRPC interoperates with [ZeroC Ice][1].
 
 ## [Metrics](./Metrics/)
 

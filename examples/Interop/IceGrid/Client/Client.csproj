@@ -12,7 +12,7 @@
   <ItemGroup>
     <SliceCompile Include="../Hello.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview5" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="0.1.0-preview1" />
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Locator" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>
