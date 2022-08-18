@@ -10,10 +10,10 @@ await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions
 // Create a new invocation pipeline
 var pipeline = new Pipeline();
 
-// Create a locator proxy using the invocation pipeline.
+// Create a locator proxy with the invocation pipeline as its invoker.
 var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
 
-// Create a hello proxy using the invocation pipeline. Note that this proxy has no server address.
+// Create a hello proxy with the invocation pipeline as as its invoker. Note that this proxy has no server address.
 var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
 // Create a logger factory that logs to the console.
@@ -23,7 +23,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
     });
 
-// Add the locator interceptor and logger interceptor to the pipeline
+// Add the retry, locator, and logger interceptor to the pipeline
 pipeline = pipeline.UseRetry().UseLocator(locator).UseLogger(loggerFactory).Into(connectionCache);
 
 // Interactive prompt to the user
@@ -51,7 +51,7 @@ do
                 menu();
                 break;
             default:
-                Console.WriteLine("unknown command `" + line + "'");
+                Console.WriteLine($"unknown command '{line}'");
                 menu();
                 break;
         };
