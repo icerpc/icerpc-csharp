@@ -209,9 +209,6 @@ public sealed class IceProtocolConnectionTests
                 IncomingResponse response = await invokeTask;
                 throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
             });
-        // TODO: should this be DispatchErrorCode.ConnectionAborted instead of DispatchErrorCode.Canceled to match the
-        // icerpc stream error code? Right now, we don't include the error code in the message. Just the following
-        // message.
         Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
     }
 
