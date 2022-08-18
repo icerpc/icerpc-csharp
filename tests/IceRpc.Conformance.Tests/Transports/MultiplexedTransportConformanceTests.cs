@@ -1080,6 +1080,43 @@ public abstract class MultiplexedTransportConformanceTests
             () => serverTransport.Listen(serverAddress, new MultiplexedConnectionOptions(), null));
     }
 
+    [Test]
+    public async Task Connection_server_address_transport_property_is_set()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var transport = provider.GetRequiredService<IMultiplexedClientTransport>().Name;
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(clientConnection.ServerAddress.Transport, Is.EqualTo(transport));
+            Assert.That(serverConnection.ServerAddress.Transport, Is.EqualTo(transport));
+        });
+    }
+
+    [Test]
+    public async Task Listener_server_address_transport_property_is_set()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var transport = provider.GetRequiredService<IMultiplexedClientTransport>().Name;
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act/Assert
+        Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
+    }
+
     /// <summary>Verifies that stream write can be canceled.</summary>
     [Test]
     public async Task Write_to_a_stream_before_calling_connect_fails()

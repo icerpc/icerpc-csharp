@@ -44,13 +44,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
     }
-
-    public static IServiceCollection AddTcpTest(
-        this IServiceCollection services,
-        IDispatcher dispatcher,
-        Protocol protocol) =>
-        services.AddClientServerTest(dispatcher, new ServerAddress(protocol) { Host = "127.0.0.1", Port = 0 });
-
     public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, ServerAddress serverAddress)
     {
         collection.AddSingleton(provider =>
