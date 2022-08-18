@@ -1,4 +1,4 @@
-This example application illustrates how IceRPC can interact with ZeroC Ice using the ice protocol and Slice 1 encoding.
+This example application illustrates how IceRPC can interact with ZeroC Ice using the `ice` protocol and `Slice1` encoding.
 The server application uses ZeroC Ice and the client application uses IceRPC.
 
 Before building the `Server` project ensure that the slice2cs compiler is installed, for Windows the slice2cs compiler
