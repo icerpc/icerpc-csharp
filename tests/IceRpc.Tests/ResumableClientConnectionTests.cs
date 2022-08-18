@@ -12,7 +12,7 @@ public class ResumableClientConnectionTests
     public async Task Connection_can_reconnect_after_being_idle()
     {
         // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new ServerAddress() { Port = 0 });
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
         await using var connection = new ResumableClientConnection(
             new ClientConnectionOptions()
@@ -34,7 +34,7 @@ public class ResumableClientConnectionTests
     public async Task Connection_can_reconnect_after_graceful_peer_shutdown()
     {
         // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new ServerAddress() { Port = 0 });
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ResumableClientConnection(serverAddress);
@@ -53,7 +53,7 @@ public class ResumableClientConnectionTests
     public async Task Connection_can_reconnect_after_peer_abort()
     {
         // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new ServerAddress() { Port = 0 });
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ResumableClientConnection(serverAddress);
