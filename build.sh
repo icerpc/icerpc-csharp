@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-shopt -s extglob
 set -ue
 
 version="0.1.0-preview1"
@@ -91,7 +90,7 @@ build()
         if [ "$srcdist" == "yes" ]; then
             install
         fi
-        for solution in examples/**/*.sln
+        for solution in examples/*/*.sln examples/*/*/*.sln
         do
             run_command dotnet "build" "-c" "$dotnet_config" "$solution"
         done

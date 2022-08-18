@@ -2,7 +2,6 @@
 
 using Demo;
 using IceRpc;
-using IceRpc.Locator;
 
 await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions());
 
@@ -15,8 +14,48 @@ IInvoker pipeline = new Pipeline().UseLocator(locator).Into(connectionCache);
 // Create a hello proxy using the invocation pipeline. Note that this proxy has no server address.
 var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
-Console.WriteLine("Sending a greeting to the server...");
+// Interactive prompt to the user
+menu();
+string? line = null;
+do
+{
+    try
+    {
+        Console.Write("==> ");
+        Console.Out.Flush();
+        line = Console.In.ReadLine();
 
-await hello.SayHelloAsync();
+        switch (line)
+        {
+            case "t":
+                await hello.SayHelloAsync();
+                break;
+            case "s":
+                await hello.SayHelloAsync();
+                break;
+            case "x":
+                break;
+            case "?":
+                menu();
+                break;
+            default:
+                Console.WriteLine("unknown command `" + line + "'");
+                menu();
+                break;
+        };
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+    }
+} while (line != "x");
 
-Console.WriteLine("The server received the greeting");
+static void menu()
+{
+    Console.WriteLine(
+        "usage:\n" +
+        "t: send greeting\n" +
+        "s: shutdown server\n" +
+        "x: exit\n" +
+        "?: help\n");
+}
