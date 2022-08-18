@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -50,5 +51,18 @@ public class ServerTests
         await server.ShutdownAsync();
 
         Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
+    }
+
+    /// <summary>Verifies that Server.ServerAddress.Transport property is set.</summary>
+    [Test]
+    public async Task Server_server_address_transport_property_is_set([Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange/Act
+        await using var server = new Server(
+            ServiceNotFoundDispatcher.Instance,
+            new ServerAddress(Protocol.FromString(protocol)));
+
+        // Assert
+        Assert.That(server.ServerAddress.Transport, Is.Not.Null);
     }
 }

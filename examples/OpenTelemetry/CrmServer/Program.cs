@@ -21,7 +21,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddZipkinExporter()
    .Build();
 
-router.Map<ICRM>(new CRM());
+router.Map<ICrm>(new Crm());
 
 await using var server = new Server(router, new Uri("icerpc://127.0.0.1:20001"));
 

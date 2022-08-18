@@ -27,28 +27,33 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that aborting the client connection cancels the dispatches.</summary>
+    /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
+    /// cref="IceRpcProtocolStreamException"/>.</summary>
     [Test]
-    public async Task Dispose_cancels_dispatches()
+    public async Task Disposing_server_connection_triggers_stream_exception(
+        [Values(false, true)] bool shutdown)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
-        await using var provider = new ServiceCollection()
+
+        await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
-
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
-
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
+        if (shutdown)
+        {
+            _ = sut.Server.ShutdownAsync("");
+        }
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
     }
 
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the

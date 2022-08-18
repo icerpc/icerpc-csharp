@@ -27,7 +27,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1:20001"));
 pipeline.Into(connection);
 
-var proxy = new CRMProxy(pipeline);
+var proxy = new CrmProxy(pipeline);
 router.Map<IHello>(new Hello(proxy));
 
 await using var server = new Server(router);

@@ -20,13 +20,13 @@ public class RetryInterceptor : IInvoker
     /// <summary>Constructs a retry interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="options">The options to configure the retry interceptor.</param>
-    /// <param name="loggerFactory">The logger factory used to create loggers to log retries.</param>
+    /// <param name="logger">The logger.</param>
     /// <see cref="RetryPolicy"/>
-    public RetryInterceptor(IInvoker next, RetryOptions options, ILoggerFactory? loggerFactory = null)
+    public RetryInterceptor(IInvoker next, RetryOptions options, ILogger logger)
     {
         _next = next;
         _options = options;
-        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(GetType().FullName!);
+        _logger = logger;
     }
 
     /// <inheritdoc/>
@@ -48,15 +48,17 @@ public class RetryInterceptor : IInvoker
                 IncomingResponse? response = null;
                 Exception? exception = null;
                 bool tryAgain;
+                RetryPolicy retryPolicy = RetryPolicy.NoRetry;
 
                 do
                 {
-                    RetryPolicy retryPolicy = RetryPolicy.NoRetry;
-
                     // At this point, response can be non-null and carry a failure for which we're retrying. If
                     // _next.InvokeAsync throws NoServerAddressException, we return this previous failure.
                     try
                     {
+                        using IDisposable? scope = CreateRetryLogScope(attempt, retryPolicy);
+                        retryPolicy = RetryPolicy.NoRetry; // reset retry policy after logging
+
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
                         if (response.ResultType == ResultType.Success)
@@ -73,7 +75,7 @@ public class RetryInterceptor : IInvoker
                     catch (NoServerAddressException ex)
                     {
                         // NoServerAddressException is always considered non-retryable; it typically occurs because we
-                        // removed server addresses from endpointFeature.
+                        // removed server addresses from serverAddressFeature.
                         return response ?? throw RethrowException(exception ?? ex);
                     }
                     catch (OperationCanceledException)
@@ -103,14 +105,6 @@ public class RetryInterceptor : IInvoker
                     {
                         tryAgain = true;
                         attempt++;
-
-                        _logger.LogRetryRequest(
-                            request.ServiceAddress.Path,
-                            request.Operation,
-                            retryPolicy,
-                            attempt,
-                            _options.MaxAttempts,
-                            exception);
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
@@ -158,4 +152,8 @@ public class RetryInterceptor : IInvoker
         Debug.Assert(false);
         return ex;
     }
+
+    private IDisposable? CreateRetryLogScope(int attempt, RetryPolicy retryPolicy) =>
+        _logger != NullLogger.Instance && attempt > 1 ?
+            _logger.RetryScope(attempt, _options.MaxAttempts, retryPolicy) : null;
 }

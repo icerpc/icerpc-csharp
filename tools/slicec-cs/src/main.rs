@@ -21,7 +21,7 @@ mod slicec_ext;
 mod struct_visitor;
 mod trait_visitor;
 
-use blake2::{Blake2b, Digest};
+use blake3::{hash, Hasher};
 use class_visitor::ClassVisitor;
 use cs_options::CsOptions;
 use cs_validator::validate_cs_attributes;
@@ -168,10 +168,9 @@ using IceRpc.Slice;
 
 /// Returns `true` if the contents of the given file are up to date.
 fn file_is_up_to_date(generated_code: &str, path: &Path) -> bool {
-    let generated_code_hash = Blake2b::new().chain(generated_code).finalize();
-
+    let generated_code_hash = hash(generated_code.as_bytes());
     if let Ok(mut file) = File::open(path) {
-        let mut hasher = Blake2b::new();
+        let mut hasher = Hasher::new();
 
         if io::copy(&mut file, &mut hasher).is_ok() {
             let file_hash = hasher.finalize();

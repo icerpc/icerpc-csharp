@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::TypeContext;
-
 use super::entity_ext::EntityExt;
 use super::interface_ext::InterfaceExt;
 use super::primitive_ext::PrimitiveExt;
+
+use slice::grammar::*;
+use slice::utils::code_gen_util::TypeContext;
 
 pub trait TypeRefExt {
     /// Is the type a value type (eg. Struct)

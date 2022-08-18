@@ -178,6 +178,40 @@ public sealed class IceProtocolConnectionTests
         Assert.That(dispatchCount, Is.EqualTo(1));
     }
 
+    /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
+    /// cref="DispatchException"/>.</summary>
+    [Test]
+    public async Task Disposing_server_connection_triggers_dispatch_exception([Values(false, true)] bool shutdown)
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        var invokeTask = sut.Client.InvokeAsync(request);
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Act
+        if (shutdown)
+        {
+            _ = sut.Server.ShutdownAsync("");
+        }
+        await sut.Server.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () =>
+            {
+                IncomingResponse response = await invokeTask;
+                throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
+            },
+            Throws.TypeOf<DispatchException>());
+    }
+
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
     [Test, TestCaseSource(nameof(DispatchExceptionRetryPolicySource))]
     public async Task Dispatch_failure_response_contain_the_expected_retry_policy_field(

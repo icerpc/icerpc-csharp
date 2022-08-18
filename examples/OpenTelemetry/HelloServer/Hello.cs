@@ -7,9 +7,9 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
-    private readonly ICRMProxy _crm;
+    private readonly ICrmProxy _crm;
 
-    public Hello(ICRMProxy crm) => _crm = crm;
+    public Hello(ICrmProxy crm) => _crm = crm;
 
     public async ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
     {

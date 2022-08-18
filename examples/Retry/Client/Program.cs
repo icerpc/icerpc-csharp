@@ -43,6 +43,9 @@ var pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connectionCache);
 
+// We use a logger to ensure proper ordering of the messages on the console.
+var logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
+
 string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-server=127.0.0.1:10001";
 for (int i = 2; i < serverInstances; i++)
 {
@@ -60,18 +63,43 @@ if (Console.ReadLine() is string name)
         while (true)
         {
             string helloResponse = await hello.SayHelloAsync(name, cancel: cancel);
-            Console.WriteLine($"Server says: {helloResponse}");
-            Console.WriteLine("Looping in 1 second, press Ctrl+C to exit");
-            await Task.Delay(TimeSpan.FromSeconds(1), cancel);
+            logger.LogResponse(helloResponse);
+            logger.LogLooping();
+            await Task.Delay(TimeSpan.FromSeconds(3), cancel);
         }
     }
-    catch (DispatchException ex)
+    catch (DispatchException dispatchException)
     {
-        // The request failed because we reached the allowed max attempts or because all server addresses were excluded due
-        // to the failure retry policy.
-        Console.WriteLine(ex);
+        // The request failed because we reached the allowed max attempts or because all server addresses were excluded
+        // due to the failure retry policy.
+        logger.LogException(dispatchException);
     }
     catch (OperationCanceledException)
     {
+        // Expected, from Ctrl+C.
     }
+}
+
+internal static partial class RetryExampleLoggerExtensions
+{
+    [LoggerMessage(
+        EventId = 1,
+        EventName = "Response",
+        Level = LogLevel.Information,
+        Message = "Server says {Message}")]
+    internal static partial void LogResponse(this ILogger logger, string message);
+
+    [LoggerMessage(
+        EventId = 2,
+        EventName = "Looping",
+        Level = LogLevel.Information,
+        Message = "Looping in 3 seconds, press Ctrl+C to exit\n")]
+    internal static partial void LogLooping(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 3,
+        EventName = "Exception",
+        Level = LogLevel.Error,
+        Message = "Invocation failed with an exception, exiting")]
+    internal static partial void LogException(this ILogger logger, Exception exception);
 }
