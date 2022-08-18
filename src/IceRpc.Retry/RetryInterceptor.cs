@@ -75,7 +75,7 @@ public class RetryInterceptor : IInvoker
                     catch (NoServerAddressException ex)
                     {
                         // NoServerAddressException is always considered non-retryable; it typically occurs because we
-                        // removed server addresses from endpointFeature.
+                        // removed server addresses from serverAddressFeature.
                         return response ?? throw RethrowException(exception ?? ex);
                     }
                     catch (OperationCanceledException)

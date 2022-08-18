@@ -110,7 +110,7 @@ public class ServerAddressTests
         {
             Assert.That(serverAddress.Protocol, Is.EqualTo(Protocol.IceRpc));
             Assert.That(serverAddress.Host, Is.EqualTo("::0"));
-            Assert.That(serverAddress.Port, Is.EqualTo(Protocol.IceRpc.DefaultUriPort));
+            Assert.That(serverAddress.Port, Is.EqualTo(Protocol.IceRpc.DefaultPort));
             Assert.That(serverAddress.Transport, Is.Null);
             Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
         });

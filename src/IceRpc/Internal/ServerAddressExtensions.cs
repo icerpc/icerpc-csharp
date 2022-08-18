@@ -41,7 +41,7 @@ internal static class ServerAddressExtensions
             sb.Append(serverAddress.Host);
         }
 
-        if (serverAddress.Port != serverAddress.Protocol.DefaultUriPort)
+        if (serverAddress.Port != serverAddress.Protocol.DefaultPort)
         {
             sb.Append(':');
             sb.Append(serverAddress.Port.ToString(CultureInfo.InvariantCulture));

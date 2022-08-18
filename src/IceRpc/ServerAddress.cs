@@ -102,7 +102,7 @@ public readonly record struct ServerAddress
         }
 
         Protocol = protocol;
-        _port = (ushort)Protocol.DefaultUriPort;
+        _port = (ushort)Protocol.DefaultPort;
         _transport = null;
         OriginalUri = null;
     }
@@ -130,7 +130,7 @@ public readonly record struct ServerAddress
         }
 
         // bug if it throws OverflowException
-        _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port));
+        _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultPort : uri.Port));
 
         if (uri.UserInfo.Length > 0)
         {
