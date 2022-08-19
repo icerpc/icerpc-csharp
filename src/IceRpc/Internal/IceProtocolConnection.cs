@@ -38,7 +38,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly CancellationTokenSource _dispatchesAndInvocationsCancelSource = new();
+    private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
     private readonly AsyncSemaphore? _dispatchSemaphore;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
@@ -55,7 +55,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
-    private readonly CancellationTokenSource _tasksCancelSource = new();
+    private readonly CancellationTokenSource _tasksCts = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
     internal IceProtocolConnection(
@@ -98,9 +98,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     lock (_mutex)
                     {
-                        if (_pingTask.IsCompleted && !_tasksCancelSource.IsCancellationRequested)
+                        if (_pingTask.IsCompleted && !_tasksCts.IsCancellationRequested)
                         {
-                            _pingTask = PingAsync(_tasksCancelSource.Token);
+                            _pingTask = PingAsync(_tasksCts.Token);
                         }
                     }
                 }
@@ -168,7 +168,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
 
         // Cancel dispatches and invocations for a speedy shutdown.
-        _dispatchesAndInvocationsCancelSource.Cancel();
+        _dispatchesAndInvocationsCts.Cancel();
     }
 
     private protected override bool CheckIfIdle()
@@ -222,8 +222,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
                 throw new InvalidDataException(
-                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{
-                       validateConnectionFrame.FrameType}'");
+                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
             }
         }
 
@@ -234,10 +233,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
                     var exception = new ConnectionAbortedException("transport connection disposed");
-                    _tasksCancelSource.Cancel();
+                    _tasksCts.Cancel();
                     await Task.WhenAll(
                         _pingTask,
                         _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
@@ -304,7 +303,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
-        _tasksCancelSource.Cancel();
+        _tasksCts.Cancel();
         await Task.WhenAll(
             _readFramesTask ?? Task.CompletedTask,
             _pingTask,
@@ -323,8 +322,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _duplexConnectionReader.Dispose();
         _duplexConnectionWriter.Dispose();
 
-        _tasksCancelSource.Dispose();
-        _dispatchesAndInvocationsCancelSource.Dispose();
+        _tasksCts.Dispose();
+        _dispatchesAndInvocationsCts.Dispose();
     }
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
@@ -336,7 +335,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         TaskCompletionSource<PipeReader>? responseCompletionSource = null;
         PipeWriter payloadWriter = _payloadWriter;
 
-        CancellationTokenSource? cancelSource = null;
+        CancellationTokenSource? cts = null;
         Exception? completeException = null;
 
         lock (_mutex)
@@ -348,10 +347,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 throw new ConnectionClosedException();
             }
 
-            // _dispatchesAndInvocationsCancelSource.Token can throw ObjectDisposedException so only create the
+            // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
             // linked source if the connection is not disposed.
-            cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
-                _dispatchesAndInvocationsCancelSource.Token,
+            cts = CancellationTokenSource.CreateLinkedTokenSource(
+                _dispatchesAndInvocationsCts.Token,
                 cancel);
         }
 
@@ -366,12 +365,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // semaphore.
             ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
                 request.Payload,
-                cancelSource.Token).ConfigureAwait(false);
+                cts.Token).ConfigureAwait(false);
             int payloadSize = checked((int)payload.Length);
 
             // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
             // serialize the writing of frames.
-            await _writeSemaphore.EnterAsync(cancelSource.Token).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
             acquiredSemaphore = true;
 
             // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
@@ -407,7 +406,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             FlushResult flushResult = await payloadWriter.WriteAsync(
                 payload,
                 endStream: false,
-                _tasksCancelSource.Token).ConfigureAwait(false);
+                _tasksCts.Token).ConfigureAwait(false);
 
             // If a payload writer decorator returns a canceled or completed flush result, we have to throw
             // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
@@ -436,7 +435,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 UnregisterInvocation();
 
-                cancelSource?.Dispose();
+                cts?.Dispose();
             }
 
             await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
@@ -460,7 +459,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             Debug.Assert(responseCompletionSource is not null);
             try
             {
-                frameReader = await responseCompletionSource.Task.WaitAsync(cancelSource.Token).ConfigureAwait(false);
+                frameReader = await responseCompletionSource.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (responseCompletionSource.Task.IsCompleted)
             {
@@ -546,7 +545,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 UnregisterInvocation();
             }
 
-            cancelSource?.Dispose();
+            cts?.Dispose();
 
             if (completeException is not null && frameReader is not null)
             {
@@ -927,7 +926,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // This prevents us from receiving any frame until EnterAsync returns.
                 try
                 {
-                    await dispatchSemaphore.EnterAsync(_dispatchesAndInvocationsCancelSource.Token)
+                    await dispatchSemaphore.EnterAsync(_dispatchesAndInvocationsCts.Token)
                         .ConfigureAwait(false);
                 }
                 catch
@@ -987,7 +986,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // possible.
                     response = await _dispatcher.DispatchAsync(
                         request,
-                        _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+                        _dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
 
                     if (response != request.Response)
                     {
@@ -1220,16 +1219,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     encapsulationHeader.PayloadEncodingMinor != 1)
                 {
                     throw new InvalidDataException(
-                        @$"unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor
-                        }.{encapsulationHeader.PayloadEncodingMinor}'");
+                        @$"unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor}.{encapsulationHeader.PayloadEncodingMinor}'");
                 }
 
                 int payloadSize = encapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
                 {
                     throw new InvalidDataException(
-                        @$"request payload size mismatch: expected {payloadSize
-                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
+                        @$"request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
                 return (requestId, requestHeader, contextPipe?.Reader, (int)decoder.Consumed);

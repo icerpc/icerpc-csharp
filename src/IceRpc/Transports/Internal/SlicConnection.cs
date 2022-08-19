@@ -53,7 +53,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly int _packetMaxSize;
     private Task? _readFramesTask;
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
-    private readonly CancellationTokenSource _tasksCancelSource = new();
+    private readonly CancellationTokenSource _tasksCts = new();
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
@@ -200,7 +200,7 @@ internal class SlicConnection : IMultiplexedConnection
                 try
                 {
                     // Read frames. This will return when the Close frame is received.
-                    await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
                     var exception = new ConnectionClosedException("transport connection closed by peer");
                     if (Abort(exception))
@@ -262,7 +262,7 @@ internal class SlicConnection : IMultiplexedConnection
             Abort(new ConnectionAbortedException("transport connection disposed"));
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
-            _tasksCancelSource.Cancel();
+            _tasksCts.Cancel();
 
             await Task.WhenAll(
                 _writeSemaphore.CompleteAndWaitAsync(_exception!),
@@ -275,7 +275,7 @@ internal class SlicConnection : IMultiplexedConnection
             _duplexConnectionReader.Dispose();
             _duplexConnectionWriter.Dispose();
 
-            _tasksCancelSource.Dispose();
+            _tasksCts.Dispose();
         }
     }
 
@@ -509,9 +509,9 @@ internal class SlicConnection : IMultiplexedConnection
                     sendSource1,
                     sendSource2,
                     lastStreamFrame,
-                    _tasksCancelSource.Token).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                    _tasksCts.Token).AsTask().WaitAsync(cancel).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
+            catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
                 throw new ConnectionAbortedException("transport connection disposed");
             }
