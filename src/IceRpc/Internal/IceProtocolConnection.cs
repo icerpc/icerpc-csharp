@@ -995,7 +995,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                 }
                 catch (OperationCanceledException exception) when
-                    (exception.CancellationToken == _dispatchesAndInvocationsCancelSource.Token)
+                    (exception.CancellationToken == _dispatchesAndInvocationsCts.Token)
                 {
                     response = new OutgoingResponse(request)
                     {
