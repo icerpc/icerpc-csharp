@@ -60,7 +60,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a connection cache.</summary>
+    /// <summary>Constructs a connection cache using the default options.</summary>
     public ConnectionCache()
         : this(new ConnectionCacheOptions())
     {
