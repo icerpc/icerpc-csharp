@@ -5,7 +5,7 @@ using IceRpc;
 using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 
-await using var connectionCache = new ConnectionCache(new ConnectionCacheOptions());
+await using var connectionCache = new ConnectionCache();
 
 // Create a new invocation pipeline
 var pipeline = new Pipeline();

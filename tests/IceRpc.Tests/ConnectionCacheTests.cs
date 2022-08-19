@@ -80,7 +80,7 @@ public sealed class ConnectionCacheTests
         server.Listen();
 
         await using var cache = new ConnectionCache(
-            new ConnectionCacheOptions() { PreferExistingConnection = true },
+            new ConnectionCacheOptions(),
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         ServerAddress? serverAddress = null;
@@ -173,7 +173,7 @@ public sealed class ConnectionCacheTests
         server2.Listen();
 
         await using var cache = new ConnectionCache(
-           new ConnectionCacheOptions { PreferExistingConnection = true },
+           new ConnectionCacheOptions(),
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         ServerAddress? serverAddress = null;
