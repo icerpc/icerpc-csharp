@@ -94,15 +94,8 @@ public readonly record struct ServerAddress
     /// <param name="protocol">The protocol.</param>
     public ServerAddress(Protocol protocol)
     {
-        if (!protocol.IsSupported)
-        {
-            throw new ArgumentException(
-                "cannot create a server address with a non-supported protocol",
-                nameof(protocol));
-        }
-
         Protocol = protocol;
-        _port = (ushort)Protocol.DefaultPort;
+        _port = Protocol.DefaultPort;
         _transport = null;
         OriginalUri = null;
     }
@@ -118,19 +111,17 @@ public readonly record struct ServerAddress
         {
             throw new ArgumentException("cannot create a server address from a relative URI", nameof(uri));
         }
-        Protocol = Protocol.FromString(uri.Scheme);
-        if (!Protocol.IsSupported)
-        {
-            throw new ArgumentException($"cannot create a server address with protocol '{Protocol}'", nameof(uri));
-        }
+
+        Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol) ? protocol :
+            throw new ArgumentException($"cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
+
         _host = uri.IdnHost;
         if (_host.Length == 0)
         {
             throw new ArgumentException("cannot create a server address with an empty host", nameof(uri));
         }
 
-        // bug if it throws OverflowException
-        _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultPort : uri.Port));
+        _port = uri.Port == -1 ? Protocol.DefaultPort : checked((ushort)uri.Port);
 
         if (uri.UserInfo.Length > 0)
         {

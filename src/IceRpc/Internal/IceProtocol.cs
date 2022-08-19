@@ -8,11 +8,11 @@ namespace IceRpc.Internal;
 /// <summary>The Ice protocol class.</summary>
 internal sealed class IceProtocol : Protocol
 {
-    public override int DefaultPort => 4061;
+    public override ushort DefaultPort => 4061;
+
+    public override bool HasFields => false;
 
     public override bool HasFragment => true;
-
-    public override bool IsSupported => true;
 
     /// <summary>Gets the Ice protocol singleton.</summary>
     internal static IceProtocol Instance { get; } = new();

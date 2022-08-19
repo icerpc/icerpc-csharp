@@ -197,10 +197,10 @@ public class ServerAddressTests
     public void Construction_with_unsupported_protocol_fails()
     {
         // Arrange
-        var unsupportedProtocol = Protocol.FromString("foo");
+        var uri = new Uri("http://foo");
 
         // Act / Assert
-        Assert.Throws<ArgumentException>(() => new ServerAddress(unsupportedProtocol));
+        Assert.Throws<ArgumentException>(() => new ServerAddress(uri));
     }
 
     [Test]

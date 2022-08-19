@@ -179,7 +179,7 @@ public class LocatorServerAddressFinderTests
             await _semaphore.WaitAsync(cancel);
             Interlocked.Increment(ref Count);
 
-            return new ServiceAddress(new Uri("dummy://localhost:10000"));
+            return new ServiceAddress(new Uri("ice://localhost:10000/dummy?transport=unknown"));
         }
     }
 

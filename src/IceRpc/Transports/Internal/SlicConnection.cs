@@ -122,18 +122,10 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             // Check the application protocol and set the parameters.
-            try
+            string protocolName = initializeBody.Value.ApplicationProtocolName;
+            if (!Protocol.TryParse(protocolName, out Protocol? protocol) || protocol != Protocol.IceRpc)
             {
-                if (Protocol.FromString(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
-                {
-                    throw new NotSupportedException(
-                        $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");
-                }
-            }
-            catch (FormatException ex)
-            {
-                throw new NotSupportedException(
-                    $"unknown application protocol '{initializeBody.Value.ApplicationProtocolName}'", ex);
+                throw new NotSupportedException($"application protocol '{protocolName}' is not supported");
             }
 
             SetParameters(initializeBody.Value.Parameters);

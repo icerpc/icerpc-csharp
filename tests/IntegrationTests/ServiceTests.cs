@@ -16,7 +16,7 @@ public class ServiceTests
     public async Task Service_operations([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(new Service(), Protocol.FromString(protocol))
+            .AddColocTest(new Service(), Protocol.Parse(protocol))
             .AddIceRpcProxy<IServiceProxy, ServiceProxy>(new Uri($"{protocol}:/service"))
             .BuildServiceProvider(validateScopes: true);
         IServiceProxy proxy = provider.GetRequiredService<IServiceProxy>();

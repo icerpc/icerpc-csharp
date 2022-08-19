@@ -30,7 +30,12 @@ public sealed record class ServiceAddress
 
         init
         {
-            CheckSupportedProtocol(nameof(ServerAddress));
+            if (Protocol is null)
+            {
+                throw new InvalidOperationException(
+                    $"cannot set {nameof(ServerAddress)} on a relative service address");
+            }
+
             if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
             {
                 throw new ArgumentException(
@@ -62,24 +67,17 @@ public sealed record class ServiceAddress
         get => _path;
         init
         {
-            if (Protocol is null || Protocol.IsSupported)
+            try
             {
-                try
-                {
-                    CheckPath(value); // make sure it's properly escaped
-                    Protocol?.CheckPath(value); // make sure the protocol is happy with this path
-                }
-                catch (FormatException ex)
-                {
-                    throw new ArgumentException("invalid path", nameof(Path), ex);
-                }
-                _path = value;
-                OriginalUri = null;
+                CheckPath(value); // make sure it's properly escaped
+                Protocol?.CheckPath(value); // make sure the protocol is happy with this path
             }
-            else
+            catch (FormatException ex)
             {
-                throw new InvalidOperationException($"cannot set {nameof(Path)} on a '{Protocol}' service address");
+                throw new ArgumentException("invalid path", nameof(Path), ex);
             }
+            _path = value;
+            OriginalUri = null;
         }
     }
 
@@ -91,7 +89,11 @@ public sealed record class ServiceAddress
 
         init
         {
-            CheckSupportedProtocol(nameof(AltServerAddresses));
+            if (Protocol is null)
+            {
+                throw new InvalidOperationException(
+                    $"cannot set {nameof(AltServerAddresses)} on a relative service address");
+            }
 
             if (value.Count > 0)
             {
@@ -123,12 +125,15 @@ public sealed record class ServiceAddress
         get => _params;
         init
         {
-            CheckSupportedProtocol(nameof(Params));
+            if (Protocol is null)
+            {
+                throw new InvalidOperationException($"cannot set {nameof(Params)} on a relative service address");
+            }
 
             try
             {
                 CheckParams(value); // general checking (properly escape, no empty name)
-                Protocol!.CheckServiceAddressParams(value); // protocol-specific checking
+                Protocol.CheckServiceAddressParams(value); // protocol-specific checking
             }
             catch (FormatException ex)
             {
@@ -152,7 +157,10 @@ public sealed record class ServiceAddress
         get => _fragment;
         init
         {
-            CheckSupportedProtocol(nameof(Fragment));
+            if (Protocol is null)
+            {
+                throw new InvalidOperationException($"cannot set {nameof(Fragment)} on a relative service address");
+            }
 
             try
             {
@@ -163,7 +171,7 @@ public sealed record class ServiceAddress
                 throw new ArgumentException("invalid fragment", nameof(Fragment), ex);
             }
 
-            if (!Protocol!.HasFragment && value.Length > 0)
+            if (!Protocol.HasFragment && value.Length > 0)
             {
                 throw new InvalidOperationException($"cannot set {Fragment} on an {Protocol} service address");
             }
@@ -187,9 +195,7 @@ public sealed record class ServiceAddress
     /// <param name="protocol">The protocol, or null for a relative service address.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
     /// </exception>
-    public ServiceAddress(Protocol? protocol = null) =>
-        Protocol = protocol is null || protocol.IsSupported ? protocol :
-            throw new ArgumentException("protocol must be null or a supported protocol", nameof(protocol));
+    public ServiceAddress(Protocol? protocol = null) => Protocol = protocol;
 
     /// <summary>Constructs a service address from a URI.</summary>
     /// <param name="uri">The Uri.</param>
@@ -197,95 +203,93 @@ public sealed record class ServiceAddress
     {
         if (uri.IsAbsoluteUri)
         {
-            Protocol = Protocol.FromString(uri.Scheme);
+            Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol) ? protocol :
+                throw new ArgumentException(
+                    $"cannot create a service address with protocol '{uri.Scheme}'",
+                    nameof(uri));
 
             // The AbsolutePath is empty for a URI such as "icerpc:?foo=bar"
             _path = uri.AbsolutePath.Length > 0 ? uri.AbsolutePath : "/";
             _fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : ""; // remove leading #
 
-            if (Protocol.IsSupported)
+            try
             {
-                try
+                Protocol.CheckPath(_path);
+            }
+            catch (FormatException exception)
+            {
+                throw new ArgumentException($"invalid path in {Protocol} URI", nameof(uri), exception);
+            }
+
+            if (!Protocol.HasFragment && _fragment.Length > 0)
+            {
+                throw new ArgumentException(
+                    $"cannot create an {Protocol} service address with a fragment",
+                    nameof(uri));
+            }
+
+            (ImmutableDictionary<string, string> queryParams, string? altServerValue, string? transport) =
+                uri.ParseQuery();
+
+            if (uri.Authority.Length > 0)
+            {
+                if (uri.UserInfo.Length > 0)
                 {
-                    Protocol.CheckPath(_path);
-                }
-                catch (FormatException exception)
-                {
-                    throw new ArgumentException($"invalid path in {Protocol} URI", nameof(uri), exception);
+                    throw new ArgumentException("cannot create a server address with a user info", nameof(uri));
                 }
 
-                if (!Protocol.HasFragment && _fragment.Length > 0)
+                string host = uri.IdnHost;
+                Debug.Assert(host.Length > 0); // the IdnHost provided by Uri is never empty
+
+                _serverAddress = new ServerAddress(
+                    Protocol,
+                    host,
+                    port: uri.Port == -1 ? Protocol.DefaultPort : checked((ushort)uri.Port),
+                    transport,
+                    queryParams);
+
+                if (altServerValue is not null)
+                {
+                    // Split and parse recursively each serverAddress
+                    foreach (string serverAddressStr in altServerValue.Split(','))
+                    {
+                        string altUriString = $"{uri.Scheme}://{serverAddressStr}";
+
+                        // The separator for server address parameters in alt-server is $, so we replace these '$'
+                        // by '&' before sending the string (Uri) to the ServerAddress constructor which uses '&' as
+                        // separator.
+                        _altServerAddresses = _altServerAddresses.Add(
+                            new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
+                    }
+                }
+            }
+            else
+            {
+                if (!_path.StartsWith('/'))
                 {
                     throw new ArgumentException(
-                        $"cannot create an {Protocol} service address with a fragment",
+                        $"invalid path in service address URI '{uri.OriginalString}'",
                         nameof(uri));
                 }
 
-                (ImmutableDictionary<string, string> queryParams, string? altServerValue, string? transport) =
-                    uri.ParseQuery();
-
-                if (uri.Authority.Length > 0)
+                if (altServerValue is not null)
                 {
-                    if (uri.UserInfo.Length > 0)
-                    {
-                        throw new ArgumentException("cannot create a server address with a user info", nameof(uri));
-                    }
-
-                    string host = uri.IdnHost;
-                    Debug.Assert(host.Length > 0); // the IdnHost provided by Uri is never empty
-
-                    _serverAddress = new ServerAddress(
-                        Protocol,
-                        host,
-                        port: checked((ushort)(uri.Port == -1 ? Protocol.DefaultPort : uri.Port)),
-                        transport,
-                        queryParams);
-
-                    if (altServerValue is not null)
-                    {
-                        // Split and parse recursively each serverAddress
-                        foreach (string serverAddressStr in altServerValue.Split(','))
-                        {
-                            string altUriString = $"{uri.Scheme}://{serverAddressStr}";
-
-                            // The separator for server address parameters in alt-server is $, so we replace these '$'
-                            // by '&' before sending the string (Uri) to the ServerAddress constructor which uses '&' as
-                            // separator.
-                            _altServerAddresses = _altServerAddresses.Add(
-                                new ServerAddress(new Uri(altUriString.Replace('$', '&'))));
-                        }
-                    }
+                    throw new ArgumentException(
+                        $"invalid alt-server parameter in URI '{uri.OriginalString}'",
+                        nameof(uri));
                 }
-                else
+
+                try
                 {
-                    if (!_path.StartsWith('/'))
-                    {
-                        throw new ArgumentException(
-                            $"invalid path in service address URI '{uri.OriginalString}'",
-                            nameof(uri));
-                    }
-
-                    if (altServerValue is not null)
-                    {
-                        throw new ArgumentException(
-                            $"invalid alt-server parameter in URI '{uri.OriginalString}'",
-                            nameof(uri));
-                    }
-
-                    try
-                    {
-                        Protocol.CheckServiceAddressParams(queryParams);
-                    }
-                    catch (FormatException exception)
-                    {
-                        throw new ArgumentException("invalid params in URI", nameof(uri), exception);
-                    }
-
-                    Params = queryParams;
+                    Protocol.CheckServiceAddressParams(queryParams);
                 }
+                catch (FormatException exception)
+                {
+                    throw new ArgumentException("invalid params in URI", nameof(uri), exception);
+                }
+
+                Params = queryParams;
             }
-
-            // else, not a supported protocol so nothing to do
         }
         else
         {
@@ -328,15 +332,8 @@ public sealed record class ServiceAddress
             // Both service addresses are relative
             return Path == other.Path;
         }
-        else if (!Protocol.IsSupported)
-        {
-            // Comparing 2 service addresses with the same non-supported protocol
-            Debug.Assert(OriginalUri is not null);
-            Debug.Assert(other.OriginalUri is not null);
-            return OriginalUri == other.OriginalUri;
-        }
 
-        // Comparing 2 service addresses with the same supported protocol
+        // Comparing 2 service addresses with the same protocol
         return Path == other.Path &&
             Fragment == other.Fragment &&
             ServerAddress == other.ServerAddress &&
@@ -351,13 +348,6 @@ public sealed record class ServiceAddress
         {
             return Path.GetHashCode(StringComparison.Ordinal);
         }
-        else if (!Protocol.IsSupported)
-        {
-            Debug.Assert(OriginalUri is not null);
-            return OriginalUri.GetHashCode();
-        }
-
-        // Service address with a supported protocol
 
         // We only hash a subset of the properties to keep GetHashCode reasonably fast.
         var hash = new HashCode();
@@ -553,18 +543,6 @@ public sealed record class ServiceAddress
     /// in a name.</remarks>
     private static bool IsValidParamName(string name) =>
         name.Length > 0 && name != "alt-server" && name != "transport" && IsValid(name, "\"<>#&=\\^`{|}");
-
-    private void CheckSupportedProtocol(string propertyName)
-    {
-        if (Protocol is null)
-        {
-            throw new InvalidOperationException($"cannot set {propertyName} on a relative service address");
-        }
-        else if (!Protocol.IsSupported)
-        {
-            throw new InvalidOperationException($"cannot set {propertyName} on a '{Protocol}' service address");
-        }
-    }
 }
 
 /// <summary>The service address type converter specifies how to convert a string to a service address. It's used by
