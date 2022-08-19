@@ -252,7 +252,8 @@ internal class ResettablePipeReaderDecorator : PipeReader
                 readResult.IsCompleted);
         }
 
-        if (_isResettable && _sequence.Value.Length > _maxBufferSize)
+        // When the application requests cancellation via CancelPendingRead, we don't retry.
+        if (_isResettable && (_sequence.Value.Length > _maxBufferSize || readResult.IsCanceled))
         {
             _isResettable = false;
         }
