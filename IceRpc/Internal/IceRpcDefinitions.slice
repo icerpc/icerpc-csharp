@@ -73,6 +73,9 @@ unchecked enum IceRpcStreamErrorCode : varuint62
     /// specific error code.
     Unspecified,
 
+    /// The stream completed because the associated invocation or dispatch was canceled.
+    Canceled,
+
     /// The connection was shut down.
     ConnectionShutdown,
 
