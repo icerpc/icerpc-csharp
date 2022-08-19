@@ -245,7 +245,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
-        Exception? completeException = null;
         using var invocationCancelSource = CancellationTokenSource.CreateLinkedTokenSource(
             cancel,
             _dispatchesAndInvocationsCancelSource.Token);
@@ -286,26 +285,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // SendPayloadAsync takes care of the completion of the stream output.
             await SendPayloadAsync(request, stream, invocationCancelSource.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCanceledException is not null)
+        catch (Exception exception) when (stream is not null)
         {
-            completeException = _dispatchesAndInvocationsCanceledException;
-            throw completeException;
-        }
-        catch (Exception exception)
-        {
-            completeException = exception;
-            throw;
-        }
-        finally
-        {
-            if (completeException is not null && stream is not null)
+            await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+            if (stream.IsBidirectional)
             {
-                await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
-                if (stream.IsBidirectional)
-                {
-                    await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-                }
+                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
             }
+            throw _dispatchesAndInvocationsCanceledException ?? exception;
         }
 
         try
@@ -338,23 +325,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ResultType = header.ResultType
             };
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCanceledException is not null)
-        {
-            completeException = _dispatchesAndInvocationsCanceledException;
-            throw completeException;
-        }
         catch (Exception exception)
         {
-            completeException = exception;
-            throw;
-        }
-        finally
-        {
-            if (completeException is not null)
-            {
-                Debug.Assert(!request.IsOneway);
-                await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-            }
+            await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+            throw _dispatchesAndInvocationsCanceledException ?? exception;
         }
 
         void EncodeHeader(PipeWriter writer)
@@ -774,10 +748,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException) when (_dispatchesAndInvocationsCanceledException is not null)
+            catch (OperationCanceledException exception) when (dispatchCancelSource.Token == exception.CancellationToken)
             {
-                // TODO: or should this throw a DispatchException with a ConnectionAborted error code?
-                await stream.Output.CompleteAsync(_dispatchesAndInvocationsCanceledException).ConfigureAwait(false);
+                await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 request.Complete();
                 return;
             }

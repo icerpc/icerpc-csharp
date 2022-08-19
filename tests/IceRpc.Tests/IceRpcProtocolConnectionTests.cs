@@ -173,8 +173,7 @@ public sealed class IceRpcProtocolConnectionTests
         var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchTcs.Task);
         Assert.Multiple(() =>
         {
-            // TODO: use better error code?
-            Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Unspecified));
+            Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
             Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
         });
     }
