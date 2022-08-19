@@ -318,12 +318,7 @@ fn encode_tagged_type(
             format!("size: {}", size_parameter.unwrap())
         })
         .add_argument_if_else(read_only_memory, value, unwrapped_name)
-        .add_argument(encode_action(
-            &clone_as_non_optional(data_type),
-            type_context,
-            namespace,
-            encoding,
-        ))
+        .add_argument(encode_action(data_type, type_context, namespace, encoding, true))
         .build();
 
     writeln!(
@@ -358,34 +353,23 @@ fn encode_sequence(
     let has_custom_type = sequence_ref.has_attribute("cs::generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
         if type_context == TypeContext::Encode && !has_custom_type {
-            format!(
-                "{encoder_param}.EncodeSpan({value}.Span)",
-                encoder_param = encoder_param,
-                value = value
-            )
+            format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
-            format!(
-                "{encoder_param}.EncodeSequence({value})",
-                encoder_param = encoder_param,
-                value = value
-            )
+            format!("{encoder_param}.EncodeSequence({value})")
         }
     } else {
+        let element_type = &sequence_ref.element_type;
         format!(
             "\
 {encoder_param}.EncodeSequence{with_bit_sequence}(
-    {param},
+    {value},
     {encode_action})",
-            with_bit_sequence = if encoding != Encoding::Slice1 && sequence_ref.element_type.is_bit_sequence_encodable()
-            {
+            with_bit_sequence = if encoding != Encoding::Slice1 && element_type.is_bit_sequence_encodable() {
                 "WithBitSequence"
             } else {
                 ""
             },
-            encoder_param = encoder_param,
-            param = value,
-            encode_action =
-                encode_action(&sequence_ref.element_type, TypeContext::Nested, namespace, encoding).indent()
+            encode_action = encode_action(element_type, TypeContext::Nested, namespace, encoding, false).indent(),
         )
     }
     .into()
@@ -398,35 +382,41 @@ fn encode_dictionary(
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
+    let key_type = &dictionary_def.key_type;
+    let value_type = &dictionary_def.value_type;
     format!(
         "\
 {encoder_param}.{method}(
     {param},
     {encode_key},
     {encode_value})",
-        method = if encoding != Encoding::Slice1 && dictionary_def.value_type.is_bit_sequence_encodable() {
+        method = if encoding != Encoding::Slice1 && value_type.is_bit_sequence_encodable() {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
         },
-        encoder_param = encoder_param,
-        param = param,
-        encode_key = encode_action(&dictionary_def.key_type, TypeContext::Nested, namespace, encoding).indent(),
-        encode_value = encode_action(&dictionary_def.value_type, TypeContext::Nested, namespace, encoding).indent()
+        encode_key = encode_action(key_type, TypeContext::Nested, namespace, encoding, false).indent(),
+        encode_value = encode_action(value_type, TypeContext::Nested, namespace, encoding, false).indent(),
     )
     .into()
 }
 
-pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &str, encoding: Encoding) -> CodeBlock {
+pub fn encode_action(
+    type_ref: &TypeRef,
+    type_context: TypeContext,
+    namespace: &str,
+    encoding: Encoding,
+    is_tagged: bool,
+) -> CodeBlock {
     let mut code = CodeBlock::new();
-    let is_optional = type_ref.is_optional;
+    let is_optional = type_ref.is_optional && !is_tagged;
 
-    let value = match (type_ref.is_optional, type_ref.is_value_type()) {
+    let value = match (is_optional, type_ref.is_value_type()) {
         (true, false) => "value!",
         (true, true) => "value!.Value",
         _ => "value",
     };
-    let value_type = type_ref.to_type_string(namespace, type_context, false);
+    let value_type = type_ref.to_type_string(namespace, type_context, is_tagged);
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {

@@ -92,7 +92,7 @@ public class TcpClientTransport : IDuplexClientTransport
             // default port, the server can and should use this port number to identify the application protocol when no
             // ALPN protocol ID is provided.
             if (authenticationOptions.ApplicationProtocols is null &&
-                serverAddress.Port != serverAddress.Protocol.DefaultUriPort)
+                serverAddress.Port != serverAddress.Protocol.DefaultPort)
             {
                 authenticationOptions.ApplicationProtocols = new List<SslApplicationProtocol>
                 {

@@ -26,7 +26,7 @@ public class ClientConnectionTests
                 {
                     Dispatcher = ServiceNotFoundDispatcher.Instance,
                 },
-                ServerAddress = new ServerAddress(protocol) { Port = 0 },
+                ServerAddress = new ServerAddress(new Uri($"{protocol}://127.0.0.1:0"))
             },
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
             duplexServerTransport: new TcpServerTransport());
