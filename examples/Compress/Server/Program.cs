@@ -3,7 +3,7 @@
 using Demo;
 using IceRpc;
 
-using var cancellationSource = new CancellationTokenSource();
+using var cts = new CancellationTokenSource();
 
 // Adding deflate middleware to the router
 Router router = new Router().UseDeflate();

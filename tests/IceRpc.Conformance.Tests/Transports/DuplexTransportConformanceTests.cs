@@ -113,15 +113,15 @@ public abstract class DuplexTransportConformanceTests
     public async Task Read_cancellation()
     {
         // Arrange
-        using var canceled = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
             provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
-        ValueTask<int> readTask = sut.ClientConnection.ReadAsync(new byte[1], canceled.Token);
+        ValueTask<int> readTask = sut.ClientConnection.ReadAsync(new byte[1], cts.Token);
 
         // Act
-        canceled.Cancel();
+        cts.Cancel();
 
         // Assert
         Assert.That(async () => await readTask, Throws.InstanceOf<OperationCanceledException>());
@@ -274,14 +274,14 @@ public abstract class DuplexTransportConformanceTests
             provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
-        using var canceled = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
 
         // Write data until flow control blocks the sending. Canceling the blocked write, should throw
         // OperationCanceledException.
         Task writeTask;
         while (true)
         {
-            writeTask = sut.ClientConnection.WriteAsync(buffer, canceled.Token).AsTask();
+            writeTask = sut.ClientConnection.WriteAsync(buffer, cts.Token).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(20));
             if (writeTask.IsCompleted)
             {
@@ -294,7 +294,7 @@ public abstract class DuplexTransportConformanceTests
         }
 
         // Act
-        canceled.Cancel();
+        cts.Cancel();
 
         // Assert
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
