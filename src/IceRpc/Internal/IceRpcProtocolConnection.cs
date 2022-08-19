@@ -245,8 +245,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
-        CancellationTokenRegistration? abortTokenRegistration = null;
         Exception? completeException = null;
+        using var invocationCancelSource = CancellationTokenSource.CreateLinkedTokenSource(
+            cancel,
+            _dispatchesAndInvocationsCancelSource.Token);
 
         try
         {
@@ -257,11 +259,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // Create the stream.
             stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
-
-            // Abort the stream if the invocation is canceled.
-            abortTokenRegistration = cancel.UnsafeRegister(
-                stream => ((IMultiplexedStream)stream!).Abort(new OperationCanceledException("invocation canceled")),
-                stream);
 
             // Keep track of the invocation for the shutdown logic.
             lock (_mutex)
@@ -287,7 +284,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeHeader(stream.Output);
 
             // SendPayloadAsync takes care of the completion of the stream output.
-            await SendPayloadAsync(request, stream, _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+            await SendPayloadAsync(request, stream, invocationCancelSource.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
@@ -301,20 +298,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         finally
         {
-            if (completeException is not null)
+            if (completeException is not null && stream is not null)
             {
-                if (stream is not null)
+                await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
+                if (stream.IsBidirectional)
                 {
-                    await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
-                    if (stream.IsBidirectional)
-                    {
-                        await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-                    }
-                }
-
-                if (abortTokenRegistration is not null)
-                {
-                    await abortTokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
+                    await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
                 }
             }
         }
@@ -329,7 +318,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+                invocationCancelSource.Token).ConfigureAwait(false);
 
             // Nothing cancels the stream input pipe reader.
             Debug.Assert(!readResult.IsCanceled);
@@ -365,11 +354,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 Debug.Assert(!request.IsOneway);
                 await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-            }
-
-            if (abortTokenRegistration is not null)
-            {
-                await abortTokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
             }
         }
 
@@ -606,11 +590,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             bool endStream,
             CancellationToken cancel)
         {
-            using var cancellationTokenSource = new CancellationTokenSource();
+            using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 
-            // If the peer is no longer interested to receive the payload, call reader.CancelPendingRead to unblock
-            // ReadAsync.
-            Task cancelPendingReadTask = CancelPendingReadOnWritesClosedAsync(cancellationTokenSource.Token);
+            // If the peer is no longer reading the payload, call Cancel on readCts.
+            Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
 
             FlushResult flushResult;
 
@@ -619,66 +602,64 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ReadResult readResult;
                 do
                 {
-                    readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
                     try
                     {
-                        if (readResult.Buffer.IsEmpty && !readResult.IsCompleted)
-                        {
-                            Debug.Assert(readResult.IsCanceled);
+                        readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (stream.WritesClosed.IsCompleted)
+                    {
+                        // This either throws the WritesClosed exception or returns a completed FlushResult.
+                        return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
 
-                            if (stream.WritesClosed.IsCompleted)
-                            {
-                                // If the peer's input pipe reader was completed with an exception, this will throw this
-                                // exception.
-                                flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                // The writer is not closed, so the CancelPendingRead is most likely coming from a
-                                // previous retry attempt with the same reader but with a different writer. We just loop
-                                // in this case.
-                                flushResult = default;
-                            }
-                        }
-                        else
+                    if (readResult.IsCanceled)
+                    {
+                        // The application (or an interceptor/middleware) called CancelPendingRead on reader.
+                        reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
+
+                        // We complete without throwing/catching any exception.
+                        await writer.CompleteAsync(new IceRpcProtocolStreamException(IceRpcStreamErrorCode.Canceled))
+                            .ConfigureAwait(false);
+
+                        flushResult = new FlushResult(isCanceled: false, isCompleted: true);
+                    }
+                    else
+                    {
+                        try
                         {
                             flushResult = await writer.WriteAsync(
-                                    readResult.Buffer,
-                                    readResult.IsCompleted && endStream,
-                                    cancel).ConfigureAwait(false);
+                                readResult.Buffer,
+                                readResult.IsCompleted && endStream,
+                                cancel).ConfigureAwait(false);
                         }
-                    }
-                    finally
-                    {
-                        reader.AdvanceTo(readResult.Buffer.End);
+                        finally
+                        {
+                            reader.AdvanceTo(readResult.Buffer.End);
+                        }
                     }
                 }
                 while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
             }
             finally
             {
-                cancellationTokenSource.Cancel();
-                await cancelPendingReadTask.ConfigureAwait(false);
+                readCts.Cancel();
+                await cancelOnWritesClosedTask.ConfigureAwait(false);
             }
 
             return flushResult;
 
-            async Task CancelPendingReadOnWritesClosedAsync(CancellationToken cancel)
+            async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
             {
                 try
                 {
-                    await stream.WritesClosed.WaitAsync(cancel).ConfigureAwait(false);
+                    await stream.WritesClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
                     // Ignore the reason of the writes close, or the OperationCanceledException
                 }
 
-                if (!cancel.IsCancellationRequested)
-                {
-                    reader.CancelPendingRead();
-                }
+                readCts.Cancel();
             }
         }
     }

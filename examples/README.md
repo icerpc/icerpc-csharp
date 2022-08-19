@@ -29,12 +29,17 @@ example.
 
 ## [Interop](./Interop/)
 
-The Interop example application shows how IceRPC interoperates with [ZeroC Ice](https://github.com/zeroc-ice/ice).
+Contains example applications that shows how IceRPC interoperates with [ZeroC Ice][1].
+
+## [Metrics](./Metrics/)
+
+The Metrics example application shows how to use the metric interceptor and middleware with `dotnet-counters` and
+`dotnet-trace` to monitor requests dispatched by a server.
 
 ## [OpenTelemetry](./OpenTelemetry/)
 
 The OpenTelemetry example shows how to use the telemetry interceptor and middleware and how they can be integrated with
-[OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin](https://zipkin.io/).
+[OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin][2].
 
 ## [RequestContext](./RequestContext/)
 
@@ -56,3 +61,6 @@ The Stream example shows how to stream data from a client to a server.
 ## [Upload](./Upload/)
 
 The Upload example shows how to upload a file from a client to a sever using streaming.
+
+[1]: https://github.com/zeroc-ice/ice
+[2]: https://zipkin.io/
