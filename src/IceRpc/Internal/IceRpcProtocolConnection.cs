@@ -245,8 +245,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
-        CancellationTokenRegistration? abortTokenRegistration = null;
         Exception? completeException = null;
+        using var invocationCancelSource = CancellationTokenSource.CreateLinkedTokenSource(
+            cancel,
+            _dispatchesAndInvocationsCancelSource.Token);
 
         try
         {
@@ -257,11 +259,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // Create the stream.
             stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
-
-            // Abort the stream if the invocation is canceled.
-            abortTokenRegistration = cancel.UnsafeRegister(
-                stream => ((IMultiplexedStream)stream!).Abort(new OperationCanceledException("invocation canceled")),
-                stream);
 
             // Keep track of the invocation for the shutdown logic.
             lock (_mutex)
@@ -287,7 +284,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeHeader(stream.Output);
 
             // SendPayloadAsync takes care of the completion of the stream output.
-            await SendPayloadAsync(request, stream, _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+            await SendPayloadAsync(request, stream, invocationCancelSource.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
@@ -301,20 +298,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         finally
         {
-            if (completeException is not null)
+            if (completeException is not null && stream is not null)
             {
-                if (stream is not null)
+                await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
+                if (stream.IsBidirectional)
                 {
-                    await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
-                    if (stream.IsBidirectional)
-                    {
-                        await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-                    }
-                }
-
-                if (abortTokenRegistration is not null)
-                {
-                    await abortTokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
+                    await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
                 }
             }
         }
@@ -329,7 +318,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+                invocationCancelSource.Token).ConfigureAwait(false);
 
             // Nothing cancels the stream input pipe reader.
             Debug.Assert(!readResult.IsCanceled);
@@ -365,11 +354,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 Debug.Assert(!request.IsOneway);
                 await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-            }
-
-            if (abortTokenRegistration is not null)
-            {
-                await abortTokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
             }
         }
 

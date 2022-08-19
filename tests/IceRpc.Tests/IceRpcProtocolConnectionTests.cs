@@ -6,6 +6,7 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
@@ -24,6 +25,16 @@ public sealed class IceRpcProtocolConnectionTests
             // Slice1 only exception will get encoded as unhandled exception with Slice2
             yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
             yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+        }
+    }
+
+    public static IEnumerable<TestCaseData> PayloadStreamReadExceptions
+    {
+        get
+        {
+            yield return new TestCaseData(new InvalidDataException(""), (ulong)IceRpcStreamErrorCode.InvalidData);
+            yield return new TestCaseData(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)99), 99ul);
+            yield return new TestCaseData(new OperationCanceledException(), IceRpcStreamErrorCode.Unspecified);
         }
     }
 
@@ -86,6 +97,127 @@ public sealed class IceRpcProtocolConnectionTests
             new ServiceProxy(sut.Client, request.ServiceAddress)) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
+    }
+
+    [Test]
+    public async Task Invocation_cancellation_triggers_dispatch_cancellation()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var cancellationTokenSource = new CancellationTokenSource();
+        Task invokeTask = sut.Client.InvokeAsync(request, cancellationTokenSource.Token);
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Act
+        cancellationTokenSource.Cancel();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+            Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        });
+    }
+
+    [Test]
+    public async Task Invocation_cancellation_triggers_incoming_request_payload_read_exception()
+    {
+        // Arrange
+        var dispatchTcs = new TaskCompletionSource();
+        var dispatcher = new InlineDispatcher(
+            async (request, cancel) =>
+            {
+                try
+                {
+                    // Loop until ReadAsync throws IceRpcProtocolStreamException
+                    while(true)
+                    {
+                        ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
+                        request.Payload.AdvanceTo(result.Buffer.End);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    dispatchTcs.SetException(ex);
+                }
+                return new OutgoingResponse(request);
+            });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        // Use initial payload data to ensure the request is sent before the payload reader blocks (Slic sends the
+        // request header with the start of the payload so if the first ReadAsync blocks, the request header is not
+        // sent).
+        var payload = new HoldPipeReader(new byte[10]);
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+            {
+                Payload = payload
+            };
+        using var cancellationTokenSource = new CancellationTokenSource();
+        Task invokeTask = sut.Client.InvokeAsync(request, cancellationTokenSource.Token);
+        await payload.ReadStart;
+
+        // Act
+        cancellationTokenSource.Cancel();
+
+        // Assert
+        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchTcs.Task);
+        Assert.Multiple(() =>
+        {
+            // TODO: use better error code?
+            Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Unspecified));
+            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        });
+    }
+
+    [Ignore("see issue #1638")]
+    [Test, TestCaseSource(nameof(PayloadStreamReadExceptions))]
+    public async Task Invocation_PayloadStream_failure_triggers_incoming_request_payload_stream_read_exception(
+        Exception exception,
+        ulong expectedErrorCode)
+    {
+        // Arrange
+        var remotePayloadTcs = new TaskCompletionSource<PipeReader>();
+        var dispatcher = new InlineDispatcher(
+            (request, cancel) =>
+            {
+                remotePayloadTcs.SetResult(request.Payload);
+                return new(new OutgoingResponse(request));
+            });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        // Use initial payload data to ensure the request is sent before the payload reader blocks (Slic sends the
+        // request header with the start of the payload so if the first ReadAsync blocks, the request header is not
+        // sent).
+        var payloadStream = new HoldPipeReader(Array.Empty<byte>());
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            PayloadStream = payloadStream
+        };
+        await sut.Client.InvokeAsync(request);
+        PipeReader remotePayload = await remotePayloadTcs.Task;
+
+        // Act
+        payloadStream.SetReadException(exception);
+
+        // Assert
+        var streamException = Assert.ThrowsAsync<IceRpcProtocolStreamException>(
+            async () => await remotePayload.ReadAsync());
+        Assert.That(streamException!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)expectedErrorCode));
     }
 
     [Test]
@@ -619,5 +751,60 @@ public sealed class IceRpcProtocolConnectionTests
         }
 
         internal void Abort(Exception exception) => _abortTaskCompletionSource.SetException(exception);
+    }
+
+    private class HoldPipeReader : PipeReader
+    {
+        internal Task ReadStart => _readStartTcs.Task;
+
+        private byte[] _initialData;
+
+        private readonly TaskCompletionSource _readStartTcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private readonly TaskCompletionSource<ReadResult> _readTcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override void AdvanceTo(SequencePosition consumed)
+        {
+        }
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+        {
+        }
+
+        public override void CancelPendingRead() =>
+            _readTcs.SetResult(new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false));
+
+        public override void Complete(Exception? exception = null)
+        {
+        }
+
+        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
+        {
+            _readStartTcs.TrySetResult();
+
+            if (_initialData.Length > 0)
+            {
+                var buffer = new ReadOnlySequence<byte>(_initialData);
+                _initialData = Array.Empty<byte>();
+                return new(new ReadResult(buffer, isCanceled: false, isCompleted: false));
+            }
+            else
+            {
+                // Hold until ReadAsync is canceled.
+                return new(_readTcs.Task.WaitAsync(cancellationToken));
+            }
+        }
+
+        public override bool TryRead(out ReadResult result)
+        {
+            result = new ReadResult();
+            return false;
+        }
+
+        internal HoldPipeReader(byte[] initialData) => _initialData = initialData;
+
+        internal void SetReadException(Exception exception) => _readTcs.SetException(exception);
     }
 }
