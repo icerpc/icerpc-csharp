@@ -15,7 +15,9 @@ public sealed class IceProtocolConnectionTests
     {
         get
         {
-            yield return new TestCaseData(new OperationCanceledException(), DispatchErrorCode.Canceled);
+            // an unexpected OCE
+            yield return new TestCaseData(new OperationCanceledException(), DispatchErrorCode.UnhandledException);
+
             yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
             yield return new TestCaseData(new MyException(), DispatchErrorCode.UnhandledException);
             yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
