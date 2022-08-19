@@ -8,22 +8,20 @@ namespace IceRpc.Internal;
 /// <summary>The IceRPC protocol class.</summary>
 internal sealed class IceRpcProtocol : Protocol
 {
-    public override ushort DefaultPort => 4062;
-
-    public override bool HasFields => true;
-
-    public override bool HasFragment => false;
-
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
 
     internal IMultiplexedStreamErrorCodeConverter MultiplexedStreamErrorCodeConverter { get; }
         = new ErrorCodeConverter();
 
-    internal override SliceEncoding SliceEncoding => SliceEncoding.Slice2;
-
     private IceRpcProtocol()
-        : base(IceRpcName)
+        : base(
+            name: "icerpc",
+            defaultPort: 4062,
+            hasFields: true,
+            hasFragment: false,
+            protocolMajor: 2,
+            sliceEncoding: SliceEncoding.Slice2)
     {
     }
 

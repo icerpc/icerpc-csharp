@@ -8,16 +8,8 @@ namespace IceRpc.Internal;
 /// <summary>The Ice protocol class.</summary>
 internal sealed class IceProtocol : Protocol
 {
-    public override ushort DefaultPort => 4061;
-
-    public override bool HasFields => false;
-
-    public override bool HasFragment => true;
-
     /// <summary>Gets the Ice protocol singleton.</summary>
     internal static IceProtocol Instance { get; } = new();
-
-    internal override SliceEncoding SliceEncoding => SliceEncoding.Slice1;
 
     /// <summary>Checks if this absolute path holds a valid identity.</summary>
     internal override void CheckPath(string uriPath)
@@ -67,7 +59,13 @@ internal sealed class IceProtocol : Protocol
     }
 
     private IceProtocol()
-        : base(IceName)
+        : base(
+            name: "ice",
+            defaultPort: 4061,
+            hasFields: false,
+            hasFragment: true,
+            protocolMajor: 1,
+            sliceEncoding: SliceEncoding.Slice1)
     {
     }
 }
