@@ -645,7 +645,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 readCts.Cancel();
                 await cancelOnWritesClosedTask.ConfigureAwait(false);
             }
-
             return flushResult;
 
             async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
@@ -789,7 +788,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _ => DispatchErrorCode.UnhandledException
                     };
 
-                    // We pass null for message to get the message computed from the exception by DefaultMessage.
                     remoteException = new DispatchException(message: null, errorCode, exception);
                 }
 

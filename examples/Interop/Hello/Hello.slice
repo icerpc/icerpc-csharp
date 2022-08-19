@@ -7,5 +7,5 @@ module Demo;
 
 interface Hello
 {
-    idempotent sayHello(name: string) -> string;
+    sayHello();
 }
