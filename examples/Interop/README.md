@@ -1,8 +1,8 @@
-## [Interop](./Hello/)
+## [Minimal](./Minimal/)
 
 A simple hello example application that shows how IceRPC interoperates with [ZeroC Ice][1].
 
-## [Locator](./IceGrid/)
+## [IceGrid](./IceGrid/)
 
 The IceGrid example application shows how IceRPC interoperates with [ZeroC IceGrid][2].
 
