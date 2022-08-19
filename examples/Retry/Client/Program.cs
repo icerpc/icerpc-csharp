@@ -19,11 +19,11 @@ if (!int.TryParse(args[0], out serverInstances))
     return;
 }
 
-using var cancellationSource = new CancellationTokenSource();
+using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    cancellationSource.Cancel();
+    cts.Cancel();
 };
 
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
@@ -55,7 +55,7 @@ var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
 
 Console.Write("To say hello to the server, type your name: ");
 
-CancellationToken cancel = cancellationSource.Token;
+CancellationToken cancel = cts.Token;
 if (Console.ReadLine() is string name)
 {
     try

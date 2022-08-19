@@ -20,7 +20,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher? _dispatcher;
-    private readonly CancellationTokenSource _dispatchesAndInvocationsCancelSource = new();
+    private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -40,7 +40,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _streamsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly CancellationTokenSource _tasksCancelSource = new();
+    private readonly CancellationTokenSource _tasksCts = new();
     private Task? _waitForConnectionFailure;
 
     internal IceRpcProtocolConnection(
@@ -77,7 +77,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
         }
 
-        _dispatchesAndInvocationsCancelSource.Cancel();
+        _dispatchesAndInvocationsCts.Cancel();
     }
 
     private protected override bool CheckIfIdle()
@@ -132,7 +132,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _readGoAwayTask = Task.Run(
             async () =>
             {
-                CancellationToken cancel = _tasksCancelSource.Token;
+                CancellationToken cancel = _tasksCts.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
 
@@ -152,11 +152,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         while (true)
                         {
                             IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
-                                _tasksCancelSource.Token).ConfigureAwait(false);
+                                _tasksCts.Token).ConfigureAwait(false);
 
                             try
                             {
-                                await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
+                                await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
                             }
                             catch (IceRpcProtocolStreamException)
                             {
@@ -178,7 +178,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    await _remoteControlStream!.ReadsClosed.WaitAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+                    await _remoteControlStream!.ReadsClosed.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -214,7 +214,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         // Before disposing the transport connection, cancel pending tasks which are using the transport connection and
         // wait for the tasks to complete.
-        _tasksCancelSource.Cancel();
+        _tasksCts.Cancel();
         try
         {
             await Task.WhenAll(
@@ -236,8 +236,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Next, wait for dispatches and invocations to complete.
         await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
 
-        _tasksCancelSource.Dispose();
-        _dispatchesAndInvocationsCancelSource.Dispose();
+        _tasksCts.Dispose();
+        _dispatchesAndInvocationsCts.Dispose();
     }
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
@@ -246,9 +246,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         IMultiplexedStream? stream = null;
         Exception? completeException = null;
-        using var invocationCancelSource = CancellationTokenSource.CreateLinkedTokenSource(
+        using var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancel,
-            _dispatchesAndInvocationsCancelSource.Token);
+            _dispatchesAndInvocationsCts.Token);
 
         try
         {
@@ -284,7 +284,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeHeader(stream.Output);
 
             // SendPayloadAsync takes care of the completion of the stream output.
-            await SendPayloadAsync(request, stream, invocationCancelSource.Token).ConfigureAwait(false);
+            await SendPayloadAsync(request, stream, invocationCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
@@ -318,7 +318,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                invocationCancelSource.Token).ConfigureAwait(false);
+                invocationCts.Token).ConfigureAwait(false);
 
             // Nothing cancels the stream input pipe reader.
             Debug.Assert(!readResult.IsCanceled);
@@ -749,21 +749,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             IMultiplexedStream stream,
             PipeReader? fieldsPipeReader)
         {
-            using var dispatchCancelSource = new CancellationTokenSource();
+            using var dispatchCts = new CancellationTokenSource();
 
             // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
             _ = CancelDispatchOnWritesClosedAsync();
 
             // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
             using CancellationTokenRegistration tokenRegistration =
-                _dispatchesAndInvocationsCancelSource.Token.UnsafeRegister(
+                _dispatchesAndInvocationsCts.Token.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
-                    dispatchCancelSource);
+                    dispatchCts);
 
             OutgoingResponse response;
             try
             {
-                response = await _dispatcher.DispatchAsync(request, dispatchCancelSource.Token).ConfigureAwait(false);
+                response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
 
                 if (response != request.Response)
                 {
@@ -771,7 +771,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException exception) when (dispatchCancelSource.IsCancellationRequested)
+            catch (OperationCanceledException exception) when (dispatchCts.IsCancellationRequested)
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 request.Complete();
@@ -879,7 +879,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
                 // output.
-                await SendPayloadAsync(response, stream, dispatchCancelSource.Token).ConfigureAwait(false);
+                await SendPayloadAsync(response, stream, dispatchCts.Token).ConfigureAwait(false);
                 request.Complete();
             }
             catch (Exception exception)
@@ -923,7 +923,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 try
                 {
-                    dispatchCancelSource.Cancel();
+                    dispatchCts.Cancel();
                 }
                 catch (ObjectDisposedException)
                 {

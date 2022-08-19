@@ -3,7 +3,7 @@
 using Demo;
 using IceRpc;
 
-using var cancellationSource = new CancellationTokenSource();
+using var cts = new CancellationTokenSource();
 await using var server = new Server(new NumberStream());
 
 // Shuts down the server on Ctrl+C or Ctrl+Break

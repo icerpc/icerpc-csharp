@@ -15,14 +15,14 @@ public class NumberStream : Service, INumberStream
     {
         // Combine the IceRpc cancellation token with the local cancellation token used for handling Ctrl+C or
         // Ctrl+Break events. This is used to notify the client that the server is shutting down.
-        using var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         uint count = 0;
-        await foreach (var number in numbers.WithCancellation(cancellationSource.Token))
+        await foreach (var number in numbers.WithCancellation(cts.Token))
         {
             // After receiving 10 numbers, cancel the stream
             if (count == 10)
             {
-                cancellationSource.Cancel();
+                cts.Cancel();
                 break;
             }
             else

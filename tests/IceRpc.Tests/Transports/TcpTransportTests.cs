@@ -224,7 +224,7 @@ public class TcpTransportTests
 
         var clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
-        using var cancellationTokenSource = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         Task<TransportConnectionInformation> connectTask;
         TcpClientConnection clientConnection;
         while (true)
@@ -232,7 +232,7 @@ public class TcpTransportTests
             TcpClientConnection? connection = CreateTcpClientConnection(listener.ServerAddress);
             try
             {
-                connectTask = connection.ConnectAsync(cancellationTokenSource.Token);
+                connectTask = connection.ConnectAsync(cts.Token);
                 await Task.Delay(TimeSpan.FromMilliseconds(20));
                 if (connectTask.IsCompleted)
                 {
@@ -255,7 +255,7 @@ public class TcpTransportTests
         }
 
         // Act
-        cancellationTokenSource.Cancel();
+        cts.Cancel();
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
@@ -269,7 +269,7 @@ public class TcpTransportTests
     {
         // Arrange
 
-        using var cancellationSource = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
@@ -285,10 +285,10 @@ public class TcpTransportTests
                 });
 
         Task<TransportConnectionInformation> connectTask =
-            clientConnection.ConnectAsync(cancellationSource.Token);
+            clientConnection.ConnectAsync(cts.Token);
 
         IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
-        cancellationSource.Cancel();
+        cts.Cancel();
         _ = serverConnection.ConnectAsync(CancellationToken.None);
 
         // Act/Assert
@@ -299,7 +299,7 @@ public class TcpTransportTests
     public async Task Tcp_transport_connection_information([Values(true, false)] bool tls)
     {
         // Arrange
-        using var cancellationSource = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
@@ -310,7 +310,7 @@ public class TcpTransportTests
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
         IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
         Task<TransportConnectionInformation> serverConnectTask =
-            serverConnection.ConnectAsync(cancellationSource.Token);
+            serverConnection.ConnectAsync(cts.Token);
 
         // Act
         var transportConnectionInformation = await connectTask;
