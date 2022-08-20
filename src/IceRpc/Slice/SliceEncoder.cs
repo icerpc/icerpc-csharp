@@ -318,11 +318,11 @@ public ref partial struct SliceEncoder
 
             this.EncodeFragment(serviceAddress.Fragment);
             this.EncodeInvocationMode(InvocationMode.Twoway);
-            EncodeBool(false); // Secure
-            EncodeUInt8(protocol.ProtocolMajor);
-            EncodeUInt8(0); // Protocol Minor
-            EncodeUInt8(1); // Encoding Major
-            EncodeUInt8(1); // Encoding Minor
+            EncodeBool(false);               // Secure
+            EncodeUInt8(protocol.ByteValue); // Protocol Major
+            EncodeUInt8(0);                  // Protocol Minor
+            EncodeUInt8(1);                  // Encoding Major
+            EncodeUInt8(1);                  // Encoding Minor
 
             if (serviceAddress.ServerAddress is ServerAddress serverAddress)
             {

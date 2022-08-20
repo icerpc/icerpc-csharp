@@ -20,7 +20,7 @@ internal sealed class IceRpcProtocol : Protocol
             defaultPort: 4062,
             hasFields: true,
             hasFragment: false,
-            protocolMajor: 2,
+            byteValue: 2,
             sliceEncoding: SliceEncoding.Slice2)
     {
     }

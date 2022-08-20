@@ -1140,7 +1140,7 @@ public ref partial struct SliceDecoder
 
         ServerAddress? serverAddress = null;
         IEnumerable<ServerAddress> altServerAddresses = ImmutableList<ServerAddress>.Empty;
-        var protocol = Protocol.FromProtocolMajor(protocolMajor);
+        var protocol = Protocol.FromByteValue(protocolMajor);
         ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)

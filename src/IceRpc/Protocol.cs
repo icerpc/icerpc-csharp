@@ -30,8 +30,8 @@ public class Protocol
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
 
-    /// <summary>Gets the protocol major value for the Slice1 encoding. The protocol minor value is always 0.</summary>
-    internal byte ProtocolMajor { get; }
+    /// <summary>Gets the byte value of this protocol, using as the "protocol major" with the Slice1 encoding.</summary>
+    internal byte ByteValue { get; }
 
     /// <summary>Gets the Slice encoding that this protocol uses for its headers.</summary>
     /// <returns>The Slice encoding.</returns>
@@ -59,10 +59,10 @@ public class Protocol
     /// <returns>The name of the protocol.</returns>
     public override string ToString() => Name;
 
-    internal static Protocol FromProtocolMajor(byte protocolMajor) =>
-        protocolMajor == Ice.ProtocolMajor ? Ice :
-            (protocolMajor == IceRpc.ProtocolMajor ? IceRpc :
-                throw new NotSupportedException($"cannot convert '{protocolMajor}.0' into a protocol"));
+    internal static Protocol FromByteValue(byte value) =>
+        value == Ice.ByteValue ? Ice :
+            (value == IceRpc.ByteValue ? IceRpc :
+                throw new NotSupportedException($"cannot convert '{value}' into a protocol"));
 
     /// <summary>Checks if a path is valid for this protocol.</summary>
     /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.
@@ -89,14 +89,14 @@ public class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
-        byte protocolMajor,
+        byte byteValue,
         SliceEncoding sliceEncoding)
     {
         Name = name;
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
-        ProtocolMajor = protocolMajor;
+        ByteValue = byteValue;
         SliceEncoding = sliceEncoding;
     }
 }

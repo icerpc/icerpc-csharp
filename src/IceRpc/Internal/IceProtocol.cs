@@ -64,7 +64,7 @@ internal sealed class IceProtocol : Protocol
             defaultPort: 4061,
             hasFields: false,
             hasFragment: true,
-            protocolMajor: 1,
+            byteValue: 1,
             sliceEncoding: SliceEncoding.Slice1)
     {
     }
