@@ -48,6 +48,8 @@ internal sealed class IceRpcProtocol : Protocol
             {
                 null => (ulong)IceRpcStreamErrorCode.NoError,
 
+                OperationCanceledException => (ulong)IceRpcStreamErrorCode.Canceled,
+
                 ConnectionClosedException => (ulong)IceRpcStreamErrorCode.ConnectionShutdown,
 
                 IceRpcProtocolStreamException streamException => (ulong)streamException.ErrorCode,

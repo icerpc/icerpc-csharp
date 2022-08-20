@@ -64,7 +64,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await invokeTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
     }
 
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the
@@ -92,9 +93,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync(
-            request,
-            new ServiceProxy(sut.Client, request.ServiceAddress)) as DispatchException;
+        var exception = await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client)) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
     }
@@ -174,8 +173,7 @@ public sealed class IceRpcProtocolConnectionTests
         var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchTcs.Task);
         Assert.Multiple(() =>
         {
-            // TODO: use better error code?
-            Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Unspecified));
+            Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
             Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
         });
     }

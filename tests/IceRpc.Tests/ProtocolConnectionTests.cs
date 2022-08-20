@@ -680,9 +680,7 @@ public sealed class ProtocolConnectionTests
         else
         {
             await sut.Server.DisposeAsync();
-            Assert.That(
-                async () => await invokeTask,
-                Throws.InstanceOf<ConnectionLostException>().Or.InstanceOf<IceRpcProtocolStreamException>());
+            Assert.That(async () => await invokeTask, Throws.InstanceOf<ConnectionLostException>());
         }
     }
 }

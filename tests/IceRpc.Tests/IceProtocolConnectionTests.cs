@@ -205,13 +205,13 @@ public sealed class IceProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(
+        var ex = Assert.ThrowsAsync<DispatchException>(
             async () =>
             {
                 IncomingResponse response = await invokeTask;
                 throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
-            },
-            Throws.TypeOf<DispatchException>());
+            });
+        Assert.That(ex!.Message, Is.EqualTo("dispatch canceled"));
     }
 
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>

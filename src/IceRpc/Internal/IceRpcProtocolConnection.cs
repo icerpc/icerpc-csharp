@@ -14,7 +14,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     internal override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
-    private Exception? _invocationCanceledException;
+    private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -57,7 +57,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            if (_invocationCanceledException is not null)
+            if (_dispatchesAndInvocationsCanceledException is not null)
             {
                 return;
             }
@@ -65,7 +65,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
             // Set the abort exception for invocations.
-            _invocationCanceledException = exception;
+            _dispatchesAndInvocationsCanceledException = exception;
 
             if (_streams.Count == 0)
             {
@@ -245,7 +245,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
-        Exception? completeException = null;
         using var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancel,
             _dispatchesAndInvocationsCts.Token);
@@ -286,26 +285,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // SendPayloadAsync takes care of the completion of the stream output.
             await SendPayloadAsync(request, stream, invocationCts.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
+        catch (Exception exception) when (stream is not null)
         {
-            completeException = _invocationCanceledException;
-            throw completeException;
-        }
-        catch (Exception exception)
-        {
-            completeException = exception;
-            throw;
-        }
-        finally
-        {
-            if (completeException is not null && stream is not null)
+            await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+            if (stream.IsBidirectional)
             {
-                await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
-                if (stream.IsBidirectional)
-                {
-                    await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-                }
+                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
             }
+            throw _dispatchesAndInvocationsCanceledException ?? exception;
         }
 
         try
@@ -338,23 +325,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ResultType = header.ResultType
             };
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
-        {
-            completeException = _invocationCanceledException;
-            throw completeException;
-        }
         catch (Exception exception)
         {
-            completeException = exception;
-            throw;
-        }
-        finally
-        {
-            if (completeException is not null)
-            {
-                Debug.Assert(!request.IsOneway);
-                await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-            }
+            await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+            throw _dispatchesAndInvocationsCanceledException ?? exception;
         }
 
         void EncodeHeader(PipeWriter writer)
@@ -771,7 +745,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException exception) when (dispatchCts.IsCancellationRequested)
+            catch (OperationCanceledException exception) when (dispatchCts.Token == exception.CancellationToken)
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 request.Complete();
