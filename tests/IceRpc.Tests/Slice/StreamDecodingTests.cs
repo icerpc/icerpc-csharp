@@ -150,8 +150,8 @@ public sealed class StreamDecodingTests
 
         Task readerTask = Task.Run(async () =>
         {
-            using var cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken cancel = cancellationTokenSource.Token;
+            using var cts = new CancellationTokenSource();
+            CancellationToken cancel = cts.Token;
 
             bool cancelCalled = false;
 
@@ -167,7 +167,7 @@ public sealed class StreamDecodingTests
                 if (callCancel && count == 150)
                 {
                     // stop writer
-                    cancellationTokenSource.Cancel();
+                    cts.Cancel();
                 }
 
                 if (!callCancel && count == 180)
@@ -187,7 +187,7 @@ public sealed class StreamDecodingTests
         await readerTask;
 
         // The writer gets the "reader completed" notification only when we call cancel on the
-        // cancellationTokenSource.
+        // cts.
         Assert.That(await streamDecoder.WriteAsync(buffer, default), Is.EqualTo(callCancel));
         streamDecoder.CompleteWriter();
     }

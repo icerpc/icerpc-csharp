@@ -110,12 +110,12 @@ public sealed class IceRpcProtocolConnectionTests
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        using var cancellationTokenSource = new CancellationTokenSource();
-        Task invokeTask = sut.Client.InvokeAsync(request, cancellationTokenSource.Token);
+        using var cts = new CancellationTokenSource();
+        Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        cancellationTokenSource.Cancel();
+        cts.Cancel();
 
         // Assert
         Assert.Multiple(() =>
@@ -136,7 +136,7 @@ public sealed class IceRpcProtocolConnectionTests
                 try
                 {
                     // Loop until ReadAsync throws IceRpcProtocolStreamException
-                    while(true)
+                    while (true)
                     {
                         ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
                         request.Payload.AdvanceTo(result.Buffer.End);
@@ -159,15 +159,15 @@ public sealed class IceRpcProtocolConnectionTests
         // sent).
         var payload = new HoldPipeReader(new byte[10]);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
-            {
-                Payload = payload
-            };
-        using var cancellationTokenSource = new CancellationTokenSource();
-        Task invokeTask = sut.Client.InvokeAsync(request, cancellationTokenSource.Token);
+        {
+            Payload = payload
+        };
+        using var cts = new CancellationTokenSource();
+        Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
         await payload.ReadStart;
 
         // Act
-        cancellationTokenSource.Cancel();
+        cts.Cancel();
 
         // Assert
         var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchTcs.Task);

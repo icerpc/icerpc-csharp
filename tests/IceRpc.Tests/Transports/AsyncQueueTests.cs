@@ -68,9 +68,9 @@ public class AsyncQueueTests
     public void AsyncQueue_DequeueAsync_SyncCancellation()
     {
         var queue = new AsyncQueue<int>();
-        using var source = new CancellationTokenSource();
-        source.Cancel();
-        Assert.ThrowsAsync<OperationCanceledException>(() => queue.DequeueAsync(source.Token).AsTask());
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        Assert.ThrowsAsync<OperationCanceledException>(() => queue.DequeueAsync(cts.Token).AsTask());
 
         // The queue is completed if DequeueAsync is canceled.
         Assert.Throws<OperationCanceledException>(() => queue.Enqueue(13));
@@ -80,10 +80,10 @@ public class AsyncQueueTests
     public void AsyncQueue_DequeueAsync_AsyncCancellation()
     {
         var queue = new AsyncQueue<int>();
-        using var source = new CancellationTokenSource();
-        ValueTask<int> valueTask = queue.DequeueAsync(source.Token);
+        using var cts = new CancellationTokenSource();
+        ValueTask<int> valueTask = queue.DequeueAsync(cts.Token);
         Assert.That(valueTask.IsCompleted, Is.False);
-        source.Cancel();
+        cts.Cancel();
         Assert.That(valueTask.IsCompleted, Is.True);
         Assert.ThrowsAsync<OperationCanceledException>(() => valueTask.AsTask());
 

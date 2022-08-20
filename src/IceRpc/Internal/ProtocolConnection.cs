@@ -12,7 +12,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 {
     internal abstract ServerAddress ServerAddress { get; }
 
-    private readonly CancellationTokenSource _connectCancelSource = new();
+    private readonly CancellationTokenSource _connectCts = new();
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
     private Task? _disposeTask;
@@ -23,7 +23,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
     private Exception? _onAbortException;
     private Action<string>? _onShutdown;
     private string? _onShutdownMessage;
-    private readonly CancellationTokenSource _shutdownCancelSource = new();
+    private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
 
@@ -82,8 +82,8 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
 
             // Clean up disposable resources.
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
-            _connectCancelSource.Dispose();
-            _shutdownCancelSource.Dispose();
+            _connectCts.Dispose();
+            _shutdownCts.Dispose();
         }
     }
 
@@ -165,7 +165,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
                 // Cancel pending connect if any of the ConnectAsync calls are canceled.
                 try
                 {
-                    _connectCancelSource.Cancel();
+                    _connectCts.Cancel();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -179,19 +179,19 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
-            using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_connectCancelSource.Token);
-            cancelSource.CancelAfter(_connectTimeout);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_connectCts.Token);
+            cts.CancelAfter(_connectTimeout);
 
             try
             {
-                cancelSource.Token.ThrowIfCancellationRequested();
+                cts.Token.ThrowIfCancellationRequested();
 
                 TransportConnectionInformation information =
-                    await ConnectAsyncCore(cancelSource.Token).ConfigureAwait(false);
+                    await ConnectAsyncCore(cts.Token).ConfigureAwait(false);
                 EnableIdleCheck();
                 return information;
             }
-            catch (OperationCanceledException) when (_connectCancelSource.IsCancellationRequested)
+            catch (OperationCanceledException) when (_connectCts.IsCancellationRequested)
             {
                 throw new ConnectionAbortedException(_disposeTask is null ?
                     "connection establishment canceled" :
@@ -199,7 +199,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             }
             catch (OperationCanceledException)
             {
-                Debug.Assert(cancelSource.IsCancellationRequested);
+                Debug.Assert(cts.IsCancellationRequested);
                 throw new TimeoutException(
                     $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
             }
@@ -275,7 +275,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             if (cancel.IsCancellationRequested)
             {
                 _shutdownTask ??= Task.FromException(new ConnectionAbortedException("connection shutdown canceled"));
-                _shutdownCancelSource.Cancel();
+                _shutdownCts.Cancel();
                 cancel.ThrowIfCancellationRequested();
             }
             else
@@ -296,7 +296,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             {
                 try
                 {
-                    _shutdownCancelSource.Cancel();
+                    _shutdownCts.Cancel();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -378,15 +378,15 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
         // Make sure we execute the function without holding the connection mutex lock.
         await Task.Yield();
 
-        using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(_shutdownCancelSource.Token);
-        cancelSource.CancelAfter(_shutdownTimeout);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownCts.Token);
+        cts.CancelAfter(_shutdownTimeout);
 
         try
         {
-            cancelSource.Token.ThrowIfCancellationRequested();
+            cts.Token.ThrowIfCancellationRequested();
 
             // Wait for connect to complete first.
-            await _connectTask.WaitAsync(cancelSource.Token).ConfigureAwait(false);
+            await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
 
             if (cancelDispatchesAndInvocations)
             {
@@ -394,16 +394,16 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             }
 
             // Wait for shutdown to complete.
-            await ShutdownAsyncCore(message, cancelSource.Token).ConfigureAwait(false);
+            await ShutdownAsyncCore(message, cts.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
+        catch (OperationCanceledException) when (_shutdownCts.IsCancellationRequested)
         {
             throw new ConnectionAbortedException(
                 _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
         }
         catch (OperationCanceledException)
         {
-            Debug.Assert(cancelSource.IsCancellationRequested);
+            Debug.Assert(cts.IsCancellationRequested);
 
             // Triggered by the CancelAfter above.
             throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");

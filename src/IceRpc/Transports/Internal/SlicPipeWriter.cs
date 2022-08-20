@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 {
-    private readonly CancellationTokenSource _abortCancelSource = new();
+    private readonly CancellationTokenSource _abortCts = new();
     private Exception? _exception;
     private readonly Pipe _pipe;
     private int _state;
@@ -43,7 +43,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             _pipe.Writer.Complete(exception);
             Abort(exception);
 
-            _abortCancelSource.Dispose();
+            _abortCts.Dispose();
         }
     }
 
@@ -74,7 +74,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancel.UnsafeRegister(
                 tcs => ((CancellationTokenSource)tcs!).Cancel(),
-                _abortCancelSource);
+                _abortCts);
 
         if (_pipe.Writer.UnflushedBytes > 0)
         {
@@ -108,7 +108,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                         readResult.Buffer,
                         source,
                         endStream,
-                        _abortCancelSource.Token).ConfigureAwait(false);
+                        _abortCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -143,7 +143,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                     source,
                     ReadOnlySequence<byte>.Empty,
                     endStream,
-                    _abortCancelSource.Token).ConfigureAwait(false);
+                    _abortCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -201,7 +201,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         if (_state.TrySetFlag(State.PipeReaderCompleted))
         {
             // Cancel write if pending.
-            _abortCancelSource.Cancel();
+            _abortCts.Cancel();
 
             if (_state.HasFlag(State.PipeReaderInUse))
             {

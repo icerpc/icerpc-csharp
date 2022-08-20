@@ -68,11 +68,11 @@ public class InvocationTests
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
 
         var callback = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/callback")));
-        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
         // Act and Assert
         Assert.That(
-            async () => await callbackInvoker!.InvokeAsync(request, cancellationTokenSource.Token),
+            async () => await callbackInvoker!.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
     }
 }

@@ -63,9 +63,9 @@ public class AsyncSemaphoreTests
     public void AsyncSemaphore_EnterAsync_Cancellation0()
     {
         var semaphore = new AsyncSemaphore(1, 1);
-        using var source = new CancellationTokenSource();
-        source.Cancel();
-        Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(source.Token));
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(cts.Token));
     }
 
     [TestCase(0)]
@@ -73,9 +73,9 @@ public class AsyncSemaphoreTests
     public async Task AsyncSemaphore_EnterAsync_Cancellation1(int timeout)
     {
         var semaphore = new AsyncSemaphore(1, 1);
-        using var source = new CancellationTokenSource(timeout);
+        using var cts = new CancellationTokenSource(timeout);
         await semaphore.EnterAsync();
-        Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(source.Token));
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(cts.Token));
     }
 
     [TestCase(0)]
@@ -83,8 +83,8 @@ public class AsyncSemaphoreTests
     public void AsyncSemaphore_EnterAsync_Cancellation2(int timeout)
     {
         var semaphore = new AsyncSemaphore(0, 1);
-        using var source = new CancellationTokenSource(timeout);
-        Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(source.Token));
+        using var cts = new CancellationTokenSource(timeout);
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(cts.Token));
     }
 
     [TestCase(1, 1)]

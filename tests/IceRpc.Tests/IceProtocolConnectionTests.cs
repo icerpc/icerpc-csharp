@@ -15,7 +15,9 @@ public sealed class IceProtocolConnectionTests
     {
         get
         {
-            yield return new TestCaseData(new OperationCanceledException(), DispatchErrorCode.Canceled);
+            // an unexpected OCE
+            yield return new TestCaseData(new OperationCanceledException(), DispatchErrorCode.UnhandledException);
+
             yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
             yield return new TestCaseData(new MyException(), DispatchErrorCode.UnhandledException);
             yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
@@ -209,7 +211,7 @@ public sealed class IceProtocolConnectionTests
                 IncomingResponse response = await invokeTask;
                 throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
             });
-        Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
+        Assert.That(ex!.Message, Is.EqualTo("dispatch canceled"));
     }
 
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>

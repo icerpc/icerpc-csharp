@@ -126,14 +126,14 @@ public sealed class DeadlineInterceptorTests
             Features = new FeatureCollection().With<IDeadlineFeature>(
                 DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
         };
-        using var tokenSource = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
 
         // Act
-        await sut.InvokeAsync(request, tokenSource.Token);
+        await sut.InvokeAsync(request, cts.Token);
 
         // Assert
         Assert.That(cancellationToken, Is.Not.Null);
-        Assert.That(cancellationToken.Value, Is.EqualTo(tokenSource.Token));
+        Assert.That(cancellationToken.Value, Is.EqualTo(cts.Token));
     }
 
     [Test]

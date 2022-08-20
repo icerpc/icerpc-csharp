@@ -48,7 +48,7 @@ public static class SliceEncodingExtensions
     private class PayloadStreamPipeReader<T> : PipeReader
     {
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
-        private readonly CancellationTokenSource _cancellationSource = new();
+        private readonly CancellationTokenSource _cts = new();
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
         private readonly bool _useSegments;
@@ -64,12 +64,12 @@ public static class SliceEncodingExtensions
         public override void CancelPendingRead()
         {
             _pipe.Reader.CancelPendingRead();
-            _cancellationSource.Cancel();
+            _cts.Cancel();
         }
 
         public override void Complete(Exception? exception = null)
         {
-            _cancellationSource.Dispose();
+            _cts.Dispose();
             _pipe.Reader.Complete(exception);
             _pipe.Writer.Complete(exception);
             _ = _asyncEnumerator.DisposeAsync().AsTask();
@@ -182,7 +182,7 @@ public static class SliceEncodingExtensions
             _encodeAction = encodeAction;
             _encoding = encoding;
             _useSegments = useSegments;
-            _asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(_cancellationSource.Token);
+            _asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(_cts.Token);
         }
     }
 }

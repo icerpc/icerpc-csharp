@@ -60,6 +60,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
     }
 
+    /// <summary>Constructs a connection cache using the default options.</summary>
+    public ConnectionCache()
+        : this(new ConnectionCacheOptions())
+    {
+    }
+
     /// <summary>Releases all resources allocated by this connection cache.</summary>
     /// <returns>A value task that completes when all connections managed by this cache are disposed.</returns>
     public async ValueTask DisposeAsync()

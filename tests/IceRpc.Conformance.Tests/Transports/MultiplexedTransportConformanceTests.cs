@@ -139,11 +139,11 @@ public abstract class MultiplexedTransportConformanceTests
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<IMultiplexedConnection>();
-        using var cancellationSource = new CancellationTokenSource();
-        ValueTask<IMultiplexedStream> acceptTask = sut.AcceptStreamAsync(cancellationSource.Token);
+        using var cts = new CancellationTokenSource();
+        ValueTask<IMultiplexedStream> acceptTask = sut.AcceptStreamAsync(cts.Token);
 
         // Act
-        cancellationSource.Cancel();
+        cts.Cancel();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
@@ -944,11 +944,11 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        using var cancellationSource = new CancellationTokenSource();
-        ValueTask<ReadResult> readTask = clientStream.Input.ReadAsync(cancellationSource.Token);
+        using var cts = new CancellationTokenSource();
+        ValueTask<ReadResult> readTask = clientStream.Input.ReadAsync(cts.Token);
 
         // Act
-        cancellationSource.Cancel();
+        cts.Cancel();
 
         // Assert
         Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
@@ -1019,11 +1019,11 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        using var cancellationTokenSource = new CancellationTokenSource();
-        ValueTask<FlushResult> task = clientStream.Output.WriteAsync(_oneBytePayload, cancellationTokenSource.Token);
+        using var cts = new CancellationTokenSource();
+        ValueTask<FlushResult> task = clientStream.Output.WriteAsync(_oneBytePayload, cts.Token);
 
         // Act
-        cancellationTokenSource.Cancel();
+        cts.Cancel();
 
         // Act/Assert
         Assert.CatchAsync<OperationCanceledException>(async () => await task);
