@@ -30,7 +30,7 @@ public class Protocol
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
 
-    /// <summary>Gets the byte value of this protocol, using as the "protocol major" with the Slice1 encoding.</summary>
+    /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
     internal byte ByteValue { get; }
 
     /// <summary>Gets the Slice encoding that this protocol uses for its headers.</summary>
