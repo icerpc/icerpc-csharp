@@ -748,7 +748,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException exception) when (dispatchCancelSource.Token == exception.CancellationToken)
+            catch (OperationCanceledException exception) when (
+                dispatchCancelSource.Token == exception.CancellationToken)
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 request.Complete();
