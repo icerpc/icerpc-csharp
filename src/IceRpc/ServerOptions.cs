@@ -12,17 +12,10 @@ public sealed record class ServerOptions
 
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>
-    public ServerAddress ServerAddress
-    {
-        get => _serverAddress;
-        set => _serverAddress = value.Protocol.IsSupported ? value :
-            throw new NotSupportedException($"cannot set server address with protocol '{value.Protocol}'");
-    }
+    public ServerAddress ServerAddress { get; set; } = new(Protocol.IceRpc);
 
     /// <summary>Gets or sets the SSL server authentication options.</summary>
     /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.
     /// </value>
     public SslServerAuthenticationOptions? ServerAuthenticationOptions { get; set; }
-
-    private ServerAddress _serverAddress = new(Protocol.IceRpc);
 }

@@ -125,12 +125,6 @@ public class ServiceAddressTests
                     new ServiceAddress() with { Path = "/bar" },
                     false
                 ),
-                // Unsupported protocol.
-                (
-                    new ServiceAddress(new Uri("foo://host/123")),
-                    new ServiceAddress(new Uri("foo://host/123")),
-                    true
-                ),
                 //  Params (Order does not matter)
                 (
                     new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123&def=456")),
@@ -213,9 +207,10 @@ public class ServiceAddressTests
             "ice://host/cat/",              // empty identity name
             "ice://host/",                  // empty identity name
             "ice://host//",                 // empty identity name
-            "ice:/path?alt-server=foo",   // alt-server service address parameter
+            "ice:/path?alt-server=foo",     // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
             "ice:/path?adapter-id=foo&foo", // extra parameter
+            "http://host/path",             // unknown protocol
         };
 
     /// <summary>A collection of service address URI strings that are valid, with its expected path and fragment.
@@ -273,11 +268,6 @@ public class ServiceAddressTests
             ("/foo/bar", "/foo/bar", ""),
             ("//foo/bar", "//foo/bar", ""),
             ("/foo:bar", "/foo:bar", ""),
-            // non-supported protocols
-            ("foobar://host:10000/path", "/path", ""),
-            ("foobar://host/path#fragment", "/path", "fragment"),
-            ("foobar:path", "path", ""),  // not a valid path since it doesn't start with /, and that's ok
-            ("foobar:path#fragment", "path", "fragment"),
         };
 
     private static readonly Dictionary<string, ServerAddress[]> _altServerAddresses = new()
@@ -312,18 +302,16 @@ public class ServiceAddressTests
     }
 
     [Test]
-    public void Cannot_set_alt_server_on_unsupported_protocol()
+    public void Cannot_set_server_address_on_relative_proxy()
     {
         // Arrange
-        var serviceAddress = new ServiceAddress(new Uri("foobar://localhost/hello"));
+        var serviceAddress = new ServiceAddress(new Uri("/foo", UriKind.Relative));
 
-        // Constructing alternate server addresses.
-        var altServerAddresses = ImmutableList.Create(new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar")));
+        var serverAddress = new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar"));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() =>
-            serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }
-        );
+            serviceAddress = serviceAddress with { ServerAddress = serverAddress });
     }
 
     /// <summary>Verifies that the service address server address cannot be set when the service address contains any params.
@@ -377,22 +365,12 @@ public class ServiceAddressTests
         Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { ServerAddress = null });
     }
 
-    [Test]
-    public void Cannot_set_path_on_unsupported_protocol()
-    {
-        // Arrange
-        var serviceAddress = new ServiceAddress(new Uri("foo://localhost:8080"));
-
-        // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { Path = "/bar" });
-    }
-
     /// <summary>Verifies that the "fragment" cannot be set when the protocol is null or has no fragment.</summary>
     [TestCase("icerpc")]
     [TestCase("")]
     public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
     {
-        Protocol? protocol = protocolName.Length > 0 ? Protocol.FromString(protocolName) : null;
+        Protocol? protocol = protocolName.Length > 0 ? Protocol.Parse(protocolName) : null;
         var serviceAddress = new ServiceAddress(protocol);
 
         Assert.That(() => serviceAddress = serviceAddress with { Fragment = "bar" }, Throws.TypeOf<InvalidOperationException>());

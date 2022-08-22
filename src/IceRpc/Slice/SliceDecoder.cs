@@ -986,7 +986,7 @@ public ref partial struct SliceDecoder
                         serverAddress = new ServerAddress(
                             Protocol.Ice,
                             host: "opaque", // not a real host obviously
-                            port: (ushort)Protocol.Ice.DefaultPort,
+                            port: Protocol.Ice.DefaultPort,
                             TransportNames.Opaque,
                             builder.ToImmutable());
                         break;
@@ -1140,7 +1140,7 @@ public ref partial struct SliceDecoder
 
         ServerAddress? serverAddress = null;
         IEnumerable<ServerAddress> altServerAddresses = ImmutableList<ServerAddress>.Empty;
-        var protocol = Protocol.FromByte(protocolMajor);
+        var protocol = Protocol.FromByteValue(protocolMajor);
         ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)

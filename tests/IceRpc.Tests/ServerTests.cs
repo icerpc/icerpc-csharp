@@ -60,7 +60,7 @@ public class ServerTests
         // Arrange/Act
         await using var server = new Server(
             ServiceNotFoundDispatcher.Instance,
-            new ServerAddress(Protocol.FromString(protocol)));
+            new ServerAddress(Protocol.Parse(protocol)));
 
         // Assert
         Assert.That(server.ServerAddress.Transport, Is.Not.Null);
