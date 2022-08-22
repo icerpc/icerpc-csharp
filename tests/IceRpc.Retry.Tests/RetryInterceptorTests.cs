@@ -292,9 +292,9 @@ public sealed class RetryInterceptorTests
     public async Task Retry_with_OtherReplica_policy()
     {
         // Arrange
-        await using var connection1 = new ClientConnection(new Uri("icerpc://host1"));
-        await using var connection2 = new ClientConnection(new Uri("icerpc://host2"));
-        await using var connection3 = new ClientConnection(new Uri("icerpc://host3"));
+        await using var connection1 = new NonResumableClientConnection(new Uri("icerpc://host1"));
+        await using var connection2 = new NonResumableClientConnection(new Uri("icerpc://host2"));
+        await using var connection3 = new NonResumableClientConnection(new Uri("icerpc://host3"));
         var serverAddresses = new List<ServerAddress>();
         var invoker = new InlineInvoker((request, cancel) =>
         {

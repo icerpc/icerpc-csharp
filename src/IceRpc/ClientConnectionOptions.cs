@@ -4,12 +4,12 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>A property bag used to configure a <see cref="ClientConnection"/>.</summary>
+/// <summary>A property bag used to configure a <see cref="NonResumableClientConnection"/>.</summary>
 public sealed record class ClientConnectionOptions : ConnectionOptions
 {
     /// <summary>Gets or sets the SSL client authentication options.</summary>
     /// <value>The SSL client authentication options. When not null,
-    /// <see cref="ClientConnection.ConnectAsync(CancellationToken)"/> will either establish a secure connection or
+    /// <see cref="NonResumableClientConnection.ConnectAsync(CancellationToken)"/> will either establish a secure connection or
     /// fail.</value>
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 

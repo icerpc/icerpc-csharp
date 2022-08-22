@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Net.Security;
@@ -10,7 +9,7 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection
 /// cannot be reconnected after being closed.</summary>
-public sealed class ClientConnection : IInvoker, IAsyncDisposable
+public sealed class NonResumableClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
     public static IMultiplexedClientTransport DefaultMultiplexedClientTransport { get; } =
@@ -34,7 +33,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
-    public ClientConnection(
+    public NonResumableClientConnection(
         ClientConnectionOptions options,
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
@@ -57,7 +56,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// properties have their default values.</summary>
     /// <param name="serverAddress">The address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ClientConnection(
+    public NonResumableClientConnection(
         ServerAddress serverAddress,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
@@ -72,7 +71,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// other properties have their default values.</summary>
     /// <param name="serverAddressUri">A URI that represents the address of the server.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ClientConnection(Uri serverAddressUri, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+    public NonResumableClientConnection(Uri serverAddressUri, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ServerAddress(serverAddressUri), clientAuthenticationOptions)
     {
     }

@@ -14,7 +14,7 @@ public class ResumableClientConnectionTests
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
-        await using var connection = new ResumableClientConnection(
+        await using var connection = new ClientConnection(
             new ClientConnectionOptions()
             {
                 ServerAddress = server.ServerAddress,
@@ -37,7 +37,7 @@ public class ResumableClientConnectionTests
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
         ServerAddress serverAddress = server.ServerAddress;
-        await using var connection = new ResumableClientConnection(serverAddress);
+        await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
@@ -56,7 +56,7 @@ public class ResumableClientConnectionTests
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
         ServerAddress serverAddress = server.ServerAddress;
-        await using var connection = new ResumableClientConnection(serverAddress);
+        await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         try
         {

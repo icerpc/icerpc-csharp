@@ -7,7 +7,7 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
-public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
+public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
@@ -41,7 +41,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// <param name="options">The client connection options.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
-    public ResumableClientConnection(
+    public ClientConnection(
         ClientConnectionOptions options,
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null)
@@ -78,7 +78,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// All other properties have their default values.</summary>
     /// <param name="serverAddress">The connection server address.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ResumableClientConnection(
+    public ClientConnection(
         ServerAddress serverAddress,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
@@ -93,7 +93,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// options. All other properties have their default values.</summary>
     /// <param name="serverAddressUri">The connection server address URI.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ResumableClientConnection(
+    public ClientConnection(
         Uri serverAddressUri,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ServerAddress(serverAddressUri), clientAuthenticationOptions)

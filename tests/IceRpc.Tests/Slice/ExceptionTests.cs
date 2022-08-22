@@ -442,7 +442,7 @@ public sealed class ExceptionTests
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
 
-        await using var connection = new ClientConnection(
+        await using var connection = new NonResumableClientConnection(
             new ClientConnectionOptions
             {
                 ServerAddress = server.ServerAddress,
@@ -474,7 +474,7 @@ public sealed class ExceptionTests
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
 
-        await using var connection = new ClientConnection(
+        await using var connection = new NonResumableClientConnection(
             new ClientConnectionOptions
             {
                 ServerAddress = server.ServerAddress,
