@@ -3,6 +3,7 @@
 mod builders;
 mod class_visitor;
 mod code_block;
+mod comment_patcher;
 mod comments;
 mod cs_options;
 mod cs_util;
@@ -22,6 +23,7 @@ mod struct_visitor;
 mod trait_visitor;
 
 use class_visitor::ClassVisitor;
+use comment_patcher::patch_comments;
 use cs_options::CsOptions;
 use cs_validator::validate_cs_attributes;
 use dispatch_visitor::DispatchVisitor;
@@ -54,7 +56,9 @@ pub fn main() {
 fn try_main() -> ParserResult {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
-    let mut parsed_data = slice::parse_from_options(slice_options).and_then(validate_cs_attributes)?;
+    let mut parsed_data = slice::parse_from_options(slice_options)
+        .and_then(validate_cs_attributes)
+        .and_then(patch_comments)?;
 
     if !slice_options.validate {
         for slice_file in parsed_data.files.values().filter(|file| file.is_source) {

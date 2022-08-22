@@ -49,7 +49,7 @@ impl Visitor for ClassVisitor<'_> {
         let mut class_builder = ContainerBuilder::new(&format!("{} partial class", access), &class_name);
 
         class_builder
-            .add_comment("summary", &doc_comment_message(class_def))
+            .add_comment("summary", doc_comment_message(class_def))
             .add_type_id_attribute(class_def)
             .add_compact_type_id_attribute(class_def)
             .add_container_attributes(class_def);
@@ -169,7 +169,7 @@ fn constructor(
                 .to_type_string(namespace, TypeContext::DataMember, false),
             &member.parameter_name(),
             None,
-            Some(&doc_comment_message(*member)),
+            Some(doc_comment_message(*member)),
         );
     }
 

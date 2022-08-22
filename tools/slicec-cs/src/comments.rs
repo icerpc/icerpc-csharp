@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use std::fmt;
+use std::{char, fmt};
 
-use regex::Regex;
-use slice::grammar::{Commentable, DocComment, Operation};
+use slice::grammar::{Commentable, Entity, Operation};
 
 #[derive(Clone, Debug)]
 pub struct CommentTag {
@@ -55,72 +54,8 @@ impl fmt::Display for CommentTag {
     }
 }
 
-// TODO this should probably be converted into an extension trait.
-pub struct CsharpComment(pub DocComment);
-
-impl CsharpComment {
-    pub fn new(comment: &DocComment) -> Self {
-        // process comment here
-        // replace @link @see, etc.
-        let mut comment = comment.clone();
-
-        // Replace comments like '<code>my code</code>' by 'my code'
-        let re: regex::Regex = Regex::new(r"(?ms)<.+>\s?(?P<content>.+)\s?</.+>").unwrap();
-        comment.overview = re.replace_all(&comment.overview, "${content}").to_string();
-
-        // Replace comments like '{@link FooBar}' by 'FooBar'
-        let re: regex::Regex = Regex::new(r"\{@link\s+(?P<link>\w+)\s?\}").unwrap();
-        comment.overview = re.replace_all(&comment.overview, "${link}").to_string();
-
-        // TODO: ${see} should actually be replaced by the real Csharp identifier (see
-        // csharpIdentifier in C++)
-        let re: regex::Regex = Regex::new(r"\{@see\s+(?P<see>\w+)\s?\}").unwrap();
-        comment.overview = re.replace_all(&comment.overview, r#"<see cref="${see}"/>"#).to_string();
-
-        CsharpComment(comment)
-    }
-}
-
-impl fmt::Display for CsharpComment {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let comment = &self.0;
-
-        // Write the comment's summary message.
-        writeln!(f, "{}", CommentTag::new("summary", &comment.overview))?;
-
-        // Write each of the comment's parameter fields.
-        for param in &comment.params {
-            let (identifier, description) = param;
-            writeln!(
-                f,
-                "{}",
-                CommentTag::with_tag_attribute("param", "name", identifier, description)
-            )?;
-        }
-
-        // Write the comment's returns message if it has one.
-        if let Some(returns) = &comment.returns {
-            writeln!(f, "{}", CommentTag::new("returns", returns))?;
-        }
-
-        // Write each of the comment's exception fields.
-        for exception in &comment.throws {
-            let (exception, description) = exception;
-            writeln!(
-                f,
-                "{}",
-                CommentTag::with_tag_attribute("exception", "cref", exception, description)
-            )?;
-        }
-
-        Ok(())
-    }
-}
-
-pub fn doc_comment_message(entity: &dyn Commentable) -> String {
-    entity
-        .comment()
-        .map_or_else(|| "".to_owned(), |c| CsharpComment::new(c).0.overview)
+pub fn doc_comment_message(entity: &dyn Entity) -> &str {
+    entity.comment().map_or("", |comment| &comment.overview)
 }
 
 // TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`

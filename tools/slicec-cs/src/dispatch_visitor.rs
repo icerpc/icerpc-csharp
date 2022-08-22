@@ -317,7 +317,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
         &(operation.escape_identifier_with_suffix("Async")),
         FunctionType::Declaration,
     )
-    .add_comment("summary", &doc_comment_message(operation))
+    .add_comment("summary", doc_comment_message(operation))
     .add_operation_parameters(operation, TypeContext::Decode)
     .add_container_attributes(operation)
     .build()

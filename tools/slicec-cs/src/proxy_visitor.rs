@@ -325,7 +325,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 FunctionType::Declaration,
             )
             .add_container_attributes(operation)
-            .add_comment("summary", &doc_comment_message(operation))
+            .add_comment("summary", doc_comment_message(operation))
             .add_operation_parameters(operation, TypeContext::Encode)
             .build(),
         );

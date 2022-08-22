@@ -32,7 +32,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             &escaped_identifier,
         );
         builder
-            .add_comment("summary", &doc_comment_message(struct_def))
+            .add_comment("summary", doc_comment_message(struct_def))
             .add_type_id_attribute(struct_def)
             .add_container_attributes(struct_def)
             .add_base("IceRpc.Slice.ITrait".to_owned());
@@ -72,7 +72,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     .to_type_string(&namespace, TypeContext::DataMember, false),
                 member.parameter_name().as_str(),
                 None,
-                Some(&doc_comment_message(*member)),
+                Some(doc_comment_message(*member)),
             );
         }
         main_constructor.set_body({
