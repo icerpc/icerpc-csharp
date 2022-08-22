@@ -80,8 +80,8 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton<ResumableClientConnection>(provider =>
                 new ResumableClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    provider.GetRequiredService<IMultiplexedClientTransport>(),
-                    provider.GetRequiredService<IDuplexClientTransport>()))
+                    provider.GetRequiredService<IDuplexClientTransport>(),
+                    provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ResumableClientConnection>());
 
     /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>

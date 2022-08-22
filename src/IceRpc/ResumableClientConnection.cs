@@ -12,10 +12,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
     /// non-null.</value>
-    public ServerAddress ServerAddress => _clientConnection.ServerAddress;
-
-    /// <summary>Gets the protocol of this connection.</summary>
-    public Protocol Protocol => _clientConnection.Protocol;
+    public ServerAddress ServerAddress => _connection.ServerAddress;
 
     private bool IsResumable
     {
@@ -28,9 +25,9 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    private ClientConnection _clientConnection;
+    private IProtocolConnection _connection;
 
-    private readonly Func<ClientConnection> _clientConnectionFactory;
+    private readonly Func<IProtocolConnection> _connectionFactory;
 
     private bool _isResumable = true;
 
@@ -40,34 +37,41 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private Action<string>? _onShutdown;
 
-    /// <summary>Constructs a resumable client connection.</summary>
+    /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
-    /// </param>
-    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
     public ResumableClientConnection(
         ClientConnectionOptions options,
-        IMultiplexedClientTransport? multiplexedClientTransport = null,
-        IDuplexClientTransport? duplexClientTransport = null)
+        IDuplexClientTransport? duplexClientTransport = null,
+        IMultiplexedClientTransport? multiplexedClientTransport = null)
     {
-        _clientConnectionFactory = () =>
+        ServerAddress serverAddress = options.ServerAddress ??
+            throw new ArgumentException(
+                $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
+                nameof(options));
+
+        var clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
+            options,
+            options.ClientAuthenticationOptions,
+            duplexClientTransport,
+            multiplexedClientTransport);
+
+        _connectionFactory = () =>
         {
-            var clientConnection = new ClientConnection(
-                options,
-                multiplexedClientTransport,
-                duplexClientTransport);
+            IProtocolConnection connection = clientProtocolConnectionFactory.CreateConnection(serverAddress);
 
             // only called from the constructor or with _mutex locked
-            clientConnection.OnAbort(_onAbort + OnAbort);
-            clientConnection.OnShutdown(_onShutdown + OnShutdown);
+            connection.OnAbort(_onAbort + OnAbort);
+            connection.OnShutdown(_onShutdown + OnShutdown);
 
-            void OnAbort(Exception exception) => _ = RefreshClientConnectionAsync(clientConnection, graceful: false);
-            void OnShutdown(string message) => _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+            void OnAbort(Exception exception) => _ = RefreshConnectionAsync(connection, graceful: false);
+            void OnShutdown(string message) => _ = RefreshConnectionAsync(connection, graceful: true);
 
-            return clientConnection;
+            return connection;
         };
 
-        _clientConnection = _clientConnectionFactory();
+        _connection = _connectionFactory();
     }
 
     /// <summary>Constructs a resumable client connection with the specified server address and client authentication options.
@@ -112,41 +116,50 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel = default)
     {
-        // make a copy of the client connection we're trying with
-        ClientConnection clientConnection = _clientConnection;
+        // Keep a reference to the connection we're trying to connect to.
+        IProtocolConnection connection = _connection;
 
         try
         {
-            return await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            return await connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException) when (IsResumable)
         {
-            _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+            _ = RefreshConnectionAsync(connection, graceful: true);
 
-            // try again with the latest _clientConnection
-            return await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            // try again with the latest _connection
+            return await _connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() => _clientConnection.DisposeAsync();
+    public ValueTask DisposeAsync()
+    {
+        lock (_mutex)
+        {
+            _isResumable = false;
+        }
+        return _connection.DisposeAsync();
+    }
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
-        // make a copy of the client connection we're trying with
-        ClientConnection clientConnection = _clientConnection;
+        // TODO: move invoke-call-connect logic from ProtocolConnection to here.
+
+        // Keep a reference to the connection we're trying to connect to.
+        IProtocolConnection connection = _connection;
 
         try
         {
-            return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException) when (IsResumable)
         {
-            _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
+            _ = RefreshConnectionAsync(connection, graceful: true);
 
-            // try again with the latest _clientConnection
-            return await _clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            // try again with the latest _connection
+            return await _connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         // for retries on other exceptions, the application should use a retry interceptor
     }
@@ -155,29 +168,32 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
     public void OnAbort(Action<Exception> callback)
     {
-        ClientConnection clientConnection;
+        IProtocolConnection connection;
         lock (_mutex)
         {
-            _onAbort += callback; // for future connections
-            clientConnection = _clientConnection;
+            _onAbort += callback; // for future connection created by _connectionFactory
+            connection = _connection;
         }
 
-        clientConnection.OnAbort(callback);
+        // call OnAbort on underlying connection outside mutex lock
+        connection.OnAbort(callback);
     }
 
-    /// <summary>Adds a callback that will be executed when the underlying connection is shut down.</summary>
+    /// <summary>Adds a callback that will be executed when the underlying connection is shut down by the peer or an
+    /// idle timeout.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
     public void OnShutdown(Action<string> callback)
     {
-        ClientConnection clientConnection;
+        IProtocolConnection connection;
 
         lock (_mutex)
         {
-            _onShutdown += callback; // for future client connections
-            clientConnection = _clientConnection;
+            _onShutdown += callback; // for future connection created by _connectionFactory
+            connection = _connection;
         }
 
-        clientConnection.OnShutdown(callback);
+        // call OnShutdown on underlying connection outside mutex lock
+        connection.OnShutdown(callback);
     }
 
     /// <summary>Gracefully shuts down the connection.</summary>
@@ -196,19 +212,19 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         {
             _isResumable = false;
         }
-        return _clientConnection.ShutdownAsync(message, cancel);
+        return _connection.ShutdownAsync(message, cancel);
     }
 
-    private async Task RefreshClientConnectionAsync(ClientConnection clientConnection, bool graceful)
+    private async Task RefreshConnectionAsync(IProtocolConnection connection, bool graceful)
     {
         bool closeOldConnection = false;
         lock (_mutex)
         {
-            // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
+            // We only create a new connection and assign it to _connection if it matches the connection we
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
-            if (_isResumable && clientConnection == _clientConnection)
+            if (_isResumable && connection == _connection)
             {
-                _clientConnection = _clientConnectionFactory();
+                _connection = _connectionFactory();
                 closeOldConnection = true;
             }
         }
@@ -219,17 +235,17 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             {
                 try
                 {
-                    // Wait for existing graceful shutdown to complete, or fail immediately if aborted
-                    await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    // Wait for existing graceful shutdown to complete, or fail immediately if aborted.
+                    await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // OnAbort will clean it up
+                    // OnAbort will dispose connection.
                     return;
                 }
             }
 
-            await clientConnection.DisposeAsync().ConfigureAwait(false);
+            await connection.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

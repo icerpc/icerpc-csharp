@@ -16,7 +16,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly Dictionary<ServerAddress, IProtocolConnection> _activeConnections =
         new(ServerAddressComparer.OptionalTransport);
 
-    private readonly IClientProtocolConnectionFactory _clientConnectionFactory;
+    private readonly IClientProtocolConnectionFactory _connectionFactory;
 
     private bool _isReadOnly;
 
@@ -41,7 +41,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null)
     {
-        _clientConnectionFactory = new ClientProtocolConnectionFactory(
+        _connectionFactory = new ClientProtocolConnectionFactory(
             options.ConnectionOptions,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
@@ -257,7 +257,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             else
             {
-                connection = _clientConnectionFactory.CreateConnection(serverAddress);
+                connection = _connectionFactory.CreateConnection(serverAddress);
                 ConnectionCacheEventSource.Log.ConnectionStart(serverAddress);
                 created = true;
                 _pendingConnections.Add(serverAddress, connection);
