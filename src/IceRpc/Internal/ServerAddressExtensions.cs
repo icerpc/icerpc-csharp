@@ -53,10 +53,10 @@ internal static class ServerAddressExtensions
         }
 
         bool firstParam = true;
-        if (serverAddress.Transport is not null)
+        if (serverAddress.Transport is string transport)
         {
             firstParam = false;
-            sb.Append("?transport=").Append(serverAddress.Transport);
+            sb.Append("?transport=").Append(transport);
         }
 
         foreach ((string name, string value) in serverAddress.Params)

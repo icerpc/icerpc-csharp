@@ -120,7 +120,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
             {
-                // Try again once with the latest connection
+                // Try again once with the new connection
                 return await newConnection.ConnectAsync(cancel).ConfigureAwait(false);
             }
             else
@@ -164,6 +164,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             CheckRequestServerAddresses(mainServerAddress, request.ServiceAddress.AltServerAddresses);
         }
+
         // If the request has no server address at all, we let it through.
 
         return PerformConnectInvokeAsync(_connection, retryOnConnectionClosed: true);

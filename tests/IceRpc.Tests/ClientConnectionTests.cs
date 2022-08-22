@@ -161,8 +161,7 @@ public class ClientConnectionTests
             Throws.Nothing);
     }
 
-    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address or the protocols don't
-    /// match.</summary>
+    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address.</summary>
     [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
@@ -170,14 +169,39 @@ public class ClientConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
-    [TestCase("icerpc://foo.com", "ice:/path")]
-    [TestCase("ice://foo.com", "icerpc:/path")]
     public async Task InvokeAsync_fails_without_a_compatible_server_address(
         ServerAddress serverAddress,
         ServiceAddress serviceAddress)
     {
         // Arrange
         await using var connection = new ClientConnection(serverAddress);
+
+        // Assert
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies that InvokeAsync fails when the protocols don't match.</summary>
+    [TestCase("icerpc://foo.com", "ice:/path")]
+    [TestCase("ice://foo.com", "icerpc:/path")]
+    public async Task InvokeAsync_fails_with_protocol_mismatch(
+        ServerAddress serverAddress,
+        ServiceAddress serviceAddress)
+    {
+        // Arrange
+        await using ServiceProvider provider =
+            new ServiceCollection()
+                .AddColocTest(
+                    new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                    serverAddress.Protocol,
+                    host: serverAddress.Host)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+
+        server.Listen();
 
         // Assert
         Assert.That(
