@@ -8,23 +8,9 @@ namespace IceRpc.Internal;
 /// <summary>The base implementation of <see cref="IProtocolConnection"/>.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
-    public bool IsConnected
-    {
-        get
-        {
-            if (_connectTask is not null)
-            {
-                return _connectTask.IsCompletedSuccessfully;
-            }
-            else
-            {
-                lock (_mutex)
-                {
-                    return _connectTask is not null && _connectTask.IsCompletedSuccessfully;
-                }
-            }
-        }
-    }
+    // We don't lock _mutex: in the unlikely situation where the caller sees a cached null _connectTask, it will
+    // call ConnectAsync and succeed immediately.
+    public bool IsConnected => _connectTask is Task connectTask && connectTask.IsCompletedSuccessfully;
 
     public abstract ServerAddress ServerAddress { get; }
 
