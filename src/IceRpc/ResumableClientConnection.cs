@@ -221,7 +221,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         lock (_mutex)
         {
             // We only create a new connection and assign it to _connection if it matches the connection we
-            // just tried. If it's another connection, another thread has already called RefreshClientConnection.
+            // just tried. If it's another connection, another thread has already called RefreshConnection.
             if (_isResumable && connection == _connection)
             {
                 _connection = _connectionFactory();
