@@ -901,8 +901,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     [RequestFieldKey.Context] = result.Buffer
                 };
 
-                if (requestHeader.OperationMode == OperationMode.Idempotent)
+                if (requestHeader.OperationMode != OperationMode.Normal)
                 {
+                    // OperationMode can be Idempotent or Nonmutating.
                     fields[RequestFieldKey.Idempotent] = default;
                 }
             }
