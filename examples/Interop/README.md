@@ -1,10 +1,10 @@
-## [Interop](./Hello/)
+## [IceGrid](./IceGrid/)
 
-A simple hello example application that shows how IceRPC interoperates with [ZeroC Ice][1].
+The IceGrid example application shows how an IceRPC client can call services hosted by servers managed by [IceGrid][2].
 
-## [Locator](./IceGrid/)
+## [Minimal](./Minimal/)
 
-The IceGrid example application shows how IceRPC interoperates with [ZeroC IceGrid][2].
+A simple hello example application that shows how an IceRPC client can call a service hosted by an [Ice][1] server.
 
-[1]: https://github.com/zeroc-ice/ice
+[1]: https://zeroc.com/products/ice
 [2]: https://zeroc.com/products/ice/services/icegrid
