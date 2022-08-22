@@ -5,12 +5,10 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
-/// <summary>The protocol connection abstract base class provides the idle timeout implementation and also ensures that
-/// the protocol implementation of connection establishment, shutdown and disposal are only called once and in the
-/// correct order.</summary>
-internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
+/// <summary>The base implementation of <see cref="IProtocolConnection"/>.</summary>
+internal abstract class ProtocolConnection : IProtocolConnection
 {
-    internal abstract ServerAddress ServerAddress { get; }
+    public abstract ServerAddress ServerAddress { get; }
 
     private readonly CancellationTokenSource _connectCts = new();
     private Task<TransportConnectionInformation>? _connectTask;
@@ -26,6 +24,78 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
+
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    {
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+            }
+            else if (_shutdownTask is not null)
+            {
+                throw new ConnectionClosedException(
+                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
+            }
+            else if (_connectTask is null)
+            {
+                _connectTask = PerformConnectAsync();
+            }
+        }
+
+        return PerformWaitForConnectAsync();
+
+        async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
+        {
+            try
+            {
+                return await _connectTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
+            {
+                // Cancel pending connect if any of the ConnectAsync calls are canceled.
+                try
+                {
+                    _connectCts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+                throw;
+            }
+        }
+
+        async Task<TransportConnectionInformation> PerformConnectAsync()
+        {
+            // Make sure we execute the function without holding the connection mutex lock.
+            await Task.Yield();
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_connectCts.Token);
+            cts.CancelAfter(_connectTimeout);
+
+            try
+            {
+                cts.Token.ThrowIfCancellationRequested();
+
+                TransportConnectionInformation information = await ConnectAsyncCore(cts.Token).ConfigureAwait(false);
+                EnableIdleCheck();
+                return information;
+            }
+            catch (OperationCanceledException) when (_connectCts.IsCancellationRequested)
+            {
+                throw new ConnectionAbortedException(_disposeTask is null ?
+                    "connection establishment canceled" :
+                    "connection disposed");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Assert(cts.IsCancellationRequested);
+                throw new TimeoutException(
+                    $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+            }
+        }
+    }
 
     public ValueTask DisposeAsync()
     {
@@ -48,7 +118,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             {
                 try
                 {
-                    await _connectTask.ConfigureAwait(false);
+                    _ = await _connectTask.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -119,95 +189,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options)
-    {
-        _connectTimeout = options.ConnectTimeout;
-        _shutdownTimeout = options.ShutdownTimeout;
-        _idleTimeout = options.IdleTimeout;
-        _idleTimeoutTimer = new Timer(_ =>
-            {
-                if (CheckIfIdle())
-                {
-                    InitiateShutdown("idle connection");
-                }
-            });
-    }
-
-    internal Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
-    {
-        lock (_mutex)
-        {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
-            }
-            else if (_shutdownTask is not null)
-            {
-                throw new ConnectionClosedException(
-                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
-            }
-            else if (_connectTask is null)
-            {
-                _connectTask = PerformConnectAsync();
-            }
-        }
-
-        return PerformWaitForConnectAsync();
-
-        async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
-        {
-            try
-            {
-                return await _connectTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
-            {
-                // Cancel pending connect if any of the ConnectAsync calls are canceled.
-                try
-                {
-                    _connectCts.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-                throw;
-            }
-        }
-
-        async Task<TransportConnectionInformation> PerformConnectAsync()
-        {
-            // Make sure we execute the function without holding the connection mutex lock.
-            await Task.Yield();
-
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_connectCts.Token);
-            cts.CancelAfter(_connectTimeout);
-
-            try
-            {
-                cts.Token.ThrowIfCancellationRequested();
-
-                TransportConnectionInformation information =
-                    await ConnectAsyncCore(cts.Token).ConfigureAwait(false);
-                EnableIdleCheck();
-                return information;
-            }
-            catch (OperationCanceledException) when (_connectCts.IsCancellationRequested)
-            {
-                throw new ConnectionAbortedException(_disposeTask is null ?
-                    "connection establishment canceled" :
-                    "connection disposed");
-            }
-            catch (OperationCanceledException)
-            {
-                Debug.Assert(cts.IsCancellationRequested);
-                throw new TimeoutException(
-                    $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
-            }
-        }
-    }
-
-    /// <summary>Registers a callback that will be called when the connection is aborted by the peer.</summary>
-    internal void OnAbort(Action<Exception> callback)
+    public void OnAbort(Action<Exception> callback)
     {
         bool executeCallback = false;
 
@@ -229,9 +211,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Registers a callback that will be called when the connection is shutdown by the idle timeout or by
-    /// by the peer.</summary>
-    internal void OnShutdown(Action<string> callback)
+    public void OnShutdown(Action<string> callback)
     {
         bool executeCallback = false;
 
@@ -253,7 +233,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    internal Task ShutdownAsync(string message, CancellationToken cancel = default)
+    public Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
         lock (_mutex)
         {
@@ -304,6 +284,20 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
                 throw;
             }
         }
+    }
+
+    internal ProtocolConnection(ConnectionOptions options)
+    {
+        _connectTimeout = options.ConnectTimeout;
+        _shutdownTimeout = options.ShutdownTimeout;
+        _idleTimeout = options.IdleTimeout;
+        _idleTimeoutTimer = new Timer(_ =>
+            {
+                if (CheckIfIdle())
+                {
+                    InitiateShutdown("idle connection");
+                }
+            });
     }
 
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);
@@ -386,7 +380,7 @@ internal abstract class ProtocolConnection : IInvoker, IAsyncDisposable
             cts.Token.ThrowIfCancellationRequested();
 
             // Wait for connect to complete first.
-            await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
+            _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
 
             if (cancelDispatchesAndInvocations)
             {

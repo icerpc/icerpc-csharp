@@ -22,12 +22,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
     /// non-null.</value>
-    public ServerAddress ServerAddress { get; }
+    public ServerAddress ServerAddress => _protocolConnection.ServerAddress;
 
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => ServerAddress.Protocol;
 
-    private readonly ProtocolConnection _protocolConnection;
+    private readonly IProtocolConnection _protocolConnection;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -44,45 +44,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        // This is the composition root of client Connections.
+        var factory = new ClientProtocolConnectionFactory(
+            options,
+            options.ClientAuthenticationOptions,
+            duplexClientTransport,
+            multiplexedClientTransport);
 
-        if (serverAddress.Protocol == Protocol.Ice)
-        {
-            duplexClientTransport ??= DefaultDuplexClientTransport;
-
-            IDuplexConnection transportConnection = duplexClientTransport.CreateConnection(
-                serverAddress,
-                new DuplexConnectionOptions
-                {
-                    Pool = options.Pool,
-                    MinSegmentSize = options.MinSegmentSize,
-                },
-                options.ClientAuthenticationOptions);
-            ServerAddress = transportConnection.ServerAddress;
-            _protocolConnection = new IceProtocolConnection(transportConnection, isServer: false, options);
-        }
-        else
-        {
-            multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
-
-            IMultiplexedConnection transportConnection = multiplexedClientTransport.CreateConnection(
-                serverAddress,
-                new MultiplexedConnectionOptions
-                {
-                    MaxBidirectionalStreams =
-                        options.Dispatcher is null ? 0 : options.MaxIceRpcBidirectionalStreams,
-                    // Add an additional stream for the icerpc protocol control stream.
-                    MaxUnidirectionalStreams =
-                        options.Dispatcher is null ? 1 : (options.MaxIceRpcUnidirectionalStreams + 1),
-                    Pool = options.Pool,
-                    MinSegmentSize = options.MinSegmentSize,
-                    StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-                },
-                options.ClientAuthenticationOptions);
-
-            ServerAddress = transportConnection.ServerAddress;
-            _protocolConnection = new IceRpcProtocolConnection(transportConnection, options);
-        }
+        _protocolConnection = factory.CreateConnection(serverAddress);
     }
 
     /// <summary>Constructs a client connection with the specified server address and authentication options. All other
