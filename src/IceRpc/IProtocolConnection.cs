@@ -5,7 +5,7 @@ using IceRpc.Transports;
 namespace IceRpc;
 
 /// <summary>Represents a connection for a <see cref="Protocol"/>. It is the building block for
-/// <see cref="NonResumableClientConnection"/>, <see cref="ConnectionCache"/> and the connections created by <see cref="Server"/>.
+/// <see cref="ClientConnection"/>, <see cref="ConnectionCache"/> and the connections created by <see cref="Server"/>.
 /// Applications can use this interface to build their own custom client connection and connection cache classes.
 /// </summary>
 public interface IProtocolConnection : IInvoker, IAsyncDisposable

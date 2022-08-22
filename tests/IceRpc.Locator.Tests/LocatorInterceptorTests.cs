@@ -15,7 +15,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
-        await using var connection = new NonResumableClientConnection(new Uri("ice://localhost:10000"));
+        await using var connection = new ClientConnection(new Uri("ice://localhost:10000"));
 
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);

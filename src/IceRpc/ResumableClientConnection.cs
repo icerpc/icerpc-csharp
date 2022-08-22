@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Transports;
+using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -145,6 +147,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
+        // TODO: remove async
+
+        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
+        {
+            if (serverAddressFeature.ServerAddress is ServerAddress mainServerAddress)
+            {
+                CheckRequestServerAddresses(mainServerAddress, serverAddressFeature.AltServerAddresses);
+            }
+        }
+        else if (request.ServiceAddress.ServerAddress is ServerAddress mainServerAddress)
+        {
+            CheckRequestServerAddresses(mainServerAddress, request.ServiceAddress.AltServerAddresses);
+        }
+        // If the request has no server address at all, we let it through.
+
         // TODO: move invoke-call-connect logic from ProtocolConnection to here.
 
         // Keep a reference to the connection we're trying to connect to.
@@ -162,6 +179,27 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             return await _connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         // for retries on other exceptions, the application should use a retry interceptor
+
+        void CheckRequestServerAddresses(
+            ServerAddress mainServerAddress,
+            ImmutableList<ServerAddress> altServerAddresses)
+        {
+            if (ServerAddressComparer.OptionalTransport.Equals(mainServerAddress, ServerAddress))
+            {
+                return;
+            }
+
+            foreach (ServerAddress serverAddress in altServerAddresses)
+            {
+                if (ServerAddressComparer.OptionalTransport.Equals(serverAddress, ServerAddress))
+                {
+                    return;
+                }
+            }
+
+            throw new InvalidOperationException(
+                $"none of the server addresses of the request matches this connection's server address: {ServerAddress}");
+        }
     }
 
     /// <summary>Adds a callback that will be executed when the underlying connection is aborted.</summary>

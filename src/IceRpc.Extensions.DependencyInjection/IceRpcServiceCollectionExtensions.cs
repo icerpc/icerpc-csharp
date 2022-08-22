@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection"/>.</summary>
 public static class IceRpcServiceCollectionExtensions
 {
-    /// <summary>Adds a <see cref="NonResumableClientConnection"/> and <see cref="IInvoker"/> singleton to this service collection.
+    /// <summary>Adds a <see cref="ClientConnection"/> and <see cref="IInvoker"/> singleton to this service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>

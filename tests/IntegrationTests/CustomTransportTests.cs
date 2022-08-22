@@ -86,7 +86,7 @@ public class CustomTransportTests
 
         server.Listen();
 
-        await using var connection = new NonResumableClientConnection(
+        await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
                 ServerAddress = server.ServerAddress
@@ -113,7 +113,7 @@ public class CustomTransportTests
                 multiplexedServerTransport: new CustomServerTransport());
             server.Listen();
 
-            await using var connection1 = new NonResumableClientConnection(
+            await using var connection1 = new ClientConnection(
                 new ClientConnectionOptions
                 {
                     // We add the custom server address here because listen updates the server address and the custom transport

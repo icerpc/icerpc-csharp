@@ -13,7 +13,7 @@ public class ClientConnectionTests
 {
     private static List<Protocol> Protocols => new() { Protocol.IceRpc, Protocol.Ice };
 
-    /// <summary>Verifies that <see cref="NonResumableClientConnection.ConnectAsync"/> returns a valid <see
+    /// <summary>Verifies that <see cref="ClientConnection.ConnectAsync"/> returns a valid <see
     /// cref="TransportConnectionInformation"/></summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connect_returns_transport_connection_information(Protocol protocol)
@@ -32,10 +32,10 @@ public class ClientConnectionTests
             duplexServerTransport: new TcpServerTransport());
         server.Listen();
 
-        await using var connection = new NonResumableClientConnection(
+        await using var connection = new ClientConnection(
             new ClientConnectionOptions() { ServerAddress = server.ServerAddress },
-            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()),
-            duplexClientTransport: new TcpClientTransport());
+            duplexClientTransport: new TcpClientTransport(),
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
         // Act
         TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync();
@@ -53,7 +53,7 @@ public class ClientConnectionTests
     public async Task Connection_server_address_transport_property_is_set(Protocol protocol)
     {
         // Arrange
-        await using var clientConnection = new NonResumableClientConnection(new ServerAddress(protocol));
+        await using var clientConnection = new ClientConnection(new ServerAddress(protocol));
 
         // Act/Assert
         Assert.That(clientConnection.ServerAddress.Transport, Is.Not.Null);
@@ -104,7 +104,7 @@ public class ClientConnectionTests
         ServiceAddress serviceAddress)
     {
         // Arrange
-        await using var connection = new NonResumableClientConnection(serverAddress);
+        await using var connection = new ClientConnection(serverAddress);
 
         // Assert
         Assert.That(
