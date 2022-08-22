@@ -13,23 +13,23 @@ namespace IceRpc;
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
-    private readonly Dictionary<ServerAddress, ClientConnection> _activeConnections =
+    private readonly Dictionary<ServerAddress, IProtocolConnection> _activeConnections =
         new(ServerAddressComparer.OptionalTransport);
 
-    private readonly Func<ServerAddress, ClientConnection> _clientConnectionFactory;
+    private readonly IClientProtocolConnectionFactory _clientConnectionFactory;
 
     private bool _isReadOnly;
 
     private readonly object _mutex = new();
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
-    private readonly Dictionary<ServerAddress, ClientConnection> _pendingConnections =
+    private readonly Dictionary<ServerAddress, IProtocolConnection> _pendingConnections =
         new(ServerAddressComparer.OptionalTransport);
 
     private readonly bool _preferExistingConnection;
 
     // Formerly pending or active connections that are closed but not shutdown yet.
-    private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
+    private readonly HashSet<IProtocolConnection> _shutdownPendingConnections = new();
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
@@ -41,23 +41,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null,
         IDuplexClientTransport? duplexClientTransport = null)
     {
+        _clientConnectionFactory = new ClientProtocolConnectionFactory(
+            options.ConnectionOptions,
+            options.ClientAuthenticationOptions,
+            duplexClientTransport,
+            multiplexedClientTransport);
+
         _preferExistingConnection = options.PreferExistingConnection;
-
-        multiplexedClientTransport ??= ClientConnection.DefaultMultiplexedClientTransport;
-        duplexClientTransport ??= ClientConnection.DefaultDuplexClientTransport;
-
-        _clientConnectionFactory = serverAddress => new ClientConnection(
-            options.ClientConnectionOptions with { ServerAddress = serverAddress },
-            multiplexedClientTransport,
-            duplexClientTransport);
-    }
-
-    /// <summary>Constructs a connection cache.</summary>
-    /// <param name="clientConnectionOptions">The client connection options for connections created by this cache.
-    /// </param>
-    public ConnectionCache(ClientConnectionOptions clientConnectionOptions)
-        : this(new ConnectionCacheOptions { ClientConnectionOptions = clientConnectionOptions })
-    {
     }
 
     /// <summary>Constructs a connection cache using the default options.</summary>
@@ -76,7 +66,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Dispose all connections managed by this cache.
-        IEnumerable<ClientConnection> allConnections =
+        IEnumerable<IProtocolConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         await Task.WhenAll(
@@ -102,7 +92,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             throw new NoServerAddressException(request.ServiceAddress);
         }
 
-        ClientConnection? connection = null;
+        IProtocolConnection? connection = null;
         ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
 
         if (_preferExistingConnection)
@@ -131,8 +121,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
             }
 
-            ClientConnection? GetActiveConnection(ServerAddress serverAddress) =>
-                _activeConnections.TryGetValue(serverAddress, out ClientConnection? connection) ? connection : null;
+            IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
+                _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ? connection : null;
         }
 
         if (connection is not null)
@@ -221,7 +211,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Shut down all connections managed by this cache.
-        IEnumerable<ClientConnection> allConnections =
+        IEnumerable<IProtocolConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
@@ -245,9 +235,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <param name="serverAddress">The server address.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A connected connection.</returns>
-    private async ValueTask<ClientConnection> ConnectAsync(ServerAddress serverAddress, CancellationToken cancel)
+    private async ValueTask<IProtocolConnection> ConnectAsync(ServerAddress serverAddress, CancellationToken cancel)
     {
-        ClientConnection? connection = null;
+        IProtocolConnection? connection = null;
         bool created = false;
 
         lock (_mutex)
@@ -267,7 +257,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             else
             {
-                connection = _clientConnectionFactory(serverAddress);
+                connection = _clientConnectionFactory.CreateConnection(serverAddress);
                 ConnectionCacheEventSource.Log.ConnectionStart(serverAddress);
                 created = true;
                 _pendingConnections.Add(serverAddress, connection);
@@ -372,14 +362,14 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Remove connection from _shutdownPendingConnections once the dispose is complete
-        async Task RemoveFromClosedAsync(ClientConnection clientConnection, bool graceful)
+        async Task RemoveFromClosedAsync(IProtocolConnection clientConnection, bool graceful)
         {
             if (graceful)
             {
                 // wait for current shutdown to complete
                 try
                 {
-                    await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await clientConnection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
