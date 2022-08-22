@@ -8,6 +8,24 @@ namespace IceRpc.Internal;
 /// <summary>The base implementation of <see cref="IProtocolConnection"/>.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
+    public bool IsConnected
+    {
+        get
+        {
+            if (_connectTask is not null)
+            {
+                return _connectTask.IsCompletedSuccessfully;
+            }
+            else
+            {
+                lock (_mutex)
+                {
+                    return _connectTask is not null && _connectTask.IsCompletedSuccessfully;
+                }
+            }
+        }
+    }
+
     public abstract ServerAddress ServerAddress { get; }
 
     private readonly CancellationTokenSource _connectCts = new();
@@ -170,23 +188,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
             throw new ConnectionClosedException(
                 _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
         }
-        else if (_connectTask is not null && _connectTask.IsCompletedSuccessfully)
+        else if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
         {
-            return InvokeAsyncCore(request, cancel);
-        }
-        else
-        {
-            return PerformConnectInvokeAsync();
+            throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
         }
 
-        async Task<IncomingResponse> PerformConnectInvokeAsync()
-        {
-            // Perform the connection establishment without a cancellation token. It will eventually timeout if the
-            // connect timeout is reached.
-            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
-
-            return await InvokeAsyncCore(request, cancel).ConfigureAwait(false);
-        }
+        return InvokeAsyncCore(request, cancel);
     }
 
     public void OnAbort(Action<Exception> callback)

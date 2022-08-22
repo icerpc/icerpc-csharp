@@ -10,6 +10,11 @@ namespace IceRpc;
 /// </summary>
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
+    /// <summary>Gets a value indicating whether ConnectAsync returned successfully.</summary>
+    /// <value><c>true</c> when <see cref="ConnectAsync"/> was called and returned successfully; otherwise,
+    /// <c>false</c>. This property remains <c>true</c> after the connection is shut down or disposed.</value>
+    bool IsConnected { get; }
+
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
     /// non-null.</value>

@@ -16,16 +16,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
-    private bool IsResumable
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                return _isResumable;
-            }
-        }
-    }
+    private Task? _cleanupTask;
 
     private IProtocolConnection _connection;
 
@@ -67,8 +58,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             connection.OnAbort(_onAbort + OnAbort);
             connection.OnShutdown(_onShutdown + OnShutdown);
 
-            void OnAbort(Exception exception) => _ = RefreshConnectionAsync(connection, graceful: false);
-            void OnShutdown(string message) => _ = RefreshConnectionAsync(connection, graceful: true);
+            void OnAbort(Exception exception) => RefreshConnection(connection, graceful: false);
+            void OnShutdown(string message) => RefreshConnection(connection, graceful: true);
 
             return connection;
         };
@@ -76,8 +67,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         _connection = _connectionFactory();
     }
 
-    /// <summary>Constructs a resumable client connection with the specified server address and client authentication options.
-    /// All other properties have their default values.</summary>
+    /// <summary>Constructs a resumable client connection with the specified server address and client authentication
+    /// options. All other properties have their default values.</summary>
     /// <param name="serverAddress">The connection server address.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(
@@ -91,8 +82,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a resumable client connection with the specified server address URI and client authentication
-    /// options. All other properties have their default values.</summary>
+    /// <summary>Constructs a resumable client connection with the specified server address URI and client
+    /// authentication options. All other properties have their default values.</summary>
     /// <param name="serverAddressUri">The connection server address URI.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(
@@ -125,30 +116,43 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             return await connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
-        catch (ConnectionClosedException) when (IsResumable)
+        catch (ConnectionClosedException)
         {
-            _ = RefreshConnectionAsync(connection, graceful: true);
-
-            // try again with the latest _connection
-            return await _connection.ConnectAsync(cancel).ConfigureAwait(false);
+            if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
+            {
+                // Try again once with the latest connection
+                return await newConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                throw;
+            }
         }
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        Task? cleanupTask;
         lock (_mutex)
         {
             _isResumable = false;
+            cleanupTask = _cleanupTask;
         }
-        return _connection.DisposeAsync();
+
+        if (cleanupTask is not null)
+        {
+            await Task.WhenAll(_connection.DisposeAsync().AsTask(), cleanupTask).ConfigureAwait(false);
+        }
+        else
+        {
+            await _connection.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
-        // TODO: remove async
-
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
             if (serverAddressFeature.ServerAddress is ServerAddress mainServerAddress)
@@ -162,23 +166,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         // If the request has no server address at all, we let it through.
 
-        // TODO: move invoke-call-connect logic from ProtocolConnection to here.
-
-        // Keep a reference to the connection we're trying to connect to.
-        IProtocolConnection connection = _connection;
-
-        try
-        {
-            return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
-        }
-        catch (ConnectionClosedException) when (IsResumable)
-        {
-            _ = RefreshConnectionAsync(connection, graceful: true);
-
-            // try again with the latest _connection
-            return await _connection.InvokeAsync(request, cancel).ConfigureAwait(false);
-        }
-        // for retries on other exceptions, the application should use a retry interceptor
+        return PerformConnectInvokeAsync(_connection, retryOnConnectionClosed: true);
 
         void CheckRequestServerAddresses(
             ServerAddress mainServerAddress,
@@ -199,6 +187,38 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             throw new InvalidOperationException(
                 $"none of the server addresses of the request matches this connection's server address: {ServerAddress}");
+        }
+
+        async Task<IncomingResponse> PerformConnectInvokeAsync(
+            IProtocolConnection connection,
+            bool retryOnConnectionClosed)
+        {
+            try
+            {
+                if (!connection.IsConnected)
+                {
+                    // Perform the connection establishment without a cancellation token. It will timeout if the
+                    // connect timeout is reached.
+                    _ = await connection.ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
+                }
+
+                // connection now represents a connected connection.
+
+                return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            }
+            catch (ConnectionClosedException) when (retryOnConnectionClosed)
+            {
+                if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
+                {
+                    // try again once with the latest connection
+                    return await PerformConnectInvokeAsync(newConnection, retryOnConnectionClosed: false)
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
     }
 
@@ -253,22 +273,33 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         return _connection.ShutdownAsync(message, cancel);
     }
 
-    private async Task RefreshConnectionAsync(IProtocolConnection connection, bool graceful)
+    /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
+    /// resumable.</summary>
+    private IProtocolConnection? RefreshConnection(IProtocolConnection connection, bool graceful)
     {
-        bool closeOldConnection = false;
+        IProtocolConnection? newConnection = null;
+
         lock (_mutex)
         {
-            // We only create a new connection and assign it to _connection if it matches the connection we
-            // just tried. If it's another connection, another thread has already called RefreshConnection.
-            if (_isResumable && connection == _connection)
+            // We only create a new connection and assign it to _connection if it matches the connection we just tried.
+            // If it's another connection, another thread has already called RefreshConnection.
+            if (_isResumable)
             {
-                _connection = _connectionFactory();
-                closeOldConnection = true;
+                if (connection == _connection)
+                {
+                    _connection = _connectionFactory();
+                    _cleanupTask = PerformCleanupAsync(_cleanupTask);
+                }
+                newConnection = _connection;
             }
         }
 
-        if (closeOldConnection)
+        return newConnection;
+
+        async Task PerformCleanupAsync(Task? previousTask)
         {
+            await Task.Yield();
+
             if (graceful)
             {
                 try
@@ -278,12 +309,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch
                 {
-                    // OnAbort will dispose connection.
-                    return;
+                    // ignore
                 }
             }
 
-            await connection.DisposeAsync().ConfigureAwait(false);
+            if (previousTask is not null)
+            {
+                await Task.WhenAll(previousTask, connection.DisposeAsync().AsTask()).ConfigureAwait(false);
+            }
+            else
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
         }
     }
 }
