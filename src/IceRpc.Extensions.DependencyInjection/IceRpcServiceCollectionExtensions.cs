@@ -36,8 +36,8 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ConnectionCache(
                     provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
-                    provider.GetRequiredService<IMultiplexedClientTransport>(),
-                    provider.GetRequiredService<IDuplexClientTransport>()))
+                    provider.GetRequiredService<IDuplexClientTransport>(),
+                    provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
 
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
