@@ -70,7 +70,6 @@ public class ClientConnectionTests
         Assert.That(async() => await connection.ConnectAsync(), Throws.Nothing);
     }
 
-    [Ignore("see issue #1656")]
     [Test]
     public async Task Connection_can_reconnect_after_graceful_peer_shutdown()
     {
@@ -90,6 +89,7 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
+    [Ignore("see issue #1656")]
     [Test]
     public async Task Connection_can_reconnect_after_peer_abort()
     {
