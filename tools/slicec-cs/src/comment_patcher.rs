@@ -1,49 +1,46 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use std::collections::HashMap;
 use std::convert::TryInto;
 
 use crate::slicec_ext::*;
 
 use slice::ast::node::Node;
+use slice::ast::Ast;
 use slice::grammar::{DocComment, Entity};
 use slice::parse_result::{ParsedData, ParserResult};
 
 struct CommentPatcher {
-    parsed_data: ParsedData,
-    patched_comments: Vec<Option<DocComment>>,
+    patched_comments: HashMap<usize, Option<DocComment>>,
 }
 
-pub fn patch_comments(parsed_data: ParsedData) -> ParserResult {
+pub fn patch_comments(mut parsed_data: ParsedData) -> ParserResult {
     let mut patcher = CommentPatcher {
-        parsed_data,
-        patched_comments: vec![],
+        patched_comments: HashMap::new(),
     };
 
-    patcher.compute_patched_comments();
-    patcher.apply_patched_comments();
+    patcher.compute_patched_comments(&parsed_data.ast);
+    patcher.apply_patched_comments(&mut parsed_data.ast);
 
-    patcher.parsed_data.into()
+    debug_assert!(patcher.patched_comments.is_empty());
+
+    parsed_data.into()
 }
 
 impl CommentPatcher {
-    fn compute_patched_comments(&mut self) {
-        for node in self.parsed_data.ast.as_slice() {
-            let entity_opt: Option<&dyn Entity> = node.try_into().ok();
-
-            if let Some(entity) = entity_opt {
-                let patch = self.create_patch(entity);
-                self.patched_comments.push(patch);
+    fn compute_patched_comments(&mut self, ast: &Ast) {
+        for (i, node) in ast.as_slice().iter().enumerate() {
+            if let Ok(entity) = node.try_into() {
+                let patch = self.patch_comment(ast, entity);
+                self.patched_comments.insert(i, patch);
             }
         }
     }
 
-    fn apply_patched_comments(&mut self) {
+    fn apply_patched_comments(&mut self, ast: &mut Ast) {
         unsafe {
-            for node in self.parsed_data.ast.as_mut_slice() {
-                let entity_opt: Option<&dyn Entity> = (&*node).try_into().ok();
-
-                if entity_opt.is_some() {
-                    let patch = self.patched_comments.remove(0);
+            for (i, node) in ast.as_mut_slice().iter_mut().enumerate() {
+                if let Some(patch) = self.patched_comments.remove(&i) {
                     match node {
                         Node::Module(module_ptr) => module_ptr.borrow_mut().comment = patch,
                         Node::Struct(struct_ptr) => struct_ptr.borrow_mut().comment = patch,
@@ -67,14 +64,10 @@ impl CommentPatcher {
         }
     }
 
-    fn create_patch(&self, entity: &dyn Entity) -> Option<DocComment> {
+    fn patch_comment(&self, ast: &Ast, entity: &dyn Entity) -> Option<DocComment> {
         if let Some(mut comment) = entity.comment().cloned() {
             replace_selection(&mut comment.overview, "{@link ", "}", |s| {
-                let identifier = match self
-                    .parsed_data
-                    .ast
-                    .find_element_with_scope::<dyn Entity>(s, entity.module_scope())
-                {
+                let identifier = match ast.find_element_with_scope::<dyn Entity>(s, entity.module_scope()) {
                     Ok(e) => e.escape_scoped_identifier(&entity.namespace()),
                     Err(_) => s.to_owned(), // TODO log a warning
                 };
