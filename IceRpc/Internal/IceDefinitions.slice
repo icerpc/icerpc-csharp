@@ -43,8 +43,8 @@ enum OperationMode
     /// that it will not violate at-most-once semantics for <code>Normal</code> operations.
     Normal,
 
-    /// <p class="Deprecated"><code>Nonmutating</code> is deprecated; use <code>Idempotent</code> instead.
-    Nonmutating, // TODO: deprecated metadata for enumerator
+    /// <code>Nonmutating</code> is deprecated; use <code>Idempotent</code> instead.
+    Nonmutating,
 
     /// Operations that use the Slice <code>idempotent</code> keyword can modify object state, but invoking an
     /// operation twice in a row must result in the same object state as invoking it once. For example,
