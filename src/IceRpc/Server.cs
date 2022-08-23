@@ -375,6 +375,8 @@ public sealed class Server : IAsyncDisposable
 
         public async Task ShutdownAsync(string message, CancellationToken cancel = default)
         {
+            // TODO: we should log the shutdown message!
+
             try
             {
                 await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
