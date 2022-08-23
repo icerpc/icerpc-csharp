@@ -71,7 +71,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a resumable client connection with the specified server address and client authentication
     /// options. All other properties have their default values.</summary>
-    /// <param name="serverAddress">The connection server address.</param>
+    /// <param name="serverAddress">The connection's server address.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(
         ServerAddress serverAddress,
