@@ -7,6 +7,9 @@ namespace IceRpc.Transports;
 /// <summary>A class to create a <see cref="IListener{T}"/> to accept incoming multiplexed connections.</summary>
 public interface IMultiplexedServerTransport
 {
+    /// <summary>Gets the default multiplexed server transport.</summary>
+    public static IMultiplexedServerTransport Default { get; } = new SlicServerTransport(new TcpServerTransport());
+
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
 

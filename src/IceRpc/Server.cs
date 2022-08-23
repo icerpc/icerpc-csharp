@@ -11,13 +11,6 @@ namespace IceRpc;
 /// corresponding responses.</summary>
 public sealed class Server : IAsyncDisposable
 {
-    /// <summary>Gets the default server transport for ice protocol connections.</summary>
-    public static IDuplexServerTransport DefaultDuplexServerTransport { get; } = new TcpServerTransport();
-
-    /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
-    public static IMultiplexedServerTransport DefaultMultiplexedServerTransport { get; } =
-        new SlicServerTransport(new TcpServerTransport());
-
     /// <summary>Gets the server address of this server.</summary>
     /// <value>The server address of this server. Its <see cref="ServerAddress.Transport"/> property is always non-null.
     /// When the address's host is an IP address and the port is 0, <see cref="Listen"/> replaces the port by the actual
@@ -32,7 +25,7 @@ public sealed class Server : IAsyncDisposable
 
     private bool _isReadOnly;
 
-    private IListener<IProtocolConnection>? _listener;
+    private IListener? _listener;
 
     private readonly Func<IListener<IProtocolConnection>> _listenerFactory;
 
@@ -46,8 +39,10 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="duplexServerTransport">The transport used to create ice protocol connections.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
+    /// to <see cref="IDuplexServerTransport.Default"/>.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
+    /// equivalent to <see cref="IMultiplexedServerTransport.Default"/>.</param>
     public Server(
         ServerOptions options,
         IDuplexServerTransport? duplexServerTransport = null,
@@ -60,8 +55,8 @@ public sealed class Server : IAsyncDisposable
         }
 
         _serverAddress = options.ServerAddress;
-        duplexServerTransport ??= DefaultDuplexServerTransport;
-        multiplexedServerTransport ??= DefaultMultiplexedServerTransport;
+        duplexServerTransport ??= IDuplexServerTransport.Default;
+        multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
 
         if (_serverAddress.Transport is null)
         {
@@ -155,6 +150,8 @@ public sealed class Server : IAsyncDisposable
     /// </exception>
     public void Listen()
     {
+        IListener<IProtocolConnection> listener;
+
         // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
         {
@@ -167,7 +164,8 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"server '{this}' is already listening");
             }
 
-            _listener = _listenerFactory();
+            listener = _listenerFactory();
+            _listener = listener;
         }
 
         _ = Task.Run(async () =>
@@ -177,7 +175,7 @@ public sealed class Server : IAsyncDisposable
                 IProtocolConnection connection;
                 try
                 {
-                    (connection, _) = await _listener.AcceptAsync().ConfigureAwait(false);
+                    (connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch
                 {
