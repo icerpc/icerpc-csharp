@@ -31,7 +31,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
     )
-    .add_comment("summary", &doc_comment_message(enum_def))
+    .add_comment("summary", doc_comment_message(enum_def))
     .add_container_attributes(enum_def)
     .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
@@ -44,7 +44,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
         // Use CodeBlock here in case the comment is empty. It automatically whitespace
         code.add_block(&CodeBlock::from(format!(
             "{}\n{} = {},",
-            CommentTag::new("summary", &doc_comment_message(enumerator)),
+            CommentTag::new("summary", doc_comment_message(enumerator)),
             enumerator.identifier(),
             enumerator.value
         )));

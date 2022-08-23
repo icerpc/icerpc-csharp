@@ -20,7 +20,7 @@ impl<'a> Visitor for TraitVisitor<'a> {
 
         let container_type = format!("{} partial interface", access);
         let trait_code = ContainerBuilder::new(&container_type, &trait_interface_name)
-            .add_comment("summary", &doc_comment_message(trait_def))
+            .add_comment("summary", doc_comment_message(trait_def))
             .add_container_attributes(trait_def)
             .add_base("IceRpc.Slice.ITrait".to_owned())
             .build();

@@ -35,7 +35,7 @@ impl Visitor for ExceptionVisitor<'_> {
         let mut exception_class_builder = ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
 
         exception_class_builder
-            .add_comment("summary", &doc_comment_message(exception_def))
+            .add_comment("summary", doc_comment_message(exception_def))
             .add_type_id_attribute(exception_def)
             .add_container_attributes(exception_def);
 
@@ -250,7 +250,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
                 .to_type_string(namespace, TypeContext::DataMember, false),
             member.parameter_name().as_str(),
             None,
-            Some(&doc_comment_message(*member)),
+            Some(doc_comment_message(*member)),
         );
     }
     ctor_builder.add_base_parameters(&base_parameters);

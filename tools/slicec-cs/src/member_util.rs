@@ -22,7 +22,7 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
         .to_type_string(&data_member.namespace(), TypeContext::DataMember, false);
     let mut prelude = CodeBlock::new();
 
-    prelude.writeln(&CommentTag::new("summary", &doc_comment_message(data_member)));
+    prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));
     prelude.writeln(&data_member.custom_attributes().into_iter().collect::<CodeBlock>());
     if let Some(obsolete) = data_member.obsolete_attribute(true) {
         prelude.writeln(&format!("[{}]", obsolete));
