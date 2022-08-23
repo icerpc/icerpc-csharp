@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Net.Security;
@@ -53,6 +54,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         _connectionFactory = () =>
         {
             IProtocolConnection connection = clientProtocolConnectionFactory.CreateConnection(serverAddress);
+            connection = new ConnectProtocolConnectionDecorator(connection);
 
             // only called from the constructor or with _mutex locked
             connection.OnAbort(_onAbort + OnAbort);
@@ -167,7 +169,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         // If the request has no server address at all, we let it through.
 
-        return PerformConnectInvokeAsync(_connection, retryOnConnectionClosed: true);
+        return PerformInvokeAsync();
 
         void CheckRequestServerAddresses(
             ServerAddress mainServerAddress,
@@ -190,30 +192,20 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"none of the server addresses of the request matches this connection's server address: {ServerAddress}");
         }
 
-        async Task<IncomingResponse> PerformConnectInvokeAsync(
-            IProtocolConnection connection,
-            bool retryOnConnectionClosed)
+        async Task<IncomingResponse> PerformInvokeAsync()
         {
+            IProtocolConnection connection = _connection;
+
             try
             {
-                if (!connection.IsConnected)
-                {
-                    // Perform the connection establishment without a cancellation token. It will timeout if the
-                    // connect timeout is reached.
-                    _ = await connection.ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
-                }
-
-                // connection now represents a connected connection.
-
                 return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
-            catch (ConnectionClosedException) when (retryOnConnectionClosed)
+            catch (ConnectionClosedException)
             {
                 if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
                 {
-                    // try again once with the latest connection
-                    return await PerformConnectInvokeAsync(newConnection, retryOnConnectionClosed: false)
-                        .ConfigureAwait(false);
+                    // try again once with the new connection
+                    return await newConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
                 }
                 else
                 {
