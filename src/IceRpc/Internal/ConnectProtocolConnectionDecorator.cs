@@ -6,7 +6,7 @@ namespace IceRpc.Internal;
 
 /// <summary>Provides a decorator for <see cref="IProtocolConnection"/> that ensures <see cref="IInvoker.InvokeAsync"/>
 /// calls <see cref="IProtocolConnection.ConnectAsync"/> when the connection is not connected yet. This decorator
-/// also allows multiple calls to <see cref="IProtocolConnection.ConnectAsync"/>.</summary>
+/// also allows multiple and concurrent calls to <see cref="IProtocolConnection.ConnectAsync"/>.</summary>
 /// <seealso cref="ClientProtocolConnectionFactory.CreateConnection"/>
 internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 {

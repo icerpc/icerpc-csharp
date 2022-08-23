@@ -44,7 +44,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     void OnShutdown(Action<string> callback);
 
     /// <summary>Gracefully shuts down the connection.</summary>
-    /// <param name="message">The message transmitted to the server when using the icerpc protocol.</param>
+    /// <param name="message">The message transmitted to the peer with the icerpc protocol.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
