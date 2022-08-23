@@ -46,12 +46,12 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
     public Server(
         ServerOptions options,
-        IMultiplexedServerTransport? multiplexedServerTransport = null,
-        IDuplexServerTransport? duplexServerTransport = null)
+        IDuplexServerTransport? duplexServerTransport = null,
+        IMultiplexedServerTransport? multiplexedServerTransport = null)
     {
         if (options.ConnectionOptions.Dispatcher is null)
         {
