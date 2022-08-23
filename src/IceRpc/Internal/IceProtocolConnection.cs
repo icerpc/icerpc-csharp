@@ -13,7 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    internal override ServerAddress ServerAddress => _duplexConnection.ServerAddress;
+    public override ServerAddress ServerAddress => _duplexConnection.ServerAddress;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>

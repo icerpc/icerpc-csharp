@@ -52,8 +52,12 @@ public readonly record struct ServerAddress
     {
         get => _transport;
 
-        init => _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
-            throw new ArgumentException($"`{value}` is not valid transport name", nameof(value));
+        init
+        {
+            _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
+                throw new ArgumentException($"`{value}` is not valid transport name", nameof(value));
+            OriginalUri = null; // new transport invalidates OriginalUri
+        }
     }
 
     /// <summary>Gets or initializes transport-specific parameters.</summary>

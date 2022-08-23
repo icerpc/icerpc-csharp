@@ -12,7 +12,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
-    internal override ServerAddress ServerAddress => _transportConnection.ServerAddress;
+    public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
     private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;

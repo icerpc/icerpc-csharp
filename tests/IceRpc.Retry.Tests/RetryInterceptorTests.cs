@@ -320,7 +320,7 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var serviceAddress = new ServiceAddress(connection1.Protocol)
+        var serviceAddress = new ServiceAddress(connection1.ServerAddress.Protocol)
         {
             Path = "/path",
             ServerAddress = connection1.ServerAddress,

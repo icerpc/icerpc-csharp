@@ -22,8 +22,8 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    provider.GetRequiredService<IMultiplexedClientTransport>(),
-                    provider.GetRequiredService<IDuplexClientTransport>()))
+                    provider.GetRequiredService<IDuplexClientTransport>(),
+                    provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
     /// <summary>Adds a <see cref="ConnectionCache"/> and <see cref="IInvoker"/> singleton to this service collection.
@@ -36,8 +36,8 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ConnectionCache(
                     provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
-                    provider.GetRequiredService<IMultiplexedClientTransport>(),
-                    provider.GetRequiredService<IDuplexClientTransport>()))
+                    provider.GetRequiredService<IDuplexClientTransport>(),
+                    provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
 
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
@@ -69,20 +69,6 @@ public static class IceRpcServiceCollectionExtensions
                 configure(builder);
                 return builder.Build();
             });
-
-    /// <summary>Adds a <see cref="ResumableClientConnection"/> and <see cref="IInvoker"/> singleton to this service
-    /// collection.</summary>
-    /// <param name="services">The service collection to add services to.</param>
-    /// <returns>The service collection.</returns>
-    public static IServiceCollection AddIceRpcResumableClientConnection(this IServiceCollection services) =>
-        services
-            .TryAddIceRpcClientTransport()
-            .AddSingleton<ResumableClientConnection>(provider =>
-                new ResumableClientConnection(
-                    provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    provider.GetRequiredService<IMultiplexedClientTransport>(),
-                    provider.GetRequiredService<IDuplexClientTransport>()))
-            .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ResumableClientConnection>());
 
     /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>

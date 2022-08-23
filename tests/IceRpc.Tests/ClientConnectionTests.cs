@@ -34,8 +34,8 @@ public class ClientConnectionTests
 
         await using var connection = new ClientConnection(
             new ClientConnectionOptions() { ServerAddress = server.ServerAddress },
-            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()),
-            duplexClientTransport: new TcpClientTransport());
+            duplexClientTransport: new TcpClientTransport(),
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
         // Act
         TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync();
@@ -46,6 +46,80 @@ public class ClientConnectionTests
             Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.Not.Null);
             Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.Not.Null);
         });
+    }
+
+    [Test]
+    public async Task Connection_can_reconnect_after_being_idle()
+    {
+        // Arrange
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        server.Listen();
+        await using var connection = new ClientConnection(
+            new ClientConnectionOptions()
+            {
+                ServerAddress = server.ServerAddress,
+                IdleTimeout = TimeSpan.FromMilliseconds(500)
+            });
+        await connection.ConnectAsync();
+
+        using var semaphore = new SemaphoreSlim(0);
+        connection.OnShutdown(message => semaphore.Release(1));
+        await semaphore.WaitAsync();
+
+        // Act/Assert
+        Assert.That(async() => await connection.ConnectAsync(), Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Connection_can_reconnect_after_graceful_peer_shutdown()
+    {
+        // Arrange
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        server.Listen();
+        ServerAddress serverAddress = server.ServerAddress;
+        await using var connection = new ClientConnection(serverAddress);
+        await connection.ConnectAsync();
+        await server.DisposeAsync();
+        server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
+        server.Listen();
+
+        // Act/Assert
+        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
+
+        await server.DisposeAsync();
+    }
+
+    [Ignore("see issue #1656")]
+    [Test]
+    public async Task Connection_can_reconnect_after_peer_abort()
+    {
+        // Arrange
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        server.Listen();
+        ServerAddress serverAddress = server.ServerAddress;
+        await using var connection = new ClientConnection(serverAddress);
+        await connection.ConnectAsync();
+        try
+        {
+            // Cancel shutdown and dispose to abort the connection.
+            await server.ShutdownAsync(new CancellationToken(true));
+        }
+        catch
+        {
+        }
+        await server.DisposeAsync();
+
+        using var semaphore = new SemaphoreSlim(0);
+        connection.OnAbort(message => semaphore.Release(1));
+        await semaphore.WaitAsync();
+
+        server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
+        server.Listen();
+
+        // Act/Assert
+        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
+
+        await server.DisposeAsync();
     }
 
     /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>
@@ -88,8 +162,7 @@ public class ClientConnectionTests
             Throws.Nothing);
     }
 
-    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address or the protocols don't
-    /// match.</summary>
+    /// <summary>Verifies that InvokeAsync fails when there is no compatible server address.</summary>
     [TestCase("icerpc://foo.com?transport=tcp", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
@@ -97,14 +170,39 @@ public class ClientConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
-    [TestCase("icerpc://foo.com", "ice:/path")]
-    [TestCase("ice://foo.com", "icerpc:/path")]
     public async Task InvokeAsync_fails_without_a_compatible_server_address(
         ServerAddress serverAddress,
         ServiceAddress serviceAddress)
     {
         // Arrange
         await using var connection = new ClientConnection(serverAddress);
+
+        // Assert
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies that InvokeAsync fails when the protocols don't match.</summary>
+    [TestCase("icerpc://foo.com", "ice:/path")]
+    [TestCase("ice://foo.com", "icerpc:/path")]
+    public async Task InvokeAsync_fails_with_protocol_mismatch(
+        ServerAddress serverAddress,
+        ServiceAddress serviceAddress)
+    {
+        // Arrange
+        await using ServiceProvider provider =
+            new ServiceCollection()
+                .AddColocTest(
+                    new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                    serverAddress.Protocol,
+                    host: serverAddress.Host)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+
+        server.Listen();
 
         // Assert
         Assert.That(
