@@ -17,10 +17,10 @@ internal sealed class ConnectionContext : IConnectionContext
 
     public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
 
-    private readonly ProtocolConnection _protocolConnection;
+    private readonly IProtocolConnection _protocolConnection;
 
     internal ConnectionContext(
-        ProtocolConnection protocolConnection,
+        IProtocolConnection protocolConnection,
         TransportConnectionInformation transportConnectionInformation)
     {
         _protocolConnection = protocolConnection;
