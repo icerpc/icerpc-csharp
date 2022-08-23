@@ -10,17 +10,12 @@ namespace IceRpc;
 /// </summary>
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets a value indicating whether ConnectAsync returned successfully.</summary>
-    /// <value><c>true</c> when <see cref="ConnectAsync"/> was called and returned successfully; otherwise,
-    /// <c>false</c>. This property remains <c>true</c> after the connection is shut down or disposed.</value>
-    bool IsConnected { get; }
-
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Establishes the connection to the peer. This method can be called multiple times.</summary>
+    /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is established  provides the
     /// <see cref="TransportConnectionInformation"/> for this connection. This task can also complete with one of the
@@ -36,8 +31,6 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="ConnectionClosedException">Thrown if this connection is shut down or shutting down.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    /// <remarks>Calling <see cref="IInvoker.InvokeAsync"/> on a connection that is not connected throws
-    /// <see cref="InvalidOperationException"/>.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
 
     /// <summary>Registers a callback that will be called when the connection is aborted by the peer.</summary>
