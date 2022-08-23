@@ -316,7 +316,6 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def.operations();
 
     for operation in operations {
-        // TODO: add returns doc comments (see C++)
         code.add_block(
             &FunctionBuilder::new(
                 "",

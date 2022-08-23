@@ -7,7 +7,7 @@ use crate::comments::{operation_parameter_doc_comment, CommentTag};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 
-use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
+use slice::grammar::{Attributable, Class, Commentable, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::TypeContext;
 
@@ -359,6 +359,12 @@ impl FunctionBuilder {
             },
             Some("A cancellation token that receives the cancellation requests."),
         );
+
+        if let Some(comment) = operation.comment() {
+            if let Some(return_comment) = &comment.returns {
+                self.add_comment("returns", return_comment);
+            }
+        }
 
         self
     }
