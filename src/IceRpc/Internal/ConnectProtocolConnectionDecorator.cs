@@ -5,8 +5,9 @@ using IceRpc.Transports;
 namespace IceRpc.Internal;
 
 /// <summary>Provides a decorator for <see cref="IProtocolConnection"/> that ensures <see cref="IInvoker.InvokeAsync"/>
-/// calls <see cref="IProtocolConnection.ConnectAsync(CancellationToken)"/> when the connection is not connected yet
-/// and allows multiple calls to <see cref="IProtocolConnection.ConnectAsync(CancellationToken)"/>.</summary>
+/// calls <see cref="IProtocolConnection.ConnectAsync"/> when the connection is not connected yet. This decorator
+/// also allows multiple calls to <see cref="IProtocolConnection.ConnectAsync"/>.</summary>
+/// <seealso cref="ClientProtocolConnectionFactory.CreateConnection"/>
 internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
@@ -15,7 +16,10 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 
     private readonly IProtocolConnection _decoratee;
 
-    private volatile bool _isConnected;
+    // Set to true once the connection is successfully connected. It's not volatile or protected by mutex: in the
+    // unlikely event the caller sees false after the connection is connected, it will call ConnectAsync and succeed
+    // immediately.
+    private bool _isConnected;
 
     private readonly object _mutex = new();
 
@@ -37,6 +41,7 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
         async Task<TransportConnectionInformation> PerformConnectAsync()
         {
             await Task.Yield(); // exit mutex lock
+
             TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancel)
                 .ConfigureAwait(false);
             _isConnected = true;
@@ -46,6 +51,7 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
         async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
         {
             await Task.Yield(); // exit mutex lock
+
             try
             {
                 return await _connectTask.WaitAsync(cancel).ConfigureAwait(false);

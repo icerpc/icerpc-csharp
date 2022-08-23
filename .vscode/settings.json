@@ -10,6 +10,7 @@
         "Nonmutating",
         "Parallelizable",
         "paramref",
+        "seealso",
         "Slic",
         "slicec",
         "struct",

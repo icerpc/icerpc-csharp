@@ -62,7 +62,12 @@ public class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
         };
     }
 
-    /// <inheritdoc/>
+    /// <summary>Creates a protocol connection to the specified server address.</summary>
+    /// <param name="serverAddress">The address of the server.</param>
+    /// <returns>The new protocol connection.</returns>
+    /// <remarks>The protocol connection returned by this factory method is not connected. The caller must call
+    /// <see cref="IProtocolConnection.ConnectAsync"/> exactly once on this connection before calling
+    /// <see cref="IInvoker.InvokeAsync"/>.</remarks>
     public IProtocolConnection CreateConnection(ServerAddress serverAddress) =>
         serverAddress.Protocol == Protocol.Ice ?
             new IceProtocolConnection(

@@ -64,14 +64,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 EnableIdleCheck();
                 return information;
             }
-            catch (OperationCanceledException exception)
+            catch (OperationCanceledException)
             {
-                Debug.Assert(exception.CancellationToken == _connectCts.Token);
-
-                if (cancel.IsCancellationRequested)
-                {
-                    throw new OperationCanceledException(exception.Message, cancel);
-                }
+                cancel.ThrowIfCancellationRequested();
 
                 lock (_mutex)
                 {
