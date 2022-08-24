@@ -63,7 +63,7 @@ public sealed class IceProtocolConnectionTests
         int maxCount = 0;
         var mutex = new object();
 
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
             // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
             // we are tracking the maximum count here (before work) and decrement this count immediately in the
@@ -71,7 +71,7 @@ public sealed class IceProtocolConnectionTests
             // maxConcurrentDispatches.
             IncrementCount();
             startSemaphore.Release();
-            await workSemaphore.WaitAsync(cancel);
+            await workSemaphore.WaitAsync(cancellationToken);
             DecrementCount();
             return new OutgoingResponse(request);
 
@@ -138,13 +138,13 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         int dispatchCount = 0;
         var dispatcher = new InlineDispatcher(
-            async (request, cancel) =>
+            async (request, cancellationToken) =>
             {
                 ++dispatchCount;
                 try
                 {
                     // Wait for the dispatch to be canceled by DisposeAsync
-                    await Task.Delay(Timeout.InfiniteTimeSpan, cancel);
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
                 }
                 catch
                 {
@@ -223,7 +223,7 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
         var dispatcher = new InlineDispatcher(
-            (request, cancel) => throw new DispatchException(errorCode: errorCode));
+            (request, cancellationToken) => throw new DispatchException(errorCode: errorCode));
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -251,7 +251,7 @@ public sealed class IceProtocolConnectionTests
         Exception thrownException,
         DispatchErrorCode errorCode)
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => throw thrownException);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw thrownException);
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -278,7 +278,7 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
                     PayloadStream = payloadStreamDecorator

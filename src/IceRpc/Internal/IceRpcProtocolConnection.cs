@@ -97,10 +97,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancellationToken)
     {
         // Connect the transport connection
-        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancel)
+        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancellationToken)
             .ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
@@ -120,21 +120,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             IceRpcControlFrameType.Settings,
             (ref SliceEncoder encoder) => settings.Encode(ref encoder),
             endStream: false,
-            cancel).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
-        _remoteControlStream = await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+        _remoteControlStream = await _transportConnection.AcceptStreamAsync(cancellationToken).ConfigureAwait(false);
 
-        await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
-        await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
+        await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancellationToken).ConfigureAwait(false);
+        await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.
         _readGoAwayTask = Task.Run(
             async () =>
             {
-                CancellationToken cancel = _tasksCts.Token;
-                await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
-                IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
+                CancellationToken cancellationToken = _tasksCts.Token;
+                await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancellationToken).ConfigureAwait(false);
+                IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
 
                 InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
@@ -242,11 +242,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         IMultiplexedStream? stream = null;
         using var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
-            cancel,
+            cancellationToken,
             _dispatchesAndInvocationsCts.Token);
 
         try
@@ -368,7 +368,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancel)
+    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancellationToken)
     {
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
@@ -389,11 +389,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             IceRpcControlFrameType.GoAway,
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
             endStream: true,
-            cancel).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
         // initiated by the peer.
-        IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancel).ConfigureAwait(false);
+        IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         // Abort streams for requests that were not dispatched by the peer. The invocations will throw
         // ConnectionClosedException which can be retried.
@@ -418,10 +418,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Wait for dispatches and streams to complete and shutdown the connection.
         await Task.WhenAll(
             _dispatchesCompleted.Task,
-            _streamsCompleted.Task).WaitAsync(cancel).ConfigureAwait(false);
+            _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
 
         // Shutdown the transport and wait for the peer shutdown.
-        await _transportConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
+        await _transportConnection.ShutdownAsync(closedException, cancellationToken).ConfigureAwait(false);
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
@@ -476,7 +476,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         IMultiplexedStream stream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
         PipeReader? payloadStream = outgoingFrame.PayloadStream;
@@ -487,7 +487,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 outgoingFrame.Payload,
                 payloadWriter,
                 endStream: payloadStream is null,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (flushResult.IsCompleted)
             {
@@ -555,16 +555,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 },
-                cancel);
+                cancellationToken);
         }
 
         async Task<FlushResult> CopyReaderToWriterAsync(
             PipeReader reader,
             PipeWriter writer,
             bool endStream,
-            CancellationToken cancel)
+            CancellationToken cancellationToken)
         {
-            using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+            using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             // If the peer is no longer reading the payload, call Cancel on readCts.
             Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
@@ -604,7 +604,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             flushResult = await writer.WriteAsync(
                                 readResult.Buffer,
                                 readResult.IsCompleted && endStream,
-                                cancel).ConfigureAwait(false);
+                                cancellationToken).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -638,7 +638,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async Task AcceptRequestAsync(IMultiplexedStream stream, CancellationToken cancel)
+    private async Task AcceptRequestAsync(IMultiplexedStream stream, CancellationToken cancellationToken)
     {
         Debug.Assert(_dispatcher is not null);
 
@@ -649,7 +649,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (readResult.Buffer.IsEmpty)
             {
@@ -929,13 +929,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private async ValueTask ReceiveControlFrameHeaderAsync(
         IceRpcControlFrameType expectedFrameType,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         PipeReader input = _remoteControlStream!.Input;
 
         while (true)
         {
-            ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadAsync(cancellationToken).ConfigureAwait(false);
 
             // We don't call CancelPendingRead on _remoteControlStream.Input.
             Debug.Assert(!readResult.IsCanceled);
@@ -979,13 +979,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancel)
+    private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancellationToken)
     {
         PipeReader input = _remoteControlStream!.Input;
         ReadResult readResult = await input.ReadSegmentAsync(
             SliceEncoding.Slice2,
             _maxLocalHeaderSize,
-            cancel).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         // We don't call CancelPendingRead on _remoteControlStream.Input
         Debug.Assert(!readResult.IsCanceled);
@@ -1002,7 +1002,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async ValueTask ReceiveSettingsFrameBody(CancellationToken cancel)
+    private async ValueTask ReceiveSettingsFrameBody(CancellationToken cancellationToken)
     {
         // We are still in the single-threaded initialization at this point.
 
@@ -1010,7 +1010,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         ReadResult readResult = await input.ReadSegmentAsync(
             SliceEncoding.Slice2,
             _maxLocalHeaderSize,
-            cancel).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         // We don't call CancelPendingRead on _remoteControlStream.Input
         Debug.Assert(!readResult.IsCanceled);
@@ -1070,13 +1070,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         IceRpcControlFrameType frameType,
         EncodeAction encodeAction,
         bool endStream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         PipeWriter output = _controlStream!.Output;
 
         EncodeFrame(output);
 
-        return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream, cancel); // Flush
+        return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream, cancellationToken); // Flush
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {

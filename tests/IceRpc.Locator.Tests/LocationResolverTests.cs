@@ -144,7 +144,7 @@ public class LocationResolverTests
             _adapterIdServiceAddress = adapterIdServiceAddress;
         }
 
-        public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
+        public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
         {
             Calls++;
             return Task.FromResult(location.IsAdapterId ? _adapterIdServiceAddress : _wellKnownServiceAddress);

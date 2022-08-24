@@ -12,14 +12,14 @@ namespace IceRpc.Slice;
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
-/// <param name="cancel">The cancellation token.</param>
+/// <param name="cancellationToken">The cancellation token.</param>
 /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
 /// carries a failure.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
     ServiceProxy sender,
-    CancellationToken cancel);
+    CancellationToken cancellationToken);
 
 /// <summary>Provides extension methods for interface <see cref="IProxy"/> and generated proxy structs that implement
 /// this interface.</summary>
@@ -36,13 +36,13 @@ public static class ProxyExtensions
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source Proxy being tested.</param>
     /// <param name="features">The invocation features.</param>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A new TProxy instance, or null.</returns>
     public static async Task<TProxy?> AsAsync<TProxy>(
         this IProxy proxy,
         IFeatureCollection? features = null,
-        CancellationToken cancel = default) where TProxy : struct, IProxy =>
-        await proxy.ToProxy<ServiceProxy>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancel)
+        CancellationToken cancellationToken = default) where TProxy : struct, IProxy =>
+        await proxy.ToProxy<ServiceProxy>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancellationToken)
             .ConfigureAwait(false) ?
             proxy.ToProxy<TProxy>() : null;
 
@@ -57,7 +57,7 @@ public static class ProxyExtensions
     /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation's return value.</returns>
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when
@@ -70,7 +70,7 @@ public static class ProxyExtensions
         ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features,
         bool idempotent = false,
-        CancellationToken cancel = default) where TProxy : struct, IProxy
+        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
@@ -97,7 +97,7 @@ public static class ProxyExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancellationToken), request);
         }
         catch (Exception exception)
         {
@@ -117,7 +117,7 @@ public static class ProxyExtensions
                     response,
                     request,
                     new ServiceProxy(invoker, proxy.ServiceAddress, proxy.EncodeOptions),
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -143,7 +143,7 @@ public static class ProxyExtensions
     /// <param name="idempotent">When true, the request is idempotent.</param>
     /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
     /// after sending the request.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is
@@ -158,7 +158,7 @@ public static class ProxyExtensions
         IFeatureCollection? features,
         bool idempotent = false,
         bool oneway = false,
-        CancellationToken cancel = default) where TProxy : struct, IProxy
+        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
@@ -186,7 +186,7 @@ public static class ProxyExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancellationToken), request);
         }
         catch (Exception exception)
         {
@@ -208,7 +208,7 @@ public static class ProxyExtensions
                     encoding,
                     new ServiceProxy(invoker, proxy.ServiceAddress, proxy.EncodeOptions),
                     defaultActivator,
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

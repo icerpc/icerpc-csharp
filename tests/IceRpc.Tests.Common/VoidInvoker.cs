@@ -9,7 +9,7 @@ public class VoidInvoker : IInvoker
     public static VoidInvoker Instance { get; } = new();
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(new IncomingResponse(request, FakeConnectionContext.FromProtocol(request.Protocol)));
 
     private VoidInvoker()

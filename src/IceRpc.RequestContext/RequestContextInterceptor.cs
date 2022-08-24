@@ -14,7 +14,7 @@ public class RequestContextInterceptor : IInvoker
     public RequestContextInterceptor(IInvoker next) => _next = next;
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IRequestContextFeature>()?.Value is IDictionary<string, string> context)
         {
@@ -33,6 +33,6 @@ public class RequestContextInterceptor : IInvoker
                         (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
             }
         }
-        return _next.InvokeAsync(request, cancel);
+        return _next.InvokeAsync(request, cancellationToken);
     }
 }

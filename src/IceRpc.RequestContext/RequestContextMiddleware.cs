@@ -16,7 +16,7 @@ public class RequestContextMiddleware : IDispatcher
     public RequestContextMiddleware(IDispatcher next) => _next = next;
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         // Decode Context from Fields and set corresponding feature.
         if (request.Fields.TryGetValue(RequestFieldKey.Context, out ReadOnlySequence<byte> value))
@@ -35,6 +35,6 @@ public class RequestContextMiddleware : IDispatcher
                     new RequestContextFeature { Value = context });
             }
         }
-        return _next.DispatchAsync(request, cancel);
+        return _next.DispatchAsync(request, cancellationToken);
     }
 }

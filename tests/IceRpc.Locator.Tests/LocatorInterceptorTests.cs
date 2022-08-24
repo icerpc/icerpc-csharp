@@ -13,7 +13,7 @@ public class LocatorInterceptorTests
     [Test]
     public async Task Location_resolver_not_called_if_the_request_has_an_server_address()
     {
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
         await using var connection = new ClientConnection(new Uri("ice://localhost:10000"));
 
@@ -32,7 +32,7 @@ public class LocatorInterceptorTests
     [Test]
     public async Task Resolve_adapter_id()
     {
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
         var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
@@ -55,7 +55,7 @@ public class LocatorInterceptorTests
     [Test]
     public async Task Resolve_well_known_proxy()
     {
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
         var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
@@ -76,7 +76,7 @@ public class LocatorInterceptorTests
     public async Task Resolve_refresh_cache_on_the_second_lookup()
     {
         // Arrange
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
         var locationResolver = new MockCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -98,7 +98,7 @@ public class LocatorInterceptorTests
     public async Task Resolve_does_not_refresh_cache_after_getting_a_fresh_server_address()
     {
         // Arrange
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
         var locationResolver = new MockNonCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -122,7 +122,7 @@ public class LocatorInterceptorTests
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel)
+            CancellationToken cancellationToken)
         {
             Called = true;
             return new((null, false));
@@ -144,7 +144,7 @@ public class LocatorInterceptorTests
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) => new((_adapterId == location.IsAdapterId ? _serviceAddress : null, false));
+            CancellationToken cancellationToken) => new((_adapterId == location.IsAdapterId ? _serviceAddress : null, false));
     }
 
     // A mock location resolver that return cached and non cached server addresses depending on the refreshCache parameter
@@ -157,7 +157,7 @@ public class LocatorInterceptorTests
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel)
+            CancellationToken cancellationToken)
         {
             RefreshCache = refreshCache;
             return new((_serviceAddress, !refreshCache));
@@ -174,7 +174,7 @@ public class LocatorInterceptorTests
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel)
+            CancellationToken cancellationToken)
         {
             RefreshCache = refreshCache;
             return new((_serviceAddress, false));

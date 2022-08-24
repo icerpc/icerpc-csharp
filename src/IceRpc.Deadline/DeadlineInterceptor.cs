@@ -27,7 +27,7 @@ public class DeadlineInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
         TimeSpan? timeout = null;
         DateTime deadline = DateTime.MaxValue;
@@ -35,7 +35,7 @@ public class DeadlineInterceptor : IInvoker
         if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature)
         {
             deadline = deadlineFeature.Value;
-            if (deadline != DateTime.MaxValue && (_alwaysEnforceDeadline || !cancel.CanBeCanceled))
+            if (deadline != DateTime.MaxValue && (_alwaysEnforceDeadline || !cancellationToken.CanBeCanceled))
             {
                 timeout = deadline - DateTime.UtcNow;
             }
@@ -59,13 +59,13 @@ public class DeadlineInterceptor : IInvoker
                 (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadlineValue));
         }
 
-        return timeout is null ? _next.InvokeAsync(request, cancel) : PerformInvokeAsync(timeout.Value);
+        return timeout is null ? _next.InvokeAsync(request, cancellationToken) : PerformInvokeAsync(timeout.Value);
 
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
             using var timeoutTokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenRegistration? _ = cancel.CanBeCanceled ?
-                cancel.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), timeoutTokenSource) :
+            using CancellationTokenRegistration? _ = cancellationToken.CanBeCanceled ?
+                cancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), timeoutTokenSource) :
                 null;
 
             try
@@ -74,7 +74,7 @@ public class DeadlineInterceptor : IInvoker
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
-                cancel.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 throw new TimeoutException("the request deadline has expired");
             }
         }

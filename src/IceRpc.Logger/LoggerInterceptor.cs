@@ -23,11 +23,11 @@ public class LoggerInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInvoke(
                 request.ServiceAddress,

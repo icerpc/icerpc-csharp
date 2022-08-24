@@ -18,13 +18,13 @@ public class MetricsInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         long startTime = _eventSource.RequestStart(request);
         var resultType = ResultType.Failure;
         try
         {
-            IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             resultType = response.ResultType;
             return response;
         }

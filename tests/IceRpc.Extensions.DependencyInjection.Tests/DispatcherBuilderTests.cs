@@ -105,7 +105,7 @@ public sealed class DispatcherBuilderTests
 
         public TestService(ICallTracker callTracker) => _callTracker = callTracker;
 
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
         {
             _callTracker.Called();
             DoIt();
@@ -175,11 +175,11 @@ public sealed class DispatcherBuilderTests
 
         public UserMiddleware(IDispatcher next) => _next = next;
 
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, IUser dep, CancellationToken cancel)
+        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, IUser dep, CancellationToken cancellationToken)
         {
             var user = dep;
             user.Path = request.Path;
-            return _next.DispatchAsync(request, cancel);
+            return _next.DispatchAsync(request, cancellationToken);
         }
     }
 
@@ -194,11 +194,11 @@ public sealed class DispatcherBuilderTests
             IUser dep1,
             IDep2 dep2,
             IDep3 dep3,
-            CancellationToken cancel)
+            CancellationToken cancellationToken)
         {
             var user = dep1;
             user.Path = request.Path;
-            return _next.DispatchAsync(request, cancel);
+            return _next.DispatchAsync(request, cancellationToken);
         }
     }
 

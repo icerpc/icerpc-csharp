@@ -15,7 +15,7 @@ public sealed class ConnectionCacheTests
     public async Task Do_not_prefer_existing_connection()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -41,9 +41,9 @@ public sealed class ConnectionCacheTests
 
         ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
-            .Use(next => new InlineInvoker(async (request, cancel) =>
+            .Use(next => new InlineInvoker(async (request, cancellationToken) =>
                 {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
                     serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
@@ -68,7 +68,7 @@ public sealed class ConnectionCacheTests
     public async Task Get_connection_for_alt_server()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             new ServerOptions
@@ -85,9 +85,9 @@ public sealed class ConnectionCacheTests
 
         ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
-            .Use(next => new InlineInvoker(async (request, cancel) =>
+            .Use(next => new InlineInvoker(async (request, cancellationToken) =>
                 {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
                     serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
@@ -105,7 +105,7 @@ public sealed class ConnectionCacheTests
     public async Task Get_connection_for_main_server_address()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -131,9 +131,9 @@ public sealed class ConnectionCacheTests
 
         ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
-            .Use(next => new InlineInvoker(async (request, cancel) =>
+            .Use(next => new InlineInvoker(async (request, cancellationToken) =>
                 {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
                     serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))
@@ -152,7 +152,7 @@ public sealed class ConnectionCacheTests
     public async Task Prefer_existing_connection()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -178,9 +178,9 @@ public sealed class ConnectionCacheTests
 
         ServerAddress? serverAddress = null;
         Pipeline pipeline = new Pipeline()
-            .Use(next => new InlineInvoker(async (request, cancel) =>
+            .Use(next => new InlineInvoker(async (request, cancellationToken) =>
                 {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
                     serverAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
                     return response;
                 }))

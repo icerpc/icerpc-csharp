@@ -18,8 +18,7 @@ public static class IncomingRequestExtensions
         if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
         {
             throw new InvalidDataException(
-                $@"idempotent mismatch for operation '{request.Operation
-                }': received request marked idempotent for a non-idempotent operation");
+                $@"idempotent mismatch for operation '{request.Operation}': received request marked idempotent for a non-idempotent operation");
         }
     }
 
@@ -90,14 +89,14 @@ public static class IncomingRequestExtensions
     /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
     public static ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
-        CancellationToken cancel = default)
+        CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
@@ -107,22 +106,22 @@ public static class IncomingRequestExtensions
             feature.Activator ?? defaultActivator,
             templateProxy: null,
             decodeFunc,
-            cancel);
+            cancellationToken);
     }
 
     /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task that completes when the checking is complete.</returns>
     public static ValueTask DecodeEmptyArgsAsync(
         this IncomingRequest request,
         SliceEncoding encoding,
-        CancellationToken cancel = default) =>
+        CancellationToken cancellationToken = default) =>
         request.DecodeVoidAsync(
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
-            cancel);
+            cancellationToken);
 
     /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
     /// streamed elements.</summary>

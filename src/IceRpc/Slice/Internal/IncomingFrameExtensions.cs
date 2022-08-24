@@ -17,7 +17,7 @@ internal static class IncomingFrameExtensions
     /// <param name="activator">The activator.</param>
     /// <param name="templateProxy">The template proxy.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The decode value.</returns>
     internal static ValueTask<T> DecodeValueAsync<T>(
         this IncomingFrame frame,
@@ -26,7 +26,7 @@ internal static class IncomingFrameExtensions
         IActivator? activator,
         ServiceProxy? templateProxy,
         DecodeFunc<T> decodeFunc,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         return frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult) ?
             new(DecodeSegment(readResult)) :
@@ -60,19 +60,19 @@ internal static class IncomingFrameExtensions
             DecodeSegment(await frame.Payload.ReadSegmentAsync(
                 encoding,
                 feature.MaxSegmentSize,
-                cancel).ConfigureAwait(false));
+                cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Reads/decodes empty args or a void return value.</summary>
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="feature">The Slice feature.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     internal static ValueTask DecodeVoidAsync(
         this IncomingFrame frame,
         SliceEncoding encoding,
         ISliceFeature feature,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         if (frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult))
         {
@@ -105,7 +105,7 @@ internal static class IncomingFrameExtensions
             DecodeSegment(await frame.Payload.ReadSegmentAsync(
                 encoding,
                 feature.MaxSegmentSize,
-                cancel).ConfigureAwait(false));
+                cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
@@ -184,7 +184,7 @@ internal static class IncomingFrameExtensions
                 // with WithCancellation and cancel when the async enumerable reader is done and the iteration is
                 // not over (= streamDecoder writer is not completed). The cancellation of this async enumerable reader
                 // unblocks the streamDecoder.WriteAsync.
-                CancellationToken cancel = CancellationToken.None;
+                CancellationToken cancellationToken = CancellationToken.None;
 
                 ReadResult readResult;
                 bool streamReaderCompleted = false;
@@ -193,13 +193,13 @@ internal static class IncomingFrameExtensions
                     readResult = await payload.ReadSegmentAsync(
                         encoding,
                         feature.MaxSegmentSize,
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
 
                     if (!readResult.Buffer.IsEmpty)
                     {
                         streamReaderCompleted = await streamDecoder.WriteAsync(
                             readResult.Buffer,
-                            cancel).ConfigureAwait(false);
+                            cancellationToken).ConfigureAwait(false);
 
                         payload.AdvanceTo(readResult.Buffer.End);
                     }
@@ -299,14 +299,14 @@ internal static class IncomingFrameExtensions
                 // with WithCancellation and cancel when the async enumerable reader is done and the iteration is
                 // not over (= streamDecoder writer is not completed). The cancellation of this async enumerable reader
                 // unblocks the streamDecoder.WriteAsync.
-                CancellationToken cancel = CancellationToken.None;
+                CancellationToken cancellationToken = CancellationToken.None;
 
                 ReadResult readResult;
                 bool streamReaderCompleted = false;
 
                 try
                 {
-                    readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
+                    readResult = await payload.ReadAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -328,7 +328,7 @@ internal static class IncomingFrameExtensions
                             long remaining = readResult.Buffer.Length % elementSize;
                             var buffer = readResult.Buffer.Slice(0, readResult.Buffer.Length - remaining);
                             streamReaderCompleted =
-                                await streamDecoder.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                                await streamDecoder.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
                             payload.AdvanceTo(buffer.End);
                         }
                         catch (Exception ex)

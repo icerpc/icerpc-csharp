@@ -58,14 +58,14 @@ internal class SlicConnection : IMultiplexedConnection
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
-        _acceptStreamQueue.DequeueAsync(cancel);
+    public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
+        _acceptStreamQueue.DequeueAsync(cancellationToken);
 
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         // Connect the duplex connection.
         TransportConnectionInformation information = await _duplexConnection.ConnectAsync(
-            cancel).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         // Enable the idle timeout check after the transport connection establishment. We don't want the transport
         // connection to be disposed because it's idle when the transport connection establishment is in progress. This
@@ -80,7 +80,7 @@ internal class SlicConnection : IMultiplexedConnection
         if (IsServer)
         {
             // Read the Initialize frame sent by the client.
-            header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
 
             if (header is null || header.Value.FrameSize == 0)
             {
@@ -90,7 +90,7 @@ internal class SlicConnection : IMultiplexedConnection
             (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
                 header.Value.FrameSize,
                 DecodeInitialize,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (version != 1)
             {
@@ -100,10 +100,10 @@ internal class SlicConnection : IMultiplexedConnection
                     stream: null,
                     FrameType.Version,
                     new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
 
                 // Read again the Initialize frame sent by the client.
-                header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
 
                 if (header is null || header.Value.FrameSize == 0)
                 {
@@ -113,7 +113,7 @@ internal class SlicConnection : IMultiplexedConnection
                 (version, initializeBody) = await ReadFrameAsync(
                     header.Value.FrameSize,
                     DecodeInitialize,
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             if (initializeBody is null)
@@ -135,7 +135,7 @@ internal class SlicConnection : IMultiplexedConnection
                 stream: null,
                 FrameType.InitializeAck,
                 new InitializeAckBody(GetParameters()).Encode,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -149,10 +149,10 @@ internal class SlicConnection : IMultiplexedConnection
                     encoder.EncodeVarUInt62(SlicDefinitions.V1);
                     initializeBody.Encode(ref encoder);
                 },
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             // Read back either the InitializeAck or Version frame.
-            header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
 
             if (header is null || header.Value.FrameSize == 0)
             {
@@ -165,7 +165,7 @@ internal class SlicConnection : IMultiplexedConnection
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
                         header.Value.FrameSize,
                         (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
 
                     SetParameters(initializeAckBody.Parameters);
                     break;
@@ -174,7 +174,7 @@ internal class SlicConnection : IMultiplexedConnection
                     VersionBody versionBody = await ReadFrameAsync(
                         header.Value.FrameSize,
                         (ref SliceDecoder decoder) => new VersionBody(ref decoder),
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
 
                     // We currently only support V1
                     throw new InvalidDataException(
@@ -199,7 +199,7 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         // Shutdown the duplex connection. This acknowledge the receive of the Close frame and triggers
                         // the completion of the peer's ReadFramesAsync call.
-                        await _duplexConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+                        await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
 
                         // Time for AcceptStreamAsync to return.
                         _acceptStreamQueue.TryComplete(exception);
@@ -271,22 +271,22 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public async Task ShutdownAsync(Exception exception, CancellationToken cancel)
+    public async Task ShutdownAsync(Exception exception, CancellationToken cancellationToken)
     {
         if (Abort(exception))
         {
             // Wait for writes to complete and send the close frame.
-            await _writeSemaphore.CompleteAndWaitAsync(exception).WaitAsync(cancel).ConfigureAwait(false);
+            await _writeSemaphore.CompleteAndWaitAsync(exception).WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Send the close frame.
             await WriteFrameAsync(
                 FrameType.Close,
                 streamId: null,
                 new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             // Shutdown the duplex connection.
-            await _duplexConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+            await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -357,8 +357,8 @@ internal class SlicConnection : IMultiplexedConnection
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
-        CancellationToken cancel) =>
-        _duplexConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
+        CancellationToken cancellationToken) =>
+        _duplexConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
     internal void ReleaseStream(SlicStream stream)
     {
@@ -387,16 +387,16 @@ internal class SlicConnection : IMultiplexedConnection
         SlicStream? stream,
         FrameType frameType,
         EncodeAction? encode,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
-        await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await WriteFrameAsync(
                 frameType,
                 stream?.Id,
                 encode,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -409,7 +409,7 @@ internal class SlicConnection : IMultiplexedConnection
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
         if (_bidirectionalStreamSemaphore is null)
@@ -426,16 +426,16 @@ internal class SlicConnection : IMultiplexedConnection
                 AsyncSemaphore streamCountSemaphore = stream.IsBidirectional ?
                     _bidirectionalStreamSemaphore! :
                     _unidirectionalStreamSemaphore!;
-                await streamCountSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                await streamCountSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Next, ensure send credit is available. If not, this will block until the receiver allows sending
             // additional data.
-            int sendCredit = await stream.AcquireSendCreditAsync(cancel).ConfigureAwait(false);
+            int sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
             Debug.Assert(sendCredit > 0);
 
             // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 // Allocate stream ID if the stream isn't started. Thread-safety is provided by the write semaphore.
@@ -501,7 +501,7 @@ internal class SlicConnection : IMultiplexedConnection
                     sendSource1,
                     sendSource2,
                     lastStreamFrame,
-                    _tasksCts.Token).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                    _tasksCts.Token).AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
@@ -599,12 +599,12 @@ internal class SlicConnection : IMultiplexedConnection
     private async ValueTask<T> ReadFrameAsync<T>(
         int size,
         DecodeFunc<T> decodeFunc,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         Debug.Assert(size > 0);
 
         ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
-            size, cancel).ConfigureAwait(false);
+            size, cancellationToken).ConfigureAwait(false);
 
         if (buffer.Length > size)
         {
@@ -617,14 +617,14 @@ internal class SlicConnection : IMultiplexedConnection
     }
 
     private async ValueTask<(FrameType FrameType, int FrameSize, ulong? StreamId)?> ReadFrameHeaderAsync(
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         while (true)
         {
             // Read data from the pipe reader.
             if (!_duplexConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
             {
-                buffer = await _duplexConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+                buffer = await _duplexConnectionReader.ReadAsync(cancellationToken).ConfigureAwait(false);
             }
 
             if (buffer.IsEmpty)
@@ -681,11 +681,11 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private async Task ReadFramesAsync(CancellationToken cancel)
+    private async Task ReadFramesAsync(CancellationToken cancellationToken)
     {
         while (true)
         {
-            (FrameType, int, ulong?)? header = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            (FrameType, int, ulong?)? header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
             if (header is null)
             {
                 lock (_mutex)
@@ -718,7 +718,7 @@ internal class SlicConnection : IMultiplexedConnection
                     CloseBody closeBody = await ReadFrameAsync(
                         dataSize,
                         (ref SliceDecoder decoder) => new CloseBody(ref decoder),
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
 
                     // Graceful connection shutdown, we're done.
                     return;
@@ -759,7 +759,7 @@ internal class SlicConnection : IMultiplexedConnection
                         readSize = await stream.ReceivedStreamFrameAsync(
                             dataSize,
                             endStream,
-                            cancel).ConfigureAwait(false);
+                            cancellationToken).ConfigureAwait(false);
                     }
                     else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
                     {
@@ -812,7 +812,7 @@ internal class SlicConnection : IMultiplexedConnection
                         readSize = await stream.ReceivedStreamFrameAsync(
                             dataSize,
                             endStream,
-                            cancel).ConfigureAwait(false);
+                            cancellationToken).ConfigureAwait(false);
 
                         // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
                         if (readSize == dataSize)
@@ -834,7 +834,7 @@ internal class SlicConnection : IMultiplexedConnection
                         await _duplexConnectionReader.FillBufferWriterAsync(
                                 pipe.Writer,
                                 dataSize - readSize,
-                                cancel).ConfigureAwait(false);
+                                cancellationToken).ConfigureAwait(false);
 
                         await pipe.Writer.CompleteAsync().ConfigureAwait(false);
                         await pipe.Reader.CompleteAsync().ConfigureAwait(false);
@@ -857,7 +857,7 @@ internal class SlicConnection : IMultiplexedConnection
                     StreamConsumedBody consumed = await ReadFrameAsync(
                         dataSize,
                         (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         stream.ReceivedConsumedFrame((int)consumed.Size);
@@ -879,7 +879,7 @@ internal class SlicConnection : IMultiplexedConnection
                     StreamResetBody streamReset = await ReadFrameAsync(
                         dataSize,
                         (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         stream.ReceivedResetFrame(streamReset.ApplicationProtocolErrorCode);
@@ -901,7 +901,7 @@ internal class SlicConnection : IMultiplexedConnection
                     StreamStopSendingBody streamStopSending = await ReadFrameAsync(
                         dataSize,
                         (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
-                        cancel).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
                         stream.ReceivedStopSendingFrame(streamStopSending.ApplicationProtocolErrorCode);
@@ -1007,7 +1007,7 @@ internal class SlicConnection : IMultiplexedConnection
         FrameType frameType,
         ulong? streamId,
         EncodeAction? encode,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeFrameType(frameType);
@@ -1021,7 +1021,7 @@ internal class SlicConnection : IMultiplexedConnection
         encode?.Invoke(ref encoder);
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
-        return _duplexConnectionWriter.FlushAsync(cancel);
+        return _duplexConnectionWriter.FlushAsync(cancellationToken);
     }
 
     private ValueTask WriteStreamFrameAsync(
@@ -1029,7 +1029,7 @@ internal class SlicConnection : IMultiplexedConnection
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeFrameType(endStream ? FrameType.StreamLast : FrameType.Stream);
@@ -1039,6 +1039,6 @@ internal class SlicConnection : IMultiplexedConnection
         SliceEncoder.EncodeVarUInt62(
             (ulong)(encoder.EncodedByteCount - startPos + source1.Length + source2.Length), sizePlaceholder);
 
-        return _duplexConnectionWriter.WriteAsync(source1, source2, cancel);
+        return _duplexConnectionWriter.WriteAsync(source1, source2, cancellationToken);
     }
 }

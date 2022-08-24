@@ -75,7 +75,7 @@ public static class SliceEncodingExtensions
             _ = _asyncEnumerator.DisposeAsync().AsTask();
         }
 
-        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
+        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
             // If no more buffered data to read, fill the pipe with new data.
             if (_pipe.Reader.TryRead(out ReadResult readResult))
@@ -136,7 +136,7 @@ public static class SliceEncodingExtensions
 
                     if (hasNext)
                     {
-                        await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+                        await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
                     }
                     else
                     {
@@ -149,7 +149,7 @@ public static class SliceEncodingExtensions
                 }
             }
 
-            return await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);
+            return await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
             int EncodeElement(T element)
             {

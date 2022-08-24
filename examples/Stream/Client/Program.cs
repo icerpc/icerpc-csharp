@@ -29,17 +29,17 @@ Console.WriteLine("Client has finished streaming data.");
 
 // This method has a `CancellationToken` parameter, which uses the `[EnumeratorCancellation]` attribute. IceRpc will
 // automatically override the `CancellationToken` via this attribute when the server cancels the stream.
-static async IAsyncEnumerable<int> GetDataAsync(int n, [EnumeratorCancellation] CancellationToken cancel)
+static async IAsyncEnumerable<int> GetDataAsync(int n, [EnumeratorCancellation] CancellationToken cancellationToken)
 {
     // If the service or server cancels the stream it is important to prevent GetDataAsync from leaking. When the
-    // cancellation token is canceled, `Task.Delay(TimeSpan.FromSeconds(1), cancel);` will throw an
+    // cancellation token is canceled, `Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);` will throw an
     // OperationCanceledException that can be used to break from the while loop.
     while (true)
     {
         yield return n++;
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(1), cancel);
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
         }
         catch (OperationCanceledException)
         {

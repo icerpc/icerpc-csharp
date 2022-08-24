@@ -10,10 +10,10 @@ public class AlertSystem : Service, IAlertSystem
     public async ValueTask AddObserverAsync(
         AlertObserverProxy observer,
         IFeatureCollection features,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
-        await Task.Delay(TimeSpan.FromSeconds(5), cancel);
-        string didHandle = await observer.AlertAsync(cancel: cancel) ? "did" : "did not";
+        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        string didHandle = await observer.AlertAsync(cancellationToken: cancellationToken) ? "did" : "did not";
         Console.WriteLine($"Alert Recipient {didHandle} accept the alert");
     }
 }

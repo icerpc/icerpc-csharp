@@ -10,7 +10,7 @@ namespace IceRpc.Locator.Internal;
 /// parameters and typically does not maintain a cache.</summary>
 internal interface IServerAddressFinder
 {
-    Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel);
+    Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken);
 }
 
 /// <summary>The main implementation of IServerAddressFinder. It uses a locator proxy to "find" the server addresses.
@@ -19,14 +19,14 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
 {
     private readonly ILocatorProxy _locator;
 
-    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
+    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
         if (location.IsAdapterId)
         {
             try
             {
                 ServiceProxy? proxy =
-                    await _locator.FindAdapterByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
+                    await _locator.FindAdapterByIdAsync(location.Value, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
@@ -51,7 +51,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
             try
             {
                 ServiceProxy? proxy =
-                    await _locator.FindObjectByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
+                    await _locator.FindObjectByIdAsync(location.Value, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
@@ -83,13 +83,13 @@ internal class LogServerAddressFinderDecorator : IServerAddressFinder
 {
     private readonly IServerAddressFinder _decoratee;
 
-    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
+    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
         ServiceAddress? serviceAddress = null;
 
         try
         {
-            serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+            serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
             return serviceAddress;
         }
         finally
@@ -110,9 +110,9 @@ internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
     private readonly IServerAddressFinder _decoratee;
     private readonly IServerAddressCache _serverAddressCache;
 
-    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
+    public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+        ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
 
         if (serviceAddress is not null)
         {
@@ -142,7 +142,7 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
     private readonly object _mutex = new();
     private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
 
-    public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
+    public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
         Task<ServiceAddress?>? task;
 
@@ -165,13 +165,13 @@ internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
             }
         }
 
-        return task.WaitAsync(cancel);
+        return task.WaitAsync(cancellationToken);
 
         async Task<ServiceAddress?> PerformFindAsync()
         {
             try
             {
-                return await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+                return await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

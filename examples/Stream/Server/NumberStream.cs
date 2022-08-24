@@ -11,11 +11,11 @@ public class NumberStream : Service, INumberStream
     public async ValueTask StreamDataAsync(
         IAsyncEnumerable<int> numbers,
         IFeatureCollection features,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         // Combine the IceRpc cancellation token with the local cancellation token used for handling Ctrl+C or
         // Ctrl+Break events. This is used to notify the client that the server is shutting down.
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         uint count = 0;
         await foreach (var number in numbers.WithCancellation(cts.Token))
         {

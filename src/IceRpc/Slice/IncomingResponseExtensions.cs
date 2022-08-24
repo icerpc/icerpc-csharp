@@ -17,14 +17,14 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The decoded failure.</returns>
     public static ValueTask<RemoteException> DecodeFailureAsync(
         this IncomingResponse response,
         OutgoingRequest request,
         ServiceProxy sender,
         IActivator? defaultActivator = null,
-        CancellationToken cancel = default)
+        CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
@@ -35,7 +35,7 @@ public static class IncomingResponseExtensions
                 feature,
                 feature.Activator ?? defaultActivator,
                 sender,
-                cancel) :
+                cancellationToken) :
             throw new ArgumentException(
                 $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
                 nameof(response));
@@ -49,7 +49,7 @@ public static class IncomingResponseExtensions
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the return value.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
@@ -58,7 +58,7 @@ public static class IncomingResponseExtensions
         ServiceProxy sender,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
-        CancellationToken cancel = default)
+        CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
@@ -71,7 +71,7 @@ public static class IncomingResponseExtensions
                 activator,
                 sender,
                 decodeFunc,
-                cancel) :
+                cancellationToken) :
             ThrowRemoteExceptionAsync();
 
         async ValueTask<T> ThrowRemoteExceptionAsync()
@@ -82,7 +82,7 @@ public static class IncomingResponseExtensions
                 feature,
                 activator,
                 sender,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -141,7 +141,7 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
@@ -149,12 +149,12 @@ public static class IncomingResponseExtensions
         SliceEncoding encoding,
         ServiceProxy sender,
         IActivator? defaultActivator = null,
-        CancellationToken cancel = default)
+        CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         return response.ResultType == ResultType.Success ?
-            response.DecodeVoidAsync(encoding, feature, cancel) :
+            response.DecodeVoidAsync(encoding, feature, cancellationToken) :
             ThrowRemoteExceptionAsync();
 
         async ValueTask ThrowRemoteExceptionAsync()
@@ -165,7 +165,7 @@ public static class IncomingResponseExtensions
                 feature,
                 feature.Activator ?? defaultActivator,
                 sender,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -176,7 +176,7 @@ public static class IncomingResponseExtensions
         ISliceFeature feature,
         IActivator? activator,
         ServiceProxy sender,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         Debug.Assert(response.ResultType != ResultType.Success);
         if (response.ResultType == ResultType.Failure)
@@ -190,7 +190,7 @@ public static class IncomingResponseExtensions
             ReadResult readResult = await response.Payload.ReadSegmentAsync(
                 encoding,
                 feature.MaxSegmentSize,
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
             if (readResult.IsCanceled)

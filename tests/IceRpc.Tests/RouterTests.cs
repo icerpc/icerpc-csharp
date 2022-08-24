@@ -30,7 +30,7 @@ public class RouterTests
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(
-            () => router.Map("/foo", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
+            () => router.Map("/foo", new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)))));
     }
 
     /// <summary>Verifies that a dispatcher cannot be mounted after a request has been dispatched.</summary>
@@ -42,7 +42,7 @@ public class RouterTests
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(
-            () => router.Mount("/foo", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
+            () => router.Mount("/foo", new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)))));
     }
 
     /// <summary>Verifies that creating a <see cref="Router"/> with an invalid prefix fails.</summary>
@@ -64,13 +64,13 @@ public class RouterTests
         string? currentPath = null;
 
         router.Map(path, new InlineDispatcher(
-            (current, cancel) =>
+            (current, cancellationToken) =>
             {
                 currentPath = current.Path;
                 return new(new OutgoingResponse(current));
             }));
 
-        router.Mount(path, new InlineDispatcher((current, cancel) => new(new OutgoingResponse(current))));
+        router.Mount(path, new InlineDispatcher((current, cancellationToken) => new(new OutgoingResponse(current))));
 
         // Act
         _ = await router.DispatchAsync(
@@ -107,7 +107,7 @@ public class RouterTests
         string? currentPath = null;
 
         router.Mount(prefix, new InlineDispatcher(
-            (current, cancel) =>
+            (current, cancellationToken) =>
             {
                 currentPath = current.Path;
                 return new(new OutgoingResponse(current));
@@ -158,24 +158,24 @@ public class RouterTests
 
         var router = new Router();
         router
-            .Use(next => new InlineDispatcher((request, cancel) =>
+            .Use(next => new InlineDispatcher((request, cancellationToken) =>
                 {
                     calls.Add("middleware-1");
-                    return next.DispatchAsync(request, cancel);
+                    return next.DispatchAsync(request, cancellationToken);
                 }))
-            .Use(next => new InlineDispatcher((request, cancel) =>
+            .Use(next => new InlineDispatcher((request, cancellationToken) =>
                 {
                     calls.Add("middleware-2");
-                    return next.DispatchAsync(request, cancel);
+                    return next.DispatchAsync(request, cancellationToken);
                 }));
 
         router
-            .Use(next => new InlineDispatcher((request, cancel) =>
+            .Use(next => new InlineDispatcher((request, cancellationToken) =>
                 {
                     calls.Add("middleware-3");
-                    return next.DispatchAsync(request, cancel);
+                    return next.DispatchAsync(request, cancellationToken);
                 }))
-            .Use(next => new InlineDispatcher((request, cancel) =>
+            .Use(next => new InlineDispatcher((request, cancellationToken) =>
                 {
                     calls.Add("middleware-4");
                     return new(new OutgoingResponse(request));
@@ -223,32 +223,32 @@ public class RouterTests
         var expectedCalls = new List<string>() { "middleware-0", "middleware-1", "middleware-2", "dispatcher" };
 
         router.Use(next => new InlineDispatcher(
-            (request, cancel) =>
+            (request, cancellationToken) =>
             {
                 calls.Add("middleware-0");
-                return next.DispatchAsync(request, cancel);
+                return next.DispatchAsync(request, cancellationToken);
             }));
 
         router.Route(prefix, r =>
         {
             r.Use(next => new InlineDispatcher(
-                (request, cancel) =>
+                (request, cancellationToken) =>
                 {
                     calls.Add("middleware-1");
-                    return next.DispatchAsync(request, cancel);
+                    return next.DispatchAsync(request, cancellationToken);
                 }));
 
             r.Route(subprefix, r =>
             {
                 r.Use(next => new InlineDispatcher(
-                   (request, cancel) =>
+                   (request, cancellationToken) =>
                    {
                        calls.Add("middleware-2");
-                       return next.DispatchAsync(request, cancel);
+                       return next.DispatchAsync(request, cancellationToken);
                    }));
 
                 r.Map(subpath, new InlineDispatcher(
-                    (request, cancel) =>
+                    (request, cancellationToken) =>
                     {
                         calls.Add("dispatcher");
                         return new(new OutgoingResponse(request));
@@ -273,7 +273,7 @@ public class RouterTests
     /// <returns>The router.</returns>
     private static async Task<Router> CreateRouterAndCallDispatchAsync()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var router = new Router();
         router.Mount("/", dispatcher);
 

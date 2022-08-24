@@ -18,7 +18,7 @@ public sealed class TelemetryInterceptorTests
     {
         // Arrange
         Activity? invocationActivity = null;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             invocationActivity = Activity.Current;
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
@@ -62,7 +62,7 @@ public sealed class TelemetryInterceptorTests
 
         Activity? invocationActivity = null;
         Activity? decodedActivity = null;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (Activity.Current is Activity activity)
             {

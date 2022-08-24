@@ -13,20 +13,20 @@ internal class CacheLessLocationResolver : ILocationResolver
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel) => ResolveAsync(location, cancel);
+        CancellationToken cancellationToken) => ResolveAsync(location, cancellationToken);
 
     private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = await _serverAddressFinder.FindAsync(location, cancel).ConfigureAwait(false);
+        ServiceAddress? serviceAddress = await _serverAddressFinder.FindAsync(location, cancellationToken).ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             (serviceAddress, _) = await ResolveAsync(
                 new Location { IsAdapterId = true, Value = adapterId },
-                cancel).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
 
         return (serviceAddress, false);
@@ -60,12 +60,12 @@ internal class LocationResolver : ILocationResolver
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel) => PerformResolveAsync(location, refreshCache, cancel);
+        CancellationToken cancellationToken) => PerformResolveAsync(location, refreshCache, cancellationToken);
 
     private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> PerformResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         ServiceAddress? serviceAddress = null;
         bool expired = false;
@@ -82,13 +82,13 @@ internal class LocationResolver : ILocationResolver
 
         if (serviceAddress is null || (!_background && expired) || (refreshCache && !justRefreshed))
         {
-            serviceAddress = await _serverAddressFinder.FindAsync(location, cancel).ConfigureAwait(false);
+            serviceAddress = await _serverAddressFinder.FindAsync(location, cancellationToken).ConfigureAwait(false);
             resolved = true;
         }
         else if (_background && expired)
         {
             // We retrieved an expired service address from the cache, so we launch a refresh in the background.
-            _ = _serverAddressFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
+            _ = _serverAddressFinder.FindAsync(location, cancellationToken: default).ConfigureAwait(false);
         }
 
         // A well-known service address resolution can return a service address with an adapter-id.
@@ -101,7 +101,7 @@ internal class LocationResolver : ILocationResolver
                 (serviceAddress, _) = await PerformResolveAsync(
                     new Location { IsAdapterId = true, Value = adapterId },
                     refreshCache || resolved,
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -131,7 +131,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
     public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         LocatorEventSource.Log.ResolveStart(location);
         ServiceAddress? serviceAddress = null;
@@ -139,7 +139,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
         try
         {
             (serviceAddress, bool fromCache) =
-                await _decoratee.ResolveAsync(location, refreshCache, cancel).ConfigureAwait(false);
+                await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
 
             return (serviceAddress, fromCache);
         }

@@ -19,7 +19,7 @@ public class InvocationTests
         IInvoker? callbackInvoker = null;
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new InlineDispatcher(
-                (request, cancel) =>
+                (request, cancellationToken) =>
                 {
                     callbackInvoker = request.ConnectionContext.Invoker;
                     return new(new OutgoingResponse(request));
@@ -55,7 +55,7 @@ public class InvocationTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new InlineDispatcher(
-                (request, cancel) =>
+                (request, cancellationToken) =>
                 {
                     callbackInvoker = request.ConnectionContext.Invoker;
                     return new(new OutgoingResponse(request));

@@ -16,14 +16,14 @@ public sealed class DeadlineInterceptorTests
     public void Invocation_fails_after_the_deadline_expires()
     {
         // Arrange
-        CancellationToken? cancellationToken = null;
+        CancellationToken? token = null;
         bool hasDeadline = false;
 
-        var invoker = new InlineInvoker(async (request, cancel) =>
+        var invoker = new InlineInvoker(async (request, cancellationToken) =>
         {
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
-            cancellationToken = cancel;
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
+            token = cancellationToken;
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             return new IncomingResponse(request, FakeConnectionContext.IceRpc);
         });
 
@@ -38,9 +38,9 @@ public sealed class DeadlineInterceptorTests
 
         // Assert
         Assert.That(hasDeadline, Is.True);
-        Assert.That(cancellationToken, Is.Not.Null);
-        Assert.That(cancellationToken.Value.CanBeCanceled, Is.True);
-        Assert.That(cancellationToken.Value.IsCancellationRequested, Is.True);
+        Assert.That(token, Is.Not.Null);
+        Assert.That(token.Value.CanBeCanceled, Is.True);
+        Assert.That(token.Value.IsCancellationRequested, Is.True);
     }
 
     /// <summary>Verifies that the deadline value set in the <see cref="IDeadlineFeature"/> prevails over
@@ -58,7 +58,7 @@ public sealed class DeadlineInterceptorTests
         DateTime deadline = DateTime.MaxValue;
         DateTime expectedDeadline = DateTime.UtcNow + invocationTimeout;
         var sut = new DeadlineInterceptor(
-            new InlineInvoker((request, cancel) =>
+            new InlineInvoker((request, cancellationToken) =>
             {
                 if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out OutgoingFieldValue deadlineFiled))
                 {
@@ -89,7 +89,7 @@ public sealed class DeadlineInterceptorTests
         // Arrange
         var timeout = TimeSpan.FromMilliseconds(500);
         DateTime deadline = DateTime.MaxValue;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (request.Fields.TryGetValue(RequestFieldKey.Deadline, out OutgoingFieldValue deadlineFiled))
             {
@@ -113,10 +113,10 @@ public sealed class DeadlineInterceptorTests
     public async Task Deadline_interceptor_does_not_enforce_deadline_by_default()
     {
         // Arrange
-        CancellationToken? cancellationToken = null;
-        var invoker = new InlineInvoker((request, cancel) =>
+        CancellationToken? token = null;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
-            cancellationToken = cancel;
+            token = cancellationToken;
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
         });
 
@@ -132,8 +132,8 @@ public sealed class DeadlineInterceptorTests
         await sut.InvokeAsync(request, cts.Token);
 
         // Assert
-        Assert.That(cancellationToken, Is.Not.Null);
-        Assert.That(cancellationToken.Value, Is.EqualTo(cts.Token));
+        Assert.That(token, Is.Not.Null);
+        Assert.That(token.Value, Is.EqualTo(cts.Token));
     }
 
     [Test]
@@ -141,9 +141,9 @@ public sealed class DeadlineInterceptorTests
     public void Deadline_interceptor_can_enforce_application_deadline()
     {
         // Arrange
-        var invoker = new InlineInvoker(async (request, cancel) =>
+        var invoker = new InlineInvoker(async (request, cancellationToken) =>
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             return new IncomingResponse(request, FakeConnectionContext.IceRpc);
         });
 

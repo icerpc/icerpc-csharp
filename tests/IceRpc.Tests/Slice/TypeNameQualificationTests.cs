@@ -34,6 +34,6 @@ public class TypeNameQualificationTests
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(
             Inner.S s,
             IFeatureCollection features,
-            CancellationToken cancel) => new(new S($"{s.V}"));
+            CancellationToken cancellationToken) => new(new S($"{s.V}"));
     }
 }

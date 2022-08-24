@@ -176,15 +176,15 @@ internal struct AsyncQueueCore<T>
         _source.OnCompleted(continuation, state, token, flags);
     }
 
-    internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
+    internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancellationToken)
     {
-        if (cancel.CanBeCanceled)
+        if (cancellationToken.CanBeCanceled)
         {
             // The returned ValueTask<T> always calls GetResult on completion. It will dispose the token registration.
             // Note that we don't check if cancellation is requested on the token here. It's up to the
             // IAsyncQueueValueTaskSource.Cancel() implementation to decide what to do upon cancellation.
             Debug.Assert(_tokenRegistration == default);
-            _tokenRegistration = cancel.UnsafeRegister(
+            _tokenRegistration = cancellationToken.UnsafeRegister(
                 vts => ((IAsyncQueueValueTaskSource<T>)vts!).Cancel(),
                 valueTaskSource);
         }

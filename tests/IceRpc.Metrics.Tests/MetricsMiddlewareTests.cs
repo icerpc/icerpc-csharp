@@ -14,7 +14,7 @@ public sealed class MetricsMiddlewareTests
     public async Task Canceled_dispatch_publishes_start_cancel_and_stop_events()
     {
         const string name = "Test.Canceled.Dispatch.EventSource";
-        var dispatcher = new InlineDispatcher((request, cancel) => throw new OperationCanceledException());
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new OperationCanceledException());
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),
@@ -43,7 +43,7 @@ public sealed class MetricsMiddlewareTests
     {
         // Arrange
         const string name = "Test.Failed.Dispatch.EventSource";
-        var dispatcher = new InlineDispatcher((request, cancel) => throw new InvalidOperationException());
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),
@@ -71,7 +71,7 @@ public sealed class MetricsMiddlewareTests
     public async Task Successful_dispatch_publishes_start_and_stop_events()
     {
         const string name = "Test.Successful.Dispatch.EventSource";
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),

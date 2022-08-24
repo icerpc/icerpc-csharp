@@ -14,14 +14,14 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
 
     private readonly SemaphoreSlim _hold = new(0);
     private readonly TaskCompletionSource<IConnectionContext> _startTaskCompletionSource =
-        new (TaskCreationOptions.RunContinuationsAsynchronously);
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         _startTaskCompletionSource.TrySetResult(request.ConnectionContext);
         try
         {
-            await _hold.WaitAsync(cancel);
+            await _hold.WaitAsync(cancellationToken);
             _completeTaskCompletionSource.TrySetResult();
             return new OutgoingResponse(request);
         }

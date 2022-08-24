@@ -7,7 +7,7 @@ public interface IDispatcher
 {
     /// <summary>Dispatches an incoming request and returns the corresponding outgoing response.</summary>
     /// <param name="request">The incoming request being dispatched.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
-    ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default);
+    ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default);
 }

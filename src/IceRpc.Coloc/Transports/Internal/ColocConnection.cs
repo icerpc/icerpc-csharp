@@ -20,7 +20,7 @@ internal class ColocConnection : IDuplexConnection
     private int _state;
     private PipeWriter? _writer;
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         (_reader, _writer) = _connect(ServerAddress);
         var colocEndPoint = new ColocEndPoint(ServerAddress);
@@ -61,7 +61,7 @@ internal class ColocConnection : IDuplexConnection
         }
     }
 
-    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
         Debug.Assert(_reader is not null && _writer is not null);
 
@@ -77,7 +77,7 @@ internal class ColocConnection : IDuplexConnection
                 throw _exception!;
             }
 
-            ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+            ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
             {
                 return 0;
@@ -141,7 +141,7 @@ internal class ColocConnection : IDuplexConnection
         }
     }
 
-    public async Task ShutdownAsync(CancellationToken cancel)
+    public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
         Debug.Assert(_reader is not null && _writer is not null);
 
@@ -159,7 +159,7 @@ internal class ColocConnection : IDuplexConnection
         }
     }
 
-    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
         Debug.Assert(_reader is not null && _writer is not null);
 
@@ -181,7 +181,7 @@ internal class ColocConnection : IDuplexConnection
                     throw new TransportException("connection is shutdown");
                 }
 
-                _ = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                _ = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception exception)

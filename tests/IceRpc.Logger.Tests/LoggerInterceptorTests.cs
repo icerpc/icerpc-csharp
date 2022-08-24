@@ -12,7 +12,7 @@ public sealed class LoggerInterceptorTests
     public async Task Log_successful_request()
     {
         var invoker = new InlineInvoker(
-            (request, cancel) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
@@ -41,7 +41,7 @@ public sealed class LoggerInterceptorTests
     [Test]
     public async Task Log_failed_request()
     {
-        var invoker = new InlineInvoker((request, cancel) => throw new InvalidOperationException());
+        var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
