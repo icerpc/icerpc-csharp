@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;

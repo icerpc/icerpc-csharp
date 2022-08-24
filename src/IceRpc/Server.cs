@@ -342,13 +342,24 @@ public sealed class Server : IAsyncDisposable
 
             ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
 
-            connection.OnAbort(exception =>
-                ServerEventSource.Log.ConnectionFailure(
-                    ServerAddress,
-                    remoteNetworkAddress,
-                    exception));
+            _ = LogConnectionFailureAsync();
 
             return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
+
+            async Task LogConnectionFailureAsync()
+            {
+                try
+                {
+                    _ = await connection.ShutdownComplete.ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    ServerEventSource.Log.ConnectionFailure(
+                        ServerAddress,
+                        remoteNetworkAddress,
+                        exception);
+                }
+            }
         }
 
         public void Dispose() => _decoratee.Dispose();
@@ -372,7 +383,8 @@ public sealed class Server : IAsyncDisposable
             ServerEventSource.Log.ConnectStart(ServerAddress, _remoteNetworkAddress);
             try
             {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
+                    .ConfigureAwait(false);
                 ServerEventSource.Log.ConnectSuccess(ServerAddress, _remoteNetworkAddress);
                 return result;
             }
