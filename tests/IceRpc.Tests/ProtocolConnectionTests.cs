@@ -268,7 +268,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
                     Payload = payloadDecorator
@@ -293,7 +293,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
                     Payload = payloadDecorator
@@ -318,7 +318,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
             {
                 var response = new OutgoingResponse(request)
                 {
@@ -373,7 +373,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
             {
                 var response = new OutgoingResponse(request);
                 response.Use(writer =>
@@ -403,9 +403,9 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+            ReadResult readResult = await request.Payload.ReadAllAsync(cancellationToken);
             request.Payload.AdvanceTo(readResult.Buffer.End);
             return new OutgoingResponse(request)
             {
@@ -441,7 +441,7 @@ public sealed class ProtocolConnectionTests
             ["ctx"] = new string('C', 4096)
         };
         byte[]? field = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             field = request.Fields[RequestFieldKey.Context].ToArray();
             return new(new OutgoingResponse(request));
@@ -490,9 +490,9 @@ public sealed class ProtocolConnectionTests
         // Arrange
         byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
         byte[]? receivedPayload = null;
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+            ReadResult readResult = await request.Payload.ReadAllAsync(cancellationToken);
             receivedPayload = readResult.Buffer.ToArray();
             request.Payload.AdvanceTo(readResult.Buffer.End);
             return new OutgoingResponse(request);
@@ -551,7 +551,7 @@ public sealed class ProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        Task shutdownTask = (closeClientSide? sut.Client : sut.Server).ShutdownAsync("");
+        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
 
         // Assert
         Assert.Multiple(() =>

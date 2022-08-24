@@ -24,7 +24,7 @@ public class Hello : Service, IHello
         Console.WriteLine("{0,-30}: {1}", "Total `SayHelloAsync` dispatches", _totalRequests);
     }
 
-    public ValueTask SayHelloAsync(IFeatureCollection features, CancellationToken cancel)
+    public ValueTask SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref _totalRequests);
         if (_totalRequests % 1000 == 0)

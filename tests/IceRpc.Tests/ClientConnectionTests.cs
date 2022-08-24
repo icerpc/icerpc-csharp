@@ -67,7 +67,7 @@ public class ClientConnectionTests
         await semaphore.WaitAsync();
 
         // Act/Assert
-        Assert.That(async() => await connection.ConnectAsync(), Throws.Nothing);
+        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
     }
 
     [Test]
@@ -146,7 +146,7 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             new ServiceCollection()
                 .AddColocTest(
-                    new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
                     serviceAddress.Protocol!,
                     host: "testhost.com")
                 .BuildServiceProvider(validateScopes: true);
@@ -194,7 +194,7 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             new ServiceCollection()
                 .AddColocTest(
-                    new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
                     serverAddress.Protocol,
                     host: serverAddress.Host)
                 .BuildServiceProvider(validateScopes: true);

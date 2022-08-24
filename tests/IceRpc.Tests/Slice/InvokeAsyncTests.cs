@@ -19,7 +19,7 @@ public class InvokeAsyncTests
         var sut = new ServiceProxy
         {
             ServiceAddress = new ServiceAddress(Protocol.IceRpc),
-            Invoker = new InlineInvoker((request, cancel) =>
+            Invoker = new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(
                     new IncomingResponse(request, FakeConnectionContext.IceRpc) { Payload = responsePayload }))
         };
@@ -53,7 +53,7 @@ public class InvokeAsyncTests
         var sut = new ServiceProxy
         {
             ServiceAddress = new ServiceAddress(Protocol.IceRpc),
-            Invoker = new InlineInvoker((request, cancel) => throw new InvalidDataException("error"))
+            Invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidDataException("error"))
         };
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);

@@ -27,7 +27,7 @@ public class DeflateInterceptorTests
     public async Task Compress_request_payload()
     {
         // Arrange
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -56,7 +56,7 @@ public class DeflateInterceptorTests
     [Test]
     public async Task Compressor_interceptor_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -74,7 +74,7 @@ public class DeflateInterceptorTests
     [Test]
     public async Task Compressor_interceptor_does_not_install_a_payload_writer_interceptor_if_the_request_is_already_compressed()
     {
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -97,7 +97,7 @@ public class DeflateInterceptorTests
     public async Task Compressor_interceptor_lets_responses_with_unsupported_compression_format_pass_through()
     {
         PipeReader? initialPayload = null;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             IncomingResponse response = CreateResponseWithCompressionFormatField(
                 request,
@@ -118,7 +118,7 @@ public class DeflateInterceptorTests
     [Test]
     public async Task Decompress_response_payload()
     {
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             IncomingResponse response = CreateResponseWithCompressionFormatField(
                 request,

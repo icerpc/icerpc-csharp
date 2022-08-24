@@ -12,28 +12,28 @@ internal static class PipeWriterExtensions
     /// <param name="writer">The pipe writer.</param>
     /// <param name="source">The source sequence.</param>
     /// <param name="endStream">When true, no more data will be written to the writer.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The flush result.</returns>
     internal static async ValueTask<FlushResult> WriteAsync(
         this PipeWriter writer,
         ReadOnlySequence<byte> source,
         bool endStream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         if (writer is ReadOnlySequencePipeWriter readonlySequenceWriter)
         {
-            return await readonlySequenceWriter.WriteAsync(source, endStream, cancel).ConfigureAwait(false);
+            return await readonlySequenceWriter.WriteAsync(source, endStream, cancellationToken).ConfigureAwait(false);
         }
         else
         {
             FlushResult flushResult = default;
             if (source.IsEmpty)
             {
-                flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
+                flushResult = await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
             else if (source.IsSingleSegment)
             {
-                flushResult = await writer.WriteAsync(source.First, cancel).ConfigureAwait(false);
+                flushResult = await writer.WriteAsync(source.First, cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -42,7 +42,7 @@ internal static class PipeWriterExtensions
                 // that will end up in multiple transport calls?
                 foreach (ReadOnlyMemory<byte> buffer in source)
                 {
-                    flushResult = await writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                    flushResult = await writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
                     if (flushResult.IsCompleted || flushResult.IsCanceled)
                     {
                         break;

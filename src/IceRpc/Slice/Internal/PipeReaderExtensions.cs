@@ -12,7 +12,7 @@ internal static class PipeReaderExtensions
     /// <param name="reader">The pipe reader.</param>
     /// <param name="encoding">The encoding.</param>
     /// <param name="maxSize">The maximum size of this segment.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled"/> is
     /// <c>true</c>.</returns>
     /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
@@ -25,7 +25,7 @@ internal static class PipeReaderExtensions
         this PipeReader reader,
         SliceEncoding encoding,
         int maxSize,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
@@ -38,7 +38,7 @@ internal static class PipeReaderExtensions
             // It's maxSize + 1 and not maxSize because if the segment's size is maxSize, we could get
             // readResult.IsCompleted == false even though the full segment was read.
 
-            ReadResult readResult = await reader.ReadAtLeastAsync(maxSize + 1, cancel).ConfigureAwait(false);
+            ReadResult readResult = await reader.ReadAtLeastAsync(maxSize + 1, cancellationToken).ConfigureAwait(false);
 
             if (readResult.IsCompleted && readResult.Buffer.Length <= maxSize)
             {
@@ -57,7 +57,7 @@ internal static class PipeReaderExtensions
 
             while (true)
             {
-                readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
+                readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
                 try
                 {
@@ -89,7 +89,7 @@ internal static class PipeReaderExtensions
                 }
             }
 
-            readResult = await reader.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
+            readResult = await reader.ReadAtLeastAsync(segmentSize, cancellationToken).ConfigureAwait(false);
 
             if (readResult.IsCanceled)
             {

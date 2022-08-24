@@ -74,7 +74,7 @@ internal class StreamDecoder<T>
 
     /// <summary>Reads the stream decoder asynchronously.</summary>
     /// <param name="cancelCallback">An action to register with the cancellation token.</param>
-    /// <param name="cancel">The cancellation token. It's typically set by calling the
+    /// <param name="cancellationToken">The cancellation token. It's typically set by calling the
     /// <see cref="TaskAsyncEnumerableExtensions.WithCancellation{T}"/> extension method on the returned async
     /// enumerable.</param>
     /// <returns>An async enumerable of T.</returns>
@@ -83,9 +83,9 @@ internal class StreamDecoder<T>
     /// token when done to notify the writer and avoid unnecessary writing/decoding.</remarks>
     internal async IAsyncEnumerable<T> ReadAsync(
         Action? cancelCallback = null,
-        [EnumeratorCancellation] CancellationToken cancel = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        using CancellationTokenRegistration _ = cancel.UnsafeRegister(
+        using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
             _ =>
             {
                 CompleteReader();
@@ -130,7 +130,7 @@ internal class StreamDecoder<T>
 
             if (paused)
             {
-                await _readerSemaphore.WaitAsync(cancel).ConfigureAwait(false);
+                await _readerSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
 
             IEnumerable<T> items;
@@ -156,7 +156,7 @@ internal class StreamDecoder<T>
 
             foreach (T item in items)
             {
-                if (cancel.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     yield break;
                 }
@@ -167,10 +167,10 @@ internal class StreamDecoder<T>
 
     /// <summary>Writes a buffer to the stream decoder.</summary>
     /// <param name="buffer">The buffer. Cannot be empty.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task with a bool value that indicates whether or not the reader is completed. When the
     /// reader is completed, the writer should stop writing more and call <see cref="CompleteWriter"/>.</returns>
-    internal async ValueTask<bool> WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancel)
+    internal async ValueTask<bool> WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
         if (buffer.IsEmpty)
         {
@@ -202,7 +202,7 @@ internal class StreamDecoder<T>
 
         if (paused)
         {
-            await _writerSemaphore.WaitAsync(cancel).ConfigureAwait(false);
+            await _writerSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
         IEnumerable<T> items = _decodeBufferFunc(buffer);

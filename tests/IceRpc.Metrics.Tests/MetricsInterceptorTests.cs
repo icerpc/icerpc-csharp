@@ -15,7 +15,7 @@ public sealed class MetricsInterceptorTests
     public async Task Canceled_invocation_publishes_start_cancel_and_stop_events()
     {
         const string name = "Test.Canceled.Invocation.EventSource";
-        var invoker = new InlineInvoker((request, cancel) => throw new OperationCanceledException());
+        var invoker = new InlineInvoker((request, cancellationToken) => throw new OperationCanceledException());
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),
@@ -43,7 +43,7 @@ public sealed class MetricsInterceptorTests
     public async Task Failed_invocation_publishes_start_fail_and_stop_events()
     {
         const string name = "Test.Failed.Invocation.EventSource";
-        var invoker = new InlineInvoker((request, cancel) => throw new InvalidOperationException());
+        var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),
@@ -72,7 +72,7 @@ public sealed class MetricsInterceptorTests
     {
         const string name = "Test.Successful.Invocation.EventSource";
         var invoker = new InlineInvoker(
-            (request, cancel) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),

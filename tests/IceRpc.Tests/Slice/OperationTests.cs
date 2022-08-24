@@ -476,84 +476,84 @@ public class OperationTests
 
     class MyOperationsA : Service, IMyOperationsA
     {
-        public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancel) => default;
+        public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
-        public ValueTask OpWithoutParametersAndVoidReturnAsync(IFeatureCollection features, CancellationToken cancel) => default;
+        public ValueTask OpWithoutParametersAndVoidReturnAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
         public ValueTask<int> OpWithSingleParameterAndReturnValueAsync(
             int p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p);
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask<(int R1, int R2)> OpWithMultipleParametersAndReturnValuesAsync(
             int p1,
             int p2,
             IFeatureCollection features,
-            CancellationToken cancel) => new((p1, p2));
+            CancellationToken cancellationToken) => new((p1, p2));
 
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p);
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask<PipeReader> OpWithByteStreamArgumentAndReturnAsync(
             PipeReader p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p);
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask<IAsyncEnumerable<int>> OpWithIntStreamArgumentAndReturnAsync(
             IAsyncEnumerable<int> p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p);
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask<IAsyncEnumerable<string>> OpWithStringStreamArgumentAndReturnAsync(
             IAsyncEnumerable<string> p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p);
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask<(int R1, IAsyncEnumerable<int> R2)> OpWithBothRegularAndStreamParameterAndReturnAsync(
             int p1,
             IAsyncEnumerable<int> p2,
             IFeatureCollection features,
-            CancellationToken cancel) => new((p1, p2));
+            CancellationToken cancellationToken) => new((p1, p2));
 
         public ValueTask IdempotentOpAsync(
             IFeatureCollection features,
-            CancellationToken cancel) => default;
+            CancellationToken cancellationToken) => default;
 
         public ValueTask OpWithSpecialParameterNamesAsync(
-            int cancel,
+            int cancellationToken,
             int features,
             IFeatureCollection features_,
-            CancellationToken cancel_) => default;
+            CancellationToken cancellationToken_) => default;
 
         public ValueTask<int> OpWithCsAttributeAsync(
             int p,
             IFeatureCollection features,
-            CancellationToken cancel) => default;
+            CancellationToken cancellationToken) => default;
 
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             IFeatureCollection features,
-            CancellationToken cancel) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
+            CancellationToken cancellationToken) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
 
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             IFeatureCollection features,
-            CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
+            CancellationToken cancellationToken) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p1);
+            CancellationToken cancellationToken) => new(p1);
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryOptionalAsync(
             int[]? p1,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p1);
+            CancellationToken cancellationToken) => new(p1);
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryTaggedAsync(
             int[]? p1,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p1);
+            CancellationToken cancellationToken) => new(p1);
     }
 
     private class MyDerivedOperationsA : MyOperationsA { }
@@ -564,7 +564,7 @@ public class OperationTests
         internal int? Y { get; set; }
         internal int? Z { get; set; }
 
-        public ValueTask OpAsync(int x, int? y, int? z, IFeatureCollection features, CancellationToken cancel)
+        public ValueTask OpAsync(int x, int? y, int? z, IFeatureCollection features, CancellationToken cancellationToken)
         {
             X = x;
             Y = y;
@@ -579,7 +579,7 @@ public class OperationTests
         internal int[]? Y { get; set; }
         internal int[]? Z { get; set; }
 
-        public ValueTask OpAsync(int[] x, int[]? y, int[]? z, IFeatureCollection features, CancellationToken cancel)
+        public ValueTask OpAsync(int[] x, int[]? y, int[]? z, IFeatureCollection features, CancellationToken cancellationToken)
         {
             X = x;
             Y = y;

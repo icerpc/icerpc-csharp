@@ -8,7 +8,10 @@ namespace Demo;
 
 public class Uploader : Service, IUploader
 {
-    public async ValueTask UploadImageAsync(PipeReader image, IFeatureCollection features, CancellationToken cancel)
+    public async ValueTask UploadImageAsync(
+        PipeReader image,
+        IFeatureCollection features,
+        CancellationToken cancellationToken)
     {
         Console.WriteLine("Downloading image...");
 
@@ -20,7 +23,7 @@ public class Uploader : Service, IUploader
         using FileStream fs = File.Create("Server/uploads/uploaded_earth.png");
 
         // Copy the image to the file stream.
-        await imageStream.CopyToAsync(fs, cancel);
+        await imageStream.CopyToAsync(fs, cancellationToken);
 
         // Complete and cleanup the pipe reader.
         await image.CompleteAsync();

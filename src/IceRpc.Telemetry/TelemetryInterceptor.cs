@@ -25,7 +25,7 @@ public class TelemetryInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Protocol.HasFields)
         {
@@ -41,11 +41,11 @@ public class TelemetryInterceptor : IInvoker
             request.Fields = request.Fields.With(
                 RequestFieldKey.TraceContext,
                 (ref SliceEncoder encoder) => WriteActivityContext(ref encoder, activity));
-            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 

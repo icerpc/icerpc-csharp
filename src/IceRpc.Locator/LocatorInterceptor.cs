@@ -24,7 +24,7 @@ public class LocatorInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Protocol == Protocol.Ice && request.ServiceAddress.ServerAddress is null)
         {
@@ -60,7 +60,7 @@ public class LocatorInterceptor : IInvoker
                 (ServiceAddress? serviceAddress, bool fromCache) = await _locationResolver.ResolveAsync(
                     location,
                     refreshCache,
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
 
                 if (refreshCache)
                 {
@@ -88,7 +88,7 @@ public class LocatorInterceptor : IInvoker
                 // else, resolution failed and we don't update anything
             }
         }
-        return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+        return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
     private interface ICachedResolutionFeature
@@ -128,7 +128,7 @@ public interface ILocationResolver
     /// <summary>Resolves a location into one or more server addresses carried by a dummy service address.</summary>
     /// <param name="location">The location to resolve.</param>
     /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
     /// that indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is
     /// null whe the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress
@@ -136,7 +136,7 @@ public interface ILocationResolver
     ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel);
+        CancellationToken cancellationToken);
 }
 
 /// <summary>Implements <see cref="ILocationResolver"/> using a locator proxy.</summary>
@@ -185,5 +185,5 @@ public class LocatorLocationResolver : ILocationResolver
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel) => _locationResolver.ResolveAsync(location, refreshCache, cancel);
+        CancellationToken cancellationToken) => _locationResolver.ResolveAsync(location, refreshCache, cancellationToken);
 }

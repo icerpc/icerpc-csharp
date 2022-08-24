@@ -30,12 +30,12 @@ public class RetryInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.PayloadStream is not null)
         {
             // This interceptor does not support retrying requests with a payload stream.
-            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -59,7 +59,7 @@ public class RetryInterceptor : IInvoker
                         using IDisposable? scope = CreateRetryLogScope(attempt, retryPolicy);
                         retryPolicy = RetryPolicy.NoRetry; // reset retry policy after logging
 
-                        response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                        response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
                         if (response.ResultType == ResultType.Success)
                         {
@@ -108,7 +108,7 @@ public class RetryInterceptor : IInvoker
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
-                            await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
+                            await Task.Delay(retryPolicy.Delay, cancellationToken).ConfigureAwait(false);
                         }
 
                         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature &&

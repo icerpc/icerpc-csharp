@@ -29,7 +29,7 @@ internal abstract class TcpConnection : IDuplexConnection
 
     private readonly List<ArraySegment<byte>> _segments = new();
 
-    public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
+    public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     public void Dispose()
     {
@@ -47,7 +47,7 @@ internal abstract class TcpConnection : IDuplexConnection
         Socket.Close(0);
     }
 
-    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
         if (buffer.Length == 0)
         {
@@ -59,11 +59,11 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             if (SslStream is not null)
             {
-                received = await SslStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                received = await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -83,7 +83,7 @@ internal abstract class TcpConnection : IDuplexConnection
         return received;
     }
 
-    public async Task ShutdownAsync(CancellationToken cancel)
+    public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -102,7 +102,7 @@ internal abstract class TcpConnection : IDuplexConnection
         }
     }
 
-    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
         Debug.Assert(buffers.Count > 0);
 
@@ -112,7 +112,7 @@ internal abstract class TcpConnection : IDuplexConnection
             {
                 if (buffers.Count == 1)
                 {
-                    await sslStream.WriteAsync(buffers[0], cancel).ConfigureAwait(false);
+                    await sslStream.WriteAsync(buffers[0], cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -154,13 +154,13 @@ internal abstract class TcpConnection : IDuplexConnection
                         }
 
                         // Send the "coalesced" initial buffers
-                        await sslStream.WriteAsync(writeBuffer, cancel).ConfigureAwait(false);
+                        await sslStream.WriteAsync(writeBuffer, cancellationToken).ConfigureAwait(false);
                     }
 
                     // Send the remaining buffers one by one
                     for (int i = index; i < buffers.Count; ++i)
                     {
-                        await sslStream.WriteAsync(buffers[i], cancel).ConfigureAwait(false);
+                        await sslStream.WriteAsync(buffers[i], cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -168,7 +168,7 @@ internal abstract class TcpConnection : IDuplexConnection
             {
                 if (buffers.Count == 1)
                 {
-                    await Socket.SendAsync(buffers[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                    await Socket.SendAsync(buffers[0], SocketFlags.None, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -186,7 +186,7 @@ internal abstract class TcpConnection : IDuplexConnection
                                 nameof(buffers));
                         }
                     }
-                    await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
+                    await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -229,7 +229,7 @@ internal class TcpClientConnection : TcpConnection
 
     private SslStream? _sslStream;
 
-    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         Debug.Assert(!_connected);
         _connected = true;
@@ -239,13 +239,13 @@ internal class TcpClientConnection : TcpConnection
             Debug.Assert(Socket is not null);
 
             // Connect to the peer.
-            await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+            await Socket.ConnectAsync(_addr, cancellationToken).ConfigureAwait(false);
 
             if (_authenticationOptions is not null)
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                await _sslStream.AuthenticateAsClientAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+                await _sslStream.AuthenticateAsClientAsync(_authenticationOptions, cancellationToken).ConfigureAwait(false);
             }
 
             return new TransportConnectionInformation(
@@ -328,7 +328,7 @@ internal class TcpServerConnection : TcpConnection
     private bool _connected;
     private SslStream? _sslStream;
 
-    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         Debug.Assert(!_connected);
         _connected = true;
@@ -339,7 +339,7 @@ internal class TcpServerConnection : TcpConnection
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+                await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancellationToken).ConfigureAwait(false);
             }
 
             return new TransportConnectionInformation(

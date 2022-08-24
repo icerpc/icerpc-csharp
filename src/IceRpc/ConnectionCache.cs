@@ -75,7 +75,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
         {
@@ -125,7 +125,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             try
             {
-                return connection.InvokeAsync(request, cancel);
+                return connection.InvokeAsync(request, cancellationToken);
             }
             catch (ObjectDisposedException)
             {
@@ -143,7 +143,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             try
             {
-                connection = await ConnectAsync(mainServerAddress, cancel).ConfigureAwait(false);
+                connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -160,7 +160,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                     try
                     {
-                        connection = await ConnectAsync(mainServerAddress, cancel).ConfigureAwait(false);
+                        connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
                         break; // for
                     }
                     catch (Exception altEx)
@@ -186,7 +186,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             try
             {
-                return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+                return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
             catch (ObjectDisposedException)
             {
@@ -197,9 +197,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Gracefully shuts down all connections managed by this cache. This method can be called multiple times.
     /// </summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the shutdown is complete.</returns>
-    public Task ShutdownAsync(CancellationToken cancel = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
@@ -211,15 +211,15 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancel)));
+            allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancellationToken)));
     }
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
     /// connection for the desired server address.</summary>
     /// <param name="serverAddress">The server address.</param>
-    /// <param name="cancel">The cancellation token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A connected connection.</returns>
-    private async ValueTask<IProtocolConnection> ConnectAsync(ServerAddress serverAddress, CancellationToken cancel)
+    private async ValueTask<IProtocolConnection> ConnectAsync(ServerAddress serverAddress, CancellationToken cancellationToken)
     {
         IProtocolConnection? connection = null;
         bool created = false;
@@ -252,7 +252,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             try
             {
                 // TODO: add cancellation token to cancel when ConnectionCache is shut down / disposed.
-                TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync(cancel)
+                TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
             }
             catch
@@ -304,7 +304,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
         else
         {
-            _ = await connection.ConnectAsync(cancel).ConfigureAwait(false);
+            _ = await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return connection;
@@ -390,12 +390,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         private readonly IProtocolConnection _decoratee;
 
-        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
             ConnectionCacheEventSource.Log.ConnectStart(ServerAddress);
             try
             {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
                 ConnectionCacheEventSource.Log.ConnectSuccess(ServerAddress, result.LocalNetworkAddress!);
                 return result;
             }
@@ -416,20 +416,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             ConnectionCacheEventSource.Log.ConnectionStop(ServerAddress);
         }
 
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-            _decoratee.InvokeAsync(request, cancel);
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
+            _decoratee.InvokeAsync(request, cancellationToken);
 
         public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
         public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-        public async Task ShutdownAsync(string message, CancellationToken cancel = default)
+        public async Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
         {
             // TODO: we should log the shutdown message!
 
             try
             {
-                await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+                await _decoratee.ShutdownAsync(message, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception exception)
             {

@@ -47,22 +47,22 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancel) =>
+    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
         // WriteAsync will flush the internal buffer
-        WriteAsync(ReadOnlySequence<byte>.Empty, endStream: false, cancel);
+        WriteAsync(ReadOnlySequence<byte>.Empty, endStream: false, cancellationToken);
 
     public override Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
 
     public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
 
-    public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
+    public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken) =>
         // Writing an empty buffer completes the stream.
-        WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancel);
+        WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancellationToken);
 
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         CheckIfCompleted();
 
@@ -72,7 +72,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
 
         // Abort the stream if the invocation is canceled.
-        using CancellationTokenRegistration cancelTokenRegistration = cancel.UnsafeRegister(
+        using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
                 tcs => ((CancellationTokenSource)tcs!).Cancel(),
                 _abortCts);
 
@@ -112,7 +112,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 }
                 catch (OperationCanceledException)
                 {
-                    cancel.ThrowIfCancellationRequested();
+                    cancellationToken.ThrowIfCancellationRequested();
                     return GetFlushResult();
                 }
                 finally
@@ -147,7 +147,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
             catch (OperationCanceledException)
             {
-                cancel.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 return GetFlushResult();
             }
         }

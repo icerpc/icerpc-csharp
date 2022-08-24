@@ -24,9 +24,9 @@ public class OperationGeneratedCodeTests
             .AddColocTest(builder =>
             {
                 builder.UseDeflate();
-                builder.Use(next => new InlineDispatcher(async (request, cancel) =>
+                builder.Use(next => new InlineDispatcher(async (request, cancellationToken) =>
                 {
-                    var response = await next.DispatchAsync(request, cancel);
+                    var response = await next.DispatchAsync(request, cancellationToken);
                     compressResponseFeature =
                         request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
                     return response;
@@ -35,9 +35,9 @@ public class OperationGeneratedCodeTests
             })
             .AddIceRpcInvoker(builder => builder
                 .UseDeflate()
-                .Use(next => new InlineInvoker(async (request, cancel) =>
+                .Use(next => new InlineInvoker(async (request, cancellationToken) =>
                 {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
                     compressRequestFeature =
                         request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
                     return response;
@@ -63,6 +63,6 @@ public class OperationGeneratedCodeTests
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(p);
+            CancellationToken cancellationToken) => new(p);
     }
 }

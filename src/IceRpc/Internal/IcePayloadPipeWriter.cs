@@ -22,11 +22,11 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         // No-op. We don't want to dispose the transport connection writer.
     }
 
-    public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default)
+    public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await _transportConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+            await _transportConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -40,12 +40,12 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override Span<byte> GetSpan(int sizeHint = 0) => _transportConnectionWriter.GetSpan(sizeHint);
 
-    public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
+    public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
     {
         try
         {
             await _transportConnectionWriter.WriteAsync(
-                new ReadOnlySequence<byte>(source), cancel).ConfigureAwait(false);
+                new ReadOnlySequence<byte>(source), cancellationToken).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -60,11 +60,11 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         try
         {
-            await _transportConnectionWriter.WriteAsync(source, cancel).ConfigureAwait(false);
+            await _transportConnectionWriter.WriteAsync(source, cancellationToken).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {

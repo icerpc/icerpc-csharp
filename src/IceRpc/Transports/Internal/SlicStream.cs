@@ -197,13 +197,13 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancel)
+    internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
     {
         // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire
         // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
         // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
         // additional data and _sendCredit can be used to figure out the size of the next packet to send.
-        await _sendCreditSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+        await _sendCreditSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
         return _sendCredit;
     }
 
@@ -223,8 +223,8 @@ internal class SlicStream : IMultiplexedStream
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
-        CancellationToken cancel) =>
-        _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
+        CancellationToken cancellationToken) =>
+        _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
     internal void ReceivedConsumedFrame(int size)
     {
@@ -241,8 +241,8 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancel) =>
-        ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancel);
+    internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken) =>
+        ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
 
     internal void ReceivedResetFrame(ulong errorCode)
     {
@@ -276,8 +276,8 @@ internal class SlicStream : IMultiplexedStream
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        CancellationToken cancel) =>
-        _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancel);
+        CancellationToken cancellationToken) =>
+        _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
 
     internal void SendStreamConsumed(int size) =>
         _ = _connection.SendFrameAsync(

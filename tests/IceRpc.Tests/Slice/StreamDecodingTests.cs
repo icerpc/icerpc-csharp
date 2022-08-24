@@ -159,7 +159,7 @@ public sealed class StreamDecodingTests
 
             await foreach (int i in streamDecoder.ReadAsync(
                 () => cancelCalled = true,
-                cancel: default).WithCancellation(cancel))
+                cancellationToken: default).WithCancellation(cancel))
             {
                 count++;
                 Assert.That(i, Is.EqualTo(123));

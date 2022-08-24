@@ -20,7 +20,7 @@ public class CacheLessLocationResolverTests
             await locationResolver.ResolveAsync(
                 new Location { IsAdapterId = isAdapterId, Value = "good" },
                 refreshCache: refreshCache,
-                cancel: default);
+                cancellationToken: default);
 
         Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress));
         Assert.That(fromCache, Is.False);
@@ -38,7 +38,7 @@ public class CacheLessLocationResolverTests
             await locationResolver.ResolveAsync(
                 new Location { IsAdapterId = isAdapterId, Value = "bad" },
                 refreshCache: refreshCache,
-                cancel: default);
+                cancellationToken: default);
 
         Assert.That(serviceAddress, Is.Null);
         Assert.That(fromCache, Is.False);
@@ -50,7 +50,7 @@ public class CacheLessLocationResolverTests
 
         public FakeServerAddressFinder(ServiceAddress serviceAddress) => _serviceAddress = serviceAddress;
 
-        Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel) =>
+        Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken) =>
             Task.FromResult(location.Value == "good" ? _serviceAddress : null);
     }
 }

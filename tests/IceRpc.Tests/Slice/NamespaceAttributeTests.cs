@@ -16,7 +16,7 @@ public class NamespaceAttributeTests
         public ValueTask<NamespaceAttribute.WithNamespace.N1.N2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,
             IFeatureCollection features,
-            CancellationToken cancel) => new(new NamespaceAttribute.WithNamespace.N1.N2.S1($"{p.I}"));
+            CancellationToken cancellationToken) => new(new NamespaceAttribute.WithNamespace.N1.N2.S1($"{p.I}"));
     }
 
     [Test]

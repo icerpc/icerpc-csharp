@@ -10,7 +10,7 @@ internal class MiddlewareAdapter<TDep> : IDispatcher where TDep : notnull
 {
     private readonly IMiddleware<TDep> _middleware;
 
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
             throw new InvalidOperationException("no service provider feature in request features");
@@ -18,7 +18,7 @@ internal class MiddlewareAdapter<TDep> : IDispatcher where TDep : notnull
         return _middleware.DispatchAsync(
             request,
             feature.ServiceProvider.GetRequiredService<TDep>(),
-            cancel);
+            cancellationToken);
     }
 
     internal MiddlewareAdapter(IMiddleware<TDep> middleware) => _middleware = middleware;
@@ -31,7 +31,7 @@ internal class MiddlewareAdapter<TDep1, TDep2> : IDispatcher
 {
     private readonly IMiddleware<TDep1, TDep2> _middleware;
 
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
             throw new InvalidOperationException("no service provider feature in request features");
@@ -40,7 +40,7 @@ internal class MiddlewareAdapter<TDep1, TDep2> : IDispatcher
             request,
             feature.ServiceProvider.GetRequiredService<TDep1>(),
             feature.ServiceProvider.GetRequiredService<TDep2>(),
-            cancel);
+            cancellationToken);
     }
 
     internal MiddlewareAdapter(IMiddleware<TDep1, TDep2> middleware) => _middleware = middleware;
@@ -54,7 +54,7 @@ internal class MiddlewareAdapter<TDep1, TDep2, TDep3> : IDispatcher
 {
     private readonly IMiddleware<TDep1, TDep2, TDep3> _middleware;
 
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
             throw new InvalidOperationException("no service provider feature in request features");
@@ -64,7 +64,7 @@ internal class MiddlewareAdapter<TDep1, TDep2, TDep3> : IDispatcher
             feature.ServiceProvider.GetRequiredService<TDep1>(),
             feature.ServiceProvider.GetRequiredService<TDep2>(),
             feature.ServiceProvider.GetRequiredService<TDep3>(),
-            cancel);
+            cancellationToken);
     }
 
     internal MiddlewareAdapter(IMiddleware<TDep1, TDep2, TDep3> middleware) => _middleware = middleware;

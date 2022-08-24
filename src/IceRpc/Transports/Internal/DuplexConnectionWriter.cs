@@ -44,18 +44,18 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     }
 
     /// <summary>Flush the buffered data.</summary>
-    internal ValueTask FlushAsync(CancellationToken cancel) =>
-        WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
+    internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
+        WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancellationToken);
 
     /// <summary>Writes a sequence of bytes.</summary>
-    internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
-        WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
+    internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken) =>
+        WriteAsync(source, ReadOnlySequence<byte>.Empty, cancellationToken);
 
     /// <summary>Writes two sequences of bytes.</summary>
     internal async ValueTask WriteAsync(
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
         {
@@ -68,7 +68,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
         SequencePosition? consumed = null;
         if (_pipe.Writer.UnflushedBytes > 0)
         {
-            await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+            await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
             _pipe.Reader.TryRead(out ReadResult readResult);
 
             Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
@@ -83,10 +83,10 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 
         try
         {
-            ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
-            if (cancel.CanBeCanceled && !task.IsCompleted)
+            ValueTask task = _connection.WriteAsync(_sendBuffers, cancellationToken);
+            if (cancellationToken.CanBeCanceled && !task.IsCompleted)
             {
-                await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                await task.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             else
             {

@@ -21,7 +21,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     Task<string> ShutdownComplete { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is established  provides the
     /// <see cref="TransportConnectionInformation"/> for this connection. This task can also complete with one of the
     /// following exceptions:
@@ -36,7 +36,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="ConnectionClosedException">Thrown if this connection is shut down or shutting down.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
+    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Registers a callback that will be called when the connection is aborted by the peer.</summary>
     /// <param name="callback">The callback. Its parameter is the exception that describes the cause of this abort.
@@ -50,7 +50,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the peer with the icerpc protocol.</param>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
@@ -62,5 +62,5 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ShutdownTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    Task ShutdownAsync(string message, CancellationToken cancel = default);
+    Task ShutdownAsync(string message, CancellationToken cancellationToken = default);
 }

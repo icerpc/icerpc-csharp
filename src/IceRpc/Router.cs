@@ -43,8 +43,8 @@ public sealed class Router : IDispatcher
     }
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default) =>
-        _dispatcher.Value.DispatchAsync(request, cancel);
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default) =>
+        _dispatcher.Value.DispatchAsync(request, cancellationToken);
 
     /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
     /// </summary>
@@ -125,7 +125,7 @@ public sealed class Router : IDispatcher
     {
         // The last dispatcher of the pipeline:
         IDispatcher dispatchPipeline = new InlineDispatcher(
-            (request, cancel) =>
+            (request, cancellationToken) =>
             {
                 string path = request.Path;
 
@@ -158,7 +158,7 @@ public sealed class Router : IDispatcher
                 // First check for an exact match
                 if (_exactMatchRoutes.TryGetValue(path, out IDispatcher? dispatcher))
                 {
-                    return dispatcher.DispatchAsync(request, cancel);
+                    return dispatcher.DispatchAsync(request, cancellationToken);
                 }
                 else
                 {
@@ -169,7 +169,7 @@ public sealed class Router : IDispatcher
                     {
                         if (_prefixMatchRoutes.TryGetValue(prefix, out dispatcher))
                         {
-                            return dispatcher.DispatchAsync(request, cancel);
+                            return dispatcher.DispatchAsync(request, cancellationToken);
                         }
 
                         if (prefix == "/")

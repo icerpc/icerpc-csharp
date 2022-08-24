@@ -15,8 +15,8 @@ public sealed class Pipeline : IInvoker
     public Pipeline() => _invoker = new Lazy<IInvoker>(CreateInvokerPipeline);
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-        _invoker.Value.InvokeAsync(request, cancel);
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default) =>
+        _invoker.Value.InvokeAsync(request, cancellationToken);
 
     /// <summary>Sets the last invoker of this pipeline. The pipeline flows into this invoker.</summary>
     /// <param name="lastInvoker">The last invoker.</param>

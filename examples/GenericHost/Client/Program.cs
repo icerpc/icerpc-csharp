@@ -93,7 +93,7 @@ public static class Program
                 Console.Write("To say hello to the server, type your name: ");
                 if (Console.ReadLine() is string name)
                 {
-                    Console.WriteLine(await _hello.SayHelloAsync(name, cancel: cancellationToken));
+                    Console.WriteLine(await _hello.SayHelloAsync(name, cancellationToken: cancellationToken));
                 }
 
                 await _connection.ShutdownAsync("client is going away", cancellationToken);

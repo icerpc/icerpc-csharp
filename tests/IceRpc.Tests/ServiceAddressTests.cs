@@ -655,7 +655,7 @@ public class ServiceAddressTests
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
-        public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
+        public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
     }
 
@@ -666,7 +666,7 @@ public class ServiceAddressTests
         public ValueTask SendProxyAsync(
             SendProxyTestProxy proxy,
             IFeatureCollection features,
-            CancellationToken cancel = default)
+            CancellationToken cancellationToken = default)
         {
             ReceivedProxy = proxy;
             return default;

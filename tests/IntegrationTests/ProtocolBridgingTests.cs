@@ -121,19 +121,19 @@ public sealed class ProtocolBridgingTests
 
         public ProtocolBridgingTest(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
 
-        public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
+        public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) =>
             new(x);
 
-        public ValueTask OpContextAsync(IFeatureCollection features, CancellationToken cancel)
+        public ValueTask OpContextAsync(IFeatureCollection features, CancellationToken cancellationToken)
         {
             Context = features.Get<IRequestContextFeature>()?.Value?.ToImmutableDictionary() ??
                 ImmutableDictionary<string, string>.Empty;
             return default;
         }
-        public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
+        public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw new ProtocolBridgingException(42);
 
-        public ValueTask<ProtocolBridgingTestProxy> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancel)
+        public ValueTask<ProtocolBridgingTestProxy> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancellationToken)
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
@@ -146,12 +146,12 @@ public sealed class ProtocolBridgingTests
             return new(new ProtocolBridgingTestProxy { ServiceAddress = serviceAddress });
         }
 
-        public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
+        public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) => default;
 
-        public ValueTask OpServiceNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
+        public ValueTask OpServiceNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound);
 
-        public ValueTask OpVoidAsync(IFeatureCollection features, CancellationToken cancel) => default;
+        public ValueTask OpVoidAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
     public sealed class Forwarder : IDispatcher
@@ -160,7 +160,7 @@ public sealed class ProtocolBridgingTests
 
         public async ValueTask<OutgoingResponse> DispatchAsync(
             IncomingRequest request,
-            CancellationToken cancel)
+            CancellationToken cancellationToken)
         {
             // First create an outgoing request to _target from the incoming request:
 
@@ -176,7 +176,7 @@ public sealed class ProtocolBridgingTests
 
             // Then invoke
 
-            IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
+            IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancellationToken);
 
             // Then create an outgoing response from the incoming response.
 
@@ -188,7 +188,7 @@ public sealed class ProtocolBridgingTests
                 RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
                     outgoingRequest,
                     sender: _target,
-                    cancel: cancel);
+                    cancellationToken: cancellationToken);
                 remoteException.ConvertToUnhandled = false;
                 throw remoteException;
             }

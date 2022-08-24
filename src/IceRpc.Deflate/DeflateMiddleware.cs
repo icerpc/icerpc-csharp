@@ -32,7 +32,7 @@ public class DeflateMiddleware : IDispatcher
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(
         IncomingRequest request,
-        CancellationToken cancel = default)
+        CancellationToken cancellationToken = default)
     {
         if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
@@ -48,7 +48,7 @@ public class DeflateMiddleware : IDispatcher
             // else don't do anything
         }
 
-        OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+        OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
 
         // The CompressPayload feature is typically set through the Slice compress attribute.
 
