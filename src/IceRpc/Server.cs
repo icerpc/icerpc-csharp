@@ -272,15 +272,24 @@ public sealed class Server : IAsyncDisposable
                 // ignore and continue: the connection was aborted
             }
 
-            await connection.DisposeAsync().ConfigureAwait(false);
+            bool disposeConnection = true;
 
             lock (_mutex)
             {
-                // the _connections collection is read-only when shutting down or disposing.
-                if (!cancellationToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    // Server.DisposeAsync is responsible to dispose this connection.
+                    disposeConnection = false;
+                }
+                else
                 {
                     _ = _connections.Remove(connection);
                 }
+            }
+
+            if (disposeConnection)
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
             }
         }
     }

@@ -322,7 +322,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     _activeConnections.Add(serverAddress, connection);
                     scheduleRemoveFromActive = true;
                 }
-                // else ConnectionCache is shutting down/being disposed.
+                // else ConnectionCache is shutting down/being disposed and will dispose this connection.
             }
 
             if (scheduleRemoveFromActive)
