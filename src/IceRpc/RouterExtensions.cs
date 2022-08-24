@@ -42,11 +42,11 @@ public static class RouterExtensions
     /// <param name="router">The router being configured.</param>
     /// <returns>The router being configured.</returns>
     public static Router UseDispatchInformation(this Router router) =>
-        router.Use(next => new InlineDispatcher((request, cancel) =>
+        router.Use(next => new InlineDispatcher((request, cancellationToken) =>
         {
             request.Features = request.Features.With<IDispatchInformationFeature>(
                 new DispatchInformationFeature(request));
-            return next.DispatchAsync(request, cancel);
+            return next.DispatchAsync(request, cancellationToken);
         }));
 
     /// <summary>Adds a middleware that sets a feature in all requests.</summary>
@@ -55,9 +55,9 @@ public static class RouterExtensions
     /// <param name="feature">The value of the feature to set in all requests.</param>
     /// <returns>The router being configured.</returns>
     public static Router UseFeature<TFeature>(this Router router, TFeature feature) =>
-        router.Use(next => new InlineDispatcher((request, cancel) =>
+        router.Use(next => new InlineDispatcher((request, cancellationToken) =>
         {
             request.Features = request.Features.With(feature);
-            return next.DispatchAsync(request, cancel);
+            return next.DispatchAsync(request, cancellationToken);
         }));
 }

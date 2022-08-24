@@ -55,17 +55,17 @@ var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
 
 Console.Write("To say hello to the server, type your name: ");
 
-CancellationToken cancel = cts.Token;
+CancellationToken cancellationToken = cts.Token;
 if (Console.ReadLine() is string name)
 {
     try
     {
         while (true)
         {
-            string helloResponse = await hello.SayHelloAsync(name, cancel: cancel);
+            string helloResponse = await hello.SayHelloAsync(name, cancellationToken: cancellationToken);
             logger.LogResponse(helloResponse);
             logger.LogLooping();
-            await Task.Delay(TimeSpan.FromSeconds(3), cancel);
+            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
         }
     }
     catch (DispatchException dispatchException)

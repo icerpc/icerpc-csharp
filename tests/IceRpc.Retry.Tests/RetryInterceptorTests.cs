@@ -30,7 +30,7 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        IInvoker invoker = new InlineInvoker((request, cancel) =>
+        IInvoker invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
@@ -73,7 +73,7 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
             throw exception;
@@ -94,7 +94,7 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)
@@ -123,7 +123,7 @@ public sealed class RetryInterceptorTests
         // Arrange
         int attempts = 0;
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
@@ -163,7 +163,7 @@ public sealed class RetryInterceptorTests
         // Arrange
         int attempts = 0;
         var delay = TimeSpan.FromMilliseconds(200);
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
@@ -207,7 +207,7 @@ public sealed class RetryInterceptorTests
         // Arrange
         const int maxAttempts = 5;
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
             throw new InvalidOperationException();
@@ -230,7 +230,7 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
@@ -258,7 +258,7 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
@@ -296,7 +296,7 @@ public sealed class RetryInterceptorTests
         await using var connection2 = new ClientConnection(new Uri("icerpc://host2"));
         await using var connection3 = new ClientConnection(new Uri("icerpc://host3"));
         var serverAddresses = new List<ServerAddress>();
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
             {

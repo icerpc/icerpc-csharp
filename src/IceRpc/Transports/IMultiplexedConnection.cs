@@ -13,7 +13,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     ServerAddress ServerAddress { get; }
 
     /// <summary>Connects this connection.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation"/>.</returns>
     /// <exception cref="ConnectFailedException">Thrown if the connection establishment to the per failed.</exception>
     /// <exception cref="ConnectionLostException">Thrown if the peer closed its side of the connection while the
@@ -24,12 +24,12 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <remarks>A transport implementation might raise other exceptions. A connection supporting SSL can for instance
     /// raise <see cref="AuthenticationException"/> if the authentication fails while the connection is being
     /// established.</remarks>
-    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel);
+    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Accepts a remote stream.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The remote stream.</returns>
-    ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel);
+    ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken);
 
     /// <summary>Creates a local stream.</summary>
     /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
@@ -38,7 +38,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
 
     /// <summary>Shuts down the connection.</summary>
     /// <param name="completeException">The exception provided to the stream <see cref="IDuplexPipe"/>.</param>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    Task ShutdownAsync(Exception completeException, CancellationToken cancel);
+    Task ShutdownAsync(Exception completeException, CancellationToken cancellationToken);
 }

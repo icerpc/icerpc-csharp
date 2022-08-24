@@ -25,7 +25,7 @@ public class TelemetryMiddleware : IDispatcher
     }
 
     /// <inheritdoc/>
-    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Protocol.HasFields)
         {
@@ -42,11 +42,11 @@ public class TelemetryMiddleware : IDispatcher
                 RestoreActivityContext(buffer, activity);
             }
             activity.Start();
-            return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+            return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+            return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 

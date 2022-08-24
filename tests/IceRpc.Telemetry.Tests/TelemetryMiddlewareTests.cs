@@ -18,7 +18,7 @@ public sealed class TelemetryMiddlewareTests
     {
         // Arrange
         Activity? dispatchActivity = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             dispatchActivity = Activity.Current;
             return new(new OutgoingResponse(request));
@@ -59,7 +59,7 @@ public sealed class TelemetryMiddlewareTests
     {
         // Arrange
         Activity? dispatchActivity = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             dispatchActivity = Activity.Current;
             return new(new OutgoingResponse(request));
@@ -126,7 +126,7 @@ public sealed class TelemetryMiddlewareTests
     {
         // Arrange
         Activity? dispatchActivity = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             dispatchActivity = Activity.Current;
             return new(new OutgoingResponse(request));

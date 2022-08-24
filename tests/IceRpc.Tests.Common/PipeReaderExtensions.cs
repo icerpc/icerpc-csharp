@@ -7,11 +7,11 @@ namespace IceRpc.Tests.Common;
 public static class PipeReaderExtensions
 {
     /// <summary>Reads a reader until it's completed or canceled.</summary>
-    public static async ValueTask<ReadResult> ReadAllAsync(this PipeReader reader, CancellationToken cancel)
+    public static async ValueTask<ReadResult> ReadAllAsync(this PipeReader reader, CancellationToken cancellationToken)
     {
         while (true)
         {
-            ReadResult readResult = await reader.ReadAsync(cancel);
+            ReadResult readResult = await reader.ReadAsync(cancellationToken);
 
             if (readResult.IsCompleted || readResult.IsCanceled)
             {

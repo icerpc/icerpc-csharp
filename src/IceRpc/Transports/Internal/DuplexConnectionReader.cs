@@ -108,7 +108,7 @@ internal class DuplexConnectionReader : IDisposable
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
-        CancellationToken cancel)
+        CancellationToken cancellationToken)
     {
         if (byteCount == 0)
         {
@@ -150,7 +150,7 @@ internal class DuplexConnectionReader : IDisposable
                     buffer = buffer[0..byteCount];
                 }
 
-                int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
                 bufferWriter.Advance(read);
                 byteCount -= read;
 
@@ -169,13 +169,13 @@ internal class DuplexConnectionReader : IDisposable
 
     /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer can be empty if
     /// the peer shutdown its side of the connection.</summary>
-    internal ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken cancel = default) =>
-        ReadAsyncCore(minimumSize: 1, canReturnEmptyBuffer: true, cancel);
+    internal ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken cancellationToken = default) =>
+        ReadAsyncCore(minimumSize: 1, canReturnEmptyBuffer: true, cancellationToken);
 
     /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer has always
     /// at least minimumSize bytes.</summary>
-    internal ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(int minimumSize, CancellationToken cancel = default) =>
-        ReadAsyncCore(minimumSize: minimumSize, canReturnEmptyBuffer: false, cancel);
+    internal ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(int minimumSize, CancellationToken cancellationToken = default) =>
+        ReadAsyncCore(minimumSize: minimumSize, canReturnEmptyBuffer: false, cancellationToken);
 
     internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
     {
@@ -254,7 +254,7 @@ internal class DuplexConnectionReader : IDisposable
     private async ValueTask<ReadOnlySequence<byte>> ReadAsyncCore(
         int minimumSize,
         bool canReturnEmptyBuffer,
-        CancellationToken cancel = default)
+        CancellationToken cancellationToken = default)
     {
         Debug.Assert(minimumSize > 0);
 
@@ -274,7 +274,7 @@ internal class DuplexConnectionReader : IDisposable
         {
             // Fill the pipe with data read from the connection.
             Memory<byte> buffer = _pipe.Writer.GetMemory();
-            int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+            int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
             _pipe.Writer.Advance(read);
             minimumSize -= read;
 
@@ -297,7 +297,7 @@ internal class DuplexConnectionReader : IDisposable
         }
         while (minimumSize > 0);
 
-        _ = await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+        _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
         _pipe.Reader.TryRead(out readResult);
         Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);

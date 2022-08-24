@@ -125,11 +125,11 @@ internal class AsyncSemaphore
 
     /// <summary>Asynchronously enter the semaphore. If the semaphore can't be entered, this method waits
     /// until the semaphore is released.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <exception cref="_exception">Raises the completion exception if the semaphore is completed.</exception>
-    internal async ValueTask EnterAsync(CancellationToken cancel = default)
+    internal async ValueTask EnterAsync(CancellationToken cancellationToken = default)
     {
-        cancel.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         ManualResetValueTaskCompletionSource<bool> taskCompletionSource;
         CancellationTokenRegistration tokenRegistration = default;
@@ -151,17 +151,17 @@ internal class AsyncSemaphore
             // Don't auto reset the task completion source after obtaining the result. This is necessary to
             // ensure that the exception won't be cleared if the task is canceled.
             taskCompletionSource = new(autoReset: false);
-            if (cancel.CanBeCanceled)
+            if (cancellationToken.CanBeCanceled)
             {
-                cancel.ThrowIfCancellationRequested();
-                tokenRegistration = cancel.UnsafeRegister(
+                cancellationToken.ThrowIfCancellationRequested();
+                tokenRegistration = cancellationToken.UnsafeRegister(
                     _ =>
                     {
                         lock (_mutex)
                         {
                             if (_queue.Contains(taskCompletionSource))
                             {
-                                taskCompletionSource.SetException(new OperationCanceledException(cancel));
+                                taskCompletionSource.SetException(new OperationCanceledException(cancellationToken));
                             }
                         }
                     },

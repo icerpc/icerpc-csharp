@@ -13,6 +13,6 @@ public class InlineDispatcher : IDispatcher
         _function = function;
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default) =>
-        _function(request, cancel);
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default) =>
+        _function(request, cancellationToken);
 }

@@ -352,7 +352,7 @@ impl FunctionBuilder {
 
         self.add_parameter(
             "global::System.Threading.CancellationToken",
-            &escape_parameter_name(&parameters, "cancel"),
+            &escape_parameter_name(&parameters, "cancellationToken"),
             if context == TypeContext::Encode {
                 Some("default")
             } else {

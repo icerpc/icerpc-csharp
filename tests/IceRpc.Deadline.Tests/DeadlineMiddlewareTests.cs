@@ -16,14 +16,14 @@ public sealed class DeadlineMiddlewareTests
     public async Task Dispatch_fails_after_the_deadline_expires()
     {
         // Arrange
-        CancellationToken? cancellationToken = null;
+        CancellationToken? token = null;
         bool hasDeadline = false;
 
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
-            cancellationToken = cancel;
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
+            token = cancellationToken;
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             return new OutgoingResponse(request);
         });
 
@@ -48,9 +48,9 @@ public sealed class DeadlineMiddlewareTests
         // Assert
         Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.DeadlineExpired));
         Assert.That(hasDeadline, Is.True);
-        Assert.That(cancellationToken, Is.Not.Null);
-        Assert.That(cancellationToken.Value.CanBeCanceled, Is.True);
-        Assert.That(cancellationToken.Value.IsCancellationRequested, Is.True);
+        Assert.That(token, Is.Not.Null);
+        Assert.That(token.Value.CanBeCanceled, Is.True);
+        Assert.That(token.Value.IsCancellationRequested, Is.True);
 
         // Cleanup
         await pipeReader.CompleteAsync();
@@ -62,7 +62,7 @@ public sealed class DeadlineMiddlewareTests
     {
         // Arrange
         DateTime deadline = DateTime.MaxValue;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             deadline = request.Features.Get<IDeadlineFeature>()?.Value ?? deadline;
             return new(new OutgoingResponse(request));

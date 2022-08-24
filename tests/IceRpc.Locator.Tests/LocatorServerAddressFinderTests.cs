@@ -174,9 +174,9 @@ public class LocatorServerAddressFinderTests
 
         void IDisposable.Dispose() => _semaphore.Dispose();
 
-        async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancel)
+        async Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken)
         {
-            await _semaphore.WaitAsync(cancel);
+            await _semaphore.WaitAsync(cancellationToken);
             Interlocked.Increment(ref Count);
 
             return new ServiceAddress(new Uri("ice://localhost:10000/dummy?transport=unknown"));
@@ -204,25 +204,25 @@ public class LocatorServerAddressFinderTests
             _adapterId = adapterId;
         }
 
-        public Task<ServiceProxy?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
+        public Task<ServiceProxy?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
             Task.FromResult<ServiceProxy?>(id == "good" && _adapterId ? _service : null);
 
-        public Task<ServiceProxy?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
+        public Task<ServiceProxy?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
             Task.FromResult<ServiceProxy?>(id == "good" && !_adapterId ? _service : null);
 
-        Task<LocatorRegistryProxy?> ILocatorProxy.GetRegistryAsync(IFeatureCollection? features, CancellationToken cancel) =>
+        Task<LocatorRegistryProxy?> ILocatorProxy.GetRegistryAsync(IFeatureCollection? features, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
     }
 
     private class NotFoundLocatorProxy : ILocatorProxy
     {
-        public Task<ServiceProxy?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
+        public Task<ServiceProxy?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
             throw new AdapterNotFoundException();
 
-        public Task<ServiceProxy?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
+        public Task<ServiceProxy?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
             throw new ObjectNotFoundException();
 
-        public Task<LocatorRegistryProxy?> GetRegistryAsync(IFeatureCollection? features, CancellationToken cancel) =>
+        public Task<LocatorRegistryProxy?> GetRegistryAsync(IFeatureCollection? features, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
     }
 }

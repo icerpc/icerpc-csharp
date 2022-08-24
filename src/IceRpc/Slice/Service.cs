@@ -17,7 +17,7 @@ public class Service : IService, IDispatcher
     private delegate ValueTask<OutgoingResponse> DispatchMethod(
         object target,
         IncomingRequest request,
-        CancellationToken cancel);
+        CancellationToken cancellationToken);
 
     // A per type cache of dispatch methods and type IDs.
     private static readonly ConcurrentDictionary<Type, (IReadOnlyDictionary<string, DispatchMethod> Methods, IReadOnlySet<string> TypeIds)> _cache =
@@ -77,22 +77,22 @@ public class Service : IService, IDispatcher
     }
 
     /// <inheritdoc/>
-    public virtual ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancel) =>
+    public virtual ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
         new(_typeIds);
 
     /// <inheritdoc/>
-    public virtual ValueTask<bool> IceIsAAsync(string id, IFeatureCollection features, CancellationToken cancel) =>
+    public virtual ValueTask<bool> IceIsAAsync(string id, IFeatureCollection features, CancellationToken cancellationToken) =>
         new(_typeIds.Contains(id));
 
     /// <inheritdoc/>
-    public virtual ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancel) => default;
+    public virtual ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
         {
-            return dispatchMethod(this, request, cancel);
+            return dispatchMethod(this, request, cancellationToken);
         }
         else
         {

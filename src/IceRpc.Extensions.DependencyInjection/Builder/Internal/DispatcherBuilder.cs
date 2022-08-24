@@ -49,7 +49,7 @@ internal class DispatcherBuilder : IDispatcherBuilder
         ServiceProvider = provider;
     }
 
-    internal IDispatcher Build() => new InlineDispatcher(async (request, cancel) =>
+    internal IDispatcher Build() => new InlineDispatcher(async (request, cancellationToken) =>
     {
         AsyncServiceScope asyncScope = ServiceProvider.CreateAsyncScope();
         await using var _ = asyncScope.ConfigureAwait(false);
@@ -57,6 +57,6 @@ internal class DispatcherBuilder : IDispatcherBuilder
         request.Features = request.Features.With<IServiceProviderFeature>(
             new ServiceProviderFeature(asyncScope.ServiceProvider));
 
-        return await _router.DispatchAsync(request, cancel).ConfigureAwait(false);
+        return await _router.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
     });
 }

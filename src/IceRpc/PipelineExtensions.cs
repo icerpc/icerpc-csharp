@@ -14,9 +14,9 @@ public static class PipelineExtensions
     /// <param name="feature">The value of the feature to set.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseFeature<TFeature>(this Pipeline pipeline, TFeature feature) =>
-        pipeline.Use(next => new InlineInvoker((request, cancel) =>
+        pipeline.Use(next => new InlineInvoker((request, cancellationToken) =>
         {
             request.Features = request.Features.With(feature);
-            return next.InvokeAsync(request, cancel);
+            return next.InvokeAsync(request, cancellationToken);
         }));
 }

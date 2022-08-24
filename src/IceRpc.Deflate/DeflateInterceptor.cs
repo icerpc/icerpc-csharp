@@ -28,7 +28,7 @@ public class DeflateInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         // The CompressPayload feature is typically set through the Slice compress attribute.
 
@@ -44,7 +44,7 @@ public class DeflateInterceptor : IInvoker
                 _encodedCompressionFormatValue);
         }
 
-        IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+        IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (request.Protocol.HasFields && response.ResultType == ResultType.Success)
         {

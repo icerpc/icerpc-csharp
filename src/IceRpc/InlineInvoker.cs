@@ -13,6 +13,6 @@ public class InlineInvoker : IInvoker
         _function = function;
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-        _function(request, cancel);
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default) =>
+        _function(request, cancellationToken);
 }

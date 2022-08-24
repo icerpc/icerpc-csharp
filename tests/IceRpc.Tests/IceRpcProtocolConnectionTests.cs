@@ -78,7 +78,7 @@ public sealed class IceRpcProtocolConnectionTests
         DispatchErrorCode errorCode)
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancel) => throw thrownException);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw thrownException);
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
@@ -132,7 +132,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var dispatchTcs = new TaskCompletionSource();
         var dispatcher = new InlineDispatcher(
-            async (request, cancel) =>
+            async (request, cancellationToken) =>
             {
                 try
                 {
@@ -188,7 +188,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var remotePayloadTcs = new TaskCompletionSource<PipeReader>();
         var dispatcher = new InlineDispatcher(
-            (request, cancel) =>
+            (request, cancellationToken) =>
             {
                 remotePayloadTcs.SetResult(request.Payload);
                 return new(new OutgoingResponse(request));
@@ -304,7 +304,7 @@ public sealed class IceRpcProtocolConnectionTests
     {
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
             {
                 var response = new OutgoingResponse(request)
                 {
@@ -385,7 +385,7 @@ public sealed class IceRpcProtocolConnectionTests
     {
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
                     PayloadStream = payloadStreamDecorator
@@ -410,7 +410,7 @@ public sealed class IceRpcProtocolConnectionTests
     {
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
                     PayloadStream = payloadStreamDecorator
@@ -470,7 +470,7 @@ public sealed class IceRpcProtocolConnectionTests
     {
         // Arrange
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
             {
                 var response = new OutgoingResponse(request)
                 {
@@ -523,7 +523,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         // This large value should be large enough to create multiple buffers for the response header.
         var expectedValue = new string('A', 16_000);
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             var response = new OutgoingResponse(request);
             response.Fields = response.Fields.With(
@@ -638,26 +638,26 @@ public sealed class IceRpcProtocolConnectionTests
 
         private readonly IMultiplexedConnection _decoratee;
 
-        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel)
+        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
         {
-            var stream = new HoldMultiplexedStream(this, await _decoratee.AcceptStreamAsync(cancel));
+            var stream = new HoldMultiplexedStream(this, await _decoratee.AcceptStreamAsync(cancellationToken));
             if (HoldOperation.HasFlag(HoldOperation.AcceptStream))
             {
-                await Task.Delay(-1, cancel);
+                await Task.Delay(-1, cancellationToken);
             }
             return stream;
         }
 
-        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel) =>
-            _decoratee.ConnectAsync(cancel);
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+            _decoratee.ConnectAsync(cancellationToken);
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
             new HoldMultiplexedStream(this, _decoratee.CreateStream(bidirectional));
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        public Task ShutdownAsync(Exception completeException, CancellationToken cancel) =>
-            _decoratee.ShutdownAsync(completeException, cancel);
+        public Task ShutdownAsync(Exception completeException, CancellationToken cancellationToken) =>
+            _decoratee.ShutdownAsync(completeException, cancellationToken);
 
         internal HoldMultiplexedConnection(IMultiplexedConnection decoratee) => _decoratee = decoratee;
 
@@ -734,13 +734,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
+        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
         {
             if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
             {
-                await _abortTaskCompletionSource.Task.WaitAsync(cancel);
+                await _abortTaskCompletionSource.Task.WaitAsync(cancellationToken);
             }
-            return await _decoratee.WriteAsync(source, cancel);
+            return await _decoratee.WriteAsync(source, cancellationToken);
         }
 
         internal HoldPipeWriter(HoldMultiplexedStream stream, PipeWriter decoratee)

@@ -23,7 +23,7 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 
     private readonly object _mutex = new();
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -42,7 +42,7 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
         {
             await Task.Yield(); // exit mutex lock
 
-            TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancel)
+            TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
                 .ConfigureAwait(false);
             _isConnected = true;
             return connectionInformation;
@@ -54,9 +54,9 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 
             try
             {
-                return await _connectTask.WaitAsync(cancel).ConfigureAwait(false);
+                return await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
+            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
                 // OCE from _connectTask
                 throw new ConnectionAbortedException("connection establishment canceled");
@@ -66,16 +66,16 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 
     public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
-        return _isConnected ? _decoratee.InvokeAsync(request, cancel) : PerformConnectInvokeAsync();
+        return _isConnected ? _decoratee.InvokeAsync(request, cancellationToken) : PerformConnectInvokeAsync();
 
         async Task<IncomingResponse> PerformConnectInvokeAsync()
         {
             // Perform the connection establishment without a cancellation token. It will timeout if the
             // connect timeout is reached.
-            _ = await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
-            return await InvokeAsync(request, cancel).ConfigureAwait(false);
+            _ = await ConnectAsync(CancellationToken.None).WaitAsync(cancellationToken).ConfigureAwait(false);
+            return await InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -83,8 +83,8 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 
     public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-    public Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        _decoratee.ShutdownAsync(message, cancel);
+    public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
+        _decoratee.ShutdownAsync(message, cancellationToken);
 
     internal ConnectProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
 }

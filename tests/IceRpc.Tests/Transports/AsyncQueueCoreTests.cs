@@ -94,7 +94,7 @@ public class AsyncQueueCoreTests
 
         internal void Enqueue(bool value) => _queue.Enqueue(value);
 
-        internal ValueTask<bool> DequeueAsync(CancellationToken cancel) => _queue.DequeueAsync(this, cancel);
+        internal ValueTask<bool> DequeueAsync(CancellationToken cancellationToken) => _queue.DequeueAsync(this, cancellationToken);
 
         internal bool TryComplete(Exception exception) => _queue.TryComplete(exception);
 

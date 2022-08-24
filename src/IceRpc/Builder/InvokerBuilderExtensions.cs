@@ -27,9 +27,9 @@ public static class InvokerBuilderExtensions
     /// <param name="feature">The value of the feature to set.</param>
     /// <returns>The builder.</returns>
     public static IInvokerBuilder UseFeature<TFeature>(this IInvokerBuilder builder, TFeature feature) =>
-        builder.Use(next => new InlineInvoker((request, cancel) =>
+        builder.Use(next => new InlineInvoker((request, cancellationToken) =>
         {
             request.Features = request.Features.With(feature);
-            return next.InvokeAsync(request, cancel);
+            return next.InvokeAsync(request, cancellationToken);
         }));
 }

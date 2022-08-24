@@ -25,7 +25,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -44,7 +44,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else
             {
-                _connectCts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+                _connectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 _connectCts.CancelAfter(_connectTimeout);
                 _connectTask = PerformConnectAsync();
             }
@@ -66,7 +66,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                cancel.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
 
                 lock (_mutex)
                 {
@@ -146,7 +146,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Protocol != ServerAddress.Protocol)
         {
@@ -164,7 +164,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
         }
 
-        return InvokeAsyncCore(request, cancel);
+        return InvokeAsyncCore(request, cancellationToken);
     }
 
     public void OnAbort(Action<Exception> callback)
@@ -211,7 +211,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    public Task ShutdownAsync(string message, CancellationToken cancel = default)
+    public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
@@ -230,11 +230,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
-            if (cancel.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested)
             {
                 _shutdownTask ??= Task.FromException(new ConnectionAbortedException("connection shutdown canceled"));
                 _shutdownCts.Cancel();
-                cancel.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
             }
             else
             {
@@ -248,9 +248,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             try
             {
-                await _shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
+                await _shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
+            catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
             {
                 try
                 {
@@ -284,7 +284,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
     private protected abstract bool CheckIfIdle();
 
-    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancel);
+    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancellationToken);
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -313,7 +313,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected abstract Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        CancellationToken cancel);
+        CancellationToken cancellationToken);
 
     private protected void InvokeOnAbort(Exception exception)
     {
@@ -341,7 +341,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         _onShutdown?.Invoke(message);
     }
 
-    private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancel);
+    private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancellationToken);
 
     private async Task CreateShutdownTask(string message, bool cancelDispatchesAndInvocations = false)
     {

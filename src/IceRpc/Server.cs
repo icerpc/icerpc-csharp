@@ -271,9 +271,9 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
     /// existing connections.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    public async Task ShutdownAsync(CancellationToken cancel = default)
+    public async Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -285,7 +285,7 @@ public sealed class Server : IAsyncDisposable
                 _listener?.Dispose();
             }
 
-            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync("server shutdown", cancel)))
+            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync("server shutdown", cancellationToken)))
                 .ConfigureAwait(false);
         }
         finally
@@ -340,12 +340,12 @@ public sealed class Server : IAsyncDisposable
         private readonly IProtocolConnection _decoratee;
         private readonly EndPoint _remoteNetworkAddress;
 
-        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
             ServerEventSource.Log.ConnectStart(ServerAddress, _remoteNetworkAddress);
             try
             {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
                 ServerEventSource.Log.ConnectSuccess(ServerAddress, _remoteNetworkAddress);
                 return result;
             }
@@ -366,20 +366,20 @@ public sealed class Server : IAsyncDisposable
             ServerEventSource.Log.ConnectionStop(ServerAddress, _remoteNetworkAddress);
         }
 
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-            _decoratee.InvokeAsync(request, cancel);
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
+            _decoratee.InvokeAsync(request, cancellationToken);
 
         public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
 
         public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-        public async Task ShutdownAsync(string message, CancellationToken cancel = default)
+        public async Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
         {
             // TODO: we should log the shutdown message!
 
             try
             {
-                await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+                await _decoratee.ShutdownAsync(message, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception exception)
             {

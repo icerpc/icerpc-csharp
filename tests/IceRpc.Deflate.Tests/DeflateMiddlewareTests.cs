@@ -26,7 +26,7 @@ public class CompressorMiddlewareTests
     public async Task Compress_response_payload()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
             var response = new OutgoingResponse(request);
@@ -57,7 +57,7 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Compressor_middleware_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var sut = new DeflateMiddleware(dispatcher);
 
         OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
@@ -73,7 +73,7 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Compressor_middleware_does_not_install_a_payload_writer_interceptor_if_the_response_is_already_compressed()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
             var response = new OutgoingResponse(request);
@@ -98,7 +98,7 @@ public class CompressorMiddlewareTests
     public async Task Compressor_middleware_lets_requests_with_unsupported_compression_format_pass_through()
     {
         PipeReader? requestPayload = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
             requestPayload = request.Payload;
             return new(new OutgoingResponse(request));
@@ -116,7 +116,7 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Decompress_request_payload()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var sut = new DeflateMiddleware(dispatcher);
         IncomingRequest request = CreateRequestWitCompressionFormatField(_deflateEncodedCompressionFormatValue);
         request.Payload = PipeReader.Create(CreateCompressedPayload(_payload));

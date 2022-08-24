@@ -26,7 +26,7 @@ public sealed class RequestContextInterceptorTests
         };
         Dictionary<string, string>? decoded = null;
         var sut = new RequestContextInterceptor(
-           new InlineInvoker((request, cancel) =>
+           new InlineInvoker((request, cancellationToken) =>
            {
                if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue value) &&
                    value.EncodeAction is not null)

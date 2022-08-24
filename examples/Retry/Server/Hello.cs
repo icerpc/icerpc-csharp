@@ -13,7 +13,7 @@ public class Hello : Service, IHello
 
     public Hello(int serverNumber) => _serverNumber = serverNumber;
 
-    public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
+    public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
         // 50% failure/success ratio
         if (RandomNumberGenerator.GetInt32(10) < 5)

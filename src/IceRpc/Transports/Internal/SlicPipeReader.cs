@@ -82,11 +82,11 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
+    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         CheckIfCompleted();
 
-        ReadResult result = await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);
+        ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
             return GetReadResult();
@@ -171,7 +171,7 @@ internal class SlicPipeReader : PipeReader
 
     /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
     /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-    internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream, CancellationToken cancel)
+    internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream, CancellationToken cancellationToken)
     {
         if (dataSize == 0 && !endStream)
         {
@@ -201,7 +201,7 @@ internal class SlicPipeReader : PipeReader
             await _stream.FillBufferWriterAsync(
                     _pipe.Writer,
                     dataSize,
-                    cancel).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
 
             if (endStream)
             {

@@ -9,7 +9,7 @@ public class NotImplementedInvoker : IInvoker
     public static NotImplementedInvoker Instance { get; } = new();
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default) =>
         throw new NotImplementedException();
 
     private NotImplementedInvoker()

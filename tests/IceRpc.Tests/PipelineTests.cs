@@ -15,14 +15,14 @@ public class PipelineTests
     {
         // Arrange
         var pipeline = new Pipeline()
-            .Use(next => new InlineInvoker((request, cancel) =>
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc))))
             .Into(VoidInvoker.Instance);
         pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert/Act
         Assert.Throws<InvalidOperationException>(
-            () => pipeline.Use(next => new InlineInvoker((request, cancel) =>
+            () => pipeline.Use(next => new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)))));
     }
 
@@ -35,25 +35,25 @@ public class PipelineTests
         var expectedCalls = new List<string>() { "invoker-1", "invoker-2", "invoker-3", "invoker-4" };
         var pipeline = new Pipeline();
         pipeline
-            .Use(next => new InlineInvoker((request, cancel) =>
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
                     calls.Add("invoker-1");
-                    return next.InvokeAsync(request, cancel);
+                    return next.InvokeAsync(request, cancellationToken);
                 }))
-            .Use(next => new InlineInvoker((request, cancel) =>
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
                     calls.Add("invoker-2");
-                    return next.InvokeAsync(request, cancel);
+                    return next.InvokeAsync(request, cancellationToken);
                 }))
             .Into(VoidInvoker.Instance);
 
         pipeline
-            .Use(next => new InlineInvoker((request, cancel) =>
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
                     calls.Add("invoker-3");
-                    return next.InvokeAsync(request, cancel);
+                    return next.InvokeAsync(request, cancellationToken);
                 }))
-            .Use(next => new InlineInvoker((request, cancel) =>
+            .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
                     calls.Add("invoker-4");
                     return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
@@ -78,7 +78,7 @@ public class PipelineTests
 
         // Assert
         string? feature = null;
-        pipeline.Use(next => new InlineInvoker((request, cancel) =>
+        pipeline.Use(next => new InlineInvoker((request, cancellationToken) =>
         {
             feature = request.Features.Get<string>();
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));

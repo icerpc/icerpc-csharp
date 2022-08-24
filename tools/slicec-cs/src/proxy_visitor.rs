@@ -167,7 +167,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let stream_return = operation.streamed_return_member();
 
     let features_parameter = escape_parameter_name(&operation.parameters(), "features");
-    let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
+    let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancellationToken");
 
     let void_return = operation.return_type.is_empty();
 
@@ -267,7 +267,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
 
-    invocation_builder.add_argument(format!("cancel: {}", cancel_parameter));
+    invocation_builder.add_argument(format!("cancellationToken: {}", cancel_parameter));
 
     let invocation = invocation_builder.build();
 
@@ -292,7 +292,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
         .collect::<Vec<_>>();
 
     operation_params.push(escape_parameter_name(&operation.parameters(), "features"));
-    operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
+    operation_params.push(escape_parameter_name(&operation.parameters(), "cancellationToken"));
 
     let mut builder = FunctionBuilder::new("public", &return_task, &async_name, FunctionType::ExpressionBody);
     builder.set_inherit_doc(true);
@@ -457,7 +457,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter("ServiceProxy", "sender", None, None);
-        builder.add_parameter("global::System.Threading.CancellationToken", "cancel", None, None);
+        builder.add_parameter(
+            "global::System.Threading.CancellationToken",
+            "cancellationToken",
+            None,
+            None,
+        );
 
         builder.set_body(response_operation_body(operation));
 
@@ -483,7 +488,7 @@ await response.DecodeVoidReturnValueAsync(
     {encoding},
     sender,
     _defaultActivator,
-    cancel).ConfigureAwait(false);
+    cancellationToken).ConfigureAwait(false);
 
 return {decode_operation_stream}
 ",
@@ -501,7 +506,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     sender,
     _defaultActivator,
     {response_decode_func},
-    cancel).ConfigureAwait(false);
+    cancellationToken).ConfigureAwait(false);
 
 {decode_response_stream}
 
@@ -525,7 +530,7 @@ response.DecodeReturnValueAsync(
     sender,
     _defaultActivator,
     {response_decode_func},
-    cancel)",
+    cancellationToken)",
             encoding = encoding,
             response_decode_func = response_decode_func(operation).indent()
         );

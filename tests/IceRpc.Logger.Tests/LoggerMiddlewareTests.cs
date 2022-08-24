@@ -11,7 +11,7 @@ public sealed class LoggerMiddlewareTests
     [Test]
     public async Task Log_successful_request()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
         var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };
@@ -43,7 +43,7 @@ public sealed class LoggerMiddlewareTests
     [Test]
     public async Task Log_failed_request()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => throw new InvalidOperationException());
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
         var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };

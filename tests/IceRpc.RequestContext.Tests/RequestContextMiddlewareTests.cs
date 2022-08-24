@@ -32,7 +32,7 @@ public sealed class RequestContextMiddlewareTests
 
         IDictionary<string, string>? decoded = null;
         var sut = new RequestContextMiddleware(
-           new InlineDispatcher((request, cancel) =>
+           new InlineDispatcher((request, cancellationToken) =>
            {
                decoded = request.Features.Get<IRequestContextFeature>()?.Value;
                return new(new OutgoingResponse(request));

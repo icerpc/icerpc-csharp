@@ -132,7 +132,12 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         );
 
         builder.add_parameter("IceRpc.IncomingRequest", "request", None, None);
-        builder.add_parameter("global::System.Threading.CancellationToken", "cancel", None, None);
+        builder.add_parameter(
+            "global::System.Threading.CancellationToken",
+            "cancellationToken",
+            None,
+            None,
+        );
         builder.set_body(request_decode_body(operation));
 
         class_builder.add_block(builder.build());
@@ -238,7 +243,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await request.DecodeEmptyArgsAsync({encoding}, cancel).ConfigureAwait(false);
+await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
@@ -253,7 +258,7 @@ var {args} = await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
-    cancel).ConfigureAwait(false);
+    cancellationToken).ConfigureAwait(false);
 
 {decode_request_stream}
 
@@ -274,7 +279,7 @@ request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
-    cancel)
+    cancellationToken)
 ",
             encoding = encoding,
             decode_func = request_decode_func(operation).indent()
@@ -333,7 +338,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
 protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
-    global::System.Threading.CancellationToken cancel)
+    global::System.Threading.CancellationToken cancellationToken)
 {{
     {dispatch_body}
 }}
@@ -376,14 +381,14 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Featu
             writeln!(
                 check_and_decode,
                 "\
-await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
+await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);",
                 encoding
             );
         }
         [parameter] => {
             writeln!(
                 check_and_decode,
-                "var {var_name} = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
+                "var {var_name} = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("sliceP_"),
                 async_operation_name = async_operation_name,
             )
@@ -392,7 +397,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
             // > 1 parameter
             writeln!(
                 check_and_decode,
-                "var args = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
+                "var args = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
                 async_operation_name = async_operation_name,
             )
         }
@@ -416,7 +421,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
         }
 
         args.push("request.Features".to_owned());
-        args.push("cancel".to_owned());
+        args.push("cancellationToken".to_owned());
 
         writeln!(
             dispatch_and_return,
@@ -438,7 +443,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
                 .collect(),
         };
         args.push("request.Features".to_owned());
-        args.push("cancel".to_owned());
+        args.push("cancellationToken".to_owned());
 
         writeln!(
             dispatch_and_return,

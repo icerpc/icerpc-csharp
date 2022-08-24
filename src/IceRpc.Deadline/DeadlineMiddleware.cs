@@ -17,7 +17,7 @@ public class DeadlineMiddleware : IDispatcher
     public DeadlineMiddleware(IDispatcher next) => _next = next;
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default)
     {
         TimeSpan? timeout = null;
 
@@ -40,12 +40,12 @@ public class DeadlineMiddleware : IDispatcher
                 new DeadlineFeature(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value)));
         }
 
-        return timeout is null ? _next.DispatchAsync(request, cancel) : PerformDispatchAsync(timeout.Value);
+        return timeout is null ? _next.DispatchAsync(request, cancellationToken) : PerformDispatchAsync(timeout.Value);
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
         {
             using var timeoutTokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenRegistration _ = cancel.UnsafeRegister(
+            using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
                 timeoutTokenSource);
 
@@ -55,7 +55,7 @@ public class DeadlineMiddleware : IDispatcher
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
-                cancel.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 throw new DispatchException("the request deadline has expired", DispatchErrorCode.DeadlineExpired);
             }
         }

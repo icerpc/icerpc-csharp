@@ -18,13 +18,13 @@ public class MetricsMiddleware : IDispatcher
     }
 
     /// <inheritdoc/>
-    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         long startTime = _eventSource.RequestStart(request);
         var resultType = ResultType.Failure;
         try
         {
-            OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+            OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
             resultType = response.ResultType;
             return response;
         }

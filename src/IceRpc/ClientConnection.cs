@@ -96,7 +96,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Establishes the connection.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that provides the <see cref="TransportConnectionInformation"/> of the transport connection, once
     /// this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
@@ -109,21 +109,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel = default)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         // Keep a reference to the connection we're trying to connect to.
         IProtocolConnection connection = _connection;
 
         try
         {
-            return await connection.ConnectAsync(cancel).ConfigureAwait(false);
+            return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (ConnectionClosedException)
         {
             if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
             {
                 // Try again once with the new connection
-                return await newConnection.ConnectAsync(cancel).ConfigureAwait(false);
+                return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -153,7 +153,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
@@ -198,14 +198,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             try
             {
-                return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+                return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
             catch (ConnectionClosedException)
             {
                 if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
                 {
                     // try again once with the new connection
-                    return await newConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+                    return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -248,22 +248,22 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Gracefully shuts down the connection.</summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    public Task ShutdownAsync(CancellationToken cancel = default) =>
-        ShutdownAsync("connection shutdown", cancel: cancel);
+    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+        ShutdownAsync("connection shutdown", cancellationToken: cancellationToken);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    public Task ShutdownAsync(string message, CancellationToken cancel = default)
+    public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
             _isResumable = false;
         }
-        return _connection.ShutdownAsync(message, cancel);
+        return _connection.ShutdownAsync(message, cancellationToken);
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
