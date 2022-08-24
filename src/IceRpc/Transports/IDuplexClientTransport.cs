@@ -7,6 +7,9 @@ namespace IceRpc.Transports;
 /// <summary>A class to create outgoing duplex connections.</summary>
 public interface IDuplexClientTransport
 {
+    /// <summary>Gets the default duplex client transport.</summary>
+    public static IDuplexClientTransport Default { get; } = new TcpClientTransport();
+
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
 

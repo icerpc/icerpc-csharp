@@ -7,6 +7,9 @@ namespace IceRpc.Transports;
 /// <summary>A class to create outgoing multiplexed connections.</summary>
 public interface IMultiplexedClientTransport
 {
+    /// <summary>Gets the default multiplexed client transport.</summary>
+    public static IMultiplexedClientTransport Default { get; } = new SlicClientTransport(new TcpClientTransport());
+
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
 

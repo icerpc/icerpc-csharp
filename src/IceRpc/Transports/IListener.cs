@@ -12,10 +12,10 @@ public interface IListener : IDisposable
 }
 
 /// <summary>A listener listens for connection requests from clients.</summary>
-/// <typeparam name="T">The transport connection type.</typeparam>
+/// <typeparam name="T">The connection type.</typeparam>
 public interface IListener<T> : IListener
 {
-    /// <summary>Accepts a new transport connection.</summary>
-    /// <returns>The accepted transport connection plus its remote network address.</returns>
+    /// <summary>Accepts a new connection.</summary>
+    /// <returns>The accepted connection plus its remote network address.</returns>
     Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync();
 }

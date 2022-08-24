@@ -7,6 +7,9 @@ namespace IceRpc.Transports;
 /// <summary>A class to create a <see cref="IListener{T}"/> to accept incoming duplex connections.</summary>
 public interface IDuplexServerTransport
 {
+    /// <summary>Gets the default duplex server transport.</summary>
+    public static IDuplexServerTransport Default { get; } = new TcpServerTransport();
+
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
 

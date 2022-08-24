@@ -80,8 +80,8 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton<Server>(provider =>
                 new Server(
                     provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName),
-                    provider.GetRequiredService<IMultiplexedServerTransport>(),
-                    provider.GetRequiredService<IDuplexServerTransport>()));
+                    provider.GetRequiredService<IDuplexServerTransport>(),
+                    provider.GetRequiredService<IMultiplexedServerTransport>()));
 
     /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
     /// ServerOptions instance.</summary>
@@ -134,8 +134,8 @@ public static class IceRpcServiceCollectionExtensions
 
                 return new Server(
                     options,
-                    provider.GetRequiredService<IMultiplexedServerTransport>(),
-                    provider.GetRequiredService<IDuplexServerTransport>());
+                    provider.GetRequiredService<IDuplexServerTransport>(),
+                    provider.GetRequiredService<IMultiplexedServerTransport>());
             });
 
     /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the

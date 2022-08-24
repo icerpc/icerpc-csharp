@@ -7,15 +7,8 @@ using System.Net.Security;
 namespace IceRpc;
 
 /// <summary>The default implementation of <see cref="IClientProtocolConnectionFactory"/>.</summary>
-public class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
+public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
 {
-    /// <summary>Gets the default client transport for ice protocol connections.</summary>
-    public static IDuplexClientTransport DefaultDuplexClientTransport { get; } = new TcpClientTransport();
-
-    /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
-    public static IMultiplexedClientTransport DefaultMultiplexedClientTransport { get; } =
-        new SlicClientTransport(new TcpClientTransport());
-
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
     private readonly ConnectionOptions _connectionOptions;
     private readonly IDuplexClientTransport _duplexClientTransport;
@@ -27,9 +20,9 @@ public class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
     /// <param name="connectionOptions">The connection options.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     /// <param name="duplexClientTransport">The duplex client transport. Null is equivalent to
-    /// <see cref="DefaultDuplexClientTransport"/>.</param>
+    /// <see cref="IDuplexClientTransport.Default"/>.</param>
     /// <param name="multiplexedClientTransport">The multiplexed client transport. Null is equivalent to
-    /// <see cref="DefaultMultiplexedClientTransport"/>.</param>
+    /// <see cref="IMultiplexedClientTransport.Default"/>.</param>
     public ClientProtocolConnectionFactory(
         ConnectionOptions connectionOptions,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
@@ -39,14 +32,14 @@ public class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
         _clientAuthenticationOptions = clientAuthenticationOptions;
         _connectionOptions = connectionOptions;
 
-        _duplexClientTransport = duplexClientTransport ?? DefaultDuplexClientTransport;
+        _duplexClientTransport = duplexClientTransport ?? IDuplexClientTransport.Default;
         _duplexConnectionOptions = new DuplexConnectionOptions
         {
             Pool = connectionOptions.Pool,
             MinSegmentSize = connectionOptions.MinSegmentSize,
         };
 
-        _multiplexedClientTransport = multiplexedClientTransport ?? DefaultMultiplexedClientTransport;
+        _multiplexedClientTransport = multiplexedClientTransport ?? IMultiplexedClientTransport.Default;
         _multiplexedConnectionOptions = new MultiplexedConnectionOptions
         {
             MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? 0 :
