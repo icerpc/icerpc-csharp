@@ -166,7 +166,7 @@ fn constructor(
         builder.add_parameter(
             &member
                 .data_type
-                .to_type_string(namespace, TypeContext::DataMember, false),
+                .cs_type_string(namespace, TypeContext::DataMember, false),
             &member.parameter_name(),
             None,
             Some(doc_comment_message(*member)),

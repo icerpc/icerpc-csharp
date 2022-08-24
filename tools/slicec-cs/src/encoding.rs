@@ -303,7 +303,7 @@ fn encode_tagged_type(
         format!(
             "{param} is {unwrapped_type} {unwrapped_name}",
             param = param,
-            unwrapped_type = data_type.to_type_string(namespace, type_context, true),
+            unwrapped_type = data_type.cs_type_string(namespace, type_context, true),
             unwrapped_name = &unwrapped_name
         )
     };
@@ -416,7 +416,7 @@ pub fn encode_action(
         (true, true) => "value!.Value",
         _ => "value",
     };
-    let value_type = type_ref.to_type_string(namespace, type_context, is_tagged);
+    let value_type = type_ref.cs_type_string(namespace, type_context, is_tagged);
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
