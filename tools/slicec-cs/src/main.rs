@@ -57,8 +57,8 @@ fn try_main() -> ParserResult {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
     let mut parsed_data = slice::parse_from_options(slice_options)
-        .and_then(validate_cs_attributes)
-        .and_then(patch_comments)?;
+        .and_then(patch_comments)
+        .and_then(validate_cs_attributes)?;
 
     if !slice_options.validate {
         for slice_file in parsed_data.files.values().filter(|file| file.is_source) {
