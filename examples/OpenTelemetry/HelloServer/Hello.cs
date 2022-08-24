@@ -11,7 +11,10 @@ public class Hello : Service, IHello
 
     public Hello(ICrmProxy crm) => _crm = crm;
 
-    public async ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
+    public async ValueTask<string> SayHelloAsync(
+        string name,
+        IFeatureCollection features,
+        CancellationToken cancellationToken)
     {
         Console.WriteLine($"{name} says hello!");
         if (await _crm.TryAddCustomerAsync(name, features, cancellationToken))

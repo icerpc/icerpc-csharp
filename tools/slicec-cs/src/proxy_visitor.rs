@@ -167,7 +167,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let stream_return = operation.streamed_return_member();
 
     let features_parameter = escape_parameter_name(&operation.parameters(), "features");
-    let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancellationToken");
+    let cancellation_token_parameter = escape_parameter_name(&operation.parameters(), "cancellationToken");
 
     let void_return = operation.return_type.is_empty();
 
@@ -267,7 +267,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
 
-    invocation_builder.add_argument(format!("cancellationToken: {}", cancel_parameter));
+    invocation_builder.add_argument(format!("cancellationToken: {}", cancellation_token_parameter));
 
     let invocation = invocation_builder.build();
 

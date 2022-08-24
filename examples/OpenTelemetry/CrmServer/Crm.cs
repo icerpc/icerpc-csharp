@@ -9,7 +9,10 @@ public class Crm : Service, ICrm
 {
     private readonly List<string> _customers = new();
 
-    public ValueTask<bool> TryAddCustomerAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
+    public ValueTask<bool> TryAddCustomerAsync(
+        string name,
+        IFeatureCollection features,
+        CancellationToken cancellationToken)
     {
         if (_customers.Contains(name))
         {

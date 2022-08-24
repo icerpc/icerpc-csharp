@@ -8,7 +8,10 @@ namespace Demo;
 
 public class Uploader : Service, IUploader
 {
-    public async ValueTask UploadImageAsync(PipeReader image, IFeatureCollection features, CancellationToken cancellationToken)
+    public async ValueTask UploadImageAsync(
+        PipeReader image,
+        IFeatureCollection features,
+        CancellationToken cancellationToken)
     {
         Console.WriteLine("Downloading image...");
 

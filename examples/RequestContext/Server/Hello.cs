@@ -8,7 +8,10 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
-    public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
+    public ValueTask<string> SayHelloAsync(
+        string name,
+        IFeatureCollection features,
+        CancellationToken cancellationToken)
     {
         Console.WriteLine($"{name} says hello!");
         // The request context sent by the client is available to the dispatch as the IRequestContextFeature.
