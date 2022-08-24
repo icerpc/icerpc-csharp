@@ -111,8 +111,8 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All other
-    /// properties have their default values.</summary>
+    /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
+    /// other properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
@@ -303,7 +303,8 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    // already disposed by a previous or concurrent call.
+                    // already disposed
+                    return;
                 }
 
                 // Stop accepting new connections by disposing of the listener.
@@ -341,25 +342,7 @@ public sealed class Server : IAsyncDisposable
             // We don't log AcceptAsync exceptions; they usually occur when the server is shutting down.
 
             ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-
-            _ = LogConnectionFailureAsync();
-
             return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
-
-            async Task LogConnectionFailureAsync()
-            {
-                try
-                {
-                    _ = await connection.ShutdownComplete.ConfigureAwait(false);
-                }
-                catch (Exception exception)
-                {
-                    ServerEventSource.Log.ConnectionFailure(
-                        ServerAddress,
-                        remoteNetworkAddress,
-                        exception);
-                }
-            }
         }
 
         public void Dispose() => _decoratee.Dispose();
@@ -376,6 +359,7 @@ public sealed class Server : IAsyncDisposable
         public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly IProtocolConnection _decoratee;
+        private readonly Task _logFailureTask;
         private readonly EndPoint _remoteNetworkAddress;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -402,6 +386,7 @@ public sealed class Server : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
+            await _logFailureTask.ConfigureAwait(false); // make sure the task completes before ConnectionStop
             ServerEventSource.Log.ConnectionStop(ServerAddress, _remoteNetworkAddress);
         }
 
@@ -412,25 +397,29 @@ public sealed class Server : IAsyncDisposable
 
         public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-        public async Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
-        {
-            // TODO: we should log the shutdown message!
-
-            try
-            {
-                await _decoratee.ShutdownAsync(message, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                ServerEventSource.Log.ConnectionShutdownFailure(ServerAddress, _remoteNetworkAddress, exception);
-                throw;
-            }
-        }
+        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(message, cancellationToken);
 
         internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, EndPoint remoteNetworkAddress)
         {
             _decoratee = decoratee;
             _remoteNetworkAddress = remoteNetworkAddress;
+
+            _logFailureTask = LogConnectionFailureAsync();
+            async Task LogConnectionFailureAsync()
+            {
+                try
+                {
+                    _ = await ShutdownComplete.ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    ServerEventSource.Log.ConnectionFailure(
+                        ServerAddress,
+                        remoteNetworkAddress,
+                        exception);
+                }
+            }
         }
     }
 }

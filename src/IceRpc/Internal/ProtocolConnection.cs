@@ -103,8 +103,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            // Make sure we execute the function without holding the mutex lock.
+            // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
+
+            var connectionAbortedException = new ConnectionAbortedException("connection disposed");
 
             if (_connectTask is not null)
             {
@@ -129,7 +131,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
                         // Speed-up shutdown only if shutdown didn't fail.
-                        CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
+                        CancelDispatchesAndInvocations(connectionAbortedException);
                     }
 
                     try
@@ -142,6 +144,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
             }
 
+            _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
             await DisposeAsyncCore().ConfigureAwait(false);
 
             // Clean up disposable resources.
@@ -322,7 +325,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected void InvokeOnAbort(Exception exception)
     {
-        _ = _shutdownCompleteSource?.TrySetException(exception);
+        _ = _shutdownCompleteSource.TrySetException(exception);
 
         lock (_mutex)
         {
