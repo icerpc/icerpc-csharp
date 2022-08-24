@@ -12,7 +12,7 @@ pub trait TypeRefExt {
     fn is_value_type(&self) -> bool;
 
     /// The C# mapped type for this type reference.
-    fn to_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
 }
 
 impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
@@ -24,7 +24,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         }
     }
 
-    fn to_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
+    fn cs_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
         let type_str = match &self.concrete_typeref() {
             TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute("cs::type", false) {
                 Some(args) => args.first().unwrap().to_owned(),
@@ -69,7 +69,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, context: TypeContext) -> String {
     let element_type = sequence_ref
         .element_type
-        .to_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Nested, false);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
@@ -96,10 +96,10 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
 fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, context: TypeContext) -> String {
     let key_type = dictionary_ref
         .key_type
-        .to_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Nested, false);
     let value_type = dictionary_ref
         .value_type
-        .to_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Nested, false);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {

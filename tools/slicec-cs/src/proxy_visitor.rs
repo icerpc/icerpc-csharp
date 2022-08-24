@@ -241,7 +241,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
                     FunctionCallBuilder::new(&format!(
                         "{}.CreatePayloadStream<{}>",
                         encoding,
-                        stream_type.to_type_string(namespace, TypeContext::Encode, false)
+                        stream_type.cs_type_string(namespace, TypeContext::Encode, false)
                     ))
                     .use_semi_colon(false)
                     .add_argument(stream_parameter_name)
@@ -372,7 +372,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         for param in &params {
             builder.add_parameter(
-                &param.to_type_string(namespace, TypeContext::Encode, false),
+                &param.cs_type_string(namespace, TypeContext::Encode, false),
                 &param.parameter_name(),
                 None,
                 operation_parameter_doc_comment(operation, param.identifier()),

@@ -19,7 +19,7 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
 pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) -> String {
     let type_string = data_member
         .data_type()
-        .to_type_string(&data_member.namespace(), TypeContext::DataMember, false);
+        .cs_type_string(&data_member.namespace(), TypeContext::DataMember, false);
     let mut prelude = CodeBlock::new();
 
     prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));

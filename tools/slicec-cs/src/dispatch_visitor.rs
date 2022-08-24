@@ -197,7 +197,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.to_type_string(namespace, TypeContext::Encode, false),
+                    &param.cs_type_string(namespace, TypeContext::Encode, false),
                     "returnValue",
                     None,
                     Some("The operation return value"),
@@ -206,7 +206,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.to_type_string(namespace, TypeContext::Encode, false),
+                        &param.cs_type_string(namespace, TypeContext::Encode, false),
                         &param.parameter_name(),
                         None,
                         operation_parameter_doc_comment(operation, param.identifier()),
