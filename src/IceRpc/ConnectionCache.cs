@@ -257,7 +257,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             if (shutdownCancellationToken.IsCancellationRequested)
             {
-                throw new InvalidOperationException("connection cache shutting down");
+                throw new InvalidOperationException("connection cache is shut down or shutting down");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out connection))
