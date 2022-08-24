@@ -386,6 +386,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
+        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+
         private readonly IProtocolConnection _decoratee;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancel)

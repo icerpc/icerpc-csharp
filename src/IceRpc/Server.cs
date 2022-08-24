@@ -23,19 +23,19 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
-    private bool _isReadOnly;
-
     private IListener? _listener;
 
     private readonly Func<IListener<IProtocolConnection>> _listenerFactory;
 
-    // protects _listener, _connections and _isReadOnly
+    // protects _listener and _connections
     private readonly object _mutex = new();
 
     private readonly ServerAddress _serverAddress;
 
     private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private readonly CancellationTokenSource _shutdownCts = new();
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
@@ -127,10 +127,18 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
+        try
+        {
+            _shutdownCts.Cancel();
+            _shutdownCts.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // already disposed by a previous or concurrent call.
+        }
+
         lock (_mutex)
         {
-            _isReadOnly = true;
-
             if (_listener is not null)
             {
                 // Stop accepting new connections by disposing of the listener
@@ -212,13 +220,8 @@ public sealed class Server : IAsyncDisposable
                     return;
                 }
 
-                // Schedule removal after addition. We do this outside the mutex lock otherwise
-                // await serverConnection.ShutdownAsync could be called within this lock.
-                connection.OnAbort(
-                    exception => _ = RemoveFromCollectionAsync(connection, shutdownMessage: null));
-
-                connection.OnShutdown(
-                    shutdownMessage => _ = RemoveFromCollectionAsync(connection, shutdownMessage));
+                // Schedule removal after addition.
+                _ = RemoveFromCollectionAsync(connection);
 
                 // We don't wait for the connection to be activated. This could take a while for some transports
                 // such as TLS based transports where the handshake requires few round trips between the client and
@@ -231,29 +234,30 @@ public sealed class Server : IAsyncDisposable
         });
 
         // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(IProtocolConnection connection, string? shutdownMessage)
+        async Task RemoveFromCollectionAsync(IProtocolConnection connection)
         {
-            lock (_mutex)
+            CancellationToken cancellationToken;
+
+            try
             {
-                if (_isReadOnly)
-                {
-                    return; // already shutting down / disposed / being disposed by another thread
-                }
+                cancellationToken = _shutdownCts.Token;
+            }
+            catch (ObjectDisposedException)
+            {
+                return; // the server's DisposeAsync is cleaning up this connection and already disposed _shutdownCts
             }
 
-            if (shutdownMessage is not null)
+            try
             {
-                // Wait for the current shutdown to complete.
-                // We pass shutdownMessage to ShutdownAsync to log this message since this shutdown was initiated from
-                // the IceRPC internals and did not call the decorated connection.
-                try
-                {
-                    await connection.ShutdownAsync(shutdownMessage, CancellationToken.None).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignored
-                }
+                _ = await connection.ShutdownComplete.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                return; // the server's DisposeAsync is cleaning up this connection
+            }
+            catch
+            {
+                // ignore and continue
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
@@ -261,7 +265,7 @@ public sealed class Server : IAsyncDisposable
             lock (_mutex)
             {
                 // the _connections collection is read-only when shutting down or disposing.
-                if (!_isReadOnly)
+                if (!cancellationToken.IsCancellationRequested)
                 {
                     _ = _connections.Remove(connection);
                 }
@@ -336,6 +340,8 @@ public sealed class Server : IAsyncDisposable
     private class LogProtocolConnectionDecorator : IProtocolConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly IProtocolConnection _decoratee;
         private readonly EndPoint _remoteNetworkAddress;

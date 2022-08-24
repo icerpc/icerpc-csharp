@@ -12,6 +12,8 @@ internal class ConnectProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
+    public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+
     private Task<TransportConnectionInformation>? _connectTask;
 
     private readonly IProtocolConnection _decoratee;
