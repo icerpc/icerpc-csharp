@@ -127,18 +127,19 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            _shutdownCts.Cancel();
-            _shutdownCts.Dispose();
-        }
-        catch (ObjectDisposedException)
-        {
-            // already disposed by a previous or concurrent call.
-        }
-
         lock (_mutex)
         {
+            // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            try
+            {
+                _shutdownCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // already disposed by a previous or concurrent call.
+            }
+
             if (_listener is not null)
             {
                 // Stop accepting new connections by disposing of the listener
@@ -149,6 +150,7 @@ public sealed class Server : IAsyncDisposable
 
         await Task.WhenAll(_connections.Select(entry => entry.DisposeAsync().AsTask())).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult(null);
+        _shutdownCts.Dispose();
     }
 
     /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
@@ -158,12 +160,22 @@ public sealed class Server : IAsyncDisposable
     /// </exception>
     public void Listen()
     {
+        CancellationToken cancellationToken;
         IListener<IProtocolConnection> listener;
 
         // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
         {
-            if (_isReadOnly)
+            try
+            {
+                cancellationToken = _shutdownCts.Token;
+            }
+            catch (ObjectDisposedException)
+            {
+                throw new ObjectDisposedException($"{typeof(Server)}");
+            }
+
+            if (cancellationToken.IsCancellationRequested)
             {
                 throw new InvalidOperationException($"server '{this}' is shut down or shutting down");
             }
@@ -187,12 +199,9 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch
                 {
-                    lock (_mutex)
+                    if (cancellationToken.IsCancellationRequested)
                     {
-                        if (_isReadOnly)
-                        {
-                            return; // server is shutting down or being disposed
-                        }
+                        return; // server is shutting down or being disposed
                     }
 
                     // We wait for one second to avoid running in a tight loop in case the failures occurs
@@ -204,7 +213,7 @@ public sealed class Server : IAsyncDisposable
                 bool done = false;
                 lock (_mutex)
                 {
-                    if (_isReadOnly)
+                    if (cancellationToken.IsCancellationRequested)
                     {
                         done = true;
                     }
@@ -217,19 +226,20 @@ public sealed class Server : IAsyncDisposable
                 if (done)
                 {
                     await connection.DisposeAsync().ConfigureAwait(false);
-                    return;
                 }
+                else
+                {
+                    // Schedule removal after addition, outside mutex lock.
+                    _ = RemoveFromCollectionAsync(connection);
 
-                // Schedule removal after addition.
-                _ = RemoveFromCollectionAsync(connection);
-
-                // We don't wait for the connection to be activated. This could take a while for some transports
-                // such as TLS based transports where the handshake requires few round trips between the client and
-                // server.
-                // Waiting could also cause a security issue if the client doesn't respond to the connection
-                // initialization as we wouldn't be able to accept new connections in the meantime. The call will
-                // eventually timeout if the ConnectTimeout expires.
-                _ = Task.Run(() => _ = connection.ConnectAsync(CancellationToken.None));
+                    // We don't wait for the connection to be activated. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client and
+                    // server.
+                    // Waiting could also cause a security issue if the client doesn't respond to the connection
+                    // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                    // eventually timeout if the ConnectTimeout expires.
+                    _ = Task.Run(() => _ = connection.ConnectAsync(CancellationToken.None));
+                }
             }
         });
 
@@ -244,7 +254,7 @@ public sealed class Server : IAsyncDisposable
             }
             catch (ObjectDisposedException)
             {
-                return; // the server's DisposeAsync is cleaning up this connection and already disposed _shutdownCts
+                return; // the server's DisposeAsync already disposed _shutdownCts and connection too.
             }
 
             try
@@ -253,11 +263,13 @@ public sealed class Server : IAsyncDisposable
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
-                return; // the server's DisposeAsync is cleaning up this connection
+                // The server is being shut down or disposed and server's DisposeAsync is responsible to DisposeAsync
+                // this connection.
+                return;
             }
             catch
             {
-                // ignore and continue
+                // ignore and continue: the connection was aborted
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
@@ -283,7 +295,16 @@ public sealed class Server : IAsyncDisposable
         {
             lock (_mutex)
             {
-                _isReadOnly = true;
+                // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
+                // does not change.
+                try
+                {
+                    _shutdownCts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // already disposed by a previous or concurrent call.
+                }
 
                 // Stop accepting new connections by disposing of the listener.
                 _listener?.Dispose();
