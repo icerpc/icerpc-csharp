@@ -300,8 +300,7 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    // already disposed
-                    return;
+                    throw new ObjectDisposedException($"{typeof(Server)}");
                 }
 
                 // Stop accepting new connections by disposing of the listener.

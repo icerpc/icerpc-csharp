@@ -19,26 +19,24 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync()
     {
-        Socket acceptedSocket;
         try
         {
-            acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
+            Socket acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
+
+            var tcpConnection = new TcpServerConnection(
+                ServerAddress,
+                acceptedSocket,
+                _authenticationOptions,
+                _pool,
+                _minSegmentSize);
+
+            return (tcpConnection, acceptedSocket.RemoteEndPoint!);
         }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.OperationAborted)
+        catch (SocketException exception)
         {
-            // We translate this expected error into an ObjectDisposedException that the caller can safely catch and
-            // ignore.
-            throw new ObjectDisposedException(nameof(TcpListener), ex);
+            _socket.Dispose();
+            throw exception.ToTransportException();
         }
-
-        var tcpConnection = new TcpServerConnection(
-            ServerAddress,
-            acceptedSocket,
-            _authenticationOptions,
-            _pool,
-            _minSegmentSize);
-
-        return (tcpConnection, acceptedSocket.RemoteEndPoint!);
     }
 
     public void Dispose() => _socket.Dispose();
