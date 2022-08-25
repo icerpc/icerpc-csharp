@@ -70,7 +70,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 connection.OnShutdown(_onShutdown);
             }
 
-            _ = RefreshOnShutdownAsync(connection);
+            _ = Task.Run(() => RefreshOnShutdownAsync(connection));
 
             return connection;
 
