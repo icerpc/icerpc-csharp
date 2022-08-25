@@ -9,7 +9,8 @@ using System.Net.Security;
 namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
-/// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
+/// reconnected automatically when its underlying connection is closed by the server or the transport. Only one
+/// underlying connection can be established, connecting or shutting down at any one time.</summary>
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
@@ -17,11 +18,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
-    private Task? _cleanupTask;
-
     private IProtocolConnection _connection;
 
-    private readonly Func<IProtocolConnection> _connectionFactory;
+    // The connection parameter represents the previous connection, if any.
+    private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
 
     private bool _isResumable = true;
 
@@ -51,9 +51,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             duplexClientTransport,
             multiplexedClientTransport);
 
-        _connectionFactory = () =>
+        _connectionFactory = previousConnection =>
         {
             IProtocolConnection connection = clientProtocolConnectionFactory.CreateConnection(serverAddress);
+
+            if (previousConnection is not null &&
+                CleanupAsync(previousConnection) is Task cleanupTask &&
+                !cleanupTask.IsCompleted)
+            {
+                // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
+                connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask);
+            }
+
             connection = new ConnectProtocolConnectionDecorator(connection);
 
             if (_onAbort is not null)
@@ -69,11 +78,25 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             return connection;
 
+            static async Task CleanupAsync(IProtocolConnection connection)
+            {
+                try
+                {
+                    // For example, wait for the shutdown initiated by the peer to complete successfully.
+                    _ = await connection.ShutdownComplete.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignore
+                }
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
+
             async Task RefreshOnShutdownAsync(IProtocolConnection connection)
             {
                 try
                 {
-                    await connection.ShutdownComplete.ConfigureAwait(false);
+                    _ = await connection.ShutdownComplete.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -82,7 +105,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         };
 
-        _connection = _connectionFactory();
+        _connection = _connectionFactory(null); // null because there is no previous connection
     }
 
     /// <summary>Constructs a resumable client connection with the specified server address and client authentication
@@ -149,23 +172,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        Task? cleanupTask;
         lock (_mutex)
         {
             _isResumable = false;
-            cleanupTask = _cleanupTask;
         }
 
-        if (cleanupTask is not null)
-        {
-            await Task.WhenAll(_connection.DisposeAsync().AsTask(), cleanupTask).ConfigureAwait(false);
-        }
-        else
-        {
-            await _connection.DisposeAsync().ConfigureAwait(false);
-        }
+        return _connection.DisposeAsync();
     }
 
     /// <inheritdoc/>
@@ -296,37 +310,62 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 if (connection == _connection)
                 {
-                    _connection = _connectionFactory();
-                    _cleanupTask = PerformCleanupAsync(_cleanupTask);
+                    _connection = _connectionFactory(connection);
                 }
                 newConnection = _connection;
             }
         }
 
         return newConnection;
+    }
 
-        async Task PerformCleanupAsync(Task? previousTask)
+    // A decorator that awaits a cleanup task (= previous connection cleanup) in ConnectAsync and DisposeAsync.
+    private class CleanupProtocolConnectionDecorator : IProtocolConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+
+        private readonly Task _cleanupTask;
+
+        private readonly IProtocolConnection _decoratee;
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
-            await Task.Yield();
+            return _cleanupTask.IsCompleted ? _decoratee.ConnectAsync(cancellationToken) : PerformConnectAsync();
 
-            try
+            async Task<TransportConnectionInformation> PerformConnectAsync()
             {
-                // We would typically wait for the shutdown initiated by the peer to complete successfully.
-                _ = await connection.ShutdownComplete.ConfigureAwait(false);
+                await _cleanupTask.ConfigureAwait(false);
+                return await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch
-            {
-                // ignore
-            }
+        }
 
-            if (previousTask is not null)
+        public ValueTask DisposeAsync()
+        {
+            return _cleanupTask.IsCompleted ? _decoratee.DisposeAsync() : PerformDisposeAsync();
+
+            async ValueTask PerformDisposeAsync()
             {
-                await Task.WhenAll(previousTask, connection.DisposeAsync().AsTask()).ConfigureAwait(false);
+                await _cleanupTask.ConfigureAwait(false);
+                await _decoratee.DisposeAsync().ConfigureAwait(false);
             }
-            else
-            {
-                await connection.DisposeAsync().ConfigureAwait(false);
-            }
+        }
+
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
+            _decoratee.InvokeAsync(request, cancellationToken);
+
+        public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
+
+        public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
+
+        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(message, cancellationToken);
+
+        internal CleanupProtocolConnectionDecorator(IProtocolConnection decoratee, Task cleanupTask)
+        {
+            _cleanupTask = cleanupTask;
+            _decoratee = decoratee;
         }
     }
 }
