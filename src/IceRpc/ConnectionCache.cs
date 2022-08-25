@@ -60,7 +60,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
+            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
             // does not change.
             try
             {
@@ -290,6 +290,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 lock (_mutex)
                 {
+                    // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                     if (shutdownCancellationToken.IsCancellationRequested)
                     {
                         // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
@@ -311,6 +312,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             lock (_mutex)
             {
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
                     // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
@@ -352,14 +354,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // ignore and continue: the connection was aborted
             }
 
-            bool disposeConnection = true;
-
             lock (_mutex)
             {
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
                     // ConnectionCache.DisposeAsync is responsible to dispose this connection.
-                    disposeConnection = true;
+                    return;
                 }
                 else
                 {
@@ -368,10 +369,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
             }
 
-            if (disposeConnection)
-            {
-                await connection.DisposeAsync().ConfigureAwait(false);
-            }
+            await connection.DisposeAsync().ConfigureAwait(false);
         }
     }
 

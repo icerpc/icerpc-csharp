@@ -129,8 +129,8 @@ public sealed class Server : IAsyncDisposable
     {
         lock (_mutex)
         {
-            // We always cancel _shutdownCts with _mutex locked. This way _shutdownCts.Token
-            // does not change.
+            // We always cancel _shutdownCts with _mutex locked. This way _shutdownCts.Token does not change when
+            // _mutex is locked.
             try
             {
                 _shutdownCts.Cancel();
@@ -213,6 +213,7 @@ public sealed class Server : IAsyncDisposable
                 bool done = false;
                 lock (_mutex)
                 {
+                    // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                     if (shutdownCancellationToken.IsCancellationRequested)
                     {
                         done = true;
@@ -265,6 +266,7 @@ public sealed class Server : IAsyncDisposable
 
             lock (_mutex)
             {
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
                     // Server.DisposeAsync is responsible to dispose this connection.
