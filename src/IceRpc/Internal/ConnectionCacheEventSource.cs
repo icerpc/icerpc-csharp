@@ -89,6 +89,15 @@ internal sealed class ConnectionCacheEventSource : EventSource
     }
 
     [NonEvent]
+    internal void ConnectionShutdown(ServerAddress serverAddress, string message)
+    {
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        {
+            ConnectionShutdown(serverAddress.ToString(), message);
+        }
+    }
+
+    [NonEvent]
     internal void ConnectionShutdownFailure(ServerAddress serverAddress, Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
@@ -217,7 +226,12 @@ internal sealed class ConnectionCacheEventSource : EventSource
         WriteEvent(7, serverAddress, localNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(8, Level = EventLevel.Error)]
+    [Event(8, Level = EventLevel.Informational)]
+    private void ConnectionShutdown(string serverAddress, string message) =>
+        WriteEvent(8, serverAddress, message);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(9, Level = EventLevel.Error)]
     private void ConnectionShutdownFailure(string serverAddress, string? exceptionType, string exceptionDetails) =>
-        WriteEvent(8, serverAddress, exceptionType, exceptionDetails);
+        WriteEvent(9, serverAddress, exceptionType, exceptionDetails);
 }

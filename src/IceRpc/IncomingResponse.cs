@@ -55,7 +55,7 @@ public sealed class IncomingResponse : IncomingFrame
         PipeReader? fieldsPipeReader)
         : base(connectionContext)
     {
-        if (request.Protocol != connectionContext.Protocol)
+        if (request.Protocol != connectionContext.ServerAddress.Protocol)
         {
             throw new ArgumentException(
                 "the protocol of the request does not match the protocol of the connection context",

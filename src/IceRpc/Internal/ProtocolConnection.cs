@@ -10,6 +10,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 {
     public abstract ServerAddress ServerAddress { get; }
 
+    public Task<string> ShutdownComplete => _shutdownCompleteSource.Task;
+
     private CancellationTokenSource? _connectCts;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
@@ -21,6 +23,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Exception? _onAbortException;
     private Action<string>? _onShutdown;
     private string? _onShutdownMessage;
+    private readonly TaskCompletionSource<string> _shutdownCompleteSource =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
@@ -98,8 +103,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            // Make sure we execute the function without holding the mutex lock.
+            // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
+
+            var connectionAbortedException = new ConnectionAbortedException("connection disposed");
 
             if (_connectTask is not null)
             {
@@ -124,7 +131,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
                         // Speed-up shutdown only if shutdown didn't fail.
-                        CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
+                        CancelDispatchesAndInvocations(connectionAbortedException);
                     }
 
                     try
@@ -137,6 +144,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
             }
 
+            _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
             await DisposeAsyncCore().ConfigureAwait(false);
 
             // Clean up disposable resources.
@@ -317,6 +325,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected void InvokeOnAbort(Exception exception)
     {
+        _ = _shutdownCompleteSource.TrySetException(exception);
+
         lock (_mutex)
         {
             if (_onAbortException is not null)
@@ -367,18 +377,31 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             // Wait for shutdown to complete.
             await ShutdownAsyncCore(message, cts.Token).ConfigureAwait(false);
+
+            _shutdownCompleteSource.SetResult(message);
         }
         catch (OperationCanceledException) when (_shutdownCts.IsCancellationRequested)
         {
-            throw new ConnectionAbortedException(
+            var exception = new ConnectionAbortedException(
                 _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
+
+            _ = _shutdownCompleteSource.TrySetException(exception);
+            throw exception;
         }
         catch (OperationCanceledException)
         {
             Debug.Assert(cts.IsCancellationRequested);
 
             // Triggered by the CancelAfter above.
-            throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            var exception = new TimeoutException(
+                $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            _ = _shutdownCompleteSource.TrySetException(exception);
+            throw exception;
+        }
+        catch (Exception exception)
+        {
+            _ = _shutdownCompleteSource.TrySetException(exception);
+            throw;
         }
     }
 }

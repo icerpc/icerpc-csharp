@@ -97,6 +97,15 @@ internal sealed class ServerEventSource : EventSource
     }
 
     [NonEvent]
+    internal void ConnectionShutdown(ServerAddress serverAddress, EndPoint remoteNetworkAddress, string message)
+    {
+        if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+        {
+            ConnectionShutdown(serverAddress.ToString(), remoteNetworkAddress.ToString(), message);
+        }
+    }
+
+    [NonEvent]
     internal void ConnectionShutdownFailure(
         ServerAddress serverAddress,
         EndPoint remoteNetworkAddress,
@@ -240,11 +249,16 @@ internal sealed class ServerEventSource : EventSource
         WriteEvent(7, serverAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(8, Level = EventLevel.Error)]
+    [Event(8, Level = EventLevel.Informational)]
+    private void ConnectionShutdown(string serverAddress, string? remoteNetworkAddress, string message) =>
+        WriteEvent(8, serverAddress, remoteNetworkAddress, message);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(9, Level = EventLevel.Error)]
     private void ConnectionShutdownFailure(
         string serverAddress,
         string? remoteNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
-        WriteEvent(8, serverAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
+        WriteEvent(9, serverAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
 }

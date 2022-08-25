@@ -56,14 +56,30 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             IProtocolConnection connection = clientProtocolConnectionFactory.CreateConnection(serverAddress);
             connection = new ConnectProtocolConnectionDecorator(connection);
 
-            // only called from the constructor or with _mutex locked
-            connection.OnAbort(_onAbort + OnAbort);
-            connection.OnShutdown(_onShutdown + OnShutdown);
+            if (_onAbort is not null)
+            {
+                connection.OnAbort(_onAbort);
+            }
+            if (_onShutdown is not null)
+            {
+                connection.OnShutdown(_onShutdown);
+            }
 
-            void OnAbort(Exception exception) => RefreshConnection(connection, graceful: false);
-            void OnShutdown(string message) => RefreshConnection(connection, graceful: true);
+            _ = RefreshOnShutdownAsync(connection);
 
             return connection;
+
+            async Task RefreshOnShutdownAsync(IProtocolConnection connection)
+            {
+                try
+                {
+                    await connection.ShutdownComplete.ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+                _ = RefreshConnection(connection);
+            }
         };
 
         _connection = _connectionFactory();
@@ -120,7 +136,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         catch (ConnectionClosedException)
         {
-            if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
+            if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
                 // Try again once with the new connection
                 return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
@@ -202,7 +218,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             catch (ConnectionClosedException)
             {
-                if (RefreshConnection(connection, graceful: true) is IProtocolConnection newConnection)
+                if (RefreshConnection(connection) is IProtocolConnection newConnection)
                 {
                     // try again once with the new connection
                     return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
@@ -268,7 +284,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
     /// resumable.</summary>
-    private IProtocolConnection? RefreshConnection(IProtocolConnection connection, bool graceful)
+    private IProtocolConnection? RefreshConnection(IProtocolConnection connection)
     {
         IProtocolConnection? newConnection = null;
 
@@ -293,17 +309,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             await Task.Yield();
 
-            if (graceful)
+            try
             {
-                try
-                {
-                    // Wait for existing graceful shutdown to complete, or fail immediately if aborted.
-                    await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignore
-                }
+                // We would typically wait for the shutdown initiated by the peer to complete successfully.
+                _ = await connection.ShutdownComplete.ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignore
             }
 
             if (previousTask is not null)

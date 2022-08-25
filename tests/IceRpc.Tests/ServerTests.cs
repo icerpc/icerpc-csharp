@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -31,14 +30,14 @@ public class ServerTests
     }
 
     /// <summary>Verifies that calling <see cref="Server.Listen"/> on a disposed server fails with
-    /// <see cref="InvalidOperationException"/>.</summary>
+    /// <see cref="ObjectDisposedException"/>.</summary>
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
         var server = new Server(ServiceNotFoundDispatcher.Instance);
         await server.DisposeAsync();
 
-        Assert.Throws<InvalidOperationException>(() => server.Listen());
+        Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
 
     /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after

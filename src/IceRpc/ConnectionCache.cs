@@ -18,8 +18,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private readonly IClientProtocolConnectionFactory _connectionFactory;
 
-    private bool _isReadOnly;
-
     private readonly object _mutex = new();
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
@@ -28,8 +26,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private readonly bool _preferExistingConnection;
 
-    // Formerly pending or active connections that are closed but not shutdown yet.
-    private readonly HashSet<IProtocolConnection> _shutdownPendingConnections = new();
+    private readonly CancellationTokenSource _shutdownCts = new();
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
@@ -63,15 +60,25 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            _isReadOnly = true;
+            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            try
+            {
+                _shutdownCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // already disposed by a previous or concurrent call.
+            }
         }
 
         // Dispose all connections managed by this cache.
-        IEnumerable<IProtocolConnection> allConnections =
-            _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
+        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Concat(_activeConnections.Values);
 
         await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
             .ConfigureAwait(false);
+
+        _shutdownCts.Dispose();
     }
 
     /// <inheritdoc/>
@@ -203,12 +210,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            _isReadOnly = true;
+            // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            try
+            {
+                _shutdownCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // already disposed
+                return Task.CompletedTask;
+            }
         }
 
         // Shut down all connections managed by this cache.
-        IEnumerable<IProtocolConnection> allConnections =
-            _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
+        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Concat(_activeConnections.Values);
 
         return Task.WhenAll(
             allConnections.Select(connection => connection.ShutdownAsync("connection cache shutdown", cancellationToken)));
@@ -219,16 +235,29 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <param name="serverAddress">The server address.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A connected connection.</returns>
-    private async ValueTask<IProtocolConnection> ConnectAsync(ServerAddress serverAddress, CancellationToken cancellationToken)
+    private async ValueTask<IProtocolConnection> ConnectAsync(
+        ServerAddress serverAddress,
+        CancellationToken cancellationToken)
     {
         IProtocolConnection? connection = null;
         bool created = false;
 
+        CancellationToken shutdownCancellationToken;
+
         lock (_mutex)
         {
-            if (_isReadOnly)
+            try
             {
-                throw new InvalidOperationException("connection cache shutting down");
+                shutdownCancellationToken = _shutdownCts.Token;
+            }
+            catch (ObjectDisposedException)
+            {
+                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
+            }
+
+            if (shutdownCancellationToken.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("connection cache is shut down or shutting down");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out connection))
@@ -249,58 +278,57 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         if (created)
         {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                shutdownCancellationToken);
             try
             {
-                // TODO: add cancellation token to cancel when ConnectionCache is shut down / disposed.
-                TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                TransportConnectionInformation transportConnectionInformation =
+                    await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
             }
             catch
             {
-                bool scheduleRemoveFromClosed = false;
-
                 lock (_mutex)
                 {
-                    // the _pendingConnections collection is read-only after shutdown
-                    if (!_isReadOnly)
+                    // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
+                    if (shutdownCancellationToken.IsCancellationRequested)
                     {
-                        // "move" from pending to shutdown pending
+                        // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
+                        // DisposeAsync this connection.
+                        throw new ConnectionClosedException();
+                    }
+                    else
+                    {
                         bool removed = _pendingConnections.Remove(serverAddress);
                         Debug.Assert(removed);
-                        _ = _shutdownPendingConnections.Add(connection);
-                        scheduleRemoveFromClosed = true;
                     }
                 }
-                if (scheduleRemoveFromClosed)
-                {
-                    _ = RemoveFromClosedAsync(connection, shutdownMessage: null);
-                }
 
+                await connection.DisposeAsync().ConfigureAwait(false);
+
+                cancellationToken.ThrowIfCancellationRequested(); // throws OCE
                 throw;
             }
 
-            bool scheduleRemoveFromActive = false;
-
             lock (_mutex)
             {
-                if (!_isReadOnly)
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
+                if (shutdownCancellationToken.IsCancellationRequested)
+                {
+                    // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
+                    // DisposeAsync this connection.
+                    throw new ConnectionClosedException();
+                }
+                else
                 {
                     // "move" from pending to active
                     bool removed = _pendingConnections.Remove(serverAddress);
                     Debug.Assert(removed);
                     _activeConnections.Add(serverAddress, connection);
-                    scheduleRemoveFromActive = true;
                 }
-                // this new connection is being shut down already
             }
 
-            if (scheduleRemoveFromActive)
-            {
-                // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
-                // call await ShutdownAsync or DisposeAsync on the connection within this lock.
-                connection.OnAbort(_ => RemoveFromActive(connection, shutdownMessage: null));
-                connection.OnShutdown(shutdownMessage => RemoveFromActive(connection, shutdownMessage));
-            }
+            _ = RemoveFromActiveAsync(connection, shutdownCancellationToken);
         }
         else
         {
@@ -309,55 +337,39 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         return connection;
 
-        void RemoveFromActive(IProtocolConnection connection, string? shutdownMessage)
+        async Task RemoveFromActiveAsync(IProtocolConnection connection, CancellationToken shutdownCancellationToken)
         {
-            bool scheduleRemoveFromClosed = false;
+            try
+            {
+                _ = await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
+            {
+                // The connection cache is being shut down or disposed and cache's DisposeAsync is responsible to
+                // DisposeAsync this connection.
+                return;
+            }
+            catch
+            {
+                // ignore and continue: the connection was aborted
+            }
 
             lock (_mutex)
             {
-                if (!_isReadOnly)
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
+                if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // "move" from active to shutdown pending
+                    // ConnectionCache.DisposeAsync is responsible to dispose this connection.
+                    return;
+                }
+                else
+                {
                     bool removed = _activeConnections.Remove(connection.ServerAddress);
                     Debug.Assert(removed);
-                    _ = _shutdownPendingConnections.Add(connection);
-                    scheduleRemoveFromClosed = true;
-                }
-            }
-
-            if (scheduleRemoveFromClosed)
-            {
-                _ = RemoveFromClosedAsync(connection, shutdownMessage);
-            }
-        }
-
-        // Remove connection from _shutdownPendingConnections once the dispose is complete
-        async Task RemoveFromClosedAsync(IProtocolConnection connection, string? shutdownMessage)
-        {
-            if (shutdownMessage is not null)
-            {
-                // Wait for current shutdown to complete.
-                // We pass shutdownMessage to ShutdownAsync to log this message since this shutdown was initiated from
-                // the IceRPC internals and did not call the decorated connection.
-                try
-                {
-                    await connection.ShutdownAsync(shutdownMessage, CancellationToken.None).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignore
                 }
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
-
-            lock (_mutex)
-            {
-                if (!_isReadOnly)
-                {
-                    _ = _shutdownPendingConnections.Remove(connection);
-                }
-            }
         }
     }
 
@@ -370,10 +382,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             IProtocolConnection connection = _decoratee.CreateConnection(serverAddress);
             ConnectionCacheEventSource.Log.ConnectionStart(serverAddress);
-
-            connection.OnAbort(exception =>
-                ConnectionCacheEventSource.Log.ConnectionFailure(serverAddress, exception));
-
             return new LogProtocolConnectionDecorator(connection);
         }
 
@@ -386,14 +394,19 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
+        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+
         private readonly IProtocolConnection _decoratee;
+
+        private readonly Task _logShutdownAsync;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
             ConnectionCacheEventSource.Log.ConnectStart(ServerAddress);
             try
             {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
+                    .ConfigureAwait(false);
                 ConnectionCacheEventSource.Log.ConnectSuccess(ServerAddress, result.LocalNetworkAddress!);
                 return result;
             }
@@ -411,6 +424,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
+            await _logShutdownAsync.ConfigureAwait(false); // make sure the task completes before ConnectionStop
             ConnectionCacheEventSource.Log.ConnectionStop(ServerAddress);
         }
 
@@ -421,21 +435,26 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
-        public async Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
-        {
-            // TODO: we should log the shutdown message!
+        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(message, cancellationToken);
 
-            try
+        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee)
+        {
+            _decoratee = decoratee;
+            _logShutdownAsync = LogShutdownAsync();
+
+            async Task LogShutdownAsync()
             {
-                await _decoratee.ShutdownAsync(message, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                ConnectionCacheEventSource.Log.ConnectionShutdownFailure(ServerAddress, exception);
-                throw;
+                try
+                {
+                    string message = await ShutdownComplete.ConfigureAwait(false);
+                    ConnectionCacheEventSource.Log.ConnectionShutdown(ServerAddress, message);
+                }
+                catch (Exception exception)
+                {
+                    ConnectionCacheEventSource.Log.ConnectionShutdownFailure(ServerAddress, exception);
+                }
             }
         }
-
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
     }
 }

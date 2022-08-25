@@ -9,9 +9,11 @@ internal sealed class ConnectionContext : IConnectionContext
 {
     public IInvoker Invoker => _protocolConnection;
 
-    public TransportConnectionInformation TransportConnectionInformation { get; }
+    public ServerAddress ServerAddress => _protocolConnection.ServerAddress;
 
-    public Protocol Protocol => _protocolConnection.ServerAddress.Protocol;
+    public Task<string> ShutdownComplete => _protocolConnection.ShutdownComplete;
+
+    public TransportConnectionInformation TransportConnectionInformation { get; }
 
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
 
