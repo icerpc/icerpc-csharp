@@ -129,7 +129,7 @@ public sealed class Server : IAsyncDisposable
     {
         lock (_mutex)
         {
-            // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
+            // We always cancel _shutdownCts with _mutex locked. This way _shutdownCts.Token
             // does not change.
             try
             {
