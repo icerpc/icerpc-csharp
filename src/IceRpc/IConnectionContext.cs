@@ -10,11 +10,18 @@ public interface IConnectionContext
     /// <summary>Gets the invoker implemented by the connection.</summary>
     IInvoker Invoker { get; }
 
+    /// <summary>Gets the server address of this connection.</summary>
+    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
+    /// non-null.</value>
+    ServerAddress ServerAddress { get; }
+
+    /// <summary>Gets a task that completes when the connection is shut down or aborted.</summary>
+    /// <value>A task that completes with the shutdown message when the connection is successfully shut down. It
+    /// completes with an exception when the connection is aborted.</value>
+    Task<string> ShutdownComplete { get; }
+
     /// <summary>Gets the transport connection information.</summary>
     TransportConnectionInformation TransportConnectionInformation { get; }
-
-    /// <summary>Gets the protocol of this connection.</summary>
-    Protocol Protocol { get; }
 
     /// <summary>Adds a callback that will be executed when the connection is lost due to a transport failure.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>

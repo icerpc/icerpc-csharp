@@ -16,7 +16,7 @@ public class IncomingFrame
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
     /// <summary>Gets the protocol of this frame.</summary>
-    public Protocol Protocol => ConnectionContext.Protocol;
+    public Protocol Protocol => ConnectionContext.ServerAddress.Protocol;
 
     /// <summary>Constructs an incoming frame.</summary>
     /// <param name="connectionContext">The connection context of the connection that received this frame.</param>
