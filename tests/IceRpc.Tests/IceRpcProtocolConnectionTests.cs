@@ -125,7 +125,6 @@ public sealed class IceRpcProtocolConnectionTests
         });
     }
 
-    [Ignore("see issue #1656")]
     [Test]
     public async Task Invocation_cancellation_triggers_incoming_request_payload_read_exception()
     {

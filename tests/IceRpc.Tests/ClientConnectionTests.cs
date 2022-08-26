@@ -89,7 +89,6 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
-    [Ignore("see issue #1656")]
     [Test]
     public async Task Connection_can_reconnect_after_peer_abort()
     {
