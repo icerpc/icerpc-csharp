@@ -218,8 +218,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             catch (ObjectDisposedException)
             {
-                // already disposed
-                return Task.CompletedTask;
+                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
         }
 

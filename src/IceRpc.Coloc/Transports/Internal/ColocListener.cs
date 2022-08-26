@@ -20,7 +20,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         return (new ColocConnection(ServerAddress, _ => (reader, writer)), _networkAddress);
     }
 
-    public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
+    public void Dispose() => _queue.TryComplete(new ObjectDisposedException($"{typeof(ColocListener)}"));
 
     internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
     {
