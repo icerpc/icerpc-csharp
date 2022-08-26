@@ -45,7 +45,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
     private bool _isReadOnly;
-    private readonly bool _isServer;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
@@ -62,14 +61,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         IDuplexConnection duplexConnection,
         bool isServer,
         ConnectionOptions options)
-        : base(options)
+        : base(isServer, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
         _maxFrameSize = options.MaxIceFrameSize;
-        _isServer = isServer;
 
         if (options.MaxIceConcurrentDispatches > 0)
         {
@@ -199,7 +197,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // Wait for the transport connection establishment to enable the idle timeout check.
         _duplexConnectionReader.EnableIdleCheck();
 
-        if (_isServer)
+        if (IsServer)
         {
             EncodeValidateConnectionFrame(_duplexConnectionWriter);
             await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);

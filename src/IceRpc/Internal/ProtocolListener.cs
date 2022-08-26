@@ -15,12 +15,12 @@ internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
 
     private readonly IListener<T> _transportListener;
 
-    public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync()
+    public async Task<(IProtocolConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync()
     {
-        (T transportConnection, EndPoint remoteNetworkAddress) = await _transportListener.AcceptAsync()
+        (T transportConnection, EndPoint clientNetworkAddress) = await _transportListener.AcceptAsync()
             .ConfigureAwait(false);
 
-        return (CreateProtocolConnection(transportConnection), remoteNetworkAddress);
+        return (CreateProtocolConnection(transportConnection), clientNetworkAddress);
     }
 
     public void Dispose() => _transportListener.Dispose();
@@ -76,5 +76,5 @@ internal sealed class IceRpcProtocolListener : ProtocolListener<IMultiplexedConn
 
     private protected override IProtocolConnection CreateProtocolConnection(
         IMultiplexedConnection multiplexedConnection) =>
-        new IceRpcProtocolConnection(multiplexedConnection, _connectionOptions);
+        new IceRpcProtocolConnection(multiplexedConnection, isServer: true, _connectionOptions);
 }

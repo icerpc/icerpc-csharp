@@ -12,6 +12,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     public Task<string> ShutdownComplete => _shutdownCompleteSource.Task;
 
+    private protected bool IsServer { get; }
+
     private CancellationTokenSource? _connectCts;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
@@ -126,7 +128,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        _shutdownTask = CreateShutdownTask("connection dispose", cancelDispatchesAndInvocations: true);
+                        _shutdownTask = CreateShutdownTask(
+                            IsServer ? "server connection going away" : "client connection going away",
+                            cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
@@ -272,8 +276,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options)
+    internal ProtocolConnection(bool isServer, ConnectionOptions options)
     {
+        IsServer = isServer;
+
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
         _idleTimeout = options.IdleTimeout;

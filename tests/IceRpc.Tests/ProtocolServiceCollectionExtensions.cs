@@ -145,9 +145,11 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                     listener.ServerAddress,
                     multiplexedConnectionOptions.Value,
                     clientConnectionOptions.Value.ClientAuthenticationOptions),
+                isServer: false,
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                 (await listener.AcceptAsync()).Connection,
+                isServer: true,
                 serverOptions.Value.ConnectionOptions))
     {
     }
@@ -173,7 +175,7 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
             duplexConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
 
-    public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
+    public Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();
 }
@@ -197,7 +199,7 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
             multiplexedConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
 
-    public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() =>
+    public Task<(IMultiplexedConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync() =>
         _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();
