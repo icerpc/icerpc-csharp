@@ -108,10 +108,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
-            var connectionAbortedException = new ConnectionAbortedException("connection disposed");
-
-            if (_connectTask is not null)
+            if (_connectTask is null)
             {
+                _ = _shutdownCompleteSource.TrySetResult(""); // disposing non-connected connection
+            }
+            else
+            {
+                var connectionAbortedException = new ConnectionAbortedException("connection disposed");
+
                 try
                 {
                     // Cancel the connection establishment if still in progress.
@@ -146,9 +150,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     {
                     }
                 }
+                else
+                {
+                    _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
+                }
             }
 
-            _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
             await DisposeAsyncCore().ConfigureAwait(false);
 
             // Clean up disposable resources.
@@ -233,18 +240,24 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                return Task.CompletedTask;
+                _shutdownTask ??= Task.FromResult(message);
+                _ = _shutdownCompleteSource.TrySetResult(message);
+                return _shutdownTask;
             }
             else if (_connectTask.IsCanceled || _connectTask.IsFaulted)
             {
-                throw new ConnectionAbortedException("connection establishment failed");
+                var exception = new ConnectionAbortedException("connection establishment failed");
+                _ = _shutdownCompleteSource.TrySetException(exception);
+                throw exception;
             }
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancellationToken.IsCancellationRequested)
             {
-                _shutdownTask ??= Task.FromException(new ConnectionAbortedException("connection shutdown canceled"));
+                var exception = new ConnectionAbortedException("connection shutdown canceled");
+                _shutdownTask ??= Task.FromException(exception);
+                _ = _shutdownCompleteSource.TrySetException(exception);
                 _shutdownCts.Cancel();
                 cancellationToken.ThrowIfCancellationRequested();
             }

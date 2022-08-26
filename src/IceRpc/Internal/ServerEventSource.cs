@@ -41,7 +41,6 @@ internal sealed class ServerEventSource : EventSource
     [NonEvent]
     internal void ConnectFailure(ServerAddress serverAddress, EndPoint clientNetworkAddress, Exception exception)
     {
-        Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
             ConnectFailure(
