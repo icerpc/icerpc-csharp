@@ -162,14 +162,17 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 $"cannot send {request.Protocol} request on {ServerAddress.Protocol} connection");
         }
 
-        if (_shutdownTask is not null)
+        lock (_mutex)
         {
-            throw new ConnectionClosedException(
-                _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
-        }
-        else if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
-        {
-            throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
+            if (_shutdownTask is not null)
+            {
+                throw new ConnectionClosedException(
+                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
+            }
+            else if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
+            {
+                throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
+            }
         }
 
         return InvokeAsyncCore(request, cancellationToken);
