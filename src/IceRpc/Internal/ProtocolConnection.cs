@@ -108,6 +108,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
+            // We don't lock _mutex since once _disposeTask is not null, _connectTask, _shutdownTask etc are read-only.
+
             if (_connectTask is null)
             {
                 _ = _shutdownCompleteSource.TrySetResult(""); // disposing non-connected connection
