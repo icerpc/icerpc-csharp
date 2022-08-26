@@ -69,7 +69,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             main_constructor.add_parameter(
                 &member
                     .data_type()
-                    .to_type_string(&namespace, TypeContext::DataMember, false),
+                    .cs_type_string(&namespace, TypeContext::DataMember, false),
                 member.parameter_name().as_str(),
                 None,
                 Some(doc_comment_message(*member)),

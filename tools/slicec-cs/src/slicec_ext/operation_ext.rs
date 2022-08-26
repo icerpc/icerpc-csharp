@@ -76,7 +76,7 @@ fn operation_return_type(operation: &Operation, is_dispatch: bool, context: Type
     let ns = operation.parent().unwrap().namespace();
     match return_members.as_slice() {
         [] => "void".to_owned(),
-        [member] => member.to_type_string(&ns, context, false),
+        [member] => member.cs_type_string(&ns, context, false),
         _ => return_members.to_tuple_type(&ns, context, false),
     }
 }

@@ -311,7 +311,7 @@ impl FunctionBuilder {
                 |vec| vec.iter().map(|a| format!("[{}]", a)).collect::<Vec<_>>().join("\n"),
             );
 
-            let parameter_type = parameter.to_type_string(&operation.namespace(), context, false);
+            let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
             // TODO: it would be better if we could use parameter.comment() to get the parameter

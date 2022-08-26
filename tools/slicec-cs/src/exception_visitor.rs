@@ -247,7 +247,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
         ctor_builder.add_parameter(
             &member
                 .data_type()
-                .to_type_string(namespace, TypeContext::DataMember, false),
+                .cs_type_string(namespace, TypeContext::DataMember, false),
             member.parameter_name().as_str(),
             None,
             Some(doc_comment_message(*member)),
