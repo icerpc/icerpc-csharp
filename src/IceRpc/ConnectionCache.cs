@@ -21,7 +21,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly object _mutex = new();
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
-    private readonly Dictionary<ServerAddress, IProtocolConnection> _pendingConnections =
+    private readonly Dictionary<ServerAddress, (IProtocolConnection Connection, Task Task)> _pendingConnections =
         new(ServerAddressComparer.OptionalTransport);
 
     private readonly bool _preferExistingConnection;
@@ -73,7 +73,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Dispose all connections managed by this cache.
-        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Concat(_activeConnections.Values);
+        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
+            .Concat(_activeConnections.Values);
 
         await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
             .ConfigureAwait(false);
@@ -230,7 +231,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Shut down all connections managed by this cache.
-        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Concat(_activeConnections.Values);
+        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
+            .Concat(_activeConnections.Values);
 
         return Task.WhenAll(
             allConnections.Select(connection => connection.ShutdownAsync(message, cancellationToken)));
@@ -245,8 +247,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         ServerAddress serverAddress,
         CancellationToken cancellationToken)
     {
-        IProtocolConnection? connection = null;
-        bool created = false;
+        (IProtocolConnection Connection, Task Task) pendingConnectionValue;
 
         CancellationToken shutdownCancellationToken;
 
@@ -266,24 +267,29 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 throw new InvalidOperationException("connection cache is shut down or shutting down");
             }
 
-            if (_activeConnections.TryGetValue(serverAddress, out connection))
+            if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
             {
                 return connection;
             }
-            else if (_pendingConnections.TryGetValue(serverAddress, out connection))
+            else if (_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
             {
-                // and call ConnectAsync on this connection after the if block.
+                // and wait for the task to complete outside the mutex lock
             }
             else
             {
                 connection = _connectionFactory.CreateConnection(serverAddress);
-                created = true;
-                _pendingConnections.Add(serverAddress, connection);
+                pendingConnectionValue = (connection, PerformConnectAsync(connection));
+                _pendingConnections.Add(serverAddress, pendingConnectionValue);
             }
         }
 
-        if (created)
+        await pendingConnectionValue.Task.ConfigureAwait(false);
+        return pendingConnectionValue.Connection;
+
+        async Task PerformConnectAsync(IProtocolConnection connection)
         {
+            await Task.Yield(); // exit mutex lock
+
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 shutdownCancellationToken);
@@ -333,15 +339,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     _activeConnections.Add(serverAddress, connection);
                 }
             }
-
             _ = RemoveFromActiveAsync(connection, shutdownCancellationToken);
         }
-        else
-        {
-            _ = await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return connection;
 
         async Task RemoveFromActiveAsync(IProtocolConnection connection, CancellationToken shutdownCancellationToken)
         {
