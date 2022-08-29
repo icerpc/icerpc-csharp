@@ -38,16 +38,6 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Registers a callback that will be called when the connection is aborted by the peer.</summary>
-    /// <param name="callback">The callback. Its parameter is the exception that describes the cause of this abort.
-    /// </param>
-    void OnAbort(Action<Exception> callback);
-
-    /// <summary>Registers a callback that will be called when the connection is shutdown by the idle timeout or by
-    /// by the peer.</summary>
-    /// <param name="callback">The callback. Its parameter is the shutdown message.</param>
-    void OnShutdown(Action<string> callback);
-
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the peer with the icerpc protocol.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

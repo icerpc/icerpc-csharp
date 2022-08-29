@@ -46,9 +46,9 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that the OnShutdown callback is called when idle.</summary>
+    /// <summary>Verifies that ShutdownComplete completes when idle.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task OnShutdown_is_called_when_idle(Protocol protocol)
+    public async Task ShutdownComplete_completes_when_idle(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -68,11 +68,8 @@ public sealed class ProtocolConnectionTests
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.OnShutdown(_ => clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
-        sut.Server.OnShutdown(_ => serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
-
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        await Task.WhenAll(WaitForClientConnectionAsync(), WaitForServerConnectionAsync());
 
         // Assert
         Assert.Multiple(() =>
@@ -82,12 +79,23 @@ public sealed class ProtocolConnectionTests
             Assert.That(clientIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
             Assert.That(serverIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
         });
+
+        async Task WaitForClientConnectionAsync()
+        {
+            await sut.Client.ShutdownComplete;
+            clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64);
+        }
+
+        async Task WaitForServerConnectionAsync()
+        {
+            await sut.Server.ShutdownComplete;
+            serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64);
+        }
     }
 
-    /// <summary>Verifies that the OnShutdown callback is called when idle and after the idle time has been
-    /// deferred.</summary>
+    /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task OnShutdown_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
+    public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -114,21 +122,15 @@ public sealed class ProtocolConnectionTests
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.OnShutdown(_ => clientIdleCalledTime ??= Environment.TickCount64 - startTime);
-        sut.Server.OnShutdown(_ => serverIdleCalledTime ??= Environment.TickCount64 - startTime);
-        if (protocol == Protocol.Ice)
-        {
-            // TODO: with ice, the shutdown of the peer currently triggers an abort
-            sut.Client.OnAbort(_ => clientIdleCalledTime ??= Environment.TickCount64 - startTime);
-            sut.Server.OnAbort(_ => serverIdleCalledTime ??= Environment.TickCount64 - startTime);
-        }
+        Task clientTask = WaitForClientConnectionAsync();
+        Task serverTask = WaitForServerConnectionAsync();
 
         var request = new OutgoingRequest(new ServiceAddress(protocol));
         IncomingResponse response = await sut.Client.InvokeAsync(request);
         request.Complete();
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        await Task.WhenAll(clientTask, serverTask);
 
         // Assert
         Assert.Multiple(() =>
@@ -140,14 +142,39 @@ public sealed class ProtocolConnectionTests
                 TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
                 Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
         });
+
+        async Task WaitForClientConnectionAsync()
+        {
+            try
+            {
+                await sut.Client.ShutdownComplete;
+            }
+            catch when (protocol == Protocol.Ice)
+            {
+                // TODO: with ice, the shutdown of the peer currently triggers an abort
+            }
+            clientIdleCalledTime ??= Environment.TickCount64 - startTime;
+        }
+
+        async Task WaitForServerConnectionAsync()
+        {
+            try
+            {
+                await sut.Server.ShutdownComplete;
+            }
+            catch when (protocol == Protocol.Ice)
+            {
+                // TODO: with ice, the shutdown of the peer currently triggers an abort
+            }
+            serverIdleCalledTime ??= Environment.TickCount64 - startTime;
+        }
     }
 
-    /// <summary>Verifies that disposing the connection executes the OnAbort callback.</summary>
+    /// <summary>Verifies that disposing the connection completes ShutdownComplete.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connection_abort_callback(Protocol protocol)
+    public async Task Connection_abort_completes_shutdown_complete(Protocol protocol)
     {
         // Arrange
-        var onAbortCalled = new TaskCompletionSource<Exception>();
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
@@ -156,7 +183,6 @@ public sealed class ProtocolConnectionTests
 
         // Initialize the connection.
         await sut.ConnectAsync();
-        sut.Server.OnAbort(exception => onAbortCalled.SetException(exception));
 
         try
         {
@@ -170,7 +196,7 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await onAbortCalled.Task, Throws.InstanceOf<ConnectionLostException>());
+        Assert.That(async () => await sut.Server.ShutdownComplete, Throws.InstanceOf<ConnectionLostException>());
     }
 
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
@@ -222,7 +248,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that the sending a request after shutdown fails.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Invoke_on_shutdown_connection_fails(Protocol protocol)
+    public async Task Invoke_on_connection_fails_after_shutdown(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()

@@ -62,9 +62,7 @@ public class ClientConnectionTests
             });
         await connection.ConnectAsync();
 
-        using var semaphore = new SemaphoreSlim(0);
-        connection.OnShutdown(message => semaphore.Release(1));
-        await semaphore.WaitAsync();
+        _ = await connection.UnderlyingConnection.ShutdownComplete;
 
         // Act/Assert
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
@@ -89,7 +87,6 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
-    [Ignore("see issue #1656")]
     [Test]
     public async Task Connection_can_reconnect_after_peer_abort()
     {
@@ -99,6 +96,9 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
+
+        Task shutdownComplete = connection.UnderlyingConnection.ShutdownComplete;
+
         try
         {
             // Cancel shutdown and dispose to abort the connection.
@@ -109,14 +109,21 @@ public class ClientConnectionTests
         }
         await server.DisposeAsync();
 
-        using var semaphore = new SemaphoreSlim(0);
-        connection.OnAbort(message => semaphore.Release(1));
-        await semaphore.WaitAsync();
+        bool aborted = false;
+        try
+        {
+            await shutdownComplete;
+        }
+        catch
+        {
+            aborted = true;
+        }
 
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
         // Act/Assert
+        Assert.That(aborted, Is.True);
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
 
         await server.DisposeAsync();
