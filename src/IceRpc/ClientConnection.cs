@@ -389,11 +389,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     _connectTask = PerformConnectAsync();
                     return _connectTask;
                 }
-                else
-                {
-                    return PerformWaitForConnectAsync();
-                }
             }
+            return PerformWaitForConnectAsync();
 
             async Task<TransportConnectionInformation> PerformConnectAsync()
             {
@@ -407,8 +404,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
             {
-                await Task.Yield(); // exit mutex lock
-
                 try
                 {
                     return await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
