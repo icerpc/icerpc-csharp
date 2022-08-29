@@ -17,8 +17,9 @@ public sealed class Server : IAsyncDisposable
     /// port the server is listening on.</value>
     public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
 
-    /// <summary>Gets a task that completes when the server's shutdown is complete: see <see cref="ShutdownAsync"/>.
-    /// This property can be retrieved before shutdown is initiated.</summary>
+    /// <summary>Gets a task that completes when the server's shutdown is complete: see
+    /// <see cref="ShutdownAsync(string, CancellationToken)"/> This property can be retrieved before shutdown is
+    /// initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
     private readonly HashSet<IProtocolConnection> _connections = new();
@@ -283,10 +284,18 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
-    /// existing connections.</summary>
+    /// existing connections using a default message.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    public async Task ShutdownAsync(CancellationToken cancellationToken = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+        ShutdownAsync("Server shutdown", cancellationToken);
+
+    /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
+    /// existing connections.</summary>
+    /// <param name="message">The message transmitted to the clients with the icerpc protocol.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
+    public async Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -307,7 +316,7 @@ public sealed class Server : IAsyncDisposable
                 _listener?.Dispose();
             }
 
-            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync("server shutdown", cancellationToken)))
+            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(message, cancellationToken)))
                 .ConfigureAwait(false);
         }
         finally
@@ -330,15 +339,15 @@ public sealed class Server : IAsyncDisposable
 
         private readonly IListener<IProtocolConnection> _decoratee;
 
-        public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync()
+        public async Task<(IProtocolConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync()
         {
-            (IProtocolConnection connection, EndPoint remoteNetworkAddress) = await _decoratee.AcceptAsync()
+            (IProtocolConnection connection, EndPoint clientNetworkAddress) = await _decoratee.AcceptAsync()
                 .ConfigureAwait(false);
 
             // We don't log AcceptAsync exceptions; they usually occur when the server is shutting down.
 
-            ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-            return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
+            ServerEventSource.Log.ConnectionStart(ServerAddress, clientNetworkAddress);
+            return (new LogProtocolConnectionDecorator(connection, clientNetworkAddress), clientNetworkAddress);
         }
 
         public void Dispose() => _decoratee.Dispose();
@@ -354,28 +363,28 @@ public sealed class Server : IAsyncDisposable
 
         public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
 
+        private readonly EndPoint _clientNetworkAddress;
         private readonly IProtocolConnection _decoratee;
         private readonly Task _logShutdownTask;
-        private readonly EndPoint _remoteNetworkAddress;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
-            ServerEventSource.Log.ConnectStart(ServerAddress, _remoteNetworkAddress);
+            ServerEventSource.Log.ConnectStart(ServerAddress, _clientNetworkAddress);
             try
             {
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
-                ServerEventSource.Log.ConnectSuccess(ServerAddress, _remoteNetworkAddress);
+                ServerEventSource.Log.ConnectSuccess(ServerAddress, _clientNetworkAddress);
                 return result;
             }
             catch (Exception exception)
             {
-                ServerEventSource.Log.ConnectFailure(ServerAddress, _remoteNetworkAddress, exception);
+                ServerEventSource.Log.ConnectFailure(ServerAddress, _clientNetworkAddress, exception);
                 throw;
             }
             finally
             {
-                ServerEventSource.Log.ConnectStop(ServerAddress, _remoteNetworkAddress);
+                ServerEventSource.Log.ConnectStop(ServerAddress, _clientNetworkAddress);
             }
         }
 
@@ -383,7 +392,7 @@ public sealed class Server : IAsyncDisposable
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
             await _logShutdownTask.ConfigureAwait(false); // make sure the task completes before ConnectionStop
-            ServerEventSource.Log.ConnectionStop(ServerAddress, _remoteNetworkAddress);
+            ServerEventSource.Log.ConnectionStop(ServerAddress, _clientNetworkAddress);
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -396,10 +405,10 @@ public sealed class Server : IAsyncDisposable
         public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(message, cancellationToken);
 
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, EndPoint remoteNetworkAddress)
+        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, EndPoint clientNetworkAddress)
         {
             _decoratee = decoratee;
-            _remoteNetworkAddress = remoteNetworkAddress;
+            _clientNetworkAddress = clientNetworkAddress;
 
             _logShutdownTask = LogShutdownAsync();
 
@@ -408,13 +417,13 @@ public sealed class Server : IAsyncDisposable
                 try
                 {
                     string message = await ShutdownComplete.ConfigureAwait(false);
-                    ServerEventSource.Log.ConnectionShutdown(ServerAddress, remoteNetworkAddress, message);
+                    ServerEventSource.Log.ConnectionShutdown(ServerAddress, clientNetworkAddress, message);
                 }
                 catch (Exception exception)
                 {
-                    ServerEventSource.Log.ConnectionShutdownFailure(
+                    ServerEventSource.Log.ConnectionFailure(
                         ServerAddress,
-                        remoteNetworkAddress,
+                        clientNetworkAddress,
                         exception);
                 }
             }

@@ -45,11 +45,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        var clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
+        IClientProtocolConnectionFactory clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport);
+
+        clientProtocolConnectionFactory =
+            new LogClientProtocolConnectionFactoryDecorator(clientProtocolConnectionFactory);
 
         _connectionFactory = previousConnection =>
         {
@@ -277,14 +280,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         connection.OnShutdown(callback);
     }
 
-    /// <summary>Gracefully shuts down the connection.</summary>
+    /// <summary>Gracefully shuts down the connection with a default message.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-        ShutdownAsync("connection shutdown", cancellationToken: cancellationToken);
+        ShutdownAsync("ClientConnection shutdown", cancellationToken);
 
     /// <summary>Gracefully shuts down the connection.</summary>
-    /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
+    /// <param name="message">The message transmitted to the server with the icerpc protocol.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)

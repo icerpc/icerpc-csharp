@@ -12,6 +12,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     public Task<string> ShutdownComplete => _shutdownCompleteSource.Task;
 
+    private protected bool IsServer { get; }
+
     private CancellationTokenSource? _connectCts;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
@@ -106,10 +108,16 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
-            var connectionAbortedException = new ConnectionAbortedException("connection disposed");
+            // We don't lock _mutex since once _disposeTask is not null, _connectTask, _shutdownTask etc are read-only.
 
-            if (_connectTask is not null)
+            if (_connectTask is null)
             {
+                _ = _shutdownCompleteSource.TrySetResult(""); // disposing non-connected connection
+            }
+            else
+            {
+                var connectionAbortedException = new ConnectionAbortedException("connection disposed");
+
                 try
                 {
                     // Cancel the connection establishment if still in progress.
@@ -126,7 +134,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        _shutdownTask = CreateShutdownTask("connection dispose", cancelDispatchesAndInvocations: true);
+                        _shutdownTask = CreateShutdownTask(
+                            IsServer ? "server connection going away" : "client connection going away",
+                            cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
@@ -142,9 +152,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     {
                     }
                 }
+                else
+                {
+                    _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
+                }
             }
 
-            _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
             await DisposeAsyncCore().ConfigureAwait(false);
 
             // Clean up disposable resources.
@@ -232,18 +245,24 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                return Task.CompletedTask;
+                _shutdownTask ??= Task.FromResult(message);
+                _ = _shutdownCompleteSource.TrySetResult(message);
+                return _shutdownTask;
             }
             else if (_connectTask.IsCanceled || _connectTask.IsFaulted)
             {
-                throw new ConnectionAbortedException("connection establishment failed");
+                var exception = new ConnectionAbortedException("connection establishment failed");
+                _ = _shutdownCompleteSource.TrySetException(exception);
+                throw exception;
             }
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancellationToken.IsCancellationRequested)
             {
-                _shutdownTask ??= Task.FromException(new ConnectionAbortedException("connection shutdown canceled"));
+                var exception = new ConnectionAbortedException("connection shutdown canceled");
+                _shutdownTask ??= Task.FromException(exception);
+                _ = _shutdownCompleteSource.TrySetException(exception);
                 _shutdownCts.Cancel();
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -275,8 +294,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options)
+    internal ProtocolConnection(bool isServer, ConnectionOptions options)
     {
+        IsServer = isServer;
+
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
         _idleTimeout = options.IdleTimeout;

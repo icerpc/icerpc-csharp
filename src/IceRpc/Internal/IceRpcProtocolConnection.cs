@@ -45,8 +45,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
+        bool isServer,
         ConnectionOptions options)
-        : base(options)
+        : base(isServer, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;

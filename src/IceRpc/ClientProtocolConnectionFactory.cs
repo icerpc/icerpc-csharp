@@ -75,5 +75,6 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                     serverAddress,
                     _multiplexedConnectionOptions,
                     _clientAuthenticationOptions),
+                isServer: false,
                 _connectionOptions);
 }
