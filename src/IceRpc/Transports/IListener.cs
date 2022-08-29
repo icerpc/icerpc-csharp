@@ -17,5 +17,5 @@ public interface IListener<T> : IListener
 {
     /// <summary>Accepts a new connection.</summary>
     /// <returns>The accepted connection and the network address of the client.</returns>
-    Task<(T Connection, EndPoint ClientNetworkAddress)> AcceptAsync();
+    Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync();
 }

@@ -19,7 +19,7 @@ public abstract class DuplexTransportConformanceTests
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
 
-        Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         _ = clientConnection.ConnectAsync(default);
 
         // Act/Assert

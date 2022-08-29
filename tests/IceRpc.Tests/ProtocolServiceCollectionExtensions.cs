@@ -175,7 +175,7 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
             duplexConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
 
-    public Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
+    public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();
 }
@@ -199,7 +199,7 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
             multiplexedConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
 
-    public Task<(IMultiplexedConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync() =>
+    public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() =>
         _listener.AcceptAsync();
 
     public void Dispose() => _listener.Dispose();

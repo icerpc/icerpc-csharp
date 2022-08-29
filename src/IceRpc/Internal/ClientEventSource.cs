@@ -58,45 +58,48 @@ internal sealed class ClientEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectStop(ServerAddress serverAddress, EndPoint? clientNetworkAddress)
+    internal void ConnectStop(ServerAddress serverAddress, EndPoint? localNetworkAddress)
     {
         Interlocked.Decrement(ref _currentQueue);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectStop(serverAddress.ToString(), clientNetworkAddress?.ToString());
+            ConnectStop(serverAddress.ToString(), localNetworkAddress?.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectSuccess(ServerAddress serverAddress, EndPoint clientNetworkAddress)
+    internal void ConnectSuccess(
+        ServerAddress serverAddress,
+        EndPoint localNetworkAddress,
+        EndPoint remoteNetworkAddress)
     {
         Interlocked.Increment(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectSuccess(serverAddress.ToString(), clientNetworkAddress.ToString());
+            ConnectSuccess(serverAddress.ToString(), localNetworkAddress.ToString(), remoteNetworkAddress.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectionFailure(ServerAddress serverAddress, EndPoint? clientNetworkAddress, Exception exception)
+    internal void ConnectionFailure(ServerAddress serverAddress, EndPoint? localNetworkAddress, Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
             ConnectionFailure(
                 serverAddress.ToString(),
-                clientNetworkAddress?.ToString(),
+                localNetworkAddress?.ToString(),
                 exception.GetType().FullName,
                 exception.ToString());
         }
     }
 
     [NonEvent]
-    internal void ConnectionShutdown(ServerAddress serverAddress, EndPoint clientNetworkAddress, string message)
+    internal void ConnectionShutdown(ServerAddress serverAddress, EndPoint localNetworkAddress, string message)
     {
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionShutdown(serverAddress.ToString(), clientNetworkAddress.ToString(), message);
+            ConnectionShutdown(serverAddress.ToString(), localNetworkAddress.ToString(), message);
         }
     }
 
@@ -111,12 +114,12 @@ internal sealed class ClientEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectionStop(ServerAddress serverAddress, EndPoint? clientNetworkAddress)
+    internal void ConnectionStop(ServerAddress serverAddress, EndPoint? localNetworkAddress)
     {
         Interlocked.Decrement(ref _currentConnections);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionStop(serverAddress.ToString(), clientNetworkAddress?.ToString());
+            ConnectionStop(serverAddress.ToString(), localNetworkAddress?.ToString());
         }
     }
 
@@ -190,17 +193,17 @@ internal sealed class ClientEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectionStop(string serverAddress, string? clientNetworkAddress) =>
-        WriteEvent(2, serverAddress, clientNetworkAddress);
+    private void ConnectionStop(string serverAddress, string? localNetworkAddress) =>
+        WriteEvent(2, serverAddress, localNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(3, Level = EventLevel.Error)]
     private void ConnectionFailure(
         string serverAddress,
-        string? clientNetworkAddress,
+        string? localNetworkAddress,
         string? exceptionType,
         string exceptionDetails) =>
-        WriteEvent(3, serverAddress, clientNetworkAddress, exceptionType, exceptionDetails);
+        WriteEvent(3, serverAddress, localNetworkAddress, exceptionType, exceptionDetails);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(4, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
@@ -209,8 +212,8 @@ internal sealed class ClientEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(5, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-    private void ConnectStop(string serverAddress, string? clientNetworkAddress) =>
-        WriteEvent(5, serverAddress, clientNetworkAddress);
+    private void ConnectStop(string serverAddress, string? localNetworkAddress) =>
+        WriteEvent(5, serverAddress, localNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(6, Level = EventLevel.Error)]
@@ -219,11 +222,11 @@ internal sealed class ClientEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(7, Level = EventLevel.Informational)]
-    private void ConnectSuccess(string serverAddress, string? clientNetworkAddress) =>
-        WriteEvent(7, serverAddress, clientNetworkAddress);
+    private void ConnectSuccess(string serverAddress, string? localNetworkAddress, string? remoteNetworkAddress) =>
+        WriteEvent(7, serverAddress, localNetworkAddress, remoteNetworkAddress);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(8, Level = EventLevel.Informational)]
-    private void ConnectionShutdown(string serverAddress, string? clientNetworkAddress, string message) =>
-        WriteEvent(8, serverAddress, clientNetworkAddress, message);
+    private void ConnectionShutdown(string serverAddress, string? localNetworkAddress, string message) =>
+        WriteEvent(8, serverAddress, localNetworkAddress, message);
 }
