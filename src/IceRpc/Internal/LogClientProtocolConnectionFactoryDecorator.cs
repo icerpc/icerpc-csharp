@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Diagnostics;
 using System.Net;
 
 namespace IceRpc.Internal;
