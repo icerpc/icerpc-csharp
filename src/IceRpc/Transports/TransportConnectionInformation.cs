@@ -6,13 +6,13 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports;
 
 /// <summary>The transport connection information returned on connection establishment.</summary>
-public readonly record struct TransportConnectionInformation
+public sealed record class TransportConnectionInformation
 {
     /// <summary>Gets the network address of the local end of the connection.</summary>
-    public EndPoint? LocalNetworkAddress { get; }
+    public EndPoint LocalNetworkAddress { get; }
 
     /// <summary>Gets the network address of the remote end of the connection.</summary>
-    public EndPoint? RemoteNetworkAddress { get; }
+    public EndPoint RemoteNetworkAddress { get; }
 
     /// <summary>Gets the certificate of the remote peer, if provided.</summary>
     public X509Certificate? RemoteCertificate { get; }
