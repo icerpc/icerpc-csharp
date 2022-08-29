@@ -341,7 +341,7 @@ public class TcpTransportTests
         using TcpClientConnection clientConnection =
             CreateTcpClientConnection(listener.ServerAddress, authenticationOptions: DefaultSslClientAuthenticationOptions);
 
-        Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
         await clientConnection.Socket.ConnectAsync(new DnsEndPoint(listener.ServerAddress.Host, listener.ServerAddress.Port));
         IDuplexConnection serverConnection = (await acceptTask).Connection;

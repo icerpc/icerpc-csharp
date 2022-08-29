@@ -28,10 +28,8 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
 
         public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
 
-        private EndPoint? _clientNetworkAddress;
-
         private readonly IProtocolConnection _decoratee;
-
+        private EndPoint? _localNetworkAddress;
         private readonly Task _logShutdownAsync;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -41,8 +39,10 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             {
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
-                _clientNetworkAddress = result.LocalNetworkAddress;
-                ClientEventSource.Log.ConnectSuccess(ServerAddress, _clientNetworkAddress!);
+                Debug.Assert(result.LocalNetworkAddress is not null);
+                Debug.Assert(result.RemoteNetworkAddress is not null);
+                _localNetworkAddress = result.LocalNetworkAddress;
+                ClientEventSource.Log.ConnectSuccess(ServerAddress, _localNetworkAddress, result.RemoteNetworkAddress);
                 return result;
             }
             catch (Exception exception)
@@ -52,7 +52,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             }
             finally
             {
-                ClientEventSource.Log.ConnectStop(ServerAddress, _clientNetworkAddress);
+                ClientEventSource.Log.ConnectStop(ServerAddress, _localNetworkAddress);
             }
         }
 
@@ -60,7 +60,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
             await _logShutdownAsync.ConfigureAwait(false); // make sure the task completes before ConnectionStop
-            ClientEventSource.Log.ConnectionStop(ServerAddress, _clientNetworkAddress);
+            ClientEventSource.Log.ConnectionStop(ServerAddress, _localNetworkAddress);
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -83,11 +83,12 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 try
                 {
                     string message = await ShutdownComplete.ConfigureAwait(false);
-                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _clientNetworkAddress!, message);
+                    Debug.Assert(_localNetworkAddress is not null);
+                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress, message);
                 }
                 catch (Exception exception)
                 {
-                    ClientEventSource.Log.ConnectionFailure(ServerAddress, _clientNetworkAddress, exception);
+                    ClientEventSource.Log.ConnectionFailure(ServerAddress, _localNetworkAddress, exception);
                 }
             }
         }

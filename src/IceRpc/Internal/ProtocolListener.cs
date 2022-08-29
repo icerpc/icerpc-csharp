@@ -15,12 +15,12 @@ internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
 
     private readonly IListener<T> _transportListener;
 
-    public async Task<(IProtocolConnection Connection, EndPoint ClientNetworkAddress)> AcceptAsync()
+    public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync()
     {
-        (T transportConnection, EndPoint clientNetworkAddress) = await _transportListener.AcceptAsync()
+        (T transportConnection, EndPoint remoteNetworkAddress) = await _transportListener.AcceptAsync()
             .ConfigureAwait(false);
 
-        return (CreateProtocolConnection(transportConnection), clientNetworkAddress);
+        return (CreateProtocolConnection(transportConnection), remoteNetworkAddress);
     }
 
     public void Dispose() => _transportListener.Dispose();

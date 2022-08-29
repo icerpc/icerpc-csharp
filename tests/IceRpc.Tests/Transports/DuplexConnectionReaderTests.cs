@@ -26,7 +26,7 @@ public class DuplexConnectionReaderTests
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-        Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
@@ -66,7 +66,7 @@ public class DuplexConnectionReaderTests
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-        Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
@@ -100,7 +100,7 @@ public class DuplexConnectionReaderTests
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-        Task<(IDuplexConnection Connection, EndPoint ClientNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
