@@ -3,8 +3,8 @@
 using IceRpc.Internal; // ServiceNotFoundDispatcher
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
-using NUnit.Framework;
 using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
 
 namespace IceRpc.Tests;
 
