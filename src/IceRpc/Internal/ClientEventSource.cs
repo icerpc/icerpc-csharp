@@ -22,11 +22,11 @@ internal sealed class ClientEventSource : EventSource
     // Tracks the connection rate
     private IncrementingPollingCounter? _connectionsPerSecondCounter;
 
-    // The number of connection that have been accepted and connected.
+    // The number of connection that have been created and connected.
     private long _totalConnections;
     private PollingCounter? _totalConnectionsCounter;
 
-    // The number of connections that were accepted but failed to connect plus lost connections.
+    // The number of connections that failed after creation.
     private long _totalFailedConnections;
     private PollingCounter? _totalFailedConnectionsCounter;
 

@@ -28,11 +28,11 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
 
         public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
 
+        private EndPoint? _clientNetworkAddress;
+
         private readonly IProtocolConnection _decoratee;
 
         private readonly Task _logShutdownAsync;
-
-        private EndPoint? _clientNetworkAddress;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {

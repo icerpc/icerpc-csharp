@@ -363,9 +363,9 @@ public sealed class Server : IAsyncDisposable
 
         public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
 
+        private readonly EndPoint _clientNetworkAddress;
         private readonly IProtocolConnection _decoratee;
         private readonly Task _logShutdownTask;
-        private readonly EndPoint _clientNetworkAddress;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {

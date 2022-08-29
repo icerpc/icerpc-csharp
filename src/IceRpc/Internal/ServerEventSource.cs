@@ -15,7 +15,7 @@ internal sealed class ServerEventSource : EventSource
     private long _currentBacklog;
     private PollingCounter? _currentBacklogCounter;
 
-    // The number of connections that were accepted and connected and are not lost or shutdown.
+    // The number of active (accepted and connected) connections.
     private long _currentConnections;
     private PollingCounter? _currentConnectionsCounter;
 
@@ -26,7 +26,7 @@ internal sealed class ServerEventSource : EventSource
     private long _totalConnections;
     private PollingCounter? _totalConnectionsCounter;
 
-    // The number of connections that were accepted but failed to connect plus lost connections.
+    // The number of connections that were accepted and failed later on.
     private long _totalFailedConnections;
     private PollingCounter? _totalFailedConnectionsCounter;
 
