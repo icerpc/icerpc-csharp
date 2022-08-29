@@ -74,8 +74,7 @@ internal static class IceDefinitions
         if (prologue.EncodingMajor != ProtocolBytes[2] || prologue.EncodingMinor != ProtocolBytes[3])
         {
             throw new InvalidDataException(
-                @$"received ice prologue with protocol encoding set to {
-                    prologue.EncodingMajor}.{prologue.EncodingMinor}");
+                $"received ice prologue with protocol encoding set to {prologue.EncodingMajor}.{prologue.EncodingMinor}");
         }
     }
 

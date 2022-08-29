@@ -25,7 +25,7 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
         }
         if (count > _available.Length)
         {
-            throw new InvalidOperationException($"can't advance past the end of the underlying buffer");
+            throw new InvalidOperationException("can't advance past the end of the underlying buffer");
         }
         _written += count;
         _available = _initialBuffer[_written..];
@@ -44,8 +44,7 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
         if (sizeHint > _available.Length)
         {
             throw new ArgumentException(
-                @$"requested at least {sizeHint} bytes from {nameof(MemoryBufferWriter)} when only {
-                    _available.Length} bytes are available",
+                $"requested at least {sizeHint} bytes from {nameof(MemoryBufferWriter)} when only {_available.Length} bytes are available",
                 nameof(sizeHint));
         }
         return _available;

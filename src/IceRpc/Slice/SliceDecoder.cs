@@ -409,8 +409,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException(
-                $"{nameof(DecodeSystemException)} is not compatible with {Encoding}");
+            throw new InvalidOperationException($"{nameof(DecodeSystemException)} is not compatible with {Encoding}");
         }
 
         ReplyStatus replyStatus = this.DecodeReplyStatus();
@@ -439,8 +438,7 @@ public ref partial struct SliceDecoder
                     string target = requestFailed.Fragment.Length > 0 ?
                         $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                    message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
-                    } }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                    message = $"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
                 }
                 // else message remains null
                 break;
@@ -1019,9 +1017,7 @@ public ref partial struct SliceDecoder
         if (serverAddress is null)
         {
             throw new InvalidDataException(
-                @$"cannot decode server address for protocol '{protocol
-                }' and transport '{transportCode.ToString().ToLowerInvariant()
-                }' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
+                $"cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
         }
 
         return serverAddress.Value;

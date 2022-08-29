@@ -18,7 +18,7 @@ public static class IncomingRequestExtensions
         if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
         {
             throw new InvalidDataException(
-                $@"idempotent mismatch for operation '{request.Operation}': received request marked idempotent for a non-idempotent operation");
+                $"idempotent mismatch for operation '{request.Operation}': received request marked idempotent for a non-idempotent operation");
         }
     }
 

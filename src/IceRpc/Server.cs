@@ -51,8 +51,7 @@ public sealed class Server : IAsyncDisposable
     {
         if (options.ConnectionOptions.Dispatcher is null)
         {
-            throw new ArgumentException(
-                $"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
+            throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
 
         _serverAddress = options.ServerAddress;
