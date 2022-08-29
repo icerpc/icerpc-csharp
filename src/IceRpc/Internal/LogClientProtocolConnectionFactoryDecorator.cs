@@ -84,7 +84,8 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 try
                 {
                     string message = await ShutdownComplete.ConfigureAwait(false);
-                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress!, message);
+                    Debug.Assert(_localNetworkAddress is not null);
+                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress, message);
                 }
                 catch (Exception exception)
                 {
