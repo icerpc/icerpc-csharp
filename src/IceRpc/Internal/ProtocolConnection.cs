@@ -179,13 +179,33 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw new ConnectionClosedException(
                     _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
             }
-            else if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
+            else if (_connectTask is null)
             {
                 throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
             }
         }
 
-        return InvokeAsyncCore(request, cancellationToken);
+        if (_connectTask.IsCompletedSuccessfully)
+        {
+            return InvokeAsyncCore(request, cancellationToken);
+        }
+        else if (_connectTask.IsCompleted)
+        {
+            throw new InvalidOperationException("cannot call InvokeAsync after ConnectAsync failed");
+        }
+        else
+        {
+            return IsServer ? PerformInvokeAsync() :
+                throw new InvalidOperationException("cannot call InvokeAsync while connecting a client connection");
+        }
+
+        async Task<IncomingResponse> PerformInvokeAsync()
+        {
+            // It's possible to dispatch a request and expose its connection (invoker) before ConnectAsync completes;
+            // in this rare case, we wait for _connectTask to complete before calling InvokeAsyncCore.
+            _ = await _connectTask.ConfigureAwait(false);
+            return await InvokeAsyncCore(request, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
