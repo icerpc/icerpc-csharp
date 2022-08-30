@@ -18,7 +18,7 @@ public record class ConnectionCacheOptions
     /// creating a new one.</summary>
     /// <value>When <c>true</c>, the connection cache first checks the server addresses of the target service address:
     /// if any matches an active connection it manages, it sends the request over this connection. It does not check
-    /// pending connections (connections being connected). When <c>false</c>, the connection cache does not prefer
-    /// active or pending connections.</value>
+    /// connections being connected. When <c>false</c>, the connection cache does not prefer existing connections.
+    /// </value>
     public bool PreferExistingConnection { get; set; } = true;
 }
