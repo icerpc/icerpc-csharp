@@ -295,8 +295,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 shutdownCancellationToken);
             try
             {
-                TransportConnectionInformation transportConnectionInformation =
-                    await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
+                _ = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
             }
             catch
             {
