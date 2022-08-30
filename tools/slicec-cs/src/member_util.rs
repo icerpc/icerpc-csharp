@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::cs_util::*;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::{DataMember, Member, Primitive, Types};
 use slice::utils::code_gen_util::TypeContext;
@@ -20,7 +20,7 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
     let type_string = data_member
         .data_type()
         .cs_type_string(&data_member.namespace(), TypeContext::DataMember, false);
-    let mut prelude = CodeBlock::new();
+    let mut prelude = CodeBlock::default();
 
     prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));
     prelude.writeln(&data_member.custom_attributes().into_iter().collect::<CodeBlock>());
@@ -43,7 +43,7 @@ pub fn initialize_non_nullable_fields(members: &[&impl Member], field_type: Fiel
     // This helper should only be used for classes and exceptions
     assert!(field_type == FieldType::Class || field_type == FieldType::Exception);
 
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     for member in members {
         let data_type = member.data_type();

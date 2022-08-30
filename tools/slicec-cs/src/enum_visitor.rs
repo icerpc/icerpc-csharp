@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use convert_case::{Case, Casing};
 use slice::grammar::*;
@@ -17,7 +17,7 @@ pub struct EnumVisitor<'a> {
 
 impl<'a> Visitor for EnumVisitor<'a> {
     fn visit_enum_start(&mut self, enum_def: &Enum) {
-        let mut code = CodeBlock::new();
+        let mut code = CodeBlock::default();
         code.add_block(&enum_declaration(enum_def));
         code.add_block(&enum_underlying_extensions(enum_def));
         code.add_block(&enum_encoder_extensions(enum_def));
@@ -39,7 +39,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
 }
 
 fn enum_values(enum_def: &Enum) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     for enumerator in enum_def.enumerators() {
         // Use CodeBlock here in case the comment is empty. It automatically whitespace
         code.add_block(&CodeBlock::from(format!(

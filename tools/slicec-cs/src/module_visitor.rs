@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, ContainerBuilder};
-use crate::code_block::CodeBlock;
 use crate::generated_code::GeneratedCode;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
 use slice::slice_file::SliceFile;
@@ -75,7 +75,7 @@ impl ModuleVisitor<'_> {
                 && submodules_code.is_empty()
                 && (module_prefix.is_some() || module.is_top_level())
             {
-                let mut code_block = CodeBlock::new();
+                let mut code_block = CodeBlock::default();
                 writeln!(code_block, "namespace {};", module_identifier);
 
                 for code in vec {

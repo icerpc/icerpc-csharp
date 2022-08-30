@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, FunctionCallBuilder};
-use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use convert_case::{Case, Casing};
 use slice::grammar::*;
@@ -15,7 +15,7 @@ pub fn decode_data_members(
     field_type: FieldType,
     encoding: Encoding,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
@@ -49,7 +49,7 @@ pub fn decode_data_members(
 }
 
 fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: Encoding) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let data_type = member.data_type();
     let type_string = data_type.cs_type_string(namespace, TypeContext::Decode, true);
 
@@ -193,7 +193,7 @@ decoder.DecodeDictionary(
 }
 
 pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
     if sequence_ref.get_attribute("cs::generic", false).is_none()
         && matches!(element_type.concrete_type(), Types::Sequence(_))
@@ -422,7 +422,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
 }
 
 pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     let namespace = &operation.namespace();
 
