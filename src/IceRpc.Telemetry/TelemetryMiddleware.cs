@@ -6,9 +6,10 @@ using System.Diagnostics;
 
 namespace IceRpc.Telemetry;
 
-/// <summary>A middleware that starts an <see cref="Activity"/> per request, following OpenTelemetry
-/// conventions. The Activity is started if <see cref="Activity.Current"/> is not null or if "IceRpc" logging
-/// is enabled. The middleware restores the parent invocation activity before starting the dispatch activity.</summary>
+/// <summary>A middleware that starts an <see cref="Activity"/> per request, following OpenTelemetry conventions. The
+/// middleware restores the parent invocation activity from the request <see cref="RequestFieldKey.TraceContext"/>
+/// field before starting the dispatch activity. The activities are only created for requests using the icerpc
+/// protocol.</summary>
 /// <seealso cref="TelemetryInterceptor"/>
 public class TelemetryMiddleware : IDispatcher
 {
