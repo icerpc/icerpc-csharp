@@ -49,27 +49,7 @@ public class ClientConnectionTests
     }
 
     [Test]
-    public async Task Connection_can_reconnect_after_being_idle()
-    {
-        // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
-        server.Listen();
-        await using var connection = new ClientConnection(
-            new ClientConnectionOptions()
-            {
-                ServerAddress = server.ServerAddress,
-                IdleTimeout = TimeSpan.FromMilliseconds(500)
-            });
-        await connection.ConnectAsync();
-
-        _ = await connection.UnderlyingConnection.ShutdownComplete;
-
-        // Act/Assert
-        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
-    }
-
-    [Test]
-    public async Task Connection_can_reconnect_after_graceful_peer_shutdown()
+    public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
@@ -97,8 +77,6 @@ public class ClientConnectionTests
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
 
-        Task shutdownComplete = connection.UnderlyingConnection.ShutdownComplete;
-
         try
         {
             // Cancel shutdown and dispose to abort the connection.
@@ -109,21 +87,10 @@ public class ClientConnectionTests
         }
         await server.DisposeAsync();
 
-        bool aborted = false;
-        try
-        {
-            await shutdownComplete;
-        }
-        catch
-        {
-            aborted = true;
-        }
-
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
         // Act/Assert
-        Assert.That(aborted, Is.True);
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
 
         await server.DisposeAsync();

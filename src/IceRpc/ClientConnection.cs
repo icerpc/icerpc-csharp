@@ -16,10 +16,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
     /// non-null.</value>
-    public ServerAddress ServerAddress => UnderlyingConnection.ServerAddress;
+    public ServerAddress ServerAddress => _connection.ServerAddress;
 
-    /// <summary>Gets the underlying protocol connection.</summary>
-    public IProtocolConnection UnderlyingConnection { get; private set; }
+    // The underlying protocol connection
+    private IProtocolConnection _connection;
 
     // The connection parameter represents the previous connection, if any.
     private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
@@ -95,7 +95,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         };
 
-        UnderlyingConnection = _connectionFactory(null); // null because there is no previous connection
+        _connection = _connectionFactory(null); // null because there is no previous connection
     }
 
     /// <summary>Constructs a resumable client connection with the specified server address and client authentication
@@ -141,7 +141,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         // Keep a reference to the connection we're trying to connect to.
-        IProtocolConnection connection = UnderlyingConnection;
+        IProtocolConnection connection = _connection;
 
         try
         {
@@ -162,7 +162,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             _isResumable = false;
         }
 
-        return UnderlyingConnection.DisposeAsync();
+        return _connection.DisposeAsync();
     }
 
     /// <inheritdoc/>
@@ -207,7 +207,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            IProtocolConnection connection = UnderlyingConnection;
+            IProtocolConnection connection = _connection;
 
             try
             {
@@ -237,7 +237,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             _isResumable = false;
         }
-        return UnderlyingConnection.ShutdownAsync(message, cancellationToken);
+        return _connection.ShutdownAsync(message, cancellationToken);
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
@@ -252,11 +252,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             // If it's another connection, another thread has already called RefreshConnection.
             if (_isResumable)
             {
-                if (connection == UnderlyingConnection)
+                if (connection == _connection)
                 {
-                    UnderlyingConnection = _connectionFactory(connection);
+                    _connection = _connectionFactory(connection);
                 }
-                newConnection = UnderlyingConnection;
+                newConnection = _connection;
             }
         }
 
