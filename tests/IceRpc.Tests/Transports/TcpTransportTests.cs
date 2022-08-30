@@ -262,6 +262,18 @@ public class TcpTransportTests
         clientConnection.Dispose();
     }
 
+    /// <summary>Verifies that using a DNS name in a server address fails with <see cref="NotSupportedException"/>
+    /// exception.</summary>
+    [Test]
+    public void DNS_name_cannot_be_used_in_a_server_server_address()
+    {
+        // Arrange
+        var address = new ServerAddress(Protocol.IceRpc) { Host = "foo" };
+
+        // Act/Assert
+        Assert.Throws<NotSupportedException>(() => CreateTcpListener(address));
+    }
+
     /// <summary>Verifies that the client connect call on a tls connection fails with
     /// <see cref="OperationCanceledException"/> when the cancellation token is canceled.</summary>
     [Test]
