@@ -16,7 +16,7 @@ public static class DeadlineInvokerBuilderExtensions
 
     /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the builder.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <param name="defaultTimeout">The deadline interceptor options.</param>
+    /// <param name="defaultTimeout">The default timeout.</param>
     /// <param name="alwaysEnforceDeadline">When <c>true</c> and the request carries a deadline, the interceptor always
     /// creates a cancellation token source to enforce this deadline. When <c>false</c> and the request carries a
     /// deadline, the interceptor creates a cancellation token source to enforce this deadline only when the
