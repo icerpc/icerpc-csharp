@@ -3,13 +3,13 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
-use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, *};
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
@@ -46,7 +46,7 @@ impl Visitor for ProxyVisitor<'_> {
             doc_comment_message(interface_def)
         );
 
-        let mut code = CodeBlock::new();
+        let mut code = CodeBlock::default();
         code.add_block(
             &ContainerBuilder::new(&format!("{} partial interface", access), &proxy_interface)
                 .add_comment("summary", &summary_message)
@@ -183,7 +183,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     builder.set_inherit_doc(true);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
-    let mut body = CodeBlock::new();
+    let mut body = CodeBlock::default();
 
     if operation.compress_arguments() {
         body.writeln(&format!(
@@ -312,7 +312,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
 }
 
 fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let operations = interface_def.operations();
 
     for operation in operations {
@@ -472,7 +472,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn response_operation_body(operation: &Operation) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
     let encoding = operation.encoding.to_cs_encoding();
 

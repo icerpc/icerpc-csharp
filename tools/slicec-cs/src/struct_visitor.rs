@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
-use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
 use crate::cs_util::FieldType;
 use crate::decoding::*;
@@ -11,6 +10,7 @@ use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::{EntityExt, MemberExt, TypeRefExt};
+use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
@@ -76,7 +76,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
         }
         main_constructor.set_body({
-            let mut code = CodeBlock::new();
+            let mut code = CodeBlock::default();
             for member in &members {
                 writeln!(
                     code,

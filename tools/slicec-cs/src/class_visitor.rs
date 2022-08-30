@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
-use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
 use crate::cs_util::*;
 use crate::decoding::decode_data_members;
@@ -12,6 +11,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 
+use slice::code_block::CodeBlock;
 use slice::grammar::{Class, DataMember, Encoding};
 use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
@@ -154,7 +154,7 @@ fn constructor(
     members: &[&DataMember],
     base_members: &[&DataMember],
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     let mut builder = FunctionBuilder::new(access, "", escaped_name, FunctionType::BlockBody);
 
@@ -174,7 +174,7 @@ fn constructor(
     }
 
     builder.set_body({
-        let mut code = CodeBlock::new();
+        let mut code = CodeBlock::default();
         for member in members {
             writeln!(
                 code,
@@ -192,7 +192,7 @@ fn constructor(
 }
 
 fn encode_and_decode(class_def: &Class) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     let namespace = &class_def.namespace();
     let members = class_def.members();
@@ -201,7 +201,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let encode_class = FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
         .add_parameter("ref SliceEncoder", "encoder", None, None)
         .set_body({
-            let mut code = CodeBlock::new();
+            let mut code = CodeBlock::default();
 
             code.writeln(
                 &FunctionCallBuilder::new("encoder.StartSlice")
@@ -231,7 +231,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let decode_class = FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
         .add_parameter("ref SliceDecoder", "decoder", None, None)
         .set_body({
-            let mut code = CodeBlock::new();
+            let mut code = CodeBlock::default();
             code.writeln("decoder.StartSlice();");
             code.writeln(&decode_data_members(
                 &members,
