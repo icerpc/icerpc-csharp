@@ -40,8 +40,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             {
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
-                Debug.Assert(result.LocalNetworkAddress is not null);
-                Debug.Assert(result.RemoteNetworkAddress is not null);
+
                 _localNetworkAddress = result.LocalNetworkAddress;
                 ClientEventSource.Log.ConnectSuccess(ServerAddress, _localNetworkAddress, result.RemoteNetworkAddress);
                 return result;
