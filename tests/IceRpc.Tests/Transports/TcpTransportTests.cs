@@ -262,10 +262,10 @@ public class TcpTransportTests
         clientConnection.Dispose();
     }
 
-    /// <summary>Verifies that using a DNS name in a server address fails with <see cref="NotSupportedException"/>
-    /// exception.</summary>
+    /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see
+    /// cref="NotSupportedException"/> exception.</summary>
     [Test]
-    public void DNS_name_cannot_be_used_in_a_server_server_address()
+    public void DNS_name_cannot_be_used_in_a_tcp_listener_server_address()
     {
         // Arrange
         var address = new ServerAddress(Protocol.IceRpc) { Host = "foo" };
