@@ -3,11 +3,6 @@
 This directory contains example applications for various IceRPC components. These examples have been provided to help
 get you started using a particular IceRPC feature or programming technique.
 
-## [Bidir](./Bidir/)
-
-The Bidir example shows how to make bidirectional calls. A bidirectional call is a call in which the server calls back to
-the client using a connection previously established by the client.
-
 ## [Compress](./Compress/)
 
 The Compress example shows how to use the deflate interceptor and middleware to compress and decompress the arguments
