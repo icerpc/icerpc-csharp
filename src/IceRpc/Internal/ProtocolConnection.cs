@@ -21,10 +21,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
-    private Action<Exception>? _onAbort;
-    private Exception? _onAbortException;
-    private Action<string>? _onShutdown;
-    private string? _onShutdownMessage;
+
     private readonly TaskCompletionSource<string> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -191,50 +188,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
         return InvokeAsyncCore(request, cancellationToken);
     }
 
-    public void OnAbort(Action<Exception> callback)
-    {
-        bool executeCallback = false;
-
-        lock (_mutex)
-        {
-            if (_onAbortException is null)
-            {
-                _onAbort += callback;
-            }
-            else
-            {
-                executeCallback = true;
-            }
-        }
-
-        if (executeCallback)
-        {
-            callback(_onAbortException!);
-        }
-    }
-
-    public void OnShutdown(Action<string> callback)
-    {
-        bool executeCallback = false;
-
-        lock (_mutex)
-        {
-            if (_onShutdownMessage is null)
-            {
-                _onShutdown += callback;
-            }
-            else
-            {
-                executeCallback = true;
-            }
-        }
-
-        if (executeCallback)
-        {
-            callback(_onShutdownMessage!);
-        }
-    }
-
     public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
     {
         lock (_mutex)
@@ -326,8 +279,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected void EnableIdleCheck() =>
         _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
-    /// <summary>Initiate shutdown if it's not already initiated. The <see cref="OnShutdown"/> callback is notified
-    /// when shutdown is initiated through this method.</summary>
+    /// <summary>Initiate shutdown if it's not already initiated.</summary>
     private protected void InitiateShutdown(string message)
     {
         lock (_mutex)
@@ -340,40 +292,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             _shutdownTask = CreateShutdownTask(message);
         }
-        InvokeOnShutdown(message);
     }
 
     private protected abstract Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
         CancellationToken cancellationToken);
 
-    private protected void InvokeOnAbort(Exception exception)
-    {
+    private protected void InvokeOnAbort(Exception exception) =>
         _ = _shutdownCompleteSource.TrySetException(exception);
-
-        lock (_mutex)
-        {
-            if (_onAbortException is not null)
-            {
-                return;
-            }
-            _onAbortException = exception;
-        }
-        _onAbort?.Invoke(exception);
-    }
-
-    private protected void InvokeOnShutdown(string message)
-    {
-        lock (_mutex)
-        {
-            if (_onShutdownMessage is not null)
-            {
-                return;
-            }
-            _onShutdownMessage = message;
-        }
-        _onShutdown?.Invoke(message);
-    }
 
     private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancellationToken);
 

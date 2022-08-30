@@ -66,10 +66,6 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
-
-        public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
-
         public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(message, cancellationToken);
 

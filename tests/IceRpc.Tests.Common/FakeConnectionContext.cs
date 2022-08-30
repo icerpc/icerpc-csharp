@@ -29,14 +29,6 @@ public sealed class FakeConnectionContext : IConnectionContext
         protocol == Protocol.Ice ? Ice :
             (protocol == Protocol.IceRpc ? IceRpc : throw new NotSupportedException());
 
-    public void OnAbort(Action<Exception> callback)
-    {
-    }
-
-    public void OnShutdown(Action<string> callback)
-    {
-    }
-
     private FakeConnectionContext(Protocol protocol) =>
         ServerAddress = new ServerAddress(new Uri($"{protocol}://{RemoteAddress}"));
 }

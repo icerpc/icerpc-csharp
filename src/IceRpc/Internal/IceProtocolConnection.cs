@@ -244,7 +244,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // callback that the connection has been shutdown by the peer.
                     _duplexConnection.Dispose();
 
-                    // Notify the OnShutdown callback and complete invocations which are still pending with the
+                    // Notify the shutdown callback and complete invocations which are still pending with the
                     // retryable ConnectionClosedException exception.
                     InitiateShutdown("connection shutdown by peer");
                     completeException = new ConnectionClosedException("connection shutdown by peer");

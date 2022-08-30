@@ -15,10 +15,6 @@ internal sealed class ConnectionContext : IConnectionContext
 
     public TransportConnectionInformation TransportConnectionInformation { get; }
 
-    public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
-
-    public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
-
     private readonly IProtocolConnection _protocolConnection;
 
     internal ConnectionContext(

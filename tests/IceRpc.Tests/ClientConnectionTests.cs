@@ -49,29 +49,7 @@ public class ClientConnectionTests
     }
 
     [Test]
-    public async Task Connection_can_reconnect_after_being_idle()
-    {
-        // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
-        server.Listen();
-        await using var connection = new ClientConnection(
-            new ClientConnectionOptions()
-            {
-                ServerAddress = server.ServerAddress,
-                IdleTimeout = TimeSpan.FromMilliseconds(500)
-            });
-        await connection.ConnectAsync();
-
-        using var semaphore = new SemaphoreSlim(0);
-        connection.OnShutdown(message => semaphore.Release(1));
-        await semaphore.WaitAsync();
-
-        // Act/Assert
-        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
-    }
-
-    [Test]
-    public async Task Connection_can_reconnect_after_graceful_peer_shutdown()
+    public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
@@ -89,7 +67,6 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
-    [Ignore("see issue #1656")]
     [Test]
     public async Task Connection_can_reconnect_after_peer_abort()
     {
@@ -99,6 +76,7 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
+
         try
         {
             // Cancel shutdown and dispose to abort the connection.
@@ -108,10 +86,6 @@ public class ClientConnectionTests
         {
         }
         await server.DisposeAsync();
-
-        using var semaphore = new SemaphoreSlim(0);
-        connection.OnAbort(message => semaphore.Release(1));
-        await semaphore.WaitAsync();
 
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
