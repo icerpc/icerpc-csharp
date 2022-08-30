@@ -30,6 +30,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
+    private string? _closeReason;
+    private Exception? _closeUnexpectedException;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
@@ -177,6 +179,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
+                Interlocked.CompareExchange(ref _closeReason, "connection idle", null);
                 return true;
             }
             else
@@ -233,11 +236,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    var exception = new ConnectionAbortedException("transport connection disposed");
+                    Interlocked.CompareExchange(ref _closeReason, "connection shutdown by peer", null);
+                    completeException = new ConnectionClosedException(_closeReason);
+
                     _tasksCts.Cancel();
                     await Task.WhenAll(
                         _pingTask,
-                        _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
+                        _writeSemaphore.CompleteAndWaitAsync(completeException)).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the transport connection and notify the
@@ -246,26 +251,33 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Notify the shutdown callback and complete invocations which are still pending with the
                     // retryable ConnectionClosedException exception.
-                    InitiateShutdown("connection shutdown by peer");
-                    completeException = new ConnectionClosedException("connection shutdown by peer");
+                    InitiateShutdown(_closeReason);
                 }
                 catch (ConnectionLostException) when (
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
-                    completeException = new ConnectionClosedException("connection shutdown");
+                    Interlocked.CompareExchange(ref _closeReason, "connection shutdown", null);
+                    completeException = new ConnectionClosedException(_closeReason);
                 }
                 catch (OperationCanceledException)
                 {
                     // This can occur if the transport connection is disposed.
-                    completeException = new ConnectionAbortedException("connection disposed");
+                    Interlocked.CompareExchange(ref _closeReason, "connection disposed", null);
+                    completeException = new ConnectionAbortedException(_closeReason);
                 }
                 catch (Exception exception)
                 {
+                    if (Interlocked.CompareExchange(ref _closeReason, "connection lost", null) == null)
+                    {
+                        _closeUnexpectedException = exception;
+                    }
+
                     // Unexpected exception, notify the OnAbort callback.
-                    InvokeOnAbort(exception);
-                    completeException = exception;
+                    var connectionLostException = new ConnectionLostException(exception);
+                    InvokeOnAbort(connectionLostException);
+                    completeException = connectionLostException;
                 }
                 finally
                 {
@@ -297,6 +309,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
+        Interlocked.CompareExchange(ref _closeReason, "connection disposed", null);
+
         var exception = new ConnectionAbortedException("connection disposed");
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
@@ -342,7 +356,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // for this condition here and throw ConnectionClosedException if necessary.
             if (_isReadOnly)
             {
-                throw new ConnectionClosedException();
+                throw new ConnectionClosedException(_closeReason, _closeUnexpectedException);
             }
 
             // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
@@ -380,7 +394,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (_isReadOnly)
                     {
-                        throw new ConnectionClosedException();
+                        throw new ConnectionClosedException(_closeReason, _closeUnexpectedException);
                     }
                     else
                     {
@@ -626,6 +640,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true;
+            Interlocked.CompareExchange(ref _closeReason, "connection shutdown", null);
             if (_dispatchCount == 0 && _invocations.Count == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -932,12 +947,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            bool isClosed = false;
+            Exception? connectionClosedException = null;
             lock (_mutex)
             {
                 if (_isReadOnly)
                 {
-                    isClosed = true;
+                    connectionClosedException = new ConnectionClosedException(_closeReason, _closeUnexpectedException);
                 }
                 else
                 {
@@ -949,11 +964,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            if (isClosed)
+            if (connectionClosedException is null)
+            {
+                // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
+                // cleanup the dispatch if DisposeAsync is called.
+                _ = Task.Run(
+                    () => DispatchRequestAsync(request, contextReader),
+                    CancellationToken.None);
+            }
+            else
             {
                 // If shutting down or aborted, ignore the incoming request.
                 // TODO: replace with payload exception and error code
-                await request.Payload.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
+                await request.Payload.CompleteAsync(connectionClosedException).ConfigureAwait(false);
                 if (contextReader is not null)
                 {
                     await contextReader.CompleteAsync().ConfigureAwait(false);
@@ -962,14 +985,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
                     request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                 }
-            }
-            else
-            {
-                // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
-                // cleanup the dispatch if DisposeAsync is called.
-                _ = Task.Run(
-                    () => DispatchRequestAsync(request, contextReader),
-                    CancellationToken.None);
             }
 
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
