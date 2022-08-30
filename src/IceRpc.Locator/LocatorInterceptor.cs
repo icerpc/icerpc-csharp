@@ -7,9 +7,11 @@ using System.Diagnostics;
 namespace IceRpc.Locator;
 
 /// <summary>A locator interceptor intercepts ice requests that have no server address and attempts to assign a usable
-/// server address (and alt-server addresses) to such requests via the <see cref="IServerAddressFeature"/>. It is useful
-/// to add the retry interceptor after the locator, to allow fail over to a different server addresses when the locator
-/// resolved service address contains multiple server addresses.</summary>
+/// server address (and alt-server addresses) to such requests via the <see cref="IServerAddressFeature"/>. You would
+/// usually install the retry interceptor before the locator interceptor in the invocation pipeline and use the
+/// connection cache invoker for the pipeline, with this setup the locator interceptor would be able to detect
+/// invocation retries and refreshes the server address when required, and the connection cache would take care of
+/// creating the connections for the resolved server address.</summary>
 public class LocatorInterceptor : IInvoker
 {
     private readonly IInvoker _next;
