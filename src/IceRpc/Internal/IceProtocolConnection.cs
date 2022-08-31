@@ -30,8 +30,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
+    private Exception? _closeException;
     private string? _closeReason;
-    private Exception? _closeUnexpectedException;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
@@ -179,7 +179,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
-                Interlocked.CompareExchange(ref _closeReason, "connection idle", null);
+                _closeReason ??= "connection idle";
                 return true;
             }
             else
@@ -236,8 +236,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    Interlocked.CompareExchange(ref _closeReason, "connection shutdown by peer", null);
-                    completeException = new ConnectionClosedException(_closeReason);
+                    lock (_mutex)
+                    {
+                        _closeReason ??= "connection shutdown by peer";
+                        completeException = new ConnectionClosedException(_closeReason);
+                    }
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
@@ -258,20 +261,30 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
-                    Interlocked.CompareExchange(ref _closeReason, "connection shutdown", null);
+                    lock (_mutex)
+                    {
+                        _closeReason ??= "connection shutdown";
+                    }
                     completeException = new ConnectionClosedException(_closeReason);
                 }
                 catch (OperationCanceledException)
                 {
                     // This can occur if the transport connection is disposed.
-                    Interlocked.CompareExchange(ref _closeReason, "connection disposed", null);
+                    lock (_mutex)
+                    {
+                        _closeReason ??= "connection disposed";
+                    }
                     completeException = new ConnectionAbortedException(_closeReason);
                 }
                 catch (Exception exception)
                 {
-                    if (Interlocked.CompareExchange(ref _closeReason, "connection lost", null) == null)
+                    lock (_mutex)
                     {
-                        _closeUnexpectedException = exception;
+                        if (_closeReason is null)
+                        {
+                            _closeReason = "connection lost";
+                            _closeException = exception;
+                        }
                     }
 
                     // Unexpected exception, notify the OnAbort callback.
@@ -309,8 +322,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        Interlocked.CompareExchange(ref _closeReason, "connection disposed", null);
-
         var exception = new ConnectionAbortedException("connection disposed");
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
@@ -356,7 +367,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // for this condition here and throw ConnectionClosedException if necessary.
             if (_isReadOnly)
             {
-                throw new ConnectionClosedException(_closeReason, _closeUnexpectedException);
+                Debug.Assert(_closeReason is not null);
+                if (_closeException is null)
+                {
+                    throw new ConnectionClosedException(_closeReason);
+                }
+                else
+                {
+                    throw new ConnectionClosedException(_closeReason, _closeException);
+                }
             }
 
             // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
@@ -394,7 +413,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (_isReadOnly)
                     {
-                        throw new ConnectionClosedException(_closeReason, _closeUnexpectedException);
+                        Debug.Assert(_closeReason is not null);
+                        if (_closeException is null)
+                        {
+                            throw new ConnectionClosedException(_closeReason);
+                        }
+                        else
+                        {
+                            throw new ConnectionClosedException(_closeReason, _closeException);
+                        }
                     }
                     else
                     {
@@ -497,6 +524,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 if (readResult.Buffer.Length < headerSize)
                 {
+                    // TODO: or InvalidDataException?
                     throw new ConnectionLostException();
                 }
 
@@ -640,7 +668,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true;
-            Interlocked.CompareExchange(ref _closeReason, "connection shutdown", null);
+            _closeReason ??= "connection shutdown";
             if (_dispatchCount == 0 && _invocations.Count == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -664,7 +692,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _writeSemaphore.Release();
             }
         }
-        catch (ConnectionAbortedException)
+        catch (ConnectionClosedException)
         {
             // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
         }
@@ -833,6 +861,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Read and decode request ID
                 if (!replyFrameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                 {
+                    // TODO: or InvalidDataException?
                     throw new ConnectionLostException();
                 }
 
@@ -952,7 +981,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    connectionClosedException = new ConnectionClosedException(_closeReason, _closeUnexpectedException);
+                    Debug.Assert(_closeReason is not null);
+                    if (_closeException is null)
+                    {
+                        connectionClosedException = new ConnectionClosedException(_closeReason);
+                    }
+                    else
+                    {
+                        connectionClosedException = new ConnectionClosedException(_closeReason, _closeException);
+                    }
                 }
                 else
                 {
@@ -1057,6 +1094,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (response == null)
                     {
+                        // TODO: add reason message or abort error code?
                         throw new ConnectionAbortedException();
                     }
                     else if (response.PayloadStream is not null)

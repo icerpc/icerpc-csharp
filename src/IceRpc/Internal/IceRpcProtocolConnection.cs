@@ -16,8 +16,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;
+    private Exception? _closeException;
     private string? _closeReason;
-    private Exception? _closeUnexpectedException;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
@@ -91,7 +91,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (_streams.Count == 0)
             {
                 _isReadOnly = true;
-                Interlocked.CompareExchange(ref _closeReason, "connection idle", null);
+                _closeReason ??= "connection idle";
                 return true;
             }
             else
@@ -196,11 +196,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         {
                             return; // already closing or closed
                         }
-                    }
 
-                    if (Interlocked.CompareExchange(ref _closeReason, "connection lost", null) == null)
-                    {
-                        _closeUnexpectedException = exception;
+                        if (_closeReason is null)
+                        {
+                            _closeReason = "connection lost";
+                            _closeException = exception;
+                        }
                     }
 
                     var connectionLostException = new ConnectionLostException(exception);
@@ -218,8 +219,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        Interlocked.CompareExchange(ref _closeReason, "connection disposed", null);
-
         // Before disposing the transport connection, cancel pending tasks which are using the transport connection and
         // wait for the tasks to complete.
         _tasksCts.Cancel();
@@ -274,7 +273,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Don't process the invocation if the connection is in the process of shutting down or it's
                     // already closed.
-                    throw new ConnectionClosedException(_closeReason, _closeUnexpectedException);
+                    Debug.Assert(_closeReason is not null);
+                    if (_closeException is null)
+                    {
+                        throw new ConnectionClosedException(_closeReason);
+                    }
+                    else
+                    {
+                        throw new ConnectionClosedException(_closeReason, _closeException);
+                    }
                 }
                 else
                 {
@@ -382,7 +389,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true;
-            Interlocked.CompareExchange(ref _closeReason, message, null);
+            _closeReason ??= message;
             if (_streams.Count == 0)
             {
                 _streamsCompleted.TrySetResult();
@@ -669,7 +676,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    throw new ConnectionClosedException(_closeReason, _closeUnexpectedException);
+                    Debug.Assert(_closeReason is not null);
+                    if (_closeException is null)
+                    {
+                        throw new ConnectionClosedException(_closeReason);
+                    }
+                    else
+                    {
+                        throw new ConnectionClosedException(_closeReason, _closeException);
+                    }
                 }
                 else
                 {
