@@ -258,6 +258,7 @@ public sealed class Server : IAsyncDisposable
                 if (done)
                 {
                     await connection.DisposeAsync().ConfigureAwait(false);
+                    _connectionSemaphore.Release();
                 }
                 else
                 {

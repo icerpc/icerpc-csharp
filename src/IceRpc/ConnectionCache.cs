@@ -85,7 +85,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
             .ConfigureAwait(false);
 
-        if (_activeConnections.Any())
+        if (_activeConnections.Count > 0)
         {
             // Release the semaphore for all the connections still in the _activeConnections map.
             _connectionSemaphore.Release(_activeConnections.Count);
@@ -358,6 +358,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
+                    // We entered the semaphore, but there was an exception during connection establishment,
+                    // so we must release it.
+                    if (enteredSemaphore)
+                    {
+                        _connectionSemaphore.Release();
+                    }
                     // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
                     // DisposeAsync this connection.
                     throw new ConnectionClosedException();
