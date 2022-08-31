@@ -153,7 +153,7 @@ public class ClientConnectionTests
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -180,7 +180,36 @@ public class ClientConnectionTests
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<InvalidOperationException>());
     }
+
+    [TestCase("ice")]
+    [TestCase("icerpc")]
+    public async Task InvokeAsync_fails_with_disposed_connection(string protocolString)
+    {
+        // Arrange
+        var protocol = Protocol.Parse(protocolString);
+        var serviceAddress = new ServiceAddress(protocol);
+
+        await using ServiceProvider provider =
+            new ServiceCollection()
+                .AddColocTest(
+                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
+                    Protocol.Parse(protocolString))
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+
+        server.Listen();
+        _ = await connection.ConnectAsync();
+        await connection.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
+            Throws.TypeOf<ObjectDisposedException>());
+    }
+
 }

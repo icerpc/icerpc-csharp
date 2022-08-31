@@ -174,7 +174,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (_shutdownTask is not null)
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+            }
+            else if (_shutdownTask is not null)
             {
                 throw new ConnectionClosedException(
                     _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
