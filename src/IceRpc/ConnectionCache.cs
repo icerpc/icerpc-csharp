@@ -95,7 +95,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         // We do this by entering the semaphore until it is empty.
         for (int i = 0; i < _maxConnections; i++)
         {
-            await _connectionSemaphore.WaitAsync(Timeout.Infinite).ConfigureAwait(false);
+            await _connectionSemaphore.WaitAsync().ConfigureAwait(false);
         }
 
         _shutdownCts.Dispose();
@@ -318,8 +318,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             try
             {
                 // Ensure that we have not reached the maximum number of active connections.
-                enteredSemaphore =
-                    await _connectionSemaphore.WaitAsync(Timeout.Infinite, cts.Token).ConfigureAwait(false);
+                await _connectionSemaphore.WaitAsync(cts.Token).ConfigureAwait(false);
+                enteredSemaphore = true;
                 _ = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
             }
             catch

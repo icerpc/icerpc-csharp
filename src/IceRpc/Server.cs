@@ -168,7 +168,7 @@ public sealed class Server : IAsyncDisposable
         // We do this by entering the semaphore until it is empty.
         for (int i = 0; i < _maxConnections; i++)
         {
-            await _connectionSemaphore.WaitAsync(Timeout.Infinite).ConfigureAwait(false);
+            await _connectionSemaphore.WaitAsync().ConfigureAwait(false);
         }
 
         _shutdownCts.Dispose();
@@ -218,8 +218,8 @@ public sealed class Server : IAsyncDisposable
                 bool enteredSemaphore = false;
                 try
                 {
-                    enteredSemaphore = await _connectionSemaphore
-                        .WaitAsync(Timeout.Infinite, shutdownCancellationToken).ConfigureAwait(false);
+                    await _connectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                    enteredSemaphore = true;
                     (connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch
