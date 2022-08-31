@@ -765,9 +765,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 if (response != request.Response)
                 {
-                    throw new InvalidOperationException(
+                    var exception = new InvalidOperationException(
                         "the dispatcher did not return the last response created for this request");
+
+                    await response.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                    if (response.PayloadStream is PipeReader payloadStream)
+                    {
+                        await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                    }
+                    throw exception;
                 }
+            }
+            catch when (request.IsOneway)
+            {
+                request.Complete();
+                return;
             }
             catch (OperationCanceledException exception) when (dispatchCts.Token == exception.CancellationToken)
             {
