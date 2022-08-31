@@ -23,19 +23,11 @@ public sealed class FakeConnectionContext : IConnectionContext
     private const string LocalAddress = "192.168.7.7:10000";
     private const string RemoteAddress = "10.10.10.10:11000";
 
-    private TaskCompletionSource<string> _shutdownCompletionSource = new(); // never completed
+    private readonly TaskCompletionSource<string> _shutdownCompletionSource = new(); // never completed
 
     public static IConnectionContext FromProtocol(Protocol protocol) =>
         protocol == Protocol.Ice ? Ice :
             (protocol == Protocol.IceRpc ? IceRpc : throw new NotSupportedException());
-
-    public void OnAbort(Action<Exception> callback)
-    {
-    }
-
-    public void OnShutdown(Action<string> callback)
-    {
-    }
 
     private FakeConnectionContext(Protocol protocol) =>
         ServerAddress = new ServerAddress(new Uri($"{protocol}://{RemoteAddress}"));

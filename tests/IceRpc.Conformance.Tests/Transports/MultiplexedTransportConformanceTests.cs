@@ -7,7 +7,6 @@ using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 

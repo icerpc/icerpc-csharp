@@ -145,9 +145,11 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                     listener.ServerAddress,
                     multiplexedConnectionOptions.Value,
                     clientConnectionOptions.Value.ClientAuthenticationOptions),
+                isServer: false,
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                 (await listener.AcceptAsync()).Connection,
+                isServer: true,
                 serverOptions.Value.ConnectionOptions))
     {
     }

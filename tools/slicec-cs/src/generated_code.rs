@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::code_block::CodeBlock;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::{Module, NamedSymbol, ScopedSymbol};
 

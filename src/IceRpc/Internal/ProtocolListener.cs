@@ -76,5 +76,5 @@ internal sealed class IceRpcProtocolListener : ProtocolListener<IMultiplexedConn
 
     private protected override IProtocolConnection CreateProtocolConnection(
         IMultiplexedConnection multiplexedConnection) =>
-        new IceRpcProtocolConnection(multiplexedConnection, _connectionOptions);
+        new IceRpcProtocolConnection(multiplexedConnection, isServer: true, _connectionOptions);
 }

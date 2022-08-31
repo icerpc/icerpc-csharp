@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-
 namespace IceRpc.Tests.Common;
 
 public sealed class TestDispatcher : IDispatcher, IDisposable

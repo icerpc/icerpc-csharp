@@ -2,10 +2,10 @@
 
 use std::collections::HashMap;
 
-use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::{Attributable, Class, Commentable, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
@@ -144,7 +144,7 @@ impl ContainerBuilder {
 
 impl Builder for ContainerBuilder {
     fn build(&self) -> CodeBlock {
-        let mut code = CodeBlock::new();
+        let mut code = CodeBlock::default();
 
         for comment in &self.comments {
             code.writeln(&comment.to_string());
@@ -237,7 +237,7 @@ impl FunctionBuilder {
             access: String::from(access),
             name: String::from(name),
             return_type: String::from(return_type),
-            body: CodeBlock::new(),
+            body: CodeBlock::default(),
             comments: Vec::new(),
             attributes: Vec::new(),
             base_constructor: String::from("base"),
@@ -311,7 +311,7 @@ impl FunctionBuilder {
                 |vec| vec.iter().map(|a| format!("[{}]", a)).collect::<Vec<_>>().join("\n"),
             );
 
-            let parameter_type = parameter.to_type_string(&operation.namespace(), context, false);
+            let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
             // TODO: it would be better if we could use parameter.comment() to get the parameter
@@ -373,7 +373,7 @@ impl FunctionBuilder {
 
 impl Builder for FunctionBuilder {
     fn build(&self) -> CodeBlock {
-        let mut code = CodeBlock::new();
+        let mut code = CodeBlock::default();
 
         if self.inherit_doc {
             code.writeln("/// <inheritdoc/>")

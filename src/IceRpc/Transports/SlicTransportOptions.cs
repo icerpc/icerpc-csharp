@@ -42,10 +42,9 @@ public sealed record class SlicTransportOptions
         get => _resumeWriterThreshold;
         set => _resumeWriterThreshold =
             value < 1024 ? throw new ArgumentException(
-                @$"{nameof(ResumeWriterThreshold)} can't be less than 1KB", nameof(value)) :
+                $"{nameof(ResumeWriterThreshold)} can't be less than 1KB", nameof(value)) :
             value > _pauseWriterThreshold ? throw new ArgumentException(
-                @$"{nameof(ResumeWriterThreshold)
-                    } can't be greater can't be greater than {nameof(PauseWriterThreshold)}",
+                $"{nameof(ResumeWriterThreshold)} can't be greater than {nameof(PauseWriterThreshold)}",
                 nameof(value)) :
             value;
     }

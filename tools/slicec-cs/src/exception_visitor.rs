@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
-use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
 use crate::cs_util::*;
 use crate::decoding::decode_data_members;
@@ -11,6 +10,7 @@ use crate::encoding::encode_data_members;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::{Encoding, Exception, Member, Type};
 use slice::utils::code_gen_util::TypeContext;
@@ -120,7 +120,7 @@ decoder.SkipTagged(useTagEndMarker: true);",
                 FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
                     .set_body({
-                        let mut code = CodeBlock::new();
+                        let mut code = CodeBlock::default();
                         code.writeln("decoder.StartSlice();");
                         code.writeln(&decode_data_members(
                             &members,
@@ -210,7 +210,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
     let all_data_members = exception_def.all_members();
 
     if all_data_members.is_empty() && !add_message_and_exception_parameters {
-        return CodeBlock::new();
+        return CodeBlock::default();
     }
 
     let message_parameter_name = escape_parameter_name(&all_data_members, "message");
@@ -247,7 +247,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
         ctor_builder.add_parameter(
             &member
                 .data_type()
-                .to_type_string(namespace, TypeContext::DataMember, false),
+                .cs_type_string(namespace, TypeContext::DataMember, false),
             member.parameter_name().as_str(),
             None,
             Some(doc_comment_message(*member)),
@@ -274,7 +274,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
     ctor_builder.add_base_parameter(&retry_policy_parameter_name);
 
     // ctor impl
-    let mut ctor_body = CodeBlock::new();
+    let mut ctor_body = CodeBlock::default();
     for member in exception_def.members() {
         let member_name = member.field_name(FieldType::Exception);
         let parameter_name = member.parameter_name();

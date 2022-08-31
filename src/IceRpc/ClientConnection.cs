@@ -18,6 +18,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
+    // The underlying protocol connection
     private IProtocolConnection _connection;
 
     // The connection parameter represents the previous connection, if any.
@@ -26,10 +27,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     private bool _isResumable = true;
 
     private readonly object _mutex = new();
-
-    private Action<Exception>? _onAbort;
-
-    private Action<string>? _onShutdown;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -45,11 +42,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        var clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
+        IClientProtocolConnectionFactory clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport);
+
+        clientProtocolConnectionFactory =
+            new LogClientProtocolConnectionFactoryDecorator(clientProtocolConnectionFactory);
 
         _connectionFactory = previousConnection =>
         {
@@ -64,16 +64,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             connection = new ConnectProtocolConnectionDecorator(connection);
-
-            if (_onAbort is not null)
-            {
-                connection.OnAbort(_onAbort);
-            }
-            if (_onShutdown is not null)
-            {
-                connection.OnShutdown(_onShutdown);
-            }
-
             _ = RefreshOnShutdownAsync(connection);
 
             return connection;
@@ -157,17 +147,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (ConnectionClosedException)
+        catch (ConnectionClosedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
         {
-            if (RefreshConnection(connection) is IProtocolConnection newConnection)
-            {
-                // Try again once with the new connection
-                return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                throw;
-            }
+            // Try again once with the new connection
+            return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -230,61 +213,22 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
-            catch (ConnectionClosedException)
+            catch (ConnectionClosedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
-                if (RefreshConnection(connection) is IProtocolConnection newConnection)
-                {
-                    // try again once with the new connection
-                    return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    throw;
-                }
+                // try again once with the new connection
+                return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    /// <summary>Adds a callback that will be executed when the underlying connection is aborted.</summary>
-    /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
-    public void OnAbort(Action<Exception> callback)
-    {
-        IProtocolConnection connection;
-        lock (_mutex)
-        {
-            _onAbort += callback; // for future connection created by _connectionFactory
-            connection = _connection;
-        }
-
-        // call OnAbort on underlying connection outside mutex lock
-        connection.OnAbort(callback);
-    }
-
-    /// <summary>Adds a callback that will be executed when the underlying connection is shut down by the peer or an
-    /// idle timeout.</summary>
-    /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
-    public void OnShutdown(Action<string> callback)
-    {
-        IProtocolConnection connection;
-
-        lock (_mutex)
-        {
-            _onShutdown += callback; // for future connection created by _connectionFactory
-            connection = _connection;
-        }
-
-        // call OnShutdown on underlying connection outside mutex lock
-        connection.OnShutdown(callback);
-    }
-
-    /// <summary>Gracefully shuts down the connection.</summary>
+    /// <summary>Gracefully shuts down the connection with a default message.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-        ShutdownAsync("connection shutdown", cancellationToken: cancellationToken);
+        ShutdownAsync("ClientConnection shutdown", cancellationToken);
 
     /// <summary>Gracefully shuts down the connection.</summary>
-    /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
+    /// <param name="message">The message transmitted to the server with the icerpc protocol.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
     public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
@@ -355,10 +299,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
-
-        public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
-
         public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(message, cancellationToken);
 
@@ -367,5 +307,84 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             _cleanupTask = cleanupTask;
             _decoratee = decoratee;
         }
+    }
+
+    /// <summary>Provides a decorator for <see cref="IProtocolConnection"/> that ensures
+    /// <see cref="IInvoker.InvokeAsync"/> calls <see cref="IProtocolConnection.ConnectAsync"/> when the connection is
+    /// not connected yet. This decorator also allows multiple and concurrent calls to
+    /// <see cref="IProtocolConnection.ConnectAsync"/>.</summary>
+    /// <seealso cref="ClientProtocolConnectionFactory.CreateConnection"/>
+    private class ConnectProtocolConnectionDecorator : IProtocolConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+
+        private Task<TransportConnectionInformation>? _connectTask;
+
+        private readonly IProtocolConnection _decoratee;
+
+        // Set to true once the connection is successfully connected. It's not volatile or protected by mutex: in the
+        // unlikely event the caller sees false after the connection is connected, it will call ConnectAsync and succeed
+        // immediately.
+        private bool _isConnected;
+
+        private readonly object _mutex = new();
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            lock (_mutex)
+            {
+                if (_connectTask is null)
+                {
+                    _connectTask = PerformConnectAsync();
+                    return _connectTask;
+                }
+            }
+            return PerformWaitForConnectAsync();
+
+            async Task<TransportConnectionInformation> PerformConnectAsync()
+            {
+                await Task.Yield(); // exit mutex lock
+
+                TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                _isConnected = true;
+                return connectionInformation;
+            }
+
+            async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
+            {
+                try
+                {
+                    return await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+                {
+                    // OCE from _connectTask
+                    throw new ConnectionAbortedException("connection establishment canceled");
+                }
+            }
+        }
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
+        {
+            return _isConnected ? _decoratee.InvokeAsync(request, cancellationToken) : PerformConnectInvokeAsync();
+
+            async Task<IncomingResponse> PerformConnectInvokeAsync()
+            {
+                // Perform the connection establishment without a cancellation token. It will timeout if the connect
+                // timeout is reached.
+                _ = await ConnectAsync(CancellationToken.None).WaitAsync(cancellationToken).ConfigureAwait(false);
+                return await InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(message, cancellationToken);
+
+        internal ConnectProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
     }
 }

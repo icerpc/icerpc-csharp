@@ -12,6 +12,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     public Task<string> ShutdownComplete => _shutdownCompleteSource.Task;
 
+    private protected bool IsServer { get; }
+
     private CancellationTokenSource? _connectCts;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
@@ -19,10 +21,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
-    private Action<Exception>? _onAbort;
-    private Exception? _onAbortException;
-    private Action<string>? _onShutdown;
-    private string? _onShutdownMessage;
+
     private readonly TaskCompletionSource<string> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -106,10 +105,16 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
-            var connectionAbortedException = new ConnectionAbortedException("connection disposed");
+            // We don't lock _mutex since once _disposeTask is not null, _connectTask, _shutdownTask etc are read-only.
 
-            if (_connectTask is not null)
+            if (_connectTask is null)
             {
+                _ = _shutdownCompleteSource.TrySetResult(""); // disposing non-connected connection
+            }
+            else
+            {
+                var connectionAbortedException = new ConnectionAbortedException("connection disposed");
+
                 try
                 {
                     // Cancel the connection establishment if still in progress.
@@ -126,7 +131,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        _shutdownTask = CreateShutdownTask("connection dispose", cancelDispatchesAndInvocations: true);
+                        _shutdownTask = CreateShutdownTask(
+                            IsServer ? "server connection going away" : "client connection going away",
+                            cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
@@ -142,9 +149,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     {
                     }
                 }
+                else
+                {
+                    _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
+                }
             }
 
-            _ = _shutdownCompleteSource.TrySetException(connectionAbortedException);
             await DisposeAsyncCore().ConfigureAwait(false);
 
             // Clean up disposable resources.
@@ -162,60 +172,39 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 $"cannot send {request.Protocol} request on {ServerAddress.Protocol} connection");
         }
 
-        if (_shutdownTask is not null)
-        {
-            throw new ConnectionClosedException(
-                _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
-        }
-        else if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
-        {
-            throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
-        }
-
-        return InvokeAsyncCore(request, cancellationToken);
-    }
-
-    public void OnAbort(Action<Exception> callback)
-    {
-        bool executeCallback = false;
-
         lock (_mutex)
         {
-            if (_onAbortException is null)
+            if (_shutdownTask is not null)
             {
-                _onAbort += callback;
+                throw new ConnectionClosedException(
+                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
             }
-            else
+            else if (_connectTask is null)
             {
-                executeCallback = true;
-            }
-        }
-
-        if (executeCallback)
-        {
-            callback(_onAbortException!);
-        }
-    }
-
-    public void OnShutdown(Action<string> callback)
-    {
-        bool executeCallback = false;
-
-        lock (_mutex)
-        {
-            if (_onShutdownMessage is null)
-            {
-                _onShutdown += callback;
-            }
-            else
-            {
-                executeCallback = true;
+                throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
             }
         }
 
-        if (executeCallback)
+        if (_connectTask.IsCompletedSuccessfully)
         {
-            callback(_onShutdownMessage!);
+            return InvokeAsyncCore(request, cancellationToken);
+        }
+        else if (_connectTask.IsCompleted)
+        {
+            throw new InvalidOperationException("cannot call InvokeAsync after ConnectAsync failed");
+        }
+        else
+        {
+            return IsServer ? PerformInvokeAsync() :
+                throw new InvalidOperationException("cannot call InvokeAsync while connecting a client connection");
+        }
+
+        async Task<IncomingResponse> PerformInvokeAsync()
+        {
+            // It's possible to dispatch a request and expose its connection (invoker) before ConnectAsync completes;
+            // in this rare case, we wait for _connectTask to complete before calling InvokeAsyncCore.
+            _ = await _connectTask.ConfigureAwait(false);
+            return await InvokeAsyncCore(request, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -229,18 +218,24 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                return Task.CompletedTask;
+                _shutdownTask ??= Task.FromResult(message);
+                _ = _shutdownCompleteSource.TrySetResult(message);
+                return _shutdownTask;
             }
             else if (_connectTask.IsCanceled || _connectTask.IsFaulted)
             {
-                throw new ConnectionAbortedException("connection establishment failed");
+                var exception = new ConnectionAbortedException("connection establishment failed");
+                _ = _shutdownCompleteSource.TrySetException(exception);
+                throw exception;
             }
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancellationToken.IsCancellationRequested)
             {
-                _shutdownTask ??= Task.FromException(new ConnectionAbortedException("connection shutdown canceled"));
+                var exception = new ConnectionAbortedException("connection shutdown canceled");
+                _shutdownTask ??= Task.FromException(exception);
+                _ = _shutdownCompleteSource.TrySetException(exception);
                 _shutdownCts.Cancel();
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -272,8 +267,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(ConnectionOptions options)
+    internal ProtocolConnection(bool isServer, ConnectionOptions options)
     {
+        IsServer = isServer;
+
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
         _idleTimeout = options.IdleTimeout;
@@ -302,8 +299,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected void EnableIdleCheck() =>
         _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
-    /// <summary>Initiate shutdown if it's not already initiated. The <see cref="OnShutdown"/> callback is notified
-    /// when shutdown is initiated through this method.</summary>
+    /// <summary>Initiate shutdown if it's not already initiated.</summary>
     private protected void InitiateShutdown(string message)
     {
         lock (_mutex)
@@ -316,40 +312,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             _shutdownTask = CreateShutdownTask(message);
         }
-        InvokeOnShutdown(message);
     }
 
     private protected abstract Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
         CancellationToken cancellationToken);
 
-    private protected void InvokeOnAbort(Exception exception)
-    {
+    private protected void InvokeOnAbort(Exception exception) =>
         _ = _shutdownCompleteSource.TrySetException(exception);
-
-        lock (_mutex)
-        {
-            if (_onAbortException is not null)
-            {
-                return;
-            }
-            _onAbortException = exception;
-        }
-        _onAbort?.Invoke(exception);
-    }
-
-    private protected void InvokeOnShutdown(string message)
-    {
-        lock (_mutex)
-        {
-            if (_onShutdownMessage is not null)
-            {
-                return;
-            }
-            _onShutdownMessage = message;
-        }
-        _onShutdown?.Invoke(message);
-    }
 
     private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancellationToken);
 

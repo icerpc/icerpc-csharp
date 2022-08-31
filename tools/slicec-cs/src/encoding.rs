@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, FunctionCallBuilder};
-use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use convert_case::{Case, Casing};
 use slice::grammar::*;
@@ -15,7 +15,7 @@ pub fn encode_data_members(
     field_type: FieldType,
     encoding: Encoding,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
@@ -204,7 +204,7 @@ fn encode_tagged_type(
     type_context: TypeContext,
     encoding: Encoding,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
@@ -303,7 +303,7 @@ fn encode_tagged_type(
         format!(
             "{param} is {unwrapped_type} {unwrapped_name}",
             param = param,
-            unwrapped_type = data_type.to_type_string(namespace, type_context, true),
+            unwrapped_type = data_type.cs_type_string(namespace, type_context, true),
             unwrapped_name = &unwrapped_name
         )
     };
@@ -330,7 +330,7 @@ if ({null_check})
 }}",
         null_check = null_check,
         encode_tagged = {
-            let mut code = CodeBlock::new();
+            let mut code = CodeBlock::default();
             if let Some(count) = count_value {
                 code.writeln(&format!("int count_ = {}.Count();", count));
             }
@@ -408,7 +408,7 @@ pub fn encode_action(
     encoding: Encoding,
     is_tagged: bool,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let is_optional = type_ref.is_optional && !is_tagged;
 
     let value = match (is_optional, type_ref.is_value_type()) {
@@ -416,7 +416,7 @@ pub fn encode_action(
         (true, true) => "value!.Value",
         _ => "value",
     };
-    let value_type = type_ref.to_type_string(namespace, type_context, is_tagged);
+    let value_type = type_ref.cs_type_string(namespace, type_context, is_tagged);
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
@@ -530,7 +530,7 @@ pub fn encode_action(
 }
 
 fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder_param: &str) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
 
     let members = if return_type {

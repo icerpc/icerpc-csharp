@@ -16,6 +16,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;
+    private Exception? _closeException;
+    private string? _closeReason;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
@@ -45,8 +47,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
+        bool isServer,
         ConnectionOptions options)
-        : base(options)
+        : base(isServer, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
@@ -88,6 +91,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (_streams.Count == 0)
             {
                 _isReadOnly = true;
+                _closeReason ??= "connection idle";
                 return true;
             }
             else
@@ -192,12 +196,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         {
                             return; // already closing or closed
                         }
+
+                        if (_closeReason is null)
+                        {
+                            _closeReason = "connection lost";
+                            _closeException = exception;
+                        }
                     }
 
-                    // Otherwise, it's an unexpected connection failure.
-
                     var connectionLostException = new ConnectionLostException(exception);
-
                     InvokeOnAbort(connectionLostException);
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
@@ -266,7 +273,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Don't process the invocation if the connection is in the process of shutting down or it's
                     // already closed.
-                    throw new ConnectionClosedException();
+                    Debug.Assert(_closeReason is not null);
+                    if (_closeException is null)
+                    {
+                        throw new ConnectionClosedException(_closeReason);
+                    }
+                    else
+                    {
+                        throw new ConnectionClosedException(_closeReason, _closeException);
+                    }
                 }
                 else
                 {
@@ -374,6 +389,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true;
+            _closeReason ??= message;
             if (_streams.Count == 0)
             {
                 _streamsCompleted.TrySetResult();
@@ -660,7 +676,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    throw new ConnectionClosedException();
+                    Debug.Assert(_closeReason is not null);
+                    if (_closeException is null)
+                    {
+                        throw new ConnectionClosedException(_closeReason);
+                    }
+                    else
+                    {
+                        throw new ConnectionClosedException(_closeReason, _closeException);
+                    }
                 }
                 else
                 {
@@ -923,7 +947,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         if (headerSize > _maxRemoteHeaderSize)
         {
             throw new ProtocolException(
-                @$"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+                $"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
         }
     }
 

@@ -2,7 +2,6 @@
 
 mod builders;
 mod class_visitor;
-mod code_block;
 mod comment_patcher;
 mod comments;
 mod cs_options;
@@ -43,7 +42,7 @@ use struct_visitor::StructVisitor;
 use structopt::StructOpt;
 use trait_visitor::TraitVisitor;
 
-use crate::code_block::CodeBlock;
+use slice::code_block::CodeBlock;
 
 pub fn main() {
     let parsed_data = match try_main() {

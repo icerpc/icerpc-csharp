@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
 use crate::cs_util::*;
 use crate::decoding::*;
@@ -9,6 +8,7 @@ use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
+use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
@@ -197,7 +197,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.to_type_string(namespace, TypeContext::Encode, false),
+                    &param.cs_type_string(namespace, TypeContext::Encode, false),
                     "returnValue",
                     None,
                     Some("The operation return value"),
@@ -206,7 +206,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.to_type_string(namespace, TypeContext::Encode, false),
+                        &param.cs_type_string(namespace, TypeContext::Encode, false),
                         &param.parameter_name(),
                         None,
                         operation_parameter_doc_comment(operation, param.identifier()),
@@ -231,7 +231,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn request_decode_body(operation: &Operation) -> CodeBlock {
-    let mut code = CodeBlock::new();
+    let mut code = CodeBlock::default();
 
     let namespace = &operation.namespace();
     let encoding = operation.encoding.to_cs_encoding();
@@ -356,7 +356,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     let parameters = operation.parameters();
     let return_parameters = operation.return_members();
 
-    let mut check_and_decode = CodeBlock::new();
+    let mut check_and_decode = CodeBlock::default();
 
     if !operation.is_idempotent {
         check_and_decode.writeln("request.CheckNonIdempotent();");
@@ -403,7 +403,7 @@ await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);
         }
     };
 
-    let mut dispatch_and_return = CodeBlock::new();
+    let mut dispatch_and_return = CodeBlock::default();
 
     if operation.has_encoded_result() {
         // TODO: support for stream param with encoded result?

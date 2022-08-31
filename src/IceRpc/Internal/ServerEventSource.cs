@@ -15,7 +15,7 @@ internal sealed class ServerEventSource : EventSource
     private long _currentBacklog;
     private PollingCounter? _currentBacklogCounter;
 
-    // The number of connections that were accepted and connected and are not lost or shutdown.
+    // The number of active (accepted and connected) connections.
     private long _currentConnections;
     private PollingCounter? _currentConnectionsCounter;
 
@@ -26,7 +26,7 @@ internal sealed class ServerEventSource : EventSource
     private long _totalConnections;
     private PollingCounter? _totalConnectionsCounter;
 
-    // The number of connections that were accepted but failed to connect plus lost connections.
+    // The number of connections that were accepted and failed later on.
     private long _totalFailedConnections;
     private PollingCounter? _totalFailedConnectionsCounter;
 
@@ -41,7 +41,6 @@ internal sealed class ServerEventSource : EventSource
     [NonEvent]
     internal void ConnectFailure(ServerAddress serverAddress, EndPoint remoteNetworkAddress, Exception exception)
     {
-        Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Error, EventKeywords.None))
         {
             ConnectFailure(
@@ -102,23 +101,6 @@ internal sealed class ServerEventSource : EventSource
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
             ConnectionShutdown(serverAddress.ToString(), remoteNetworkAddress.ToString(), message);
-        }
-    }
-
-    [NonEvent]
-    internal void ConnectionShutdownFailure(
-        ServerAddress serverAddress,
-        EndPoint remoteNetworkAddress,
-        Exception exception)
-    {
-        Interlocked.Increment(ref _totalFailedConnections);
-        if (IsEnabled(EventLevel.Error, EventKeywords.None))
-        {
-            ConnectionShutdownFailure(
-                serverAddress.ToString(),
-                remoteNetworkAddress.ToString(),
-                exception.GetType().FullName,
-                exception.ToString());
         }
     }
 
@@ -252,13 +234,4 @@ internal sealed class ServerEventSource : EventSource
     [Event(8, Level = EventLevel.Informational)]
     private void ConnectionShutdown(string serverAddress, string? remoteNetworkAddress, string message) =>
         WriteEvent(8, serverAddress, remoteNetworkAddress, message);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [Event(9, Level = EventLevel.Error)]
-    private void ConnectionShutdownFailure(
-        string serverAddress,
-        string? remoteNetworkAddress,
-        string? exceptionType,
-        string exceptionDetails) =>
-        WriteEvent(9, serverAddress, remoteNetworkAddress, exceptionType, exceptionDetails);
 }

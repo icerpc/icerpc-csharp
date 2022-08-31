@@ -45,7 +45,7 @@ public class TcpServerTransport : IDuplexServerTransport
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),
-                @$"{nameof(serverAuthenticationOptions)} cannot be null with the ssl transport");
+                $"{nameof(serverAuthenticationOptions)} cannot be null with the ssl transport");
         }
 
         return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);

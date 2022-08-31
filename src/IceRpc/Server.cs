@@ -17,8 +17,9 @@ public sealed class Server : IAsyncDisposable
     /// port the server is listening on.</value>
     public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
 
-    /// <summary>Gets a task that completes when the server's shutdown is complete: see <see cref="ShutdownAsync"/>.
-    /// This property can be retrieved before shutdown is initiated.</summary>
+    /// <summary>Gets a task that completes when the server's shutdown is complete: see
+    /// <see cref="ShutdownAsync(string, CancellationToken)"/> This property can be retrieved before shutdown is
+    /// initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
     private readonly HashSet<IProtocolConnection> _connections = new();
@@ -50,8 +51,7 @@ public sealed class Server : IAsyncDisposable
     {
         if (options.ConnectionOptions.Dispatcher is null)
         {
-            throw new ArgumentException(
-                $"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
+            throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
 
         _serverAddress = options.ServerAddress;
@@ -283,10 +283,18 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
-    /// existing connections.</summary>
+    /// existing connections using a default message.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    public async Task ShutdownAsync(CancellationToken cancellationToken = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+        ShutdownAsync("Server shutdown", cancellationToken);
+
+    /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
+    /// existing connections.</summary>
+    /// <param name="message">The message transmitted to the clients with the icerpc protocol.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes once the shutdown is complete.</returns>
+    public async Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -307,7 +315,7 @@ public sealed class Server : IAsyncDisposable
                 _listener?.Dispose();
             }
 
-            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync("server shutdown", cancellationToken)))
+            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(message, cancellationToken)))
                 .ConfigureAwait(false);
         }
         finally
@@ -389,10 +397,6 @@ public sealed class Server : IAsyncDisposable
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public void OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
-
-        public void OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
-
         public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(message, cancellationToken);
 
@@ -412,7 +416,7 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch (Exception exception)
                 {
-                    ServerEventSource.Log.ConnectionShutdownFailure(
+                    ServerEventSource.Log.ConnectionFailure(
                         ServerAddress,
                         remoteNetworkAddress,
                         exception);

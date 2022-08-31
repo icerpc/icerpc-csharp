@@ -43,20 +43,20 @@ impl<T: Member> MemberExt for T {
 }
 
 pub trait ParameterExt {
-    fn to_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
 }
 
 impl ParameterExt for Parameter {
-    fn to_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
+    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
         if self.is_streamed {
-            let type_str = self.data_type().to_type_string(namespace, context, true);
+            let type_str = self.data_type().cs_type_string(namespace, context, true);
             if type_str == "byte" {
                 "global::System.IO.Pipelines.PipeReader".to_owned()
             } else {
                 format!("global::System.Collections.Generic.IAsyncEnumerable<{}>", type_str)
             }
         } else {
-            self.data_type().to_type_string(namespace, context, ignore_optional)
+            self.data_type().cs_type_string(namespace, context, ignore_optional)
         }
     }
 }
@@ -84,11 +84,11 @@ impl ParameterSliceExt for [&Parameter] {
     fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
         match self {
             [] => panic!("tuple type with no members"),
-            [member] => member.to_type_string(namespace, context, ignore_optional),
+            [member] => member.cs_type_string(namespace, context, ignore_optional),
             _ => format!(
                 "({})",
                 self.iter()
-                    .map(|m| m.to_type_string(namespace, context, ignore_optional)
+                    .map(|m| m.cs_type_string(namespace, context, ignore_optional)
                         + " "
                         + &m.field_name(FieldType::NonMangled))
                     .collect::<Vec<String>>()

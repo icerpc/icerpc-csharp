@@ -33,9 +33,16 @@ public ref partial struct SliceDecoder
 
         AnyClass? obj = DecodeAnyClass();
 
-        return obj is T result ? result :
-            obj is null ? null : throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
-                }' but expected instance of type '{typeof(T)}'");
+        if (obj is T result)
+        {
+            return result;
+        }
+        else if (obj is null)
+        {
+            return null;
+        }
+        throw new InvalidDataException(
+            $"decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'");
     }
 
     /// <summary>Decodes a Slice1 user exception.</summary>
@@ -96,8 +103,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException(
-                $"{nameof(EndSlice)} is not compatible with encoding {Encoding}");
+            throw new InvalidOperationException($"{nameof(EndSlice)} is not compatible with encoding {Encoding}");
         }
 
         // Note that EndSlice is not called when we call SkipSlice.
@@ -484,7 +490,8 @@ public ref partial struct SliceDecoder
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
         {
             string kind = _classContext.Current.InstanceType.ToString().ToLowerInvariant();
-            throw new InvalidDataException(@$"no {kind} found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead)");
+            throw new InvalidDataException(
+                $"no {kind} found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead)");
         }
 
         bool hasTaggedMembers = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;

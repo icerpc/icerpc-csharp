@@ -18,7 +18,10 @@ public class DeadlineInterceptor : IInvoker
     /// <summary>Constructs a deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="defaultTimeout">The default timeout.</param>
-    /// <param name="alwaysEnforceDeadline">Indicates whether this interceptor always enforces the deadline.</param>
+    /// <param name="alwaysEnforceDeadline">When <c>true</c> and the request carries a deadline, the interceptor always
+    /// creates a cancellation token source to enforce this deadline. When <c>false</c> and the request carries a
+    /// deadline, the interceptor creates a cancellation token source to enforce this deadline only when the
+    /// invocation's cancellation token cannot be canceled. The default value is <c>false</c>.</param>
     public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline)
     {
         _next = next;
