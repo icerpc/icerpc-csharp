@@ -6,10 +6,10 @@ using System.Diagnostics;
 
 namespace IceRpc.Telemetry;
 
-/// <summary>An interceptor that starts an <see cref="Activity"/> per request, following OpenTelemetry
-/// conventions. The Activity is started if <see cref="Activity.Current"/> is not null or if "IceRpc" logging is
-/// enabled. The activity context is written in the request fields and can be restored by installing a
-/// <see cref="TelemetryMiddleware"/>.</summary>
+/// <summary>An interceptor that starts an <see cref="Activity"/> per request, following OpenTelemetry conventions. The
+/// activity context is written in the request <see cref="RequestFieldKey.TraceContext"/> field and can be restored on
+/// the server-side by installing the <see cref="TelemetryMiddleware"/>. The activities are only created for requests
+/// using the icerpc protocol.</summary>
 public class TelemetryInterceptor : IInvoker
 {
     private readonly IInvoker _next;
