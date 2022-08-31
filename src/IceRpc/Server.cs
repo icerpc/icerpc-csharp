@@ -24,9 +24,13 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
+    private readonly SemaphoreSlim _connectionSemaphore;
+
     private IListener? _listener;
 
     private readonly Func<IListener<IProtocolConnection>> _listenerFactory;
+
+    private readonly int _maxConnections;
 
     // protects _listener and _connections
     private readonly object _mutex = new();
@@ -57,6 +61,9 @@ public sealed class Server : IAsyncDisposable
         _serverAddress = options.ServerAddress;
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
+
+        _maxConnections = options.MaxConnections;
+        _connectionSemaphore = new SemaphoreSlim(_maxConnections, _maxConnections);
 
         if (_serverAddress.Transport is null)
         {
@@ -150,7 +157,22 @@ public sealed class Server : IAsyncDisposable
 
         await Task.WhenAll(_connections.Select(entry => entry.DisposeAsync().AsTask())).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult(null);
+
+        if (_connections.Any())
+        {
+            // Release the semaphore for all the connections still in _connections.
+            _connectionSemaphore.Release(_connections.Count);
+        }
+
+        // Wait until all connections not in _connections are disposed
+        // We do this by entering the semaphore until it is empty.
+        for (int i = 0; i < _maxConnections; i++)
+        {
+            await _connectionSemaphore.WaitAsync(Timeout.Infinite).ConfigureAwait(false);
+        }
+
         _shutdownCts.Dispose();
+        _connectionSemaphore.Dispose();
     }
 
     /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
@@ -193,12 +215,21 @@ public sealed class Server : IAsyncDisposable
             while (true)
             {
                 IProtocolConnection connection;
+                bool enteredSemaphore = false;
                 try
                 {
+                    enteredSemaphore = await _connectionSemaphore
+                        .WaitAsync(Timeout.Infinite, shutdownCancellationToken).ConfigureAwait(false);
                     (connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch
                 {
+                    // We need to release the semaphore if we entered it.
+                    if (enteredSemaphore)
+                    {
+                        _connectionSemaphore.Release();
+                    }
+
                     if (shutdownCancellationToken.IsCancellationRequested)
                     {
                         return; // server is shutting down or being disposed
@@ -269,7 +300,7 @@ public sealed class Server : IAsyncDisposable
                 // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // Server.DisposeAsync is responsible to dispose this connection.
+                    // Server.DisposeAsync is responsible to dispose this connection abd release the semaphore.
                     return;
                 }
                 else
@@ -279,6 +310,8 @@ public sealed class Server : IAsyncDisposable
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
+            // Wait until the connection is disposed before releasing the semaphore.
+            _connectionSemaphore.Release();
         }
     }
 

@@ -18,6 +18,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private readonly IClientProtocolConnectionFactory _connectionFactory;
 
+    private readonly SemaphoreSlim _connectionSemaphore;
+
+    private readonly int _maxConnections;
+
     private readonly object _mutex = new();
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
@@ -46,6 +50,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 multiplexedClientTransport));
 
         _preferExistingConnection = options.PreferExistingConnection;
+        _maxConnections = options.MaxConnections;
+        _connectionSemaphore = new SemaphoreSlim(_maxConnections, _maxConnections);
     }
 
     /// <summary>Constructs a connection cache using the default options.</summary>
@@ -79,7 +85,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
             .ConfigureAwait(false);
 
+        if (_activeConnections.Any())
+        {
+            // Release the semaphore for all the connections still in the _activeConnections map.
+            _connectionSemaphore.Release(_activeConnections.Count);
+        }
+
+        // Wait until all connections not in the _activeConnections are disposed
+        // We do this by entering the semaphore until it is empty.
+        for (int i = 0; i < _maxConnections; i++)
+        {
+            await _connectionSemaphore.WaitAsync(Timeout.Infinite).ConfigureAwait(false);
+        }
+
         _shutdownCts.Dispose();
+        _connectionSemaphore.Dispose();
     }
 
     /// <inheritdoc/>
@@ -293,12 +313,24 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 shutdownCancellationToken);
+
+            bool enteredSemaphore = false;
             try
             {
+                // Ensure that we have not reached the maximum number of active connections.
+                enteredSemaphore =
+                    await _connectionSemaphore.WaitAsync(Timeout.Infinite, cts.Token).ConfigureAwait(false);
                 _ = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
             }
             catch
             {
+                // We entered the semaphore, but there was an exception during connection establishment,
+                // so we must release it.
+                if (enteredSemaphore)
+                {
+                    _connectionSemaphore.Release();
+                }
+
                 lock (_mutex)
                 {
                     // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
@@ -363,7 +395,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // ConnectionCache.DisposeAsync is responsible to dispose this connection.
+                    // ConnectionCache.DisposeAsync is responsible for disposing this connection and
+                    // for releasing the semaphore.
                     return;
                 }
                 else
@@ -374,6 +407,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
+            // Wait until the connection is disposed before releasing the semaphore.
+            _connectionSemaphore.Release();
         }
     }
 }

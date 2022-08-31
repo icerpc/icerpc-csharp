@@ -10,6 +10,9 @@ public sealed record class ServerOptions
     /// <summary>Gets or sets the connection options for server connections.</summary>
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
+    /// <summary>Gets or sets the maximum number of accepted server connections.</summary>
+    public int MaxConnections { get; set; } = 100;
+
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>
     public ServerAddress ServerAddress { get; set; } = new(Protocol.IceRpc);
