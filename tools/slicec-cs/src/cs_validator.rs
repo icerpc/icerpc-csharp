@@ -34,7 +34,7 @@ fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
 fn report_unexpected_attribute(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     diagnostic_reporter.report(Diagnostic::new(
         LogicErrorKind::UnexpectedAttribute(format!("cs::{}", attribute.directive)),
-        Some(&attribute.span),
+        Some(attribute.span()),
     ));
 }
 
@@ -43,11 +43,11 @@ fn validate_cs_attribute(attribute: &Attribute, diagnostic_reporter: &mut Diagno
         1 => (), // Expected 1 argument
         0 => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::MissingRequiredArgument(r#"cs::attribute("<attribute-value>")"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         )),
         _ => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::attribute("<attribute-value>")"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         )),
     }
 }
@@ -56,7 +56,7 @@ fn validate_cs_internal(attribute: &Attribute, diagnostic_reporter: &mut Diagnos
     if !attribute.arguments.is_empty() {
         diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::internal"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         ));
     }
 }
@@ -65,7 +65,7 @@ fn validate_cs_encoded_result(attribute: &Attribute, diagnostic_reporter: &mut D
     if !attribute.arguments.is_empty() {
         diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::encodedResult"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         ));
     }
 }
@@ -75,11 +75,11 @@ fn validate_cs_generic(attribute: &Attribute, diagnostic_reporter: &mut Diagnost
         1 => (), // Expected 1 argument
         0 => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::MissingRequiredArgument(r#"cs::generic("<generic-type>")"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         )),
         _ => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::generic("<generic-type>")"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         )),
     }
 }
@@ -89,11 +89,11 @@ fn validate_cs_type(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticR
         1 => (), // Expected 1 argument
         0 => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::MissingRequiredArgument(r#"cs::type("<type>")"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         )),
         _ => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::type("<type>")"#.to_owned()),
-            Some(&attribute.span),
+            Some(attribute.span()),
         )),
     }
 }
@@ -139,17 +139,17 @@ impl Visitor for CsValidator<'_> {
                         1 => (), // Expected 1 argument
                         0 => self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::MissingRequiredArgument(r#"cs::namespace("<namespace>")"#.to_owned()),
-                            Some(&attribute.span),
+                            Some(attribute.span()),
                         )),
                         _ => self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::TooManyArguments(r#"cs::namespace("<namespace>")"#.to_owned()),
-                            Some(&attribute.span),
+                            Some(attribute.span()),
                         )),
                     }
                     if !module_def.is_top_level() {
                         self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::AttributeOnlyValidForTopLevelModules("cs::namespace".to_owned()),
-                            Some(&attribute.span),
+                            Some(attribute.span()),
                         ));
                     }
                 }
@@ -166,7 +166,7 @@ impl Visitor for CsValidator<'_> {
                     if !attribute.arguments.is_empty() {
                         self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::TooManyArguments(r#"cs::readonly"#.to_owned()),
-                            Some(&attribute.span),
+                            Some(attribute.span()),
                         ));
                     }
                 }
@@ -236,7 +236,7 @@ impl Visitor for CsValidator<'_> {
         if !custom_type.has_attribute("cs::type", false) {
             self.diagnostic_reporter.report(Diagnostic::new(
                 LogicErrorKind::MissingRequiredAttribute("cs::type".to_owned()),
-                Some(&custom_type.span),
+                Some(custom_type.span()),
             ));
         }
 
