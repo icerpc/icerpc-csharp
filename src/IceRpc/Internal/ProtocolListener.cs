@@ -7,8 +7,6 @@ namespace IceRpc.Internal;
 
 /// <summary>Implements <see cref="IListener{T}"/> for protocol connections.</summary>
 /// <typeparam name="T">The transport connection type.</typeparam>
-// TODO: IListener and IListener<T> are defined in Transports but are used here as protocol connection listeners. Should
-// we move IListener to IceRpc?
 internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
 {
     public ServerAddress ServerAddress => _transportListener.ServerAddress;
