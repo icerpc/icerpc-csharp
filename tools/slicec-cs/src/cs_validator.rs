@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::diagnostics::{DiagnosticReporter, LogicErrorKind};
+use slice::diagnostics::{Diagnostic, DiagnosticReporter, LogicErrorKind};
 use slice::grammar::*;
 use slice::parse_result::{ParsedData, ParserResult};
 use slice::visitor::Visitor;
@@ -32,69 +32,69 @@ fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
 }
 
 fn report_unexpected_attribute(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
-    diagnostic_reporter.report(
+    diagnostic_reporter.report(Diagnostic::new(
         LogicErrorKind::UnexpectedAttribute(format!("cs::{}", attribute.directive)),
         Some(&attribute.span),
-    );
+    ));
 }
 
 fn validate_cs_attribute(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
-        0 => diagnostic_reporter.report(
+        0 => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::MissingRequiredArgument(r#"cs::attribute("<attribute-value>")"#.to_owned()),
             Some(&attribute.span),
-        ),
-        _ => diagnostic_reporter.report(
+        )),
+        _ => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::attribute("<attribute-value>")"#.to_owned()),
             Some(&attribute.span),
-        ),
+        )),
     }
 }
 
 fn validate_cs_internal(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     if !attribute.arguments.is_empty() {
-        diagnostic_reporter.report(
+        diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::internal"#.to_owned()),
             Some(&attribute.span),
-        );
+        ));
     }
 }
 
 fn validate_cs_encoded_result(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     if !attribute.arguments.is_empty() {
-        diagnostic_reporter.report(
+        diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::encodedResult"#.to_owned()),
             Some(&attribute.span),
-        );
+        ));
     }
 }
 
 fn validate_cs_generic(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
-        0 => diagnostic_reporter.report(
+        0 => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::MissingRequiredArgument(r#"cs::generic("<generic-type>")"#.to_owned()),
             Some(&attribute.span),
-        ),
-        _ => diagnostic_reporter.report(
+        )),
+        _ => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::generic("<generic-type>")"#.to_owned()),
             Some(&attribute.span),
-        ),
+        )),
     }
 }
 
 fn validate_cs_type(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
-        0 => diagnostic_reporter.report(
+        0 => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::MissingRequiredArgument(r#"cs::type("<type>")"#.to_owned()),
             Some(&attribute.span),
-        ),
-        _ => diagnostic_reporter.report(
+        )),
+        _ => diagnostic_reporter.report(Diagnostic::new(
             LogicErrorKind::TooManyArguments(r#"cs::type("<type>")"#.to_owned()),
             Some(&attribute.span),
-        ),
+        )),
     }
 }
 
@@ -137,20 +137,20 @@ impl Visitor for CsValidator<'_> {
                 "namespace" => {
                     match attribute.arguments.len() {
                         1 => (), // Expected 1 argument
-                        0 => self.diagnostic_reporter.report(
+                        0 => self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::MissingRequiredArgument(r#"cs::namespace("<namespace>")"#.to_owned()),
                             Some(&attribute.span),
-                        ),
-                        _ => self.diagnostic_reporter.report(
+                        )),
+                        _ => self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::TooManyArguments(r#"cs::namespace("<namespace>")"#.to_owned()),
                             Some(&attribute.span),
-                        ),
+                        )),
                     }
                     if !module_def.is_top_level() {
-                        self.diagnostic_reporter.report(
+                        self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::AttributeOnlyValidForTopLevelModules("cs::namespace".to_owned()),
                             Some(&attribute.span),
-                        );
+                        ));
                     }
                 }
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
@@ -164,10 +164,10 @@ impl Visitor for CsValidator<'_> {
             match attribute.directive.as_ref() {
                 "readonly" => {
                     if !attribute.arguments.is_empty() {
-                        self.diagnostic_reporter.report(
+                        self.diagnostic_reporter.report(Diagnostic::new(
                             LogicErrorKind::TooManyArguments(r#"cs::readonly"#.to_owned()),
                             Some(&attribute.span),
-                        );
+                        ));
                     }
                 }
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
@@ -234,10 +234,10 @@ impl Visitor for CsValidator<'_> {
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
         // We require 'cs::type' on custom types to know how to encode/decode it.
         if !custom_type.has_attribute("cs::type", false) {
-            self.diagnostic_reporter.report(
+            self.diagnostic_reporter.report(Diagnostic::new(
                 LogicErrorKind::MissingRequiredAttribute("cs::type".to_owned()),
                 Some(&custom_type.span),
-            );
+            ));
         }
 
         for attribute in &cs_attributes(custom_type.attributes()) {
