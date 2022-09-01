@@ -46,7 +46,6 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-
     /// <summary>Verifies that disposing a connection that was not connected completes the
     /// <see cref="ProtocolConnection.ShutdownComplete"/> task.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
