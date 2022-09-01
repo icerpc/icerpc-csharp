@@ -424,8 +424,7 @@ public sealed class Server : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            await _logShutdownTask.ConfigureAwait(false); // make sure the task completes before ConnectionStop
-            ServerEventSource.Log.ConnectionStop(ServerAddress, _remoteNetworkAddress);
+            await _logShutdownTask.ConfigureAwait(false);
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -441,6 +440,7 @@ public sealed class Server : IAsyncDisposable
 
             _logShutdownTask = LogShutdownAsync();
 
+            // This task executes once per decorated connection.
             async Task LogShutdownAsync()
             {
                 try
@@ -455,6 +455,7 @@ public sealed class Server : IAsyncDisposable
                         remoteNetworkAddress,
                         exception);
                 }
+                ServerEventSource.Log.ConnectionStop(ServerAddress, _remoteNetworkAddress);
             }
         }
     }
