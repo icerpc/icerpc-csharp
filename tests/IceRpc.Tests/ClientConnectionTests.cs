@@ -206,7 +206,7 @@ public class ClientConnectionTests
         _ = await connection.ConnectAsync();
         await connection.DisposeAsync();
 
-        // Assert
+        // Act/Assert
         Assert.That(
             async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<ObjectDisposedException>());
