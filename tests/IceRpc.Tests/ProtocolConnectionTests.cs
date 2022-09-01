@@ -50,7 +50,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that disposing a connection that was not connected completes the
     /// <see cref="ProtocolConnection.ShutdownComplete"/> task.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Disposing_not_connected_connection_completes_shouldown_complete_task(Protocol protocol)
+    public async Task ShutdownComplete_completes_when_disposing_not_connected_connection(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
