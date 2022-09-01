@@ -15,7 +15,7 @@ public static class DeadlinePipelineExtensions
 
     /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="defaultTimeout">The deadline interceptor options.</param>
+    /// <param name="defaultTimeout">The default timeout.</param>
     /// <param name="alwaysEnforceDeadline">When <c>true</c> and the request carries a deadline, the interceptor always
     /// creates a cancellation token source to enforce this deadline. When <c>false</c> and the request carries a
     /// deadline, the interceptor creates a cancellation token source to enforce this deadline only when the

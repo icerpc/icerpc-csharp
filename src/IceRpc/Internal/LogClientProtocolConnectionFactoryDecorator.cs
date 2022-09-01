@@ -59,8 +59,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            await _logShutdownAsync.ConfigureAwait(false); // make sure the task completes before ConnectionStop
-            ClientEventSource.Log.ConnectionStop(ServerAddress, _localNetworkAddress);
+            await _logShutdownAsync.ConfigureAwait(false);
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -74,6 +73,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             _decoratee = decoratee;
             _logShutdownAsync = LogShutdownAsync();
 
+            // This task executes exactly once per decorated connection.
             async Task LogShutdownAsync()
             {
                 try
@@ -86,6 +86,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 {
                     ClientEventSource.Log.ConnectionFailure(ServerAddress, _localNetworkAddress, exception);
                 }
+                ClientEventSource.Log.ConnectionStop(ServerAddress, _localNetworkAddress);
             }
         }
     }

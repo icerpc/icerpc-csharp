@@ -1037,9 +1037,20 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     if (response != request.Response)
                     {
-                        throw new InvalidOperationException(
+                        var exception = new InvalidOperationException(
                             "the dispatcher did not return the last response created for this request");
+
+                        await response.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                        if (response.PayloadStream is PipeReader payloadStream)
+                        {
+                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                        }
+                        throw exception;
                     }
+                }
+                catch when (request.IsOneway)
+                {
+                    // ignored since we're not returning anything
                 }
                 catch (OperationCanceledException exception) when
                     (exception.CancellationToken == _dispatchesAndInvocationsCts.Token)
@@ -1092,7 +1103,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 try
                 {
-                    if (response == null)
+                    if (request.IsOneway)
+                    {
+                        return;
+                    }
+                    else if (response == null)
                     {
                         // TODO: add reason message or abort error code?
                         throw new ConnectionAbortedException();
@@ -1100,10 +1115,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     else if (response.PayloadStream is not null)
                     {
                         throw new NotSupportedException("PayloadStream must be null with the ice protocol");
-                    }
-                    else if (request.IsOneway)
-                    {
-                        return;
                     }
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the
