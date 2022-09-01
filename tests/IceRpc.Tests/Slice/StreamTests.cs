@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -265,5 +266,110 @@ public class StreamTests
                 return encoder.EncodedByteCount;
             }
         }
+    }
+
+    /// <summary>Test that the payload stream of the outgoing request and incoming request are completed with
+    /// <see cref="InvalidDataException"/> after the async enumerable decoding action throws
+    /// <see cref="InvalidDataException"/>. Even in the case that the exception is throw after the response has been
+    /// received.</summary>
+    [Test]
+    public async Task Stream_payload_completes_with_invalid_data_exception_after_receiving_invalid_data()
+    {
+        var results = new List<MyEnum>();
+        WaitForCompletionPipeReaderDecorator? incomingPayloadStream = null;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new InlineDispatcher(
+                async (request, cancelationToken) =>
+                {
+                    await request.DecodeEmptyArgsAsync(SliceEncoding.Slice2, cancelationToken);
+                    incomingPayloadStream = new WaitForCompletionPipeReaderDecorator(request.Payload);
+                    request.Payload = incomingPayloadStream;
+                    IAsyncEnumerable<MyEnum> myEnums = request.ToAsyncEnumerable(
+                        SliceEncoding.Slice2,
+                        null,
+                        (ref SliceDecoder decoder) => MyEnumSliceDecoderExtensions.DecodeMyEnum(ref decoder));
+                    _ = Task.Run(async () =>
+                        {
+                            await foreach (var myEnum in myEnums)
+                            {
+                                results.Add(myEnum);
+                            }
+                        },
+                        CancellationToken.None);
+
+                    return new OutgoingResponse(request);
+                }))
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+        provider.GetRequiredService<Server>().Listen();
+
+        var tcs = new TaskCompletionSource();
+        var outgoingPayloadStream = new WaitForCompletionPipeReaderDecorator(
+            SliceEncoding.Slice2.CreatePayloadStream(
+                GetData(),
+                encodeOptions: null,
+                (ref SliceEncoder encoder, uint value) => encoder.EncodeVarUInt62(value),
+                false));
+        var request = new OutgoingRequest(ServiceProxy.DefaultServiceAddress)
+        {
+            Payload = SliceEncoding.Slice2.CreateSizeZeroPayload(),
+            PayloadStream = outgoingPayloadStream,
+        };
+
+        IncomingResponse response = await connection.InvokeAsync(request);
+
+        // Act, let's streaming start
+        tcs.SetResult();
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
+        Assert.That(incomingPayloadStream, Is.Not.Null);
+        Assert.That(results.Count, Is.LessThanOrEqualTo(0));
+        Assert.That(async () => await outgoingPayloadStream.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await incomingPayloadStream.Completed, Throws.TypeOf<InvalidDataException>());
+
+        async IAsyncEnumerable<uint> GetData()
+        {
+            await tcs.Task; // Don't start streaming until we receive the response
+            yield return 1;
+            yield return 4; // Not valid value for MyEnum
+            while (true)
+            {
+                yield return 1;
+            }
+        }
+    }
+
+    private class WaitForCompletionPipeReaderDecorator : PipeReader
+    {
+        public Task Completed => _completionTcs.Task;
+
+        private readonly PipeReader _decoratee;
+        private readonly TaskCompletionSource _completionTcs = new();
+
+        internal WaitForCompletionPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
+
+        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+            _decoratee.AdvanceTo(consumed, examined);
+
+        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
+        public override void Complete(Exception? exception = null)
+        {
+            if (exception is not null)
+            {
+                _completionTcs.SetException(exception);
+            }
+            else
+            {
+                _completionTcs.SetResult();
+            }
+            _decoratee.Complete(exception);
+        }
+        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ReadAsync(cancellationToken);
+        public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
     }
 }
