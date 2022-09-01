@@ -29,7 +29,7 @@ jobs:
           tools/slicec-cs/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-cargo
+          ${{ runner.os }}-cargo-
     - name: 🔗 Setup .NET
       uses: actions/setup-dotnet@v2
       with:
