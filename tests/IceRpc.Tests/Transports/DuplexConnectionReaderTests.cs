@@ -38,7 +38,7 @@ public class DuplexConnectionReaderTests
             TimeSpan.FromMilliseconds(1000),
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: _ => { },
+            connectionLostAction: _ => { },
             keepAliveAction: () => ++pingCount);
         reader.EnableIdleCheck();
 
@@ -78,7 +78,7 @@ public class DuplexConnectionReaderTests
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
             keepAliveAction: () => { });
         reader.EnableIdleCheck();
 
@@ -112,7 +112,7 @@ public class DuplexConnectionReaderTests
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
             keepAliveAction: () => { });
         reader.EnableIdleCheck();
 

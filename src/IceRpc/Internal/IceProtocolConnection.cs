@@ -30,8 +30,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
-    private Exception? _closeException;
-    private string? _closeReason;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
@@ -91,7 +89,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             idleTimeout: options.IdleTimeout,
             _memoryPool,
             _minSegmentSize,
-            abortAction: exception => InvokeOnAbort(exception),
+            connectionLostAction: ConnectionLost,
             keepAliveAction: () =>
             {
                 try
@@ -125,18 +123,18 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
                     await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
+                catch (Exception exception)
+                {
+                    ConnectionLost(new ConnectionLostException(exception));
+                }
                 finally
                 {
                     _writeSemaphore.Release();
                 }
             }
-            catch (OperationCanceledException)
+            catch
             {
                 // Connection disposed.
-            }
-            catch (Exception exception)
-            {
-                InvokeOnAbort(exception);
             }
 
             static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
@@ -179,7 +177,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
-                _closeReason ??= "connection idle";
+                ConnectionClosedException = new(ConnectionClosedErrorCode.Idle);
                 return true;
             }
             else
@@ -189,10 +187,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancellationToken)
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
+        CancellationToken cancellationToken)
     {
-        TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(cancellationToken)
-            .ConfigureAwait(false);
+        TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(
+            cancellationToken).ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task below.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
@@ -236,60 +235,41 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    lock (_mutex)
-                    {
-                        _closeReason ??= "connection shutdown by peer";
-                        completeException = new ConnectionClosedException(_closeReason);
-                    }
+                    ConnectionClosedException = new(ConnectionClosedErrorCode.ShutdownByPeer);
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
                         _pingTask,
-                        _writeSemaphore.CompleteAndWaitAsync(completeException)).ConfigureAwait(false);
+                        _writeSemaphore.CompleteAndWaitAsync(ConnectionClosedException)).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the transport connection and notify the
                     // callback that the connection has been shutdown by the peer.
                     _duplexConnection.Dispose();
 
-                    // Notify the shutdown callback and complete invocations which are still pending with the
-                    // retryable ConnectionClosedException exception.
-                    InitiateShutdown(_closeReason);
+                    // Initiate the shutdown.
+                    InitiateShutdown("connection is shutdown by peer");
                 }
                 catch (ConnectionLostException) when (
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
-                    lock (_mutex)
-                    {
-                        _closeReason ??= "connection shutdown";
-                    }
-                    completeException = new ConnectionClosedException(_closeReason);
+                    Debug.Assert(ConnectionClosedException is not null);
                 }
                 catch (OperationCanceledException)
                 {
                     // This can occur if the transport connection is disposed.
-                    lock (_mutex)
-                    {
-                        _closeReason ??= "connection disposed";
-                    }
-                    completeException = new ConnectionAbortedException(_closeReason);
+                    Debug.Assert(ConnectionClosedException is not null);
+                    completeException = new ConnectionAbortedException("connection disposed");
                 }
                 catch (Exception exception)
                 {
-                    lock (_mutex)
-                    {
-                        if (_closeReason is null)
-                        {
-                            _closeReason = "connection lost";
-                            _closeException = exception;
-                        }
-                    }
+                    ConnectionClosedException = new(ConnectionClosedErrorCode.Lost);
 
                     // Unexpected exception, notify the OnAbort callback.
                     var connectionLostException = new ConnectionLostException(exception);
-                    InvokeOnAbort(connectionLostException);
+                    ConnectionLost(connectionLostException);
                     completeException = connectionLostException;
                 }
                 finally
@@ -299,8 +279,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
-                    Debug.Assert(completeException is not null);
-                    CancelDispatchesAndInvocations(completeException);
+                    Debug.Assert(ConnectionClosedException is not null);
+                    CancelDispatchesAndInvocations(completeException ?? ConnectionClosedException);
                 }
             },
             CancellationToken.None);
@@ -367,15 +347,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // for this condition here and throw ConnectionClosedException if necessary.
             if (_isReadOnly)
             {
-                Debug.Assert(_closeReason is not null);
-                if (_closeException is null)
-                {
-                    throw new ConnectionClosedException(_closeReason);
-                }
-                else
-                {
-                    throw new ConnectionClosedException(_closeReason, _closeException);
-                }
+                throw ConnectionClosedException!;
             }
 
             // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
@@ -413,15 +385,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (_isReadOnly)
                     {
-                        Debug.Assert(_closeReason is not null);
-                        if (_closeException is null)
-                        {
-                            throw new ConnectionClosedException(_closeReason);
-                        }
-                        else
-                        {
-                            throw new ConnectionClosedException(_closeReason, _closeException);
-                        }
+                        throw ConnectionClosedException!;
                     }
                     else
                     {
@@ -668,7 +632,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true;
-            _closeReason ??= "connection shutdown";
             if (_dispatchCount == 0 && _invocations.Count == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -981,15 +944,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    Debug.Assert(_closeReason is not null);
-                    if (_closeException is null)
-                    {
-                        connectionClosedException = new ConnectionClosedException(_closeReason);
-                    }
-                    else
-                    {
-                        connectionClosedException = new ConnectionClosedException(_closeReason, _closeException);
-                    }
+                    throw ConnectionClosedException!;
                 }
                 else
                 {

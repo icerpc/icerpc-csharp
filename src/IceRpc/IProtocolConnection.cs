@@ -15,9 +15,9 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is shut down or aborted.</summary>
+    /// <summary>Gets a task that completes when the connection is shut down, aborted or lost.</summary>
     /// <value>A task that completes with the shutdown message when the connection is successfully shut down. It
-    /// completes with an exception when the connection is aborted.</value>
+    /// completes with an exception when the connection is aborted or lost.</value>
     Task<string> ShutdownComplete { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>

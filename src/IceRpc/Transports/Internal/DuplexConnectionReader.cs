@@ -42,7 +42,7 @@ internal class DuplexConnectionReader : IDisposable
         TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        Action<Exception> abortAction,
+        Action<ConnectionLostException> connectionLostAction,
         Action? keepAliveAction)
     {
         _connection = connection;
@@ -72,7 +72,7 @@ internal class DuplexConnectionReader : IDisposable
                     _nextIdleTime = Timeout.InfiniteTimeSpan;
                 }
 
-                abortAction(new ConnectionAbortedException(
+                connectionLostAction(new ConnectionLostException(
                     $"the transport connection has been idle for longer than {_idleTimeout}"));
             });
 
@@ -160,6 +160,7 @@ internal class DuplexConnectionReader : IDisposable
                 {
                     // The peer gracefully shut down the connection but returned less data than expected, it's
                     // considered as an error.
+                    // TODO: InvalidDataException instead?
                     throw new ConnectionLostException("received less data than expected");
                 }
             }
@@ -291,6 +292,7 @@ internal class DuplexConnectionReader : IDisposable
                 {
                     // The peer gracefully shut down the connection but returned less data than expected, it's
                     // considered as an error.
+                    // TODO: InvalidDataException instead?
                     throw new ConnectionLostException("received less data than expected");
                 }
             }
