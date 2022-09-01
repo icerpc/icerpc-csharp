@@ -153,7 +153,7 @@ public class ClientConnectionTests
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -180,7 +180,7 @@ public class ClientConnectionTests
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<InvalidOperationException>());
     }
 }
