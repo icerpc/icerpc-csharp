@@ -46,6 +46,25 @@ public sealed class ProtocolConnectionTests
         }
     }
 
+    /// <summary>Verifies that disposing a connection that was not connected completes the
+    /// <see cref="ProtocolConnection.ShutdownComplete"/> task.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task ShutdownComplete_completes_when_disposing_not_connected_connection(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Assert
+        Assert.That(async () => await sut.Client.ShutdownComplete, Throws.Nothing);
+    }
+
     /// <summary>Verifies that ShutdownComplete completes when idle.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task ShutdownComplete_completes_when_idle(Protocol protocol)
@@ -257,12 +276,33 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = sut.Client.ShutdownAsync("");
+        Task shutdownTask = sut.Client.ShutdownAsync("");
 
         // Act/Assert
         ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.Shutdown));
+
+        await shutdownTask;
+    }
+
+    /// <summary>Ensures that the sending a request after dispose fails.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Invoke_on_connection_fails_after_dispose(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        Task disposeTask = sut.Client.DisposeAsync().AsTask();
+
+        // Act/Assert
+        Assert.ThrowsAsync<ObjectDisposedException>(() => sut.Client.InvokeAsync(
+            new OutgoingRequest(new ServiceAddress(protocol))));
+
+        await disposeTask;
     }
 
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>

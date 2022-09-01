@@ -183,7 +183,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (_shutdownTask is not null)
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+            }
+            else if (_shutdownTask is not null)
             {
                 throw ConnectionClosedException!;
             }
@@ -348,8 +352,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         try
         {
-            cts.Token.ThrowIfCancellationRequested();
-
             // Wait for connect to complete first.
             _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
 
@@ -363,21 +365,29 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             _shutdownCompleteSource.SetResult(message);
         }
-        catch (OperationCanceledException) when (_shutdownCts.IsCancellationRequested)
+        catch (OperationCanceledException operationCanceledException)
         {
-            var exception = new ConnectionAbortedException(
-                _disposeTask is null ? "connection shutdown canceled" : "connection disposed");
+            Exception exception;
 
-            _ = _shutdownCompleteSource.TrySetException(exception);
-            throw exception;
-        }
-        catch (OperationCanceledException)
-        {
-            Debug.Assert(cts.IsCancellationRequested);
+            if (_disposeTask is not null)
+            {
+                exception = new ConnectionAbortedException("connection disposed");
+            }
+            else if (_shutdownCts.IsCancellationRequested)
+            {
+                exception = new ConnectionAbortedException("connection shutdown canceled");
+            }
+            else if (operationCanceledException.CancellationToken == cts.Token)
+            {
+                exception = new TimeoutException(
+                    $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            }
+            else
+            {
+                // By elimination
+                exception = new ConnectionAbortedException("connection establishment failed");
+            }
 
-            // Triggered by the CancelAfter above.
-            var exception = new TimeoutException(
-                $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
             _ = _shutdownCompleteSource.TrySetException(exception);
             throw exception;
         }
