@@ -325,7 +325,7 @@ public class StreamTests
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
         Assert.That(incomingPayloadStream, Is.Not.Null);
-        Assert.That(results.Count, Is.Empty);
+        Assert.That(results.Count, Is.LessThanOrEqualTo(1));
         Assert.That(async () => await outgoingPayloadStream.Completed, Throws.TypeOf<InvalidDataException>());
         Assert.That(async () => await incomingPayloadStream.Completed, Throws.TypeOf<InvalidDataException>());
 
