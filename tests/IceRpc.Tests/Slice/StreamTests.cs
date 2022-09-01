@@ -268,76 +268,69 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that the payload stream of the outgoing request and incoming request are completed with
-    /// <see cref="InvalidDataException"/> after the async enumerable decoding action throws
-    /// <see cref="InvalidDataException"/>. Even in the case that the exception is throw after the response has been
-    /// received.</summary>
+    /// <summary>Test that the payload an incoming request is completed with <see cref="InvalidDataException"/> after
+    /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
     [Test]
-    public async Task Stream_payload_completes_with_invalid_data_exception_after_receiving_invalid_data()
+    public void Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload_with_an_exception()
     {
-        var results = new List<MyEnum>();
-        WaitForCompletionPipeReaderDecorator? incomingPayloadStream = null;
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(new InlineDispatcher(
-                async (request, cancelationToken) =>
-                {
-                    await request.DecodeEmptyArgsAsync(SliceEncoding.Slice2, cancelationToken);
-                    incomingPayloadStream = new WaitForCompletionPipeReaderDecorator(request.Payload);
-                    request.Payload = incomingPayloadStream;
-                    IAsyncEnumerable<MyEnum> myEnums = request.ToAsyncEnumerable(
-                        SliceEncoding.Slice2,
-                        null,
-                        (ref SliceDecoder decoder) => MyEnumSliceDecoderExtensions.DecodeMyEnum(ref decoder));
-                    _ = Task.Run(async () =>
-                        {
-                            await foreach (var myEnum in myEnums)
-                            {
-                                results.Add(myEnum);
-                            }
-                        },
-                        CancellationToken.None);
+        // Arrange
+        var payload = new WaitForCompletionPipeReaderDecorator(SliceEncoding.Slice2.CreatePayloadStream(
+            GetData(),
+            encodeOptions: null,
+            (ref SliceEncoder encoder, uint value) => encoder.EncodeVarUInt62(value),
+            true));
 
-                    return new OutgoingResponse(request);
-                }))
-            .BuildServiceProvider(validateScopes: true);
-
-        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
-        provider.GetRequiredService<Server>().Listen();
-
-        var tcs = new TaskCompletionSource();
-        var outgoingPayloadStream = new WaitForCompletionPipeReaderDecorator(
-            SliceEncoding.Slice2.CreatePayloadStream(
-                GetData(),
-                encodeOptions: null,
-                (ref SliceEncoder encoder, uint value) => encoder.EncodeVarUInt62(value),
-                false));
-        var request = new OutgoingRequest(ServiceProxy.DefaultServiceAddress)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Payload = SliceEncoding.Slice2.CreateSizeZeroPayload(),
-            PayloadStream = outgoingPayloadStream,
+            Payload = payload
         };
 
-        IncomingResponse response = await connection.InvokeAsync(request);
-
-        // Act, let's streaming start
-        tcs.SetResult();
+        // Act
+        _ = request.ToAsyncEnumerable<MyEnum>(
+            SliceEncoding.Slice2,
+            defaultActivator: null,
+            (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
-        Assert.That(incomingPayloadStream, Is.Not.Null);
-        Assert.That(results.Count, Is.LessThanOrEqualTo(1));
-        Assert.That(async () => await outgoingPayloadStream.Completed, Throws.TypeOf<InvalidDataException>());
-        Assert.That(async () => await incomingPayloadStream.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
 
-        async IAsyncEnumerable<uint> GetData()
+        static async IAsyncEnumerable<uint> GetData()
         {
-            await tcs.Task; // Don't start streaming until we receive the response
+            await Task.Yield();
             yield return 1;
-            yield return 4; // Not valid value for MyEnum
-            while (true)
-            {
-                yield return 1;
-            }
+        }
+    }
+
+    /// <summary>Test that the payload an incoming request is completed with <see cref="InvalidDataException"/> after
+    /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
+    [Test]
+    public void Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    {
+        // Arrange
+        var payload = new WaitForCompletionPipeReaderDecorator(SliceEncoding.Slice2.CreatePayloadStream(
+            GetData(),
+            encodeOptions: null,
+            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
+            false));
+
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        {
+            Payload = payload
+        };
+
+        // Act
+        _ = request.ToAsyncEnumerable<MyEnum>(
+            SliceEncoding.Slice2,
+            (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"),
+            4);
+
+        // Assert
+        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+
+        static async IAsyncEnumerable<int> GetData()
+        {
+            await Task.Yield();
+            yield return 1;
         }
     }
 
