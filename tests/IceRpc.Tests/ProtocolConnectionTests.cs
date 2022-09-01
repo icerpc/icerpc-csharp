@@ -256,11 +256,32 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = sut.Client.ShutdownAsync("");
+        Task shutdownTask = sut.Client.ShutdownAsync("");
 
         // Act/Assert
         Assert.ThrowsAsync<ConnectionClosedException>(() => sut.Client.InvokeAsync(
             new OutgoingRequest(new ServiceAddress(protocol))));
+
+        await shutdownTask;
+    }
+
+    /// <summary>Ensures that the sending a request after dispose fails.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Invoke_on_connection_fails_after_dispose(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        Task disposeTask = sut.Client.DisposeAsync().AsTask();
+
+        // Act/Assert
+        Assert.ThrowsAsync<ObjectDisposedException>(() => sut.Client.InvokeAsync(
+            new OutgoingRequest(new ServiceAddress(protocol))));
+
+        await disposeTask;
     }
 
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>
