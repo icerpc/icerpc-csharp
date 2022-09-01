@@ -474,8 +474,47 @@ public class OperationTests
         Assert.That(service.Z, Is.EqualTo(new int[] { 10 }));
     }
 
+    [Test]
+    public async Task Proxy_decoded_from_incoming_response_has_the_invoker_of_the_proxy_that_send_the_request()
+    {
+        var service = new MyOperationsA();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(service)
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        provider.GetRequiredService<Server>().Listen();
+
+        ServiceProxy receivedProxy = await proxy.OpWithProxyReturnValueAsync();
+
+        Assert.That(receivedProxy.Invoker, Is.EqualTo(((IProxy)proxy).Invoker));
+    }
+
+    [Test]
+    public async Task Proxy_decoded_from_incoming_request_has_a_null_invoker()
+    {
+        var service = new MyOperationsA();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(service)
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        provider.GetRequiredService<Server>().Listen();
+        await proxy.OpWithProxyParameterAsync(ServiceProxy.FromPath("/hello"));
+
+        ServiceProxy receivedProxy = await service.ReceivedProxy;
+
+        Assert.That(receivedProxy.Invoker, Is.EqualTo(null));
+    }
+
     class MyOperationsA : Service, IMyOperationsA
     {
+        public Task<ServiceProxy> ReceivedProxy => _receivedProxyTcs.Task;
+
+        private TaskCompletionSource<ServiceProxy> _receivedProxyTcs = new();
+
         public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
         public ValueTask OpWithoutParametersAndVoidReturnAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
@@ -534,11 +573,13 @@ public class OperationTests
 
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             IFeatureCollection features,
-            CancellationToken cancellationToken) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
+            CancellationToken cancellationToken) =>
+            new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
 
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             IFeatureCollection features,
-            CancellationToken cancellationToken) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
+            CancellationToken cancellationToken) =>
+            new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,
@@ -554,6 +595,19 @@ public class OperationTests
             int[]? p1,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p1);
+        
+        public ValueTask OpWithProxyParameterAsync(
+            ServiceProxy service,
+            IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            _receivedProxyTcs.SetResult(service);
+            return default;
+        }
+
+        public ValueTask<ServiceProxy> OpWithProxyReturnValueAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(ServiceProxy.FromPath("/hello"));
     }
 
     private class MyDerivedOperationsA : MyOperationsA { }
