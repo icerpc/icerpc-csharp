@@ -46,6 +46,25 @@ public sealed class ProtocolConnectionTests
         }
     }
 
+    /// <summary>Verifies that disposing a connection that was not connected completes the
+    /// <see cref="ProtocolConnection.ShutdownComplete"/> task.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task ShutdownComplete_completes_when_disposing_not_connected_connection(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Assert
+        Assert.That(async () => await sut.Client.ShutdownComplete, Throws.Nothing);
+    }
+
     /// <summary>Verifies that ShutdownComplete completes when idle.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task ShutdownComplete_completes_when_idle(Protocol protocol)
