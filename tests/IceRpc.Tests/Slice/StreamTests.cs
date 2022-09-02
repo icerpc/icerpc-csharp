@@ -3,7 +3,6 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -268,101 +267,69 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that the payload an incoming request is completed with <see cref="InvalidDataException"/> after
+    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException"/> after
     /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
     [Test]
-    public void Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    public async Task Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload_with_an_exception()
     {
         // Arrange
-        var payload = new WaitForCompletionPipeReaderDecorator(SliceEncoding.Slice2.CreatePayloadStream(
-            GetData(),
-            encodeOptions: null,
-            (ref SliceEncoder encoder, uint value) => encoder.EncodeVarUInt62(value),
-            true));
+        var pipe = new Pipe();
+        EncodeSegment(pipe.Writer);
+        await pipe.Writer.FlushAsync();
 
         var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Payload = payload
+            Payload = pipe.Reader
         };
 
         // Act
-        _ = request.ToAsyncEnumerable<MyEnum>(
+        IAsyncEnumerable<MyEnum> values = request.ToAsyncEnumerable<MyEnum>(
             SliceEncoding.Slice2,
             defaultActivator: null,
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
 
         // Assert
-        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        await foreach (var value in values) { }
+        Assert.That(async () => await pipe.Writer.FlushAsync(), Throws.TypeOf<InvalidDataException>());
 
-        static async IAsyncEnumerable<uint> GetData()
+        static void EncodeSegment(PipeWriter writer)
         {
-            await Task.Yield();
-            yield return 1;
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeSize(4);
+            encoder.EncodeInt32(10);
         }
     }
 
-    /// <summary>Test that the payload an incoming request is completed with <see cref="InvalidDataException"/> after
+    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException"/> after
     /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
     [Test]
-    public void Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    public async Task Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload_with_an_exception()
     {
         // Arrange
-        var payload = new WaitForCompletionPipeReaderDecorator(SliceEncoding.Slice2.CreatePayloadStream(
-            GetData(),
-            encodeOptions: null,
-            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            false));
+        var pipe = new Pipe();
+        EncodeSegment(pipe.Writer);
+        await pipe.Writer.FlushAsync();
 
         var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Payload = payload
+            Payload = pipe.Reader
         };
 
         // Act
-        _ = request.ToAsyncEnumerable<MyEnum>(
+        IAsyncEnumerable<MyEnum> values = request.ToAsyncEnumerable<MyEnum>(
             SliceEncoding.Slice2,
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"),
             4);
 
         // Assert
-        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        await foreach (var value in values) { }
+        Assert.That(async () => await pipe.Writer.FlushAsync(), Throws.TypeOf<InvalidDataException>());
 
-        static async IAsyncEnumerable<int> GetData()
+        static void EncodeSegment(PipeWriter writer)
         {
-            await Task.Yield();
-            yield return 1;
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeSize(4);
+            encoder.EncodeInt32(10);
         }
-    }
-
-    private class WaitForCompletionPipeReaderDecorator : PipeReader
-    {
-        public Task Completed => _completionTcs.Task;
-
-        private readonly PipeReader _decoratee;
-        private readonly TaskCompletionSource _completionTcs = new();
-
-        internal WaitForCompletionPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
-
-        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
-
-        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
-            _decoratee.AdvanceTo(consumed, examined);
-
-        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
-        public override void Complete(Exception? exception = null)
-        {
-            if (exception is not null)
-            {
-                _completionTcs.SetException(exception);
-            }
-            else
-            {
-                _completionTcs.SetResult();
-            }
-            _decoratee.Complete(exception);
-        }
-        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ReadAsync(cancellationToken);
-        public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
     }
 }
