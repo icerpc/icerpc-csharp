@@ -277,9 +277,10 @@ public class StreamTests
         EncodeSegment(pipe.Writer);
         await pipe.Writer.FlushAsync();
 
+        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
         var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Payload = pipe.Reader
+            Payload = payload
         };
 
         // Act
@@ -289,8 +290,8 @@ public class StreamTests
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
 
         // Assert
-        await foreach (var value in values) { }
-        Assert.That(async () => await pipe.Writer.FlushAsync(), Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        await pipe.Writer.CompleteAsync();
 
         static void EncodeSegment(PipeWriter writer)
         {
@@ -307,12 +308,13 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        EncodeSegment(pipe.Writer);
+        EncodeData(pipe.Writer);
         await pipe.Writer.FlushAsync();
 
+        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
         var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Payload = pipe.Reader
+            Payload = payload
         };
 
         // Act
@@ -322,14 +324,45 @@ public class StreamTests
             4);
 
         // Assert
-        await foreach (var value in values) { }
-        Assert.That(async () => await pipe.Writer.FlushAsync(), Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        await pipe.Writer.CompleteAsync();
 
-        static void EncodeSegment(PipeWriter writer)
+        static void EncodeData(PipeWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-            encoder.EncodeSize(4);
             encoder.EncodeInt32(10);
         }
+    }
+
+    private class WaitForCompletionPipeReaderDecorator : PipeReader
+    {
+        public Task Completed => _completionTcs.Task;
+
+        private readonly PipeReader _decoratee;
+        private readonly TaskCompletionSource _completionTcs = new();
+
+        internal WaitForCompletionPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
+
+        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+            _decoratee.AdvanceTo(consumed, examined);
+
+        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
+        public override void Complete(Exception? exception = null)
+        {
+            if (exception is not null)
+            {
+                _completionTcs.SetException(exception);
+            }
+            else
+            {
+                _completionTcs.SetResult();
+            }
+            _decoratee.Complete(exception);
+        }
+        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ReadAsync(cancellationToken);
+        public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
     }
 }
