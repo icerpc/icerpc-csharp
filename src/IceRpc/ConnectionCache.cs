@@ -306,7 +306,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
                         // DisposeAsync this connection.
-                        throw new ConnectionClosedException(ConnectionClosedErrorCode.Disposed);
+                        throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
                     }
                     else
                     {
@@ -328,7 +328,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
                     // DisposeAsync this connection.
-                    throw new ConnectionClosedException(ConnectionClosedErrorCode.Disposed);
+                    throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
                 }
                 else
                 {

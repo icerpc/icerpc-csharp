@@ -129,7 +129,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     _connectCts!.Cancel();
                     _ = await _connectTask.ConfigureAwait(false);
                 }
-                catch
+                catch (OperationCanceledException)
                 {
                 }
 
@@ -139,7 +139,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown);
+                        ConnectionClosedException = new(ConnectionClosedErrorCode.Disposed);
                         _shutdownTask = CreateShutdownTask(
                             IsServer ? "server connection going away" : "client connection going away",
                             cancelDispatchesAndInvocations: true);
@@ -242,13 +242,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw exception;
             }
 
+            ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown, message);
+
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancellationToken.IsCancellationRequested)
             {
                 var exception = new ConnectionAbortedException("connection shutdown canceled");
                 _shutdownTask ??= Task.FromException(exception);
-                ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown, message);
                 _ = _shutdownCompleteSource.TrySetException(exception);
                 _shutdownCts.Cancel();
                 cancellationToken.ThrowIfCancellationRequested();
@@ -256,7 +257,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
             else
             {
                 _shutdownTask ??= CreateShutdownTask(message);
-                ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown, message);
             }
         }
 

@@ -69,7 +69,7 @@ public class ConnectionClosedException : Exception
         : base(message) => ErrorCode = errorCode;
 
     /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified error
-    /// message.</summary>
+    /// code and inner exception.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public ConnectionClosedException(ConnectionClosedErrorCode errorCode, Exception innerException)
