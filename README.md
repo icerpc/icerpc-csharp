@@ -1,6 +1,6 @@
 # IceRPC
 
-[![.github/workflows/dotnet.yml](https://github.com/zeroc-ice/icerpc-csharp/workflows/.NET/badge.svg?branch=main)](https://github.com/zeroc-ice/icerpc-csharp/actions?query=branch:main)
+[![Continuous Integration](https://github.com/zeroc-ice/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zeroc-ice/icerpc-csharp/actions/workflows/dotnet.yml)
 
 - [IceRPC](#icerpc)
 - [Build Requirements](#build-requirements)
