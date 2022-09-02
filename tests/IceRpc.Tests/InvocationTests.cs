@@ -85,10 +85,14 @@ public class InvocationTests
     public async Task Cancel_the_payload_reads_while_the_server_is_reading_the_arguments_fails_with_dispatch_exception()
     {
         // Arrange
+        var dispatchStartTcs = new TaskCompletionSource();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0x1, 0x2, 0x3 }));
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new InlineDispatcher(
                 async (request, cancellationToken) =>
                 {
+                    dispatchStartTcs.SetResult();
                     await request.Payload.ReadAllAsync(cancellationToken);
                     return new OutgoingResponse(request);
                 }))
@@ -97,44 +101,25 @@ public class InvocationTests
         provider.GetRequiredService<Server>().Listen();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
-        var pipe = new Pipe();
-        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0x1, 0x2, 0x3 }));
-
         var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));
-        request.Payload = new CancelPendingReadPipeReader(pipe.Reader);
+        request.Payload = pipe.Reader;
+        var invokeTask = connection.InvokeAsync(request);
+        await dispatchStartTcs.Task;
 
         // Act
-        IncomingResponse responnse = await connection.InvokeAsync(request);
+        pipe.Reader.CancelPendingRead();
 
         // Assert
-        RemoteException exception = await responnse.DecodeFailureAsync(request, new ServiceProxy());
+        var response = await invokeTask;
+        RemoteException exception = await response.DecodeFailureAsync(request, new ServiceProxy());
         Assert.Multiple(
             () =>
             {
-                Assert.That(responnse.ResultType, Is.EqualTo(ResultType.Failure));
+                Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
                 Assert.That(exception, Is.TypeOf<DispatchException>());
                 DispatchException dispatchException = (DispatchException)exception;
                 Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
             });
-    }
-
-    // A pipe reader that calls CancelPendingRead after the first read
-    private class CancelPendingReadPipeReader : PipeReader
-    {
-        private readonly PipeReader _decoratee;
-
-        internal CancelPendingReadPipeReader(PipeReader decoratee) => _decoratee = decoratee;
-
-        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
-        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) => _decoratee.AdvanceTo(consumed, examined);
-        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
-        public override void Complete(Exception? exception = null) => _decoratee.Complete(exception);
-        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
-        {
-            var result = _decoratee.ReadAsync(cancellationToken);
-            CancelPendingRead();
-            return result;
-        }
-        public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
+        await pipe.Writer.CompleteAsync();
     }
 }
