@@ -267,7 +267,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Don't process the invocation if the connection is in the process of shutting down or it's
                     // already closed.
-                    throw ConnectionClosedException!;
+                    Debug.Assert(ConnectionClosedException is not null);
+                    throw ConnectionClosedException;
                 }
                 else
                 {
@@ -662,7 +663,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    throw ConnectionClosedException!;
+                    Debug.Assert(ConnectionClosedException is not null);
+                    throw ConnectionClosedException;
                 }
                 else
                 {

@@ -347,7 +347,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // for this condition here and throw ConnectionClosedException if necessary.
             if (_isReadOnly)
             {
-                throw ConnectionClosedException!;
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
             }
 
             // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
@@ -385,7 +386,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (_isReadOnly)
                     {
-                        throw ConnectionClosedException!;
+                        Debug.Assert(ConnectionClosedException is not null);
+                        throw ConnectionClosedException;
                     }
                     else
                     {
@@ -944,7 +946,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    throw ConnectionClosedException!;
+                    Debug.Assert(ConnectionClosedException is not null);
+                    throw ConnectionClosedException;
                 }
                 else
                 {

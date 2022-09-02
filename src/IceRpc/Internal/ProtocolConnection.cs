@@ -48,7 +48,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_shutdownTask is not null)
             {
-                throw ConnectionClosedException!;
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
             }
             else if (_connectTask is not null)
             {
@@ -189,7 +190,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_shutdownTask is not null)
             {
-                throw ConnectionClosedException!;
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
             }
             else if (_connectTask is null)
             {
