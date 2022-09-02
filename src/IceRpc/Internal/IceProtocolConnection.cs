@@ -71,11 +71,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
         _maxFrameSize = options.MaxIceFrameSize;
 
-        if (options.MaxIceConcurrentDispatches > 0)
+        if (options.MaxDispatches > 0)
         {
             _dispatchSemaphore = new AsyncSemaphore(
-                initialCount: options.MaxIceConcurrentDispatches,
-                maxCount: options.MaxIceConcurrentDispatches);
+                initialCount: options.MaxDispatches,
+                maxCount: options.MaxDispatches);
         }
 
         _memoryPool = options.Pool;

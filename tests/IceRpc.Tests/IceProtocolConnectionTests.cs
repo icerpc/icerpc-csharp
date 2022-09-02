@@ -50,11 +50,11 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that concurrent dispatches on a given ice connection are limited to MaxConcurrentDispatches.
+    /// <summary>Verifies that concurrent dispatches on a given ice connection are limited to MaxDispatches.
     /// </summary>
     [Test]
-    public async Task Connection_dispatches_requests_concurrently_up_to_max_concurrent_dispatches(
-        [Values(1, 200)] int maxConcurrentDispatches)
+    public async Task Connection_dispatches_requests_concurrently_up_to_max_dispatches(
+        [Values(1, 200)] int maxDispatches)
     {
         // Arrange
         using var startSemaphore = new SemaphoreSlim(0);
@@ -65,10 +65,10 @@ public sealed class IceProtocolConnectionTests
 
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
+            // We want to make sure that no more than maxDispatches are executing this dispatcher. So
             // we are tracking the maximum count here (before work) and decrement this count immediately in the
             // "work". Without the decrement, the count (and max count) could be greater than
-            // maxConcurrentDispatches.
+            // maxDispatches.
             IncrementCount();
             startSemaphore.Release();
             await workSemaphore.WaitAsync(cancellationToken);
@@ -97,7 +97,7 @@ public sealed class IceProtocolConnectionTests
         services.AddOptions<ServerOptions>().Configure(options =>
         {
             options.ConnectionOptions.Dispatcher = dispatcher;
-            options.ConnectionOptions.MaxIceConcurrentDispatches = maxConcurrentDispatches;
+            options.ConnectionOptions.MaxDispatches = maxDispatches;
         });
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
@@ -107,33 +107,33 @@ public sealed class IceProtocolConnectionTests
         var responseTasks = new List<Task<IncomingResponse>>();
 
         // Act
-        for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
+        for (int i = 0; i < maxDispatches + 1; ++i)
         {
             responseTasks.Add(sut.Client.InvokeAsync(request));
         }
-        // wait for maxDispatchesPerConnection dispatches to start
-        for (int i = 0; i < maxConcurrentDispatches; ++i)
+        // wait for maxDispatches dispatches to start
+        for (int i = 0; i < maxDispatches; ++i)
         {
             await startSemaphore.WaitAsync();
         }
 
         // Assert
-        for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
+        for (int i = 0; i < maxDispatches + 1; ++i)
         {
             Assert.That(responseTasks[i].IsCompleted, Is.False);
         }
 
-        workSemaphore.Release(maxConcurrentDispatches + 1);
+        workSemaphore.Release(maxDispatches + 1);
 
         await Task.WhenAll(responseTasks);
-        Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
+        Assert.That(maxCount, Is.EqualTo(maxDispatches));
     }
 
     /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that aborting the server
     /// connection correctly cancels the dispatch semaphore wait. If the dispatch semaphore wait wasn't canceled, the
     /// DisposeAsync call would hang because it waits for the read semaphore to be released.</summary>
     [Test]
-    public async Task Connection_with_dispatches_waiting_for_concurrent_dispatch_unblocks_on_dispose()
+    public async Task Connection_with_dispatches_waiting_for_dispatch_unblocks_on_dispose()
     {
         // Arrange
         int dispatchCount = 0;
@@ -156,7 +156,7 @@ public sealed class IceProtocolConnectionTests
         services.AddOptions<ServerOptions>().Configure(options =>
         {
             options.ConnectionOptions.Dispatcher = dispatcher;
-            options.ConnectionOptions.MaxIceConcurrentDispatches = 1;
+            options.ConnectionOptions.MaxDispatches = 1;
         });
         await using var provider = services.BuildServiceProvider(validateScopes: true);
 

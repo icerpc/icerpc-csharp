@@ -33,14 +33,15 @@ public record class ConnectionOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
     }
 
-    /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
-    /// </summary>
-    /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.
-    /// The default value is 100 requests.</value>
-    public int MaxIceConcurrentDispatches
+    /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
+    /// limit is reached, the connection does not accept any new request off the network so eventually the senders will
+    /// block when attempting to send new requests.</summary>
+    /// <value>The maximum number of requests that a connection can dispatch concurrently. 0 means no maximum. The
+    /// default value is 100 requests.</value>
+    public int MaxDispatches
     {
-        get => _iceConcurrentDispatches;
-        set => _iceConcurrentDispatches = value >= 0 ? value :
+        get => _maxDispatches;
+        set => _maxDispatches = value >= 0 ? value :
             throw new ArgumentOutOfRangeException(nameof(value), "value must be 0 or greater");
     }
 
@@ -125,8 +126,8 @@ public record class ConnectionOptions
 
     private const int IceMinFrameSize = 256;
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-    private int _iceConcurrentDispatches = 100;
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+    private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
     private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
