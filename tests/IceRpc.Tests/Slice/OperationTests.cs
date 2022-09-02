@@ -475,7 +475,7 @@ public class OperationTests
     }
 
     [Test]
-    public async Task Proxy_decoded_from_incoming_response_has_the_invoker_of_the_proxy_that_send_the_request()
+    public async Task Proxy_decoded_from_incoming_response_has_the_invoker_of_the_proxy_that_sent_the_request()
     {
         var service = new MyOperationsA();
         await using ServiceProvider provider = new ServiceCollection()
@@ -504,16 +504,13 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
         await proxy.OpWithProxyParameterAsync(ServiceProxy.FromPath("/hello"));
 
-        ServiceProxy receivedProxy = await service.ReceivedProxy;
-
-        Assert.That(receivedProxy.Invoker, Is.EqualTo(null));
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
     }
 
     class MyOperationsA : Service, IMyOperationsA
     {
-        public Task<ServiceProxy> ReceivedProxy => _receivedProxyTcs.Task;
-
-        private TaskCompletionSource<ServiceProxy> _receivedProxyTcs = new();
+        public ServiceProxy? ReceivedProxy;
 
         public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
@@ -601,7 +598,7 @@ public class OperationTests
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
-            _receivedProxyTcs.SetResult(service);
+            ReceivedProxy = service;
             return default;
         }
 
