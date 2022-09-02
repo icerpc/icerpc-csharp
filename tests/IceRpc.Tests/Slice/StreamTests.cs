@@ -266,4 +266,70 @@ public class StreamTests
             }
         }
     }
+
+    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException"/> after
+    /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
+    [Test]
+    public async Task Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        EncodeSegment(pipe.Writer);
+        await pipe.Writer.FlushAsync();
+
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        {
+            Payload = pipe.Reader
+        };
+
+        // Act
+        IAsyncEnumerable<MyEnum> values = request.ToAsyncEnumerable<MyEnum>(
+            SliceEncoding.Slice2,
+            defaultActivator: null,
+            (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
+
+        // Assert
+        await foreach (var value in values) { }
+        Assert.That(async () => await pipe.Writer.FlushAsync(), Throws.TypeOf<InvalidDataException>());
+
+        static void EncodeSegment(PipeWriter writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeSize(4);
+            encoder.EncodeInt32(10);
+        }
+    }
+
+    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException"/> after
+    /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
+    [Test]
+    public async Task Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        EncodeSegment(pipe.Writer);
+        await pipe.Writer.FlushAsync();
+
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        {
+            Payload = pipe.Reader
+        };
+
+        // Act
+        IAsyncEnumerable<MyEnum> values = request.ToAsyncEnumerable<MyEnum>(
+            SliceEncoding.Slice2,
+            (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"),
+            4);
+
+        // Assert
+        await foreach (var value in values) { }
+        Assert.That(async () => await pipe.Writer.FlushAsync(), Throws.TypeOf<InvalidDataException>());
+
+        static void EncodeSegment(PipeWriter writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeSize(4);
+            encoder.EncodeInt32(10);
+        }
+    }
 }

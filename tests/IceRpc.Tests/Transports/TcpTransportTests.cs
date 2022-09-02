@@ -290,10 +290,7 @@ public class TcpTransportTests
             authenticationOptions:
                 new SslClientAuthenticationOptions
                 {
-                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                    {
-                        return false;
-                    }
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => false
                 });
 
         Task<TransportConnectionInformation> connectTask =
