@@ -34,10 +34,13 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
-    /// limit is reached, the connection does not accept any new request off the network so eventually the senders will
-    /// block when attempting to send new requests.</summary>
+    /// limit is reached, the connection stops reading new requests off its underlying transport connection.</summary>
     /// <value>The maximum number of requests that a connection can dispatch concurrently. 0 means no maximum. The
     /// default value is 100 requests.</value>
+    /// <remarks>With the icerpc protocol, you may also need to set <see cref="MaxIceRpcBidirectionalStreams"/> and
+    /// <see cref="MaxIceRpcUnidirectionalStreams"/>. A typical two-way dispatch holds onto one bidirectional stream
+    /// while a typical oneway dispatch quickly releases its unidirectional stream and then executes without consuming
+    /// any stream.</remarks>
     public int MaxDispatches
     {
         get => _maxDispatches;
@@ -61,8 +64,8 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// bidirectional stream. Since an bidirectional stream is opened for each two-way invocation, the sending of the
     /// two-way invocation will be delayed until another two-way invocation's stream completes.</summary>
-    /// <value>The maximum number of bidirectional streams. It can't be less than 1 and the default value is
-    /// 100.</value>
+    /// <value>The maximum number of bidirectional streams. It can't be less than 1 and the default value is 100.
+    /// </value>
     public int MaxIceRpcBidirectionalStreams
     {
         get => _maxIceRpcBidirectionalStreams;
@@ -76,8 +79,8 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// unidirectional stream. Since an unidirectional stream is opened for each one-way invocation, the sending of the
     /// one-way invocation will be delayed until another one-way invocation's stream completes.</summary>
-    /// <value>The maximum number of unidirectional streams. It can't be less than 1 and the default value is
-    /// 100.</value>
+    /// <value>The maximum number of unidirectional streams. It can't be less than 1 and the default value is 100.
+    /// </value>
     public int MaxIceRpcUnidirectionalStreams
     {
         get => _maxIceRpcUnidirectionalStreams;
