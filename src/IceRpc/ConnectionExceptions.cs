@@ -36,14 +36,14 @@ public enum ConnectionClosedErrorCode
     /// <summary>The connection was idle.</summary>
     Idle,
 
+    /// <summary>The connection was lost.</summary>
+    Lost,
+
     /// <summary>The connection was shutdown.</summary>
     Shutdown,
 
     /// <summary>The connection was shutdown by the peer.</summary>
     ShutdownByPeer,
-
-    /// <summary>The connection was lost.</summary>
-    Lost
 }
 
 /// <summary>This exception indicates that a previous established connection is closed. It is safe to retry a request
