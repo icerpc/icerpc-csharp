@@ -89,7 +89,7 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             if (SslStream is SslStream sslStream)
             {
-                await sslStream.ShutdownAsync().ConfigureAwait(false);
+                await sslStream.ShutdownAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
