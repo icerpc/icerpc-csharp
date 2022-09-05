@@ -455,17 +455,6 @@ impl FunctionCallBuilder {
         }
     }
 
-    pub fn new_with_condition(condition: bool, true_case: &str, false_case: &str, function: &str) -> Self {
-        let callable = format!("{}.{}", if condition { true_case } else { false_case }, function);
-
-        FunctionCallBuilder {
-            callable,
-            arguments: vec![],
-            arguments_on_newline: false,
-            use_semi_colon: true,
-        }
-    }
-
     pub fn arguments_on_newline(&mut self, arguments_on_newline: bool) -> &mut Self {
         self.arguments_on_newline = arguments_on_newline;
         self

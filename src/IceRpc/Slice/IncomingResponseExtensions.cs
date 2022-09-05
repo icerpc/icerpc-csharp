@@ -1,9 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
+using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Threading;
 
 namespace IceRpc.Slice;
 
@@ -15,7 +18,7 @@ public static class IncomingResponseExtensions
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The decoded failure.</returns>
     public static ValueTask<RemoteException> DecodeFailureAsync(
@@ -46,7 +49,7 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
     /// <param name="decodeFunc">The decode function for the return value.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
@@ -85,61 +88,12 @@ public static class IncomingResponseExtensions
         }
     }
 
-    /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode fixed size
-    /// streamed elements.</summary>
-    /// <typeparam name="T">The stream element type.</typeparam>
-    /// <param name="response">The incoming response.</param>
-    /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload.</param>
-    /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-    /// <param name="elementSize">The size in bytes of the streamed elements.</param>
-    /// <returns>The async enumerable to decode and return the streamed members.</returns>
-    public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this IncomingResponse response,
-        OutgoingRequest request,
-        SliceEncoding encoding,
-        DecodeFunc<T> decodeFunc,
-        int elementSize) =>
-        response.ToAsyncEnumerable(
-            encoding,
-            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
-            decodeFunc,
-            elementSize);
-
-    /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode variable
-    /// size streamed elements.</summary>
-    /// <typeparam name="T">The stream element type.</typeparam>
-    /// <param name="response">The incoming response.</param>
-    /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload.</param>
-    /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-    /// <returns>The async enumerable to decode and return the streamed members.</returns>
-    public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this IncomingResponse response,
-        OutgoingRequest request,
-        SliceEncoding encoding,
-        ServiceProxy sender,
-        IActivator? defaultActivator,
-        DecodeFunc<T> decodeFunc)
-    {
-        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
-
-        return response.ToAsyncEnumerable(
-            encoding,
-            feature,
-            feature.Activator ?? defaultActivator,
-            sender,
-            decodeFunc);
-    }
-
     /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
     public static ValueTask DecodeVoidReturnValueAsync(
