@@ -112,6 +112,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
+            ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown);
+
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
@@ -141,7 +143,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown);
                         _shutdownTask = CreateShutdownTask(
                             IsServer ? "server connection going away" : "client connection going away",
                             cancelDispatchesAndInvocations: true);
