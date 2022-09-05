@@ -259,7 +259,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (OperationCanceledException)
                 {
-                    // This can occur if the transport connection is disposed.
+                    // This can occur if DisposeAsync is called. This can only be called on a connected connection so
+                    // ConnectionClosedException should always be set at this point.
                     Debug.Assert(ConnectionClosedException is not null);
                     completeException = new ConnectionAbortedException("connection disposed");
                 }

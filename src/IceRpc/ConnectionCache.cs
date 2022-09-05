@@ -135,11 +135,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 return connection.InvokeAsync(request, cancellationToken);
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException exception) when (
+                exception.InnerException is ConnectionClosedException connectionClosedException)
             {
                 // This can occasionally happen if we find a connection that was just closed by the peer or transport
                 // and then automatically disposed by this connection cache.
-                throw new ConnectionClosedException(ConnectionClosedErrorCode.Disposed);
+                throw connectionClosedException;
             }
         }
         else
@@ -196,9 +197,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException exception) when (
+                exception.InnerException is ConnectionClosedException connectionClosedException)
             {
-                throw new ConnectionClosedException(ConnectionClosedErrorCode.Disposed);
+                // This can occasionally happen if we find a connection that was just closed by the peer or transport
+                // and then automatically disposed by this connection cache.
+                throw connectionClosedException;
             }
         }
     }

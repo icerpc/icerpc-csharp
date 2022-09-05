@@ -18,7 +18,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
     private protected ConnectionClosedException? ConnectionClosedException
     {
-        get => _connectionClosedException;
+        get => Volatile.Read(ref _connectionClosedException);
         set => Interlocked.CompareExchange(ref _connectionClosedException, value, null);
     }
 
@@ -44,7 +44,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
             else if (_shutdownTask is not null)
             {
@@ -140,7 +141,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        ConnectionClosedException = new(ConnectionClosedErrorCode.Disposed);
+                        ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown);
                         _shutdownTask = CreateShutdownTask(
                             IsServer ? "server connection going away" : "client connection going away",
                             cancelDispatchesAndInvocations: true);
@@ -186,7 +187,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
             else if (_shutdownTask is not null)
             {
@@ -228,7 +230,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
             else if (_connectTask is null)
             {

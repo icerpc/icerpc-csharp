@@ -29,12 +29,10 @@ public class ConnectionAbortedException : Exception
     }
 }
 
-/// <summary>The possible error codes carried by a <see cref="ConnectionClosedException"/>.</summary>
+/// <summary>The possible error codes carried by a <see cref="ConnectionClosedException"/>. The error code specifies the
+/// reason of the connection closure.</summary>
 public enum ConnectionClosedErrorCode
 {
-    /// <summary>The connection was disposed.</summary>
-    Disposed,
-
     /// <summary>The connection was idle.</summary>
     Idle,
 
