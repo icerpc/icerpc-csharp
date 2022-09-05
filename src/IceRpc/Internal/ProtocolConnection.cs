@@ -131,7 +131,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     _connectCts!.Cancel();
                     _ = await _connectTask.ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch
                 {
                 }
 
