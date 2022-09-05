@@ -16,8 +16,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;
-    private Exception? _closeException;
-    private string? _closeReason;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
@@ -91,7 +89,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (_streams.Count == 0)
             {
                 _isReadOnly = true;
-                _closeReason ??= "connection idle";
+                ConnectionClosedException = new(ConnectionClosedErrorCode.Idle);
                 return true;
             }
             else
@@ -197,15 +195,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             return; // already closing or closed
                         }
 
-                        if (_closeReason is null)
-                        {
-                            _closeReason = "connection lost";
-                            _closeException = exception;
-                        }
+                        ConnectionClosedException = new(ConnectionClosedErrorCode.Lost, exception);
                     }
 
                     var connectionLostException = new ConnectionLostException(exception);
-                    InvokeOnAbort(connectionLostException);
+                    ConnectionLost(connectionLostException);
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
@@ -273,15 +267,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Don't process the invocation if the connection is in the process of shutting down or it's
                     // already closed.
-                    Debug.Assert(_closeReason is not null);
-                    if (_closeException is null)
-                    {
-                        throw new ConnectionClosedException(_closeReason);
-                    }
-                    else
-                    {
-                        throw new ConnectionClosedException(_closeReason, _closeException);
-                    }
+                    Debug.Assert(ConnectionClosedException is not null);
+                    throw ConnectionClosedException;
                 }
                 else
                 {
@@ -385,11 +372,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancellationToken)
     {
+        Debug.Assert(ConnectionClosedException is not null);
+
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
         {
             _isReadOnly = true;
-            _closeReason ??= message;
             if (_streams.Count == 0)
             {
                 _streamsCompleted.TrySetResult();
@@ -425,10 +413,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId))).ToArray();
         }
 
-        var closedException = new ConnectionClosedException(message);
         foreach (IMultiplexedStream stream in invocations)
         {
-            stream.Abort(closedException);
+            stream.Abort(ConnectionClosedException);
         }
 
         // Wait for dispatches and streams to complete and shutdown the connection.
@@ -437,7 +424,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
 
         // Shutdown the transport and wait for the peer shutdown.
-        await _transportConnection.ShutdownAsync(closedException, cancellationToken).ConfigureAwait(false);
+        await _transportConnection.ShutdownAsync(ConnectionClosedException, cancellationToken).ConfigureAwait(false);
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
@@ -676,15 +663,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 if (_isReadOnly)
                 {
-                    Debug.Assert(_closeReason is not null);
-                    if (_closeException is null)
-                    {
-                        throw new ConnectionClosedException(_closeReason);
-                    }
-                    else
-                    {
-                        throw new ConnectionClosedException(_closeReason, _closeException);
-                    }
+                    Debug.Assert(ConnectionClosedException is not null);
+                    throw ConnectionClosedException;
                 }
                 else
                 {

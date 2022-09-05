@@ -23,6 +23,10 @@ internal static class SocketExceptionExtensions
     /// <see cref="ConnectionLostException"/>.</summary>
     internal static Exception ToTransportException(this Exception exception)
     {
+        // TODO: see #1712, this should likely just throw the transport exception without wrapping it in
+        // ConnectionLostException which might be wrapped again with another ConnectionLostException by the protocol
+        // connection implementation.
+
         SocketException socketException =
             exception as SocketException ??
             exception.InnerException as SocketException ??
