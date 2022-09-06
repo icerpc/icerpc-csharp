@@ -24,6 +24,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private readonly AsyncSemaphore? _dispatchSemaphore;
+
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
     private bool _isReadOnly;
@@ -52,6 +54,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+
+        if (options.MaxDispatches > 0)
+        {
+            _dispatchSemaphore = new AsyncSemaphore(
+                initialCount: options.MaxDispatches,
+                maxCount: options.MaxDispatches);
+        }
     }
 
     private protected override void CancelDispatchesAndInvocations(Exception exception)
@@ -153,11 +162,27 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         while (true)
                         {
-                            IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(
-                                _tasksCts.Token).ConfigureAwait(false);
+                            if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
+                            {
+                                await dispatchSemaphore.EnterAsync(_tasksCts.Token).ConfigureAwait(false);
+                            }
+
+                            IMultiplexedStream stream;
 
                             try
                             {
+                                stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
+                                    .ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                _dispatchSemaphore?.Release();
+                                throw;
+                            }
+
+                            try
+                            {
+                                // AcceptRequestAsync is responsible to release the dispatch semaphore.
                                 await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
                             }
                             catch (IceRpcProtocolStreamException)
@@ -719,6 +744,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 
+            _dispatchSemaphore?.Release();
+
             throw;
         }
 
@@ -855,6 +882,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _dispatchesCompleted.TrySetResult();
                     }
                 }
+
+                _dispatchSemaphore?.Release();
             }
 
             if (request.IsOneway)
