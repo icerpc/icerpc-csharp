@@ -23,5 +23,6 @@ public static class ServerAddressFeatureExtensions
             feature.ServerAddress = feature.AltServerAddresses[0];
             feature.AltServerAddresses = feature.AltServerAddresses.RemoveAt(0);
         }
+        feature.ExcludedServerAddresses = feature.ExcludedServerAddresses.Add(serverAddress);
     }
 }

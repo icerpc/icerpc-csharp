@@ -86,8 +86,10 @@ public class LocatorInterceptor : IInvoker
                     // A well behaved location resolver should never return a non-null service address with a null
                     // serverAddress.
                     Debug.Assert(serviceAddress.ServerAddress is not null);
-                    serverAddressFeature.ServerAddress = serviceAddress.ServerAddress;
-                    serverAddressFeature.AltServerAddresses = serviceAddress.AltServerAddresses;
+                    serverAddressFeature = new ServerAddressFeature(
+                        serviceAddress,
+                        serverAddressFeature.ExcludedServerAddresses);
+                    request.Features = request.Features.With(serverAddressFeature);
                 }
                 // else, resolution failed and we don't update anything
             }
