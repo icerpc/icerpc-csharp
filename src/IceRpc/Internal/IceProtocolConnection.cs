@@ -39,7 +39,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
-    private readonly AsyncSemaphore? _dispatchSemaphore;
+    private readonly SemaphoreSlim? _dispatchSemaphore;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
@@ -71,7 +71,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         if (options.MaxDispatches > 0)
         {
-            _dispatchSemaphore = new AsyncSemaphore(
+            _dispatchSemaphore = new SemaphoreSlim(
                 initialCount: options.MaxDispatches,
                 maxCount: options.MaxDispatches);
         }
@@ -926,12 +926,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 Payload = requestFrameReader,
             };
 
-            if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
+            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
             {
                 // This prevents us from receiving any frame until EnterAsync returns.
                 try
                 {
-                    await dispatchSemaphore.EnterAsync(_dispatchesAndInvocationsCts.Token)
+                    await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
                         .ConfigureAwait(false);
                 }
                 catch
