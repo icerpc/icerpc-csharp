@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -18,6 +19,7 @@ internal class StreamDecoder<T>
 {
     private long _currentByteCount;
     private readonly Func<ReadOnlySequence<byte>, IEnumerable<T>> _decodeBufferFunc;
+    private Exception? _exception;
     private readonly Queue<(IEnumerable<T> Items, long ByteCount)> _queue = new();
     private readonly object _mutex = new();
 
@@ -51,7 +53,8 @@ internal class StreamDecoder<T>
 
     /// <summary>Marks the writer as completed. This tells the reader no additional element will be decoded.
     /// </summary>
-    internal void CompleteWriter()
+    /// <param name="exception">An optional exception to throw from the async enumerable.</param>
+    internal void CompleteWriter(Exception? exception = null)
     {
         lock (_mutex)
         {
@@ -59,7 +62,7 @@ internal class StreamDecoder<T>
             {
                 // CompleteWriter and WriteAsync should not be called concurrently.
                 Debug.Assert(_writerState == WriterState.Running);
-
+                _exception = exception;
                 _writerState = WriterState.Completed;
 
                 // If the reader is paused, mark it completed and release the semaphore.
@@ -137,6 +140,11 @@ internal class StreamDecoder<T>
 
             lock (_mutex)
             {
+                if (_exception != null)
+                {
+                    ExceptionUtil.Throw(_exception);
+                }
+
                 if (_readerState == ReaderState.Completed)
                 {
                     yield break;

@@ -803,6 +803,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     DispatchErrorCode errorCode = exception switch
                     {
                         InvalidDataException _ => DispatchErrorCode.InvalidData,
+                        IceRpcProtocolStreamException _ => DispatchErrorCode.StreamError,
                         _ => DispatchErrorCode.UnhandledException
                     };
 

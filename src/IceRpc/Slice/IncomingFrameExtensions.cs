@@ -103,10 +103,10 @@ public static class IncomingFrameExtensions
                 {
                     readResult = await payload.ReadAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    streamDecoder.CompleteWriter();
-                    await payload.CompleteAsync(ex).ConfigureAwait(false);
+                    streamDecoder.CompleteWriter(exception);
+                    await payload.CompleteAsync(exception).ConfigureAwait(false);
                     break; // done
                 }
 
@@ -128,10 +128,10 @@ public static class IncomingFrameExtensions
                                 await streamDecoder.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
                             payload.AdvanceTo(buffer.End);
                         }
-                        catch (Exception ex)
+                        catch (Exception exception)
                         {
-                            streamDecoder.CompleteWriter();
-                            await payload.CompleteAsync(ex).ConfigureAwait(false);
+                            streamDecoder.CompleteWriter(exception);
+                            await payload.CompleteAsync(exception).ConfigureAwait(false);
                             break;
                         }
                     }
@@ -243,10 +243,10 @@ public static class IncomingFrameExtensions
                         payload.AdvanceTo(readResult.Buffer.End);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    streamDecoder.CompleteWriter();
-                    await payload.CompleteAsync(ex).ConfigureAwait(false);
+                    streamDecoder.CompleteWriter(exception);
+                    await payload.CompleteAsync(exception).ConfigureAwait(false);
                     break; // done
                 }
 
