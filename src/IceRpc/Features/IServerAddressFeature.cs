@@ -9,7 +9,7 @@ namespace IceRpc.Features;
 public interface IServerAddressFeature
 {
     /// <summary>Gets or sets the alternatives to <see cref="ServerAddress"/>. It is empty when ServerAddress is null.
-    ///</summary>
+    /// </summary>
     ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
     /// <summary>Gets or sets the list of <see cref="ServerAddress"/> that are excluded for the current invocation.
