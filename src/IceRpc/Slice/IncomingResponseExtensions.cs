@@ -18,7 +18,7 @@ public static class IncomingResponseExtensions
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The decoded failure.</returns>
     public static ValueTask<RemoteException> DecodeFailureAsync(
@@ -49,7 +49,7 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the return value.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
