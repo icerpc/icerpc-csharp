@@ -497,45 +497,28 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 pub fn decode_operation_stream(
     stream_member: &Parameter,
     namespace: &str,
-    cs_encoding: &str,
-    dispatch: bool,
-    assign_to_variable: bool,
     encoding: Encoding,
+    dispatch: bool,
 ) -> CodeBlock {
+    let cs_encoding = encoding.to_cs_encoding();
     let param_type = stream_member.data_type();
     let param_type_str = param_type.cs_type_string(namespace, TypeContext::Decode, false);
-    // Call cs_type_string on the parameter itself to get its stream qualifier.
-    let stream_type_str = stream_member.cs_type_string(namespace, TypeContext::Decode, false);
 
-    let create_stream_param: CodeBlock = match param_type.concrete_type() {
+    match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
-            FunctionCallBuilder::new_with_condition(dispatch, "request", "response", "DetachPayload").build()
+            panic!("Must not be called for UInt8 parameters as there is no decoding");
         }
-        _ => FunctionCallBuilder::new_with_condition(
-            dispatch,
-            "request",
-            "response",
-            &format!("ToAsyncEnumerable<{}>", param_type_str),
-        )
-        .arguments_on_newline(true)
-        .add_argument_unless(dispatch, "request")
-        .add_argument(cs_encoding)
-        .add_argument_unless(dispatch || param_type.is_fixed_size(), "sender")
-        .add_argument_unless(param_type.is_fixed_size(), "_defaultActivator")
-        .add_argument(decode_func(param_type, namespace, encoding).indent())
-        .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())
-        .build(),
-    };
-
-    if assign_to_variable {
-        format!(
-            "{stream_param_type} {param_name} = {create_stream_param}",
-            stream_param_type = stream_type_str,
-            param_name = stream_member.parameter_name_with_prefix("sliceP_"),
-            create_stream_param = create_stream_param,
-        )
-        .into()
-    } else {
-        create_stream_param
+        _ => FunctionCallBuilder::new(&format!("payloadStream.ToAsyncEnumerable<{}>", param_type_str))
+            .arguments_on_newline(true)
+            .add_argument(cs_encoding)
+            .add_argument_unless(param_type.is_fixed_size(), "_defaultActivator")
+            .add_argument(decode_func(param_type, namespace, encoding).indent())
+            .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())
+            .add_argument_unless(dispatch || param_type.is_fixed_size(), "sender")
+            .add_argument_unless(
+                param_type.is_fixed_size(),
+                "sliceFeature: request.Features.Get<IceRpc.Slice.ISliceFeature>()",
+            )
+            .build(),
     }
 }
