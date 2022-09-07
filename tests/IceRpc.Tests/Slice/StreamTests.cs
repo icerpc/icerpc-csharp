@@ -280,6 +280,7 @@ public class StreamTests
 
         // Assert
         Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
         static void EncodeSegment(PipeWriter writer)
@@ -311,6 +312,7 @@ public class StreamTests
 
         // Assert
         Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
         static void EncodeData(PipeWriter writer)
