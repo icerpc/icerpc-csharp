@@ -19,7 +19,7 @@ public static class ServerAddressFeatureExtensions
     /// </summary>
     /// <param name="feature">The server address feature.</param>
     /// <param name="serverAddresses">The server addresses to remove from the server address feature.</param>
-    public static void RemoveAll(this IServerAddressFeature feature, IList<ServerAddress> serverAddresses)
+    public static void RemoveAll(this IServerAddressFeature feature, IEnumerable<ServerAddress> serverAddresses)
     {
         // Filter-out the serverAddress
         if (feature.ServerAddress is ServerAddress serverAddress && serverAddresses.Contains(serverAddress))
