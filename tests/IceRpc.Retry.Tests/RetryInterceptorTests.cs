@@ -6,6 +6,7 @@ using IceRpc.Logger;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -345,6 +346,44 @@ public sealed class RetryInterceptorTests
         Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
         Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));
         Assert.That(serverAddresses[2], Is.EqualTo(serviceAddress.AltServerAddresses[1]));
+    }
+
+    [Test]
+    public async Task Dispatch_exception_with_UnhandledException_is_not_retryable()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new InlineDispatcher(
+                (request, cancellationToken) =>
+                {
+                    throw new InvalidOperationException();
+                }),
+                Protocol.IceRpc)
+            .BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+
+        var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));
+        var connection = provider.GetRequiredService<ClientConnection>();
+        int attempts = 0;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            attempts++;
+            return connection.InvokeAsync(request, cancellationToken);
+        });
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
+
+        IncomingResponse response = await sut.InvokeAsync(request, CancellationToken.None);
+
+        // Assert
+        RemoteException exception = await response.DecodeFailureAsync(request, new ServiceProxy(connection));
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(attempts, Is.EqualTo(1));
+                Assert.That(exception, Is.InstanceOf<DispatchException>());
+                Assert.That(((DispatchException)exception).ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+            });
     }
 
     private static ReadOnlySequence<byte> EncodeRetryPolicy(RetryPolicy retryPolicy)
