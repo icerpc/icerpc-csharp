@@ -278,10 +278,20 @@ internal class SlicConnection : IMultiplexedConnection
 
     public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken)
     {
+        Debug.Assert(_readFramesTask is not null);
+
         var exception = new TransportException("connection shutdown");
         if (Abort(exception))
         {
             await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+
+            // If the read frames task is done, it indicates that the connection has been closed by the peer already,
+            // just return in this case.
+            if (_readFramesTask.IsCompleted)
+            {
+                return;
+            }
+
             try
             {
                 // Send the close frame.
@@ -552,6 +562,7 @@ internal class SlicConnection : IMultiplexedConnection
         // Unblock requests waiting on the semaphores.
         _bidirectionalStreamSemaphore?.Complete(exception);
         _unidirectionalStreamSemaphore?.Complete(exception);
+        _writeSemaphore.CancelAwaiters(exception);
 
         return true;
     }
