@@ -14,7 +14,7 @@ public sealed class ServerAddressFeature : IServerAddressFeature
     public ServerAddress? ServerAddress { get; set; }
 
     /// <inheritdoc/>
-    public ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }
+    public ImmutableHashSet<ServerAddress> RemovedServerAddresses { get; set; }
 
     /// <summary>Constructs a server address feature that uses the server addresses of a service address.</summary>
     /// <param name="serviceAddress">The service address to copy the server addresses from.</param>
@@ -22,6 +22,6 @@ public sealed class ServerAddressFeature : IServerAddressFeature
     {
         ServerAddress = serviceAddress.ServerAddress;
         AltServerAddresses = serviceAddress.AltServerAddresses;
-        RemovedServerAddresses = ImmutableList<ServerAddress>.Empty;
+        RemovedServerAddresses = ImmutableHashSet<ServerAddress>.Empty;
     }
 }

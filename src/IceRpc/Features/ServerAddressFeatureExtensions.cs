@@ -33,6 +33,6 @@ public static class ServerAddressFeatureExtensions
             feature.ServerAddress = feature.AltServerAddresses[0];
             feature.AltServerAddresses = feature.AltServerAddresses.RemoveAt(0);
         }
-        feature.RemovedServerAddresses = feature.RemovedServerAddresses.AddRange(serverAddresses);
+        feature.RemovedServerAddresses = feature.RemovedServerAddresses.Union(serverAddresses);
     }
 }
