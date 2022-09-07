@@ -14,6 +14,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected bool IsServer { get; }
 
+    // Derived classes need to be able to set the connection closed exception with their mutex locked. We use an atomic
+    // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
+    private protected ConnectionClosedException? ConnectionClosedException
+    {
+        get => Volatile.Read(ref _connectionClosedException);
+        set => Interlocked.CompareExchange(ref _connectionClosedException, value, null);
+    }
+
+    private ConnectionClosedException? _connectionClosedException;
     private CancellationTokenSource? _connectCts;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
@@ -35,12 +44,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
             else if (_shutdownTask is not null)
             {
-                throw new ConnectionClosedException(
-                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
             }
             else if (_connectTask is not null)
             {
@@ -102,6 +112,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
+            ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown);
+
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
@@ -176,12 +188,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
             else if (_shutdownTask is not null)
             {
-                throw new ConnectionClosedException(
-                    _shutdownTask.IsCompleted ? "connection is shutdown" : "connection is shutting down");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
             }
             else if (_connectTask is null)
             {
@@ -218,11 +231,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                Debug.Assert(ConnectionClosedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
             else if (_connectTask is null)
             {
                 _shutdownTask ??= Task.FromResult(message);
+                ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown, message);
                 _ = _shutdownCompleteSource.TrySetResult(message);
                 return _shutdownTask;
             }
@@ -232,6 +247,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 _ = _shutdownCompleteSource.TrySetException(exception);
                 throw exception;
             }
+
+            ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown, message);
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
@@ -293,7 +310,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
     /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
     private protected abstract bool CheckIfIdle();
 
-    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancellationToken);
+    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
+        CancellationToken cancellationToken);
+
+    private protected void ConnectionLost(ConnectionLostException exception) =>
+        _ = _shutdownCompleteSource.TrySetException(exception);
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -314,6 +335,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             Debug.Assert(_connectTask is not null);
 
+            ConnectionClosedException = new(ConnectionClosedErrorCode.ShutdownByPeer, message);
             _shutdownTask = CreateShutdownTask(message);
         }
     }
@@ -321,9 +343,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected abstract Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
         CancellationToken cancellationToken);
-
-    private protected void InvokeOnAbort(Exception exception) =>
-        _ = _shutdownCompleteSource.TrySetException(exception);
 
     private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancellationToken);
 

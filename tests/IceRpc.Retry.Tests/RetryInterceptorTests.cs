@@ -34,7 +34,7 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                throw new ConnectionClosedException();
+                throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
             }
             else
             {
@@ -234,7 +234,7 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                throw new ConnectionClosedException();
+                throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
             }
             else
             {

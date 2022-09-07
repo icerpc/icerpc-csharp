@@ -49,6 +49,10 @@ interface MyOperationsA
 
     // ReadOnlyMemory tagged input parameters and return values
     opReadOnlyMemoryTagged(p1: tag(1) sequence<int32>?) -> tag(1) sequence<int32>?;
+
+    // Proxy parameter and return value
+    opWithProxyParameter(service: IceRpc::Slice::Service);
+    opWithProxyReturnValue() -> IceRpc::Slice::Service;
 }
 
 interface MyDerivedOperationsA : MyOperationsA {}

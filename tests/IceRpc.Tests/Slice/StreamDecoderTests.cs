@@ -7,7 +7,7 @@ using System.Buffers;
 namespace IceRpc.Slice;
 
 [Parallelizable(ParallelScope.All)]
-public sealed class StreamDecodingTests
+public sealed class StreamDecoderTests
 {
     private static IEnumerable<int> DecodeBufferIntoInts(ReadOnlySequence<byte> buffer)
     {

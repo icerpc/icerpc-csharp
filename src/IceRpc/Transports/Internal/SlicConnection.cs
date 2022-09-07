@@ -194,7 +194,8 @@ internal class SlicConnection : IMultiplexedConnection
                     // Read frames. This will return when the Close frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    var exception = new ConnectionClosedException("transport connection closed by peer");
+                    // TODO: raising a core exception in Slic doesn't sound right.
+                    var exception = new ConnectionClosedException(ConnectionClosedErrorCode.ShutdownByPeer);
                     if (Abort(exception))
                     {
                         // Shutdown the duplex connection. This acknowledge the receive of the Close frame and triggers
@@ -333,7 +334,7 @@ internal class SlicConnection : IMultiplexedConnection
             idleTimeout: _localIdleTimeout,
             options.Pool,
             options.MinSegmentSize,
-            abortAction: exception => _acceptStreamQueue.TryComplete(exception),
+            connectionLostAction: exception => _acceptStreamQueue.TryComplete(exception),
             keepAliveAction);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first

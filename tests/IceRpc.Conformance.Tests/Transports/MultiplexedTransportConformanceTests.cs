@@ -169,7 +169,7 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedConnection peerConnection =
             shutdownServerConnection ? clientConnection : serverConnection;
 
-        await shutdownConnection.ShutdownAsync(new ConnectionClosedException(), CancellationToken.None);
+        await shutdownConnection.ShutdownAsync(new TransportException(""), CancellationToken.None);
 
         // Act
         IMultiplexedStream peerStream = peerConnection.CreateStream(true);
