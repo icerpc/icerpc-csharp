@@ -14,7 +14,7 @@ public class ServerAddressFeatureTests
         var serviceAddress = new ServiceAddress(new Uri("icerpc://127.0.0.1:10001/hello"));
         var serverAddressFeature = new ServerAddressFeature(serviceAddress);
 
-        serverAddressFeature.Remove(removedServerAddresses.First());
+        serverAddressFeature.RemoveServerAddress(removedServerAddresses.First());
 
         Assert.That(serverAddressFeature.ServerAddress, Is.Null);
         Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
@@ -28,7 +28,7 @@ public class ServerAddressFeatureTests
         var serviceAddress = new ServiceAddress(new Uri("icerpc://127.0.0.1:10001/hello?alt-server=127.0.0.1:10002"));
         var serverAddressFeature = new ServerAddressFeature(serviceAddress);
 
-        serverAddressFeature.Remove(removedServerAddresses.First());
+        serverAddressFeature.RemoveServerAddress(removedServerAddresses.First());
 
         Assert.That(serverAddressFeature.ServerAddress, Is.EqualTo(new ServerAddress(new Uri("icerpc://127.0.0.1:10002"))));
         Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
@@ -45,7 +45,7 @@ public class ServerAddressFeatureTests
         };
         var serverAddressFeature = new ServerAddressFeature(serviceAddress);
 
-        serverAddressFeature.Remove(removedServerAddresses.First());
+        serverAddressFeature.RemoveServerAddress(removedServerAddresses.First());
 
         Assert.That(serverAddressFeature.ServerAddress, Is.Null);
         Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
