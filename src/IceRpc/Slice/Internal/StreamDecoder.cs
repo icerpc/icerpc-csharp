@@ -123,6 +123,10 @@ internal class StreamDecoder<T>
                     {
                         // We will never get more items
                         _readerState = ReaderState.Completed;
+                        if (_exception != null)
+                        {
+                            ExceptionUtil.Throw(_exception);
+                        }
                         yield break;
                     }
 
