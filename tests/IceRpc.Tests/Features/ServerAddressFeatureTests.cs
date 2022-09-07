@@ -8,44 +8,47 @@ namespace IceRpc.Features.Tests;
 public class ServerAddressFeatureTests
 {
     [Test]
-    public void Main_server_address_becomes_null_when_exclude_and_alt_addresses_is_empty()
+    public void Main_server_address_becomes_null_when_remove_all_removed_it_and_alt_addresses_is_empty()
     {
-        var excludedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
+        var removedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
         var serviceAddress = new ServiceAddress(new Uri("icerpc://127.0.0.1:10001/hello"));
+        var serverAddressFeature = new ServerAddressFeature(serviceAddress);
 
-        var serverAddressFeature = new ServerAddressFeature(serviceAddress, excludedServerAddresses);
+        serverAddressFeature.RemoveAll(removedServerAddresses);
 
         Assert.That(serverAddressFeature.ServerAddress, Is.Null);
         Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
-        Assert.That(serverAddressFeature.ExcludedServerAddresses, Is.EqualTo(excludedServerAddresses));
+        Assert.That(serverAddressFeature.RemovedServerAddresses, Is.EqualTo(removedServerAddresses));
     }
 
     [Test]
-    public void First_non_excluded_alt_address_becomes_main_server_addres_when_main_server_address_is_excluded()
+    public void First_non_removed_alt_address_becomes_main_server_addres_when_main_server_address_is_removed()
     {
-        var excludedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
-
+        var removedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
         var serviceAddress = new ServiceAddress(new Uri("icerpc://127.0.0.1:10001/hello?alt-server=127.0.0.1:10002"));
-        var serverAddressFeature = new ServerAddressFeature(serviceAddress, excludedServerAddresses);
+        var serverAddressFeature = new ServerAddressFeature(serviceAddress);
+
+        serverAddressFeature.RemoveAll(removedServerAddresses);
 
         Assert.That(serverAddressFeature.ServerAddress, Is.EqualTo(new ServerAddress(new Uri("icerpc://127.0.0.1:10002"))));
         Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
-        Assert.That(serverAddressFeature.ExcludedServerAddresses, Is.EqualTo(excludedServerAddresses));
+        Assert.That(serverAddressFeature.RemovedServerAddresses, Is.EqualTo(removedServerAddresses));
     }
 
     [Test]
-    public void Excluded_addresses_with_null_server_address()
+    public void Remove_addresses_when_server_address_feature_has_a_null_server_address()
     {
-        var excludedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
-
+        var removedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
         var serviceAddress = new ServiceAddress(Protocol.IceRpc)
         {
             Path = "/hello"
         };
-        var serverAddressFeature = new ServerAddressFeature(serviceAddress, excludedServerAddresses);
+        var serverAddressFeature = new ServerAddressFeature(serviceAddress);
+
+        serverAddressFeature.RemoveAll(removedServerAddresses);
 
         Assert.That(serverAddressFeature.ServerAddress, Is.Null);
         Assert.That(serverAddressFeature.AltServerAddresses, Is.Empty);
-        Assert.That(serverAddressFeature.ExcludedServerAddresses, Is.EqualTo(excludedServerAddresses));
+        Assert.That(serverAddressFeature.RemovedServerAddresses, Is.EqualTo(removedServerAddresses));
     }
 }

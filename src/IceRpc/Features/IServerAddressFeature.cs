@@ -12,9 +12,9 @@ public interface IServerAddressFeature
     /// </summary>
     ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
-    /// <summary>Gets or sets the list of <see cref="ServerAddress"/> that are excluded for the current invocation.
-    /// </summary>
-    ImmutableList<ServerAddress> ExcludedServerAddresses { get; set; }
+    /// <summary>Gets or sets the list of <see cref="ServerAddress"/> that have been removed and will not be used in
+    /// the current invocation.</summary>
+    ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }
 
     /// <summary>Gets or sets the main server address for the invocation. When retrying, it represents the server
     /// address that was used by the preceding attempt.</summary>
