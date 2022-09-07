@@ -12,8 +12,8 @@ public interface IServerAddressFeature
     /// </summary>
     ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
-    /// <summary>Gets or sets the list of <see cref="ServerAddress"/> that have been removed and will not be used in
-    /// the current invocation.</summary>
+    /// <summary>Gets or sets the list of <see cref="ServerAddress"/> that have been removed and will not be used for
+    /// the invocation.</summary>
     ImmutableHashSet<ServerAddress> RemovedServerAddresses { get; set; }
 
     /// <summary>Gets or sets the main server address for the invocation. When retrying, it represents the server
