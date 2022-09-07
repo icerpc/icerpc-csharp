@@ -118,7 +118,7 @@ public class InvocationTests
                 Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
                 Assert.That(exception, Is.TypeOf<DispatchException>());
                 DispatchException dispatchException = (DispatchException)exception;
-                Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.StreamError));
+                Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
             });
         await pipe.Writer.CompleteAsync();
     }

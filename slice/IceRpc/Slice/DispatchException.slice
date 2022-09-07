@@ -30,7 +30,4 @@ unchecked enum DispatchErrorCode
 
     /// The request's deadline has expired.
     DeadlineExpired,
-
-    /// The dispatch failed because a stream operation failed.
-    StreamError,
 }
