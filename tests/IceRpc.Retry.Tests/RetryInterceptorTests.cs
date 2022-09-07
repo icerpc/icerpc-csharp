@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Tests;
 
@@ -230,15 +231,23 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancellationToken) =>
+        var invoker = new InlineInvoker(async (request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
+                ReadResult readResult;
+                do
+                {
+                    readResult = await request.Payload.ReadAsync(cancellationToken);
+                    request.Payload.AdvanceTo(readResult.Buffer.End);
+                }
+                while (!readResult.IsCompleted && !readResult.IsCanceled);
+
                 throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+                return new IncomingResponse(request, FakeConnectionContext.IceRpc);
             }
         });
 
@@ -258,15 +267,23 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker((request, cancellationToken) =>
+        var invoker = new InlineInvoker(async (request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
+                ReadResult readResult;
+                do
+                {
+                    readResult = await request.Payload.ReadAsync(cancellationToken);
+                    request.Payload.AdvanceTo(readResult.Buffer.End);
+                }
+                while (!readResult.IsCompleted && !readResult.IsCanceled);
+
                 throw new InvalidOperationException();
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+                return new IncomingResponse(request, FakeConnectionContext.IceRpc);
             }
         });
 
