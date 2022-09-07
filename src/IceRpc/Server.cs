@@ -24,7 +24,7 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
-    private readonly SemaphoreSlim _connectionSemaphore;
+    private readonly SemaphoreSlim? _connectionSemaphore;
 
     private IListener? _listener;
 
@@ -63,7 +63,10 @@ public sealed class Server : IAsyncDisposable
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
 
         _maxConnections = options.MaxConnections;
-        _connectionSemaphore = new SemaphoreSlim(_maxConnections, _maxConnections);
+        if (_maxConnections > 0)
+        {
+            _connectionSemaphore = new SemaphoreSlim(_maxConnections, _maxConnections);
+        }
 
         if (_serverAddress.Transport is null)
         {
@@ -158,21 +161,24 @@ public sealed class Server : IAsyncDisposable
         await Task.WhenAll(_connections.Select(entry => entry.DisposeAsync().AsTask())).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult(null);
 
-        if (_connections.Any())
+        if (_connectionSemaphore is not null)
         {
-            // Release the semaphore for all the connections still in _connections.
-            _connectionSemaphore.Release(_connections.Count);
-        }
+            if (_connections.Any())
+            {
+                // Release the semaphore for all the connections still in _connections.
+                _connectionSemaphore.Release(_connections.Count);
+            }
 
-        // Wait until all connections not in _connections are disposed
-        // We do this by entering the semaphore until it is empty.
-        for (int i = 0; i < _maxConnections; i++)
-        {
-            await _connectionSemaphore.WaitAsync().ConfigureAwait(false);
+            // Wait until all connections not in _connections are disposed
+            // We do this by entering the semaphore until it is empty.
+            for (int i = 0; i < _maxConnections; i++)
+            {
+                await _connectionSemaphore.WaitAsync().ConfigureAwait(false);
+            }
         }
 
         _shutdownCts.Dispose();
-        _connectionSemaphore.Dispose();
+        _connectionSemaphore?.Dispose();
     }
 
     /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
@@ -218,8 +224,12 @@ public sealed class Server : IAsyncDisposable
                 bool enteredSemaphore = false;
                 try
                 {
-                    await _connectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
-                    enteredSemaphore = true;
+                    if (_connectionSemaphore is not null)
+                    {
+                        await _connectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                        enteredSemaphore = true;
+                    }
+
                     (connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch
@@ -227,7 +237,7 @@ public sealed class Server : IAsyncDisposable
                     // We need to release the semaphore if we entered it.
                     if (enteredSemaphore)
                     {
-                        _connectionSemaphore.Release();
+                        _connectionSemaphore?.Release();
                     }
 
                     if (shutdownCancellationToken.IsCancellationRequested)
@@ -258,7 +268,7 @@ public sealed class Server : IAsyncDisposable
                 if (done)
                 {
                     await connection.DisposeAsync().ConfigureAwait(false);
-                    _connectionSemaphore.Release();
+                    _connectionSemaphore?.Release();
                 }
                 else
                 {
@@ -312,7 +322,7 @@ public sealed class Server : IAsyncDisposable
 
             await connection.DisposeAsync().ConfigureAwait(false);
             // Wait until the connection is disposed before releasing the semaphore.
-            _connectionSemaphore.Release();
+            _connectionSemaphore?.Release();
         }
     }
 

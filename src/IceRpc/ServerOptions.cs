@@ -12,8 +12,9 @@ public sealed record class ServerOptions
 
     /// <summary>Gets or sets the maximum number of accepted server connections. Once the maximum number connections
     /// has been reached, the server will not accept any new connections and will wait until an active connection
-    /// is closed.</summary>
-    public int MaxConnections { get; set; } = 100;
+    /// is closed. 0, the default, means unlimited.
+    /// </summary>
+    public int MaxConnections { get; set; }
 
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>

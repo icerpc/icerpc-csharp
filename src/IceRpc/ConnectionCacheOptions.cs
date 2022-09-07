@@ -21,9 +21,4 @@ public record class ConnectionCacheOptions
     /// connections being connected. When <c>false</c>, the connection cache does not prefer existing connections.
     /// </value>
     public bool PreferExistingConnection { get; set; } = true;
-
-    /// <summary>Gets or sets the maximum number of active connections that the connection cache will cache.
-    /// Once the maximum number connections has been reached, new connections will wait until an active connection
-    /// is closed.</summary>
-    public int MaxConnections { get; set; } = 100;
 }
