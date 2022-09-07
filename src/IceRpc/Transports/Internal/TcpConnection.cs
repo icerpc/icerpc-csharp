@@ -23,10 +23,9 @@ internal abstract class TcpConnection : IDuplexConnection
     // The MaxDataSize of the SSL implementation.
     private const int MaxSslDataSize = 16 * 1024;
 
+    private bool _isShutdown;
     private readonly int _minSegmentSize;
-
     private readonly MemoryPool<byte> _pool;
-
     private readonly List<ArraySegment<byte>> _segments = new();
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -44,7 +43,16 @@ internal abstract class TcpConnection : IDuplexConnection
             sslStream.Dispose();
         }
 
-        Socket.Close(0);
+        // If shutdown was called, we can just dispose the connection to complete the graceful TCP closure. Otherwise,
+        // we abort the TCP connection to ensure the connection doesn't end up in the TIME_WAIT state.
+        if (_isShutdown)
+        {
+            Socket.Dispose();
+        }
+        else
+        {
+            Socket.Close(0);
+        }
     }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
@@ -95,6 +103,8 @@ internal abstract class TcpConnection : IDuplexConnection
             // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
             // to be notified when the peer shuts down it's side of the socket (through the ReceiveAsync call).
             Socket.Shutdown(SocketShutdown.Send);
+
+            _isShutdown = true;
         }
         catch
         {

@@ -127,10 +127,10 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(async () => await readTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling read on a connection fails with <see cref="ConnectionLostException"/> if the
-    /// peer connection is disposed.</summary>
+    /// <summary>Verifies that calling read on a connection returns 0 bytes if the peer connection is
+    /// disposed.</summary>
     [Test]
-    public async Task Read_from_disposed_peer_connection_fails_with_connection_lost_exception(
+    public async Task Read_from_disposed_peer_connection_returns_zero_bytes(
         [Values(true, false)] bool readFromServer)
     {
         // Arrange
@@ -145,9 +145,8 @@ public abstract class DuplexTransportConformanceTests
         disposedPeer.Dispose();
 
         // Act/Assert
-        Assert.That(
-            async () => await readFrom.ReadAsync(new byte[1], default),
-            Throws.TypeOf<ConnectionLostException>());
+        // Assert.That(async () => await readFrom.ReadAsync(new byte[1], default), Is.EqualTo(0));
+        Assert.That(async () => await readFrom.ReadAsync(new byte[1], default), Throws.InstanceOf<ConnectionLostException>());
     }
 
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.

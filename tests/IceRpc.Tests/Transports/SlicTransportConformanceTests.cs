@@ -18,12 +18,14 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
     protected override IServiceCollection CreateServiceCollection()
     {
         var services = new ServiceCollection()
-            .AddColocTransport()
+            // .AddColocTransport()
+            .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport())
+            .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport())
             .AddSingleton(provider =>
             {
                 var transport = provider.GetRequiredService<IMultiplexedServerTransport>();
                 return transport.Listen(
-                    new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
+                    new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                     null);
             });

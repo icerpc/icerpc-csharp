@@ -37,8 +37,8 @@ public interface IMultiplexedConnection : IAsyncDisposable
     IMultiplexedStream CreateStream(bool bidirectional);
 
     /// <summary>Shuts down the connection.</summary>
-    /// <param name="completeException">The exception provided to the stream <see cref="IDuplexPipe"/>.</param>
+    /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    Task ShutdownAsync(Exception completeException, CancellationToken cancellationToken);
+    Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
 }

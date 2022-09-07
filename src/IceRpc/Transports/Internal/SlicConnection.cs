@@ -194,26 +194,32 @@ internal class SlicConnection : IMultiplexedConnection
                     // Read frames. This will return when the Close frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    // TODO: raising a core exception in Slic doesn't sound right.
-                    var exception = new ConnectionClosedException(ConnectionClosedErrorCode.ShutdownByPeer);
-                    if (Abort(exception))
-                    {
-                        // Shutdown the duplex connection. This acknowledge the receive of the Close frame and triggers
-                        // the completion of the peer's ReadFramesAsync call.
-                        await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                    Debug.Assert(_exception is not null);
 
-                        // Time for AcceptStreamAsync to return.
-                        _acceptStreamQueue.TryComplete(exception);
+                    if (IsServer)
+                    {
+                        // Shutdown the duplex connection for server connections.
+                        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                        try
+                        {
+                            await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _writeSemaphore.Release();
+                        }
                     }
+
+                    // Time for AcceptStreamAsync to return.
+                    _acceptStreamQueue.TryComplete(_exception);
                 }
                 catch (OperationCanceledException)
                 {
                     // Nothing to do, DisposeAsync has been called and it takes care of the cleanup.
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
                     // Unexpected transport exception.
-                    var exception = new ConnectionLostException(ex);
                     if (Abort(exception))
                     {
                         _acceptStreamQueue.TryComplete(exception);
@@ -252,7 +258,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            Abort(new ConnectionAbortedException("transport connection disposed"));
+            Abort(new TransportException("connection aborted"));
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -260,8 +266,6 @@ internal class SlicConnection : IMultiplexedConnection
             await Task.WhenAll(
                 _writeSemaphore.CompleteAndWaitAsync(_exception!),
                 _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
-
-            _acceptStreamQueue.TryComplete(_exception!);
 
             // Dispose the transport connection and the reader/writer.
             _duplexConnection.Dispose();
@@ -272,22 +276,33 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public async Task ShutdownAsync(Exception exception, CancellationToken cancellationToken)
+    public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken)
     {
+        var exception = new TransportException("connection shutdown");
         if (Abort(exception))
         {
-            // Wait for writes to complete and send the close frame.
-            await _writeSemaphore.CompleteAndWaitAsync(exception).WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // Send the close frame.
+                await WriteFrameAsync(
+                    FrameType.Close,
+                    streamId: null,
+                    new CloseBody(applicationErrorCode).Encode,
+                    cancellationToken).ConfigureAwait(false);
 
-            // Send the close frame.
-            await WriteFrameAsync(
-                FrameType.Close,
-                streamId: null,
-                new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
-                cancellationToken).ConfigureAwait(false);
-
-            // Shutdown the duplex connection.
-            await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                if (!IsServer)
+                {
+                    // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
+                    // For TCP, it's important to always shutdown the connection on the client-side first to avoid
+                    // TIME_WAIT states on the server side.
+                    await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
         }
     }
 
@@ -506,7 +521,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
-                throw new ConnectionAbortedException("transport connection disposed");
+                throw new TransportException("connection disposed");
             }
             finally
             {
@@ -537,7 +552,6 @@ internal class SlicConnection : IMultiplexedConnection
         // Unblock requests waiting on the semaphores.
         _bidirectionalStreamSemaphore?.Complete(exception);
         _unidirectionalStreamSemaphore?.Complete(exception);
-        _writeSemaphore.Complete(exception);
 
         return true;
     }
@@ -691,16 +705,12 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 lock (_mutex)
                 {
-                    if (_exception is not null)
+                    if (_exception is null)
                     {
-                        // Expected if shutting down.
-                        return;
-                    }
-                    else
-                    {
-                        throw new InvalidDataException("unexpected peer connection shutdown");
+                        throw new TransportException("unexpected duplex connection shutdown");
                     }
                 }
+                return;
             }
 
             (FrameType type, int dataSize, ulong? streamId) = header.Value;
@@ -721,8 +731,32 @@ internal class SlicConnection : IMultiplexedConnection
                         (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                         cancellationToken).ConfigureAwait(false);
 
-                    // Graceful connection shutdown, we're done.
-                    return;
+                    // TODO: better exception.
+                    var exception = new TransportException(
+                        $"connection closed by peer with error code {closeBody.ApplicationProtocolErrorCode}");
+                    if (Abort(exception))
+                    {
+                        if (IsServer)
+                        {
+                            // The sending of the client-side Close frame is always followed by the shutdown of the
+                            // duplex connection. We wait for the shutdown of the duplex connection instead of returning
+                            // here. We want to make sure the duplex connection is always shutdown on the client-side
+                            // first. It's important for TCP to avoid TIME_WAIT states on the server-side.
+                        }
+                        else
+                        {
+                            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                _writeSemaphore.Release();
+                            }
+                        }
+                    }
+                    break;
                 }
                 case FrameType.Ping:
                 {

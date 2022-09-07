@@ -658,8 +658,8 @@ public sealed class IceRpcProtocolConnectionTests
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        public Task ShutdownAsync(Exception completeException, CancellationToken cancellationToken) =>
-            _decoratee.ShutdownAsync(completeException, cancellationToken);
+        public Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
+            _decoratee.ShutdownAsync(applicationErrorCode, cancellationToken);
 
         internal HoldMultiplexedConnection(IMultiplexedConnection decoratee) => _decoratee = decoratee;
 

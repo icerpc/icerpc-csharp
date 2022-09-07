@@ -29,7 +29,8 @@ internal class ColocConnection : IDuplexConnection
 
     public void Dispose()
     {
-        _exception ??= new ObjectDisposedException($"{typeof(ColocConnection)}");
+        // TODO: replace with transport exception
+        _exception ??= new ConnectionLostException();
 
         if (_state.TrySetFlag(State.Disposed))
         {
@@ -43,7 +44,7 @@ internal class ColocConnection : IDuplexConnection
                 }
                 else
                 {
-                    _reader.Complete(new ConnectionLostException());
+                    _reader.Complete(_exception);
                 }
             }
 
@@ -55,7 +56,7 @@ internal class ColocConnection : IDuplexConnection
                 }
                 else
                 {
-                    _writer.Complete(new ConnectionLostException());
+                    _writer.Complete(_exception);
                 }
             }
         }
@@ -64,6 +65,11 @@ internal class ColocConnection : IDuplexConnection
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
         Debug.Assert(_reader is not null && _writer is not null);
+
+        if (_state.HasFlag(State.Disposed))
+        {
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
 
         if (!_state.TrySetFlag(State.Reading))
         {
@@ -112,11 +118,11 @@ internal class ColocConnection : IDuplexConnection
             _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
             return read;
         }
-        catch (Exception exception)
-        {
-            _exception ??= exception;
-            throw;
-        }
+        // catch (Exception exception)
+        // {
+        //     _exception ??= exception;
+        //     throw;
+        // }
         finally
         {
             if (_state.HasFlag(State.Disposed))
@@ -145,6 +151,11 @@ internal class ColocConnection : IDuplexConnection
     {
         Debug.Assert(_reader is not null && _writer is not null);
 
+        if (_state.HasFlag(State.Disposed))
+        {
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+
         if (_state.TrySetFlag(State.ShuttingDown))
         {
             if (_state.TrySetFlag(State.Writing))
@@ -163,9 +174,21 @@ internal class ColocConnection : IDuplexConnection
     {
         Debug.Assert(_reader is not null && _writer is not null);
 
+        if (_state.HasFlag(State.Disposed))
+        {
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+
         if (!_state.TrySetFlag(State.Writing))
         {
-            throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
+            if (_state.HasFlag(State.ShuttingDown))
+            {
+                throw new TransportException($"connection is shutdown");
+            }
+            else
+            {
+                throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
+            }
         }
 
         try
@@ -178,17 +201,17 @@ internal class ColocConnection : IDuplexConnection
                 }
                 else if (_state.HasFlag(State.ShuttingDown))
                 {
-                    throw new TransportException("connection is shutdown");
+                    throw new TransportException($"connection is shutdown");
                 }
 
                 _ = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception exception)
-        {
-            _exception ??= exception;
-            throw;
-        }
+        // catch (Exception exception)
+        // {
+        //     _exception ??= exception;
+        //     throw;
+        // }
         finally
         {
             if (_state.HasFlag(State.Disposed))
