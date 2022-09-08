@@ -228,7 +228,35 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task Retry_sent_request_after_close_connection()
+    public async Task Retry_if_payload_was_not_read()
+    {
+        // Arrange
+        int attempts = 0;
+        var invoker = new InlineInvoker((request, cancellationToken) =>
+        {
+            if (++attempts == 1)
+            {
+                throw new InvalidOperationException();
+            }
+            else
+            {
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+            }
+        });
+
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(attempts, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Retry_on_connection_closed()
     {
         // Arrange
         int attempts = 0;
@@ -236,6 +264,8 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
+                // The retry interceptor assumes that it is always safe to retry when the payload was not read, the reading
+                // of the payload here ensures that retry is due to the connection closed exception we are testing for.
                 ReadResult readResult;
                 do
                 {
@@ -264,7 +294,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task Retry_sent_idempotent_request_after_is_sent()
+    public async Task Retry_idempotent_request()
     {
         // Arrange
         int attempts = 0;
@@ -272,6 +302,8 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
+                // The retry interceptor assumes that it is always safe to retry when the payload was not read, the reading
+                // of the payload here ensures that retry is due to request invocation mode being idempotent.
                 ReadResult readResult;
                 do
                 {
