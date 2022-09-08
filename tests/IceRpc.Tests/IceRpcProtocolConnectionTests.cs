@@ -69,7 +69,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the
-    /// expected error code.</summary>
+    /// expected error code and no retry policy.</summary>
     /// <param name="thrownException">The exception to throw by the dispatcher.</param>
     /// <param name="errorCode">The expected <see cref="DispatchErrorCode"/>.</param>
     [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
@@ -96,6 +96,7 @@ public sealed class IceRpcProtocolConnectionTests
         var exception = await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client)) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }
 
     [Test]
