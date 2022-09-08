@@ -4,7 +4,6 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
-using System.Net.Security;
 
 namespace IceRpc.Tests;
 
