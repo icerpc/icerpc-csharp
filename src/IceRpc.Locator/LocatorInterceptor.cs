@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Locator.Internal;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc.Locator;
@@ -86,13 +87,39 @@ public class LocatorInterceptor : IInvoker
                     // A well behaved location resolver should never return a non-null service address with a null
                     // serverAddress.
                     Debug.Assert(serviceAddress.ServerAddress is not null);
-                    serverAddressFeature.ServerAddress = serviceAddress.ServerAddress;
-                    serverAddressFeature.AltServerAddresses = serviceAddress.AltServerAddresses;
+
+                    // Before assigning the new resolved server addresses to the server address feature we have to
+                    // remove any server addresses that are included in the list of removed server addresses, to
+                    // avoid retrying with a server address that has been already excluded for the invocation.
+                    (ServerAddress? serverAddress, ImmutableList<ServerAddress> altServerAddresses) =
+                        ComputeServerAddresses(serviceAddress, serverAddressFeature.RemovedServerAddresses);
+                    serverAddressFeature.ServerAddress = serverAddress;
+                    serverAddressFeature.AltServerAddresses = altServerAddresses;
                 }
                 // else, resolution failed and we don't update anything
             }
         }
         return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+
+        static (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) ComputeServerAddresses(
+            ServiceAddress serviceAddress,
+            IEnumerable<ServerAddress> excludedAddreses)
+        {
+            (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) result =
+                (serviceAddress.ServerAddress, serviceAddress.AltServerAddresses);
+            if (result.ServerAddress is ServerAddress serverAddress && excludedAddreses.Contains(serverAddress))
+            {
+                result.ServerAddress = null;
+            }
+            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(e => excludedAddreses.Contains(e));
+
+            if (result.ServerAddress is null && result.AltServerAddresses.Count > 0)
+            {
+                result.ServerAddress = result.AltServerAddresses[0];
+                result.AltServerAddresses = result.AltServerAddresses.RemoveAt(0);
+            }
+            return result;
+        }
     }
 
     private interface ICachedResolutionFeature
