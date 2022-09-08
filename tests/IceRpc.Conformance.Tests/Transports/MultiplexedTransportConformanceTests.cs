@@ -182,7 +182,6 @@ public abstract class MultiplexedTransportConformanceTests
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
     /// <param name="disposeServerConnection">Whether to dispose the server connection or the client connection.
     /// </param>
-    [Ignore("sort out conneciton lost")]
     [Test]
     public async Task Cannot_create_streams_with_a_disposed_connection(
         [Values(true, false)] bool disposeServerConnection)
@@ -209,7 +208,7 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedStream disposedStream = disposedConnection.CreateStream(true);
         Assert.ThrowsAsync<TransportException>(async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
-        Assert.ThrowsAsync<TransportException>(async () =>
+        Assert.ThrowsAsync<ConnectionLostException>(async () =>
             {
                 // It can take few writes for the peer to detect the connection closure.
                 while (true)

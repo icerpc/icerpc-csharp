@@ -13,8 +13,7 @@ internal class ColocConnection : IDuplexConnection
 
     private readonly Func<ServerAddress, (PipeReader, PipeWriter)> _connect;
 
-    // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or
-    // ReadAsync
+    // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or ReadAsync
     private Exception? _exception;
     private PipeReader? _reader;
     private int _state;
@@ -29,7 +28,7 @@ internal class ColocConnection : IDuplexConnection
 
     public void Dispose()
     {
-        // TODO: replace with transport exception
+        // TODO: replace with transport exception #1712
         _exception ??= new ConnectionLostException();
 
         if (_state.TrySetFlag(State.Disposed))
@@ -118,11 +117,6 @@ internal class ColocConnection : IDuplexConnection
             _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
             return read;
         }
-        // catch (Exception exception)
-        // {
-        //     _exception ??= exception;
-        //     throw;
-        // }
         finally
         {
             if (_state.HasFlag(State.Disposed))
@@ -183,7 +177,7 @@ internal class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.ShuttingDown))
             {
-                throw new TransportException($"connection is shutdown");
+                throw new TransportException("connection is shutdown");
             }
             else
             {
@@ -201,17 +195,12 @@ internal class ColocConnection : IDuplexConnection
                 }
                 else if (_state.HasFlag(State.ShuttingDown))
                 {
-                    throw new TransportException($"connection is shutdown");
+                    throw new TransportException("connection is shutdown");
                 }
 
                 _ = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
             }
         }
-        // catch (Exception exception)
-        // {
-        //     _exception ??= exception;
-        //     throw;
-        // }
         finally
         {
             if (_state.HasFlag(State.Disposed))

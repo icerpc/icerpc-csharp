@@ -78,6 +78,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         try
         {
             _socket.ExclusiveAddressUse = true;
+
             if (tcpOptions.ReceiveBufferSize is int receiveSize)
             {
                 _socket.ReceiveBufferSize = receiveSize;
