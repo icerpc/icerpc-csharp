@@ -11,10 +11,10 @@ public sealed class ServerAddressFeature : IServerAddressFeature
     public ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
     /// <inheritdoc/>
-    public ServerAddress? ServerAddress { get; set; }
+    public ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }
 
     /// <inheritdoc/>
-    public ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }
+    public ServerAddress? ServerAddress { get; set; }
 
     /// <summary>Constructs a server address feature that uses the server addresses of a service address.</summary>
     /// <param name="serviceAddress">The service address to copy the server addresses from.</param>
