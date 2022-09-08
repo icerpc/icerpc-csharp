@@ -368,8 +368,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // ConnectionCache.DisposeAsync is responsible for disposing this connection and
-                    // for releasing the semaphore.
+                    // ConnectionCache.DisposeAsync is responsible for disposing this connection.
                     return;
                 }
                 else
