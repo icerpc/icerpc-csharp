@@ -149,19 +149,16 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
-        {
-            Payload = pipe.Reader
-        };
+
         int[] expected = Enumerable.Range(0, size).Select(i => i).ToArray();
         Task.Run(() => _ = EncodeDataAsync(pipe.Writer));
 
         // Act
-        IAsyncEnumerable<int> decoded = request.ToAsyncEnumerable(
+        IAsyncEnumerable<int> decoded = pipe.Reader.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            SliceFeature.Default,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-            elementSize: 4);
+            elementSize: 4,
+            SliceFeature.Default);
 
         // Assert
         Assert.That(async () => await ToArrayAsync(decoded), Is.EqualTo(expected));
@@ -208,15 +205,11 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
-        {
-            Payload = pipe.Reader
-        };
         string[] expected = Enumerable.Range(0, size).Select(i => $"hello-{i}").ToArray();
         Task.Run(() => _ = EncodeDataAsync(pipe.Writer));
 
         // Act
-        IAsyncEnumerable<string> decoded = request.ToAsyncEnumerable(
+        IAsyncEnumerable<string> decoded = pipe.Reader.ToAsyncEnumerable(
             SliceEncoding.Slice2,
             defaultActivator: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
@@ -278,19 +271,16 @@ public class StreamTests
         await pipe.Writer.FlushAsync();
 
         var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
-        {
-            Payload = payload
-        };
 
         // Act
-        IAsyncEnumerable<MyEnum> values = request.ToAsyncEnumerable<MyEnum>(
+        IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
             SliceEncoding.Slice2,
             defaultActivator: null,
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
 
         // Assert
         Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
         static void EncodeSegment(PipeWriter writer)
@@ -312,19 +302,17 @@ public class StreamTests
         await pipe.Writer.FlushAsync();
 
         var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
-        {
-            Payload = payload
-        };
 
         // Act
-        IAsyncEnumerable<MyEnum> values = request.ToAsyncEnumerable<MyEnum>(
+        IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
             SliceEncoding.Slice2,
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"),
-            4);
+            elementSize: 4,
+            sliceFeature: null);
 
         // Assert
         Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
         static void EncodeData(PipeWriter writer)

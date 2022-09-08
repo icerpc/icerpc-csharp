@@ -234,21 +234,14 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::default();
 
     let namespace = &operation.namespace();
-    let encoding = operation.encoding.to_cs_encoding();
 
     if let Some(stream_member) = operation.streamed_parameter() {
         let non_streamed_parameters = operation.nonstreamed_parameters();
-
         if non_streamed_parameters.is_empty() {
             writeln!(
                 code,
-                "\
-await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);
-
-return {decode_operation_stream}",
-                encoding = encoding,
-                decode_operation_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, true, false, operation.encoding)
+                "await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
+                encoding = operation.encoding.to_cs_encoding()
             );
         } else {
             writeln!(
@@ -258,19 +251,31 @@ var {args} = await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
-    cancellationToken).ConfigureAwait(false);
-
-{decode_request_stream}
-
-return {args_and_stream};",
+    cancellationToken).ConfigureAwait(false);",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
-                encoding = encoding,
-                decode_func = request_decode_func(operation).indent(),
-                decode_request_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, true, true, operation.encoding),
-                args_and_stream = operation.parameters().to_argument_tuple("sliceP_")
+                encoding = operation.encoding.to_cs_encoding(),
+                decode_func = request_decode_func(operation).indent()
             );
         }
+        match stream_member.data_type().concrete_type() {
+            Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+                writeln!(
+                    code,
+                    "var {} = request.DetachPayload();",
+                    stream_member.parameter_name_with_prefix("sliceP_")
+                )
+            }
+            _ => writeln!(
+                code,
+                "\
+var payloadStream = request.DetachPayload();
+var {stream_parameter_name} = {decode_operation_stream}
+",
+                stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, true)
+            ),
+        }
+        writeln!(code, "return {};", operation.parameters().to_argument_tuple("sliceP_"));
     } else {
         writeln!(
             code,
@@ -281,11 +286,10 @@ request.DecodeArgsAsync(
     {decode_func},
     cancellationToken)
 ",
-            encoding = encoding,
+            encoding = operation.encoding.to_cs_encoding(),
             decode_func = request_decode_func(operation).indent()
         );
     }
-
     code
 }
 

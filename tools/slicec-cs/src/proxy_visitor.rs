@@ -474,11 +474,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 fn response_operation_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
-    let encoding = operation.encoding.to_cs_encoding();
+    let non_streamed_members = operation.nonstreamed_return_members();
 
     if let Some(stream_member) = operation.streamed_return_member() {
-        let non_streamed_members = operation.nonstreamed_return_members();
-
         if non_streamed_members.is_empty() {
             writeln!(
                 code,
@@ -489,12 +487,8 @@ await response.DecodeVoidReturnValueAsync(
     sender,
     _defaultActivator,
     cancellationToken).ConfigureAwait(false);
-
-return {decode_operation_stream}
 ",
-                encoding = encoding,
-                decode_operation_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, false, false, operation.encoding)
+                encoding = operation.encoding.to_cs_encoding(),
             );
         } else {
             writeln!(
@@ -507,19 +501,37 @@ var {return_value} = await response.DecodeReturnValueAsync(
     _defaultActivator,
     {response_decode_func},
     cancellationToken).ConfigureAwait(false);
-
-{decode_response_stream}
-
-return {return_value_and_stream};
 ",
-                encoding = encoding,
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
-                response_decode_func = response_decode_func(operation).indent(),
-                decode_response_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, false, true, operation.encoding),
-                return_value_and_stream = operation.return_members().to_argument_tuple("sliceP_")
+                encoding = operation.encoding.to_cs_encoding(),
+                response_decode_func = response_decode_func(operation).indent()
             );
         }
+
+        match stream_member.data_type().concrete_type() {
+            Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+                writeln!(
+                    code,
+                    "var {} = response.DetachPayload();",
+                    stream_member.parameter_name_with_prefix("sliceP_")
+                )
+            }
+            _ => writeln!(
+                code,
+                "\
+var payloadStream = response.DetachPayload();
+var {stream_parameter_name} = {decode_operation_stream}
+",
+                stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, false)
+            ),
+        }
+
+        writeln!(
+            code,
+            "return {};",
+            operation.return_members().to_argument_tuple("sliceP_")
+        );
     } else {
         writeln!(
             code,
@@ -530,12 +542,12 @@ response.DecodeReturnValueAsync(
     sender,
     _defaultActivator,
     {response_decode_func},
-    cancellationToken)",
-            encoding = encoding,
+    cancellationToken)
+",
+            encoding = operation.encoding.to_cs_encoding(),
             response_decode_func = response_decode_func(operation).indent()
         );
     }
-
     code
 }
 

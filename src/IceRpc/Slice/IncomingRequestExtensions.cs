@@ -1,6 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
+using System;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
@@ -122,47 +125,4 @@ public static class IncomingRequestExtensions
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             cancellationToken);
-
-    /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
-    /// streamed elements.</summary>
-    /// <typeparam name="T">The stream element type.</typeparam>
-    /// <param name="request">The incoming request.</param>
-    /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-    /// <param name="elementSize">The size in bytes of the streamed elements.</param>
-    /// <returns>The async enumerable to decode and return the streamed members.</returns>
-    public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this IncomingRequest request,
-        SliceEncoding encoding,
-        DecodeFunc<T> decodeFunc,
-        int elementSize) =>
-        request.ToAsyncEnumerable(
-            encoding,
-            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
-            decodeFunc,
-            elementSize);
-
-    /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode variable size
-    /// streamed elements.</summary>
-    /// <typeparam name="T">The stream element type.</typeparam>
-    /// <param name="request">The incoming request.</param>
-    /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-    /// <returns>The async enumerable to decode and return the streamed members.</returns>
-    public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this IncomingRequest request,
-        SliceEncoding encoding,
-        IActivator? defaultActivator,
-        DecodeFunc<T> decodeFunc)
-    {
-        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
-
-        return request.ToAsyncEnumerable(
-            encoding,
-            feature,
-            feature.Activator ?? defaultActivator,
-            templateProxy: null,
-            decodeFunc);
-    }
 }

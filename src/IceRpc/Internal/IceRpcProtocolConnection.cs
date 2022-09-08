@@ -24,7 +24,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly AsyncSemaphore? _dispatchSemaphore;
+    private readonly SemaphoreSlim? _dispatchSemaphore;
 
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
@@ -57,7 +57,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (options.MaxDispatches > 0)
         {
-            _dispatchSemaphore = new AsyncSemaphore(
+            _dispatchSemaphore = new SemaphoreSlim(
                 initialCount: options.MaxDispatches,
                 maxCount: options.MaxDispatches);
         }
@@ -162,9 +162,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         while (true)
                         {
-                            if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
+                            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                             {
-                                await dispatchSemaphore.EnterAsync(_tasksCts.Token).ConfigureAwait(false);
+                                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
                             }
 
                             IMultiplexedStream stream;
