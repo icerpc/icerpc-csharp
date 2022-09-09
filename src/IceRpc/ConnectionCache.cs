@@ -9,7 +9,7 @@ namespace IceRpc;
 
 /// <summary>A connection cache is an invoker that routes outgoing requests to connections it manages. This routing is
 /// based on the <see cref="IServerAddressFeature"/> and the server addresses of the service address carried by each
-/// outgoing request.</summary>
+/// outgoing request. The connection cache keeps at most one active connection per server address.</summary>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
@@ -82,7 +82,17 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         _shutdownCts.Dispose();
     }
 
-    /// <inheritdoc/>
+    /// <summary>Sends an outgoing request and returns the corresponding incoming response. The connection cache
+    /// creates new connections when required, the <see cref="ConnectionCacheOptions.PreferExistingConnection"/>
+    /// property influences how the cache creates and reuses its connections. The connection cache has a built-in
+    /// fail-over feature, when the request <see cref="IServerAddressFeature.AltServerAddresses"/> feature include
+    /// additional server addresses, if connecting to the main server address fails it will try alt server addresses in
+    /// the given order, each connection attempt rotates the server addresses of the server address feature, the main
+    /// server address corresponding to the last attempt failure is append to the end of the alt server addresses, and
+    /// the first alt server address is promoted to main server address.</summary>
+    /// <param name="request">The outgoing request being sent.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
