@@ -82,14 +82,18 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         _shutdownCts.Dispose();
     }
 
-    /// <summary>Sends an outgoing request and returns the corresponding incoming response. The connection cache
-    /// creates new connections when required, the <see cref="ConnectionCacheOptions.PreferExistingConnection"/>
-    /// property influences how the cache creates and reuses its connections. The connection cache has a built-in
-    /// fail-over feature, when the request <see cref="IServerAddressFeature.AltServerAddresses"/> feature include
-    /// additional server addresses, if connecting to the main server address fails it will try alt server addresses in
-    /// the given order, each connection attempt rotates the server addresses of the server address feature, the main
-    /// server address corresponding to the last attempt failure is append to the end of the alt server addresses, and
-    /// the first alt server address is promoted to main server address.</summary>
+    /// <summary>Sends an outgoing request and returns the corresponding incoming response. If the request
+    /// <see cref="IServerAddressFeature"/> feature is not set, the cache sets it from the server addresses of the
+    /// target service. It then looks for an active connection.
+    /// The <see cref="ConnectionCacheOptions.PreferExistingConnection"/> property influences how the cache selects this
+    /// active connection. If no active connection can be found, the cache creates a new connection to one of the server
+    /// address from the request <see cref="IServerAddressFeature"/> feature. If the connection establishment to
+    /// <see cref="IServerAddressFeature.ServerAddress"/> is unsuccessful, the cache will try to establish a connection
+    /// to one of the <see cref="IServerAddressFeature.AltServerAddresses"/> addresses. Each connection attempt rotates
+    /// the server addresses of the server address feature, the main server address corresponding to the last attempt
+    /// failure is appended at the end of <see cref="IServerAddressFeature.AltServerAddresses"/> and the first address
+    /// from <see cref="IServerAddressFeature.AltServerAddresses"/> replaces
+    /// <see cref="IServerAddressFeature.ServerAddress"/>.</summary>
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
