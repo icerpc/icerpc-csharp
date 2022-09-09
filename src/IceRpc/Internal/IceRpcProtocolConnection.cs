@@ -147,7 +147,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancellationToken).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
 
-                InitiateShutdown(goAwayFrame.Message);
+                InitiateShutdown(goAwayFrame.Message, ConnectionClosedErrorCode.ShutdownByPeer);
                 return goAwayFrame;
             },
             CancellationToken.None);

@@ -177,7 +177,7 @@ internal class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.ShuttingDown))
             {
-                throw new TransportException("connection is shutdown");
+                throw new TransportException("connection is shutting down");
             }
             else
             {
@@ -195,7 +195,7 @@ internal class ColocConnection : IDuplexConnection
                 }
                 else if (_state.HasFlag(State.ShuttingDown))
                 {
-                    throw new TransportException("connection is shutdown");
+                    throw new TransportException("connection is shutting down");
                 }
 
                 _ = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
