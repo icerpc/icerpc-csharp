@@ -12,7 +12,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// </summary>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Connects this connection.</summary>
+    /// <summary>Connects this connection. This method should only be called once.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation"/>.</returns>
     /// <exception cref="ConnectFailedException">Thrown if the connection establishment to the per failed.</exception>
@@ -36,9 +36,9 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <returns>The local stream.</returns>
     IMultiplexedStream CreateStream(bool bidirectional);
 
-    /// <summary>Shuts down the connection.</summary>
-    /// <param name="completeException">The exception provided to the stream <see cref="IDuplexPipe"/>.</param>
+    /// <summary>Shuts down the connection. This method should only be called once.</summary>
+    /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    Task ShutdownAsync(Exception completeException, CancellationToken cancellationToken);
+    Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
 }

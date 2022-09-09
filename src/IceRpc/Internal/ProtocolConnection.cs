@@ -299,7 +299,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 if (CheckIfIdle())
                 {
-                    InitiateShutdown("idle connection");
+                    InitiateShutdown("idle connection", ConnectionClosedErrorCode.Idle);
                 }
             });
     }
@@ -325,7 +325,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Initiate shutdown if it's not already initiated.</summary>
-    private protected void InitiateShutdown(string message)
+    private protected void InitiateShutdown(string message, ConnectionClosedErrorCode errorCode)
     {
         lock (_mutex)
         {
@@ -335,7 +335,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             Debug.Assert(_connectTask is not null);
 
-            ConnectionClosedException = new(ConnectionClosedErrorCode.ShutdownByPeer, message);
+            ConnectionClosedException = new(errorCode, message);
             _shutdownTask = CreateShutdownTask(message);
         }
     }

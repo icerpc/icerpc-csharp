@@ -147,7 +147,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancellationToken).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
 
-                InitiateShutdown(goAwayFrame.Message);
+                InitiateShutdown(goAwayFrame.Message, ConnectionClosedErrorCode.ShutdownByPeer);
                 return goAwayFrame;
             },
             CancellationToken.None);
@@ -449,7 +449,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
 
         // Shutdown the transport and wait for the peer shutdown.
-        await _transportConnection.ShutdownAsync(ConnectionClosedException, cancellationToken).ConfigureAwait(false);
+        // TODO: better application error code.
+        await _transportConnection.ShutdownAsync(0ul, cancellationToken).ConfigureAwait(false);
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

@@ -146,7 +146,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await readFrom.ReadAsync(new byte[1], default),
+            async() => await readFrom.ReadAsync(new byte[1], default),
             Throws.TypeOf<ConnectionLostException>());
     }
 
