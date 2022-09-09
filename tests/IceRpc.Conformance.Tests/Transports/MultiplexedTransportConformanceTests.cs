@@ -1138,6 +1138,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Assert
         Assert.That(async () => await clientConnection.ShutdownAsync(0ul, CancellationToken.None), Throws.Nothing);
+        Assert.That(async () => await serverConnection.ShutdownAsync(0ul, CancellationToken.None), Throws.Nothing);
     }
 
     [Test]
