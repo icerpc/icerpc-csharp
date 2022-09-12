@@ -85,7 +85,7 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (Exception exception)
         {
-            throw exception.ToTransportException();
+            throw new ConnectionLostException(exception);
         }
 
         return received;
@@ -211,7 +211,7 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (Exception exception)
         {
-            throw exception.ToTransportException();
+            throw new ConnectionLostException(exception);
         }
     }
 
@@ -278,7 +278,7 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (Exception exception)
         {
-            throw exception.ToConnectFailedException();
+            throw new ConnectFailedException(ConnectFailedErrorCode.Failed, exception);
         }
     }
 
@@ -372,7 +372,15 @@ internal class TcpServerConnection : TcpConnection
         }
         catch (Exception exception)
         {
-            throw exception.ToConnectFailedException();
+            SocketException socketException =
+                exception as SocketException ??
+                exception.InnerException as SocketException ??
+                throw new ConnectFailedException(ConnectFailedErrorCode.Failed, exception);
+
+            throw new ConnectFailedException(
+                    socketException.SocketErrorCode == SocketError.ConnectionRefused ?
+                        ConnectFailedErrorCode.Refused : ConnectFailedErrorCode.Failed,
+                    exception);
         }
     }
 

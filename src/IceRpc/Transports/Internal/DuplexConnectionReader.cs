@@ -160,8 +160,7 @@ internal class DuplexConnectionReader : IDisposable
                 {
                     // The peer gracefully shut down the connection but returned less data than expected, it's
                     // considered as an error.
-                    // TODO: InvalidDataException instead?
-                    throw new ConnectionLostException("received less data than expected");
+                    throw new InvalidDataException("received less data than expected");
                 }
             }
             while (byteCount > 0);
@@ -236,7 +235,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
                 // calling read method doesn't return data.
-                throw new ConnectionAbortedException(
+                throw new ConnectionLostException(
                     $"the transport connection has been idle for longer than {_idleTimeout}");
             }
             else
@@ -292,8 +291,7 @@ internal class DuplexConnectionReader : IDisposable
                 {
                     // The peer gracefully shut down the connection but returned less data than expected, it's
                     // considered as an error.
-                    // TODO: InvalidDataException instead?
-                    throw new ConnectionLostException("received less data than expected");
+                    throw new InvalidDataException("received less data than expected");
                 }
             }
         }

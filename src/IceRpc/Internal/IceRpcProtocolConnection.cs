@@ -223,12 +223,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         ConnectionClosedException = new(ConnectionClosedErrorCode.Lost, exception);
                     }
 
-                    var connectionLostException = new ConnectionLostException(exception);
-                    ConnectionLost(connectionLostException);
+                    ConnectionLost(exception);
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
-                    CancelDispatchesAndInvocations(connectionLostException);
+                    CancelDispatchesAndInvocations(exception);
                 }
             },
             CancellationToken.None);
@@ -254,7 +253,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndInvocations(new ConnectionAbortedException("connection disposed"));
+        CancelDispatchesAndInvocations(new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed));
 
         // Dispose the transport connection to kill the connection with the peer.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);

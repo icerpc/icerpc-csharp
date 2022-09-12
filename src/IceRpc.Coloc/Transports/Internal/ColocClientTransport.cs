@@ -47,7 +47,7 @@ internal class ColocClientTransport : IDuplexClientTransport
         }
         else
         {
-            throw new ConnectionRefusedException();
+            throw new ConnectFailedException(ConnectFailedErrorCode.Refused);
         }
     }
 }

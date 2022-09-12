@@ -42,7 +42,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         }
         catch (ObjectDisposedException)
         {
-            throw new ConnectionRefusedException();
+            throw new ConnectFailedException(ConnectFailedErrorCode.Refused);
         }
         return (remotePipe.Reader, localPipe.Writer);
     }
