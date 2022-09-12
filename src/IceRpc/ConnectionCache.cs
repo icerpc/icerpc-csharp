@@ -9,7 +9,7 @@ namespace IceRpc;
 
 /// <summary>A connection cache is an invoker that routes outgoing requests to connections it manages. This routing is
 /// based on the <see cref="IServerAddressFeature"/> and the server addresses of the service address carried by each
-/// outgoing request.</summary>
+/// outgoing request. The connection cache keeps at most one active connection per server address.</summary>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
@@ -82,7 +82,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         _shutdownCts.Dispose();
     }
 
-    /// <inheritdoc/>
+    /// <summary>Sends an outgoing request and returns the corresponding incoming response. If the request
+    /// <see cref="IServerAddressFeature"/> feature is not set, the cache sets it from the server addresses of the
+    /// target service. It then looks for an active connection.
+    /// The <see cref="ConnectionCacheOptions.PreferExistingConnection"/> property influences how the cache selects this
+    /// active connection. If no active connection can be found, the cache creates a new connection to one of the server
+    /// address from the request <see cref="IServerAddressFeature"/> feature. If the connection establishment to
+    /// <see cref="IServerAddressFeature.ServerAddress"/> is unsuccessful, the cache will try to establish a connection
+    /// to one of the <see cref="IServerAddressFeature.AltServerAddresses"/> addresses. Each connection attempt rotates
+    /// the server addresses of the server address feature, the main server address corresponding to the last attempt
+    /// failure is appended at the end of <see cref="IServerAddressFeature.AltServerAddresses"/> and the first address
+    /// from <see cref="IServerAddressFeature.AltServerAddresses"/> replaces
+    /// <see cref="IServerAddressFeature.ServerAddress"/>.</summary>
+    /// <param name="request">The outgoing request being sent.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
