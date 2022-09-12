@@ -28,6 +28,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
+    // Whether or not the inner exception details should be included in dispatch exceptions
+    private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
@@ -61,6 +63,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 initialCount: options.MaxDispatches,
                 maxCount: options.MaxDispatches);
         }
+        _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
     }
 
     private protected override void CancelDispatchesAndInvocations(Exception exception)
@@ -807,7 +810,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     };
 
                     // We pass null for message to get the message computed from the exception by DefaultMessage.
-                    remoteException = new DispatchException(message: null, errorCode, exception);
+                    remoteException = new DispatchException(
+                        message: null,
+                        errorCode,
+                        _includeInnerExceptionDetails ? exception : null);
                 }
 
                 // Attempt to encode this exception. If the encoding fails, we encode a DispatchException.
@@ -825,7 +831,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         new DispatchException(
                             message: null,
                             DispatchErrorCode.UnhandledException,
-                            encodeException));
+                            _includeInnerExceptionDetails ? encodeException : null));
                 }
                 response = new OutgoingResponse(request)
                 {

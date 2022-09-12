@@ -277,7 +277,13 @@ internal class SlicConnection : IMultiplexedConnection
             // The shutdown task might already be set if the peer closed the connection.
             _shutdownTask ??= PerformShutdownAsync();
         }
+
+        // Send the close frame and shutdown the duplex connection if this connection is the client-side connection.
         await _shutdownTask.ConfigureAwait(false);
+
+        // Wait for the termination of the read frames task.
+        Debug.Assert(_readFramesTask is not null);
+        await _readFramesTask.ConfigureAwait(false);
 
         async Task PerformShutdownAsync()
         {
@@ -951,11 +957,10 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 if (IsServer)
                 {
-                    // The sending of the client-side Close frame is always followed by the shutdown of the
-                    // duplex connection. We wait for the shutdown of the duplex connection instead of returning
-                    // here. We want to make sure the duplex connection is always shutdown on the client-side
-                    // before shutting it down on the server-side. It's important when using TCP to avoid
-                    // TIME_WAIT states on the server-side.
+                    // The sending of the client-side Close frame is always followed by the shutdown of the duplex
+                    // connection. We wait for the shutdown of the duplex connection instead of returning here. We want
+                    // to make sure the duplex connection is always shutdown on the client-side before shutting it down
+                    // on the server-side. It's important when using TCP to avoid TIME_WAIT states on the server-side.
                 }
                 else
                 {
