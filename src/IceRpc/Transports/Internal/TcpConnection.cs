@@ -278,7 +278,7 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (Exception exception)
         {
-            throw new ConnectFailedException(ConnectFailedErrorCode.Failed, exception);
+            throw new ConnectFailedException(ConnectFailedErrorCode.TransportError, exception);
         }
     }
 
@@ -375,11 +375,11 @@ internal class TcpServerConnection : TcpConnection
             SocketException socketException =
                 exception as SocketException ??
                 exception.InnerException as SocketException ??
-                throw new ConnectFailedException(ConnectFailedErrorCode.Failed, exception);
+                throw new ConnectFailedException(ConnectFailedErrorCode.TransportError, exception);
 
             throw new ConnectFailedException(
                     socketException.SocketErrorCode == SocketError.ConnectionRefused ?
-                        ConnectFailedErrorCode.Refused : ConnectFailedErrorCode.Failed,
+                        ConnectFailedErrorCode.Refused : ConnectFailedErrorCode.TransportError,
                     exception);
         }
     }
