@@ -8,11 +8,9 @@ public abstract class RemoteException : Exception, ITrait
     /// <inheritdoc/>
     public override string Message => _hasCustomMessage || DefaultMessage is null ? base.Message : DefaultMessage;
 
-    /// <summary>Gets or sets a value indicating whether the exception should be converted to an unhandled exception,
-    /// when true, if this exception is thrown from the implementation of an operation, Ice will convert it into an
-    /// Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
-    /// default for exceptions unmarshaled by Ice, while false is the default for exceptions that did not originate
-    /// in a remote server.</summary>
+    /// <summary>Gets or sets a value indicating whether the exception should be converted to a <see
+    /// cref="DispatchException"/> with the <see cref="DispatchErrorCode.UnhandledException"/> error code when
+    /// thrown from a dispatcher.</summary>
     public bool ConvertToUnhandled { get; set; }
 
     /// <summary>Gets the remote exception origin.</summary>
