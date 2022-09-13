@@ -128,7 +128,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    ConnectionLost(new ConnectionLostException(exception));
+                    ConnectionLost(exception);
                 }
                 finally
                 {
@@ -265,16 +265,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // This can occur if DisposeAsync is called. This can only be called on a connected connection so
                     // ConnectionClosedException should always be set at this point.
                     Debug.Assert(ConnectionClosedException is not null);
-                    completeException = new ConnectionAbortedException("connection disposed");
+                    completeException = new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(ConnectionClosedErrorCode.Lost);
+                    ConnectionClosedException = new(ConnectionClosedErrorCode.Lost, exception);
 
                     // Unexpected exception, notify the OnAbort callback.
-                    var connectionLostException = new ConnectionLostException(exception);
-                    ConnectionLost(connectionLostException);
-                    completeException = connectionLostException;
+                    ConnectionLost(exception);
+                    completeException = exception;
                 }
                 finally
                 {
@@ -306,7 +305,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        var exception = new ConnectionAbortedException("connection disposed");
+        var exception = new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
@@ -494,8 +493,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 if (readResult.Buffer.Length < headerSize)
                 {
-                    // TODO: or InvalidDataException?
-                    throw new ConnectionLostException();
+                    throw new InvalidDataException($"received invalid frame header for request #{requestId}");
                 }
 
                 EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
@@ -830,8 +828,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Read and decode request ID
                 if (!replyFrameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                 {
-                    // TODO: or InvalidDataException?
-                    throw new ConnectionLostException();
+                    throw new InvalidDataException("received invalid response request ID");
                 }
 
                 ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
@@ -1072,12 +1069,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         return;
                     }
-                    else if (response == null)
-                    {
-                        // TODO: add reason message or abort error code?
-                        throw new ConnectionAbortedException();
-                    }
-                    else if (response.PayloadStream is not null)
+
+                    Debug.Assert(response is not null);
+
+                    if (response.PayloadStream is not null)
                     {
                         throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                     }

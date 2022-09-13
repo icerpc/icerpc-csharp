@@ -35,7 +35,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         catch (SocketException exception)
         {
             _socket.Dispose();
-            throw exception.ToTransportException();
+            throw new TransportException(exception);
         }
     }
 
@@ -95,7 +95,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         catch (SocketException ex)
         {
             _socket.Dispose();
-            throw ex.ToTransportException();
+            throw new TransportException(ex);
         }
 
         ServerAddress = serverAddress with { Port = (ushort)address.Port };
