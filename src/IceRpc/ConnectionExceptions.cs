@@ -9,8 +9,9 @@ public enum ConnectFailedErrorCode
     /// <summary>The connection establishment was canceled.</summary>
     Canceled,
 
-    /// <summary>The connection establishment failed.</summary>
-    Failed,
+    /// <summary>The transport connection establishment failed. The reason of the failure is indicated by the inner
+    /// exception of the <see cref="ConnectFailedException"/>.</summary>
+    TransportError,
 
     /// <summary>The connection establishment was refused by the server.</summary>
     Refused,
@@ -23,13 +24,13 @@ public class ConnectFailedException : Exception
     public ConnectFailedErrorCode ErrorCode { get; }
 
     /// <summary>Constructs a new instance of the <see cref="ConnectFailedException"/> class with a specified error
-    /// message.</summary>
+    /// code.</summary>
     /// <param name="errorCode">The error code.</param>
     public ConnectFailedException(ConnectFailedErrorCode errorCode)
         : base("connection establishment failed") => ErrorCode = errorCode;
 
     /// <summary>Constructs a new instance of the <see cref="ConnectFailedException"/> class with a specified error
-    /// message.</summary>
+    /// code and inner exception.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public ConnectFailedException(ConnectFailedErrorCode errorCode, Exception? innerException)
@@ -62,20 +63,21 @@ public class ConnectionAbortedException : Exception
     /// <summary>Gets the connection closed error code.</summary>
     public ConnectionAbortedErrorCode ErrorCode { get; }
 
-    /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class.</summary>
+    /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class with a specified error
+    /// code.</summary>
     /// <param name="errorCode">The error code.</param>
     public ConnectionAbortedException(ConnectionAbortedErrorCode errorCode)
         : base("the connection is aborted") => ErrorCode = errorCode;
 
     /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class with a specified
-    /// error message.</summary>
+    /// error code and message.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="message">The message that describes the error.</param>
     public ConnectionAbortedException(ConnectionAbortedErrorCode errorCode, string message)
         : base(message) => ErrorCode = errorCode;
 
     /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class with a specified
-    /// error message.</summary>
+    /// error code and inner exception.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public ConnectionAbortedException(ConnectionAbortedErrorCode errorCode, Exception? innerException)

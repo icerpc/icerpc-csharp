@@ -828,7 +828,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Read and decode request ID
                 if (!replyFrameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                 {
-                    throw new InvalidDataException($"received invalid response request ID");
+                    throw new InvalidDataException("received invalid response request ID");
                 }
 
                 ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
