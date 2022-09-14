@@ -12,6 +12,11 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// </summary>
     ServerAddress ServerAddress { get; }
 
+    /// <summary>Accepts a remote stream.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The remote stream.</returns>
+    ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken);
+
     /// <summary>Connects this connection. This method should only be called once.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation"/>.</returns>
@@ -26,19 +31,14 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Accepts a remote stream.</summary>
+    /// <summary>Closes the connection. This method should only be called once.</summary>
+    /// <param name="errorCode">The <see cref="ConnectionClosedErrorCode"/> to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The remote stream.</returns>
-    ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken);
+    /// <returns>A task that completes once the connection is closed.</returns>
+    Task CloseAsync(ConnectionClosedErrorCode errorCode, CancellationToken cancellationToken);
 
     /// <summary>Creates a local stream.</summary>
     /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
     /// <returns>The local stream.</returns>
     IMultiplexedStream CreateStream(bool bidirectional);
-
-    /// <summary>Shuts down the connection. This method should only be called once.</summary>
-    /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes once the shutdown is complete.</returns>
-    Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
 }

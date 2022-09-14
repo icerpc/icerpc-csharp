@@ -55,10 +55,11 @@ public abstract class MultiplexedTransportConformanceTests
         Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
-        await clientConnection.ShutdownAsync(0ul, CancellationToken.None);
+        await clientConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, CancellationToken.None);
 
         // Assert
-        Assert.ThrowsAsync<TransportException>(async () => await acceptStreams);
+        ConnectionClosedException? ex = Assert.ThrowsAsync<ConnectionClosedException>(async () => await acceptStreams);
+        Assert.That(ex!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.Shutdown));
     }
 
     /// <summary>Verifies that the stream ID is not assigned until the stream is started.</summary>
@@ -169,14 +170,19 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedConnection peerConnection =
             shutdownServerConnection ? clientConnection : serverConnection;
 
-        await shutdownConnection.ShutdownAsync(0ul, CancellationToken.None);
+        await shutdownConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, CancellationToken.None);
 
         // Act
         IMultiplexedStream peerStream = peerConnection.CreateStream(true);
 
         // Assert
-        Assert.ThrowsAsync<TransportException>(() => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.ThrowsAsync<TransportException>(() => peerStream.Output.WriteAsync(_oneBytePayload).AsTask());
+        ConnectionClosedException? exception;
+        exception = Assert.ThrowsAsync<ConnectionClosedException>(
+            () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.Shutdown));
+        exception = Assert.ThrowsAsync<ConnectionClosedException>(
+            () => peerStream.Output.WriteAsync(_oneBytePayload).AsTask());
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.Shutdown));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
@@ -1137,8 +1143,8 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act/Assert
-        Assert.That(async () => await clientConnection.ShutdownAsync(0ul, CancellationToken.None), Throws.Nothing);
-        Assert.That(async () => await serverConnection.ShutdownAsync(0ul, CancellationToken.None), Throws.Nothing);
+        Assert.That(async () => await clientConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, CancellationToken.None), Throws.Nothing);
+        Assert.That(async () => await serverConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, CancellationToken.None), Throws.Nothing);
     }
 
     [Test]
@@ -1154,8 +1160,8 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act
         var exception = new InvalidOperationException();
-        Task clientShutdownTask = clientConnection.ShutdownAsync(0ul, CancellationToken.None);
-        Task serverShutdownTask = serverConnection.ShutdownAsync(0ul, CancellationToken.None);
+        Task clientShutdownTask = clientConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, CancellationToken.None);
+        Task serverShutdownTask = serverConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, CancellationToken.None);
 
         // Assert
         Assert.Multiple(() =>
@@ -1163,6 +1169,45 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(() => clientShutdownTask, Throws.Nothing);
             Assert.That(() => serverShutdownTask, Throws.Nothing);
         });
+    }
+
+    [Test]
+    public async Task Shutdown_client_connection_before_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+
+        // Act
+        await clientConnection.CloseAsync(ConnectionClosedErrorCode.Shutdown, default);
+
+        // Assert
+        Assert.That(
+            async () => await clientConnection.ConnectAsync(default),
+            Throws.InstanceOf<ConnectFailedException>());
+    }
+
+    [Test]
+    public async Task Shutdown_server_connection_before_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        Task acceptTask = AcceptAndCloseAsync();
+
+        // Act/Assert
+        ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
+            async () => await clientConnection.ConnectAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.ClosedByPeer));
+
+        async Task AcceptAndCloseAsync() =>
+            await (await listener.AcceptAsync()).Connection.CloseAsync(ConnectionClosedErrorCode.Shutdown, default);
     }
 
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>

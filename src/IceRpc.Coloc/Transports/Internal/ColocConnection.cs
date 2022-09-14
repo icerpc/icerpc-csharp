@@ -22,6 +22,16 @@ internal class ColocConnection : IDuplexConnection
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         (_reader, _writer) = _connect(ServerAddress);
+
+        if (_state.HasFlag(State.Disposed))
+        {
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+        else if (_state.HasFlag(State.ShuttingDown))
+        {
+            throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+        }
+
         var colocEndPoint = new ColocEndPoint(ServerAddress);
         return Task.FromResult(new TransportConnectionInformation(colocEndPoint, colocEndPoint, null));
     }
@@ -143,7 +153,10 @@ internal class ColocConnection : IDuplexConnection
 
     public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        Debug.Assert(_reader is not null && _writer is not null);
+        if (_reader is null || _writer is null)
+        {
+            (_reader, _writer) = _connect(ServerAddress);
+        }
 
         if (_state.HasFlag(State.Disposed))
         {

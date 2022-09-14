@@ -251,6 +251,56 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
+    public async Task Shutdown_client_connection_before_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+
+        // Act
+        await clientConnection.ShutdownAsync(default);
+
+        // Assert
+        Assert.That(
+            async () => await clientConnection.ConnectAsync(default),
+            Throws.InstanceOf<ConnectFailedException>());
+    }
+
+    [Test]
+    public async Task Shutdown_server_connection_before_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+
+        Task acceptTask = AcceptAndShutdownAsync();
+
+        // Act
+        Exception? exception = null;
+        try
+        {
+            await clientConnection.ConnectAsync(default);
+
+            // Connect might succeed if ConnectAsync doesn't require additional data exchange after connecting. It's the
+            // case for raw TCP which only connects the socket.
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        // Assert
+        Assert.That(exception, Is.Null.Or.InstanceOf<ConnectFailedException>());
+
+        async Task AcceptAndShutdownAsync()
+        {
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) = await listener.AcceptAsync();
+            await connection.ShutdownAsync(default);
+        }
+    }
+
+    [Test]
     public async Task Write_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);

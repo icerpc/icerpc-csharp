@@ -17,6 +17,6 @@ public class IceRpcProtocolStreamException : Exception
     /// <summary>Constructs an icerpc stream exception.</summary>
     /// <param name="errorCode">The error code.</param>
     internal IceRpcProtocolStreamException(IceRpcStreamErrorCode errorCode)
-        : base($"{nameof(IceRpcProtocolStreamException)}: {errorCode}") =>
+        : base($"{nameof(IceRpcProtocolStreamException)} {{ ErrorCode = {errorCode} }}") =>
         ErrorCode = errorCode;
 }

@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
 using System.Diagnostics;
@@ -35,6 +36,42 @@ public sealed class IceRpcProtocolConnectionTests
             yield return new TestCaseData(new InvalidDataException(""), (ulong)IceRpcStreamErrorCode.InvalidData);
             yield return new TestCaseData(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)99), 99ul);
             yield return new TestCaseData(new OperationCanceledException(), IceRpcStreamErrorCode.Unspecified);
+        }
+    }
+
+    [Test]
+    public async Task Close_server_multiplexed_connection_before_connect()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        await using var clientConnection = new IceRpcProtocolConnection(
+            clientTransport.CreateConnection(
+                listener.ServerAddress,
+                options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                clientAuthenticationOptions: null),
+            isServer: false,
+            options: new());
+
+        Task acceptTask = AcceptAndShutdownAsync();
+
+        // Act/Assert
+        ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
+            async () => await clientConnection.ConnectAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.ClosedByPeer));
+
+        async Task AcceptAndShutdownAsync()
+        {
+            await using var connection = (await listener.AcceptAsync()).Connection;
+            await connection.CloseAsync(ConnectionClosedErrorCode.Shutdown, default).ConfigureAwait(false);
+
+            // await using var connection = new IceRpcProtocolConnection(
+            //     (await listener.AcceptAsync()).Connection,
+            //     isServer: true,
+            //     options: new());
+            // await connection.ShutdownAsync("", default);
         }
     }
 
@@ -659,8 +696,8 @@ public sealed class IceRpcProtocolConnectionTests
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        public Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
-            _decoratee.ShutdownAsync(applicationErrorCode, cancellationToken);
+        public Task CloseAsync(ConnectionClosedErrorCode errorCode, CancellationToken cancellationToken) =>
+            _decoratee.CloseAsync(errorCode, cancellationToken);
 
         internal HoldMultiplexedConnection(IMultiplexedConnection decoratee) => _decoratee = decoratee;
 

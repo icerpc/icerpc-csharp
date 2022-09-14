@@ -111,11 +111,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(CancellationToken cancellationToken)
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
+        CancellationToken cancellationToken)
     {
         // Connect the transport connection
-        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(cancellationToken)
-            .ConfigureAwait(false);
+        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(
+            cancellationToken).ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
@@ -258,7 +259,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations(new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed));
 
-        // Dispose the transport connection to kill the connection with the peer.
+        // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
         // Next, wait for dispatches and invocations to complete.
@@ -401,58 +402,68 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         Debug.Assert(ConnectionClosedException is not null);
 
-        IceRpcGoAway goAwayFrame;
-        lock (_mutex)
+        if (_readGoAwayTask is not null)
         {
-            _isReadOnly = true;
-            if (_streams.Count == 0)
+            // If the connection is connected, exchange go away frames with the peer.
+
+            IceRpcGoAway goAwayFrame;
+            lock (_mutex)
             {
-                _streamsCompleted.TrySetResult();
+                _isReadOnly = true;
+                if (_streams.Count == 0)
+                {
+                    _streamsCompleted.TrySetResult();
+                }
+                if (_dispatchCount == 0)
+                {
+                    _dispatchesCompleted.TrySetResult();
+                }
+                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
             }
-            if (_dispatchCount == 0)
+
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.GoAway,
+                (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
+                endStream: true,
+                cancellationToken).ConfigureAwait(false);
+
+            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
+            // initiated by the peer.
+            IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            // Abort streams for requests that were not dispatched by the peer. The invocations will throw
+            // ConnectionClosedException which can be retried.
+            IEnumerable<IMultiplexedStream> invocations;
+            lock (_mutex)
             {
-                _dispatchesCompleted.TrySetResult();
+                invocations = _streams.Where(stream =>
+                    !stream.IsRemote &&
+                    (!stream.IsStarted || (stream.IsBidirectional ?
+                        peerGoAwayFrame.LastBidirectionalStreamId is null ||
+                        stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
+                        peerGoAwayFrame.LastUnidirectionalStreamId is null ||
+                        stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId))).ToArray();
             }
-            goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+
+            foreach (IMultiplexedStream stream in invocations)
+            {
+                stream.Abort(ConnectionClosedException);
+            }
+
+            // Wait for dispatches and streams to complete and shutdown the connection.
+            await Task.WhenAll(
+                    _dispatchesCompleted.Task,
+                    _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-
-        await SendControlFrameAsync(
-            IceRpcControlFrameType.GoAway,
-            (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
-            endStream: true,
-            cancellationToken).ConfigureAwait(false);
-
-        // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
-        // initiated by the peer.
-        IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        // Abort streams for requests that were not dispatched by the peer. The invocations will throw
-        // ConnectionClosedException which can be retried.
-        IEnumerable<IMultiplexedStream> invocations;
-        lock (_mutex)
+        else
         {
-            invocations = _streams.Where(stream =>
-                !stream.IsRemote &&
-                (!stream.IsStarted || (stream.IsBidirectional ?
-                    peerGoAwayFrame.LastBidirectionalStreamId is null ||
-                    stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
-                    peerGoAwayFrame.LastUnidirectionalStreamId is null ||
-                    stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId))).ToArray();
+            // No streams or dispatches if the conneciton is not connected.
+            Debug.Assert(_streams.Count == 0 && _dispatchCount == 0);
         }
-
-        foreach (IMultiplexedStream stream in invocations)
-        {
-            stream.Abort(ConnectionClosedException);
-        }
-
-        // Wait for dispatches and streams to complete and shutdown the connection.
-        await Task.WhenAll(
-            _dispatchesCompleted.Task,
-            _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
 
         // Shutdown the transport and wait for the peer shutdown.
         // TODO: better application error code.
-        await _transportConnection.ShutdownAsync(0ul, cancellationToken).ConfigureAwait(false);
+        await _transportConnection.CloseAsync(0ul, cancellationToken).ConfigureAwait(false);
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

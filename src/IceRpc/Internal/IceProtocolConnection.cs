@@ -315,7 +315,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             _pingTask,
             _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
-        // Dispose the transport connection to kill the connection with the peer.
+        // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         _duplexConnection.Dispose();
 
         // Cancel dispatches and invocations.

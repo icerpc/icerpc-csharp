@@ -19,11 +19,11 @@ internal abstract class TcpConnection : IDuplexConnection
     internal abstract SslStream? SslStream { get; }
 
     private protected volatile bool _isDisposed;
+    private protected bool _isShutdown;
 
     // The MaxDataSize of the SSL implementation.
     private const int MaxSslDataSize = 16 * 1024;
 
-    private bool _isShutdown;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
     private readonly List<ArraySegment<byte>> _segments = new();
@@ -95,6 +95,13 @@ internal abstract class TcpConnection : IDuplexConnection
     {
         try
         {
+            if (_isShutdown)
+            {
+                return;
+            }
+
+            _isShutdown = true;
+
             if (SslStream is SslStream sslStream)
             {
                 await sslStream.ShutdownAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -103,8 +110,6 @@ internal abstract class TcpConnection : IDuplexConnection
             // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
             // to be notified when the peer shuts down it's side of the socket (through the ReceiveAsync call).
             Socket.Shutdown(SocketShutdown.Send);
-
-            _isShutdown = true;
         }
         catch
         {
@@ -235,14 +240,23 @@ internal class TcpClientConnection : TcpConnection
     private readonly EndPoint _addr;
     private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
-    private bool _connected;
+    private bool _isConnected;
 
     private SslStream? _sslStream;
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        Debug.Assert(!_connected);
-        _connected = true;
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
+        }
+        else if (_isShutdown)
+        {
+            throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+        }
+
+        Debug.Assert(!_isConnected);
+        _isConnected = true;
 
         try
         {
@@ -255,7 +269,9 @@ internal class TcpClientConnection : TcpConnection
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                await _sslStream.AuthenticateAsClientAsync(_authenticationOptions, cancellationToken).ConfigureAwait(false);
+                await _sslStream.AuthenticateAsClientAsync(
+                    _authenticationOptions,
+                    cancellationToken).ConfigureAwait(false);
             }
 
             return new TransportConnectionInformation(
@@ -335,13 +351,22 @@ internal class TcpServerConnection : TcpConnection
     internal override SslStream? SslStream => _sslStream;
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private bool _connected;
+    private bool _isConnected;
     private SslStream? _sslStream;
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        Debug.Assert(!_connected);
-        _connected = true;
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
+        }
+        else if (_isShutdown)
+        {
+            throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+        }
+
+        Debug.Assert(!_isConnected);
+        _isConnected = true;
 
         try
         {
@@ -349,7 +374,9 @@ internal class TcpServerConnection : TcpConnection
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancellationToken).ConfigureAwait(false);
+                await _sslStream.AuthenticateAsServerAsync(
+                    _authenticationOptions,
+                    cancellationToken).ConfigureAwait(false);
             }
 
             return new TransportConnectionInformation(
