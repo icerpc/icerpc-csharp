@@ -16,6 +16,7 @@ public interface IListener : IDisposable
 public interface IListener<T> : IListener
 {
     /// <summary>Accepts a new connection.</summary>
-    /// <returns>The accepted connection and the network address of the client.</returns>
-    Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync();
+    /// <returns>The accepted connection and the network address of the client, or (null, null) after the listener has
+    /// been terminated indicating that no more connections will be accepted.</returns>
+    Task<(T? Connection, EndPoint? RemoteNetworkAddress)> AcceptAsync();
 }

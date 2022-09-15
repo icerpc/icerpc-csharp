@@ -12,12 +12,19 @@ internal class SlicListener : IListener<IMultiplexedConnection>
     private readonly MultiplexedConnectionOptions _options;
     private readonly SlicTransportOptions _slicOptions;
 
-    public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync()
+    public async Task<(IMultiplexedConnection?, EndPoint?)> AcceptAsync()
     {
-        (IDuplexConnection duplexConnection, EndPoint remoteNetworkAddress) =
+        (IDuplexConnection? duplexConnection, EndPoint? remoteNetworkAddress) =
             await _duplexListener.AcceptAsync().ConfigureAwait(false);
 
-        return (new SlicConnection(duplexConnection, _options, _slicOptions, isServer: true), remoteNetworkAddress);
+        if (duplexConnection == null)
+        {
+            return (null, null);
+        }
+        else
+        {
+            return (new SlicConnection(duplexConnection, _options, _slicOptions, isServer: true), remoteNetworkAddress);
+        }
     }
 
     public void Dispose() => _duplexListener.Dispose();

@@ -82,6 +82,19 @@ internal sealed class ServerEventSource : EventSource
     }
 
     [NonEvent]
+    internal void ConnectionAcceptFailure(ServerAddress serverAddress, Exception exception)
+    {
+        Interlocked.Increment(ref _totalFailedConnections);
+        if (IsEnabled(EventLevel.Critical, EventKeywords.None))
+        {
+            ConnectionAcceptFailure(
+                serverAddress.ToString(),
+                exception.GetType().FullName,
+                exception.ToString());
+        }
+    }
+
+    [NonEvent]
     internal void ConnectionFailure(ServerAddress serverAddress, EndPoint remoteNetworkAddress, Exception exception)
     {
         Interlocked.Increment(ref _totalFailedConnections);
@@ -234,4 +247,12 @@ internal sealed class ServerEventSource : EventSource
     [Event(8, Level = EventLevel.Informational)]
     private void ConnectionShutdown(string serverAddress, string? remoteNetworkAddress, string message) =>
         WriteEvent(8, serverAddress, remoteNetworkAddress, message);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [Event(9, Level = EventLevel.Critical)]
+    private void ConnectionAcceptFailure(
+        string serverAddress,
+        string? exceptionType,
+        string exceptionDetails) =>
+        WriteEvent(9, serverAddress, exceptionType, exceptionDetails);
 }

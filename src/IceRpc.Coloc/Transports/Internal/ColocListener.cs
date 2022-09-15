@@ -14,7 +14,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     private readonly PipeOptions _pipeOptions;
     private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
 
-    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync()
+    public async Task<(IDuplexConnection?, EndPoint?)> AcceptAsync()
     {
         (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
         return (new ColocConnection(ServerAddress, _ => (reader, writer)), _networkAddress);

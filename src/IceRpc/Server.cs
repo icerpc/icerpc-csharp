@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 
@@ -190,57 +191,54 @@ public sealed class Server : IAsyncDisposable
 
         _ = Task.Run(async () =>
         {
-            while (true)
+            try
             {
-                IProtocolConnection connection;
-                try
+                while (true)
                 {
-                    (connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
-                }
-                catch
-                {
-                    if (shutdownCancellationToken.IsCancellationRequested)
+                    (IProtocolConnection? connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
+
+                    if (connection == null)
                     {
                         return; // server is shutting down or being disposed
                     }
 
-                    // We wait for one second to avoid running in a tight loop in case the failures occurs
-                    // immediately again. Failures here are unexpected and could be considered fatal.
-                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                    continue;
-                }
-
-                bool done = false;
-                lock (_mutex)
-                {
-                    // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
-                    if (shutdownCancellationToken.IsCancellationRequested)
+                    bool done = false;
+                    lock (_mutex)
                     {
-                        done = true;
+                        // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
+                        if (shutdownCancellationToken.IsCancellationRequested)
+                        {
+                            done = true;
+                        }
+                        else
+                        {
+                            _ = _connections.Add(connection);
+                        }
+                    }
+
+                    if (done)
+                    {
+                        await connection.DisposeAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        _ = _connections.Add(connection);
+                        // Schedule removal after addition, outside mutex lock.
+                        _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
+
+                        // We don't wait for the connection to be activated. This could take a while for some transports
+                        // such as TLS based transports where the handshake requires few round trips between the client and
+                        // server.
+                        // Waiting could also cause a security issue if the client doesn't respond to the connection
+                        // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                        // eventually timeout if the ConnectTimeout expires.
+                        _ = Task.Run(() => _ = connection.ConnectAsync(CancellationToken.None));
                     }
                 }
-
-                if (done)
-                {
-                    await connection.DisposeAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    // Schedule removal after addition, outside mutex lock.
-                    _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
-
-                    // We don't wait for the connection to be activated. This could take a while for some transports
-                    // such as TLS based transports where the handshake requires few round trips between the client and
-                    // server.
-                    // Waiting could also cause a security issue if the client doesn't respond to the connection
-                    // initialization as we wouldn't be able to accept new connections in the meantime. The call will
-                    // eventually timeout if the ConnectTimeout expires.
-                    _ = Task.Run(() => _ = connection.ConnectAsync(CancellationToken.None));
-                }
+            }
+            catch (Exception exception)
+            {
+                ServerEventSource.Log.ConnectionAcceptFailure(ServerAddress, exception);
+                // TODO terminate the server?
             }
         });
 
@@ -338,15 +336,22 @@ public sealed class Server : IAsyncDisposable
 
         private readonly IListener<IProtocolConnection> _decoratee;
 
-        public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync()
+        public async Task<(IProtocolConnection? Connection, EndPoint? RemoteNetworkAddress)> AcceptAsync()
         {
-            (IProtocolConnection connection, EndPoint remoteNetworkAddress) = await _decoratee.AcceptAsync()
+            (IProtocolConnection? connection, EndPoint? remoteNetworkAddress) = await _decoratee.AcceptAsync()
                 .ConfigureAwait(false);
 
             // We don't log AcceptAsync exceptions; they usually occur when the server is shutting down.
-
-            ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-            return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
+            if (connection == null)
+            {
+                return (null, null);
+            }
+            else
+            {
+                Debug.Assert(remoteNetworkAddress != null);
+                ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
+                return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
+            }
         }
 
         public void Dispose() => _decoratee.Dispose();

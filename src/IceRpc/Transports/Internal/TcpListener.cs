@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Net;
 using System.Net.Security;
@@ -17,25 +18,37 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
-    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync()
+    public async Task<(IDuplexConnection?, EndPoint?)> AcceptAsync()
     {
-        try
+        while (true)
         {
-            Socket acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
+            try
+            {
+                Socket acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
 
-            var tcpConnection = new TcpServerConnection(
-                ServerAddress,
-                acceptedSocket,
-                _authenticationOptions,
-                _pool,
-                _minSegmentSize);
+                var tcpConnection = new TcpServerConnection(
+                    ServerAddress,
+                    acceptedSocket,
+                    _authenticationOptions,
+                    _pool,
+                    _minSegmentSize);
 
-            return (tcpConnection, acceptedSocket.RemoteEndPoint!);
-        }
-        catch (SocketException exception)
-        {
-            _socket.Dispose();
-            throw new TransportException(exception);
+                return (tcpConnection, acceptedSocket.RemoteEndPoint!);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Dispose has been called return null to indicate we're done listening.
+                return (null, null);
+            }
+            catch (SocketException e) when (e.SocketErrorCode == SocketError.OperationAborted)
+            {
+                // Dispose has been called return null to indicate we're done listening.
+                return (null, null);
+            }
+            catch (SocketException)
+            {
+                // Retry a connection was reset while it was in the backlog.
+            }
         }
     }
 
