@@ -253,7 +253,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Initiate the shutdown.
                     InitiateShutdown("connection is shutdown by peer", ConnectionClosedErrorCode.ShutdownByPeer);
                 }
-                catch (ConnectionLostException) when (
+                catch (TransportException exception) when (
+                    exception.ErrorCode == TransportErrorCode.ConnectionReset &&
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {

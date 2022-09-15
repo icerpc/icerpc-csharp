@@ -39,7 +39,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
-    private Exception? _exception;
+    private TransportException? _exception;
     private readonly TimeSpan _localIdleTimeout;
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
@@ -64,9 +64,13 @@ internal class SlicConnection : IMultiplexedConnection
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        if ((_disposeTask ?? _closeTask) is not null)
+        if (_disposeTask is not null)
         {
-            throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+            throw new TransportException(TransportErrorCode.ConnectionDisposed);
+        }
+        else if (_exception is not null)
+        {
+            throw _exception;
         }
 
         // Connect the duplex connection.
@@ -87,20 +91,36 @@ internal class SlicConnection : IMultiplexedConnection
         {
             // Read the Initialize frame sent by the client.
             header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
-            if (header is null)
-            {
-                // The peer shutdown close the connection if the duplex connection was shutdown.
-                throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
-            }
-            else if (header.Value.FrameSize == 0)
+            if (header is null || header.Value.FrameSize == 0)
             {
                 throw new InvalidDataException("invalid empty initialize frame");
             }
 
-            (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
-                header.Value.FrameSize,
-                DecodeInitialize,
-                cancellationToken).ConfigureAwait(false);
+            ulong version;
+            InitializeBody? initializeBody;
+
+            switch (header.Value.FrameType)
+            {
+                case FrameType.Close:
+                    CloseBody closeBody = await ReadFrameAsync(
+                        header.Value.FrameSize,
+                        (ref SliceDecoder decoder) => new CloseBody(ref decoder),
+                        cancellationToken).ConfigureAwait(false);
+
+                    throw new TransportException(
+                        TransportErrorCode.ConnectionClosed,
+                        closeBody.ApplicationProtocolErrorCode);
+
+                case FrameType.Initialize:
+                    (version, initializeBody) = await ReadFrameAsync(
+                        header.Value.FrameSize,
+                        DecodeInitialize,
+                        cancellationToken).ConfigureAwait(false);
+                    break;
+
+                default:
+                    throw new InvalidDataException($"unexpected Slic frame '{header.Value.FrameType}'");
+            }
 
             if (version != 1)
             {
@@ -116,8 +136,8 @@ internal class SlicConnection : IMultiplexedConnection
                 header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
                 if (header is null)
                 {
-                    // The peer shutdown close the connection if the duplex connection was shutdown.
-                    throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+                    // Unexpected closure of the duplex connection.
+                    throw new TransportException(TransportErrorCode.ProtocolError);
                 }
                 else if (header.Value.FrameSize == 0)
                 {
@@ -170,8 +190,8 @@ internal class SlicConnection : IMultiplexedConnection
             header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
             if (header is null)
             {
-                // The peer shutdown close the connection if the duplex connection was shutdown.
-                throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+                // Unexpected closure of the duplex connection.
+                throw new TransportException(TransportErrorCode.ProtocolError);
             }
             else if (header.Value.FrameSize == 0)
             {
@@ -180,6 +200,16 @@ internal class SlicConnection : IMultiplexedConnection
 
             switch (header.Value.FrameType)
             {
+                case FrameType.Close:
+                    CloseBody closeBody = await ReadFrameAsync(
+                        header.Value.FrameSize,
+                        (ref SliceDecoder decoder) => new CloseBody(ref decoder),
+                        cancellationToken).ConfigureAwait(false);
+
+                    throw new TransportException(
+                        TransportErrorCode.ConnectionClosed,
+                        closeBody.ApplicationProtocolErrorCode);
+
                 case FrameType.InitializeAck:
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
                         header.Value.FrameSize,
@@ -224,10 +254,17 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     // Nothing to do, DisposeAsync has been called and it takes care of the cleanup.
                 }
-                catch (Exception exception)
+                catch (TransportException exception)
                 {
                     // Unexpected transport exception.
                     await CloseAsyncCore(exception).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    // Unexpected exception.
+                    await CloseAsyncCore(new TransportException(
+                        TransportErrorCode.Unspecified,
+                        exception)).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -258,10 +295,27 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public async Task CloseAsync(ConnectionClosedErrorCode errorCode, CancellationToken cancellationToken)
+    public async Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
+            if (_disposeTask is not null)
+            {
+                throw new TransportException(TransportErrorCode.ConnectionDisposed);
+            }
+            else if (_exception is not null)
+            {
+                if (_exception.ErrorCode == TransportErrorCode.ConnectionClosed)
+                {
+                    // The peer already closed the connection, there's nothing to close so just return.
+                    return;
+                }
+                else
+                {
+                    throw _exception;
+                }
+            }
+
             // The close task might already be set if the peer closed the connection.
             _closeTask ??= PerformCloseAsync();
         }
@@ -276,29 +330,28 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
-            if (_readFramesTask is not null)
+            var exception = new TransportException(TransportErrorCode.ConnectionClosed, applicationErrorCode);
+            if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
-                var exception = new TransportException("connection shutdown");
-                if (await CloseAsyncCore(exception).ConfigureAwait(false))
+                if (_readFramesTask is null)
                 {
-                    // Send the close frame.
-                    await WriteFrameAsync(
-                        FrameType.Close,
-                        streamId: null,
-                        new CloseBody((ulong)errorCode).Encode,
-                        cancellationToken).ConfigureAwait(false);
+                    // Connect the duplex connection if ConnectAsync was not called.
+                    _ = await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                if (!IsServer)
-                {
-                    // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
-                    // For TCP, it's important to always shutdown the connection on the client-side first to avoid
-                    // TIME_WAIT states on the server-side.
-                    await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
-                }
+                // Send the close frame.
+                await WriteFrameAsync(
+                    FrameType.Close,
+                    streamId: null,
+                    new CloseBody(applicationErrorCode).Encode,
+                    cancellationToken).ConfigureAwait(false);
             }
-            else
+
+            if (!IsServer)
             {
+                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
+                // For TCP, it's important to always shutdown the connection on the client-side first to avoid
+                // TIME_WAIT states on the server-side.
                 await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -318,7 +371,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            await CloseAsyncCore(new TransportException("connection aborted")).ConfigureAwait(false);
+            await CloseAsyncCore(new TransportException(TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -552,7 +605,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
-                throw new TransportException("connection disposed");
+                throw new TransportException(TransportErrorCode.ConnectionDisposed);
             }
             finally
             {
@@ -564,7 +617,7 @@ internal class SlicConnection : IMultiplexedConnection
         return new FlushResult(isCanceled: false, isCompleted: false);
     }
 
-    private async ValueTask<bool> CloseAsyncCore(Exception exception)
+    private async ValueTask<bool> CloseAsyncCore(TransportException exception)
     {
         lock (_mutex)
         {
@@ -740,7 +793,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     if (_exception is null)
                     {
-                        throw new TransportException("unexpected duplex connection shutdown");
+                        throw new TransportException(TransportErrorCode.ProtocolError);
                     }
                 }
                 return;
@@ -979,7 +1032,7 @@ internal class SlicConnection : IMultiplexedConnection
         async Task PerformCloseAsync(ulong errorCode)
         {
             // TODO: better exception.
-            var exception = new ConnectionClosedException(checked((ConnectionClosedErrorCode)errorCode));
+            var exception = new TransportException(TransportErrorCode.ConnectionClosed, errorCode);
             if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
                 if (IsServer)

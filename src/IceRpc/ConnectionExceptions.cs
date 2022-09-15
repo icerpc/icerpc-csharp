@@ -9,15 +9,11 @@ public enum ConnectFailedErrorCode
     /// <summary>The connection establishment was canceled.</summary>
     Canceled,
 
-    /// <summary>The peer closed the connection before connection establishment.</summary>
-    ClosedByPeer,
-
-    /// <summary>The transport connection establishment failed. The reason of the failure is indicated by the inner
-    /// exception of the <see cref="ConnectFailedException"/>.</summary>
-    TransportError,
-
     /// <summary>The connection establishment was refused by the server.</summary>
     Refused,
+
+    /// <summary>The connection establishment failed for an unspecified transport error.</summary>
+    Unspecified,
 }
 
 /// <summary>This exception reports a failed attempt to establish a connection.</summary>

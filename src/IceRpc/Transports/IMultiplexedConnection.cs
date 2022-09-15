@@ -20,22 +20,19 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <summary>Connects this connection. This method should only be called once.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation"/>.</returns>
-    /// <exception cref="ConnectFailedException">Thrown if the connection establishment to the per failed.</exception>
-    /// <exception cref="ConnectionLostException">Thrown if the peer closed its side of the connection while the
-    /// connection is being established.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
-    /// <exception cref="TransportException">Thrown if an unexpected error was encountered.</exception>
+    /// <exception cref="TransportException">Thrown if a transport error was encountered.</exception>
     /// <remarks>A transport implementation might raise other exceptions. A connection supporting SSL can for instance
     /// raise <see cref="AuthenticationException"/> if the authentication fails while the connection is being
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Closes the connection. This method should only be called once.</summary>
-    /// <param name="errorCode">The <see cref="ConnectionClosedErrorCode"/> to transmit to the peer.</param>
+    /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is closed.</returns>
-    Task CloseAsync(ConnectionClosedErrorCode errorCode, CancellationToken cancellationToken);
+    Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
 
     /// <summary>Creates a local stream.</summary>
     /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>

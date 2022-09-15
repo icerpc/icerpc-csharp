@@ -55,23 +55,21 @@ public sealed class IceRpcProtocolConnectionTests
             isServer: false,
             options: new());
 
+        IMultiplexedConnection? serverConnection = null;
         Task acceptTask = AcceptAndShutdownAsync();
 
         // Act/Assert
         ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.ClosedByPeer));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));
+
+        // Cleanup
+        await serverConnection!.DisposeAsync();
 
         async Task AcceptAndShutdownAsync()
         {
-            await using var connection = (await listener.AcceptAsync()).Connection;
-            await connection.CloseAsync(ConnectionClosedErrorCode.Shutdown, default).ConfigureAwait(false);
-
-            // await using var connection = new IceRpcProtocolConnection(
-            //     (await listener.AcceptAsync()).Connection,
-            //     isServer: true,
-            //     options: new());
-            // await connection.ShutdownAsync("", default);
+            serverConnection = (await listener.AcceptAsync()).Connection;
+            await serverConnection.CloseAsync((ulong)IceRpcConnectionErrorCode.Refused, default).ConfigureAwait(false);
         }
     }
 
@@ -696,7 +694,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        public Task CloseAsync(ConnectionClosedErrorCode errorCode, CancellationToken cancellationToken) =>
+        public Task CloseAsync(ulong errorCode, CancellationToken cancellationToken) =>
             _decoratee.CloseAsync(errorCode, cancellationToken);
 
         internal HoldMultiplexedConnection(IMultiplexedConnection decoratee) => _decoratee = decoratee;

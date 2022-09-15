@@ -83,9 +83,14 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
+        catch (IOException exception) when (SslStream is not null)
+        {
+            // Consider IOException from SslStream as a connection reset from the peer.
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+        }
         catch (Exception exception)
         {
-            throw new ConnectionLostException(exception);
+            throw exception.ToTransportException();
         }
 
         return received;
@@ -201,7 +206,8 @@ internal abstract class TcpConnection : IDuplexConnection
                                 nameof(buffers));
                         }
                     }
-                    await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancellationToken).ConfigureAwait(false);
+                    await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -214,9 +220,14 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
+        catch (IOException exception) when (SslStream is not null)
+        {
+            // Consider IOException from SslStream as a connection reset from the peer.
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+        }
         catch (Exception exception)
         {
-            throw new ConnectionLostException(exception);
+            throw exception.ToTransportException();
         }
     }
 
@@ -252,7 +263,7 @@ internal class TcpClientConnection : TcpConnection
         }
         else if (_isShutdown)
         {
-            throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+            throw new TransportException(TransportErrorCode.ConnectionShutdown);
         }
 
         Debug.Assert(!_isConnected);
@@ -269,6 +280,7 @@ internal class TcpClientConnection : TcpConnection
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
+
                 await _sslStream.AuthenticateAsClientAsync(
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
@@ -292,9 +304,14 @@ internal class TcpClientConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
+        catch (IOException exception) when (SslStream is not null)
+        {
+            // Consider IOException from SslStream as a connection reset from the peer.
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+        }
         catch (Exception exception)
         {
-            throw new ConnectFailedException(ConnectFailedErrorCode.TransportError, exception);
+            throw exception.ToTransportException();
         }
     }
 
@@ -336,10 +353,10 @@ internal class TcpClientConnection : TcpConnection
 
             Socket.NoDelay = true;
         }
-        catch (SocketException ex)
+        catch (Exception exception)
         {
             Socket.Dispose();
-            throw new TransportException(ex);
+            throw exception.ToTransportException();
         }
     }
 }
@@ -362,7 +379,7 @@ internal class TcpServerConnection : TcpConnection
         }
         else if (_isShutdown)
         {
-            throw new ConnectFailedException(ConnectFailedErrorCode.ClosedByPeer);
+            throw new TransportException(TransportErrorCode.ConnectionShutdown);
         }
 
         Debug.Assert(!_isConnected);
@@ -397,17 +414,14 @@ internal class TcpServerConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
+        catch (IOException exception) when (SslStream is not null)
+        {
+            // Consider IOException from SslStream as a connection reset from the peer.
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+        }
         catch (Exception exception)
         {
-            SocketException socketException =
-                exception as SocketException ??
-                exception.InnerException as SocketException ??
-                throw new ConnectFailedException(ConnectFailedErrorCode.TransportError, exception);
-
-            throw new ConnectFailedException(
-                    socketException.SocketErrorCode == SocketError.ConnectionRefused ?
-                        ConnectFailedErrorCode.Refused : ConnectFailedErrorCode.TransportError,
-                    exception);
+            throw exception.ToTransportException();
         }
     }
 
