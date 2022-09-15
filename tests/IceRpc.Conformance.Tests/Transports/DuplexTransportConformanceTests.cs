@@ -130,7 +130,7 @@ public abstract class DuplexTransportConformanceTests
     /// <summary>Verifies that calling read on a connection fails with <see cref="TransportErrorCode.ConnectionReset"/>
     /// if the peer connection is disposed.</summary>
     [Test]
-    public async Task Read_from_disposed_peer_connection_fails_with_connection_lost_exception(
+    public async Task Read_from_disposed_peer_connection_fails_with_transport_reset_error(
         [Values(true, false)] bool readFromServer)
     {
         // Arrange
@@ -359,7 +359,7 @@ public abstract class DuplexTransportConformanceTests
     /// <summary>Verifies that calling write fails with <see cref="TransportErrorCode.ConnectionReset"/> when the peer
     /// connection is disposed.</summary>
     [Test]
-    public async Task Write_to_disposed_peer_connection_fails_with_connection_lost_exception()
+    public async Task Write_to_disposed_peer_connection_fails_with_transport_reset_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);

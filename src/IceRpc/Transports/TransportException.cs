@@ -9,8 +9,9 @@ public enum TransportErrorCode
     /// <summary>The local address is in use.</summary>
     AddressInUse,
 
-    /// <summary>The peer closed the connection. With multiplexed transports, the <see
-    /// cref="TransportException.ApplicationErrorCode"/> is set to the application error code.</summary>
+    /// <summary>The peer closed the connection. With multiplexed transports, <see
+    /// cref="TransportException.ApplicationErrorCode"/> is set to the error code provided to <see
+    /// cref="IMultiplexedConnection.CloseAsync"/>.</summary>
     ConnectionClosed,
 
     /// <summary>The connection was disposed.</summary>
@@ -39,10 +40,11 @@ public enum TransportErrorCode
 /// Transport implementations should wrap transport-specific exceptions with this exception.</summary>
 public class TransportException : Exception
 {
-    /// <summary>Gets transport error code.</summary>
+    /// <summary>Gets the transport error code.</summary>
     public TransportErrorCode ErrorCode { get; }
 
-    /// <summary>Gets the application protocol error code if set.</summary>
+    /// <summary>Gets the application protocol error code from <see
+    /// cref="IMultiplexedConnection.CloseAsync"/>.</summary>
     public ulong? ApplicationErrorCode { get; }
 
     /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error
@@ -56,7 +58,8 @@ public class TransportException : Exception
     /// <param name="errorCode">The error code.</param>
     /// <param name="applicationErrorCode">The application error code.</param>
     public TransportException(TransportErrorCode errorCode, ulong applicationErrorCode)
-        : base($"{nameof(TransportException)} {{ ErrorCode = {errorCode} }}")
+        : base(
+            $"{nameof(TransportException)} {{ ErrorCode = {errorCode} ApplicationErrorCode={applicationErrorCode} }}")
     {
         ErrorCode = errorCode;
         ApplicationErrorCode = applicationErrorCode;

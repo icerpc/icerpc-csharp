@@ -12,7 +12,7 @@ public enum ConnectFailedErrorCode
     /// <summary>The connection establishment was refused by the server.</summary>
     Refused,
 
-    /// <summary>The connection establishment failed for an unspecified transport error.</summary>
+    /// <summary>The connection establishment failed with an unspecified transport error.</summary>
     Unspecified,
 }
 

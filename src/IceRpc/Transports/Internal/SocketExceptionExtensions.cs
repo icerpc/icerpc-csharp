@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal;
@@ -10,11 +9,6 @@ internal static class SocketExceptionExtensions
     /// <summary>Converts an exception from a socket operation into a <see cref="TransportException"/>.</summary>
     internal static Exception ToTransportException(this Exception exception)
     {
-        if ((exception as SocketException ??
-            exception.InnerException as SocketException) is null)
-        {
-            Console.Error.WriteLine($"XXXX {ExceptionUtil.Throw(exception)}");
-        }
         SocketException socketException =
             exception as SocketException ??
             exception.InnerException as SocketException ??
@@ -38,10 +32,6 @@ internal static class SocketExceptionExtensions
         }
         else
         {
-            if (error != SocketError.OperationAborted)
-            {
-                Console.Error.WriteLine($"XXXX {ExceptionUtil.Throw(exception)}");
-            }
             return new TransportException(TransportErrorCode.Unspecified, exception);
         }
     }

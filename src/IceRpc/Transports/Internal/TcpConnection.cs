@@ -251,8 +251,6 @@ internal class TcpClientConnection : TcpConnection
     private readonly EndPoint _addr;
     private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
-    private bool _isConnected;
-
     private SslStream? _sslStream;
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -265,9 +263,6 @@ internal class TcpClientConnection : TcpConnection
         {
             throw new TransportException(TransportErrorCode.ConnectionShutdown);
         }
-
-        Debug.Assert(!_isConnected);
-        _isConnected = true;
 
         try
         {
