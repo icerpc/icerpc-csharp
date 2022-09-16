@@ -6,7 +6,7 @@ namespace IceRpc.Transports;
 /// reason of the transport failure.</summary>
 public enum TransportErrorCode
 {
-    /// <summary>The local address is in use.</summary>
+    /// <summary>The listener local address is in use.</summary>
     AddressInUse,
 
     /// <summary>The peer closed the connection. With multiplexed transports, <see
@@ -29,8 +29,8 @@ public enum TransportErrorCode
     /// <summary>The connection was shutdown.</summary>
     ConnectionShutdown,
 
-    /// <summary>A transport protocol error occurred.</summary>
-    ProtocolError,
+    /// <summary>An internal error occurred.</summary>
+    InternalError,
 
     /// <summary>An other unspecified error occurred.</summary>
     Unspecified,
@@ -40,14 +40,14 @@ public enum TransportErrorCode
 /// Transport implementations should wrap transport-specific exceptions with this exception.</summary>
 public class TransportException : Exception
 {
-    /// <summary>Gets the transport error code.</summary>
-    public TransportErrorCode ErrorCode { get; }
-
     /// <summary>Gets the application protocol error code. It's set when <see cref="ErrorCode"/> is <see
     /// cref="TransportErrorCode.ConnectionClosed"/> and when the transport is a multiplexed transport. It's <c>null</c>
     /// otherwise. The value is the error code provided to the <see cref="IMultiplexedConnection.CloseAsync(ulong,
     /// CancellationToken)"/> method.</summary>
     public ulong? ApplicationErrorCode { get; }
+
+    /// <summary>Gets the transport error code.</summary>
+    public TransportErrorCode ErrorCode { get; }
 
     /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error
     /// code.</summary>
@@ -61,7 +61,7 @@ public class TransportException : Exception
     /// <param name="applicationErrorCode">The application error code.</param>
     public TransportException(TransportErrorCode errorCode, ulong applicationErrorCode)
         : base(
-            $"{nameof(TransportException)} {{ ErrorCode = {errorCode} ApplicationErrorCode={applicationErrorCode} }}")
+            $"{nameof(TransportException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode={applicationErrorCode} }}")
     {
         ErrorCode = errorCode;
         ApplicationErrorCode = applicationErrorCode;

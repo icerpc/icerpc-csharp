@@ -251,7 +251,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Shutdown_client_connection_before_connect()
+    public async Task ShuShutdown_client_connection_before_connect_fails_with_transport_connection_shutdown_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -267,7 +267,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Shutdown_server_connection_before_connect()
+    public async Task Shutdown_by_peer_before_connect_fails_with_transport_reset_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -387,7 +387,7 @@ public abstract class DuplexTransportConformanceTests
             exception = ex;
         }
 
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.

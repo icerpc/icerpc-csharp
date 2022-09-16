@@ -55,14 +55,14 @@ public abstract class MultiplexedTransportConformanceTests
         Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
-        await clientConnection.CloseAsync(2ul, CancellationToken.None);
+        await clientConnection.CloseAsync(applicationErrorCode: 2ul, CancellationToken.None);
 
         // Assert
-        TransportException? ex = Assert.ThrowsAsync<TransportException>(async () => await acceptStreams);
+        TransportException ex = Assert.ThrowsAsync<TransportException>(async () => await acceptStreams)!;
         Assert.Multiple(() =>
         {
-            Assert.That(ex!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-            Assert.That(ex!.ApplicationErrorCode, Is.EqualTo(2ul));
+            Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+            Assert.That(ex.ApplicationErrorCode, Is.EqualTo(2ul));
         });
     }
 
@@ -174,7 +174,7 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedConnection peerConnection =
             shutdownServerConnection ? clientConnection : serverConnection;
 
-        await shutdownConnection.CloseAsync(5ul, CancellationToken.None);
+        await shutdownConnection.CloseAsync(applicationErrorCode: 5ul, CancellationToken.None);
 
         // Act
         IMultiplexedStream peerStream = peerConnection.CreateStream(true);
@@ -1162,8 +1162,12 @@ public abstract class MultiplexedTransportConformanceTests
         // Act/Assert
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await clientConnection.CloseAsync(0ul, CancellationToken.None), Throws.Nothing);
-            Assert.That(async () => await serverConnection.CloseAsync(0ul, CancellationToken.None), Throws.Nothing);
+            Assert.That(async () => await clientConnection.CloseAsync(
+                applicationErrorCode: 0ul,
+                CancellationToken.None), Throws.Nothing);
+            Assert.That(async () => await serverConnection.CloseAsync(
+                applicationErrorCode: 0ul,
+                CancellationToken.None), Throws.Nothing);
         });
     }
 
@@ -1179,8 +1183,8 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        Task clientShutdownTask = clientConnection.CloseAsync(0ul, CancellationToken.None);
-        Task serverShutdownTask = serverConnection.CloseAsync(0ul, CancellationToken.None);
+        Task clientShutdownTask = clientConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
+        Task serverShutdownTask = serverConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
 
         // Assert
         Assert.Multiple(() =>
@@ -1191,7 +1195,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Close_client_connection_before_connect()
+    public async Task Close_client_connection_before_connect_fails_with_transport_connection_closed_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -1200,7 +1204,7 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
 
         // Act
-        await clientConnection.CloseAsync(4ul, default);
+        await clientConnection.CloseAsync(applicationErrorCode: 4ul, default);
 
         // Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
@@ -1213,7 +1217,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Close_server_connection_before_connect()
+    public async Task Close_server_connection_before_connect_fails_with_transport_connection_closed_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -1240,7 +1244,7 @@ public abstract class MultiplexedTransportConformanceTests
         async Task AcceptAndCloseAsync()
         {
             serverConnection = (await listener.AcceptAsync()).Connection;
-            await serverConnection.CloseAsync(2ul, default);
+            await serverConnection.CloseAsync(applicationErrorCode: 2ul, default);
         }
     }
 

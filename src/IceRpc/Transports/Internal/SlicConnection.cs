@@ -137,7 +137,7 @@ internal class SlicConnection : IMultiplexedConnection
                 if (header is null)
                 {
                     // Unexpected closure of the duplex connection.
-                    throw new TransportException(TransportErrorCode.ProtocolError);
+                    throw new TransportException(TransportErrorCode.InternalError);
                 }
                 else if (header.Value.FrameSize == 0)
                 {
@@ -191,7 +191,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (header is null)
             {
                 // Unexpected closure of the duplex connection.
-                throw new TransportException(TransportErrorCode.ProtocolError);
+                throw new TransportException(TransportErrorCode.InternalError);
             }
             else if (header.Value.FrameSize == 0)
             {
@@ -312,7 +312,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 else
                 {
-                    throw _exception;
+                    throw ExceptionUtil.Throw(_exception);
                 }
             }
 
@@ -793,7 +793,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     if (_exception is null)
                     {
-                        throw new TransportException(TransportErrorCode.ProtocolError);
+                        throw new TransportException(TransportErrorCode.InternalError);
                     }
                 }
                 return;

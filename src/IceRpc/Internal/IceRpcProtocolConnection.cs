@@ -150,17 +150,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
         }
-        catch (TransportException exception)
+        catch (OperationCanceledException)
         {
-            if (exception.ApplicationErrorCode is ulong errorCode && errorCode ==
-                (ulong)IceRpcConnectionErrorCode.Refused)
-            {
-                throw new ConnectFailedException(ConnectFailedErrorCode.Refused);
-            }
-            else
-            {
-                throw new ConnectFailedException(ConnectFailedErrorCode.Unspecified, exception);
-            }
+            throw;
+        }
+        catch (TransportException exception) when (
+            exception.ApplicationErrorCode is ulong errorCode &&
+            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
+        {
+            throw new ConnectFailedException(ConnectFailedErrorCode.Refused);
+        }
+        catch (Exception exception)
+        {
+            throw new ConnectFailedException(ConnectFailedErrorCode.Unspecified, exception);
         }
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.

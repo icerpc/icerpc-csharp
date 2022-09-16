@@ -20,15 +20,15 @@ internal static class SocketExceptionExtensions
             // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer closing
             // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty
             // while ECONNRESET is returned if the send buffer is not empty.
-            return new TransportException(TransportErrorCode.ConnectionReset);
+            return new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
         else if (error == SocketError.ConnectionRefused)
         {
-            return new TransportException(TransportErrorCode.ConnectionRefused);
+            return new TransportException(TransportErrorCode.ConnectionRefused, exception);
         }
         else if (error == SocketError.AddressAlreadyInUse)
         {
-            return new TransportException(TransportErrorCode.AddressInUse);
+            return new TransportException(TransportErrorCode.AddressInUse, exception);
         }
         else
         {
