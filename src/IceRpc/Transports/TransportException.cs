@@ -43,8 +43,10 @@ public class TransportException : Exception
     /// <summary>Gets the transport error code.</summary>
     public TransportErrorCode ErrorCode { get; }
 
-    /// <summary>Gets the application protocol error code from <see
-    /// cref="IMultiplexedConnection.CloseAsync"/>.</summary>
+    /// <summary>Gets the application protocol error code. It's set when <see cref="ErrorCode"/> is <see
+    /// cref="TransportErrorCode.ConnectionClosed"/> and when the transport is a multiplexed transport. It's <c>null</c>
+    /// otherwise. The value is the error code provided to the <see cref="IMultiplexedConnection.CloseAsync(ulong,
+    /// CancellationToken)"/> method.</summary>
     public ulong? ApplicationErrorCode { get; }
 
     /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error
