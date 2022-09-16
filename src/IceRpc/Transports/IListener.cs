@@ -18,5 +18,6 @@ public interface IListener<T> : IListener
     /// <summary>Accepts a new connection.</summary>
     /// <returns>The accepted connection and the network address of the client, or (null, null) after the listener has
     /// been terminated indicating that no more connections will be accepted.</returns>
-    Task<(T? Connection, EndPoint? RemoteNetworkAddress)> AcceptAsync();
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(CancellationToken cancellationToken);
 }

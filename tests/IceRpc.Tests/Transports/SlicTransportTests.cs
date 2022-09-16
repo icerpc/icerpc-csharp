@@ -189,7 +189,7 @@ public class SlicTransportTests
         IMultiplexedConnection connection)
     {
         var connectTask = connection.ConnectAsync(default);
-        var serverConnection = (await listener.AcceptAsync()).Connection!;
+        var serverConnection = (await listener.AcceptAsync(default)).Connection;
         await serverConnection.ConnectAsync(default);
         await connectTask;
         return serverConnection;

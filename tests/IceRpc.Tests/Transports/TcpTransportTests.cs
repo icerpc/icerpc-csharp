@@ -115,7 +115,7 @@ public class TcpTransportTests
                 ReceiveBufferSize = bufferSize,
                 SendBufferSize = bufferSize,
             });
-        Task<(IDuplexConnection? Connection, EndPoint? RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(
             new TcpClientTransportOptions());
@@ -296,7 +296,7 @@ public class TcpTransportTests
         Task<TransportConnectionInformation> connectTask =
             clientConnection.ConnectAsync(cts.Token);
 
-        IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection!;
+        IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         cts.Cancel();
         _ = serverConnection.ConnectAsync(CancellationToken.None);
 
@@ -317,7 +317,7 @@ public class TcpTransportTests
             authenticationOptions: tls ? DefaultSslClientAuthenticationOptions : null);
 
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
-        IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection!;
+        IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         Task<TransportConnectionInformation> serverConnectTask =
             serverConnection.ConnectAsync(cts.Token);
 
@@ -350,7 +350,7 @@ public class TcpTransportTests
         using TcpClientConnection clientConnection =
             CreateTcpClientConnection(listener.ServerAddress, authenticationOptions: DefaultSslClientAuthenticationOptions);
 
-        Task<(IDuplexConnection? Connection, EndPoint? RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
         await clientConnection.Socket.ConnectAsync(new DnsEndPoint(listener.ServerAddress.Host, listener.ServerAddress.Port));
         IDuplexConnection serverConnection = (await acceptTask).Connection!;
@@ -383,7 +383,7 @@ public class TcpTransportTests
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
-        IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection!;
+        IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         Task<TransportConnectionInformation> serverConnectTask =
             serverConnection.ConnectAsync(new CancellationToken(canceled: true));
 

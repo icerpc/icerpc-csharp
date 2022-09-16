@@ -195,12 +195,8 @@ public sealed class Server : IAsyncDisposable
             {
                 while (true)
                 {
-                    (IProtocolConnection? connection, _) = await listener.AcceptAsync().ConfigureAwait(false);
-
-                    if (connection == null)
-                    {
-                        return; // server is shutting down or being disposed
-                    }
+                    (IProtocolConnection connection, _) =
+                        await listener.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
 
                     bool done = false;
                     lock (_mutex)
@@ -234,6 +230,12 @@ public sealed class Server : IAsyncDisposable
                         _ = Task.Run(() => _ = connection.ConnectAsync(CancellationToken.None));
                     }
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception exception)
             {
@@ -336,22 +338,16 @@ public sealed class Server : IAsyncDisposable
 
         private readonly IListener<IProtocolConnection> _decoratee;
 
-        public async Task<(IProtocolConnection? Connection, EndPoint? RemoteNetworkAddress)> AcceptAsync()
+        public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
         {
-            (IProtocolConnection? connection, EndPoint? remoteNetworkAddress) = await _decoratee.AcceptAsync()
-                .ConfigureAwait(false);
+            (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
+                await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
             // We don't log AcceptAsync exceptions; they usually occur when the server is shutting down.
-            if (connection == null)
-            {
-                return (null, null);
-            }
-            else
-            {
-                Debug.Assert(remoteNetworkAddress != null);
-                ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-                return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
-            }
+            Debug.Assert(remoteNetworkAddress != null);
+            ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
+            return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
         }
 
         public void Dispose() => _decoratee.Dispose();

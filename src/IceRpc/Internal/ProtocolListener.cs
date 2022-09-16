@@ -13,18 +13,12 @@ internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
 
     private readonly IListener<T> _transportListener;
 
-    public async Task<(IProtocolConnection? Connection, EndPoint? RemoteNetworkAddress)> AcceptAsync()
+    public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+        CancellationToken cancellationToken)
     {
-        (T? transportConnection, EndPoint? remoteNetworkAddress) = await _transportListener.AcceptAsync()
+        (T transportConnection, EndPoint remoteNetworkAddress) = await _transportListener.AcceptAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (transportConnection == null)
-        {
-            return (null, null);
-        }
-        else
-        {
-            return (CreateProtocolConnection(transportConnection), remoteNetworkAddress);
-        }
+        return (CreateProtocolConnection(transportConnection), remoteNetworkAddress);
     }
 
     public void Dispose() => _transportListener.Dispose();

@@ -615,10 +615,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public async Task<(IMultiplexedConnection?, EndPoint?)> AcceptAsync()
+        public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
         {
             Debug.Assert(_connection == null);
-            (IMultiplexedConnection? connection, EndPoint? address) = await _decoratee.AcceptAsync();
+            (IMultiplexedConnection? connection, EndPoint? address) = await _decoratee.AcceptAsync(cancellationToken);
             _connection = new HoldMultiplexedConnection(connection!);
             return (_connection, address);
         }

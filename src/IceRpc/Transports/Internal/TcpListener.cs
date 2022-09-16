@@ -18,13 +18,13 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
-    public async Task<(IDuplexConnection?, EndPoint?)> AcceptAsync()
+    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
         while (true)
         {
             try
             {
-                Socket acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
+                Socket acceptedSocket = await _socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
                 var tcpConnection = new TcpServerConnection(
                     ServerAddress,
@@ -35,17 +35,12 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
                 return (tcpConnection, acceptedSocket.RemoteEndPoint!);
             }
-            catch (ObjectDisposedException)
-            {
-                // Dispose has been called return null to indicate we're done listening.
-                return (null, null);
-            }
             catch (SocketException e) when (e.SocketErrorCode == SocketError.OperationAborted)
             {
                 // Dispose has been called return null to indicate we're done listening.
-                return (null, null);
+                cancellationToken.ThrowIfCancellationRequested();
             }
-            catch (SocketException)
+            catch (SocketException exception) when (exception.ErrorCode == (int)SocketError.ConnectionReset)
             {
                 // Retry a connection was reset while it was in the backlog.
             }
