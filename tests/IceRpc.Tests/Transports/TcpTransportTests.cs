@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -124,7 +125,7 @@ public class TcpTransportTests
         await clientConnection.ConnectAsync(default);
 
         // Act
-        using var serverConnection = (TcpServerConnection)(await acceptTask).Connection!;
+        using var serverConnection = (TcpServerConnection)(await acceptTask).Connection;
 
         // Assert
         Assert.Multiple(() =>
@@ -209,6 +210,25 @@ public class TcpTransportTests
         {
             connection.Dispose();
         }
+    }
+
+
+    [Test]
+    public void Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
+    {
+        // Arrange
+        using IListener<IDuplexConnection> listener = CreateTcpListener();
+
+        IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
+
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Act
+        listener.Dispose();
+
+        // Assert
+        SocketException exception = Assert.ThrowsAsync<SocketException>(async () => await acceptTask);
+        Assert.That(exception.ErrorCode, Is.EqualTo((int)SocketError.OperationAborted));
     }
 
     /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
@@ -353,7 +373,7 @@ public class TcpTransportTests
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
         await clientConnection.Socket.ConnectAsync(new DnsEndPoint(listener.ServerAddress.Host, listener.ServerAddress.Port));
-        IDuplexConnection serverConnection = (await acceptTask).Connection!;
+        IDuplexConnection serverConnection = (await acceptTask).Connection;
         clientConnection.Dispose();
 
         // Act/Assert

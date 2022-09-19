@@ -35,14 +35,21 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
                 return (tcpConnection, acceptedSocket.RemoteEndPoint!);
             }
-            catch (SocketException e) when (e.SocketErrorCode == SocketError.OperationAborted)
+            catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
-                // Dispose has been called return null to indicate we're done listening.
+                // Dispose has been called
                 cancellationToken.ThrowIfCancellationRequested();
+                throw;
             }
-            catch (SocketException exception) when (exception.ErrorCode == (int)SocketError.ConnectionReset)
+            catch (SocketException)
             {
                 // Retry a connection was reset while it was in the backlog.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Dispose has been called
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
             }
         }
     }

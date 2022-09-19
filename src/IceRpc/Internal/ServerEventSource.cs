@@ -84,7 +84,6 @@ internal sealed class ServerEventSource : EventSource
     [NonEvent]
     internal void ConnectionAcceptFailure(ServerAddress serverAddress, Exception exception)
     {
-        Interlocked.Increment(ref _totalFailedConnections);
         if (IsEnabled(EventLevel.Critical, EventKeywords.None))
         {
             ConnectionAcceptFailure(

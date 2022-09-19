@@ -16,8 +16,16 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(cancellationToken).ConfigureAwait(false);
-        return (new ColocConnection(ServerAddress, _ => (reader, writer)), _networkAddress);
+        try
+        {
+            (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(cancellationToken).ConfigureAwait(false);
+            return (new ColocConnection(ServerAddress, _ => (reader, writer)), _networkAddress);
+        }
+        catch (ObjectDisposedException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
     }
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException($"{typeof(ColocListener)}"));

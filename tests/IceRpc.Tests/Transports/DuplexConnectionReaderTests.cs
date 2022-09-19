@@ -28,7 +28,7 @@ public class DuplexConnectionReaderTests
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await acceptTask).Connection!;
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
@@ -68,7 +68,7 @@ public class DuplexConnectionReaderTests
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await acceptTask).Connection!;
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
@@ -102,7 +102,7 @@ public class DuplexConnectionReaderTests
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await acceptTask).Connection!;
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 

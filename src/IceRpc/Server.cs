@@ -240,7 +240,7 @@ public sealed class Server : IAsyncDisposable
             catch (Exception exception)
             {
                 ServerEventSource.Log.ConnectionAcceptFailure(ServerAddress, exception);
-                // TODO terminate the server?
+                _shutdownCompleteSource.TrySetException(exception);
             }
         });
 
