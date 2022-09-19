@@ -342,7 +342,7 @@ public class TcpTransportTests
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its
     /// connection. For tcp connections the server connect call is non-op.</summary>
     [Test]
-    public async Task Tls_server_connection_connect_failed_exception()
+    public async Task Tls_server_connection_connect_fails_exception()
     {
         // Arrange
         using IListener<IDuplexConnection> listener =
@@ -357,9 +357,9 @@ public class TcpTransportTests
         clientConnection.Dispose();
 
         // Act/Assert
-        Assert.That(
-            async () => await serverConnection.ConnectAsync(default),
-            Throws.TypeOf<ConnectFailedException>());
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+            async () => await serverConnection.ConnectAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails with

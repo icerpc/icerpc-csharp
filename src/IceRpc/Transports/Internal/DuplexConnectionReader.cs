@@ -42,7 +42,7 @@ internal class DuplexConnectionReader : IDisposable
         TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        Action<ConnectionLostException> connectionLostAction,
+        Action<TransportException> connectionLostAction,
         Action? keepAliveAction)
     {
         _connection = connection;
@@ -72,8 +72,7 @@ internal class DuplexConnectionReader : IDisposable
                     _nextIdleTime = Timeout.InfiniteTimeSpan;
                 }
 
-                connectionLostAction(new ConnectionLostException(
-                    $"the transport connection has been idle for longer than {_idleTimeout}"));
+                connectionLostAction(new TransportException(TransportErrorCode.ConnectionIdle));
             });
 
         if (keepAliveAction is not null)
@@ -235,8 +234,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
                 // calling read method doesn't return data.
-                throw new ConnectionLostException(
-                    $"the transport connection has been idle for longer than {_idleTimeout}");
+                throw new TransportException(TransportErrorCode.ConnectionIdle);
             }
             else
             {

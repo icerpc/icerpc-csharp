@@ -32,10 +32,9 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
             return (tcpConnection, acceptedSocket.RemoteEndPoint!);
         }
-        catch (SocketException exception)
+        catch (Exception exception)
         {
-            _socket.Dispose();
-            throw new TransportException(exception);
+            throw exception.ToTransportException();
         }
     }
 
@@ -92,10 +91,10 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             address = (IPEndPoint)_socket.LocalEndPoint!;
             _socket.Listen(tcpOptions.ListenerBackLog);
         }
-        catch (SocketException ex)
+        catch (Exception exception)
         {
             _socket.Dispose();
-            throw new TransportException(ex);
+            throw exception.ToTransportException();
         }
 
         ServerAddress = serverAddress with { Port = (ushort)address.Port };

@@ -253,7 +253,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Initiate the shutdown.
                     InitiateShutdown("connection is shutdown by peer", ConnectionClosedErrorCode.ShutdownByPeer);
                 }
-                catch (ConnectionLostException) when (
+                catch (TransportException exception) when (
+                    exception.ErrorCode == TransportErrorCode.ConnectionReset &&
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
@@ -315,7 +316,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             _pingTask,
             _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
-        // Dispose the transport connection to kill the connection with the peer.
+        // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         _duplexConnection.Dispose();
 
         // Cancel dispatches and invocations.
