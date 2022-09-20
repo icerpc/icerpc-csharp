@@ -97,6 +97,7 @@ public class ClientConnectionTests
     }
 
     [Test]
+    [Repeat(500)]
     public async Task Connection_invoke_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange
