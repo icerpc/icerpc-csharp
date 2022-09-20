@@ -355,7 +355,9 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.Server.ShutdownComplete, Throws.InstanceOf<ConnectionLostException>());
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+            async () => await sut.Server.ShutdownComplete);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
@@ -892,7 +894,8 @@ public sealed class ProtocolConnectionTests
         else
         {
             await sut.Server.DisposeAsync();
-            Assert.That(async () => await invokeTask, Throws.InstanceOf<ConnectionLostException>());
+            TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await invokeTask);
+            Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
         }
     }
 }

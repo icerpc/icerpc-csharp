@@ -63,8 +63,6 @@ public abstract class DuplexTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
 
-        IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
-
         // Act
         listener.Dispose();
 
@@ -149,9 +147,9 @@ public abstract class DuplexTransportConformanceTests
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
         // Act/Assert
-        Assert.That(
-            () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null),
-            Throws.TypeOf<TransportException>());
+        TransportException? exception = Assert.Throws<TransportException>(
+            () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.AddressInUse));
     }
 
     [Test]
@@ -188,10 +186,10 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(async () => await readTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling read on a connection fails with <see cref="ConnectionLostException"/> if the
-    /// peer connection is disposed.</summary>
+    /// <summary>Verifies that calling read on a connection fails with <see cref="TransportErrorCode.ConnectionReset"/>
+    /// if the peer connection is disposed.</summary>
     [Test]
-    public async Task Read_from_disposed_peer_connection_fails_with_connection_lost_exception(
+    public async Task Read_from_disposed_peer_connection_fails_with_transport_reset_error(
         [Values(true, false)] bool readFromServer)
     {
         // Arrange
@@ -206,9 +204,9 @@ public abstract class DuplexTransportConformanceTests
         disposedPeer.Dispose();
 
         // Act/Assert
-        Assert.That(
-            async() => await readFrom.ReadAsync(new byte[1], default),
-            Throws.TypeOf<ConnectionLostException>());
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+            async() => await readFrom.ReadAsync(new byte[1], default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.
@@ -312,6 +310,62 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
+    public async Task ShuShutdown_client_connection_before_connect_fails_with_transport_connection_shutdown_error()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+
+        // Act
+        await clientConnection.ShutdownAsync(default);
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+            async () => await clientConnection.ConnectAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionShutdown));
+    }
+
+    [Test]
+    public async Task Shutdown_by_peer_before_connect_fails_with_transport_reset_error()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+
+        Task acceptTask = AcceptAndShutdownAsync();
+
+        // Act
+        Exception? exception = null;
+        try
+        {
+            await clientConnection.ConnectAsync(default);
+
+            // Connect might succeed if ConnectAsync doesn't require additional data exchange after connecting. It's the
+            // case for raw TCP which only connects the socket.
+            await clientConnection.ShutdownAsync(default);
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        // Assert
+        Assert.That(exception, Is.Null.Or.InstanceOf<TransportException>());
+        if (exception is TransportException transportException)
+        {
+            Assert.That(transportException!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        }
+
+        async Task AcceptAndShutdownAsync()
+        {
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) = await listener.AcceptAsync(default);
+            await connection.ShutdownAsync(default);
+            connection.Dispose();
+        }
+    }
+
+    [Test]
     public async Task Write_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -361,10 +415,10 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling write fails with <see cref="ConnectionLostException"/> when the peer connection
-    /// is disposed.</summary>
+    /// <summary>Verifies that calling write fails with <see cref="TransportErrorCode.ConnectionReset"/> when the peer
+    /// connection is disposed.</summary>
     [Test]
-    public async Task Write_to_disposed_peer_connection_fails_with_connection_lost_exception()
+    public async Task Write_to_disposed_peer_connection_fails_with_transport_reset_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -377,7 +431,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Assert
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
-        Exception exception;
+        TransportException exception;
         try
         {
             // It can take few writes to detect the peer's connection closure.
@@ -387,11 +441,12 @@ public abstract class DuplexTransportConformanceTests
                 await Task.Delay(50);
             }
         }
-        catch (Exception ex)
+        catch (TransportException ex)
         {
             exception = ex;
         }
-        Assert.That(exception, Is.InstanceOf<ConnectionLostException>());
+
+        Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.

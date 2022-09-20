@@ -33,7 +33,9 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new FormatException($"cannot create a Coloc connection to server address '{serverAddress}'");
         }
 
-        return new ColocConnection(serverAddress with { Transport = Name }, serverAddress => Connect(serverAddress, options));
+        return new ColocConnection(
+            serverAddress with { Transport = Name },
+            serverAddress => Connect(serverAddress, options));
     }
 
     internal ColocClientTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>
@@ -47,7 +49,7 @@ internal class ColocClientTransport : IDuplexClientTransport
         }
         else
         {
-            throw new ConnectFailedException(ConnectFailedErrorCode.Refused);
+            throw new TransportException(TransportErrorCode.ConnectionRefused);
         }
     }
 }

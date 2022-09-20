@@ -22,14 +22,23 @@ internal class ColocConnection : IDuplexConnection
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         (_reader, _writer) = _connect(ServerAddress);
+
+        if (_state.HasFlag(State.Disposed))
+        {
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+        else if (_state.HasFlag(State.ShuttingDown))
+        {
+            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+        }
+
         var colocEndPoint = new ColocEndPoint(ServerAddress);
         return Task.FromResult(new TransportConnectionInformation(colocEndPoint, colocEndPoint, null));
     }
 
     public void Dispose()
     {
-        // TODO: replace with transport exception #1712
-        _exception ??= new ConnectionLostException();
+        _exception ??= new TransportException(TransportErrorCode.ConnectionReset);
 
         if (_state.TrySetFlag(State.Disposed))
         {
@@ -121,7 +130,8 @@ internal class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                await _reader.CompleteAsync(new TransportException(
+                    TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
             }
             _state.ClearFlag(State.Reading);
         }
@@ -143,7 +153,10 @@ internal class ColocConnection : IDuplexConnection
 
     public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        Debug.Assert(_reader is not null && _writer is not null);
+        if (_reader is null || _writer is null)
+        {
+            (_reader, _writer) = _connect(ServerAddress);
+        }
 
         if (_state.HasFlag(State.Disposed))
         {
@@ -177,7 +190,7 @@ internal class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.ShuttingDown))
             {
-                throw new TransportException("connection is shutting down");
+                throw new TransportException(TransportErrorCode.ConnectionShutdown);
             }
             else
             {
@@ -195,7 +208,7 @@ internal class ColocConnection : IDuplexConnection
                 }
                 else if (_state.HasFlag(State.ShuttingDown))
                 {
-                    throw new TransportException("connection is shutting down");
+                    throw new TransportException(TransportErrorCode.ConnectionShutdown);
                 }
 
                 _ = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
@@ -205,7 +218,8 @@ internal class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                await _writer.CompleteAsync(new TransportException(
+                    TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
             }
             else if (_state.HasFlag(State.ShuttingDown))
             {

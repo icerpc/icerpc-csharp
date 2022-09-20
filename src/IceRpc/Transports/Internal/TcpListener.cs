@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.Net;
 using System.Net.Security;
@@ -32,24 +31,30 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
                     _authenticationOptions,
                     _pool,
                     _minSegmentSize);
-
                 return (tcpConnection, acceptedSocket.RemoteEndPoint!);
             }
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
                 // Dispose has been called
                 cancellationToken.ThrowIfCancellationRequested();
+                throw exception.ToTransportException();
+            }
+            catch (OperationCanceledException)
+            {
                 throw;
             }
             catch (SocketException)
             {
-                // Retry a connection was reset while it was in the backlog.
+                // If the connection was reset while in the backlog, retry.
             }
             catch (ObjectDisposedException)
             {
-                // Dispose has been called
-                cancellationToken.ThrowIfCancellationRequested();
+                // Dispose has been called.
                 throw;
+            }
+            catch (Exception exception)
+            {
+                throw exception.ToTransportException();
             }
         }
     }
@@ -107,10 +112,10 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             address = (IPEndPoint)_socket.LocalEndPoint!;
             _socket.Listen(tcpOptions.ListenerBackLog);
         }
-        catch (SocketException ex)
+        catch (Exception exception)
         {
             _socket.Dispose();
-            throw new TransportException(ex);
+            throw exception.ToTransportException();
         }
 
         ServerAddress = serverAddress with { Port = (ushort)address.Port };

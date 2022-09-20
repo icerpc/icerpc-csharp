@@ -233,24 +233,17 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 Debug.Assert(ConnectionClosedException is not null);
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
-            else if (_connectTask is null)
+            else if (_connectTask is not null && (_connectTask.IsCanceled || _connectTask.IsFaulted))
             {
-                _shutdownTask ??= Task.FromResult(message);
-                ConnectionClosedException = new(ConnectionClosedErrorCode.Shutdown, message);
-                _ = _shutdownCompleteSource.TrySetResult(message);
-                return _shutdownTask;
-            }
-            else if (_connectTask.IsCanceled)
-            {
-                var exception = new ConnectionAbortedException(ConnectionAbortedErrorCode.ConnectCanceled);
-                _ = _shutdownCompleteSource.TrySetException(exception);
-                throw exception;
-            }
-            else if (_connectTask.IsFaulted)
-            {
-                var exception = new ConnectionAbortedException(
-                    ConnectionAbortedErrorCode.ConnectFailed,
-                    _connectTask.Exception);
+                ConnectionAbortedException exception;
+                if (_connectTask.IsCanceled)
+                {
+                    exception = new(ConnectionAbortedErrorCode.ConnectCanceled);
+                }
+                else
+                {
+                    exception = new(ConnectionAbortedErrorCode.ConnectFailed, _connectTask.Exception);
+                }
                 _ = _shutdownCompleteSource.TrySetException(exception);
                 throw exception;
             }
@@ -340,7 +333,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 return;
             }
-            Debug.Assert(_connectTask is not null && _connectTask.IsCompletedSuccessfully);
 
             ConnectionClosedException = new(errorCode, message);
             _shutdownTask = CreateShutdownTask(message);
@@ -355,7 +347,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private async Task CreateShutdownTask(string message, bool cancelDispatchesAndInvocations = false)
     {
-        Debug.Assert(_connectTask is not null);
+        Debug.Assert(_connectTask is null || _connectTask.IsCompletedSuccessfully);
 
         // Make sure we execute the function without holding the connection mutex lock.
         await Task.Yield();
@@ -366,12 +358,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
         try
         {
             // Wait for connect to complete first.
-            _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
-
-            if (cancelDispatchesAndInvocations)
+            if (_connectTask is not null)
             {
-                CancelDispatchesAndInvocations(
-                    new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed, message));
+                _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
+
+                if (cancelDispatchesAndInvocations)
+                {
+                    CancelDispatchesAndInvocations(
+                        new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed, message));
+                }
             }
 
             // Wait for shutdown to complete.
@@ -408,7 +403,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         catch (Exception ex)
         {
             Exception exception = new ConnectionAbortedException(
-                _connectTask.IsCompletedSuccessfully ?
+                _connectTask is null || _connectTask.IsCompletedSuccessfully ?
                     ConnectionAbortedErrorCode.ShutdownFailed :
                     ConnectionAbortedErrorCode.ConnectFailed,
                 ex);
