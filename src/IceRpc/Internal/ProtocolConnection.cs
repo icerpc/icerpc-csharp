@@ -347,8 +347,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private async Task CreateShutdownTask(string message, bool cancelDispatchesAndInvocations = false)
     {
-        Debug.Assert(_connectTask is null || _connectTask.IsCompletedSuccessfully);
-
         // Make sure we execute the function without holding the connection mutex lock.
         await Task.Yield();
 
