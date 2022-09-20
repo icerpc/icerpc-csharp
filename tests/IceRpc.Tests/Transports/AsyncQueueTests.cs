@@ -37,11 +37,11 @@ public class AsyncQueueTests
     }
 
     [Test]
-    public void AsyncQueue_EnqueueException()
+    public void AsyncQueue_EnqueueAfterComplete()
     {
         var queue = new AsyncQueue<bool>();
         queue.TryComplete(new InvalidOperationException());
-        Assert.Throws<InvalidOperationException>(() => queue.Enqueue(false));
+        Assert.That(() => queue.Enqueue(false), Is.False);
     }
 
     [Test]
@@ -73,7 +73,7 @@ public class AsyncQueueTests
         Assert.ThrowsAsync<OperationCanceledException>(() => queue.DequeueAsync(cts.Token).AsTask());
 
         // The queue is completed if DequeueAsync is canceled.
-        Assert.Throws<OperationCanceledException>(() => queue.Enqueue(13));
+        Assert.That(() => queue.Enqueue(13), Is.False);
     }
 
     [Test]
@@ -88,6 +88,6 @@ public class AsyncQueueTests
         Assert.ThrowsAsync<OperationCanceledException>(() => valueTask.AsTask());
 
         // The queue is completed if DequeueAsync is canceled.
-        Assert.Throws<OperationCanceledException>(() => queue.Enqueue(13));
+        Assert.That(() => queue.Enqueue(13), Is.False);
     }
 }
