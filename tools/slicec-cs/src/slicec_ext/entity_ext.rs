@@ -168,8 +168,8 @@ where
     }
 
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
-        self.get_deprecation(check_parent).map(|argument| {
-            let reason = if let Some(argument) = argument {
+        self.get_deprecation(check_parent).map(|attribute| {
+            let reason = if let Some(argument) = attribute {
                 argument.to_owned()
             } else {
                 format!("This {} has been deprecated", self.kind())
