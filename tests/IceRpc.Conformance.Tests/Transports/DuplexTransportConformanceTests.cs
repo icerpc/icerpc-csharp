@@ -57,22 +57,6 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_on_a_disposed_listener_with_canceled_cancelation_token_fails_with_operation_canceled_exception()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-
-        // Act
-        listener.Dispose();
-
-        // Assert
-        Assert.That(
-            async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
-            Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    [Test]
     public async Task Call_accept_then_cancel_the_cancellation_source_and_dispose_the_listener_fails_with_operation_canceled_exception()
     {
         // Arrange

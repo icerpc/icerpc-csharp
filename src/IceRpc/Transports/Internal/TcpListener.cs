@@ -36,7 +36,6 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             }
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
-                Debug.Assert(cancellationToken.IsCancellationRequested);
                 cancellationToken.ThrowIfCancellationRequested();
                 throw exception.ToTransportException();
             }
