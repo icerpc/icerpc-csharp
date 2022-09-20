@@ -44,7 +44,7 @@ public class TlsConfigurationTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         _ = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
 
         // Act/Assert
         Assert.That(
@@ -94,7 +94,7 @@ public class TlsConfigurationTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -148,7 +148,7 @@ public class TlsConfigurationTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -179,7 +179,7 @@ public class TlsConfigurationTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await listener.AcceptAsync()).Connection;
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         await serverConnection.ConnectAsync(default);
 
         // Act/Assert

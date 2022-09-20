@@ -19,7 +19,7 @@ public abstract class DuplexTransportConformanceTests
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
 
-        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         _ = clientConnection.ConnectAsync(default);
 
         // Act/Assert
@@ -29,6 +29,49 @@ public abstract class DuplexTransportConformanceTests
                 using IDuplexConnection _ = (await acceptTask).Connection;
             },
             Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Call_accept_with_canceled_cancelation_token_fails_with_operation_canceled()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+
+        // Act / Assert
+        Assert.That(
+            async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        listener.Dispose();
+
+        // Act/Assert
+        Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
+    }
+
+    [Test]
+    public async Task Call_accept_then_cancel_the_cancellation_source_and_dispose_the_listener_fails_with_operation_canceled_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        using var cancelationSource = new CancellationTokenSource();
+
+        var acceptTask = listener.AcceptAsync(cancelationSource.Token);
+
+        // Act
+        cancelationSource.Cancel();
+        listener.Dispose();
+
+        // Assert
+        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
     }
 
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and
@@ -300,7 +343,7 @@ public abstract class DuplexTransportConformanceTests
 
         async Task AcceptAndShutdownAsync()
         {
-            (IDuplexConnection connection, EndPoint remoteNetworkAddress) = await listener.AcceptAsync();
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) = await listener.AcceptAsync(default);
             await connection.ShutdownAsync(default);
             connection.Dispose();
         }
@@ -469,7 +512,7 @@ public abstract class DuplexTransportConformanceTests
         IListener<IDuplexConnection> listener,
         IDuplexConnection clientConnection)
     {
-        Task<(IDuplexConnection, EndPoint)> acceptTask = listener.AcceptAsync();
+        Task<(IDuplexConnection, EndPoint)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         (IDuplexConnection serverConnection, EndPoint _) = await acceptTask;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);

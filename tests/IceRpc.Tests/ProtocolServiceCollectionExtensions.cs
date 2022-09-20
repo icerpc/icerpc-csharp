@@ -117,7 +117,7 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
                 isServer: false,
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceProtocolConnection(
-                (await listener.AcceptAsync()).Connection,
+                (await listener.AcceptAsync(default)).Connection,
                 isServer: true,
                 serverOptions.Value.ConnectionOptions))
     {
@@ -148,7 +148,7 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
                 isServer: false,
                 clientConnectionOptions.Value),
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
-                (await listener.AcceptAsync()).Connection,
+                (await listener.AcceptAsync(default)).Connection,
                 isServer: true,
                 serverOptions.Value.ConnectionOptions))
     {
@@ -175,7 +175,8 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
             duplexConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
 
-    public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() => _listener.AcceptAsync();
+    public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+        CancellationToken cancellationToken) => _listener.AcceptAsync(cancellationToken);
 
     public void Dispose() => _listener.Dispose();
 }
@@ -199,8 +200,8 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
             multiplexedConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
 
-    public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync() =>
-        _listener.AcceptAsync();
+    public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+        CancellationToken cancellationToken) => _listener.AcceptAsync(cancellationToken);
 
     public void Dispose() => _listener.Dispose();
 }

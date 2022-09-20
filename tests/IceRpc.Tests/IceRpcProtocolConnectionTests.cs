@@ -67,7 +67,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         async Task AcceptAndShutdownAsync()
         {
-            serverConnection = (await listener.AcceptAsync()).Connection;
+            serverConnection = (await listener.AcceptAsync(default)).Connection;
             await serverConnection.CloseAsync((ulong)IceRpcConnectionErrorCode.Refused, default).ConfigureAwait(false);
         }
     }
@@ -666,11 +666,11 @@ public sealed class IceRpcProtocolConnectionTests
 
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync()
+        public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
         {
             Debug.Assert(_connection == null);
-            (IMultiplexedConnection connection, EndPoint address) = await _decoratee.AcceptAsync();
-            _connection = new HoldMultiplexedConnection(connection);
+            (IMultiplexedConnection connection, EndPoint address) = await _decoratee.AcceptAsync(cancellationToken);
+            _connection = new HoldMultiplexedConnection(connection!);
             return (_connection, address);
         }
 

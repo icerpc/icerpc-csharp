@@ -17,24 +17,44 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
-    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync()
+    public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        try
+        while (true)
         {
-            Socket acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
+            try
+            {
+                Socket acceptedSocket = await _socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
-            var tcpConnection = new TcpServerConnection(
-                ServerAddress,
-                acceptedSocket,
-                _authenticationOptions,
-                _pool,
-                _minSegmentSize);
-
-            return (tcpConnection, acceptedSocket.RemoteEndPoint!);
-        }
-        catch (Exception exception)
-        {
-            throw exception.ToTransportException();
+                var tcpConnection = new TcpServerConnection(
+                    ServerAddress,
+                    acceptedSocket,
+                    _authenticationOptions,
+                    _pool,
+                    _minSegmentSize);
+                return (tcpConnection, acceptedSocket.RemoteEndPoint!);
+            }
+            catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw exception.ToTransportException();
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (SocketException)
+            {
+                // If the connection was reset while in the backlog, retry.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Dispose has been called.
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw exception.ToTransportException();
+            }
         }
     }
 

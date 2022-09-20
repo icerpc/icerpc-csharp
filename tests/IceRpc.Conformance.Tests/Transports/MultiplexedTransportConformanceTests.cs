@@ -287,7 +287,7 @@ public abstract class MultiplexedTransportConformanceTests
             null);
 
         var connectTask = clientConnection.ConnectAsync(default);
-        await using var serverConnection = (await listener.AcceptAsync()).Connection;
+        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
 
         _ = await serverConnection.ConnectAsync(default);
         _ = await connectTask;
@@ -329,7 +329,7 @@ public abstract class MultiplexedTransportConformanceTests
             null);
 
         var connectTask = clientConnection.ConnectAsync(default);
-        await using var serverConnection = (await listener.AcceptAsync()).Connection;
+        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
 
         _ = await serverConnection.ConnectAsync(default);
         _ = await connectTask;
@@ -1243,7 +1243,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         async Task AcceptAndCloseAsync()
         {
-            serverConnection = (await listener.AcceptAsync()).Connection;
+            serverConnection = (await listener.AcceptAsync(default)).Connection;
             await serverConnection.CloseAsync(applicationErrorCode: 2ul, default);
         }
     }
@@ -1312,7 +1312,7 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedConnection connection)
     {
         var connectTask = connection.ConnectAsync(default);
-        var serverConnection = (await listener.AcceptAsync()).Connection;
+        var serverConnection = (await listener.AcceptAsync(default)).Connection;
         await serverConnection.ConnectAsync(default);
         await connectTask;
         return serverConnection;
