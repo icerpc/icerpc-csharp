@@ -14,7 +14,7 @@ internal class SlicListener : IListener<IMultiplexedConnection>
 
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        (IDuplexConnection? duplexConnection, EndPoint? remoteNetworkAddress) =
+        (IDuplexConnection duplexConnection, EndPoint remoteNetworkAddress) =
             await _duplexListener.AcceptAsync(cancellationToken).ConfigureAwait(false);
         return (new SlicConnection(duplexConnection, _options, _slicOptions, isServer: true), remoteNetworkAddress);
     }

@@ -196,7 +196,7 @@ public sealed class Server : IAsyncDisposable
                 while (true)
                 {
                     (IProtocolConnection connection, _) =
-                        await listener.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
+                        await listener.AcceptAsync(shutdownCancellationToken).ConfigureAwait(false);
 
                     bool done = false;
                     lock (_mutex)
@@ -345,7 +345,6 @@ public sealed class Server : IAsyncDisposable
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
             // We don't log AcceptAsync exceptions; they usually occur when the server is shutting down.
-            Debug.Assert(remoteNetworkAddress != null);
             ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
             return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
         }
