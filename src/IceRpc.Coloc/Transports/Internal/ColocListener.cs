@@ -36,11 +36,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         // eventually increase this size by providing a PipeOptions instance to the Pipe construction.
         var localPipe = new Pipe(new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize));
         var remotePipe = new Pipe(_pipeOptions);
-        try
-        {
-            _queue.Enqueue((localPipe.Reader, remotePipe.Writer));
-        }
-        catch (ObjectDisposedException)
+        if (!_queue.Enqueue((localPipe.Reader, remotePipe.Writer)))
         {
             throw new TransportException(TransportErrorCode.ConnectionRefused);
         }

@@ -39,7 +39,8 @@ internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
 
     /// <summary>Enqueues a new element.</summary>
     /// <param name="value">The value of the element to enqueue.</param>
-    internal void Enqueue(T value) => _queue.Enqueue(value);
+    /// <returns><c>true</c> if the element is enqueued, <c>false</c> otherwise if the queue is completed.</returns>
+    internal bool Enqueue(T value) => _queue.Enqueue(value);
 
     /// <summary>Attempts to mark the queue as being completed, meaning no more elements will be queued. The
     /// exception will be raised by <see cref="Enqueue"/> if it's called after this call. It will also be called by
