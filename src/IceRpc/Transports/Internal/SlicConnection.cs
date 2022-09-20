@@ -238,7 +238,6 @@ internal class SlicConnection : IMultiplexedConnection
         _readFramesTask = Task.Run(
             async () =>
             {
-                OperationCanceledException? oce = null;
                 try
                 {
                     // Read frames. This will return when the Close frame is received.
