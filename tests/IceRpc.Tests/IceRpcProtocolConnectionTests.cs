@@ -33,9 +33,8 @@ public sealed class IceRpcProtocolConnectionTests
     {
         get
         {
-            yield return new TestCaseData(new InvalidDataException(""), (ulong)IceRpcStreamErrorCode.InvalidData);
             yield return new TestCaseData(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)99), 99ul);
-            yield return new TestCaseData(new OperationCanceledException(), IceRpcStreamErrorCode.Unspecified);
+            yield return new TestCaseData(new OperationCanceledException(), IceRpcStreamErrorCode.Canceled);
         }
     }
 
@@ -161,7 +160,6 @@ public sealed class IceRpcProtocolConnectionTests
         });
     }
 
-    [Ignore("see issue #1656")]
     [Test]
     public async Task Invocation_cancellation_triggers_incoming_request_payload_read_exception()
     {
@@ -215,7 +213,6 @@ public sealed class IceRpcProtocolConnectionTests
         });
     }
 
-    [Ignore("see issue #1638")]
     [Test, TestCaseSource(nameof(PayloadStreamReadExceptions))]
     public async Task Invocation_PayloadStream_failure_triggers_incoming_request_payload_stream_read_exception(
         Exception exception,
@@ -226,7 +223,7 @@ public sealed class IceRpcProtocolConnectionTests
         var dispatcher = new InlineDispatcher(
             (request, cancellationToken) =>
             {
-                remotePayloadTcs.SetResult(request.Payload);
+                remotePayloadTcs.SetResult(request.DetachPayload());
                 return new(new OutgoingResponse(request));
             });
 
@@ -238,7 +235,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Use initial payload data to ensure the request is sent before the payload reader blocks (Slic sends the
         // request header with the start of the payload so if the first ReadAsync blocks, the request header is not
         // sent).
-        var payloadStream = new HoldPipeReader(Array.Empty<byte>());
+        var payloadStream = new HoldPipeReader(new byte[10]);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             PayloadStream = payloadStream
@@ -250,8 +247,27 @@ public sealed class IceRpcProtocolConnectionTests
         payloadStream.SetReadException(exception);
 
         // Assert
-        var streamException = Assert.ThrowsAsync<IceRpcProtocolStreamException>(
-            async () => await remotePayload.ReadAsync());
+        IceRpcProtocolStreamException? streamException = null;
+        try
+        {
+            // The failure to read the remote payload is timing dependent. ReadAsync might return with the 10 bytes
+            // initial payload and then fail or directly fail.
+
+            ReadResult result = await remotePayload.ReadAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.IsCompleted, Is.False);
+                Assert.That(result.Buffer, Has.Length.EqualTo(10));
+            });
+            remotePayload.AdvanceTo(result.Buffer.End);
+            await remotePayload.ReadAsync();
+        }
+        catch (IceRpcProtocolStreamException ex)
+        {
+            streamException = ex;
+        }
+
+        Assert.That(streamException, Is.Not.Null);
         Assert.That(streamException!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)expectedErrorCode));
     }
 
