@@ -233,9 +233,13 @@ public sealed class Server : IAsyncDisposable
             }
             catch (ObjectDisposedException)
             {
+                // The AcceptAsync call can fail with ObjectDisposedException during shutdown once the listener is
+                // disposed.
             }
             catch (OperationCanceledException)
             {
+                // The AcceptAsync call can fail with OperationCanceledException during shutdown once the shutdown
+                // cancellation token is canceled.
             }
             catch (Exception exception)
             {

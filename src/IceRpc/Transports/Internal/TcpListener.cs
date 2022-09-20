@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -35,7 +36,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             }
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
-                // Dispose has been called
+                Debug.Assert(cancellationToken.IsCancellationRequested);
                 cancellationToken.ThrowIfCancellationRequested();
                 throw exception.ToTransportException();
             }
