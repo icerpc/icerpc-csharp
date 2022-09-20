@@ -273,8 +273,18 @@ internal class TcpClientConnection : TcpConnection
 
             if (_authenticationOptions is not null)
             {
-                // This can only be created with a connected socket.
-                _sslStream = new SslStream(new NetworkStream(Socket, false), false);
+                try
+                {
+                    _sslStream = new SslStream(new NetworkStream(Socket, false), false);
+                }
+                catch (IOException) when (!Socket.Connected)
+                {
+                    // For some reasons the stream construction can fail because the socket is no longer connected when
+                    // ConnectAsync is canceled and even though Socket.ConnectAsync returned successfully. See
+                    // https://github.com/dotnet/runtime/issues/75889.
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
+                }
 
                 await _sslStream.AuthenticateAsClientAsync(
                     _authenticationOptions,
