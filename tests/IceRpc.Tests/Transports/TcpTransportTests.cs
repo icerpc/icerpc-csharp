@@ -185,7 +185,7 @@ public class TcpTransportTests
         // Act
         while (true)
         {
-            using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+            using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             try
             {
                 IDuplexConnection clientConnection = clientTransport.CreateConnection(
