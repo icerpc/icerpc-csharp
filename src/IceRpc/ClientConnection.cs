@@ -147,6 +147,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (ObjectDisposedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
+        {
+            // Try again once with the new connection
+            return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+        }
         catch (ConnectionClosedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
         {
             // Try again once with the new connection
