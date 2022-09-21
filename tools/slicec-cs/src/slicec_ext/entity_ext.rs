@@ -38,6 +38,8 @@ pub trait EntityExt: Entity {
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.
     fn scoped_interface_name(&self, current_namepsace: &str) -> String;
 
+    fn obsolete_attribute(&self, check_parent: bool) -> Option<String>;
+
     /// The helper name
     fn helper_name(&self, current_namespace: &str) -> String;
 
@@ -163,6 +165,17 @@ where
             })
             .collect::<Vec<_>>()
             .join(".")
+    }
+
+    fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
+        self.get_deprecation(check_parent).map(|attribute| {
+            let reason = if let Some(argument) = attribute {
+                argument.to_owned()
+            } else {
+                format!("This {} has been deprecated", self.kind())
+            };
+            format!(r#"global::System.Obsolete("{}")"#, reason)
+        })
     }
 
     fn type_id_attribute(&self) -> String {
