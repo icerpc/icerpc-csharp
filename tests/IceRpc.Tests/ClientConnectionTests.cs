@@ -97,7 +97,6 @@ public class ClientConnectionTests
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
-    [Repeat(500)]
     public async Task Connection_invoke_reconnect_after_underlying_connection_shutdown(Protocol protocol)
     {
         // Arrange
