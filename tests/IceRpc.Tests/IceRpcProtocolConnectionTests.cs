@@ -164,7 +164,8 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Invocation_cancellation_triggers_incoming_request_payload_read_exception()
     {
         // Arrange
-        var dispatchTcs = new TaskCompletionSource();
+        var dispatchTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var dispatchCompleteTcs = new TaskCompletionSource();
         var dispatcher = new InlineDispatcher(
             async (request, cancellationToken) =>
             {
@@ -174,12 +175,13 @@ public sealed class IceRpcProtocolConnectionTests
                     while (true)
                     {
                         ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
+                        dispatchTcs.TrySetResult();
                         request.Payload.AdvanceTo(result.Buffer.End);
                     }
                 }
                 catch (Exception ex)
                 {
-                    dispatchTcs.SetException(ex);
+                    dispatchCompleteTcs.SetException(ex);
                 }
                 return new OutgoingResponse(request);
             });
@@ -199,13 +201,13 @@ public sealed class IceRpcProtocolConnectionTests
         };
         using var cts = new CancellationTokenSource();
         Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
-        await payload.ReadStart;
+        await dispatchTcs.Task;
 
         // Act
         cts.Cancel();
 
         // Assert
-        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchTcs.Task);
+        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchCompleteTcs.Task);
         Assert.Multiple(() =>
         {
             Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
@@ -808,12 +810,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     private class HoldPipeReader : PipeReader
     {
-        internal Task ReadStart => _readStartTcs.Task;
-
         private byte[] _initialData;
-
-        private readonly TaskCompletionSource _readStartTcs =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private readonly TaskCompletionSource<ReadResult> _readTcs =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -835,8 +832,6 @@ public sealed class IceRpcProtocolConnectionTests
 
         public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
         {
-            _readStartTcs.TrySetResult();
-
             if (_initialData.Length > 0)
             {
                 var buffer = new ReadOnlySequence<byte>(_initialData);

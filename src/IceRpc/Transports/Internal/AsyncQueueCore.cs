@@ -75,7 +75,7 @@ internal struct AsyncQueueCore<T>
         }
     }
 
-    internal void Enqueue(T value)
+    internal bool Enqueue(T value)
     {
         bool lockTaken = false;
         try
@@ -97,10 +97,11 @@ internal struct AsyncQueueCore<T>
                     _queue ??= new();
                     _queue.Enqueue(value);
                 }
+                return true;
             }
             else
             {
-                throw _exception;
+                return false;
             }
         }
         finally
@@ -139,7 +140,7 @@ internal struct AsyncQueueCore<T>
                 throw ExceptionUtil.Throw(_exception);
             }
 
-            // Reseting the source must be done with the lock held because other threads are checking the source
+            // Resetting the source must be done with the lock held because other threads are checking the source
             // status to figure out whether or not to set another result or exception on the source.
             _source.Reset();
 

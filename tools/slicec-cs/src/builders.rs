@@ -79,7 +79,7 @@ pub trait AttributeBuilder {
     /// Adds multiple "container" attributes.
     /// - The obsolete attribute
     /// - Any custom attributes
-    fn add_container_attributes(&mut self, container: &dyn Attributable) -> &mut Self {
+    fn add_container_attributes(&mut self, container: &dyn Entity) -> &mut Self {
         if let Some(attribute) = container.obsolete_attribute(false) {
             self.add_attribute(&attribute);
         }

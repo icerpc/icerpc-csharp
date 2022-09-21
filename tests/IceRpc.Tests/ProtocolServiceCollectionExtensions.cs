@@ -53,7 +53,11 @@ internal interface IClientServerProtocolConnection
     IProtocolConnection Client { get; }
     IProtocolConnection Server { get; }
 
+    /// <summary>Establishes a client connection and accepts the server connection.</summary>
     Task ConnectAsync();
+
+    /// <summary>Accepts the server connection only.</summary>
+    Task AcceptAsync();
 }
 
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also ensures
@@ -74,9 +78,14 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
     public async Task ConnectAsync()
     {
         Task clientProtocolConnectionTask = Client.ConnectAsync(CancellationToken.None);
+        await AcceptAsync();
+        await clientProtocolConnectionTask;
+    }
+
+    public async Task AcceptAsync()
+    {
         _server = await _acceptServerConnectionAsync();
         await _server.ConnectAsync(CancellationToken.None);
-        await clientProtocolConnectionTask;
     }
 
     public void Dispose()
