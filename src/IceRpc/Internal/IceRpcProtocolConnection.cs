@@ -365,7 +365,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException($"received icerpc response with empty header");
+                throw new InvalidDataException("received icerpc response with empty header");
             }
 
             (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
