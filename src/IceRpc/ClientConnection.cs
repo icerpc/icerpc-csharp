@@ -147,15 +147,23 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
+        catch (ObjectDisposedException)
         {
-            // Try again once with the new connection
-            return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            if (RefreshConnection(connection) is IProtocolConnection newConnection)
+            {
+                // Try again once with the new connection
+                return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            }
+            throw;
         }
-        catch (ConnectionClosedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
+        catch (ConnectionClosedException)
         {
-            // Try again once with the new connection
-            return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            if (RefreshConnection(connection) is IProtocolConnection newConnection)
+            {
+                // Try again once with the new connection
+                return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            }
+            throw;
         }
     }
 
@@ -218,15 +226,23 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
-            catch (ObjectDisposedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
+            catch (ObjectDisposedException)
             {
-                // try again once with the new connection
-                return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                if (RefreshConnection(connection) is IProtocolConnection newConnection)
+                {
+                    // try again once with the new connection
+                    return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                }
+                throw;
             }
-            catch (ConnectionClosedException) when (RefreshConnection(connection) is IProtocolConnection newConnection)
+            catch (ConnectionClosedException)
             {
-                // try again once with the new connection
-                return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                if (RefreshConnection(connection) is IProtocolConnection newConnection)
+                {
+                    // try again once with the new connection
+                    return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                }
+                throw;
             }
         }
     }
