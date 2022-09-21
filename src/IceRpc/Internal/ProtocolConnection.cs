@@ -128,8 +128,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
                 try
                 {
-                    // Cancel the connection establishment if still in progress.
-                    _connectCts!.Cancel();
+                    // Wait for the connection establishment to complete. DisposeAsync performs a graceful shutdown of
+                    // the connection so we don't cancel it. Cancelling connection establishment could end up aborting
+                    // the connection on the peer if its ConnectAsync completed successfully.
                     _ = await _connectTask.ConfigureAwait(false);
                 }
                 catch
