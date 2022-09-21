@@ -345,7 +345,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
             }
-            throw _dispatchesAndInvocationsCanceledException ?? exception;
+            if (_dispatchesAndInvocationsCanceledException != null)
+            {
+                throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
+            }
+            throw;
         }
 
         try
@@ -381,7 +385,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (Exception exception)
         {
             await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-            throw _dispatchesAndInvocationsCanceledException ?? exception;
+            if (_dispatchesAndInvocationsCanceledException != null)
+            {
+                throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
+            }
+            throw;
         }
 
         void EncodeHeader(PipeWriter writer)
