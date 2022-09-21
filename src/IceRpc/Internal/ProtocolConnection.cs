@@ -83,9 +83,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    if (_disposeTask is not null)
+                    Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
+                    if (_shutdownTask is not null && (_shutdownTask.IsCanceled || _shutdownTask.IsFaulted))
                     {
-                        throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
+                        throw new ConnectionAbortedException(ConnectionAbortedErrorCode.ShutdownFailed);
                     }
                     else
                     {
@@ -128,8 +129,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
                 try
                 {
-                    // Cancel the connection establishment if still in progress.
-                    _connectCts!.Cancel();
+                    // Wait for the connection establishment to complete. DisposeAsync performs a graceful shutdown of
+                    // the connection so we don't cancel it. Cancelling connection establishment could end up aborting
+                    // the connection on the peer if its ConnectAsync completed successfully.
                     _ = await _connectTask.ConfigureAwait(false);
                 }
                 catch
@@ -257,6 +259,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 var exception = new ConnectionAbortedException(ConnectionAbortedErrorCode.ShutdownCanceled);
                 _shutdownTask ??= Task.FromException(exception);
                 _ = _shutdownCompleteSource.TrySetException(exception);
+                _connectCts?.Cancel();
                 _shutdownCts.Cancel();
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -395,6 +398,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 exception = new ConnectionAbortedException(ConnectionAbortedErrorCode.ConnectCanceled);
             }
 
+            _connectCts?.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);
             throw exception;
         }
@@ -405,6 +409,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     ConnectionAbortedErrorCode.ShutdownFailed :
                     ConnectionAbortedErrorCode.ConnectFailed,
                 ex);
+            _connectCts?.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);
             throw exception;
         }
