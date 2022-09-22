@@ -30,8 +30,8 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         }
         catch (ObjectDisposedException)
         {
-            // The duplex connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
+            // The duplex connection can only be disposed if this connection is disposed.
+            throw new ConnectionException(ConnectionErrorCode.OperationCanceled);
         }
         return default;
     }
@@ -50,7 +50,7 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         catch (ObjectDisposedException)
         {
             // The duplex connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
+            throw new ConnectionException(ConnectionErrorCode.OperationCanceled);
         }
         return default;
     }
@@ -69,7 +69,7 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         catch (ObjectDisposedException)
         {
             // The duplex connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
+            throw new ConnectionException(ConnectionErrorCode.OperationCanceled);
         }
         return default;
     }

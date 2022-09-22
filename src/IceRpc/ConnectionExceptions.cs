@@ -1,132 +1,58 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc;
 
-/// <summary>The possible error codes carried by a <see cref="ConnectFailedException"/>. The error code specifies the
-/// reason of the connection establishment failure.</summary>
-public enum ConnectFailedErrorCode
+/// <summary>The possible error codes carried by a <see cref="ConnectionException"/>. The error code specifies the
+/// reason of the connection failure.</summary>
+public enum ConnectionErrorCode
 {
-    /// <summary>The connection establishment was canceled.</summary>
-    Canceled,
-
     /// <summary>The connection establishment was refused by the server.</summary>
-    Refused,
+    ConnectRefused,
 
-    /// <summary>The connection establishment failed with an unspecified transport error.</summary>
-    Unspecified,
+    /// <summary>The connection is closed because of a previous transport error or because it was shutdown or
+    /// idle.</summary>
+    Closed,
+
+    /// <summary>The connection establishment, shutdown or disposal triggered triggered the cancellation of the
+    /// operation.</summary>
+    OperationCanceled,
+
+    /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
+    /// cref="Exception.InnerException"/> is set to the <see cref="TransportException"/> that triggered the
+    /// error.</summary>
+    TransportError,
+
+    /// <summary>The connection establishment or shutdown failed because of an unexpected error. The <see
+    /// cref="Exception.InnerException"/> is set to the exception that triggered the error.</summary>
+    Unexpected,
 }
 
 /// <summary>This exception reports a failed attempt to establish a connection.</summary>
-public class ConnectFailedException : Exception
+public class ConnectionException : Exception
 {
     /// <summary>Gets the connect failed error code.</summary>
-    public ConnectFailedErrorCode ErrorCode { get; }
+    public ConnectionErrorCode ErrorCode { get; }
 
-    /// <summary>Constructs a new instance of the <see cref="ConnectFailedException"/> class with a specified error
+    /// <summary>Constructs a new instance of the <see cref="ConnectionException"/> class with a specified error
     /// code.</summary>
     /// <param name="errorCode">The error code.</param>
-    public ConnectFailedException(ConnectFailedErrorCode errorCode)
-        : base($"{nameof(ConnectFailedException)} {{ ErrorCode = {errorCode} }}") => ErrorCode = errorCode;
+    public ConnectionException(ConnectionErrorCode errorCode)
+        : base($"{nameof(ConnectionException)} {{ ErrorCode = {errorCode} }}") => ErrorCode = errorCode;
 
-    /// <summary>Constructs a new instance of the <see cref="ConnectFailedException"/> class with a specified error
-    /// code and inner exception.</summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public ConnectFailedException(ConnectFailedErrorCode errorCode, Exception? innerException)
-        : base($"{nameof(ConnectFailedException)} {{ ErrorCode = {errorCode} }}", innerException) =>
-        ErrorCode = errorCode;
-}
-
-/// <summary>The possible error codes carried by a <see cref="ConnectionAbortedException"/>. The error code specifies
-/// the reason of the connection abortion.</summary>
-public enum ConnectionAbortedErrorCode
-{
-    /// <summary>The connection establishment was canceled.</summary>
-    ConnectCanceled,
-
-    /// <summary>The connection establishment failed.</summary>
-    ConnectFailed,
-
-    /// <summary>The connection shutdown was canceled.</summary>
-    ShutdownCanceled,
-
-    /// <summary>The connection shutdown failed.</summary>
-    ShutdownFailed,
-
-    /// <summary>The connection was disposed.</summary>
-    Disposed,
-}
-
-/// <summary>This exception indicates that a connection operation was aborted.</summary>
-public class ConnectionAbortedException : Exception
-{
-    /// <summary>Gets the connection closed error code.</summary>
-    public ConnectionAbortedErrorCode ErrorCode { get; }
-
-    /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class with a specified error
-    /// code.</summary>
-    /// <param name="errorCode">The error code.</param>
-    public ConnectionAbortedException(ConnectionAbortedErrorCode errorCode)
-        : base($"{nameof(ConnectionAbortedException)} {{ ErrorCode = {errorCode} }}") => ErrorCode = errorCode;
-
-    /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class with a specified
-    /// error code and message.</summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <param name="message">The message that describes the error.</param>
-    public ConnectionAbortedException(ConnectionAbortedErrorCode errorCode, string message)
-        : base(message) => ErrorCode = errorCode;
-
-    /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class with a specified
-    /// error code and inner exception.</summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public ConnectionAbortedException(ConnectionAbortedErrorCode errorCode, Exception? innerException)
-        : base($"{nameof(ConnectionAbortedException)} {{ ErrorCode = {errorCode} }}", innerException) =>
-        ErrorCode = errorCode;
-}
-
-/// <summary>The possible error codes carried by a <see cref="ConnectionClosedException"/>. The error code specifies the
-/// reason of the connection closure.</summary>
-public enum ConnectionClosedErrorCode
-{
-    /// <summary>The connection was idle.</summary>
-    Idle,
-
-    /// <summary>The connection was lost.</summary>
-    Lost,
-
-    /// <summary>The connection was shutdown.</summary>
-    Shutdown,
-
-    /// <summary>The connection was shutdown by the peer.</summary>
-    ShutdownByPeer,
-}
-
-/// <summary>This exception indicates that a previous established connection is closed. It is safe to retry a request
-/// that failed with this exception.</summary>
-public class ConnectionClosedException : Exception
-{
-    /// <summary>Gets the connection closed error code.</summary>
-    public ConnectionClosedErrorCode ErrorCode { get; }
-
-    /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified error
-    /// code.</summary>
-    /// <param name="errorCode">The error code.</param>
-    public ConnectionClosedException(ConnectionClosedErrorCode errorCode)
-        : base($"{nameof(ConnectionClosedException)} {{ ErrorCode = {errorCode} }}") => ErrorCode = errorCode;
-
-    /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified error
-    /// code and message.</summary>
+    /// <summary>Constructs a new instance of the <see cref="ConnectionException"/> class with a specified error code
+    /// and message.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="message">The message.</param>
-    public ConnectionClosedException(ConnectionClosedErrorCode errorCode, string message)
+    public ConnectionException(ConnectionErrorCode errorCode, string message)
         : base(message) => ErrorCode = errorCode;
 
-    /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified error
+    /// <summary>Constructs a new instance of the <see cref="ConnectionException"/> class with a specified error
     /// code and inner exception.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public ConnectionClosedException(ConnectionClosedErrorCode errorCode, Exception innerException)
-        : base($"{nameof(ConnectionClosedException)} {{ ErrorCode = {errorCode} }}", innerException) =>
+    public ConnectionException(ConnectionErrorCode errorCode, Exception? innerException)
+        : base($"{nameof(ConnectionException)} {{ ErrorCode = {errorCode} }}", innerException) =>
         ErrorCode = errorCode;
 }

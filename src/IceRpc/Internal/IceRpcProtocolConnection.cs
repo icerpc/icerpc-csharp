@@ -101,7 +101,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (_streams.Count == 0)
             {
                 _isReadOnly = true;
-                ConnectionClosedException = new(ConnectionClosedErrorCode.Idle);
+                ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was idle");
                 return true;
             }
             else
@@ -115,65 +115,49 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancellationToken)
     {
         // Connect the transport connection
-        TransportConnectionInformation transportConnectionInformation;
-        try
-        {
-            transportConnectionInformation = await _transportConnection.ConnectAsync(
-                cancellationToken).ConfigureAwait(false);
+        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(
+            cancellationToken).ConfigureAwait(false);
 
-            // This needs to be set before starting the accept requests task bellow.
-            _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+        // This needs to be set before starting the accept requests task bellow.
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-            _controlStream = _transportConnection.CreateStream(false);
+        _controlStream = _transportConnection.CreateStream(false);
 
-            var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
-                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
-                    new Dictionary<IceRpcSettingKey, ulong>
-                    {
-                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
-                    });
+        var settings = new IceRpcSettings(
+            _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                new Dictionary<IceRpcSettingKey, ulong>
+                {
+                    [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                });
 
-            await SendControlFrameAsync(
-                IceRpcControlFrameType.Settings,
-                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
-                endStream: false,
-                cancellationToken).ConfigureAwait(false);
+        await SendControlFrameAsync(
+            IceRpcControlFrameType.Settings,
+            (ref SliceEncoder encoder) => settings.Encode(ref encoder),
+            endStream: false,
+            cancellationToken).ConfigureAwait(false);
 
-            // Wait for the remote control stream to be accepted and read the protocol Settings frame
-            _remoteControlStream = await _transportConnection.AcceptStreamAsync(
-                cancellationToken).ConfigureAwait(false);
+        // Wait for the remote control stream to be accepted and read the protocol Settings frame
+        _remoteControlStream = await _transportConnection.AcceptStreamAsync(
+            cancellationToken).ConfigureAwait(false);
 
-            await ReceiveControlFrameHeaderAsync(
-                IceRpcControlFrameType.Settings,
-                cancellationToken).ConfigureAwait(false);
+        await ReceiveControlFrameHeaderAsync(
+            IceRpcControlFrameType.Settings,
+            cancellationToken).ConfigureAwait(false);
 
-            await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (TransportException exception) when (
-            exception.ApplicationErrorCode is ulong errorCode &&
-            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
-        {
-            throw new ConnectFailedException(ConnectFailedErrorCode.Refused);
-        }
-        catch (Exception exception)
-        {
-            throw new ConnectFailedException(ConnectFailedErrorCode.Unspecified, exception);
-        }
+        await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.
         _readGoAwayTask = Task.Run(
             async () =>
             {
                 CancellationToken cancellationToken = _tasksCts.Token;
-                await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancellationToken).ConfigureAwait(false);
+                await ReceiveControlFrameHeaderAsync(
+                    IceRpcControlFrameType.GoAway,
+                    cancellationToken).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
 
-                InitiateShutdown(goAwayFrame.Message, ConnectionClosedErrorCode.ShutdownByPeer);
+                InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
             },
             CancellationToken.None);
@@ -199,7 +183,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             return; // already closing or closed
                         }
 
-                        ConnectionClosedException = new(ConnectionClosedErrorCode.Lost, exception);
+                        ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was lost");
                     }
 
                     ConnectionLost(exception);
@@ -280,7 +264,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndInvocations(new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed));
+        CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationCanceled));
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
