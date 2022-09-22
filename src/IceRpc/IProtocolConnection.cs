@@ -27,14 +27,11 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionException"/>if the connection establishment failed.</description></item>
-    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException"/>if this connection attempt or a previous attempt exceeded <see
-    /// cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionException">Thrown if the connection is in a failed state.</exception>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
@@ -45,14 +42,13 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionException"/>if the connection shutdown failed.</description></item>
-    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException"/>if this shutdown attempt or a previous attempt exceeded
     /// <see cref="ConnectionOptions.ShutdownTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionException">Thrown if the connection is in a failed state.</exception>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task ShutdownAsync(string message, CancellationToken cancellationToken = default);
 }

@@ -74,6 +74,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
+            string? failureReason = null;
             try
             {
                 TransportConnectionInformation information = await ConnectAsyncCore(_connectCts.Token)
@@ -83,17 +84,23 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    failureReason = "the connection establishment was canceled";
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
 
                 lock (_mutex)
                 {
                     Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
                     if (_shutdownTask is not null && (_shutdownTask.IsCanceled || _shutdownTask.IsFaulted))
                     {
+                        failureReason = "the connection establishment was canceled by shutdown";
                         throw new ConnectionException(ConnectionErrorCode.OperationCanceled);
                     }
                     else
                     {
+                        failureReason = "the connection establishment timed out";
                         throw new TimeoutException(
                             $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
                     }
@@ -103,15 +110,25 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 exception.ApplicationErrorCode is ulong errorCode &&
                 errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
             {
+                failureReason = "the connection establishment was refused";
                 throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
             }
             catch (TransportException exception)
             {
+                failureReason = "the connection establishment failed";
                 throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
             }
             catch (Exception exception)
             {
+                failureReason = "the connection establishment failed";
                 throw new ConnectionException(ConnectionErrorCode.Unexpected, exception);
+            }
+            finally
+            {
+                if (failureReason is not null)
+                {
+                    ConnectionClosedException = new(ConnectionErrorCode.Closed, failureReason);
+                }
             }
         }
     }
@@ -176,7 +193,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     // The connection establishment failed.
                     // TODO: Should _shutdownCompleteSource be completed by ConnectAsync rather than completing it
                     // only when ShutdownAsync or DisposeAsync are called?
-                    _ = _shutdownCompleteSource.TrySetException(new ConnectionException(ConnectionErrorCode.Closed));
+                    Debug.Assert(ConnectionClosedException is not null);
+                    _ = _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 }
             }
 
@@ -252,9 +270,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 // The connection establishment failed.
                 // TODO: Should _shutdownCompleteSource be completed by ConnectAsync rather than completing it
                 // only when ShutdownAsync or DisposeAsync are called?
-                var exception = new ConnectionException(ConnectionErrorCode.Closed);
-                _ = _shutdownCompleteSource.TrySetException(exception);
-                throw exception;
+                Debug.Assert(ConnectionClosedException is not null);
+                _ = _shutdownCompleteSource.TrySetException(ConnectionClosedException);
+                throw ConnectionClosedException;
             }
 
             ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was shutdown");
