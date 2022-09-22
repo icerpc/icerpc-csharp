@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -53,5 +54,56 @@ public class ServerTests
 
         // Assert
         Assert.That(server.ServerAddress.Transport, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Connections_refused_after_max_is_reached([Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        // var colocTransport = new ColocTransport();
+        await using var server = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                MaxConnections = 1,
+                ServerAddress = new ServerAddress(Protocol.Parse(protocol)),
+            });
+
+        server.Listen();
+
+        await using var connection1 = new ClientConnection(
+            new ClientConnectionOptions
+            {
+                ServerAddress = server.ServerAddress,
+            });
+
+        await using var connection2 = new ClientConnection(
+            new ClientConnectionOptions
+            {
+                ServerAddress = server.ServerAddress,
+            });
+
+        await connection1.ConnectAsync();
+
+        // Assert
+        switch (protocol)
+        {
+            case "ice":
+            {
+                TransportException? exception = Assert.ThrowsAsync<TransportException>(
+                    () => connection2.ConnectAsync());
+                Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+                break;
+            }
+
+            case "icerpc":
+            {
+                ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
+                    () => connection2.ConnectAsync());
+                Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));
+                break;
+            }
+        }
     }
 }

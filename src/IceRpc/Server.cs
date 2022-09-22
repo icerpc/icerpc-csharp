@@ -28,6 +28,8 @@ public sealed class Server : IAsyncDisposable
 
     private readonly Func<IListener<IProtocolConnection>> _listenerFactory;
 
+    private readonly int _maxConnections;
+
     // protects _listener and _connections
     private readonly object _mutex = new();
 
@@ -57,6 +59,7 @@ public sealed class Server : IAsyncDisposable
         _serverAddress = options.ServerAddress;
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
+        _maxConnections = options.MaxConnections;
 
         if (_serverAddress.Transport is null)
         {
@@ -228,23 +231,30 @@ public sealed class Server : IAsyncDisposable
                     (IProtocolConnection connection, _) =
                         await listener.AcceptAsync(shutdownCancellationToken).ConfigureAwait(false);
 
-                    bool done = false;
+                    Func<Task>? doneWithConnection = null;
                     lock (_mutex)
                     {
                         // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
-                            done = true;
+                            doneWithConnection = () => connection.DisposeAsync().AsTask();
+                        }
+                        else if (_maxConnections > 0 && _connections.Count == _maxConnections)
+                        {
+                            // We have too many connections and can't accept any more.
+                            // Reject the underlying transport connection by ShuttingDown the protocol connection.
+                            doneWithConnection = () => connection.ShutdownAsync(
+                                "connection refused: server has too many connections", shutdownCancellationToken);
                         }
                         else
                         {
-                            _ = _connections.Add(connection);
+                            _connections.Add(connection);
                         }
                     }
 
-                    if (done)
+                    if (doneWithConnection is Func<Task> done)
                     {
-                        await connection.DisposeAsync().ConfigureAwait(false);
+                        await done().ConfigureAwait(false);
                     }
                     else
                     {
