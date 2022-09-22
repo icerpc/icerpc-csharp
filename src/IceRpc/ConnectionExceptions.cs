@@ -11,28 +11,26 @@ public enum ConnectionErrorCode
     /// <summary>The connection establishment was refused by the server.</summary>
     ConnectRefused,
 
-    /// <summary>The connection is closed because of a previous transport error or because it was shutdown or
-    /// idle.</summary>
+    /// <summary>The connection is closed.</summary>
     Closed,
 
-    /// <summary>The connection establishment, shutdown or disposal triggered triggered the cancellation of the
-    /// operation.</summary>
+    /// <summary>The connection establishment, shutdown or disposal caused the cancellation of the operation.</summary>
     OperationCanceled,
 
     /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
-    /// cref="Exception.InnerException"/> is set to the <see cref="TransportException"/> that triggered the
+    /// cref="Exception.InnerException"/> is set to the <see cref="TransportException"/> that caused the
     /// error.</summary>
     TransportError,
 
     /// <summary>The connection establishment or shutdown failed because of an unexpected error. The <see
-    /// cref="Exception.InnerException"/> is set to the exception that triggered the error.</summary>
+    /// cref="Exception.InnerException"/> is set to the exception that caused the error.</summary>
     Unexpected,
 }
 
-/// <summary>This exception reports a failed attempt to establish a connection.</summary>
+/// <summary>This exception reports a connection failure.</summary>
 public class ConnectionException : Exception
 {
-    /// <summary>Gets the connect failed error code.</summary>
+    /// <summary>Gets the connection error code.</summary>
     public ConnectionErrorCode ErrorCode { get; }
 
     /// <summary>Constructs a new instance of the <see cref="ConnectionException"/> class with a specified error

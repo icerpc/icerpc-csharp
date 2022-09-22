@@ -137,7 +137,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionException">Thrown if the connection is in a failed state.</exception>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
