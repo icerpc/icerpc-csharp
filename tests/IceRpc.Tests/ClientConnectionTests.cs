@@ -96,6 +96,27 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Connection_invoke_reconnect_after_underlying_connection_shutdown(Protocol protocol)
+    {
+        // Arrange
+        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri($"{protocol.Name}://127.0.0.1:0"));
+        server.Listen();
+        ServerAddress serverAddress = server.ServerAddress;
+        await using var connection = new ClientConnection(serverAddress);
+        await connection.ConnectAsync();
+        await server.DisposeAsync();
+        server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
+        server.Listen();
+
+        var request = new OutgoingRequest(new ServiceAddress(protocol));
+
+        // Act/Assert
+        Assert.That(async () => await connection.InvokeAsync(request), Throws.Nothing);
+
+        await server.DisposeAsync();
+    }
+
     /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connection_server_address_transport_property_is_set(Protocol protocol)
