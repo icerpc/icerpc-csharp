@@ -33,9 +33,9 @@ internal sealed class IceProtocolListener : ProtocolListener<IDuplexConnection>
     private readonly ConnectionOptions _connectionOptions;
 
     internal IceProtocolListener(
-        ServerOptions serverOptions,
+        ConnectionOptions connectionOptions,
         IListener<IDuplexConnection> listener)
-        : base(listener) => _connectionOptions = serverOptions.ConnectionOptions;
+        : base(listener) => _connectionOptions = connectionOptions;
 
     private protected override IProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
         new IceProtocolConnection(duplexConnection, isServer: true, _connectionOptions);
@@ -46,9 +46,9 @@ internal sealed class IceRpcProtocolListener : ProtocolListener<IMultiplexedConn
     private readonly ConnectionOptions _connectionOptions;
 
     internal IceRpcProtocolListener(
-        ServerOptions serverOptions,
+        ConnectionOptions connectionOptions,
         IListener<IMultiplexedConnection> listener)
-        : base(listener) => _connectionOptions = serverOptions.ConnectionOptions;
+        : base(listener) => _connectionOptions = connectionOptions;
 
     private protected override IProtocolConnection CreateProtocolConnection(
         IMultiplexedConnection multiplexedConnection) =>

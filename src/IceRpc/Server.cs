@@ -82,7 +82,7 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool,
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceProtocolListener(options, transportListener);
+                listener = new IceProtocolListener(options.ConnectionOptions, transportListener);
             }
             else
             {
@@ -98,7 +98,7 @@ public sealed class Server : IAsyncDisposable
                         StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceRpcProtocolListener(options, transportListener);
+                listener = new IceRpcProtocolListener(options.ConnectionOptions, transportListener);
             }
             return new LogListenerDecorator(listener);
         };
