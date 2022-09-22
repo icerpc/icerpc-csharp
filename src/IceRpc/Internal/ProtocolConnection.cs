@@ -46,19 +46,18 @@ internal abstract class ProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
+            if (_connectTask is not null)
+            {
+                throw new InvalidOperationException("unexpected second call to ConnectAsync");
+            }
+            else if (_disposeTask is not null)
             {
                 Debug.Assert(ConnectionClosedException is not null);
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
-            else if (_shutdownTask is not null)
+            else if (ConnectionClosedException is not null)
             {
-                Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
-            }
-            else if (_connectTask is not null)
-            {
-                throw new InvalidOperationException("unexpected second call to ConnectAsync");
             }
             else
             {
@@ -128,6 +127,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 if (failureReason is not null)
                 {
                     ConnectionClosedException = new(ConnectionErrorCode.Closed, failureReason);
+                    _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 }
             }
         }
@@ -147,7 +147,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was shutdown");
+            ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was disposed");
 
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
@@ -180,21 +180,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationCanceled));
                     }
 
-                    try
-                    {
-                        await _shutdownTask.ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                    }
+                    await _shutdownTask.ConfigureAwait(false);
                 }
                 catch
                 {
-                    // The connection establishment failed.
-                    // TODO: Should _shutdownCompleteSource be completed by ConnectAsync rather than completing it
-                    // only when ShutdownAsync or DisposeAsync are called?
-                    Debug.Assert(ConnectionClosedException is not null);
-                    _ = _shutdownCompleteSource.TrySetException(ConnectionClosedException);
+                    // The connection establishment or shutdown failed.
                 }
             }
 
@@ -222,9 +212,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 Debug.Assert(ConnectionClosedException is not null);
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
-            else if (_shutdownTask is not null)
+            else if (ConnectionClosedException is not null)
             {
-                Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
             }
             else if (_connectTask is null)
@@ -233,18 +222,17 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
         }
 
-        if (_connectTask.IsCompletedSuccessfully)
+        if (_connectTask.IsCompleted)
         {
             return InvokeAsyncCore(request, cancellationToken);
         }
-        else if (_connectTask.IsCompleted)
+        else if (IsServer)
         {
-            throw new InvalidOperationException("cannot call InvokeAsync after ConnectAsync failed");
+            return PerformInvokeAsync();
         }
         else
         {
-            return IsServer ? PerformInvokeAsync() :
-                throw new InvalidOperationException("cannot call InvokeAsync while connecting a client connection");
+            throw new InvalidOperationException("cannot call InvokeAsync while connecting a client connection");
         }
 
         async Task<IncomingResponse> PerformInvokeAsync()
@@ -265,13 +253,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 Debug.Assert(ConnectionClosedException is not null);
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
-            else if (_connectTask is not null && (_connectTask.IsCanceled || _connectTask.IsFaulted))
+            else if (ConnectionClosedException is not null)
             {
-                // The connection establishment failed.
-                // TODO: Should _shutdownCompleteSource be completed by ConnectAsync rather than completing it
-                // only when ShutdownAsync or DisposeAsync are called?
-                Debug.Assert(ConnectionClosedException is not null);
-                _ = _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 throw ConnectionClosedException;
             }
 

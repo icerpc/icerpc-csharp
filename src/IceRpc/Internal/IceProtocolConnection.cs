@@ -646,32 +646,35 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
         }
 
-        // Wait for dispatches and invocations to complete.
-        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        // Encode and write the CloseConnection frame once all the dispatches are done.
-        try
+        if (_readFramesTask is not null)
         {
-            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+            // Wait for dispatches and invocations to complete.
+            await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            // Encode and write the CloseConnection frame once all the dispatches are done.
             try
             {
-                EncodeCloseConnectionFrame(_duplexConnectionWriter);
-                await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    EncodeCloseConnectionFrame(_duplexConnectionWriter);
+                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _writeSemaphore.Release();
+                }
             }
-            finally
+            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
             {
-                _writeSemaphore.Release();
+                // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
             }
-        }
-        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
-        {
-            // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
-        }
 
-        // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
-        // closure here. We can't just return and close the underlying transport since this could abort the receive of
-        // the dispatch responses and close connection frame by the peer.
-        await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+            // connection closure here. We can't just return and close the underlying transport since this could abort
+            // the receive of the dispatch responses and close connection frame by the peer.
+            await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
         {

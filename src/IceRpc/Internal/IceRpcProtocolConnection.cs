@@ -417,7 +417,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         Debug.Assert(ConnectionClosedException is not null);
 
-        if (_readGoAwayTask is not null)
+        if (_readGoAwayTask is null)
+        {
+            // No streams or dispatches if the connection is not connected.
+            Debug.Assert(_streams.Count == 0 && _dispatchCount == 0);
+
+            // Calling shutdown before connect indicates that the connection establishment is refused.
+            await _transportConnection.CloseAsync(
+                (ulong)IceRpcConnectionErrorCode.Refused,
+                cancellationToken).ConfigureAwait(false);
+        }
+        else
         {
             // If the connection is connected, exchange go away frames with the peer.
 
@@ -473,16 +483,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Shutdown the transport and wait for the peer shutdown.
             await _transportConnection.CloseAsync(
                 (ulong)IceRpcConnectionErrorCode.NoError,
-                cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // No streams or dispatches if the connection is not connected.
-            Debug.Assert(_streams.Count == 0 && _dispatchCount == 0);
-
-            // Calling shutdown before connect indicates that the connection establishment is refused.
-            await _transportConnection.CloseAsync(
-                (ulong)IceRpcConnectionErrorCode.Refused,
                 cancellationToken).ConfigureAwait(false);
         }
     }

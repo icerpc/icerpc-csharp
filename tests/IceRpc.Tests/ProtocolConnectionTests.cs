@@ -836,7 +836,7 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+
         await sut.Client.ShutdownAsync("");
 
         // Act/Assert
@@ -856,31 +856,11 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+
         await sut.Client.DisposeAsync();
 
         // Act/Assert
         Assert.That(async () => await sut.Client.ConnectAsync(default), Throws.TypeOf<ObjectDisposedException>());
-    }
-
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connect_throws_connection_exception_after_shutdown_by_peer(Protocol protocol)
-    {
-        // Arrange
-        IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.ConnectTimeout = TimeSpan.FromSeconds(1));
-
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        await sut.Server.ShutdownAsync("");
-
-        // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
-            () => sut.Client.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]

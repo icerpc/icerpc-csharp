@@ -15,9 +15,9 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is shut down, aborted or lost.</summary>
+    /// <summary>Gets a task that completes when the connection is shut down or fails.</summary>
     /// <value>A task that completes with the shutdown message when the connection is successfully shut down. It
-    /// completes with an exception when the connection is aborted or lost.</value>
+    /// completes with an exception when the connection fails.</value>
     Task<string> ShutdownComplete { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>
@@ -29,6 +29,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <item><description><see cref="ConnectionException"/>if the connection establishment failed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
+    /// <item><description><see cref="TimeoutException"/>if the connection establishment attempt exceeded <see
+    /// cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
