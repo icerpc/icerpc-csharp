@@ -33,18 +33,9 @@ internal sealed class IceProtocolListener : ProtocolListener<IDuplexConnection>
     private readonly ConnectionOptions _connectionOptions;
 
     internal IceProtocolListener(
-        ServerAddress serverAddress,
         ServerOptions serverOptions,
-        IDuplexServerTransport duplexServerTransport)
-        : base(duplexServerTransport.Listen(
-            serverAddress,
-            new DuplexConnectionOptions
-            {
-                MinSegmentSize = serverOptions.ConnectionOptions.MinSegmentSize,
-                Pool = serverOptions.ConnectionOptions.Pool,
-            },
-            serverOptions.ServerAuthenticationOptions)) =>
-        _connectionOptions = serverOptions.ConnectionOptions;
+        IListener<IDuplexConnection> listener)
+        : base(listener) => _connectionOptions = serverOptions.ConnectionOptions;
 
     private protected override IProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
         new IceProtocolConnection(duplexConnection, isServer: true, _connectionOptions);
@@ -55,22 +46,9 @@ internal sealed class IceRpcProtocolListener : ProtocolListener<IMultiplexedConn
     private readonly ConnectionOptions _connectionOptions;
 
     internal IceRpcProtocolListener(
-        ServerAddress serverAddress,
         ServerOptions serverOptions,
-        IMultiplexedServerTransport multiplexedServerTransport)
-        : base(multiplexedServerTransport.Listen(
-            serverAddress,
-            new MultiplexedConnectionOptions
-            {
-                MaxBidirectionalStreams = serverOptions.ConnectionOptions.MaxIceRpcBidirectionalStreams,
-                // Add an additional stream for the icerpc protocol control stream.
-                MaxUnidirectionalStreams = serverOptions.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
-                MinSegmentSize = serverOptions.ConnectionOptions.MinSegmentSize,
-                Pool = serverOptions.ConnectionOptions.Pool,
-                StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
-            },
-            serverOptions.ServerAuthenticationOptions)) =>
-        _connectionOptions = serverOptions.ConnectionOptions;
+        IListener<IMultiplexedConnection> listener)
+        : base(listener) => _connectionOptions = serverOptions.ConnectionOptions;
 
     private protected override IProtocolConnection CreateProtocolConnection(
         IMultiplexedConnection multiplexedConnection) =>

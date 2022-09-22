@@ -67,10 +67,41 @@ public sealed class Server : IAsyncDisposable
             };
         }
 
-        _listenerFactory = () => new LogListenerDecorator(
-            _serverAddress.Protocol == Protocol.Ice ?
-                new IceProtocolListener(_serverAddress, options, duplexServerTransport) :
-                new IceRpcProtocolListener(_serverAddress, options, multiplexedServerTransport));
+        _listenerFactory = () =>
+        {
+            // This is the composition root for the protocol and transport listeners.
+
+            IListener<IProtocolConnection> listener;
+            if (_serverAddress.Protocol == Protocol.Ice)
+            {
+                IListener<IDuplexConnection> transportListener = duplexServerTransport.Listen(
+                    _serverAddress,
+                    new DuplexConnectionOptions
+                    {
+                        MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
+                        Pool = options.ConnectionOptions.Pool,
+                    },
+                    options.ServerAuthenticationOptions);
+                listener = new IceProtocolListener(options, transportListener);
+            }
+            else
+            {
+                IListener<IMultiplexedConnection> transportListener = multiplexedServerTransport.Listen(
+                    _serverAddress,
+                    new MultiplexedConnectionOptions
+                    {
+                        MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
+                        // Add an additional stream for the icerpc protocol control stream.
+                        MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
+                        MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
+                        Pool = options.ConnectionOptions.Pool,
+                        StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+                    },
+                    options.ServerAuthenticationOptions);
+                listener = new IceRpcProtocolListener(options, transportListener);
+            }
+            return new LogListenerDecorator(listener);
+        };
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
