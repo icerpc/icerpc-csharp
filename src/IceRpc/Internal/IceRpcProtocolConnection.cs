@@ -483,8 +483,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // Wait for dispatches and streams to complete and shutdown the connection.
             await Task.WhenAll(
-                    _dispatchesCompleted.Task,
-                    _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
+                _dispatchesCompleted.Task,
+                _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Shutdown the transport and wait for the peer shutdown.
             await _transportConnection.CloseAsync(
@@ -493,7 +493,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         else
         {
-            // No streams or dispatches if the conneciton is not connected.
+            // No streams or dispatches if the connection is not connected.
             Debug.Assert(_streams.Count == 0 && _dispatchCount == 0);
 
             // Calling shutdown before connect indicates that the connection establishment is refused.
@@ -834,8 +834,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     throw exception;
                 }
             }
-            catch when (request.IsOneway)
+            catch when (request.IsOneway || _tasksCts.IsCancellationRequested)
             {
+                // No reply for oneway requests or if the connection is disposed.
                 request.Complete();
                 return;
             }
