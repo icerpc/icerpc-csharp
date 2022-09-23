@@ -22,6 +22,8 @@ public sealed class Server : IAsyncDisposable
     /// initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
+    private readonly List<Task> _backgroundTasks = new();
+
     private readonly HashSet<IProtocolConnection> _connections = new();
 
     private IListener? _listener;
@@ -30,7 +32,7 @@ public sealed class Server : IAsyncDisposable
 
     private readonly int _maxConnections;
 
-    // protects _listener and _connections
+    // protects _listener, _connections, and _backgroundTasks
     private readonly object _mutex = new();
 
     private readonly ServerAddress _serverAddress;
@@ -182,6 +184,7 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
+        await Task.WhenAll(_backgroundTasks).ConfigureAwait(false);
         await Task.WhenAll(_connections.Select(entry => entry.DisposeAsync().AsTask())).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult(null);
         _shutdownCts.Dispose();
@@ -237,7 +240,9 @@ public sealed class Server : IAsyncDisposable
                         // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
-                            doneWithConnection = () => connection.DisposeAsync().AsTask();
+                            doneWithConnection = () => connection.ShutdownAsync(
+                                "connection refused: server is shutting down",
+                                shutdownCancellationToken);
                         }
                         else if (_maxConnections > 0 && _connections.Count == _maxConnections)
                         {
@@ -253,23 +258,28 @@ public sealed class Server : IAsyncDisposable
                         }
                     }
 
-                    if (doneWithConnection is Func<Task> done)
+                    // We don't wait for the connection to be activated or shutdown. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client and
+                    // server.
+                    // Waiting could also cause a security issue if the client doesn't respond to the connection
+                    // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                    // eventually timeout if the ConnectTimeout expires.
+                    _ = Task.Run(() =>
                     {
-                        await done().ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // Schedule removal after addition, outside mutex lock.
-                        _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
+                        if (doneWithConnection is not null)
+                        {
+                            _ = AddBackgroundTask(doneWithConnection(), shutdownCancellationToken);
+                        }
+                        else
+                        {
+                            // Schedule removal after addition, outside mutex lock.
+                            _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
 
-                        // We don't wait for the connection to be activated. This could take a while for some transports
-                        // such as TLS based transports where the handshake requires few round trips between the client and
-                        // server.
-                        // Waiting could also cause a security issue if the client doesn't respond to the connection
-                        // initialization as we wouldn't be able to accept new connections in the meantime. The call will
-                        // eventually timeout if the ConnectTimeout expires.
-                        _ = Task.Run(() => _ = connection.ConnectAsync(CancellationToken.None));
-                    }
+                            _ = AddBackgroundTask(
+                                connection.ConnectAsync(CancellationToken.None),
+                                shutdownCancellationToken);
+                        }
+                    });
                 }
             }
             catch (ObjectDisposedException)
@@ -324,6 +334,33 @@ public sealed class Server : IAsyncDisposable
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
+        }
+
+        async Task AddBackgroundTask(Task task, CancellationToken shutdownCancellationToken)
+        {
+            _backgroundTasks.Add(task);
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignore and continue
+            }
+
+            lock (_mutex)
+            {
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
+                if (shutdownCancellationToken.IsCancellationRequested)
+                {
+                    // Server.DisposeAsync is responsible to dispose this connection.
+                    return;
+                }
+                else
+                {
+                    _ = _backgroundTasks.Remove(task);
+                }
+            }
         }
     }
 

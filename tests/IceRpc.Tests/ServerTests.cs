@@ -57,7 +57,7 @@ public class ServerTests
     }
 
     [Test]
-    public async Task Connections_refused_after_max_is_reached([Values("ice", "icerpc")] string protocol)
+    public async Task Connection_refused_after_max_is_reached([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
@@ -67,7 +67,7 @@ public class ServerTests
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 MaxConnections = 1,
-                ServerAddress = new ServerAddress(Protocol.Parse(protocol)),
+                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             });
 
         server.Listen();
@@ -86,24 +86,46 @@ public class ServerTests
 
         await connection1.ConnectAsync();
 
-        // Assert
-        switch (protocol)
-        {
-            case "ice":
-            {
-                TransportException? exception = Assert.ThrowsAsync<TransportException>(
-                    () => connection2.ConnectAsync());
-                Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
-                break;
-            }
+        Assert.That(() => connection2.ConnectAsync(), Throws.Exception);
+    }
 
-            case "icerpc":
+    [Test]
+    public async Task Connection_accepted_when_max_counter_is_reached_then_decremented()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        // var colocTransport = new ColocTransport();
+        await using var server = new Server(
+            new ServerOptions
             {
-                ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
-                    () => connection2.ConnectAsync());
-                Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));
-                break;
-            }
-        }
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                MaxConnections = 1,
+                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            });
+
+        server.Listen();
+
+        await using var connection1 = new ClientConnection(
+            new ClientConnectionOptions
+            {
+                ServerAddress = server.ServerAddress,
+            });
+
+        await using var connection2 = new ClientConnection(
+            new ClientConnectionOptions
+            {
+                ServerAddress = server.ServerAddress,
+            });
+
+        await using var connection3 = new ClientConnection(
+            new ClientConnectionOptions
+            {
+                ServerAddress = server.ServerAddress,
+            });
+
+        // Act/Assert
+        await connection1.ConnectAsync();
+        Assert.ThrowsAsync<ConnectFailedException>(() => connection2.ConnectAsync());
+        await connection1.ShutdownAsync();
     }
 }

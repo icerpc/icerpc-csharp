@@ -44,7 +44,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-    // Whether or not the inner exception details should be included in dispatch exceptiosn
+    // Whether or not the inner exception details should be included in dispatch exceptions
     private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
     private readonly int _maxFrameSize;
@@ -680,8 +680,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         else
         {
-            // TODO: Is Dispose or ShutdownAsync a better choice?
-            // await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+            // We're shutting down an un-connected connection. We just close the underlying transport.
+            Debug.Assert(_dispatchCount == 0 && _invocations.Count == 0);
             _duplexConnection.Dispose();
         }
     }
