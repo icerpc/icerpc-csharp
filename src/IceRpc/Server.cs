@@ -244,7 +244,8 @@ public sealed class Server : IAsyncDisposable
                             // We have too many connections and can't accept any more.
                             // Reject the underlying transport connection by ShuttingDown the protocol connection.
                             doneWithConnection = () => connection.ShutdownAsync(
-                                "connection refused: server has too many connections", shutdownCancellationToken);
+                                "connection refused: server has too many connections",
+                                shutdownCancellationToken);
                         }
                         else
                         {
