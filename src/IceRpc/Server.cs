@@ -338,7 +338,11 @@ public sealed class Server : IAsyncDisposable
 
         async Task AddBackgroundTask(Task task, CancellationToken shutdownCancellationToken)
         {
-            _backgroundTasks.Add(task);
+            lock (_mutex)
+            {
+                _backgroundTasks.Add(task);
+            }
+
             try
             {
                 await task.ConfigureAwait(false);
