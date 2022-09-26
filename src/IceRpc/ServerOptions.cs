@@ -11,8 +11,8 @@ public sealed record class ServerOptions
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
     /// <summary>Gets or sets the maximum number of accepted server connections. Once the maximum number connections
-    /// has been reached, the server will refuse any new connections. The default value <code>0</code>
-    /// means unlimited. </summary>
+    /// has been reached, the server will refuse any new connections. The default value <c>0</c> means unlimited.
+    /// </summary>
     public int MaxConnections { get; set; }
 
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
