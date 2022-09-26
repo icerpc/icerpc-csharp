@@ -57,7 +57,7 @@ public class ServerTests
     }
 
     [Test]
-    public async Task Connection_refused_after_max_is_reached([Values("ice", "icerpc")] string protocol)
+    public async Task Connection_refused_after_max_is_reached()
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
@@ -122,9 +122,11 @@ public class ServerTests
                 ServerAddress = server.ServerAddress,
             });
 
-        // Act/Assert
         await connection1.ConnectAsync();
+
+        // Act/Assert
         Assert.ThrowsAsync<ConnectFailedException>(() => connection2.ConnectAsync());
         await connection1.ShutdownAsync();
+        await connection3.ConnectAsync();
     }
 }
