@@ -184,8 +184,9 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        await Task.WhenAll(_backgroundTasks).ConfigureAwait(false);
-        await Task.WhenAll(_connections.Select(entry => entry.DisposeAsync().AsTask())).ConfigureAwait(false);
+        await Task.WhenAll(
+            _connections.Select(entry => entry.DisposeAsync().AsTask())
+                .Union(_backgroundTasks)).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult(null);
         _shutdownCts.Dispose();
     }
