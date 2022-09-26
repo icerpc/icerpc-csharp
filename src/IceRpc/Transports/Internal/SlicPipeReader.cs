@@ -179,7 +179,7 @@ internal class SlicPipeReader : PipeReader
         {
             throw new TransportException(
                 TransportErrorCode.InternalError,
-                "empty stream frame are not allowed unless endStream is true");
+                "empty Slic stream frame are not allowed unless endStream is true");
         }
 
         if (!_state.TrySetFlag(State.PipeWriterInUse))

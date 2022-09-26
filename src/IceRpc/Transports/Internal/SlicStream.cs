@@ -250,7 +250,7 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new TransportException(
                 TransportErrorCode.InternalError,
-                "received reset frame on local unidirectional stream");
+                "received Slic reset frame on local unidirectional stream");
         }
 
         Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
@@ -266,7 +266,7 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new TransportException(
                 TransportErrorCode.InternalError,
-                "received stop sending on remote unidirectional stream");
+                "received Slic stop sending on remote unidirectional stream");
         }
 
         Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);

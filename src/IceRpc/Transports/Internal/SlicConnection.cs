@@ -842,13 +842,13 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "received stream frame on local unidirectional stream");
+                            "received Slic stream frame on local unidirectional stream");
                     }
                     else if (dataSize == 0 && !endStream)
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "invalid stream frame, received 0 bytes without end of stream");
+                            "invalid Slic stream frame, received 0 bytes without end of stream");
                     }
 
                     int readSize = 0;
@@ -868,7 +868,7 @@ internal class SlicConnection : IMultiplexedConnection
                         {
                             throw new TransportException(
                                 TransportErrorCode.InternalError,
-                                "received empty stream frame on new stream");
+                                "received empty Slic stream frame on new stream");
                         }
 
                         if (isBidirectional)
@@ -952,13 +952,13 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "stream consumed frame too small");
+                            "Slic stream consumed frame too small");
                     }
                     else if (dataSize > 8)
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "stream consumed frame too large");
+                            "Slic stream consumed frame too large");
                     }
 
                     StreamConsumedBody consumed = await ReadFrameAsync(
@@ -978,13 +978,13 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "stream reset frame too small");
+                            "Slic stream reset frame too small");
                     }
                     else if (dataSize > 8)
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "stream reset frame too large");
+                            "Slic stream reset frame too large");
                     }
 
                     StreamResetBody streamReset = await ReadFrameAsync(
@@ -1004,13 +1004,13 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "stream stop sending frame too small");
+                            "Slic stream stop sending frame too small");
                     }
                     else if (dataSize > 8)
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "stream stop sending frame too large");
+                            "Slic stream stop sending frame too large");
                     }
 
                     StreamStopSendingBody streamStopSending = await ReadFrameAsync(
@@ -1030,7 +1030,7 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new TransportException(
                             TransportErrorCode.InternalError,
-                            "unidirectional stream released frame too large");
+                            "Slic unidirectional stream released frame too large");
                     }
 
                     // Release the unidirectional stream semaphore for the unidirectional stream.
@@ -1039,9 +1039,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 default:
                 {
-                    throw new TransportException(
-                        TransportErrorCode.InternalError,
-                        $"unexpected Slic frame with frame type '{type}'");
+                    throw new TransportException(TransportErrorCode.InternalError, $"unexpected Slic frame '{type}'");
                 }
             }
         }
