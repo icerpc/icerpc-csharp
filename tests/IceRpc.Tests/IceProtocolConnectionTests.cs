@@ -196,7 +196,7 @@ public sealed class IceProtocolConnectionTests
         });
 
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
-                   () => clientConnection.ConnectAsync(default));
+            () => clientConnection.ConnectAsync(default));
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 }
