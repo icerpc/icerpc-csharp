@@ -172,7 +172,7 @@ public sealed class IceProtocolConnectionTests
     /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.
     /// </summary>
     [Test]
-    public async Task Shutdown_non_connected_connection_disposes_underlying_transport()
+    public async Task Shutdown_non_connected_connection_disposes_underlying_transport_connection()
     {
 
         IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.Listen(
