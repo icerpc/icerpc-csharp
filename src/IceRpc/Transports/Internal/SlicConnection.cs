@@ -795,13 +795,6 @@ internal class SlicConnection : IMultiplexedConnection
 
             (FrameType type, int dataSize, ulong? streamId) = header.Value;
 
-            // Only stream frames are expected at this point. Non stream frames are only exchanged at the
-            // initialization step.
-            if (type < FrameType.Close)
-            {
-                throw new TransportException(TransportErrorCode.InternalError, $"unexpected Slic frame '{type}'");
-            }
-
             switch (type)
             {
                 case FrameType.Close:
