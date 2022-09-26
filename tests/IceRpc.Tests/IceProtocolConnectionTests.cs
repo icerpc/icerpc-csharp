@@ -174,10 +174,10 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task Shutdown_non_connected_connection_disposes_underlying_transport_connection()
     {
-
         IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.Listen(
-                   new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-                   new DuplexConnectionOptions(), null);
+            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            new DuplexConnectionOptions(),
+            null);
 
         using IListener<IProtocolConnection> listener =
             new IceProtocolListener(new ConnectionOptions(), transportListener);
