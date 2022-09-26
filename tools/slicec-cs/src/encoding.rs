@@ -212,16 +212,12 @@ fn encode_tagged_type(
 
     let tag = member.tag().unwrap();
 
-    let read_only_memory = match data_type.concrete_type() {
-        Types::Sequence(sequence_def)
-            if sequence_def.has_fixed_size_numeric_elements()
-                && type_context == TypeContext::Encode
-                && !data_type.has_attribute("cs::generic", false) =>
-        {
-            true
-        }
-        _ => false,
-    };
+    let read_only_memory = matches!(
+        data_type.concrete_type(),
+        Types::Sequence(sequence_def) if sequence_def.has_fixed_size_numeric_elements()
+            && type_context == TypeContext::Encode
+            && !data_type.has_attribute("cs::generic", false)
+    );
 
     let value = if data_type.is_value_type() {
         format!("{}.Value", param)
