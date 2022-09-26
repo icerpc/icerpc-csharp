@@ -169,10 +169,22 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _readGoAwayTask = Task.Run(
             async () =>
             {
-                CancellationToken cancellationToken = _tasksCts.Token;
-                await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancellationToken).ConfigureAwait(false);
-                IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
-
+                IceRpcGoAway goAwayFrame;
+                try
+                {
+                    CancellationToken cancellationToken = _tasksCts.Token;
+                    await ReceiveControlFrameHeaderAsync(
+                        IceRpcControlFrameType.GoAway,
+                        cancellationToken).ConfigureAwait(false);
+                    goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    // Abort the remote control stream to trigger its completion with a failure. The
+                    // _waitForConnectionFailure task below will abort the connection.
+                    _remoteControlStream.Abort(exception);
+                    throw;
+                }
                 InitiateShutdown(goAwayFrame.Message, ConnectionClosedErrorCode.ShutdownByPeer);
                 return goAwayFrame;
             },
@@ -207,6 +219,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
                     CancelDispatchesAndInvocations(exception);
+
+                    // Also kill the transport connection right away instead of waiting DisposeAsync to be called.
+                    await _transportConnection.DisposeAsync().ConfigureAwait(false);
                 }
             },
             CancellationToken.None);
@@ -458,8 +473,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 endStream: true,
                 cancellationToken).ConfigureAwait(false);
 
-            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
-            // initiated by the peer.
+            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has
+            // been initiated by the peer.
             IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Abort streams for requests that were not dispatched by the peer. The invocations will throw
