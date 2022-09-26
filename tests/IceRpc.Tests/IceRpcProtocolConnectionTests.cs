@@ -615,8 +615,9 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
-                   new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-                   multiplexOptions, null);
+            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            multiplexOptions,
+            null);
 
         using IListener<IProtocolConnection> listener =
             new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
