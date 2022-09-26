@@ -22,7 +22,7 @@ public sealed class Server : IAsyncDisposable
     /// initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly List<Task> _backgroundTasks = new();
+    private readonly HashSet<IProtocolConnection> _refusedConnections = new();
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
@@ -184,9 +184,9 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        await Task.WhenAll(
-            _connections.Select(entry => entry.DisposeAsync().AsTask())
-                .Union(_backgroundTasks)).ConfigureAwait(false);
+        await Task.WhenAll(_connections.Union(_refusedConnections).Select(
+            c => c.DisposeAsync().AsTask())).ConfigureAwait(false);
+
         _ = _shutdownCompleteSource.TrySetResult(null);
         _shutdownCts.Dispose();
     }
@@ -235,21 +235,24 @@ public sealed class Server : IAsyncDisposable
                     (IProtocolConnection connection, _) =
                         await listener.AcceptAsync(shutdownCancellationToken).ConfigureAwait(false);
 
-                    Func<Task>? doneWithConnection = null;
+                    Func<Task>? refuseConnectionTask = null;
+
                     lock (_mutex)
                     {
                         // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
-                            doneWithConnection = () => connection.ShutdownAsync(
+                            _refusedConnections.Add(connection);
+                            refuseConnectionTask = () => connection.ShutdownAsync(
                                 "connection refused: server is shutting down",
-                                shutdownCancellationToken);
+                                CancellationToken.None);
                         }
                         else if (_maxConnections > 0 && _connections.Count == _maxConnections)
                         {
                             // We have too many connections and can't accept any more.
                             // Reject the underlying transport connection by ShuttingDown the protocol connection.
-                            doneWithConnection = () => connection.ShutdownAsync(
+                            _refusedConnections.Add(connection);
+                            refuseConnectionTask = () => connection.ShutdownAsync(
                                 "connection refused: server has too many connections",
                                 shutdownCancellationToken);
                         }
@@ -267,18 +270,17 @@ public sealed class Server : IAsyncDisposable
                     // eventually timeout if the ConnectTimeout expires.
                     _ = Task.Run(() =>
                     {
-                        if (doneWithConnection is not null)
+                        if (refuseConnectionTask is not null)
                         {
-                            _ = AddBackgroundTask(doneWithConnection(), shutdownCancellationToken);
+                            _ = RefuseConnectionAsync(connection, refuseConnectionTask(), shutdownCancellationToken);
                         }
                         else
                         {
                             // Schedule removal after addition, outside mutex lock.
                             _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
 
-                            _ = AddBackgroundTask(
-                                connection.ConnectAsync(CancellationToken.None),
-                                shutdownCancellationToken);
+                            // Connect the connection.
+                            _ = Task.Run(() => connection.ConnectAsync(CancellationToken.None));
                         }
                     });
                 }
@@ -337,16 +339,14 @@ public sealed class Server : IAsyncDisposable
             await connection.DisposeAsync().ConfigureAwait(false);
         }
 
-        async Task AddBackgroundTask(Task task, CancellationToken shutdownCancellationToken)
+        async Task RefuseConnectionAsync(
+            IProtocolConnection connection,
+            Task refuseTask,
+            CancellationToken shutdownCancellationToken)
         {
-            lock (_mutex)
-            {
-                _backgroundTasks.Add(task);
-            }
-
             try
             {
-                await task.ConfigureAwait(false);
+                await refuseTask.ConfigureAwait(false);
             }
             catch
             {
@@ -363,7 +363,7 @@ public sealed class Server : IAsyncDisposable
                 }
                 else
                 {
-                    _ = _backgroundTasks.Remove(task);
+                    _ = _refusedConnections.Remove(connection);
                 }
             }
         }
