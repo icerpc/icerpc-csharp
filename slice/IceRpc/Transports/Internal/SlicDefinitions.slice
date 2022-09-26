@@ -56,11 +56,11 @@ unchecked enum ParameterKey : varuint62
     /// The maximum number of unidirectional streams. The peer shouldn't open more streams than the maximum defined
     /// by this parameter.
     MaxUnidirectionalStreams = 1,
-    /// The idle timeout. If the connection is inactive for longer than the idle timeout it will be closed.
+    /// The idle timeout in milliseconds. If the connection is inactive for longer than the idle timeout it will be closed.
     IdleTimeout = 2,
-    /// The maximum Slic packet size.
+    /// The maximum Slic packet size in bytes.
     PacketMaxSize = 3,
-    /// The pause writer threshold.
+    /// The pause writer threshold in bytes. The peer should stop sending data when this limit is reached.
     PauseWriterThreshold = 4,
 }
 
