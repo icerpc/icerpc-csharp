@@ -94,7 +94,6 @@ public class ServerTests
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
-        // var colocTransport = new ColocTransport();
         await using var server = new Server(
             new ServerOptions
             {
