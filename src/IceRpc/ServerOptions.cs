@@ -11,7 +11,7 @@ public sealed record class ServerOptions
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
     /// <summary>Gets or sets the maximum number of accepted server connections. Once the maximum number connections
-    /// has been reached, the server will refuse any new connections. 0, the default, means unlimited.
+    /// has been reached, the server will refuse any new connections. the default value <code>0</code> means unlimited.
     /// </summary>
     public int MaxConnections { get; set; }
 
