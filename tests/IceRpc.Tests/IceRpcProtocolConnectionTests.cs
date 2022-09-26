@@ -635,7 +635,7 @@ public sealed class IceRpcProtocolConnectionTests
         });
 
         ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
-                   () => clientConnection.ConnectAsync(default));
+            () => clientConnection.ConnectAsync(default));
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));
     }
 
