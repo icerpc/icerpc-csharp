@@ -235,6 +235,7 @@ public sealed class Server : IAsyncDisposable
                     (IProtocolConnection connection, _) =
                         await listener.AcceptAsync(shutdownCancellationToken).ConfigureAwait(false);
 
+                    bool shuttingDown = false;
                     Func<Task>? refuseConnectionTask = null;
 
                     lock (_mutex)
@@ -242,10 +243,7 @@ public sealed class Server : IAsyncDisposable
                         // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
-                            _refusedConnections.Add(connection);
-                            refuseConnectionTask = () => connection.ShutdownAsync(
-                                "connection refused: server is shutting down",
-                                CancellationToken.None);
+                            shuttingDown = true;
                         }
                         else if (_maxConnections > 0 && _connections.Count == _maxConnections)
                         {
@@ -262,27 +260,37 @@ public sealed class Server : IAsyncDisposable
                         }
                     }
 
-                    // We don't wait for the connection to be activated or shutdown. This could take a while for some transports
-                    // such as TLS based transports where the handshake requires few round trips between the client and
-                    // server.
-                    // Waiting could also cause a security issue if the client doesn't respond to the connection
-                    // initialization as we wouldn't be able to accept new connections in the meantime. The call will
-                    // eventually timeout if the ConnectTimeout expires.
-                    _ = Task.Run(() =>
+                    if (shuttingDown)
                     {
-                        if (refuseConnectionTask is not null)
+                        await connection.DisposeAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // We don't wait for the connection to be activated or shutdown. This could take a while for some transports
+                        // such as TLS based transports where the handshake requires few round trips between the client and
+                        // server.
+                        // Waiting could also cause a security issue if the client doesn't respond to the connection
+                        // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                        // eventually timeout if the ConnectTimeout expires.
+                        _ = Task.Run(() =>
                         {
-                            _ = RefuseConnectionAsync(connection, refuseConnectionTask(), shutdownCancellationToken);
-                        }
-                        else
-                        {
-                            // Schedule removal after addition, outside mutex lock.
-                            _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
+                            if (refuseConnectionTask is not null)
+                            {
+                                _ = RefuseConnectionAsync(
+                                    connection,
+                                    refuseConnectionTask(),
+                                    shutdownCancellationToken);
+                            }
+                            else
+                            {
+                                // Schedule removal after addition, outside mutex lock.
+                                _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
 
-                            // Connect the connection.
-                            _ = Task.Run(() => connection.ConnectAsync(CancellationToken.None));
-                        }
-                    });
+                                // Connect the connection.
+                                _ = connection.ConnectAsync(CancellationToken.None);
+                            }
+                        });
+                    }
                 }
             }
             catch (ObjectDisposedException)
