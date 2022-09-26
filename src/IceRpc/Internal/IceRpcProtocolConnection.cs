@@ -180,8 +180,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // Abort the remote control stream. This will complete the _waitForConnectionFailure task below and
-                    // report a connection exception and trigger the failure of the ShutdownComplete task.
+                    // Abort the remote control stream to trigger its completion with a failure. The
+                    // _waitForConnectionFailure task below will abort the connection.
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
@@ -219,6 +219,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
                     CancelDispatchesAndInvocations(exception);
+
+                    // Also kill the transport connection right away instead of waiting DisposeAsync to be called.
+                    await _transportConnection.DisposeAsync().ConfigureAwait(false);
                 }
             },
             CancellationToken.None);
