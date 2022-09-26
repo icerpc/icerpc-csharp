@@ -170,11 +170,16 @@ internal class SlicPipeReader : PipeReader
 
     /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
     /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-    internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream, CancellationToken cancellationToken)
+    internal async ValueTask<int> ReceivedStreamFrameAsync(
+        int dataSize,
+        bool endStream,
+        CancellationToken cancellationToken)
     {
         if (dataSize == 0 && !endStream)
         {
-            throw new InvalidDataException("empty stream frame are not allowed unless endStream is true");
+            throw new TransportException(
+                TransportErrorCode.InternalError,
+                "empty Slic stream frame are not allowed unless endStream is true");
         }
 
         if (!_state.TrySetFlag(State.PipeWriterInUse))
@@ -193,7 +198,9 @@ internal class SlicPipeReader : PipeReader
             int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
             if (newCredit < 0)
             {
-                throw new InvalidDataException("received more data than flow control permits");
+                throw new TransportException(
+                    TransportErrorCode.InternalError,
+                    "received more data than flow control permits");
             }
 
             // Fill the pipe writer with dataSize bytes.
@@ -204,11 +211,11 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
-                // We complete the pipe writer but we don't mark reads as completed. Reads will be marked as
-                // completed once the application calls TryRead/ReadAsync. It's important for unidirectional stream
-                // which would otherwise be shutdown before the data has been consumed by the application. This
-                // would allow a malicious client to open many unidirectional streams before the application gets a
-                // chance to consume the data, defeating the purpose of the UnidirectionalStreamMaxCount option.
+                // We complete the pipe writer but we don't mark reads as completed. Reads will be marked as completed
+                // once the application calls TryRead/ReadAsync. It's important for unidirectional stream which would
+                // otherwise be shutdown before the data has been consumed by the application. This would allow a
+                // malicious client to open many unidirectional streams before the application gets a chance to consume
+                // the data, defeating the purpose of the UnidirectionalStreamMaxCount option.
                 await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
             }
             else
@@ -222,8 +229,8 @@ internal class SlicPipeReader : PipeReader
         {
             if (_state.HasFlag(State.PipeWriterCompleted))
             {
-                // If the pipe writer has been completed while we were reading the data from the stream, we make
-                // sure to complete the writer now since Complete or CompleteWriter didn't do it.
+                // If the pipe writer has been completed while we were reading the data from the stream, we make sure to
+                // complete the writer now since Complete or CompleteWriter didn't do it.
                 await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
             }
             _state.ClearFlag(State.PipeWriterInUse);
@@ -234,8 +241,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.HasFlag(State.Completed))
         {
-            // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing
-            // the pipe reader.
+            // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing the
+            // pipe reader.
             throw new InvalidOperationException($"reading is not allowed once the reader is completed");
         }
     }
@@ -259,8 +266,8 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    /// <summary>The state enumeration is used to ensure the reader is not used after it's completed and to ensure
-    /// that the internal pipe writer isn't completed concurrently when it's being used by <see
+    /// <summary>The state enumeration is used to ensure the reader is not used after it's completed and to ensure that
+    /// the internal pipe writer isn't completed concurrently when it's being used by <see
     /// cref="ReceivedStreamFrameAsync"/>.</summary>
     private enum State : int
     {

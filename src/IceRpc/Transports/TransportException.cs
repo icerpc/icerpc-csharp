@@ -56,6 +56,13 @@ public class TransportException : Exception
         : base($"{nameof(TransportException)} {{ ErrorCode = {errorCode} }}") => ErrorCode = errorCode;
 
     /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error
+    /// code and message.</summary>
+    /// <param name="errorCode">The error code.</param>
+    /// <param name="message">The message.</param>
+    public TransportException(TransportErrorCode errorCode, string message)
+        : base(message) => ErrorCode = errorCode;
+
+    /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error
     /// code and application error code.</summary>
     /// <param name="errorCode">The error code.</param>
     /// <param name="applicationErrorCode">The application error code.</param>

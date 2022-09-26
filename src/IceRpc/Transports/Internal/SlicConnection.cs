@@ -93,7 +93,7 @@ internal class SlicConnection : IMultiplexedConnection
             header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
             if (header is null || header.Value.FrameSize == 0)
             {
-                throw new InvalidDataException("invalid empty initialize frame");
+                throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize frame");
             }
 
             ulong version;
@@ -119,7 +119,9 @@ internal class SlicConnection : IMultiplexedConnection
                     break;
 
                 default:
-                    throw new InvalidDataException($"unexpected Slic frame '{header.Value.FrameType}'");
+                    throw new TransportException(
+                        TransportErrorCode.InternalError,
+                        $"unexpected Slic frame '{header.Value.FrameType}'");
             }
 
             if (version != 1)
@@ -134,14 +136,9 @@ internal class SlicConnection : IMultiplexedConnection
 
                 // Read again the Initialize frame sent by the client.
                 header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
-                if (header is null)
+                if (header is null || header.Value.FrameSize == 0)
                 {
-                    // Unexpected closure of the duplex connection.
-                    throw new TransportException(TransportErrorCode.InternalError);
-                }
-                else if (header.Value.FrameSize == 0)
-                {
-                    throw new InvalidDataException("invalid empty initialize frame");
+                    throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize frame");
                 }
 
                 (version, initializeBody) = await ReadFrameAsync(
@@ -152,7 +149,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (initializeBody is null)
             {
-                throw new InvalidDataException($"unsupported Slic version '{version}'");
+                throw new NotSupportedException($"unsupported Slic version '{version}'");
             }
 
             // Check the application protocol and set the parameters.
@@ -188,14 +185,9 @@ internal class SlicConnection : IMultiplexedConnection
 
             // Read back either the InitializeAck or Version frame.
             header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
-            if (header is null)
+            if (header is null || header.Value.FrameSize == 0)
             {
-                // Unexpected closure of the duplex connection.
-                throw new TransportException(TransportErrorCode.InternalError);
-            }
-            else if (header.Value.FrameSize == 0)
-            {
-                throw new InvalidDataException("invalid empty initialize ack frame");
+                throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize ack frame");
             }
 
             switch (header.Value.FrameType)
@@ -226,11 +218,13 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
 
                     // We currently only support V1
-                    throw new InvalidDataException(
+                    throw new NotSupportedException(
                         $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
 
                 default:
-                    throw new InvalidDataException($"unexpected Slic frame '{header.Value.FrameType}'");
+                    throw new TransportException(
+                        TransportErrorCode.InternalError,
+                        $"unexpected Slic frame '{header.Value.FrameType}'");
             }
         }
 
@@ -801,13 +795,6 @@ internal class SlicConnection : IMultiplexedConnection
 
             (FrameType type, int dataSize, ulong? streamId) = header.Value;
 
-            // Only stream frames are expected at this point. Non stream frames are only exchanged at the
-            // initialization step.
-            if (type < FrameType.Close)
-            {
-                throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
-            }
-
             switch (type)
             {
                 case FrameType.Close:
@@ -846,12 +833,15 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (!isBidirectional && !isRemote)
                     {
-                        throw new InvalidDataException("received stream frame on local unidirectional stream");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "received Slic stream frame on local unidirectional stream");
                     }
                     else if (dataSize == 0 && !endStream)
                     {
-                        throw new InvalidDataException(
-                            "invalid stream frame, received 0 bytes without end of stream");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "invalid Slic stream frame, received 0 bytes without end of stream");
                     }
 
                     int readSize = 0;
@@ -869,14 +859,17 @@ internal class SlicConnection : IMultiplexedConnection
 
                         if (dataSize == 0)
                         {
-                            throw new InvalidDataException("received empty stream frame on new stream");
+                            throw new TransportException(
+                                TransportErrorCode.InternalError,
+                                "received empty Slic stream frame on new stream");
                         }
 
                         if (isBidirectional)
                         {
                             if (_bidirectionalStreamCount == _maxBidirectionalStreams)
                             {
-                                throw new InvalidDataException(
+                                throw new TransportException(
+                                    TransportErrorCode.InternalError,
                                     $"maximum bidirectional stream count {_maxBidirectionalStreams} reached");
                             }
                             Interlocked.Increment(ref _bidirectionalStreamCount);
@@ -885,7 +878,8 @@ internal class SlicConnection : IMultiplexedConnection
                         {
                             if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
                             {
-                                throw new InvalidDataException(
+                                throw new TransportException(
+                                    TransportErrorCode.InternalError,
                                     $"maximum unidirectional stream count {_maxUnidirectionalStreams} reached");
                             }
                             Interlocked.Increment(ref _unidirectionalStreamCount);
@@ -949,11 +943,15 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
-                        throw new InvalidDataException("stream consumed frame too small");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic stream consumed frame too small");
                     }
                     else if (dataSize > 8)
                     {
-                        throw new InvalidDataException("stream consumed frame too large");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic stream consumed frame too large");
                     }
 
                     StreamConsumedBody consumed = await ReadFrameAsync(
@@ -971,11 +969,15 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
-                        throw new InvalidDataException("stream reset frame too small");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic stream reset frame too small");
                     }
                     else if (dataSize > 8)
                     {
-                        throw new InvalidDataException("stream reset frame too large");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic stream reset frame too large");
                     }
 
                     StreamResetBody streamReset = await ReadFrameAsync(
@@ -993,11 +995,15 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
-                        throw new InvalidDataException("stream stop sending frame too small");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic stream stop sending frame too small");
                     }
                     else if (dataSize > 8)
                     {
-                        throw new InvalidDataException("stream stop sending frame too large");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic stream stop sending frame too large");
                     }
 
                     StreamStopSendingBody streamStopSending = await ReadFrameAsync(
@@ -1015,7 +1021,9 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize > 0)
                     {
-                        throw new InvalidDataException("unidirectional stream released frame too large");
+                        throw new TransportException(
+                            TransportErrorCode.InternalError,
+                            "Slic unidirectional stream released frame too large");
                     }
 
                     // Release the unidirectional stream semaphore for the unidirectional stream.
@@ -1024,7 +1032,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 default:
                 {
-                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
+                    throw new TransportException(TransportErrorCode.InternalError, $"unexpected Slic frame '{type}'");
                 }
             }
         }
@@ -1105,17 +1113,23 @@ internal class SlicConnection : IMultiplexedConnection
 
         if (_bidirectionalStreamSemaphore is null)
         {
-            throw new InvalidDataException("missing MaxBidirectionalStreams Slic connection parameter");
+            throw new TransportException(
+                TransportErrorCode.InternalError,
+                "missing MaxBidirectionalStreams Slic connection parameter");
         }
 
         if (_unidirectionalStreamSemaphore is null)
         {
-            throw new InvalidDataException("missing MaxUnidirectionalStreams Slic connection parameter");
+            throw new TransportException(
+                TransportErrorCode.InternalError,
+                "missing MaxUnidirectionalStreams Slic connection parameter");
         }
 
         if (PeerPacketMaxSize < 1024)
         {
-            throw new InvalidDataException($"invalid PacketMaxSize={PeerPacketMaxSize} Slic connection parameter");
+            throw new TransportException(
+                TransportErrorCode.InternalError,
+                $"invalid PacketMaxSize={PeerPacketMaxSize} Slic connection parameter");
         }
 
         // Use the smallest idle timeout.
