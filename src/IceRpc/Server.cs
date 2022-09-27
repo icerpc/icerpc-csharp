@@ -32,7 +32,7 @@ public sealed class Server : IAsyncDisposable
 
     private readonly int _maxConnections;
 
-    // protects _listener, _connections, and _backgroundTasks
+    // protects _listener, _connections, and _refusedConnections
     private readonly object _mutex = new();
 
     private readonly ServerAddress _serverAddress;
@@ -235,32 +235,29 @@ public sealed class Server : IAsyncDisposable
                     (IProtocolConnection connection, _) =
                         await listener.AcceptAsync(shutdownCancellationToken).ConfigureAwait(false);
 
-                    bool shuttingDown = false;
-                    Func<Task>? refuseConnectionTask = null;
-
+                    Func<IProtocolConnection, CancellationToken, Task>? connectionTask;
                     lock (_mutex)
                     {
                         // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
-                            shuttingDown = true;
+                            connectionTask = null;
                         }
                         else if (_maxConnections > 0 && _connections.Count == _maxConnections)
                         {
                             // We have too many connections and can't accept any more.
                             // Reject the underlying transport connection by ShuttingDown the protocol connection.
                             _refusedConnections.Add(connection);
-                            refuseConnectionTask = () => connection.ShutdownAsync(
-                                "connection refused: server has too many connections",
-                                shutdownCancellationToken);
+                            connectionTask = RefuseConnectionAsync;
                         }
                         else
                         {
                             _connections.Add(connection);
+                            connectionTask = AcceptConnectionAsync;
                         }
                     }
 
-                    if (shuttingDown)
+                    if (connectionTask is null)
                     {
                         await connection.DisposeAsync().ConfigureAwait(false);
                     }
@@ -272,24 +269,7 @@ public sealed class Server : IAsyncDisposable
                         // Waiting could also cause a security issue if the client doesn't respond to the connection
                         // initialization as we wouldn't be able to accept new connections in the meantime. The call will
                         // eventually timeout if the ConnectTimeout expires.
-                        _ = Task.Run(() =>
-                        {
-                            if (refuseConnectionTask is not null)
-                            {
-                                _ = RefuseConnectionAsync(
-                                    connection,
-                                    refuseConnectionTask(),
-                                    shutdownCancellationToken);
-                            }
-                            else
-                            {
-                                // Schedule removal after addition, outside mutex lock.
-                                _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
-
-                                // Connect the connection.
-                                _ = connection.ConnectAsync(CancellationToken.None);
-                            }
-                        });
+                        _ = Task.Run(() => _ = connectionTask(connection, shutdownCancellationToken));
                     }
                 }
             }
@@ -309,6 +289,43 @@ public sealed class Server : IAsyncDisposable
                 _shutdownCompleteSource.TrySetException(exception);
             }
         });
+
+        async Task AcceptConnectionAsync(IProtocolConnection connection, CancellationToken shutdownCancellationToken)
+        {
+            // Schedule removal after addition, outside mutex lock.
+            _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
+
+            // Connect the connection.
+            await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+
+        async Task RefuseConnectionAsync(IProtocolConnection connection, CancellationToken shutdownCancellationToken)
+        {
+            try
+            {
+                await connection.ShutdownAsync(
+                    "connection refused: server has too many connections",
+                    shutdownCancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignore and continue
+            }
+
+            lock (_mutex)
+            {
+                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
+                if (shutdownCancellationToken.IsCancellationRequested)
+                {
+                    // Server.DisposeAsync is responsible to dispose this connection.
+                    return;
+                }
+                else
+                {
+                    _ = _refusedConnections.Remove(connection);
+                }
+            }
+        }
 
         // Remove the connection from _connections once shutdown completes
         async Task RemoveFromCollectionAsync(
@@ -345,35 +362,6 @@ public sealed class Server : IAsyncDisposable
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
-        }
-
-        async Task RefuseConnectionAsync(
-            IProtocolConnection connection,
-            Task refuseTask,
-            CancellationToken shutdownCancellationToken)
-        {
-            try
-            {
-                await refuseTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignore and continue
-            }
-
-            lock (_mutex)
-            {
-                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
-                if (shutdownCancellationToken.IsCancellationRequested)
-                {
-                    // Server.DisposeAsync is responsible to dispose this connection.
-                    return;
-                }
-                else
-                {
-                    _ = _refusedConnections.Remove(connection);
-                }
-            }
         }
     }
 
