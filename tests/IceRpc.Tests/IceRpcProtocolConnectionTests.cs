@@ -609,6 +609,7 @@ public sealed class IceRpcProtocolConnectionTests
     [Test]
     public async Task Shutdown_of_non_connected_connection_sends_connection_refused()
     {
+        // Arrange
         var multiplexOptions = new MultiplexedConnectionOptions
         {
             StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
@@ -634,6 +635,7 @@ public sealed class IceRpcProtocolConnectionTests
             _ = connection.ShutdownAsync("shutting down", default);
         });
 
+        // Act/Assert
         ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
             () => clientConnection.ConnectAsync(default));
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));

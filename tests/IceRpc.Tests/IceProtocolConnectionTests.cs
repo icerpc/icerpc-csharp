@@ -174,6 +174,7 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task Shutdown_non_connected_connection_disposes_underlying_transport_connection()
     {
+        // Arrange
         IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.Listen(
             new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             new DuplexConnectionOptions(),
@@ -195,6 +196,7 @@ public sealed class IceProtocolConnectionTests
             _ = connection.ShutdownAsync("shutting down", default);
         });
 
+        // Act/Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             () => clientConnection.ConnectAsync(default));
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
