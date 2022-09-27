@@ -603,6 +603,42 @@ public sealed class IceRpcProtocolConnectionTests
             Is.EqualTo(expectedValue));
     }
 
+    /// <summary>Shutting down a non-connected server connection sends connection refused.</summary>
+    [Test]
+    public async Task Shutdown_of_non_connected_connection_sends_connection_refused()
+    {
+        // Arrange
+        var multiplexOptions = new MultiplexedConnectionOptions
+        {
+            StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+        };
+
+        IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
+            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            multiplexOptions,
+            null);
+
+        using IListener<IProtocolConnection> listener =
+            new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
+
+        IMultiplexedConnection clientTransport =
+            IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexOptions, null);
+
+        await using var clientConnection =
+                    new IceRpcProtocolConnection(clientTransport, false, new ClientConnectionOptions());
+
+        _ = Task.Run(async () =>
+        {
+            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
+            _ = connection.ShutdownAsync("shutting down", default);
+        });
+
+        // Act/Assert
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
+            () => clientConnection.ConnectAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+    }
+
     [Flags]
     private enum HoldOperation
     {

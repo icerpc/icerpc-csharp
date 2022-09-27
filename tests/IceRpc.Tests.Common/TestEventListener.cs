@@ -29,6 +29,13 @@ public class TestEventListener : EventListener
         }
     }
 
+    public override void Dispose()
+    {
+        base.Dispose();
+        GC.SuppressFinalize(this);
+        _semaphore.Dispose();
+    }
+
     protected override void OnEventSourceCreated(EventSource eventSource)
     {
         // OnEventSourceCreated can be called as soon as the base constructor runs and before

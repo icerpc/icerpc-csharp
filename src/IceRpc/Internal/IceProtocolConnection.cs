@@ -44,7 +44,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-    // Whether or not the inner exception details should be included in dispatch exceptiosn
+    // Whether or not the inner exception details should be included in dispatch exceptions
     private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
     private readonly int _maxFrameSize;
@@ -674,12 +674,18 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // connection closure here. We can't just return and close the underlying transport since this could abort
             // the receive of the dispatch responses and close connection frame by the peer.
             await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
 
-        static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
+            static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
+            }
+        }
+        else
         {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-            IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
+            // We're shutting down an un-connected connection. We just close the underlying transport.
+            Debug.Assert(_dispatchCount == 0 && _invocations.Count == 0);
+            _duplexConnection.Dispose();
         }
     }
 
