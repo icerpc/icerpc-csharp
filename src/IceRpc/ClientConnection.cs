@@ -389,7 +389,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
                 {
                     // OCE from _connectTask
-                    throw new ConnectionException(ConnectionErrorCode.OperationCanceled);
+                    throw new ConnectionException(ConnectionErrorCode.OperationAborted);
                 }
             }
         }

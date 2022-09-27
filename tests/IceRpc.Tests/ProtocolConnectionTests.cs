@@ -405,7 +405,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationCanceled));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -880,7 +880,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await connectTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationCanceled));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
     }
 
     /// <summary>Verifies that connection shutdown timeouts after the <see cref="ConnectionOptions.ShutdownTimeout"/>
@@ -920,7 +920,7 @@ public sealed class ProtocolConnectionTests
         {
             await sut.Client.DisposeAsync();
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationCanceled));
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
         }
         else
         {

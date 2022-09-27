@@ -14,17 +14,17 @@ public enum ConnectionErrorCode
     /// <summary>The connection is closed.</summary>
     Closed,
 
-    /// <summary>The connection establishment, shutdown or disposal caused the cancellation of the operation.</summary>
-    OperationCanceled,
+    /// <summary>The operation was aborted by a connection operation.</summary>
+    OperationAborted,
 
     /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
     /// cref="Exception.InnerException"/> is set to the <see cref="TransportException"/> that caused the
     /// error.</summary>
     TransportError,
 
-    /// <summary>The connection establishment or shutdown failed because of an unexpected error. The <see
+    /// <summary>The connection establishment or shutdown failed because of an unspecified error. The <see
     /// cref="Exception.InnerException"/> is set to the exception that caused the error.</summary>
-    Unexpected,
+    Unspecified,
 }
 
 /// <summary>This exception reports a connection failure.</summary>

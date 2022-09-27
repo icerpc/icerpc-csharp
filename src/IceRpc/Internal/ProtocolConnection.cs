@@ -81,21 +81,20 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 EnableIdleCheck();
                 return information;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                failureReason = "the connection establishment was canceled";
+                throw;
+            }
             catch (OperationCanceledException)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    failureReason = "the connection establishment was canceled";
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
                 lock (_mutex)
                 {
                     Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
                     if (_shutdownTask is not null && (_shutdownTask.IsCanceled || _shutdownTask.IsFaulted))
                     {
                         failureReason = "the connection establishment was canceled by shutdown";
-                        throw new ConnectionException(ConnectionErrorCode.OperationCanceled);
+                        throw new ConnectionException(ConnectionErrorCode.OperationAborted);
                     }
                     else
                     {
@@ -120,7 +119,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             catch (Exception exception)
             {
                 failureReason = "the connection establishment failed";
-                throw new ConnectionException(ConnectionErrorCode.Unexpected, exception);
+                throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
             }
             finally
             {
@@ -177,7 +176,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
                         // Speed-up shutdown only if shutdown didn't fail.
-                        CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationCanceled));
+                        CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationAborted));
                     }
 
                     await _shutdownTask.ConfigureAwait(false);
@@ -264,7 +263,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancellationToken.IsCancellationRequested)
             {
-                var exception = new ConnectionException(ConnectionErrorCode.OperationCanceled);
+                var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
                 _shutdownTask ??= Task.FromException(exception);
                 _ = _shutdownCompleteSource.TrySetException(exception);
                 _connectCts?.Cancel();
@@ -373,7 +372,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
                 if (cancelDispatchesAndInvocations)
                 {
-                    CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationCanceled));
+                    CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationAborted));
                 }
             }
 
@@ -388,7 +387,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             if (_shutdownCts.IsCancellationRequested)
             {
-                exception = new ConnectionException(ConnectionErrorCode.OperationCanceled);
+                exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
             else
             {
@@ -408,7 +407,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         catch (Exception ex)
         {
             var exception = new ConnectionException(
-                ex is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unexpected,
+                ex is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
                 ex);
             _connectCts?.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);

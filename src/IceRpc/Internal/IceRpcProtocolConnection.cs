@@ -277,7 +277,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationCanceled));
+        CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationAborted));
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);

@@ -268,7 +268,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // This can occur if DisposeAsync is called. This can only be called on a connected connection so
                     // ConnectionClosedException should always be set at this point.
                     Debug.Assert(ConnectionClosedException is not null);
-                    completeException = new ConnectionException(ConnectionErrorCode.OperationCanceled);
+                    completeException = new ConnectionException(ConnectionErrorCode.OperationAborted);
                 }
                 catch (Exception exception)
                 {
@@ -309,7 +309,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private protected override async ValueTask DisposeAsyncCore()
     {
         // Dispose triggers the cancellation of pending operations (invocations, dispatches, ...)
-        var exception = new ConnectionException(ConnectionErrorCode.OperationCanceled);
+        var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
