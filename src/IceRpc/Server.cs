@@ -30,6 +30,8 @@ public sealed class Server : IAsyncDisposable
 
     private readonly Func<IListener<IProtocolConnection>> _listenerFactory;
 
+    private Task? _listenTask;
+
     private readonly int _maxConnections;
 
     // protects _listener, _connections, and _refusedConnections
@@ -184,6 +186,12 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
+        if (_listenTask is not null)
+        {
+            // Wait for the listen task to complete
+            await _listenTask.ConfigureAwait(false);
+        }
+
         await Task.WhenAll(_connections.Union(_refusedConnections).Select(
             c => c.DisposeAsync().AsTask())).ConfigureAwait(false);
 
@@ -226,7 +234,7 @@ public sealed class Server : IAsyncDisposable
             _listener = listener;
         }
 
-        _ = Task.Run(async () =>
+        _listenTask = Task.Run(async () =>
         {
             try
             {
