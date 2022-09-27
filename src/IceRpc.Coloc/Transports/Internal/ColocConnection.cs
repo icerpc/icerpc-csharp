@@ -11,18 +11,16 @@ internal class ColocConnection : IDuplexConnection
 {
     public ServerAddress ServerAddress { get; }
 
-    private readonly Func<ServerAddress, (PipeReader, PipeWriter)> _connect;
+    private readonly Func<Task<PipeReader>> _connect;
 
     // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or ReadAsync
     private Exception? _exception;
     private PipeReader? _reader;
     private int _state;
-    private PipeWriter? _writer;
+    private readonly PipeWriter _writer;
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        (_reader, _writer) = _connect(ServerAddress);
-
         if (_state.HasFlag(State.Disposed))
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
@@ -32,8 +30,11 @@ internal class ColocConnection : IDuplexConnection
             throw new TransportException(TransportErrorCode.ConnectionShutdown);
         }
 
+        // Connect the collocated connection. This waits for the server-side to accept the connection.
+        _reader = await _connect().WaitAsync(cancellationToken).ConfigureAwait(false);
+
         var colocEndPoint = new ColocEndPoint(ServerAddress);
-        return Task.FromResult(new TransportConnectionInformation(colocEndPoint, colocEndPoint, null));
+        return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
     }
 
     public void Dispose()
@@ -42,8 +43,7 @@ internal class ColocConnection : IDuplexConnection
 
         if (_state.TrySetFlag(State.Disposed))
         {
-            // _reader and _writer can be null if connection establishment failed.
-
+            // _reader can be null if connection establishment failed.
             if (_reader is not null)
             {
                 if (_state.HasFlag(State.Reading))
@@ -56,23 +56,20 @@ internal class ColocConnection : IDuplexConnection
                 }
             }
 
-            if (_writer is not null)
+            if (_state.HasFlag(State.Writing))
             {
-                if (_state.HasFlag(State.Writing))
-                {
-                    _writer.CancelPendingFlush();
-                }
-                else
-                {
-                    _writer.Complete(_exception);
-                }
+                _writer.CancelPendingFlush();
+            }
+            else
+            {
+                _writer.Complete(_exception);
             }
         }
     }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        Debug.Assert(_reader is not null && _writer is not null);
+        Debug.Assert(_reader is not null);
 
         if (_state.HasFlag(State.Disposed))
         {
@@ -153,11 +150,6 @@ internal class ColocConnection : IDuplexConnection
 
     public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        if (_reader is null || _writer is null)
-        {
-            (_reader, _writer) = _connect(ServerAddress);
-        }
-
         if (_state.HasFlag(State.Disposed))
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
@@ -179,7 +171,7 @@ internal class ColocConnection : IDuplexConnection
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        Debug.Assert(_reader is not null && _writer is not null);
+        Debug.Assert(_reader is not null);
 
         if (_state.HasFlag(State.Disposed))
         {
@@ -229,9 +221,10 @@ internal class ColocConnection : IDuplexConnection
         }
     }
 
-    public ColocConnection(ServerAddress serverAddress, Func<ServerAddress, (PipeReader, PipeWriter)> connect)
+    public ColocConnection(ServerAddress serverAddress, PipeWriter writer, Func<Task<PipeReader>> connect)
     {
         ServerAddress = serverAddress;
+        _writer = writer;
         _connect = connect;
     }
 

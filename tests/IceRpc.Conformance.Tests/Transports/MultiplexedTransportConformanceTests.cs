@@ -66,6 +66,25 @@ public abstract class MultiplexedTransportConformanceTests
         });
     }
 
+    /// <summary>Verifies that accept stream calls can be canceled.</summary>
+    [Test]
+    public async Task Accept_stream_cancellation()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<IMultiplexedConnection>();
+        using var cts = new CancellationTokenSource();
+        ValueTask<IMultiplexedStream> acceptTask = sut.AcceptStreamAsync(cts.Token);
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
     /// <summary>Verifies that the stream ID is not assigned until the stream is started.</summary>
     /// <param name="bidirectional">Whether to use a bidirectional or unidirectional stream for the test.</param>
     [Test]
@@ -132,25 +151,6 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.Nothing);
         await CompleteStreamsAsync(streams);
         await CompleteStreamAsync(lastStream);
-    }
-
-    /// <summary>Verifies that accept stream calls can be canceled.</summary>
-    [Test]
-    public async Task Cancel_accept_stream()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<IMultiplexedConnection>();
-        using var cts = new CancellationTokenSource();
-        ValueTask<IMultiplexedStream> acceptTask = sut.AcceptStreamAsync(cts.Token);
-
-        // Act
-        cts.Cancel();
-
-        // Assert
-        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
     }
 
     /// <summary>Verify streams cannot be created after shutting down the connection.</summary>
@@ -240,6 +240,45 @@ public abstract class MultiplexedTransportConformanceTests
                 }
             });
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+    }
+
+    /// <summary>Verifies that ConnectAsync can be canceled.</summary>
+    [Test]
+    public async Task Connect_cancellation()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        using var cts = new CancellationTokenSource();
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var connectTask = clientConnection.ConnectAsync(cts.Token);
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that connect fails if the listener is disposed.</summary>
+    [Test]
+    public async Task Connect_fails_if_listener_is_disposed()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+
+        Task connectTask = clientConnection.ConnectAsync(default);
+
+        // Act
+        listener.Dispose();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<TransportException>());
     }
 
     /// <summary>Verifies that completing a stream with unflushed bytes fails with

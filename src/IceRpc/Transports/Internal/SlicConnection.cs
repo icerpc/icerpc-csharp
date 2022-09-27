@@ -325,11 +325,14 @@ internal class SlicConnection : IMultiplexedConnection
         async Task PerformCloseAsync()
         {
             var exception = new TransportException(TransportErrorCode.ConnectionClosed, applicationErrorCode);
-            if (await CloseAsyncCore(exception).ConfigureAwait(false))
+
+            // Send close frame if the connection is connected or if it's a server connection (to reject the connection
+            // establishment from the client).
+            if (await CloseAsyncCore(exception).ConfigureAwait(false) && (_readFramesTask is not null || IsServer))
             {
                 if (_readFramesTask is null)
                 {
-                    // Connect the duplex connection if ConnectAsync was not called.
+                    // Complete the duplex server connection establishment if ConnectAsync was not called.
                     _ = await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
                 }
 
@@ -341,7 +344,7 @@ internal class SlicConnection : IMultiplexedConnection
                     cancellationToken).ConfigureAwait(false);
             }
 
-            if (!IsServer)
+            if (_readFramesTask is not null && !IsServer)
             {
                 // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
                 // For TCP, it's important to always shutdown the connection on the client-side first to avoid

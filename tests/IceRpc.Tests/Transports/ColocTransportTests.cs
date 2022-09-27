@@ -15,19 +15,30 @@ public class ColocTransportTests
         var colocTransport = new ColocTransport();
         var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
         var listener = colocTransport.ServerTransport.Listen(serverAddress, new DuplexConnectionOptions(), null);
-        var clientConnection = colocTransport.ClientTransport.CreateConnection(
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
             null);
 
-        var transportConnectionInformation = await clientConnection.ConnectAsync(default);
+        Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
+        using IDuplexConnection _ = (await listener.AcceptAsync(default)).Connection;
 
+        // Act
+        TransportConnectionInformation transportConnectionInformation = await connectTask;
+
+        // Assert
         Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.TypeOf<ColocEndPoint>());
         var localNetworkAddress = (ColocEndPoint?)transportConnectionInformation.LocalNetworkAddress;
-        Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
-        Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+            Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
+        });
         var remoteNetworkAddress = (ColocEndPoint?)transportConnectionInformation.RemoteNetworkAddress;
-        Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
-        Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+            Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
+        });
     }
 }
