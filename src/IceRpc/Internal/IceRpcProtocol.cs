@@ -33,7 +33,7 @@ internal sealed class IceRpcProtocol : Protocol
                 IceRpcStreamErrorCode.NoError => null,
 
                 IceRpcStreamErrorCode.ConnectionShutdown =>
-                    new ConnectionException(ConnectionErrorCode.Closed, "the connection was shutdown"),
+                    new ConnectionException(ConnectionErrorCode.Closed, "the connection was shutdown by the peer"),
 
                 IceRpcStreamErrorCode.InvalidData =>
                     new InvalidDataException("the remote peer failed to decode data from the stream"),

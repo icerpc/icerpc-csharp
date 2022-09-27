@@ -253,7 +253,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown("connection was shutdown by peer");
+                    InitiateShutdown("the connection was shutdown by the peer");
                 }
                 catch (TransportException exception) when (
                     exception.ErrorCode == TransportErrorCode.ConnectionReset &&
