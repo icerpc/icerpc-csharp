@@ -333,6 +333,8 @@ public sealed class Server : IAsyncDisposable
                     _ = _refusedConnections.Remove(connection);
                 }
             }
+
+            await connection.DisposeAsync().ConfigureAwait(false);
         }
 
         // Remove the connection from _connections once shutdown completes
