@@ -45,14 +45,16 @@ public static class SliceEncodingExtensions
             encodeAction,
             useSegments);
 
+#pragma warning disable CA1001 // Type owns disposable field(s) '_cts' but is not disposable
     private class PayloadStreamPipeReader<T> : PipeReader
+#pragma warning restore CA1001
     {
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
-        private readonly CancellationTokenSource _cts = new();
+        private readonly CancellationTokenSource _cts = new(); // Disposed by Complete
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
         private readonly bool _useSegments;
-        private readonly int _streamFlushTreshold;
+        private readonly int _streamFlushThreshold;
         private Task<bool>? _moveNext;
         private readonly Pipe _pipe;
 
@@ -111,7 +113,7 @@ public static class SliceEncodingExtensions
                         size += EncodeElement(_asyncEnumerator.Current);
 
                         // If we reached the stream flush threshold, it's time to flush.
-                        if (size >= _streamFlushTreshold)
+                        if (size >= _streamFlushThreshold)
                         {
                             break;
                         }
@@ -178,7 +180,7 @@ public static class SliceEncodingExtensions
             encodeOptions ??= SliceEncodeOptions.Default;
 
             _pipe = new Pipe(encodeOptions.PipeOptions);
-            _streamFlushTreshold = encodeOptions.StreamFlushThreshold;
+            _streamFlushThreshold = encodeOptions.StreamFlushThreshold;
             _encodeAction = encodeAction;
             _encoding = encoding;
             _useSegments = useSegments;

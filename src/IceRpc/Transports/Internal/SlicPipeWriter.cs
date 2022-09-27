@@ -7,9 +7,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
+#pragma warning disable CA1001 // Type owns disposable field(s) '_abortCts' but is not disposable
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
+#pragma warning restore CA1001
 {
-    private readonly CancellationTokenSource _abortCts = new();
+    private readonly CancellationTokenSource _abortCts = new(); // Disposed by Complete
     private Exception? _exception;
     private readonly Pipe _pipe;
     private int _state;

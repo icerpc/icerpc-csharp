@@ -15,7 +15,10 @@ namespace IceRpc.Slice.Internal;
 /// but not read falls below the resume writer threshold. These bytes are not counted one by one but
 /// buffer-by-buffer: as soon as 1 element decoded from a buffer is read, all the bytes from that buffer are
 /// considered read.</remarks>
+// TODO: remove this pragma disable. See #1795
+#pragma warning disable CA1001 // Type owns disposable field(s) '_readerSemaphore', '_writerSemaphore' and but is not disposable
 internal class StreamDecoder<T>
+#pragma warning restore CA1001
 {
     private long _currentByteCount;
     private readonly Func<ReadOnlySequence<byte>, IEnumerable<T>> _decodeBufferFunc;
