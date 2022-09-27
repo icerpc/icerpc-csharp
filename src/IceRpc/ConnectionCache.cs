@@ -155,7 +155,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 // This can occasionally happen if we find a connection that was just closed by the peer or transport
                 // and then automatically disposed by this connection cache.
-                throw connectionException;
+                throw ExceptionUtil.Throw(connectionException);
             }
         }
         else
@@ -218,7 +218,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 // This can occasionally happen if we find a connection that was just closed by the peer or transport
                 // and then automatically disposed by this connection cache.
-                throw connectionException;
+                throw ExceptionUtil.Throw(connectionException);
             }
         }
     }
