@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -166,5 +167,38 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.
+    /// </summary>
+    [Test]
+    public async Task Shutdown_non_connected_connection_disposes_underlying_transport_connection()
+    {
+        // Arrange
+        IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.Listen(
+            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            new DuplexConnectionOptions(),
+            null);
+
+        using IListener<IProtocolConnection> listener =
+            new IceProtocolListener(new ConnectionOptions(), transportListener);
+
+        IDuplexConnection clientTransport = IDuplexClientTransport.Default.CreateConnection(
+            transportListener.ServerAddress,
+            new DuplexConnectionOptions(), null);
+
+        await using var clientConnection =
+            new IceProtocolConnection(clientTransport, false, new ClientConnectionOptions());
+
+        _ = Task.Run(async () =>
+        {
+            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
+            _ = connection.ShutdownAsync("shutting down", default);
+        });
+
+        // Act/Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+            () => clientConnection.ConnectAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 }
