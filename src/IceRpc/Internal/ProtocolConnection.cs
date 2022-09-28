@@ -104,12 +104,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     }
                 }
             }
-            catch (TransportException exception) when (
-                exception.ApplicationErrorCode is ulong errorCode &&
-                errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
+            catch (ConnectionException)
             {
-                failureReason = "the connection establishment was refused";
-                throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
+                throw;
             }
             catch (TransportException exception)
             {
@@ -126,6 +123,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 if (failureReason is not null)
                 {
                     ConnectionClosedException = new(ConnectionErrorCode.Closed, failureReason);
+                }
+
+                if (ConnectionClosedException is not null)
+                {
                     _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 }
             }

@@ -115,8 +115,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancellationToken)
     {
         // Connect the transport connection
-        TransportConnectionInformation transportConnectionInformation = await _transportConnection.ConnectAsync(
-            cancellationToken).ConfigureAwait(false);
+        TransportConnectionInformation transportConnectionInformation;
+        try
+        {
+            transportConnectionInformation = await _transportConnection.ConnectAsync(
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (TransportException exception) when (
+            exception.ApplicationErrorCode is ulong errorCode &&
+            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
+        {
+            ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection establishment was refused");
+            throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
+        }
 
         // This needs to be set before starting the accept requests task bellow.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);

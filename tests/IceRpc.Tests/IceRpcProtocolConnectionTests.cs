@@ -624,8 +624,10 @@ public sealed class IceRpcProtocolConnectionTests
         IMultiplexedConnection clientTransport =
             IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexOptions, null);
 
-        await using var clientConnection =
-                    new IceRpcProtocolConnection(clientTransport, false, new ClientConnectionOptions());
+        await using var clientConnection = new IceRpcProtocolConnection(
+            clientTransport,
+            false,
+            new ClientConnectionOptions());
 
         _ = Task.Run(async () =>
         {
