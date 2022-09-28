@@ -17,5 +17,6 @@ pub struct CsOptions {
 }
 
 /// Short description of slicec-cs that is displayed in its help dialogue.
-const DESCRIPTION: &str = "The slice compiler for C#.
-                           Generates C# code from Slice files for use with IceRpc.";
+const DESCRIPTION: &str = "\
+The slice compiler for C#.
+Generates C# code from Slice files for use with IceRpc.";
