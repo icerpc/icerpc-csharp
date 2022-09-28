@@ -7,64 +7,23 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>The colocated connection class to exchange data within the same process. The implementation copies the send
 /// buffer into the receive buffer.</summary>
-internal class ColocConnection : IDuplexConnection
+internal abstract class ColocConnection : IDuplexConnection
 {
     public ServerAddress ServerAddress { get; }
 
-    private readonly Func<Task<PipeReader>> _connect;
+    private protected PipeReader? _reader;
+    private protected int _state;
 
     // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or ReadAsync
     private Exception? _exception;
-    private PipeReader? _reader;
-    private int _state;
     private readonly PipeWriter _writer;
 
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
-    {
-        if (_state.HasFlag(State.Disposed))
-        {
-            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
-        }
-        else if (_state.HasFlag(State.ShuttingDown))
-        {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
-        }
-
-        // Connect the collocated connection. This waits for the server-side to accept the connection.
-        _reader = await _connect().WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        var colocEndPoint = new ColocEndPoint(ServerAddress);
-        return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
-    }
+    public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     public void Dispose()
     {
-        _exception ??= new TransportException(TransportErrorCode.ConnectionReset);
-
-        if (_state.TrySetFlag(State.Disposed))
-        {
-            // _reader can be null if connection establishment failed.
-            if (_reader is not null)
-            {
-                if (_state.HasFlag(State.Reading))
-                {
-                    _reader.CancelPendingRead();
-                }
-                else
-                {
-                    _reader.Complete(_exception);
-                }
-            }
-
-            if (_state.HasFlag(State.Writing))
-            {
-                _writer.CancelPendingFlush();
-            }
-            else
-            {
-                _writer.Complete(_exception);
-            }
-        }
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
@@ -221,18 +180,118 @@ internal class ColocConnection : IDuplexConnection
         }
     }
 
-    public ColocConnection(ServerAddress serverAddress, PipeWriter writer, Func<Task<PipeReader>> connect)
+    public ColocConnection(ServerAddress serverAddress, PipeWriter writer)
     {
         ServerAddress = serverAddress;
         _writer = writer;
-        _connect = connect;
     }
 
-    private enum State : int
+    private protected virtual void Dispose(bool disposing)
+    {
+        _exception ??= new TransportException(TransportErrorCode.ConnectionReset);
+
+        if (_state.TrySetFlag(State.Disposed))
+        {
+            // _reader can be null if connection establishment failed or didn't run.
+            if (_reader is not null)
+            {
+                if (_state.HasFlag(State.Reading))
+                {
+                    _reader.CancelPendingRead();
+                }
+                else
+                {
+                    _reader.Complete(_exception);
+                }
+            }
+
+            if (_state.HasFlag(State.Writing))
+            {
+                _writer.CancelPendingFlush();
+            }
+            else
+            {
+                _writer.Complete(_exception);
+            }
+        }
+    }
+
+    private protected TransportConnectionInformation FinishConnect()
+    {
+        Debug.Assert(_reader is not null);
+
+        if (_state.HasFlag(State.Disposed))
+        {
+            _reader.Complete();
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+        else if (_state.HasFlag(State.ShuttingDown))
+        {
+            // Dispose will complete the reader.
+            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+        }
+
+        var colocEndPoint = new ColocEndPoint(ServerAddress);
+        return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
+    }
+
+    private protected enum State : int
     {
         Disposed = 1,
         Reading = 2,
         ShuttingDown = 4,
         Writing = 8,
     }
+}
+
+/// <summary>The colocated client connection class.</summary>
+internal class ClientColocConnection : ColocConnection
+{
+    private readonly Func<PipeReader, CancellationToken, Task<PipeReader>> _connectAsync;
+    private PipeReader? _localPipeReader;
+
+    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    {
+        if (_state.HasFlag(State.Disposed))
+        {
+            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+        else if (_state.HasFlag(State.ShuttingDown))
+        {
+            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+        }
+
+        if (_localPipeReader is not null)
+        {
+            _reader = await _connectAsync(_localPipeReader, cancellationToken).ConfigureAwait(false);
+            _localPipeReader = null; // The server-side connection is not responsible for completing the pipe reader.
+        }
+        return FinishConnect();
+    }
+
+    internal ClientColocConnection(
+        ServerAddress serverAddress,
+        Pipe localPipe,
+        Func<PipeReader, CancellationToken, Task<PipeReader>> connectAsync)
+        : base(serverAddress, localPipe.Writer)
+    {
+        _connectAsync = connectAsync;
+        _localPipeReader = localPipe.Reader;
+    }
+
+    private protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        _localPipeReader?.Complete();
+    }
+}
+
+/// <summary>The colocated server connection class.</summary>
+internal class ServerColocConnection : ColocConnection
+{
+    public override Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(FinishConnect());
+
+    public ServerColocConnection(ServerAddress serverAddress, PipeWriter writer, PipeReader reader)
+       : base(serverAddress, writer) => _reader = reader;
 }

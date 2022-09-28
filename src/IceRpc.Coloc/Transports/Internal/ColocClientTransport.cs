@@ -36,13 +36,34 @@ internal class ColocClientTransport : IDuplexClientTransport
         serverAddress = serverAddress with { Transport = Name };
 
         var localPipe = new Pipe(new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize));
-        return new ColocConnection(serverAddress, localPipe.Writer, ConnectAsync);
+        return new ClientColocConnection(serverAddress, localPipe, ConnectAsync);
 
-        Task<PipeReader> ConnectAsync()
+        Task<PipeReader> ConnectAsync(PipeReader clientPipeReader, CancellationToken cancellationToken)
         {
             if (_listeners.TryGetValue(serverAddress, out ColocListener? listener))
             {
-                return listener.QueueReaderAsync(localPipe.Reader);
+                var tcs = new TaskCompletionSource<PipeReader>();
+                listener.QueueConnectAsync(
+                    serverPipeReader =>
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            // Client-side Connection establishment was canceled.
+                            return null;
+                        }
+                        else if (serverPipeReader is null)
+                        {
+                            // Listener is disposed.
+                            tcs.SetException(new TransportException(TransportErrorCode.ConnectionRefused));
+                            return null;
+                        }
+                        else
+                        {
+                            tcs.SetResult(serverPipeReader);
+                            return clientPipeReader;
+                        }
+                    });
+                return tcs.Task.WaitAsync(cancellationToken);
             }
             else
             {

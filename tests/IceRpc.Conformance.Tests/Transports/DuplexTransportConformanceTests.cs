@@ -113,10 +113,7 @@ public abstract class DuplexTransportConformanceTests
             }
             finally
             {
-                if (connection is not null)
-                {
-                    connection.Dispose();
-                }
+                connection?.Dispose();
             }
         }
 
