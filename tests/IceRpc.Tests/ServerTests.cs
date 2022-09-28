@@ -127,6 +127,8 @@ public class ServerTests
         // Act/Assert
         Assert.ThrowsAsync<ConnectFailedException>(() => connection2.ConnectAsync());
         await connection1.ShutdownAsync();
+        // Artificial delay to ensure the server has time to cleanup connection.
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
         await connection3.ConnectAsync();
     }
 }
