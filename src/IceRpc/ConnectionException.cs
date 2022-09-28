@@ -14,7 +14,7 @@ public enum ConnectionErrorCode
     /// <summary>The connection is closed.</summary>
     Closed,
 
-    /// <summary>The operation was aborted by a connection operation.</summary>
+    /// <summary>The operation was aborted because the connection was aborted.</summary>
     OperationAborted,
 
     /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
