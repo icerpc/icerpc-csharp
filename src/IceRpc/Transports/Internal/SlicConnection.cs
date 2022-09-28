@@ -752,7 +752,7 @@ internal class SlicConnection : IMultiplexedConnection
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
             // Decode the frame type and frame size.
-            if (!decoder.TryDecodeVarUInt62(out ulong frameType) ||
+            if (!decoder.TryDecodeUInt8(out byte frameType) ||
                 !decoder.TryDecodeSize(out header.FrameSize))
             {
                 return false;

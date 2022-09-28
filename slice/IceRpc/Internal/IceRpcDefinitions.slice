@@ -6,7 +6,7 @@ module IceRpc::Internal;
 // These definitions help with the encoding of icerpc frames.
 
 /// Each icerpc control frame has a type identified by this enumeration.
-enum IceRpcControlFrameType : varuint62
+enum IceRpcControlFrameType : uint8
 {
     /// The Settings frame is sent by each peer on connection establishment to exchange settings.
     Settings = 0,
