@@ -28,7 +28,7 @@ public class NamespaceAttributeTests
             .BuildServiceProvider(validateScopes: true);
 
         INamespaceOperationsProxy proxy = provider.GetRequiredService<INamespaceOperationsProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         NamespaceAttribute.WithNamespace.N1.N2.S1 r =
             await proxy.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));

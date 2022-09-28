@@ -48,7 +48,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
     private readonly IMultiplexedServerTransport _transport =
         new SlicServerTransport(new TcpServerTransport());
 
-    public IListener<IMultiplexedConnection> Listen(
+    public IListener<IMultiplexedConnection> CreateListener(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
@@ -64,7 +64,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
             Transport = "tcp"
         };
 
-        return _transport.Listen(serverAddress, options, serverAuthenticationOptions);
+        return _transport.CreateListener(serverAddress, options, serverAuthenticationOptions);
     }
 }
 
@@ -84,7 +84,7 @@ public class CustomTransportTests
             },
             multiplexedServerTransport: new CustomServerTransport());
 
-        server.Listen();
+        await server.ListenAsync();
 
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
@@ -111,7 +111,7 @@ public class CustomTransportTests
                 }
             },
                 multiplexedServerTransport: new CustomServerTransport());
-            server.Listen();
+            await server.ListenAsync();
 
             await using var connection1 = new ClientConnection(
                 new ClientConnectionOptions

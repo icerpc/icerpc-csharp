@@ -31,12 +31,12 @@ public class SlicServerTransport : IMultiplexedServerTransport
     }
 
     /// <inheritdoc/>
-    public IListener<IMultiplexedConnection> Listen(
+    public IListener<IMultiplexedConnection> CreateListener(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions) =>
         new SlicListener(
-            _duplexServerTransport.Listen(
+            _duplexServerTransport.CreateListener(
                 serverAddress,
                 new DuplexConnectionOptions
                 {

@@ -28,7 +28,7 @@ public class InvocationTests
                 Protocol.Ice)
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         var request = new OutgoingRequest(new ServiceAddress(new Uri("ice:/test")));
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
@@ -67,7 +67,7 @@ public class InvocationTests
                 }))
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
@@ -98,7 +98,7 @@ public class InvocationTests
                 }))
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
         var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/test")));

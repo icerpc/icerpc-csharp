@@ -21,6 +21,8 @@ internal class SlicListener : IListener<IMultiplexedConnection>
 
     public void Dispose() => _duplexListener.Dispose();
 
+    public Task ListenAsync(CancellationToken cancellationToken) => _duplexListener.ListenAsync(cancellationToken);
+
     internal SlicListener(
         IListener<IDuplexConnection> duplexListener,
         MultiplexedConnectionOptions options,

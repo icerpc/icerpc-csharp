@@ -10,15 +10,23 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The listener implementation for the TCP transport.</summary>
 internal sealed class TcpListener : IListener<IDuplexConnection>
 {
-    public ServerAddress ServerAddress { get; }
+    public ServerAddress ServerAddress { get; private set; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
+    private readonly int _listenerBackLog;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
-    private readonly Socket _socket;
+    private readonly int? _receiveBufferSize;
+    private readonly int? _sendBufferSize;
+    private Socket? _socket;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
+        if (_socket is null)
+        {
+            throw new InvalidOperationException($"{nameof(ListenAsync)} must be called first");
+        }
+
         while (true)
         {
             try
@@ -58,7 +66,47 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         }
     }
 
-    public void Dispose() => _socket.Dispose();
+    public void Dispose() => _socket?.Dispose();
+
+    public Task ListenAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!IPAddress.TryParse(ServerAddress.Host, out IPAddress? ipAddress))
+            {
+                throw new NotSupportedException(
+                    $"serverAddress '{ServerAddress}' cannot accept connections because it has a DNS name");
+            }
+
+            // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
+            // dual-mode socket are used in platforms that support them.
+            _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
+                new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(SocketType.Stream, ProtocolType.Tcp);
+
+            _socket.ExclusiveAddressUse = true;
+
+            if (_receiveBufferSize is int receiveSize)
+            {
+                _socket.ReceiveBufferSize = receiveSize;
+            }
+            if (_sendBufferSize is int sendSize)
+            {
+                _socket.SendBufferSize = sendSize;
+            }
+
+            _socket.Bind(new IPEndPoint(ipAddress, ServerAddress.Port));
+            _socket.Listen(_listenerBackLog);
+
+            // Update the server address with the port the listener is listening on.
+            ServerAddress = ServerAddress with { Port = (ushort)((IPEndPoint)_socket.LocalEndPoint!).Port };
+        }
+        catch (Exception exception)
+        {
+            throw exception.ToTransportException();
+        }
+        return Task.CompletedTask;
+    }
 
     internal TcpListener(
         ServerAddress serverAddress,
@@ -66,15 +114,14 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         SslServerAuthenticationOptions? serverAuthenticationOptions,
         TcpServerTransportOptions tcpOptions)
     {
-        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
-        {
-            throw new NotSupportedException(
-                $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
-        }
+        ServerAddress = serverAddress;
 
         _authenticationOptions = serverAuthenticationOptions;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
+        _receiveBufferSize = tcpOptions.ReceiveBufferSize;
+        _sendBufferSize = tcpOptions.SendBufferSize;
+        _listenerBackLog = tcpOptions.ListenerBackLog;
 
         if (_authenticationOptions is not null && _authenticationOptions.ApplicationProtocols is null)
         {
@@ -86,37 +133,5 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
                 new SslApplicationProtocol(serverAddress.Protocol.Name)
             };
         }
-
-        var address = new IPEndPoint(ipAddress, serverAddress.Port);
-
-        // When using IPv6 address family we use the socket constructor without AddressFamily parameter to ensure
-        // dual-mode socket are used in platforms that support them.
-        _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
-            new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
-            new Socket(SocketType.Stream, ProtocolType.Tcp);
-        try
-        {
-            _socket.ExclusiveAddressUse = true;
-
-            if (tcpOptions.ReceiveBufferSize is int receiveSize)
-            {
-                _socket.ReceiveBufferSize = receiveSize;
-            }
-            if (tcpOptions.SendBufferSize is int sendSize)
-            {
-                _socket.SendBufferSize = sendSize;
-            }
-
-            _socket.Bind(address);
-            address = (IPEndPoint)_socket.LocalEndPoint!;
-            _socket.Listen(tcpOptions.ListenerBackLog);
-        }
-        catch (Exception exception)
-        {
-            _socket.Dispose();
-            throw exception.ToTransportException();
-        }
-
-        ServerAddress = serverAddress with { Port = (ushort)address.Port };
     }
 }

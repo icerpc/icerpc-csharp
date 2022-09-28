@@ -29,6 +29,7 @@ public class TlsConfigurationTests
                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
             });
+        await listener.ListenAsync(default);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.ServerAddress,
@@ -76,6 +77,7 @@ public class TlsConfigurationTests
                     return true;
                 }
             });
+        await listener.ListenAsync(default);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.ServerAddress,
@@ -127,6 +129,7 @@ public class TlsConfigurationTests
                     return true;
                 }
             });
+        await listener.ListenAsync(default);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.ServerAddress,
@@ -168,6 +171,7 @@ public class TlsConfigurationTests
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
             });
+        await listener.ListenAsync(default);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.ServerAddress,
@@ -192,7 +196,7 @@ public class TlsConfigurationTests
         SslServerAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
-        return serverTransport.Listen(
+        return serverTransport.CreateListener(
             serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "::1", Port = 0 },
             new DuplexConnectionOptions(),
             authenticationOptions);

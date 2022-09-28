@@ -116,6 +116,7 @@ public class TcpTransportTests
                 ReceiveBufferSize = bufferSize,
                 SendBufferSize = bufferSize,
             });
+        await listener.ListenAsync(default);
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(
@@ -178,6 +179,7 @@ public class TcpTransportTests
             {
                 ListenerBackLog = 18
             });
+        await listener.ListenAsync(default);
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
@@ -212,12 +214,12 @@ public class TcpTransportTests
         }
     }
 
-
     [Test]
-    public void Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
+    public async Task Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
     {
         // Arrange
         using IListener<IDuplexConnection> listener = CreateTcpListener();
+        await listener.ListenAsync(default);
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
@@ -227,8 +229,8 @@ public class TcpTransportTests
         listener.Dispose();
 
         // Assert
-        TransportException exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
-        Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.Unspecified));
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.Unspecified));
     }
 
     /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
@@ -241,6 +243,7 @@ public class TcpTransportTests
             {
                 ListenerBackLog = 1
             });
+        await listener.ListenAsync(default);
 
         var clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
@@ -289,9 +292,10 @@ public class TcpTransportTests
     {
         // Arrange
         var address = new ServerAddress(Protocol.IceRpc) { Host = "foo" };
+        using IListener<IDuplexConnection> listener = CreateTcpListener(address);
 
         // Act/Assert
-        Assert.Throws<NotSupportedException>(() => CreateTcpListener(address));
+        Assert.ThrowsAsync<NotSupportedException>(() => listener.ListenAsync(default));
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with
@@ -397,6 +401,7 @@ public class TcpTransportTests
                     return false;
                 }
             });
+        await listener.ListenAsync(default);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
             listener.ServerAddress,
@@ -417,7 +422,7 @@ public class TcpTransportTests
         SslServerAuthenticationOptions? authenticationOptions = null)
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
-        return serverTransport.Listen(
+        return serverTransport.CreateListener(
             serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "::1", Port = 0 },
             new DuplexConnectionOptions(),
             authenticationOptions);

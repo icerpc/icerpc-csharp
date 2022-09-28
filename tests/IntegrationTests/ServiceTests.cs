@@ -20,7 +20,7 @@ public class ServiceTests
             .BuildServiceProvider(validateScopes: true);
         IServiceProxy proxy = provider.GetRequiredService<IServiceProxy>();
         Server server = provider.GetRequiredService<Server>();
-        server.Listen();
+        await server.ListenAsync();
 
         string[] ids = new string[]
         {

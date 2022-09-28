@@ -615,19 +615,23 @@ public sealed class IceRpcProtocolConnectionTests
             StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
         };
 
-        IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
+        IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.CreateListener(
             new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             multiplexOptions,
             null);
 
-        using IListener<IProtocolConnection> listener =
-            new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
+        using IProtocolListener listener = new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
 
-        IMultiplexedConnection clientTransport =
-            IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexOptions, null);
+        IMultiplexedConnection clientTransport = IMultiplexedClientTransport.Default.CreateConnection(
+            transportListener.ServerAddress,
+            multiplexOptions,
+            null);
+        await listener.ListenAsync(default);
 
-        await using var clientConnection =
-                    new IceRpcProtocolConnection(clientTransport, false, new ClientConnectionOptions());
+        await using var clientConnection = new IceRpcProtocolConnection(
+            clientTransport,
+            false,
+            new ClientConnectionOptions());
 
         _ = Task.Run(async () =>
         {
@@ -658,12 +662,12 @@ public sealed class IceRpcProtocolConnectionTests
 
         public void Dispose() => _listener?.Dispose();
 
-        public IListener<IMultiplexedConnection> Listen(
+        public IListener<IMultiplexedConnection> CreateListener(
             ServerAddress serverAddress,
             MultiplexedConnectionOptions options,
             SslServerAuthenticationOptions? serverAuthenticationOptions) =>
             _listener = new HoldMultiplexedListener(
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions));
+                _decoratee.CreateListener(serverAddress, options, serverAuthenticationOptions));
 
         internal HoldMultiplexedServerTransport(IMultiplexedServerTransport decoratee) => _decoratee = decoratee;
 
@@ -721,6 +725,8 @@ public sealed class IceRpcProtocolConnectionTests
         internal HoldMultiplexedListener(IListener<IMultiplexedConnection> decoratee) => _decoratee = decoratee;
 
         internal void Hold(HoldOperation operation) => _connection!.Hold(operation);
+
+        public Task ListenAsync(CancellationToken cancellationToken) => _decoratee.ListenAsync(cancellationToken);
     }
 
     private sealed class HoldMultiplexedConnection : IMultiplexedConnection

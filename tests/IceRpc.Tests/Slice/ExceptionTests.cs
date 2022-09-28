@@ -440,7 +440,7 @@ public sealed class ExceptionTests
                 ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
             },
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-        server.Listen();
+        await server.ListenAsync();
 
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
@@ -472,7 +472,7 @@ public sealed class ExceptionTests
                 ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
             },
             multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-        server.Listen();
+        await server.ListenAsync();
 
         await using var connection = new ClientConnection(
             new ClientConnectionOptions

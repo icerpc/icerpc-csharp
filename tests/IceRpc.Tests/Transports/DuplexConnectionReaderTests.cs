@@ -25,6 +25,7 @@ public class DuplexConnectionReaderTests
             .BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        await listener.ListenAsync(default);
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
@@ -65,6 +66,7 @@ public class DuplexConnectionReaderTests
             .BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        await listener.ListenAsync(default);
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
@@ -99,6 +101,7 @@ public class DuplexConnectionReaderTests
             .BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        await listener.ListenAsync(default);
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);

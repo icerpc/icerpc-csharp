@@ -9,6 +9,9 @@ public interface IListener : IDisposable
 {
     /// <summary>Gets the server address of this listener. That's the address a client would connect to.</summary>
     ServerAddress ServerAddress { get; }
+
+    /// <summary>Starts listening on the listener server address.</summary>
+    Task ListenAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>A listener listens for connection requests from clients.</summary>

@@ -24,7 +24,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server1.Listen();
+        await server1.ListenAsync();
 
         await using var server2 = new Server(
             new ServerOptions
@@ -33,7 +33,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://bar")),
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server2.Listen();
+        await server2.ListenAsync();
 
         await using var cache = new ConnectionCache(
             new ConnectionCacheOptions { PreferExistingConnection = false },
@@ -77,7 +77,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server.Listen();
+        await server.ListenAsync();
 
         await using var cache = new ConnectionCache(
             new ConnectionCacheOptions(),
@@ -114,7 +114,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server1.Listen();
+        await server1.ListenAsync();
 
         await using var server2 = new Server(
             new ServerOptions
@@ -123,7 +123,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server2.Listen();
+        await server2.ListenAsync();
 
         await using var cache = new ConnectionCache(
             new ConnectionCacheOptions(),
@@ -161,7 +161,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server1.Listen();
+        await server1.ListenAsync();
 
         await using var server2 = new Server(
             new ServerOptions()
@@ -170,7 +170,7 @@ public sealed class ConnectionCacheTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://bar"))
             },
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
-        server2.Listen();
+        await server2.ListenAsync();
 
         await using var cache = new ConnectionCache(
            new ConnectionCacheOptions(),

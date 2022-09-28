@@ -37,7 +37,7 @@ public static class SlicTransportServiceCollectionExtensions
         services.AddSingleton(provider =>
         {
             var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
-            var listener = serverTransport.Listen(
+            var listener = serverTransport.CreateListener(
                 serverAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 null);

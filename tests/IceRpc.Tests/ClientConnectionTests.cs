@@ -30,7 +30,7 @@ public class ClientConnectionTests
             },
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
             duplexServerTransport: new TcpServerTransport());
-        server.Listen();
+        await server.ListenAsync();
 
         await using var connection = new ClientConnection(
             new ClientConnectionOptions() { ServerAddress = server.ServerAddress },
@@ -53,13 +53,13 @@ public class ClientConnectionTests
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
-        server.Listen();
+        await server.ListenAsync();
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
-        server.Listen();
+        await server.ListenAsync();
 
         // Act/Assert
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
@@ -72,7 +72,7 @@ public class ClientConnectionTests
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
-        server.Listen();
+        await server.ListenAsync();
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
@@ -88,7 +88,7 @@ public class ClientConnectionTests
         await server.DisposeAsync();
 
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
-        server.Listen();
+        await server.ListenAsync();
 
         // Act/Assert
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
@@ -101,13 +101,13 @@ public class ClientConnectionTests
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri($"{protocol.Name}://127.0.0.1:0"));
-        server.Listen();
+        await server.ListenAsync();
         ServerAddress serverAddress = server.ServerAddress;
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
-        server.Listen();
+        await server.ListenAsync();
 
         var request = new OutgoingRequest(new ServiceAddress(protocol));
 
@@ -149,7 +149,7 @@ public class ClientConnectionTests
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
-        server.Listen();
+        await server.ListenAsync();
 
         // Assert
         Assert.That(
@@ -197,7 +197,7 @@ public class ClientConnectionTests
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
-        server.Listen();
+        await server.ListenAsync();
 
         // Assert
         Assert.That(

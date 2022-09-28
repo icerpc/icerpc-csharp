@@ -175,13 +175,13 @@ public sealed class IceProtocolConnectionTests
     public async Task Shutdown_non_connected_connection_disposes_underlying_transport_connection()
     {
         // Arrange
-        IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.Listen(
+        IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.CreateListener(
             new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             new DuplexConnectionOptions(),
             null);
 
-        using IListener<IProtocolConnection> listener =
-            new IceProtocolListener(new ConnectionOptions(), transportListener);
+        using IProtocolListener listener = new IceProtocolListener(new ConnectionOptions(), transportListener);
+        await listener.ListenAsync(default);
 
         IDuplexConnection clientTransport = IDuplexClientTransport.Default.CreateConnection(
             transportListener.ServerAddress,

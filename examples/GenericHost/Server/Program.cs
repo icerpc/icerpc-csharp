@@ -66,12 +66,9 @@ public static class Program
 
         public ValueTask DisposeAsync() => _server.DisposeAsync();
 
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
+        public Task StartAsync(CancellationToken cancellationToken) =>
             // Start listening for client connections.
-            _server.Listen();
-            return Task.CompletedTask;
-        }
+            _server.ListenAsync(cancellationToken);
 
         public Task StopAsync(CancellationToken cancellationToken) =>
             // Shutdown the IceRPC server when the hosted service is stopped.

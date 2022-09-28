@@ -22,7 +22,7 @@ public class TypeNameQualificationTests
             .BuildServiceProvider(validateScopes: true);
 
         ITypeNameQualificationOperationsProxy proxy = provider.GetRequiredService<ITypeNameQualificationOperationsProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         var r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 

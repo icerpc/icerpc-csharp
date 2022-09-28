@@ -9,18 +9,18 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServerTests
 {
-    /// <summary>Verifies that calling <see cref="Server.Listen"/> more than once fails with
+    /// <summary>Verifies that calling <see cref="Server.ListenAsync"/> more than once fails with
     /// <see cref="InvalidOperationException"/> exception.</summary>
     [Test]
     public async Task Cannot_call_listen_twice()
     {
         await using var server = new Server(ServiceNotFoundDispatcher.Instance);
-        server.Listen();
+        await server.ListenAsync();
 
-        Assert.Throws<InvalidOperationException>(() => server.Listen());
+        Assert.ThrowsAsync<InvalidOperationException>(() => server.ListenAsync());
     }
 
-    /// <summary>Verifies that calling <see cref="Server.Listen"/> on a disposed server fails with
+    /// <summary>Verifies that calling <see cref="Server.ListenAsync"/> on a disposed server fails with
     /// <see cref="ObjectDisposedException"/>.</summary>
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
@@ -28,7 +28,7 @@ public class ServerTests
         var server = new Server(ServiceNotFoundDispatcher.Instance);
         await server.DisposeAsync();
 
-        Assert.Throws<ObjectDisposedException>(() => server.Listen());
+        Assert.ThrowsAsync<ObjectDisposedException>(() => server.ListenAsync());
     }
 
     /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after
@@ -70,7 +70,7 @@ public class ServerTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             });
 
-        server.Listen();
+        await server.ListenAsync();
 
         await using var connection1 = new ClientConnection(
             new ClientConnectionOptions
@@ -102,7 +102,7 @@ public class ServerTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             });
 
-        server.Listen();
+        await server.ListenAsync();
 
         await using var connection1 = new ClientConnection(
             new ClientConnectionOptions

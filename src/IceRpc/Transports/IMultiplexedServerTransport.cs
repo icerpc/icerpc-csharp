@@ -13,12 +13,12 @@ public interface IMultiplexedServerTransport
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }
 
-    /// <summary>Starts listening on a server address.</summary>
+    /// <summary>Creates a listener to listen on a server address.</summary>
     /// <param name="serverAddress">The server address of the listener.</param>
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
-    IListener<IMultiplexedConnection> Listen(
+    IListener<IMultiplexedConnection> CreateListener(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions);

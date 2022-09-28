@@ -179,7 +179,7 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
         IDuplexServerTransport serverTransport,
         IOptions<ServerOptions> serverOptions,
         IOptions<DuplexConnectionOptions> duplexConnectionOptions) =>
-        _listener = serverTransport.Listen(
+        _listener = serverTransport.CreateListener(
             serverOptions.Value.ServerAddress,
             duplexConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
@@ -188,6 +188,8 @@ internal class DuplexListenerDecorator : IListener<IDuplexConnection>
         CancellationToken cancellationToken) => _listener.AcceptAsync(cancellationToken);
 
     public void Dispose() => _listener.Dispose();
+
+    public Task ListenAsync(CancellationToken cancellationToken) => _listener.ListenAsync(cancellationToken);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -204,7 +206,7 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
         IMultiplexedServerTransport serverTransport,
         IOptions<ServerOptions> serverOptions,
         IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions) =>
-        _listener = serverTransport.Listen(
+        _listener = serverTransport.CreateListener(
             serverOptions.Value.ServerAddress,
             multiplexedConnectionOptions.Value,
             serverOptions.Value.ServerAuthenticationOptions);
@@ -213,4 +215,6 @@ internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
         CancellationToken cancellationToken) => _listener.AcceptAsync(cancellationToken);
 
     public void Dispose() => _listener.Dispose();
+
+    public Task ListenAsync(CancellationToken cancellationToken) => _listener.ListenAsync(cancellationToken);
 }

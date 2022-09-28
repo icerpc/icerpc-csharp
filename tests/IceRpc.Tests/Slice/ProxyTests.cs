@@ -112,7 +112,7 @@ public class ProxyTests
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
 
@@ -127,7 +127,7 @@ public class ProxyTests
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
 

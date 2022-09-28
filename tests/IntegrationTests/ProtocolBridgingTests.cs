@@ -66,7 +66,7 @@ public sealed class ProtocolBridgingTests
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
-            server.Listen();
+            await server.ListenAsync();
         }
 
         // TODO: test with the other encoding; currently, the encoding is always slice2

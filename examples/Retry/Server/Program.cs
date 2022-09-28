@@ -27,5 +27,5 @@ Console.CancelKeyPress += (sender, eventArgs) =>
     _ = server.ShutdownAsync();
 };
 
-server.Listen();
+await server.ListenAsync();
 await server.ShutdownComplete;

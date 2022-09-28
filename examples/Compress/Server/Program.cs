@@ -19,7 +19,7 @@ Console.CancelKeyPress += (sender, eventArgs) =>
 };
 
 // Start the server
-server.Listen();
+await server.ListenAsync();
 
 Console.WriteLine("Server is waiting for connections...");
 

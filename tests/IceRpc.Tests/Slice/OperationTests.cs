@@ -22,7 +22,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -36,7 +36,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyDerivedOperationsAProxy proxy = provider.GetRequiredService<IMyDerivedOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -50,7 +50,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         int r = await proxy.OpWithSingleParameterAndReturnValueAsync(10);
 
@@ -66,7 +66,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         (int r1, int r2) = await proxy.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
@@ -84,7 +84,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         var data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
@@ -113,7 +113,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         var r = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
@@ -150,7 +150,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         var r = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
@@ -187,7 +187,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         (int r1, IAsyncEnumerable<int> r2) =
@@ -227,7 +227,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         Assert.That(
@@ -248,7 +248,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         Assert.That(async () => await proxy.OpWithCsAttributeAsync(10), Throws.Nothing);
@@ -264,7 +264,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         var r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
@@ -283,7 +283,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         // Act
         (int r1, int r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
@@ -443,7 +443,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyTaggedOperationsProxy proxy = provider.GetRequiredService<IMyTaggedOperationsProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         await proxy.OpAsync(1, z: 10);
 
@@ -465,7 +465,7 @@ public class OperationTests
 
         IMyTaggedOperationsReadOnlyMemoryParamsProxy proxy =
             provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParamsProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         await proxy.OpAsync(new int[] { 1 }, z: new int[] { 10 });
 
@@ -484,7 +484,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         ServiceProxy receivedProxy = await proxy.OpWithProxyReturnValueAsync();
 
@@ -501,7 +501,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
         await proxy.OpWithProxyParameterAsync(ServiceProxy.FromPath("/hello"));
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
@@ -592,7 +592,7 @@ public class OperationTests
             int[]? p1,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p1);
-        
+
         public ValueTask OpWithProxyParameterAsync(
             ServiceProxy service,
             IFeatureCollection features,

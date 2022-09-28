@@ -5,9 +5,9 @@ using System.Net;
 
 namespace IceRpc.Internal;
 
-/// <summary>Implements <see cref="IListener{T}"/> for protocol connections.</summary>
+/// <summary>Implements <see cref="IProtocolListener"/> for protocol connections.</summary>
 /// <typeparam name="T">The transport connection type.</typeparam>
-internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
+internal abstract class ProtocolListener<T> : IProtocolListener
 {
     public ServerAddress ServerAddress => _transportListener.ServerAddress;
 
@@ -22,6 +22,8 @@ internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
     }
 
     public void Dispose() => _transportListener.Dispose();
+
+    public Task ListenAsync(CancellationToken cancellationToken) => _transportListener.ListenAsync(cancellationToken);
 
     internal ProtocolListener(IListener<T> transportListener) => _transportListener = transportListener;
 

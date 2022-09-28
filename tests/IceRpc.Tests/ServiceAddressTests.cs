@@ -503,7 +503,7 @@ public class ServiceAddressTests
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         await proxy.SendProxyAsync(proxy);
 
@@ -521,7 +521,7 @@ public class ServiceAddressTests
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
 
         await proxy.SendProxyAsync(proxy);
 
@@ -538,7 +538,7 @@ public class ServiceAddressTests
             .AddColocTest(new ReceiveProxyTest())
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
         var proxy = new ReceiveProxyTestProxy(invoker);

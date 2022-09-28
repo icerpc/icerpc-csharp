@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Net;
 
@@ -10,6 +11,7 @@ internal class ColocListener : IListener<IDuplexConnection>
 {
     public ServerAddress ServerAddress { get; }
 
+    private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
     private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
@@ -22,10 +24,23 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     public void Dispose() => _queue.TryComplete(new ObjectDisposedException($"{typeof(ColocListener)}"));
 
-    internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
+    public Task ListenAsync(CancellationToken cancellationToken)
+    {
+        if (!_listeners.TryAdd(ServerAddress, this))
+        {
+            throw new TransportException(TransportErrorCode.AddressInUse);
+        }
+        return Task.CompletedTask;
+    }
+
+    internal ColocListener(
+        ConcurrentDictionary<ServerAddress, ColocListener> listeners,
+        ServerAddress serverAddress,
+        DuplexConnectionOptions options)
     {
         ServerAddress = serverAddress;
 
+        _listeners = listeners;
         _networkAddress = new ColocEndPoint(serverAddress);
         _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
     }

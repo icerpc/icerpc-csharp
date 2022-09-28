@@ -24,7 +24,7 @@ public class TcpServerTransport : IDuplexServerTransport
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public IListener<IDuplexConnection> Listen(
+    public IListener<IDuplexConnection> CreateListener(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)

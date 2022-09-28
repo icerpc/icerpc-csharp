@@ -14,11 +14,17 @@ public class ColocTransportTests
     {
         var colocTransport = new ColocTransport();
         var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
-        var listener = colocTransport.ServerTransport.Listen(serverAddress, new DuplexConnectionOptions(), null);
+
+        using var listener = colocTransport.ServerTransport.CreateListener(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            serverAuthenticationOptions: null);
+        await listener.ListenAsync(default);
+
         var clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            clientAuthenticationOptions: null);
 
         var transportConnectionInformation = await clientConnection.ConnectAsync(default);
 

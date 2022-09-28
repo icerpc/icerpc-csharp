@@ -46,7 +46,7 @@ public class OperationGeneratedCodeTests
             .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>(new Uri("icerpc:/"))
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
+        await provider.GetRequiredService<Server>().ListenAsync(default);
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
 
         // Act

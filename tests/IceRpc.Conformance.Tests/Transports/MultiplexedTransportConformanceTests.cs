@@ -25,6 +25,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -49,6 +50,7 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedConnection clientConnection =
             provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -106,6 +108,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -166,6 +169,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -211,6 +215,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -252,6 +257,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
         IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: true);
@@ -279,6 +285,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
         await using var clientConnection = clientTransport.CreateConnection(
@@ -322,6 +329,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         await using var clientConnection = clientTransport.CreateConnection(
             listener.ServerAddress,
@@ -355,6 +363,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -389,6 +398,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -422,6 +432,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -479,6 +490,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -574,6 +586,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -659,6 +672,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -694,6 +708,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -732,6 +747,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -828,6 +844,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -892,6 +909,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -933,6 +951,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -953,6 +972,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -977,6 +997,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -1001,6 +1022,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -1028,6 +1050,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -1054,6 +1077,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -1071,6 +1095,8 @@ public abstract class MultiplexedTransportConformanceTests
     public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
@@ -1090,7 +1116,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Asserts
         Assert.Throws<FormatException>(
-            () => serverTransport.Listen(serverAddress, new MultiplexedConnectionOptions(), null));
+            () => serverTransport.CreateListener(serverAddress, new MultiplexedConnectionOptions(), null));
     }
 
     [Test]
@@ -1103,6 +1129,7 @@ public abstract class MultiplexedTransportConformanceTests
         var transport = provider.GetRequiredService<IMultiplexedClientTransport>().Name;
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
 
         // Act
         await using IMultiplexedConnection serverConnection =
@@ -1155,6 +1182,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
 
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
@@ -1179,6 +1207,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
@@ -1201,6 +1230,8 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
 
         // Act
@@ -1225,6 +1256,7 @@ public abstract class MultiplexedTransportConformanceTests
             .BuildServiceProvider(validateScopes: true);
         IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.ListenAsync(default);
 
         IMultiplexedConnection? serverConnection = null;
         Task acceptTask = AcceptAndCloseAsync();

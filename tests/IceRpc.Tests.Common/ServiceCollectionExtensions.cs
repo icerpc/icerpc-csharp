@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
-            return serverTransport.Listen(
+            return serverTransport.CreateListener(
                 serverAddress,
                 connectionOptions ?? new DuplexConnectionOptions(),
                 serverAuthenticationOptions);

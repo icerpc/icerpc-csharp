@@ -14,12 +14,12 @@ internal class ColocServerTransport : IDuplexServerTransport
     private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
 
     /// <inheritdoc/>
-    public IListener<IDuplexConnection> Listen(
+    public IListener<IDuplexConnection> CreateListener(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticatioinOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAuthenticatioinOptions is not null)
+        if (serverAuthenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create secure Coloc server");
         }
@@ -29,12 +29,7 @@ internal class ColocServerTransport : IDuplexServerTransport
             throw new FormatException($"cannot create a Coloc listener for server address '{serverAddress}'");
         }
 
-        var listener = new ColocListener(serverAddress with { Transport = Name }, options);
-        if (!_listeners.TryAdd(listener.ServerAddress, listener))
-        {
-            throw new TransportException(TransportErrorCode.AddressInUse);
-        }
-        return listener;
+        return new ColocListener(_listeners, serverAddress with { Transport = Name }, options);
     }
 
     internal ColocServerTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>

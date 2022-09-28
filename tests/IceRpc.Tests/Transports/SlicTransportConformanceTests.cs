@@ -52,7 +52,7 @@ public class SlicOverTcpConformanceTests : SlicConformanceTests
             .AddSingleton(provider =>
             {
                 IMultiplexedServerTransport transport = provider.GetRequiredService<IMultiplexedServerTransport>();
-                return transport.Listen(
+                return transport.CreateListener(
                     new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                     null);
@@ -70,7 +70,7 @@ public class SlicOverColocConformanceTests : SlicConformanceTests
         .AddSingleton(provider =>
         {
             IMultiplexedServerTransport transport = provider.GetRequiredService<IMultiplexedServerTransport>();
-            return transport.Listen(
+            return transport.CreateListener(
                 new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 null);
