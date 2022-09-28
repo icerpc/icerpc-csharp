@@ -360,7 +360,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
             }
-            if (_dispatchesAndInvocationsCanceledException != null)
+            if (_dispatchesAndInvocationsCanceledException is not null)
             {
                 throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
             }
@@ -400,7 +400,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (Exception exception)
         {
             await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-            if (_dispatchesAndInvocationsCanceledException != null)
+            if (_dispatchesAndInvocationsCanceledException is not null)
             {
                 throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
             }

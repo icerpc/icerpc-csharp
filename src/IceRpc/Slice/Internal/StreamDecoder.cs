@@ -126,9 +126,9 @@ internal class StreamDecoder<T>
                     {
                         // We will never get more items
                         _readerState = ReaderState.Completed;
-                        if (_exception != null)
+                        if (_exception is not null)
                         {
-                            ExceptionUtil.Throw(_exception);
+                            throw ExceptionUtil.Throw(_exception);
                         }
                         yield break;
                     }
@@ -147,9 +147,9 @@ internal class StreamDecoder<T>
 
             lock (_mutex)
             {
-                if (_exception != null)
+                if (_exception is not null)
                 {
-                    ExceptionUtil.Throw(_exception);
+                    throw ExceptionUtil.Throw(_exception);
                 }
 
                 if (_readerState == ReaderState.Completed)
