@@ -55,18 +55,18 @@ public sealed class ProtocolConnectionTests
                 yield return new TestCaseData(
                     protocol,
                     (IProtocolConnection connection) => connection.ConnectAsync(default),
-                    false);
+                    false).SetName("ConnectAsync {m}");
 
                 yield return new TestCaseData(
                     protocol,
                     (IProtocolConnection connection) =>
                         connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
-                    true);
+                    true).SetName("InvokeAsync {m}");
 
                 yield return new TestCaseData(
                     protocol,
                     (IProtocolConnection connection) => connection.ShutdownAsync("", default),
-                    true);
+                    true).SetName("ShutdownAsync {m}");
             }
         }
     }
@@ -519,8 +519,6 @@ public sealed class ProtocolConnectionTests
         {
             await sut.ConnectAsync();
         }
-
-        // Act
         await sut.Client.DisposeAsync();
 
         // Act/Assert
@@ -544,11 +542,9 @@ public sealed class ProtocolConnectionTests
         {
             await sut.ConnectAsync();
         }
-
-        // Act
         await sut.Client.ShutdownAsync("", default);
 
-        // Assert
+        // Act/Assert
         ConnectionException? exception = Assert.Throws<ConnectionException>(() => operation(sut.Client));
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
     }
@@ -937,12 +933,12 @@ public sealed class ProtocolConnectionTests
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
 
         Task connectTask = sut.Client.ConnectAsync(default);
-        Task shutdownTask = sut.Client.ShutdownAsync("", default);
 
         // Act
-        sut.DisposeListener(); // dispose the listener to trigger the connection establishment failure.
+        Task shutdownTask = sut.Client.ShutdownAsync("", default);
 
         // Assert
+        sut.DisposeListener(); // dispose the listener to trigger the connection establishment failure.
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
         Assert.Multiple(() =>
         {
@@ -965,6 +961,7 @@ public sealed class ProtocolConnectionTests
         using var cts = new CancellationTokenSource();
         Task connectTask = sut.Client.ConnectAsync(cts.Token);
 
+        // Act
         Task shutdownTask = sut.Client.ShutdownAsync("", default);
         cts.Cancel();
 
@@ -987,6 +984,8 @@ public sealed class ProtocolConnectionTests
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
 
         Task connectTask = sut.Client.ConnectAsync(default);
+
+        // Act
         Task shutdownTask = sut.Client.ShutdownAsync("", default);
 
         // Act/Assert
