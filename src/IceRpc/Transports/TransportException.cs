@@ -43,7 +43,7 @@ public class TransportException : Exception
     /// <summary>Gets the application protocol error code. It's set when this exception is triggered by the closure of a
     /// multiplexed connection by the remote peer. <see cref = "ErrorCode" /> is <see
     /// cref="TransportErrorCode.ConnectionClosed"/> in this situation. In all other situations, this property is null.
-    /// The remote peer specifies the application error code when calling<see cref=
+    /// The remote peer specifies the application error code when calling <see cref=
     /// "IMultiplexedConnection.CloseAsync"/>.
     public ulong? ApplicationErrorCode { get; }
 
