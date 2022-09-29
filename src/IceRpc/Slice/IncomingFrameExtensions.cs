@@ -166,8 +166,8 @@ public static class IncomingFrameExtensions
 
             if (readResult.IsCanceled)
             {
-                Exception exception = new InvalidOperationException(
-                    "unexpected call to CancelPendingRead on incoming stream payload");
+                // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+                Exception exception = new InvalidOperationException("unexpected call to CancelPendingRead");
                 await payload.CompleteAsync(exception).ConfigureAwait(false);
                 throw exception;
             }
