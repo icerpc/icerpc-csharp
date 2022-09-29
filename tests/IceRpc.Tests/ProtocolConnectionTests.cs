@@ -55,18 +55,18 @@ public sealed class ProtocolConnectionTests
                 yield return new TestCaseData(
                     protocol,
                     (IProtocolConnection connection) => connection.ConnectAsync(default),
-                    false).SetName("ConnectAsync {m}");
+                    false).SetName($"ConnectAsync {protocol} {{m}}");
 
                 yield return new TestCaseData(
                     protocol,
                     (IProtocolConnection connection) =>
                         connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
-                    true).SetName("InvokeAsync {m}");
+                    true).SetName($"InvokeAsync {protocol} {{m}}");
 
                 yield return new TestCaseData(
                     protocol,
                     (IProtocolConnection connection) => connection.ShutdownAsync("", default),
-                    true).SetName("ShutdownAsync {m}");
+                    true).SetName($"ShutdownAsync {protocol} {{m}}");
             }
         }
     }
