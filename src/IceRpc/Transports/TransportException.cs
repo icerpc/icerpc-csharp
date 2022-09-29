@@ -40,10 +40,11 @@ public enum TransportErrorCode
 /// Transport implementations should wrap transport-specific exceptions with this exception.</summary>
 public class TransportException : Exception
 {
-    /// <summary>Gets the application protocol error code. It's set when <see cref="ErrorCode"/> is <see
-    /// cref="TransportErrorCode.ConnectionClosed"/> and when the transport is a multiplexed transport. It's <c>null</c>
-    /// otherwise. The value is the error code provided to the <see cref="IMultiplexedConnection.CloseAsync(ulong,
-    /// CancellationToken)"/> method.</summary>
+    /// <summary>Gets the application protocol error code. It's set when this exception is triggered by the closure of a
+    /// multiplexed connection by the remote peer. <see cref = "ErrorCode" /> is <see
+    /// cref="TransportErrorCode.ConnectionClosed"/> in this situation. In all other situations, this property is null.
+    /// The remote peer specifies the application error code when calling<see cref=
+    /// "IMultiplexedConnection.CloseAsync"/>.
     public ulong? ApplicationErrorCode { get; }
 
     /// <summary>Gets the transport error code.</summary>
