@@ -56,13 +56,12 @@ public static class IncomingFrameExtensions
                 maxCollectionAllocation: sliceFeature.MaxCollectionAllocation,
                 maxDepth: sliceFeature.MaxDepth);
 
-            var items = new List<T>();
-            do
+            var items = new T[buffer.Length / elementSize];
+            for (int i = 0; i < items.Length; ++i)
             {
-                items.Add(decodeFunc(ref decoder));
+                items[i] = decodeFunc(ref decoder);
             }
-            while (decoder.Consumed < buffer.Length);
-
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return items;
         }
 
