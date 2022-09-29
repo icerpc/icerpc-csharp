@@ -128,6 +128,8 @@ public class ServerTests
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(() => connection2.ConnectAsync());
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
         await connection1.ShutdownAsync();
+        // Artificial delay to ensure the server has time to cleanup connection.
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
         await connection3.ConnectAsync();
     }
 }
