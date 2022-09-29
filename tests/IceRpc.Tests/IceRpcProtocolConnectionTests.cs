@@ -58,9 +58,9 @@ public sealed class IceRpcProtocolConnectionTests
         Task acceptTask = AcceptAndShutdownAsync();
 
         // Act/Assert
-        ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
 
         // Cleanup
         await serverConnection!.DisposeAsync();
@@ -274,7 +274,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    public async Task Not_dispatched_twoway_request_gets_connection_closed_on_server_connection_shutdown()
+    public async Task Not_dispatched_twoway_request_gets_connection_exception_on_server_connection_shutdown()
     {
         // Arrange
         HoldMultiplexedServerTransport? serverTransport = null;
@@ -302,17 +302,16 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.Multiple(() =>
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
-            ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
-                async () => await invokeTask2);
+            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
             Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.ShutdownByPeer));
+            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
     }
 
     [Test]
-    public async Task Not_sent_request_gets_connection_closed_on_server_connection_shutdown(
+    public async Task Not_sent_request_gets_connection_exception_on_server_connection_shutdown(
         [Values(false, true)] bool isOneway)
     {
         // Arrange
@@ -345,10 +344,9 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.Multiple(() =>
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
-            ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
-                async () => await invokeTask2);
+            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
             Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.ShutdownByPeer));
+            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -626,8 +624,10 @@ public sealed class IceRpcProtocolConnectionTests
         IMultiplexedConnection clientTransport =
             IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexOptions, null);
 
-        await using var clientConnection =
-                    new IceRpcProtocolConnection(clientTransport, false, new ClientConnectionOptions());
+        await using var clientConnection = new IceRpcProtocolConnection(
+            clientTransport,
+            false,
+            new ClientConnectionOptions());
 
         _ = Task.Run(async () =>
         {
@@ -636,9 +636,9 @@ public sealed class IceRpcProtocolConnectionTests
         });
 
         // Act/Assert
-        ConnectFailedException? exception = Assert.ThrowsAsync<ConnectFailedException>(
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectFailedErrorCode.Refused));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
     }
 
     [Flags]

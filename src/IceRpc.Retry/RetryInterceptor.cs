@@ -88,8 +88,9 @@ public class RetryInterceptor : IInvoker
                         response = null;
                         exception = ex;
 
-                        // ConnectionClosedException is a graceful connection closure that is always safe to retry.
-                        if (ex is ConnectionClosedException ||
+                        // An invocation on a closed connection is always safe to retry.
+                        if ((ex is ConnectionException connectionException &&
+                             connectionException.ErrorCode == ConnectionErrorCode.Closed) ||
                             request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
                             !decorator.IsRead)
                         {

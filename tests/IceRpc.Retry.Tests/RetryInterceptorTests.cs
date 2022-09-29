@@ -35,7 +35,7 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
+                throw new ConnectionException(ConnectionErrorCode.Closed);
             }
             else
             {
@@ -273,7 +273,7 @@ public sealed class RetryInterceptorTests
                 }
                 while (!readResult.IsCompleted && !readResult.IsCanceled);
 
-                throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
+                throw new ConnectionException(ConnectionErrorCode.Closed);
             }
             else
             {

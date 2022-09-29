@@ -24,15 +24,7 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await _transportConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            // The duplex connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
-        }
+        await _transportConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
         return default;
     }
 
@@ -40,18 +32,13 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override Span<byte> GetSpan(int sizeHint = 0) => _transportConnectionWriter.GetSpan(sizeHint);
 
-    public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
+    public override async ValueTask<FlushResult> WriteAsync(
+        ReadOnlyMemory<byte> source,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            await _transportConnectionWriter.WriteAsync(
-                new ReadOnlySequence<byte>(source), cancellationToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            // The duplex connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
-        }
+        await _transportConnectionWriter.WriteAsync(
+            new ReadOnlySequence<byte>(source),
+            cancellationToken).ConfigureAwait(false);
         return default;
     }
 
@@ -62,15 +49,7 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         bool endStream,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await _transportConnectionWriter.WriteAsync(source, cancellationToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            // The duplex connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
-        }
+        await _transportConnectionWriter.WriteAsync(source, cancellationToken).ConfigureAwait(false);
         return default;
     }
 

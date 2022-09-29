@@ -404,7 +404,8 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -437,7 +438,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see
-    /// cref="ConnectionClosedException"/>.</summary>
+    /// cref="ConnectionException"/>.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Invoke_on_shutdown_connection_fails_with_connection_closed(Protocol protocol)
     {
@@ -450,9 +451,9 @@ public sealed class ProtocolConnectionTests
         Task shutdownTask = sut.Client.ShutdownAsync("");
 
         // Act/Assert
-        ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.Shutdown));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
 
         await shutdownTask;
     }
@@ -825,7 +826,7 @@ public sealed class ProtocolConnectionTests
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connect_throws_connection_closed_connection_after_shutdown(Protocol protocol)
+    public async Task Connect_throws_connection_exception_after_shutdown(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -835,13 +836,13 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+
         await sut.Client.ShutdownAsync("");
 
         // Act/Assert
-        ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => sut.Client.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.Shutdown));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -855,31 +856,11 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+
         await sut.Client.DisposeAsync();
 
         // Act/Assert
         Assert.That(async () => await sut.Client.ConnectAsync(default), Throws.TypeOf<ObjectDisposedException>());
-    }
-
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connect_throws_connection_closed_connection_after_shutdown_by_peer(Protocol protocol)
-    {
-        // Arrange
-        IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.ConnectTimeout = TimeSpan.FromSeconds(1));
-
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        await sut.Server.ShutdownAsync("");
-
-        // Act/Assert
-        ConnectionClosedException? exception = Assert.ThrowsAsync<ConnectionClosedException>(
-            () => sut.Client.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionClosedErrorCode.ShutdownByPeer));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -898,7 +879,8 @@ public sealed class ProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        Assert.That(async () => await connectTask, Throws.TypeOf<ConnectionAbortedException>());
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await connectTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
     }
 
     /// <summary>Verifies that connection shutdown timeouts after the <see cref="ConnectionOptions.ShutdownTimeout"/>
@@ -937,13 +919,14 @@ public sealed class ProtocolConnectionTests
         if (closeClientSide)
         {
             await sut.Client.DisposeAsync();
-            Assert.That(async () => await invokeTask, Throws.InstanceOf<ConnectionAbortedException>());
+            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
         }
         else
         {
             await sut.Server.DisposeAsync();
             TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await invokeTask);
-            Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
         }
     }
 }

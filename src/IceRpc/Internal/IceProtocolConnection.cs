@@ -180,7 +180,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
-                ConnectionClosedException = new(ConnectionClosedErrorCode.Idle);
+                ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was idle");
                 return true;
             }
             else
@@ -238,7 +238,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    ConnectionClosedException = new(ConnectionClosedErrorCode.ShutdownByPeer);
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.Closed,
+                        "the connection was shutdown by the peer");
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
@@ -251,7 +253,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown("connection is shutdown by peer", ConnectionClosedErrorCode.ShutdownByPeer);
+                    InitiateShutdown("the connection was shutdown by the peer");
                 }
                 catch (TransportException exception) when (
                     exception.ErrorCode == TransportErrorCode.ConnectionReset &&
@@ -266,11 +268,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // This can occur if DisposeAsync is called. This can only be called on a connected connection so
                     // ConnectionClosedException should always be set at this point.
                     Debug.Assert(ConnectionClosedException is not null);
-                    completeException = new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
+                    completeException = new ConnectionException(ConnectionErrorCode.OperationAborted);
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(ConnectionClosedErrorCode.Lost, exception);
+                    ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was lost");
 
                     // Unexpected exception, notify the OnAbort callback.
                     ConnectionLost(exception);
@@ -306,7 +308,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        var exception = new ConnectionAbortedException(ConnectionAbortedErrorCode.Disposed);
+        // Dispose triggers the cancellation of pending operations (invocations, dispatches, ...)
+        var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
@@ -662,14 +665,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _writeSemaphore.Release();
                 }
             }
-            catch (ConnectionClosedException)
+            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
             {
                 // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
             }
 
-            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
-            // closure here. We can't just return and close the underlying transport since this could abort the receive of
-            // the dispatch responses and close connection frame by the peer.
+            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+            // connection closure here. We can't just return and close the underlying transport since this could abort
+            // the receive of the dispatch responses and close connection frame by the peer.
             await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)

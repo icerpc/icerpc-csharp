@@ -125,7 +125,8 @@ public class ServerTests
         await connection1.ConnectAsync();
 
         // Act/Assert
-        Assert.ThrowsAsync<ConnectFailedException>(() => connection2.ConnectAsync());
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(() => connection2.ConnectAsync());
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
         await connection1.ShutdownAsync();
         await connection3.ConnectAsync();
     }

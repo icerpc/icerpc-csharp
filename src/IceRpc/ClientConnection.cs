@@ -129,7 +129,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that provides the <see cref="TransportConnectionInformation"/> of the transport connection, once
     /// this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
+    /// <item><description><see cref="ConnectionException"/>if the connection establishment failed.</description></item>
     /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
@@ -137,7 +137,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         // Keep a reference to the connection we're trying to connect to.
@@ -156,7 +157,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             throw;
         }
-        catch (ConnectionClosedException)
+        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
@@ -235,7 +236,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 throw;
             }
-            catch (ConnectionClosedException)
+            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
             {
                 if (RefreshConnection(connection) is IProtocolConnection newConnection)
                 {
@@ -388,7 +389,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
                 {
                     // OCE from _connectTask
-                    throw new ConnectFailedException(ConnectFailedErrorCode.Canceled);
+                    throw new ConnectionException(ConnectionErrorCode.OperationAborted);
                 }
             }
         }

@@ -150,11 +150,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 return connection.InvokeAsync(request, cancellationToken);
             }
             catch (ObjectDisposedException exception) when (
-                exception.InnerException is ConnectionClosedException connectionClosedException)
+                exception.InnerException is ConnectionException connectionException &&
+                connectionException.ErrorCode == ConnectionErrorCode.Closed)
             {
                 // This can occasionally happen if we find a connection that was just closed by the peer or transport
                 // and then automatically disposed by this connection cache.
-                throw connectionClosedException;
+                // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
+                throw ExceptionUtil.Throw(connectionException);
             }
         }
         else
@@ -212,11 +214,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
             catch (ObjectDisposedException exception) when (
-                exception.InnerException is ConnectionClosedException connectionClosedException)
+                exception.InnerException is ConnectionException connectionException &&
+                connectionException.ErrorCode == ConnectionErrorCode.Closed)
             {
                 // This can occasionally happen if we find a connection that was just closed by the peer or transport
                 // and then automatically disposed by this connection cache.
-                throw connectionClosedException;
+                // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
+                throw ExceptionUtil.Throw(connectionException);
             }
         }
     }
@@ -322,9 +326,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                     if (shutdownCancellationToken.IsCancellationRequested)
                     {
-                        // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
-                        // DisposeAsync this connection.
-                        throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
+                        // The ConnectionCache shut down or disposal canceled the connection establishment.
+                        // ConnectionCache.DisposeAsync will DisposeAsync this connection.
+                        throw new ConnectionException(ConnectionErrorCode.Closed);
                     }
                     else
                     {
@@ -344,9 +348,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // ConnectionCache is being shut down or disposed and ConnectionCache.DisposeAsync will
-                    // DisposeAsync this connection.
-                    throw new ConnectionClosedException(ConnectionClosedErrorCode.Shutdown);
+                    // ConnectionCache.DisposeAsync will DisposeAsync this connection.
+                    throw new ConnectionException(ConnectionErrorCode.Closed);
                 }
                 else
                 {

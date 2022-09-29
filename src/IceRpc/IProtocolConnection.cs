@@ -15,9 +15,9 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is shut down, aborted or lost.</summary>
+    /// <summary>Gets a task that completes when the connection is shut down or fails.</summary>
     /// <value>A task that completes with the shutdown message when the connection is successfully shut down. It
-    /// completes with an exception when the connection is aborted or lost.</value>
+    /// completes with an exception when the connection fails.</value>
     Task<string> ShutdownComplete { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>
@@ -26,17 +26,14 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// cref="TransportConnectionInformation"/> for this connection. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectFailedException"/>if the connection establishment
-    /// failed.</description></item>
-    /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
-    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
+    /// <item><description><see cref="ConnectionException"/>if the connection establishment failed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException"/>if this connection attempt or a previous attempt exceeded <see
+    /// <item><description><see cref="TimeoutException"/>if the connection establishment attempt exceeded <see
     /// cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionClosedException">Thrown if this connection is shut down or shutting down.</exception>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
@@ -46,14 +43,14 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
+    /// <item><description><see cref="ConnectionException"/>if the connection shutdown failed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException"/>if this shutdown attempt or a previous attempt exceeded
     /// <see cref="ConnectionOptions.ShutdownTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionAbortedException">Thrown if the connection was aborted.</exception>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task ShutdownAsync(string message, CancellationToken cancellationToken = default);
 }
