@@ -46,6 +46,31 @@ public sealed class ProtocolConnectionTests
         }
     }
 
+    private static IEnumerable<TestCaseData> Protocols_and_Protocol_connection_operations
+    {
+        get
+        {
+            foreach (Protocol protocol in Protocols)
+            {
+                yield return new TestCaseData(
+                    protocol,
+                    (IProtocolConnection connection) => connection.ConnectAsync(default),
+                    false);
+
+                yield return new TestCaseData(
+                    protocol,
+                    (IProtocolConnection connection) =>
+                        connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
+                    true);
+
+                yield return new TestCaseData(
+                    protocol,
+                    (IProtocolConnection connection) => connection.ShutdownAsync("", default),
+                    true);
+            }
+        }
+    }
+
     /// <summary>Verifies that concurrent dispatches on a given connection are limited to MaxDispatches.
     /// </summary>
     [Test]
@@ -477,6 +502,57 @@ public sealed class ProtocolConnectionTests
         await disposeTask;
     }
 
+    /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync raise ObjectDisposedException if the
+    /// connection is disposed.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
+    public async Task Operation_throws_object_disposed_exception(
+        Protocol protocol,
+        Func<IProtocolConnection, Task> operation,
+        bool connect)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        if (connect)
+        {
+            await sut.ConnectAsync();
+        }
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Act/Assert
+        Assert.That(() => operation(sut.Client), Throws.InstanceOf<ObjectDisposedException>());
+    }
+
+    /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync raise
+    /// ConnectionException(ConnectionErrorCode.Closed) if the connection is closed.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
+    public async Task Operation_throws_connection_exception_with_closed_error_code(
+        Protocol protocol,
+        Func<IProtocolConnection, Task> operation,
+        bool connect)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        if (connect)
+        {
+            await sut.ConnectAsync();
+        }
+
+        // Act
+        await sut.Client.ShutdownAsync("", default);
+
+        // Assert
+        ConnectionException? exception = Assert.Throws<ConnectionException>(() => operation(sut.Client));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+    }
+
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task Payload_completed_on_valid_request(Protocol protocol, bool isOneway)
@@ -754,59 +830,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(receivedPayload, Is.EqualTo(expectedPayload));
     }
 
-    /// <summary>Verifies connection shutdown is successful</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
-    public async Task Shutdown_connection(Protocol protocol, bool closeClientSide)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        // Act
-        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
-
-        // Assert
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
-    }
-
-    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to finish.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
-    public async Task Shutdown_waits_for_pending_invocation_and_dispatch_to_finish(
-        Protocol protocol,
-        bool closeClientSide)
-    {
-        // Arrange
-        using var dispatcher = new TestDispatcher();
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        Task invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
-        await dispatcher.DispatchStart; // Wait for the dispatch to start
-
-        // Act
-        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(invokeTask.IsCompleted, Is.False);
-            Assert.That(shutdownTask.IsCompleted, Is.False);
-        });
-        dispatcher.ReleaseDispatch();
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await invokeTask, Throws.Nothing);
-            Assert.That(async () => await shutdownTask, Throws.Nothing);
-        });
-    }
-
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
     /// time period.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
@@ -873,13 +896,101 @@ public sealed class ProtocolConnectionTests
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
 
         Task connectTask = sut.Client.ConnectAsync(default);
-
         using var cts = new CancellationTokenSource();
         _ = sut.Client.ShutdownAsync("", cts.Token);
+
+        // Act
         cts.Cancel();
 
         // Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await connectTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+    }
+
+    /// <summary>Verifies connection shutdown is successful</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    public async Task Shutdown_connection(Protocol protocol, bool closeClientSide)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Act
+        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
+
+        // Assert
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
+    }
+
+    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.TransportError) if
+    /// ConnectAsync fails with a transport error.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+        Task shutdownTask = sut.Client.ShutdownAsync("", default);
+
+        // Act
+        sut.DisposeListener(); // dispose the listener to trigger the connection establishment failure.
+
+        // Assert
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
+            Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
+        });
+    }
+
+    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if
+    /// ConnectAsync is canceled.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Shutdown_fails_if_connect_is_canceled(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        using var cts = new CancellationTokenSource();
+        Task connectTask = sut.Client.ConnectAsync(cts.Token);
+
+        Task shutdownTask = sut.Client.ShutdownAsync("", default);
+        cts.Cancel();
+
+        // Assert
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+    }
+
+    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if
+    /// ConnectAsync timeouts.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Shutdown_fails_on_connect_timeout(Protocol protocol)
+    {
+        // Arrange
+        var services = new ServiceCollection().AddProtocolTest(protocol);
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.ConnectTimeout = TimeSpan.FromSeconds(1));
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+        Task shutdownTask = sut.Client.ShutdownAsync("", default);
+
+        // Act/Assert
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
     }
 
@@ -928,5 +1039,40 @@ public sealed class ProtocolConnectionTests
             TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await invokeTask);
             Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
         }
+    }
+
+    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to finish.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    public async Task Shutdown_waits_for_pending_invocation_and_dispatch_to_finish(
+        Protocol protocol,
+        bool closeClientSide)
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        Task invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Act
+        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(invokeTask.IsCompleted, Is.False);
+            Assert.That(shutdownTask.IsCompleted, Is.False);
+        });
+        dispatcher.ReleaseDispatch();
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await invokeTask, Throws.Nothing);
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+        });
     }
 }
