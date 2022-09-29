@@ -684,7 +684,7 @@ public sealed class IceRpcProtocolConnectionTests
             MultiplexedConnectionOptions options,
             SslClientAuthenticationOptions? clientAuthenticationOptions)
         {
-            Debug.Assert(_connection == null);
+            Debug.Assert(_connection is null);
             _connection = new HoldMultiplexedConnection(
                 _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions));
             return _connection;
@@ -706,7 +706,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
         {
-            Debug.Assert(_connection == null);
+            Debug.Assert(_connection is null);
             (IMultiplexedConnection connection, EndPoint address) = await _decoratee.AcceptAsync(cancellationToken);
             _connection = new HoldMultiplexedConnection(connection!);
             return (_connection, address);
