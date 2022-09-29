@@ -2,8 +2,10 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Net;
+using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -72,6 +74,73 @@ public abstract class DuplexTransportConformanceTests
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
+    [Test]
+    public async Task Connect_cancellation()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+
+        // A duplex transport listener might use a backlog to accept client connections (e.g.: TCP). So we need to
+        // create and establish client connections until a connection establishment blocks to test cancellation.
+        using var cts = new CancellationTokenSource();
+        Task<TransportConnectionInformation> connectTask;
+        IDuplexConnection clientConnection;
+        while (true)
+        {
+            IDuplexConnection? connection = clientTransport.CreateConnection(
+                listener.ServerAddress,
+                provider.GetService<DuplexConnectionOptions>() ?? new DuplexConnectionOptions(),
+                clientAuthenticationOptions: provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value);
+            try
+            {
+                connectTask = connection.ConnectAsync(cts.Token);
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                if (connectTask.IsCompleted)
+                {
+                    await connectTask;
+                }
+                else
+                {
+                    clientConnection = connection;
+                    connection = null;
+                    break;
+                }
+            }
+            finally
+            {
+                connection?.Dispose();
+            }
+        }
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+        clientConnection.Dispose();
+    }
+
+    /// <summary>Verifies that connect fails if the listener is disposed.</summary>
+    [Test]
+    public async Task Connect_fails_if_listener_is_disposed()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+
+        Task connectTask = clientConnection.ConnectAsync(default);
+
+        // Act
+        listener.Dispose();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<TransportException>());
     }
 
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and
@@ -294,7 +363,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task ShuShutdown_client_connection_before_connect_fails_with_transport_connection_shutdown_error()
+    public async Task Shutdown_client_connection_before_connect_fails_with_transport_connection_shutdown_error()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);

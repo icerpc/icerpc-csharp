@@ -35,7 +35,8 @@ internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
     /// <summary>Asynchronously dequeues an element.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns name="value">The value of the element to dequeue.</returns>
-    internal ValueTask<T> DequeueAsync(CancellationToken cancellationToken) => _queue.DequeueAsync(this, cancellationToken);
+    internal ValueTask<T> DequeueAsync(CancellationToken cancellationToken) =>
+        _queue.DequeueAsync(this, cancellationToken);
 
     /// <summary>Enqueues a new element.</summary>
     /// <param name="value">The value of the element to enqueue.</param>

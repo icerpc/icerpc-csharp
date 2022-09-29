@@ -33,23 +33,45 @@ internal class ColocClientTransport : IDuplexClientTransport
             throw new FormatException($"cannot create a Coloc connection to server address '{serverAddress}'");
         }
 
-        return new ColocConnection(
-            serverAddress with { Transport = Name },
-            serverAddress => Connect(serverAddress, options));
+        serverAddress = serverAddress with { Transport = Name };
+
+        var localPipe = new Pipe(new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize));
+        return new ClientColocConnection(serverAddress, localPipe, ConnectAsync);
+
+        Task<PipeReader> ConnectAsync(PipeReader clientPipeReader, CancellationToken cancellationToken)
+        {
+            if (_listeners.TryGetValue(serverAddress, out ColocListener? listener))
+            {
+                var tcs = new TaskCompletionSource<PipeReader>();
+                listener.QueueConnectAsync(
+                    serverPipeReader =>
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            // Client-side Connection establishment was canceled.
+                            return null;
+                        }
+                        else if (serverPipeReader is null)
+                        {
+                            // Listener is disposed.
+                            tcs.SetException(new TransportException(TransportErrorCode.ConnectionRefused));
+                            return null;
+                        }
+                        else
+                        {
+                            tcs.SetResult(serverPipeReader);
+                            return clientPipeReader;
+                        }
+                    });
+                return tcs.Task.WaitAsync(cancellationToken);
+            }
+            else
+            {
+                throw new TransportException(TransportErrorCode.ConnectionRefused);
+            }
+        }
     }
 
     internal ColocClientTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>
         _listeners = listeners;
-
-    private (PipeReader, PipeWriter) Connect(ServerAddress serverAddress, DuplexConnectionOptions options)
-    {
-        if (_listeners.TryGetValue(serverAddress, out ColocListener? listener))
-        {
-            return listener.NewClientConnection(options);
-        }
-        else
-        {
-            throw new TransportException(TransportErrorCode.ConnectionRefused);
-        }
-    }
 }
