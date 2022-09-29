@@ -26,7 +26,7 @@ internal class ColocListener : IListener<IDuplexConnection>
                     cts.Token).ConfigureAwait(false);
 
                 // Create the server-side pipe and provide the reader to the client connection establishment request.
-                // The connection establishment request return the client-side pipe reader or null if the conneciton
+                // The connection establishment request return the client-side pipe reader or null if the connection
                 // connection establishment request was canceled.
                 var serverPipe = new Pipe(_pipeOptions);
                 PipeReader? clientPipeReader = serverConnect(serverPipe.Reader);

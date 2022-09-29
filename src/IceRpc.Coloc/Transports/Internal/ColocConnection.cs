@@ -14,8 +14,6 @@ internal abstract class ColocConnection : IDuplexConnection
     private protected PipeReader? _reader;
     private protected int _state;
 
-    // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or ReadAsync
-    private Exception? _exception;
     private readonly PipeWriter _writer;
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -44,21 +42,19 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                throw _exception!;
+                throw new TransportException(TransportErrorCode.ConnectionReset);
             }
 
             ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
+            if (readResult.IsCanceled)
+            {
+                // Dispose canceled ReadAsync.
+                throw new TransportException(TransportErrorCode.ConnectionReset);
+            }
+            else if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
             {
                 return 0;
             }
-
-            if (_state.HasFlag(State.Disposed))
-            {
-                throw _exception!;
-            }
-
-            Debug.Assert(!readResult.IsCanceled);
 
             // We could eventually add a CopyTo(this ReadOnlySequence<byte> src, Memory<byte> dest) extension method
             // if we need this in other places.
@@ -153,16 +149,17 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    throw _exception!;
-                }
-                else if (_state.HasFlag(State.ShuttingDown))
+                if (_state.HasFlag(State.ShuttingDown))
                 {
                     throw new TransportException(TransportErrorCode.ConnectionShutdown);
                 }
 
-                _ = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+                FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+                if (flushResult.IsCanceled)
+                {
+                    // Dispose canceled ReadAsync.
+                    throw new TransportException(TransportErrorCode.ConnectionReset);
+                }
             }
         }
         finally
@@ -188,8 +185,6 @@ internal abstract class ColocConnection : IDuplexConnection
 
     private protected virtual void Dispose(bool disposing)
     {
-        _exception ??= new TransportException(TransportErrorCode.ConnectionReset);
-
         if (_state.TrySetFlag(State.Disposed))
         {
             // _reader can be null if connection establishment failed or didn't run.
@@ -201,7 +196,7 @@ internal abstract class ColocConnection : IDuplexConnection
                 }
                 else
                 {
-                    _reader.Complete(_exception);
+                    _reader.Complete(new TransportException(TransportErrorCode.ConnectionReset));
                 }
             }
 
@@ -211,7 +206,7 @@ internal abstract class ColocConnection : IDuplexConnection
             }
             else
             {
-                _writer.Complete(_exception);
+                _writer.Complete(new TransportException(TransportErrorCode.ConnectionReset));
             }
         }
     }
@@ -264,7 +259,7 @@ internal class ClientColocConnection : ColocConnection
         if (_localPipeReader is not null)
         {
             _reader = await _connectAsync(_localPipeReader, cancellationToken).ConfigureAwait(false);
-            _localPipeReader = null; // The server-side connection is not responsible for completing the pipe reader.
+            _localPipeReader = null; // The server-side connection is now responsible for completing the pipe reader.
         }
         return FinishConnect();
     }
