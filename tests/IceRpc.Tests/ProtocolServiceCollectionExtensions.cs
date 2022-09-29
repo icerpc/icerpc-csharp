@@ -58,6 +58,9 @@ internal interface IClientServerProtocolConnection
 
     /// <summary>Accepts the server connection only.</summary>
     Task AcceptAsync();
+
+    /// <summary>Dispose the listener. This is useful to trigger connection establishment failures.</summary>
+    public void DisposeListener();
 }
 
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also ensures
@@ -73,6 +76,7 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
     }
 
     private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
+    private readonly IDisposable _listener;
     private IProtocolConnection? _server;
 
     public async Task ConnectAsync()
@@ -94,11 +98,15 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
         _ = _server?.DisposeAsync().AsTask();
     }
 
+    public void DisposeListener() => _listener.Dispose();
+
     private protected ClientServerProtocolConnection(
         IProtocolConnection clientProtocolConnection,
-        Func<Task<IProtocolConnection>> acceptServerConnectionAsync)
+        Func<Task<IProtocolConnection>> acceptServerConnectionAsync,
+        IDisposable listener)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;
+        _listener = listener;
         Client = clientProtocolConnection;
     }
 }
@@ -128,7 +136,8 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
             acceptServerConnectionAsync: async () => new IceProtocolConnection(
                 (await listener.AcceptAsync(default)).Connection,
                 isServer: true,
-                serverOptions.Value.ConnectionOptions))
+                serverOptions.Value.ConnectionOptions),
+            listener)
     {
     }
 #pragma warning restore CA2000
@@ -159,7 +168,8 @@ internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtoco
             acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                 (await listener.AcceptAsync(default)).Connection,
                 isServer: true,
-                serverOptions.Value.ConnectionOptions))
+                serverOptions.Value.ConnectionOptions),
+            listener)
     {
     }
 #pragma warning restore CA2000

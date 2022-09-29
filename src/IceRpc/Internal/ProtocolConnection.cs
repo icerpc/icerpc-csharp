@@ -370,7 +370,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Wait for connect to complete first.
             if (_connectTask is not null)
             {
-                _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
+                try
+                {
+                    _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    // ConnectAsync timed out
+                    throw new ConnectionException(ConnectionErrorCode.OperationAborted);
+                }
 
                 if (cancelDispatchesAndInvocations)
                 {
@@ -387,8 +395,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             Exception exception;
 
-            if (_shutdownCts.IsCancellationRequested)
+            if (_shutdownCts.IsCancellationRequested || operationCanceledException.CancellationToken != cts.Token)
             {
+                // ShutdownAsync or ConnectAsync was canceled.
                 exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
             else
