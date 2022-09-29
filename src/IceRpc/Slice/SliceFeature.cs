@@ -30,15 +30,6 @@ public sealed class SliceFeature : ISliceFeature
     /// <inheritdoc/>
     public Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory { get; }
 
-    /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async
-    /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.
-    /// </summary>
-    /// <value>A value of <c>0</c> means no threshold. The default is 64 KB.</value>
-    public int StreamPauseWriterThreshold { get; }
-
-    /// <inheritdoc/>
-    public int StreamResumeWriterThreshold { get; }
-
     /// <summary>Constructs a Slice feature.</summary>
     /// <param name="activator">The activator.</param>
     /// <param name="encodeOptions">The encode options.</param>
@@ -48,11 +39,6 @@ public sealed class SliceFeature : ISliceFeature
     /// <param name="maxDepth">The maximum depth. Use <c>-1</c> to get the default value.</param>
     /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
-    /// <param name="streamPauseWriterThreshold">The maximum stream pause writer threshold. Use <c>-1</c> to get the
-    /// /// default value.</param>
-    /// <param name="streamResumeWriterThreshold">The maximum stream resume writer threshold. Use <c>-1</c> to get the
-    /// default value: half of <paramref name="streamPauseWriterThreshold"/> if set, otherwise the value provided by
-    /// <paramref name="defaultFeature"/>.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. Null is equivalent to
     /// <see cref="Default"/>.</param>
     public SliceFeature(
@@ -62,8 +48,6 @@ public sealed class SliceFeature : ISliceFeature
         int maxDepth = -1,
         int maxSegmentSize = -1,
         Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
-        int streamPauseWriterThreshold = -1,
-        int streamResumeWriterThreshold = -1,
         ISliceFeature? defaultFeature = null)
     {
         defaultFeature ??= Default;
@@ -79,13 +63,6 @@ public sealed class SliceFeature : ISliceFeature
         MaxSegmentSize = maxSegmentSize >= 0 ? maxSegmentSize : defaultFeature.MaxSegmentSize;
 
         ServiceProxyFactory = serviceProxyFactory ?? defaultFeature.ServiceProxyFactory;
-
-        StreamPauseWriterThreshold = streamPauseWriterThreshold >= 0 ? streamPauseWriterThreshold :
-            defaultFeature.StreamPauseWriterThreshold;
-
-        StreamResumeWriterThreshold = streamResumeWriterThreshold >= 0 ? streamResumeWriterThreshold :
-            (streamPauseWriterThreshold >= 0 ? StreamPauseWriterThreshold / 2 :
-                defaultFeature.StreamResumeWriterThreshold);
     }
 
     private class DefaultSliceFeature : ISliceFeature
@@ -101,9 +78,5 @@ public sealed class SliceFeature : ISliceFeature
         public int MaxSegmentSize => 1024 * 1024;
 
         public Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory => null;
-
-        public int StreamPauseWriterThreshold => 64 * 1024;
-
-        public int StreamResumeWriterThreshold => StreamPauseWriterThreshold / 2;
     }
 }
