@@ -27,7 +27,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     }
 
     private ConnectionException? _connectionClosedException;
-    private CancellationTokenSource? _connectCts;
+    private readonly CancellationTokenSource _connectCts = new();
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
     private Task? _disposeTask;
@@ -61,8 +61,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else
             {
-                _connectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                _connectCts.CancelAfter(_connectTimeout);
                 _connectTask = PerformConnectAsync();
             }
         }
@@ -73,10 +71,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectCts.Token);
+            cts.CancelAfter(_connectTimeout);
+
             string? failureReason = null;
             try
             {
-                TransportConnectionInformation information = await ConnectAsyncCore(_connectCts.Token)
+                TransportConnectionInformation information = await ConnectAsyncCore(cts.Token)
                     .ConfigureAwait(false);
                 EnableIdleCheck();
                 return information;
@@ -91,7 +92,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 lock (_mutex)
                 {
                     Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
-                    if (_shutdownTask is not null && (_shutdownTask.IsCanceled || _shutdownTask.IsFaulted))
+                    if (_connectCts.IsCancellationRequested)
                     {
                         failureReason = "the connection establishment was canceled by shutdown";
                         throw new ConnectionException(ConnectionErrorCode.OperationAborted);
@@ -192,7 +193,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             // Clean up disposable resources.
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
-            _connectCts?.Dispose();
+            _connectCts.Dispose();
             _shutdownCts.Dispose();
         }
     }
@@ -267,7 +268,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
                 _shutdownTask ??= Task.FromException(exception);
                 _ = _shutdownCompleteSource.TrySetException(exception);
-                _connectCts?.Cancel();
+                _connectCts.Cancel();
                 _shutdownCts.Cancel();
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -397,7 +398,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
             }
 
-            _connectCts?.Cancel();
+            _connectCts.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);
             throw exception;
         }
@@ -410,7 +411,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             var exception = new ConnectionException(
                 ex is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
                 ex);
-            _connectCts?.Cancel();
+            _connectCts.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);
             throw exception;
         }

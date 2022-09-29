@@ -212,7 +212,6 @@ public class TcpTransportTests
         }
     }
 
-
     [Test]
     public void Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
     {
@@ -229,57 +228,6 @@ public class TcpTransportTests
         // Assert
         TransportException exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
         Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.Unspecified));
-    }
-
-    /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
-    [Test]
-    public async Task Connect_cancellation()
-    {
-        // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
-            options: new TcpServerTransportOptions
-            {
-                ListenerBackLog = 1
-            });
-
-        var clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
-
-        using var cts = new CancellationTokenSource();
-        Task<TransportConnectionInformation> connectTask;
-        TcpClientConnection clientConnection;
-        while (true)
-        {
-            TcpClientConnection? connection = CreateTcpClientConnection(listener.ServerAddress);
-            try
-            {
-                connectTask = connection.ConnectAsync(cts.Token);
-                await Task.Delay(TimeSpan.FromMilliseconds(20));
-                if (connectTask.IsCompleted)
-                {
-                    await connectTask;
-                }
-                else
-                {
-                    clientConnection = connection;
-                    connection = null;
-                    break;
-                }
-            }
-            finally
-            {
-                if (connection is not null)
-                {
-                    connection.Dispose();
-                }
-            }
-        }
-
-        // Act
-        cts.Cancel();
-
-        // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
-        clientConnection.Dispose();
     }
 
     /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see

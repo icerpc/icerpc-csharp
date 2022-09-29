@@ -21,6 +21,7 @@ mod slicec_ext;
 mod struct_visitor;
 mod trait_visitor;
 
+use clap::Parser;
 use class_visitor::ClassVisitor;
 use comment_patcher::patch_comments;
 use cs_options::CsOptions;
@@ -39,7 +40,6 @@ use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use struct_visitor::StructVisitor;
-use structopt::StructOpt;
 use trait_visitor::TraitVisitor;
 
 use slice::code_block::CodeBlock;
@@ -53,7 +53,7 @@ pub fn main() {
 }
 
 fn try_main() -> ParserResult {
-    let options = CsOptions::from_args();
+    let options = CsOptions::parse();
     let slice_options = &options.slice_options;
     let mut parsed_data = slice::parse_from_options(slice_options)
         .and_then(patch_comments)

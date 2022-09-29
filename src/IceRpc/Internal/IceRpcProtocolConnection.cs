@@ -1067,7 +1067,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         bool TryDecodeFrameType(ReadOnlySequence<byte> buffer, out IceRpcControlFrameType frameType, out long consumed)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            if (decoder.TryDecodeVarUInt62(out ulong value))
+            if (decoder.TryDecodeUInt8(out byte value))
             {
                 frameType = value.AsIceRpcControlFrameType();
                 if (frameType != expectedFrameType)

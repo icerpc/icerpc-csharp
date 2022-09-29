@@ -177,7 +177,9 @@ internal struct AsyncQueueCore<T>
         _source.OnCompleted(continuation, state, token, flags);
     }
 
-    internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancellationToken)
+    internal ValueTask<T> DequeueAsync(
+        IAsyncQueueValueTaskSource<T> valueTaskSource,
+        CancellationToken cancellationToken)
     {
         if (cancellationToken.CanBeCanceled)
         {
