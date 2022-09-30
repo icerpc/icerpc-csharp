@@ -21,7 +21,6 @@ mod slicec_ext;
 mod struct_visitor;
 mod trait_visitor;
 
-use clap::Parser;
 use class_visitor::ClassVisitor;
 use comment_patcher::patch_comments;
 use cs_options::CsOptions;
@@ -32,6 +31,7 @@ use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
+use slice::clap::Parser;
 use slice::diagnostics::{Error, ErrorKind};
 use slice::parse_result::ParserResult;
 use slice::slice_file::SliceFile;
