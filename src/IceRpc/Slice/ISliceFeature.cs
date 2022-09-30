@@ -27,14 +27,4 @@ public interface ISliceFeature
 
     /// <summary>Gets the service proxy factory to use when decoding proxies in request or response payloads.</summary>
     Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory { get; }
-
-    /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async
-    /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.
-    /// </summary>
-    int StreamPauseWriterThreshold { get; }
-
-    /// <summary>Gets the stream resume writer threshold. When the decoding of a stream into an async enumerable is
-    /// paused (<see cref="StreamPauseWriterThreshold"/>), the decoding resumes when the number of bytes decoded but not
-    /// read yet falls below this threshold.</summary>
-    int StreamResumeWriterThreshold { get; }
 }

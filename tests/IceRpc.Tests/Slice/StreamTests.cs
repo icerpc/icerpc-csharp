@@ -279,7 +279,6 @@ public class StreamTests
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
 
         // Assert
-        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
         Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
@@ -311,7 +310,6 @@ public class StreamTests
             sliceFeature: null);
 
         // Assert
-        Assert.That(async () => await payload.Completed, Throws.TypeOf<InvalidDataException>());
         Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
