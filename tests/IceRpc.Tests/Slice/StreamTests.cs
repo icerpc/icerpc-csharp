@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -280,6 +279,10 @@ public class StreamTests
 
         // Assert
         Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
+
+        // The call to ToAsyncEnumerable does not decode any element synchronously, so we must await Completed _after_
+        // the iteration above.
+        Assert.That(() => payload.Completed, Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
         static void EncodeSegment(PipeWriter writer)
@@ -311,12 +314,114 @@ public class StreamTests
 
         // Assert
         Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
+        Assert.That(() => payload.Completed, Throws.TypeOf<InvalidDataException>());
         await pipe.Writer.CompleteAsync();
 
         static void EncodeData(PipeWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
             encoder.EncodeInt32(10);
+        }
+    }
+
+    /// <summary>Tests the decoding of a stream where the recipient cancels the iteration.</summary>
+    [Test]
+    public async Task Decode_stream_with_cancellation()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        EncodeData(pipe.Writer);
+        _ = await pipe.Writer.FlushAsync();
+
+        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
+
+        using var cts = new CancellationTokenSource();
+        CancellationToken cancel = cts.Token;
+        int count = 0;
+
+        IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
+            SliceEncoding.Slice2,
+            (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+            elementSize: 4,
+            sliceFeature: null);
+
+        // Act
+        await foreach (int value in values.WithCancellation(cancel))
+        {
+            count++;
+            if (value == 20)
+            {
+                cts.Cancel();
+            }
+        }
+
+        // Assert
+        Assert.That(count, Is.EqualTo(2)); // read 2 elements
+        Assert.That(() => payload.Completed, Throws.Nothing);
+        Assert.That(async () => (await pipe.Writer.FlushAsync()).IsCompleted, Is.True);
+
+        // Cleanup
+        await pipe.Writer.CompleteAsync();
+
+        static void EncodeData(PipeWriter writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeInt32(10);
+            encoder.EncodeInt32(20);
+            encoder.EncodeInt32(30);
+            encoder.EncodeInt32(40);
+        }
+    }
+
+    /// <summary>Tests the decoding of a stream where the sender sends elements in multiple chunks.</summary>
+    [Test]
+    public async Task Decode_stream_in_multiple_chunks()
+    {
+        // Arrange
+        var pipe = new Pipe();
+        EncodeData(pipe.Writer);
+        _ = await pipe.Writer.FlushAsync();
+
+        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
+        int count = 0;
+
+        IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
+            SliceEncoding.Slice2,
+            (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+            elementSize: 4,
+            sliceFeature: null);
+
+        // Act
+        await foreach (int value in values)
+        {
+            count++;
+            if (value == 40) // last value of a chunk
+            {
+                if (count < 32) // 32 = 4 * 8
+                {
+                    // Encodes 4 additional elements
+                    EncodeData(pipe.Writer);
+                    _ = await pipe.Writer.FlushAsync();
+                }
+                else
+                {
+                    // Complete writer which means end iteration
+                    await pipe.Writer.CompleteAsync();
+                }
+            }
+        }
+
+        // Assert
+        Assert.That(count, Is.EqualTo(32));
+        Assert.That(() => payload.Completed, Throws.Nothing);
+
+        static void EncodeData(PipeWriter writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeInt32(10);
+            encoder.EncodeInt32(20);
+            encoder.EncodeInt32(30);
+            encoder.EncodeInt32(40);
         }
     }
 
