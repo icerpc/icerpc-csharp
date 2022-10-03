@@ -56,7 +56,7 @@ public static class ProxyExtensions
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
     /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
     /// <param name="features">The invocation features.</param>
-    /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
+    /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation's return value.</returns>
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>

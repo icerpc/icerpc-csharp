@@ -478,8 +478,8 @@ public sealed record class ServiceAddress
     /// <summary>Checks if <paramref name="value"/> contains only unreserved characters, <c>%</c>, or reserved
     /// characters other than <c>#</c> and <c>&#38;</c>.</summary>
     /// <param name="value">The value to check.</param>
-    /// <returns><c>true</c> if <paramref name="value"/> is a valid parameter value; otherwise, <c>false</c>.
-    /// </returns>
+    /// <returns><see langword="true" /> if <paramref name="value"/> is a valid parameter value; otherwise,
+    /// <see langword="false" />.</returns>
     internal static bool IsValidParamValue(string value) => IsValid(value, "\"<>#&\\^`{|}");
 
     /// <summary>"unchecked" constructor used by the Slice decoder when decoding a Slice1 encoded service address.
@@ -534,8 +534,8 @@ public sealed record class ServiceAddress
     /// <c>transport</c> and contains only unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>,
     /// <c>&#38;</c> and <c>=</c>.</summary>
     /// <param name="name">The name to check.</param>
-    /// <returns><c>true</c> if <paramref name="name"/> is a valid parameter name; otherwise, <c>false</c>.
-    /// </returns>
+    /// <returns><see langword="true" /> if <paramref name="name"/> is a valid parameter name; otherwise,
+    /// <see langword="false" />.</returns>
     /// <remarks>The range of valid names is much larger than the range of names you should use. For example, you
     /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
     /// in a name.</remarks>

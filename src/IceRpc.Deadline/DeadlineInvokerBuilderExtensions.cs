@@ -17,10 +17,11 @@ public static class DeadlineInvokerBuilderExtensions
     /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the builder.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <param name="defaultTimeout">The default timeout.</param>
-    /// <param name="alwaysEnforceDeadline">When <c>true</c> and the request carries a deadline, the interceptor always
-    /// creates a cancellation token source to enforce this deadline. When <c>false</c> and the request carries a
-    /// deadline, the interceptor creates a cancellation token source to enforce this deadline only when the
-    /// invocation's cancellation token cannot be canceled. The default value is <c>false</c>.</param>
+    /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
+    /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
+    /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
+    /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
+    /// </param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseDeadline(
         this IInvokerBuilder builder,

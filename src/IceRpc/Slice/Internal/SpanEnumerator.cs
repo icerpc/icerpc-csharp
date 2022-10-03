@@ -17,8 +17,8 @@ internal ref struct SpanEnumerator
     private int _position;
 
     /// <summary>Moves to the next span.</summary>
-    /// <returns><c>true</c> when the operation was successful, and <c>false</c> when the current span is the last
-    /// span.</returns>
+    /// <returns><see langword="true" /> when the operation was successful, and <see langword="false" /> when the
+    /// current span is the last span.</returns>
     internal bool MoveNext()
     {
         switch (_position)

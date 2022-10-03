@@ -317,7 +317,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected abstract void CancelDispatchesAndInvocations(Exception exception);
 
     /// <summary>Checks if the connection is idle. If it's idle, the connection implementation should stop accepting new
-    /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
+    /// invocations and dispatches and return <see langword="true" /> and <see langword="false" /> otherwise.</summary>
     private protected abstract bool CheckIfIdle();
 
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(

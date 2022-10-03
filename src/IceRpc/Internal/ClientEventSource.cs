@@ -145,42 +145,42 @@ internal sealed class ClientEventSource : EventSource
                 "current-queue",
                 this,
                 () => Volatile.Read(ref _currentQueue))
-                {
-                    DisplayName = "Current Queue",
-                };
+            {
+                DisplayName = "Current Queue",
+            };
 
             _currentConnectionsCounter ??= new PollingCounter(
                 "current-connections",
                 this,
                 () => Volatile.Read(ref _currentConnections))
-                {
-                    DisplayName = "Current Connections",
-                };
+            {
+                DisplayName = "Current Connections",
+            };
 
             _connectionsPerSecondCounter ??= new IncrementingPollingCounter(
                 "connections-per-second",
                 this,
                 () => Volatile.Read(ref _totalConnections))
-                {
-                    DisplayName = "Connections Rate",
-                    DisplayRateTimeScale = TimeSpan.FromSeconds(1)
-                };
+            {
+                DisplayName = "Connections Rate",
+                DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+            };
 
             _totalConnectionsCounter ??= new PollingCounter(
                 "total-connections",
                 this,
                 () => Volatile.Read(ref _totalConnections))
-                {
-                    DisplayName = "Total Connections",
-                };
+            {
+                DisplayName = "Total Connections",
+            };
 
             _totalFailedConnectionsCounter ??= new PollingCounter(
                 "total-failed-connections",
                 this,
                 () => Volatile.Read(ref _totalFailedConnections))
-                {
-                    DisplayName = "Total Failed Connections",
-                };
+            {
+                DisplayName = "Total Failed Connections",
+            };
         }
     }
 
