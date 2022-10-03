@@ -11,7 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="../Hello.slice" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview6" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview7" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="0.1.0-preview1" />
     <PackageReference Include="IceRpc.Metrics" Version="$(IceRpcVersion)" />
   </ItemGroup>
