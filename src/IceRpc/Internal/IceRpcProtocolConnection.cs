@@ -129,7 +129,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ConnectionErrorCode.ClosedByPeer,
                 "the connection establishment was refused");
 
-            throw ConnectionClosedException;
+            throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
         }
 
         // This needs to be set before starting the accept requests task bellow.

@@ -60,7 +60,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
 
         // Cleanup
         await serverConnection!.DisposeAsync();
@@ -642,7 +642,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
     }
 
     [Flags]

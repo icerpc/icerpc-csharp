@@ -8,6 +8,9 @@ namespace IceRpc;
 /// reason of the connection failure.</summary>
 public enum ConnectionErrorCode
 {
+    /// <summary>The connection establishment was refused by the server.</summary>
+    ConnectRefused,
+
     /// <summary>The connection was closed because it was aborted, for example by a transport error or a connect
     /// timeout.</summary>
     ClosedByAbort,
@@ -15,7 +18,7 @@ public enum ConnectionErrorCode
     /// <summary>The connection was closed because it was idle.</summary>
     ClosedByIdle,
 
-    /// <summary>The connection was closed or refused by the remote peer.</summary>
+    /// <summary>The connection was closed by the remote peer.</summary>
     ClosedByPeer,
 
     /// <summary>The connection was closed by a local shutdown.</summary>
