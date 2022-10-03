@@ -126,7 +126,7 @@ public class ServerTests
 
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(() => connection2.ConnectAsync());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         await connection1.ShutdownAsync();
         // Artificial delay to ensure the server has time to cleanup connection.
         await Task.Delay(TimeSpan.FromSeconds(1));

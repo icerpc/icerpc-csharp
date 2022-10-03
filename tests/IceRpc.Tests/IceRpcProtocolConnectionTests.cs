@@ -60,7 +60,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
 
         // Cleanup
         await serverConnection!.DisposeAsync();
@@ -304,7 +304,9 @@ public sealed class IceRpcProtocolConnectionTests
             Assert.That(invokeTask.IsCompleted, Is.False);
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
             Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+
+            // TODO: why not ClosedByPeer since we're shutting down the server?
+            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -346,7 +348,9 @@ public sealed class IceRpcProtocolConnectionTests
             Assert.That(invokeTask.IsCompleted, Is.False);
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
             Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+
+            // TODO: why not ClosedByPeer since we're shutting down the server?
+            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -638,7 +642,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
     }
 
     [Flags]

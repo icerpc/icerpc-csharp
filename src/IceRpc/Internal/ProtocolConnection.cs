@@ -21,7 +21,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         get => Volatile.Read(ref _connectionClosedException);
         set
         {
-            Debug.Assert(value is not null && value.ErrorCode == ConnectionErrorCode.Closed);
+            Debug.Assert(value is not null && value.ErrorCode.IsClosedErrorCode());
             Interlocked.CompareExchange(ref _connectionClosedException, value, null);
         }
     }
@@ -85,7 +85,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    SetConnectionClosedException("the connection establishment was canceled");
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByAbort,
+                        "the connection establishment was canceled");
                     throw;
                 }
                 catch (OperationCanceledException)
@@ -95,12 +97,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
                         if (_connectCts.IsCancellationRequested)
                         {
-                            SetConnectionClosedException("the connection establishment was canceled by shutdown");
+                            ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort);
                             throw new ConnectionException(ConnectionErrorCode.OperationAborted);
                         }
                         else
                         {
-                            SetConnectionClosedException("the connection establishment timed out");
+                            ConnectionClosedException = new(
+                                ConnectionErrorCode.ClosedByAbort,
+                                "the connection establishment timeout out");
                             throw new TimeoutException(
                                 $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
                         }
@@ -112,12 +116,16 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
                 catch (TransportException exception)
                 {
-                    SetConnectionClosedException("the connection establishment failed");
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByAbort,
+                        "the connection establishment failed");
                     throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
                 }
                 catch (Exception exception)
                 {
-                    SetConnectionClosedException("the connection establishment failed");
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByAbort,
+                        "the connection establishment failed");
                     throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
                 }
             }
@@ -127,9 +135,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw;
             }
         }
-
-        void SetConnectionClosedException(string failureReason) =>
-            ConnectionClosedException = new(ConnectionErrorCode.Closed, failureReason);
     }
 
     public ValueTask DisposeAsync()
@@ -146,7 +151,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was disposed");
+            ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown);
 
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
@@ -257,7 +262,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw ConnectionClosedException;
             }
 
-            ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was shutdown");
+            ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown);
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
@@ -344,7 +349,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 return;
             }
 
-            ConnectionClosedException = new(ConnectionErrorCode.Closed, message);
+            ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown, message);
             _shutdownTask = CreateShutdownTask(message);
         }
     }

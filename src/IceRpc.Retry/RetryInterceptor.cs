@@ -90,7 +90,7 @@ public class RetryInterceptor : IInvoker
 
                         // An invocation on a closed connection is always safe to retry.
                         if ((ex is ConnectionException connectionException &&
-                             connectionException.ErrorCode == ConnectionErrorCode.Closed) ||
+                             connectionException.ErrorCode.IsClosedErrorCode()) ||
                             request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
                             !decorator.IsRead)
                         {

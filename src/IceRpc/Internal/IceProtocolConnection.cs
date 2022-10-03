@@ -180,7 +180,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
-                ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was idle");
+                ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
             else
@@ -238,9 +238,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    ConnectionClosedException = new(
-                        ConnectionErrorCode.Closed,
-                        "the connection was shutdown by the peer");
+                    ConnectionClosedException = new(ConnectionErrorCode.ClosedByPeer);
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
@@ -272,9 +270,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was lost");
+                    ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort, "the connection was lost");
 
-                    // Unexpected exception, notify the OnAbort callback.
+                    // Unexpected exception, notify the ConnectionLost callback.
                     ConnectionLost(exception);
                     completeException = exception;
                 }
@@ -665,7 +663,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _writeSemaphore.Release();
                 }
             }
-            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
+            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ClosedByPeer)
             {
                 // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
             }
