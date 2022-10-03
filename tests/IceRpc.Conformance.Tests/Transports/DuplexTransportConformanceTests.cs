@@ -132,15 +132,45 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
-        Task connectTask = clientConnection.ConnectAsync(default);
+        // A duplex transport listener might use a backlog to accept client connections (e.g.: TCP). So we need to
+        // create and establish client connections until a connection establishment blocks to test cancellation.
+        Task<TransportConnectionInformation> connectTask;
+        IDuplexConnection clientConnection;
+        while (true)
+        {
+            IDuplexConnection? connection = clientTransport.CreateConnection(
+                listener.ServerAddress,
+                provider.GetService<DuplexConnectionOptions>() ?? new DuplexConnectionOptions(),
+                clientAuthenticationOptions: provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value);
+            try
+            {
+                connectTask = connection.ConnectAsync(default);
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                if (connectTask.IsCompleted)
+                {
+                    await connectTask;
+                }
+                else
+                {
+                    clientConnection = connection;
+                    connection = null;
+                    break;
+                }
+            }
+            finally
+            {
+                connection?.Dispose();
+            }
+        }
 
         // Act
         listener.Dispose();
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<TransportException>());
+        clientConnection.Dispose();
     }
 
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and

@@ -271,20 +271,13 @@ internal class TcpClientConnection : TcpConnection
             // Connect to the peer.
             await Socket.ConnectAsync(_addr, cancellationToken).ConfigureAwait(false);
 
+            // Workaround: a canceled Socket.ConnectAsync call can return successfully but the Socket is closed because
+            // of the cancellation. See https://github.com/dotnet/runtime/issues/75889.
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (_authenticationOptions is not null)
             {
-                try
-                {
-                    _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                }
-                catch (IOException) when (!Socket.Connected)
-                {
-                    // For some reasons the stream construction can fail because the socket is no longer connected when
-                    // ConnectAsync is canceled and even though Socket.ConnectAsync returned successfully. See
-                    // https://github.com/dotnet/runtime/issues/75889.
-                    cancellationToken.ThrowIfCancellationRequested();
-                    throw;
-                }
+                _sslStream = new SslStream(new NetworkStream(Socket, false), false);
 
                 await _sslStream.AuthenticateAsClientAsync(
                     _authenticationOptions,
