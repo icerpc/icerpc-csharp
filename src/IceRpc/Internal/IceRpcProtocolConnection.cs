@@ -181,7 +181,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
-                InitiateShutdown(goAwayFrame.Message);
+                InitiateShutdown(ConnectionErrorCode.ClosedByPeer, goAwayFrame.Message);
                 return goAwayFrame;
             },
             CancellationToken.None);

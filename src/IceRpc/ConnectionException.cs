@@ -15,13 +15,13 @@ public enum ConnectionErrorCode
     /// timeout.</summary>
     ClosedByAbort,
 
-    /// <summary>The connection was closed because it was idle.</summary>
+    /// <summary>The connection was closed locally because it was idle.</summary>
     ClosedByIdle,
 
     /// <summary>The connection was closed by the remote peer.</summary>
     ClosedByPeer,
 
-    /// <summary>The connection was closed by a local shutdown.</summary>
+    /// <summary>The connection was closed by a local call to shutdown or dispose.</summary>
     ClosedByShutdown,
 
     /// <summary>The operation was aborted because the connection was aborted.</summary>
