@@ -140,9 +140,9 @@ public static class ProxyExtensions
     /// <param name="payloadStream">The payload stream of the request.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="features">The invocation features.</param>
-    /// <param name="idempotent">When true, the request is idempotent.</param>
-    /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
-    /// after sending the request.</param>
+    /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
+    /// <param name="oneway">When <see langword="true" />, the request is sent oneway and an empty response is returned
+    /// immediately after sending the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>

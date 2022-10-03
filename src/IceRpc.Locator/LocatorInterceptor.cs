@@ -138,7 +138,8 @@ public class LocatorInterceptor : IInvoker
 /// <summary>A location is either an adapter ID or a path.</summary>
 public readonly record struct Location
 {
-    /// <summary>Gets a value indicating whether or not this location holds an adapter ID; otherwise, false.</summary>
+    /// <summary>Gets a value indicating whether or not this location holds an adapter ID; otherwise,
+    /// <see langword="false" />.</summary>
     public bool IsAdapterId { get; init; }
 
     /// <summary>Gets the adapter ID or path.</summary>

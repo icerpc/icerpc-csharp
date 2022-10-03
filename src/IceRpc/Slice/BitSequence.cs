@@ -27,7 +27,7 @@ public ref struct BitSequenceReader
     }
 
     /// <summary>Reads the next bit in the bit sequence.</summary>
-    /// <returns>True when the next bit is set; otherwise, false.</returns>
+    /// <returns><see langword="true" /> when the next bit is set; otherwise, <see langword="false" />.</returns>
     public bool Read()
     {
         if (_index == 8)

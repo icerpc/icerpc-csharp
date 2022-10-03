@@ -681,8 +681,8 @@ public ref partial struct SliceDecoder
     internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
 
     /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
-    /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
-    /// buffer.</param>
+    /// <param name="skipTaggedParams">When <see langword="true" />, first skips all remaining tagged parameters in the
+    /// current buffer.</param>
     internal void CheckEndOfBuffer(bool skipTaggedParams)
     {
         if (skipTaggedParams)
