@@ -103,15 +103,15 @@ public class LocatorInterceptor : IInvoker
 
         static (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) ComputeServerAddresses(
             ServiceAddress serviceAddress,
-            IEnumerable<ServerAddress> excludedAddreses)
+            IEnumerable<ServerAddress> excludedAddresses)
         {
             (ServerAddress? ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) result =
                 (serviceAddress.ServerAddress, serviceAddress.AltServerAddresses);
-            if (result.ServerAddress is ServerAddress serverAddress && excludedAddreses.Contains(serverAddress))
+            if (result.ServerAddress is ServerAddress serverAddress && excludedAddresses.Contains(serverAddress))
             {
                 result.ServerAddress = null;
             }
-            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(e => excludedAddreses.Contains(e));
+            result.AltServerAddresses = result.AltServerAddresses.RemoveAll(e => excludedAddresses.Contains(e));
 
             if (result.ServerAddress is null && result.AltServerAddresses.Count > 0)
             {
