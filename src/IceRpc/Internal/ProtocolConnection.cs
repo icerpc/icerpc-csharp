@@ -74,64 +74,62 @@ internal abstract class ProtocolConnection : IProtocolConnection
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectCts.Token);
             cts.CancelAfter(_connectTimeout);
 
-            string? failureReason = null;
             try
             {
-                TransportConnectionInformation information = await ConnectAsyncCore(cts.Token)
-                    .ConfigureAwait(false);
-                EnableIdleCheck();
-                return information;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                failureReason = "the connection establishment was canceled";
-                throw;
-            }
-            catch (OperationCanceledException)
-            {
-                lock (_mutex)
+                try
                 {
-                    Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
-                    if (_connectCts.IsCancellationRequested)
+                    TransportConnectionInformation information = await ConnectAsyncCore(cts.Token)
+                        .ConfigureAwait(false);
+                    EnableIdleCheck();
+                    return information;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    SetConnectionClosedException("the connection establishment was canceled");
+                    throw;
+                }
+                catch (OperationCanceledException)
+                {
+                    lock (_mutex)
                     {
-                        failureReason = "the connection establishment was canceled by shutdown";
-                        throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-                    }
-                    else
-                    {
-                        failureReason = "the connection establishment timed out";
-                        throw new TimeoutException(
-                            $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+                        Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
+                        if (_connectCts.IsCancellationRequested)
+                        {
+                            SetConnectionClosedException("the connection establishment was canceled by shutdown");
+                            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
+                        }
+                        else
+                        {
+                            SetConnectionClosedException("the connection establishment timed out");
+                            throw new TimeoutException(
+                                $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+                        }
                     }
                 }
-            }
-            catch (ConnectionException)
-            {
-                throw;
-            }
-            catch (TransportException exception)
-            {
-                failureReason = "the connection establishment failed";
-                throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+                catch (ConnectionException)
+                {
+                    throw;
+                }
+                catch (TransportException exception)
+                {
+                    SetConnectionClosedException("the connection establishment failed");
+                    throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+                }
+                catch (Exception exception)
+                {
+                    SetConnectionClosedException("the connection establishment failed");
+                    throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
+                }
             }
             catch (Exception exception)
             {
-                failureReason = "the connection establishment failed";
-                throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
-            }
-            finally
-            {
-                if (failureReason is not null)
-                {
-                    ConnectionClosedException = new(ConnectionErrorCode.Closed, failureReason);
-                }
-
-                if (ConnectionClosedException is not null)
-                {
-                    _shutdownCompleteSource.TrySetException(ConnectionClosedException);
-                }
+                _shutdownCompleteSource.TrySetException(ConnectionClosedException ?? exception);
+                throw;
             }
         }
+
+        void SetConnectionClosedException(string failureReason) =>
+            ConnectionClosedException = new(ConnectionErrorCode.Closed, failureReason);
     }
 
     public ValueTask DisposeAsync()

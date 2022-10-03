@@ -125,7 +125,7 @@ public sealed class ProtocolConnectionTests
 
         // TODO: this configuration is very confusing. AddProtocolTest does not create a Server but use some
         // ServerOptions and does not forward these ServerOptions to the underlying transport.
-        // We add "100" to max sure the limit does not come from MaxBidirectionalStreams.
+        // We add "100" to make sure the limit does not come from MaxBidirectionalStreams.
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.MaxBidirectionalStreams = maxDispatches + 100);
 
@@ -354,7 +354,7 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that disposing the connection completes ShutdownComplete.</summary>
+    /// <summary>Verifies that an abortive shutdown completes ShutdownComplete.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connection_abort_completes_shutdown_complete(Protocol protocol)
     {
@@ -370,7 +370,7 @@ public sealed class ProtocolConnectionTests
 
         try
         {
-            await sut.Client.ShutdownAsync("Triggering server abort", new CancellationToken(true));
+            await sut.Client.ShutdownAsync("Triggering connection reset", new CancellationToken(true));
         }
         catch (OperationCanceledException)
         {
@@ -383,6 +383,28 @@ public sealed class ProtocolConnectionTests
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             async () => await sut.Server.ShutdownComplete);
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+    }
+
+    /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task ConnectAsync_failure_completes_shutdown_complete(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+
+        // Act
+        sut.DisposeListener(); // dispose the listener to trigger the ConnectAsync failure.
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<ConnectionException>());
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
+            async () => await sut.Client.ShutdownComplete);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
     }
 
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
