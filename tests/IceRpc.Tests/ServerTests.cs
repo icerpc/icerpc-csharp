@@ -129,7 +129,7 @@ public class ServerTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
         await connection1.ShutdownAsync();
         // Artificial delay to ensure the server has time to cleanup connection.
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        await Task.Delay(TimeSpan.FromSeconds(1));
         await connection3.ConnectAsync();
     }
 }
