@@ -139,18 +139,19 @@ public class StreamTests
 
     /// <summary>Verifies that we correctly decode an async enumerable of fixed size elements.</summary>
     /// <param name="size">The size of the async enumerable.</param>
-    /// <param name="yieldThreshold">The yield threshold ensures that we test both synchronous and asynchronous
-    /// iteration code paths in the payload stream pipe reader.</param>
-    [TestCase(0, 0)]
-    [TestCase(100, 7)]
-    [TestCase(64 * 1024, 0)]
-    public void Decode_stream_of_fixed_size_elements(int size, int yieldThreshold)
+    [Test]
+    public void Decode_stream_of_fixed_size_elements([Values(0, 100, 64 * 1024)] int size)
     {
         // Arrange
         var pipe = new Pipe();
 
         int[] expected = Enumerable.Range(0, size).Select(i => i).ToArray();
-        Task.Run(() => _ = EncodeDataAsync(pipe.Writer));
+        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+        for (int i = 0; i < size; i++)
+        {
+            encoder.EncodeInt32(i);
+        }
+        pipe.Writer.Complete();
 
         // Act
         IAsyncEnumerable<int> decoded = pipe.Reader.ToAsyncEnumerable(
@@ -162,7 +163,7 @@ public class StreamTests
         // Assert
         Assert.That(async () => await ToArrayAsync(decoded), Is.EqualTo(expected));
 
-        async Task<int[]> ToArrayAsync(IAsyncEnumerable<int> enumerable)
+        static async Task<int[]> ToArrayAsync(IAsyncEnumerable<int> enumerable)
         {
             var data = new List<int>();
             await foreach (int i in enumerable)
@@ -171,41 +172,37 @@ public class StreamTests
             }
             return data.ToArray();
         }
-
-        async Task EncodeDataAsync(PipeWriter writer)
-        {
-            for (int i = 0; i < size; i++)
-            {
-                if (yieldThreshold > 0 && i % yieldThreshold == 0)
-                {
-                    await writer.FlushAsync();
-                    await Task.Yield();
-                }
-                EncodeElement(i);
-            }
-            await writer.CompleteAsync();
-
-            void EncodeElement(int value)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-                encoder.EncodeInt32(value);
-            }
-        }
     }
 
     /// <summary>Verifies that we correctly decode an async enumerable of variable size elements.</summary>
     /// <param name="size">The size of the async enumerable.</param>
-    /// <param name="yieldThreshold">The yield threshold ensures that we test both synchronous and asynchronous
-    /// iteration code paths in the payload stream pipe reader.</param>
-    [TestCase(0, 0)]
-    [TestCase(100, 7)]
-    [TestCase(64 * 1024, 0)]
-    public void Decode_stream_of_variable_size_elements(int size, int yieldThreshold)
+    [Test]
+    public void Decode_stream_of_variable_size_elements([Values(0, 100, 64 * 1024)] int size)
     {
         // Arrange
         var pipe = new Pipe();
         string[] expected = Enumerable.Range(0, size).Select(i => $"hello-{i}").ToArray();
-        Task.Run(() => _ = EncodeDataAsync(pipe.Writer));
+
+        if (size > 0)
+        {
+            // We encode the elements in 2 segments
+            EncodeSegment(0, size / 2);
+            EncodeSegment(size / 2, size);
+
+            void EncodeSegment(int start, int end)
+            {
+                Memory<byte> sizePlaceHolder = pipe.Writer.GetMemory(4)[0..4];
+                pipe.Writer.Advance(4);
+
+                var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+                for (int i = start; i < end; i++)
+                {
+                    encoder.EncodeString($"hello-{i}");
+                }
+                SliceEncoder.EncodeVarUInt62((ulong)encoder.EncodedByteCount, sizePlaceHolder.Span);
+            }
+        }
+        pipe.Writer.Complete();
 
         // Act
         IAsyncEnumerable<string> decoded = pipe.Reader.ToAsyncEnumerable(
@@ -216,7 +213,7 @@ public class StreamTests
         // Assert
         Assert.That(async () => await ToArrayAsync(decoded), Is.EqualTo(expected));
 
-        async Task<string[]> ToArrayAsync(IAsyncEnumerable<string> enumerable)
+        static async Task<string[]> ToArrayAsync(IAsyncEnumerable<string> enumerable)
         {
             var data = new List<string>();
             await foreach (string i in enumerable)
@@ -224,38 +221,6 @@ public class StreamTests
                 data.Add(i);
             }
             return data.ToArray();
-        }
-
-        async Task EncodeDataAsync(PipeWriter writer)
-        {
-            if (size > 0)
-            {
-                int encodedByteCount = 0;
-                Memory<byte> sizePlaceHolder = writer.GetMemory(4)[0..4];
-                writer.Advance(4);
-                for (int i = 0; i < size; i++)
-                {
-                    if (encodedByteCount > 0 && yieldThreshold > 0 && i % yieldThreshold == 0)
-                    {
-                        SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
-                        encodedByteCount = 0;
-                        await writer.FlushAsync();
-                        await Task.Yield();
-                        sizePlaceHolder = writer.GetMemory(4)[0..4];
-                        writer.Advance(4);
-                    }
-                    encodedByteCount += EncodeElement($"hello-{i}");
-                }
-                SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
-            }
-            await writer.CompleteAsync();
-
-            int EncodeElement(string value)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-                encoder.EncodeString(value);
-                return encoder.EncodedByteCount;
-            }
         }
     }
 
@@ -373,7 +338,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Tests the decoding of a stream where the sender sends elements in multiple chunks.</summary>
+    /// <summary>Tests the decoding of a stream where the sender sends elements in multiple chunks and as a result the
+    /// decoding is asynchronous.</summary>
     [Test]
     public async Task Decode_stream_in_multiple_chunks()
     {
