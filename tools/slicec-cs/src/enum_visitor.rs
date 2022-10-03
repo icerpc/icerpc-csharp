@@ -6,7 +6,7 @@ use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
-use convert_case::{Case, Casing};
+use slice::convert_case::{Case, Casing};
 use slice::grammar::*;
 use slice::visitor::Visitor;
 
