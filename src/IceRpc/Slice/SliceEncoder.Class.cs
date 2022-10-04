@@ -142,7 +142,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Encodes sliced-off slices.</summary>
     /// <param name="unknownSlices">The sliced-off slices to encode.</param>
-    /// <param name="fullySliced">When true, slicedData holds all the data of this instance.</param>
+    /// <param name="fullySliced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
     internal void EncodeUnknownSlices(ImmutableList<SliceInfo> unknownSlices, bool fullySliced)
     {
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);

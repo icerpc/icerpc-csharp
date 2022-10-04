@@ -138,7 +138,8 @@ public class LocatorInterceptor : IInvoker
 /// <summary>A location is either an adapter ID or a path.</summary>
 public readonly record struct Location
 {
-    /// <summary>Gets a value indicating whether or not this location holds an adapter ID; otherwise, false.</summary>
+    /// <summary>Gets a value indicating whether or not this location holds an adapter ID; otherwise,
+    /// <see langword="false" />.</summary>
     public bool IsAdapterId { get; init; }
 
     /// <summary>Gets the adapter ID or path.</summary>
@@ -158,7 +159,7 @@ public interface ILocationResolver
 {
     /// <summary>Resolves a location into one or more server addresses carried by a dummy service address.</summary>
     /// <param name="location">The location to resolve.</param>
-    /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
+    /// <param name="refreshCache">When <see langword="true" />, requests a cache refresh.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
     /// that indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is

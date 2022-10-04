@@ -20,11 +20,12 @@ public class Protocol
     public ushort DefaultPort { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports fields.</summary>
-    /// <returns><c>true</c> if the protocol supports fields; otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true" /> if the protocol supports fields; otherwise, <see langword="false" />.</returns>
     public bool HasFields { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
-    /// <returns><c>true</c> if the protocol supports fragments; otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true" /> if the protocol supports fragments; otherwise, <see langword="false" />.
+    /// </returns>
     public bool HasFragment { get; }
 
     /// <summary>Gets the name of this protocol.</summary>
@@ -47,8 +48,8 @@ public class Protocol
     /// <summary>Tries to parse a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
     /// <param name="protocol">The protocol parsed from the name.</param>
-    /// <returns><c>true</c> when <paramref name="name"/> was successfully parsed into a protocol; otherwise,
-    /// <c>false</c>.</returns>
+    /// <returns><see langword="true" /> when <paramref name="name"/> was successfully parsed into a protocol;
+    /// otherwise, <see langword="false" />.</returns>
     public static bool TryParse(string name, [NotNullWhen(true)] out Protocol? protocol)
     {
         name = name.ToLowerInvariant();

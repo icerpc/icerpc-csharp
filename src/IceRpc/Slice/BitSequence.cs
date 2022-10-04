@@ -27,7 +27,7 @@ public ref struct BitSequenceReader
     }
 
     /// <summary>Reads the next bit in the bit sequence.</summary>
-    /// <returns>True when the next bit is set; otherwise, false.</returns>
+    /// <returns><see langword="true" /> when the next bit is set; otherwise, <see langword="false" />.</returns>
     public bool Read()
     {
         if (_index == 8)
@@ -51,7 +51,7 @@ public ref struct BitSequenceWriter
 
     /// <summary>Writes the bit at the current position in the underlying bit sequence and moves to the next
     /// position.</summary>
-    /// <param name="value"><c>true</c> to set the bit and <c>false</c> to unset it.</param>
+    /// <param name="value"><see langword="true" /> to set the bit and <see langword="false" /> to unset it.</param>
     public void Write(bool value)
     {
         int byteIndex = _index >> 3; // right-shift by 3 positions, equivalent to divide by 8

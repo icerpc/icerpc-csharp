@@ -14,7 +14,7 @@ internal static class PipeReaderExtensions
     /// <param name="maxSize">The maximum size of this segment.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled"/> is
-    /// <c>true</c>.</returns>
+    /// <see langword="true" />.</returns>
     /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
     /// exceeds <paramref name="maxSize"/>.</exception>
     /// <remarks>The caller must call AdvanceTo on the reader, as usual. With Slice1, this method reads all
@@ -113,14 +113,14 @@ internal static class PipeReaderExtensions
     /// <param name="encoding">The encoding.</param>
     /// <param name="maxSize">The maximum size of this segment.</param>
     /// <param name="readResult">The read result.</param>
-    /// <returns><c>true</c> when <paramref name="readResult"/> contains the segment read synchronously, or the
-    /// call was cancelled; otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true" /> when <paramref name="readResult"/> contains the segment read synchronously, or the
+    /// call was cancelled; otherwise, <see langword="false" />.</returns>
     /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
     /// exceeds the max segment size.</exception>
-    /// <remarks>When this method returns <c>true</c>, the caller must call AdvanceTo on the reader, as usual. This
+    /// <remarks>When this method returns <see langword="true" />, the caller must call AdvanceTo on the reader, as usual. This
     /// method often examines the buffer it returns as part of ReadResult, therefore the caller should never
-    /// examine less than Buffer.End when the return value is <c>true</c>. When this method returns <c>false</c>,
-    /// the caller must call <see cref="ReadSegmentAsync"/>.</remarks>
+    /// examine less than Buffer.End when the return value is <see langword="true" />. When this method returns
+    /// <see langword="false" />, the caller must call <see cref="ReadSegmentAsync"/>.</remarks>
     internal static bool TryReadSegment(
         this PipeReader reader,
         SliceEncoding encoding,
@@ -192,10 +192,10 @@ internal static class PipeReaderExtensions
 
     /// <summary>Checks if a read result holds a complete Slice segment and if the segment size does not exceed the
     /// maximum size.</summary>
-    /// <returns><c>true</c> when <paramref name="readResult"/> holds a complete segment or is canceled; otherwise,
-    /// <c>false</c>.</returns>
+    /// <returns><see langword="true" /> when <paramref name="readResult"/> holds a complete segment or is canceled; otherwise,
+    /// <see langword="false" />.</returns>
     /// <remarks><paramref name="segmentSize"/> and <paramref name="consumed"/> can be set when this method returns
-    /// <c>false</c>. In this case, both segmentSize and consumed are greater than 0.</remarks>
+    /// <see langword="false" />. In this case, both segmentSize and consumed are greater than 0.</remarks>
     private static bool IsCompleteSegment(
         ref ReadResult readResult,
         int maxSize,
