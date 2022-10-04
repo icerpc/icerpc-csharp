@@ -15,7 +15,7 @@ namespace IceRpc;
 public readonly record struct ServerAddress
 {
     /// <summary>Gets the protocol of this server address.</summary>
-    /// <value>Either <see cref="Protocol.IceRpc"/> or <see cref="Protocol.Ice"/>.</value>
+    /// <value>Either <see cref="Protocol.IceRpc" /> or <see cref="Protocol.Ice" />.</value>
     public Protocol Protocol { get; }
 
     /// <summary>Gets or initializes the host.</summary>
@@ -80,7 +80,8 @@ public readonly record struct ServerAddress
         }
     }
 
-    /// <summary>Gets the URI used to create this server address, if this server address was created from a URI.</summary>
+    /// <summary>Gets the URI used to create this server address, if this server address was created from a URI.
+    /// </summary>
     public Uri? OriginalUri { get; private init; }
 
     private readonly string _host = "::0";
@@ -104,9 +105,9 @@ public readonly record struct ServerAddress
         OriginalUri = null;
     }
 
-    /// <summary>Constructs a server address from a <see cref="Uri"/>.</summary>
+    /// <summary>Constructs a server address from a <see cref="Uri" />.</summary>
     /// <param name="uri">An absolute URI.</param>
-    /// <exception cref="ArgumentException">Thrown if the <paramref name="uri"/> is not an absolute URI, or if its
+    /// <exception cref="ArgumentException">Thrown if the <paramref name="uri" /> is not an absolute URI, or if its
     /// scheme is not a supported protocol, or if it has a non-empty path or fragment, or if it has an empty host,
     /// or if its query can't be parsed or if it has an alt-server query parameter.</exception>
     public ServerAddress(Uri uri)
@@ -187,7 +188,7 @@ public readonly record struct ServerAddress
 
     /// <summary>Constructs a server address from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>
-    /// <remarks>This constructor is used by <see cref="ServiceAddress"/> for its main server address and by the Slice
+    /// <remarks>This constructor is used by <see cref="ServiceAddress" /> for its main server address and by the Slice
     /// decoder for Slice1 server addresses.</remarks>
     internal ServerAddress(
         Protocol protocol,
@@ -205,7 +206,7 @@ public readonly record struct ServerAddress
     }
 }
 
-/// <summary>Equality comparer for <see cref="ServerAddress"/>.</summary>
+/// <summary>Equality comparer for <see cref="ServerAddress" />.</summary>
 public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
 {
     /// <summary>Gets a server address comparer that compares all server address properties, except a transport mismatch

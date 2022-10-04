@@ -5,7 +5,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IDuplexServerTransport"/> for the tcp and ssl transports.</summary>
+/// <summary>Implements <see cref="IDuplexServerTransport" /> for the tcp and ssl transports.</summary>
 public class TcpServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
@@ -13,13 +13,13 @@ public class TcpServerTransport : IDuplexServerTransport
 
     private readonly TcpServerTransportOptions _options;
 
-    /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+    /// <summary>Constructs a <see cref="TcpServerTransport" />.</summary>
     public TcpServerTransport()
         : this(new())
     {
     }
 
-    /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+    /// <summary>Constructs a <see cref="TcpServerTransport" />.</summary>
     /// <param name="options">The transport options.</param>
     public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 

@@ -5,7 +5,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>Implements <see cref="IDuplexServerTransport"/> for the coloc transport.</summary>
+/// <summary>Implements <see cref="IDuplexServerTransport" /> for the coloc transport.</summary>
 internal class ColocServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>

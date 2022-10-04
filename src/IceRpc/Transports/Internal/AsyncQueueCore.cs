@@ -41,7 +41,7 @@ internal struct AsyncQueueCore<T>
         _tokenRegistration = default;
     }
 
-    /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
+    /// <summary>Complete the pending <see cref="DequeueAsync" /> and discard queued items.</summary>
     internal bool TryComplete(Exception exception)
     {
         bool lockTaken = false;

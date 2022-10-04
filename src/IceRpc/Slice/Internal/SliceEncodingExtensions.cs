@@ -4,7 +4,7 @@ using System.Buffers;
 
 namespace IceRpc.Slice.Internal;
 
-/// <summary>Extension methods for <see cref="SliceEncoding"/>.</summary>
+/// <summary>Extension methods for <see cref="SliceEncoding" />.</summary>
 internal static class SliceEncodingExtensions
 {
     /// <summary>Decodes a buffer.</summary>
@@ -13,7 +13,7 @@ internal static class SliceEncodingExtensions
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="decodeFunc">The decode function for buffer.</param>
     /// <returns>The decoded value.</returns>
-    /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
+    /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc" /> finds invalid data.
     /// </exception>
     internal static T DecodeBuffer<T>(
         this SliceEncoding encoding,

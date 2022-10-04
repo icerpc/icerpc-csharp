@@ -35,8 +35,8 @@ public class TcpTransportTests
             ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         };
 
-    /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize"/> and
-    /// <see cref="TcpTransportOptions.SendBufferSize"/> configures the respective socket properties.</summary>
+    /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize" /> and
+    /// <see cref="TcpTransportOptions.SendBufferSize" /> configures the respective socket properties.</summary>
     /// <param name="bufferSize">The buffer size to test with.</param>
     [TestCase(16 * 1024)]
     [TestCase(64 * 1024)]
@@ -83,7 +83,7 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalNetworkAddress"/> properties, sets
+    /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalNetworkAddress" /> properties, sets
     /// the socket local server address.</summary>
     [Test]
     public void Configure_client_connection_local_network_address()
@@ -100,8 +100,8 @@ public class TcpTransportTests
         Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localNetworkAddress));
     }
 
-    /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize"/> and
-    /// <see cref="TcpTransportOptions.SendBufferSize"/> configures the respective socket properties.</summary>
+    /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize" /> and
+    /// <see cref="TcpTransportOptions.SendBufferSize" /> configures the respective socket properties.</summary>
     /// <param name="bufferSize">The buffer size to test with.</param>
     [TestCase(16 * 1024)]
     [TestCase(64 * 1024)]
@@ -167,7 +167,7 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that setting the <see cref="TcpServerTransportOptions.ListenerBackLog"/> configures the
+    /// <summary>Verifies that setting the <see cref="TcpServerTransportOptions.ListenerBackLog" /> configures the
     /// socket listen backlog.</summary>
     [Test]
     public async Task Configure_server_connection_listen_backlog()
@@ -231,7 +231,7 @@ public class TcpTransportTests
     }
 
     /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see
-    /// cref="NotSupportedException"/> exception.</summary>
+    /// cref="NotSupportedException" /> exception.</summary>
     [Test]
     public void DNS_name_cannot_be_used_in_a_tcp_listener_server_address()
     {
@@ -243,7 +243,7 @@ public class TcpTransportTests
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with
-    /// <see cref="OperationCanceledException"/> when the cancellation token is canceled.</summary>
+    /// <see cref="OperationCanceledException" /> when the cancellation token is canceled.</summary>
     [Test]
     public async Task Tls_client_connect_operation_canceled_exception()
     {
@@ -331,7 +331,7 @@ public class TcpTransportTests
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails with
-    /// <see cref="OperationCanceledException"/> when the cancellation token is canceled.</summary>
+    /// <see cref="OperationCanceledException" /> when the cancellation token is canceled.</summary>
     [Test]
     public async Task Tls_server_connect_operation_canceled_exception()
     {

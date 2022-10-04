@@ -12,7 +12,7 @@ namespace IceRpc.Telemetry.Tests;
 public sealed class TelemetryMiddlewareTests
 {
     /// <summary>Verifies that the dispatch activity is created using the activity source used to create the
-    /// <see cref="TelemetryMiddleware"/>.</summary>
+    /// <see cref="TelemetryMiddleware" />.</summary>
     [Test]
     public async Task Dispatch_activity_created_from_activity_source()
     {
@@ -53,7 +53,7 @@ public sealed class TelemetryMiddlewareTests
     }
 
     /// <summary>Verifies that the dispatch activity context is restored from the
-    /// <see cref="RequestFieldKey.TraceContext"/> field.</summary>
+    /// <see cref="RequestFieldKey.TraceContext" /> field.</summary>
     [Test]
     public async Task Dispatch_activity_decodes_trace_context_field()
     {
@@ -120,7 +120,7 @@ public sealed class TelemetryMiddlewareTests
     }
 
     /// <summary>Verifies that the dispatch activity context is restored from the
-    /// <see cref="RequestFieldKey.TraceContext"/> field.</summary>
+    /// <see cref="RequestFieldKey.TraceContext" /> field.</summary>
     [Test]
     public void Decoding_empty_trace_context_field_fails()
     {

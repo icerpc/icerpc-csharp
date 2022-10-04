@@ -34,9 +34,9 @@ public ref partial struct SliceDecoder
     /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
     /// assemblies.</summary>
     /// <param name="assembly">The assembly.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assembly"/> provided this
-    /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute"/>
-    /// attribute). Types defined in assemblies referenced by <paramref name="assembly"/> are included as well,
+    /// <returns>An activator that activates the Slice types defined in <paramref name="assembly" /> provided this
+    /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute" />
+    /// attribute). Types defined in assemblies referenced by <paramref name="assembly" /> are included as well,
     /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
     /// considered.</returns>
     public static IActivator GetActivator(Assembly assembly) => ActivatorFactory.Instance.Get(assembly);
@@ -44,8 +44,8 @@ public ref partial struct SliceDecoder
     /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
     /// referenced assemblies.</summary>
     /// <param name="assemblies">The assemblies.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies"/> and their
-    /// referenced assemblies. See <see cref="GetActivator(Assembly)"/>.</returns>
+    /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies" /> and their
+    /// referenced assemblies. See <see cref="GetActivator(Assembly)" />.</returns>
     public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
         Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
 
@@ -76,7 +76,7 @@ public ref partial struct SliceDecoder
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
-    /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory"/>.</param>
+    /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -118,7 +118,7 @@ public ref partial struct SliceDecoder
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
-    /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory"/>.</param>
+    /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -1085,7 +1085,7 @@ public ref partial struct SliceDecoder
             }
             else
             {
-                if (expectedFormat == TagFormat.OVSize)
+                if (expectedFormat == TagFormat.OptimizedVSize)
                 {
                     expectedFormat = TagFormat.VSize; // fix virtual tag format
                 }

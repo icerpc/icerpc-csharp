@@ -9,7 +9,7 @@ namespace IceRpc.Locator.Tests;
 
 public class LocatorServerAddressFinderTests
 {
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly resolves an adapter ID.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly resolves an adapter ID.</summary>
     [Test]
     public async Task Find_adapter_by_id()
     {
@@ -22,8 +22,8 @@ public class LocatorServerAddressFinderTests
         Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress.ServiceAddress));
     }
 
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly handles
-    /// <see cref="AdapterNotFoundException"/>.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly handles
+    /// <see cref="AdapterNotFoundException" />.</summary>
     [Test]
     public async Task Find_adapter_by_id_not_found()
     {
@@ -35,7 +35,7 @@ public class LocatorServerAddressFinderTests
         Assert.That(serviceAddress, Is.Null);
     }
 
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly resolves an object ID.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly resolves an object ID.</summary>
     [Test]
     public void Find_adapter_by_id_returning_a_proxy_without_server_address_fails()
     {
@@ -48,7 +48,7 @@ public class LocatorServerAddressFinderTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly resolves an object ID.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly resolves an object ID.</summary>
     [Test]
     public async Task Find_object_by_id()
     {
@@ -61,8 +61,8 @@ public class LocatorServerAddressFinderTests
         Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress.ServiceAddress));
     }
 
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly handles
-    /// <see cref="ObjectNotFoundException"/>.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly handles
+    /// <see cref="ObjectNotFoundException" />.</summary>
     [Test]
     public async Task Find_object_by_id_not_found()
     {
@@ -74,7 +74,7 @@ public class LocatorServerAddressFinderTests
         Assert.That(serviceAddress, Is.Null);
     }
 
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly resolves an object ID.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly resolves an object ID.</summary>
     [Test]
     public void Find_object_by_id_returning_proxy_without_server_address_fails()
     {
@@ -87,7 +87,7 @@ public class LocatorServerAddressFinderTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that <see cref="LocatorServerAddressFinder"/> correctly resolves an object ID.</summary>
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly resolves an object ID.</summary>
     [Test]
     public void Find_object_by_id_returning_proxy_without_ice_protocol_fails()
     {
@@ -100,7 +100,7 @@ public class LocatorServerAddressFinderTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that <see cref="CacheUpdateServerAddressFinderDecorator"/> adds found entries
+    /// <summary>Verifies that <see cref="CacheUpdateServerAddressFinderDecorator" /> adds found entries
     /// to the server address cache.</summary>
     [Test]
     public async Task Cache_decorator_adds_found_entries_to_the_server_address_cache()
@@ -120,7 +120,7 @@ public class LocatorServerAddressFinderTests
         Assert.That(serverAddressCache.Cache[location], Is.EqualTo(expectedServiceAddress));
     }
 
-    /// <summary>Verifies that <see cref="CacheUpdateServerAddressFinderDecorator"/> removes not found entries
+    /// <summary>Verifies that <see cref="CacheUpdateServerAddressFinderDecorator" /> removes not found entries
     /// from the server address cache.</summary>
     [Test]
     public async Task Cache_decorator_removes_not_found_entries_from_the_server_address_cache()
@@ -139,7 +139,8 @@ public class LocatorServerAddressFinderTests
         Assert.That(serverAddressCache.Cache, Is.Empty);
     }
 
-    /// <summary>Verifies that <see cref="CoalesceServerAddressFinderDecorator"/> coalesce identical requests.</summary>
+    /// <summary>Verifies that <see cref="CoalesceServerAddressFinderDecorator" /> coalesce identical requests.
+    /// </summary>
     [Test]
     public async Task Coalesce_decorator_coalesce_identical_requests()
     {

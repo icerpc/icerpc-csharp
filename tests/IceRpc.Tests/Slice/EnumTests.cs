@@ -8,22 +8,22 @@ namespace IceRpc.Tests.Slice;
 
 public class EnumTests
 {
-    [TestCase((int)MyEnum.enum1, 0)]
-    [TestCase((int)MyEnum.enum2, 1)]
-    [TestCase((int)MyEnum.enum3, 2)]
-    [TestCase((short)MyFixedLengthEnum.senum1, 0)]
-    [TestCase((short)MyFixedLengthEnum.senum2, 1)]
-    [TestCase((short)MyFixedLengthEnum.senum3, 2)]
-    [TestCase((int)MyEnumWithCustomEnumerators.enum1, -10)]
-    [TestCase((int)MyEnumWithCustomEnumerators.enum2, 20)]
-    [TestCase((int)MyEnumWithCustomEnumerators.enum3, 30)]
+    [TestCase((int)MyEnum.Enum1, 0)]
+    [TestCase((int)MyEnum.Enum2, 1)]
+    [TestCase((int)MyEnum.Enum3, 2)]
+    [TestCase((short)MyFixedLengthEnum.SEnum1, 0)]
+    [TestCase((short)MyFixedLengthEnum.SEnum2, 1)]
+    [TestCase((short)MyFixedLengthEnum.SEnum3, 2)]
+    [TestCase((int)MyEnumWithCustomEnumerators.Enum1, -10)]
+    [TestCase((int)MyEnumWithCustomEnumerators.Enum2, 20)]
+    [TestCase((int)MyEnumWithCustomEnumerators.Enum3, 30)]
     [TestCase((uint)MyUncheckedEnum.E0, 1)]
     [TestCase((uint)MyUncheckedEnum.E4, 16)]
     public void Enumerator_has_the_expected_value(object value, object expectedValue) =>
         Assert.That(value, Is.EqualTo(expectedValue));
 
-    [TestCase(-10, MyEnumWithCustomEnumerators.enum1)]
-    [TestCase(30, MyEnumWithCustomEnumerators.enum3)]
+    [TestCase(-10, MyEnumWithCustomEnumerators.Enum1)]
+    [TestCase(30, MyEnumWithCustomEnumerators.Enum3)]
     public void As_enum_for_an_enum_with_non_contiguous_enumerators(int value, MyEnumWithCustomEnumerators expected) =>
         Assert.That(
             value.AsMyEnumWithCustomEnumerators(),
@@ -36,8 +36,8 @@ public class EnumTests
             () => value.AsMyEnumWithCustomEnumerators(),
             Throws.TypeOf<InvalidDataException>());
 
-    [TestCase(0, MyEnum.enum1)]
-    [TestCase(2, MyEnum.enum3)]
+    [TestCase(0, MyEnum.Enum1)]
+    [TestCase(2, MyEnum.Enum3)]
     public void As_enum_for_an_enum_with_contiguous_enumerators(int value, MyEnum expected) =>
         Assert.That(value.AsMyEnum(), Is.EqualTo(expected));
 
@@ -57,9 +57,9 @@ public class EnumTests
         // Arrange
         var expected = new MyEnum[]
         {
-            MyEnum.enum1,
-            MyEnum.enum2,
-            MyEnum.enum3,
+            MyEnum.Enum1,
+            MyEnum.Enum2,
+            MyEnum.Enum3,
         };
 
         // Act
@@ -85,9 +85,9 @@ public class EnumTests
         // Arrange
         var expected = new MyFixedLengthEnum[]
         {
-            MyFixedLengthEnum.senum1,
-            MyFixedLengthEnum.senum2,
-            MyFixedLengthEnum.senum3,
+            MyFixedLengthEnum.SEnum1,
+            MyFixedLengthEnum.SEnum2,
+            MyFixedLengthEnum.SEnum3,
         };
 
         // Act

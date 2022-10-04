@@ -4,7 +4,7 @@ using IceRpc.Features.Internal;
 
 namespace IceRpc.Features;
 
-/// <summary>Provides extension methods for <see cref="IFeatureCollection"/>.</summary>
+/// <summary>Provides extension methods for <see cref="IFeatureCollection" />.</summary>
 public static class FeatureCollectionExtensions
 {
     /// <summary>Creates a read-only collection decorator over this feature collection.</summary>

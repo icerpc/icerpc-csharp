@@ -230,7 +230,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
 
     ctor_builder.add_comment(
         "summary",
-        &format!(r#"Constructs a new instance of <see cref="{}"/>."#, &exception_name),
+        &format!(r#"Constructs a new instance of <see cref="{}" />."#, &exception_name),
     );
 
     if add_message_and_exception_parameters {

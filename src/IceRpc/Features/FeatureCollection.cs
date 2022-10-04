@@ -4,7 +4,7 @@ using System.Collections;
 
 namespace IceRpc.Features;
 
-/// <summary>The default read-write implementation of <see cref="IFeatureCollection"/>.</summary>
+/// <summary>The default read-write implementation of <see cref="IFeatureCollection" />.</summary>
 public class FeatureCollection : IFeatureCollection
 {
     /// <summary>Gets a shared empty read-only instance.</summary>

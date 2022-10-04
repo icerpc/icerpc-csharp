@@ -9,7 +9,7 @@ public abstract class RemoteException : Exception, ITrait
     public override string Message => _hasCustomMessage || DefaultMessage is null ? base.Message : DefaultMessage;
 
     /// <summary>Gets or sets a value indicating whether the exception should be converted to a <see
-    /// cref="DispatchException"/> with the <see cref="DispatchErrorCode.UnhandledException"/> error code when
+    /// cref="DispatchException" /> with the <see cref="DispatchErrorCode.UnhandledException" /> error code when
     /// thrown from a dispatcher.</summary>
     public bool ConvertToUnhandled { get; set; }
 

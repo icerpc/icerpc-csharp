@@ -2,8 +2,8 @@
 
 namespace IceRpc.Transports;
 
-/// <summary>A property bag used to configure a <see cref="SlicClientTransport"/> or
-/// <see cref="SlicServerTransport"/>.</summary>
+/// <summary>A property bag used to configure a <see cref="SlicClientTransport" /> or
+/// <see cref="SlicServerTransport" />.</summary>
 public sealed record class SlicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no

@@ -66,7 +66,7 @@ public class NumericTypesDecodingTests
     }
 
     /// <summary>Tests that attempting to decode a variable size int that is out of bound throws
-    /// an <see cref="InvalidDataException"/>.</summary>
+    /// an <see cref="InvalidDataException" />.</summary>
     /// <param name="encodedBytes">An encoded long that will fail to be decoded into an int.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 })]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFD, 0xFF, 0xFF, 0xFF })]
@@ -104,7 +104,7 @@ public class NumericTypesDecodingTests
     }
 
     /// <summary>Tests that attempting to decode a variable length unisgned int that that is out of bound throws
-    /// an <see cref="InvalidDataException"/>.</summary>
+    /// an <see cref="InvalidDataException" />.</summary>
     /// <param name="value">A long to encode into a byte array that will fail to be decoded into an uint.</param>
     [TestCase((ulong)UInt32.MaxValue + 1)]
     public void Decode_varuint_invalid_data_fails(ulong value)

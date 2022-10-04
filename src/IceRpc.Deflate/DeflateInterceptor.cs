@@ -9,7 +9,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Deflate;
 
 /// <summary>An interceptor that applies the deflate compression algorithm to the payload of a request depending on
-/// the <see cref="ICompressFeature"/> feature.</summary>
+/// the <see cref="ICompressFeature" /> feature.</summary>
 public class DeflateInterceptor : IInvoker
 {
     private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =

@@ -26,7 +26,7 @@ impl Visitor for DispatchVisitor<'_> {
         let mut interface_builder = ContainerBuilder::new(&format!("{} partial interface", access), &interface_name);
 
         let summary_comment = format!(
-            r#"Interface used to implement services for Slice interface {}. <seealso cref="{}"/>.
+            r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />.
 {}"#,
             interface_def.identifier(),
             interface_def.proxy_name(),

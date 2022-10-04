@@ -5,7 +5,7 @@ using System.Net;
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>Provides a fake implementation of <see cref="IConnectionContext"/>.</summary>
+/// <summary>Provides a fake implementation of <see cref="IConnectionContext" />.</summary>
 public sealed class FakeConnectionContext : IConnectionContext
 {
     public static IConnectionContext Ice { get; } = new FakeConnectionContext(Protocol.Ice);

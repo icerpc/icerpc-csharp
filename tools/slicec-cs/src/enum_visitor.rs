@@ -45,7 +45,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
         code.add_block(&CodeBlock::from(format!(
             "{}\n{} = {},",
             CommentTag::new("summary", doc_comment_message(enumerator)),
-            enumerator.identifier(),
+            enumerator.identifier().to_case(Case::Pascal),
             enumerator.value
         )));
     }
@@ -70,7 +70,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         &format!(
-            r#"Provides an extension method for creating a <see cref="{enum_name}"/> from a <see cref="{underlying_type}"/>"#,
+            r#"Provides an extension method for creating a <see cref="{enum_name}" /> from a <see cref="{underlying_type}" />"#,
             enum_name = escaped_identifier,
             underlying_type = cs_type
         ),
@@ -110,7 +110,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     let mut as_enum_block = FunctionBuilder::new(
         format!("{} static", access).as_str(),
         &escaped_identifier,
-        format!("As{}", enum_def.identifier()).as_str(),
+        format!("As{}", enum_def.identifier().to_case(Case::Pascal)).as_str(),
         FunctionType::ExpressionBody,
     );
     as_enum_block
@@ -124,7 +124,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
             "summary",
             format!(
                 r#"
-Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
+Converts a <see cref="{underlying_type}" /> into the corresponding <see cref="{escaped_identifier}" />
 enumerator."#,
                 underlying_type = cs_type,
                 escaped_identifier = escaped_identifier
@@ -180,7 +180,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         &format!(
-            r#"Provide extension methods for encoding <see cref="{}"/>."#,
+            r#"Provide extension methods for encoding <see cref="{}" />."#,
             escaped_identifier
         ),
     );
@@ -189,13 +189,13 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-/// <summary>Encodes a <see cref="{escaped_identifier}"/> enum.</summary>
+/// <summary>Encodes a <see cref="{escaped_identifier}" /> enum.</summary>
 /// <param name="encoder">The Slice encoder.</param>
-/// <param name="value">The <see cref="{escaped_identifier}"/> enumerator value to encode.</param>
+/// <param name="value">The <see cref="{escaped_identifier}" /> enumerator value to encode.</param>
 {access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({underlying_type})value);"#,
             access = access,
-            identifier = enum_def.identifier(),
+            identifier = enum_def.identifier().to_case(Case::Pascal),
             escaped_identifier = escaped_identifier,
             encode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
@@ -221,7 +221,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         &format!(
-            r#"Provide extension methods for encoding <see cref="{}"/>."#,
+            r#"Provide extension methods for encoding <see cref="{}" />."#,
             escaped_identifier
         ),
     );
@@ -236,13 +236,13 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-/// <summary>Decodes a <see cref="{escaped_identifier}"/> enum.</summary>
+/// <summary>Decodes a <see cref="{escaped_identifier}" /> enum.</summary>
 /// <param name="decoder">The Slice decoder.</param>
-/// <returns>The decoded <see cref="{escaped_identifier}"/> enumerator value.</returns>
+/// <returns>The decoded <see cref="{escaped_identifier}" /> enumerator value.</returns>
 {access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     {underlying_extensions_class}.As{identifier}({decode_enum});"#,
             access = access,
-            identifier = enum_def.identifier(),
+            identifier = enum_def.identifier().to_case(Case::Pascal),
             escaped_identifier = escaped_identifier,
             underlying_extensions_class = underlying_extensions_class,
             decode_enum = match &enum_def.underlying {

@@ -8,7 +8,7 @@ namespace IceRpc.Tests.Slice;
 
 public sealed class TraitEncodingTests
 {
-    /// <summary>Verifies that decoding a trait with a mismatched type fails with <see cref="InvalidDataException"/>.
+    /// <summary>Verifies that decoding a trait with a mismatched type fails with <see cref="InvalidDataException" />.
     /// </summary>
     [Test]
     public void Decoding_a_mismatched_type_fails()
@@ -29,7 +29,7 @@ public sealed class TraitEncodingTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}"/> method correctly decodes a trait into a concrete
+    /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}" /> method correctly decodes a trait into a concrete
     /// type.</summary>
     [Test]
     public void Decoding_a_trait_as_a_struct()
@@ -49,7 +49,7 @@ public sealed class TraitEncodingTests
         Assert.That(traitStructB2, Is.EqualTo(traitStructB1));
     }
 
-    /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}"/> method correctly decodes a trait as an
+    /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}" /> method correctly decodes a trait as an
     /// interface.</summary>
     [Test]
     public void Decoding_a_trait_as_an_interface()
@@ -69,7 +69,7 @@ public sealed class TraitEncodingTests
         Assert.That(decodedTrait.GetString(), Is.EqualTo("Bar"));
     }
 
-    /// <summary>Verifies that decoding a trait with an unknown type ID fails with <see cref="InvalidDataException"/>.
+    /// <summary>Verifies that decoding a trait with an unknown type ID fails with <see cref="InvalidDataException" />.
     /// </summary>
     [Test]
     public void Decoding_an_unknown_type_id_fails()
@@ -91,7 +91,7 @@ public sealed class TraitEncodingTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that nested trait decoding fails with <see cref="InvalidDataException"/> after reaching
+    /// <summary>Verifies that nested trait decoding fails with <see cref="InvalidDataException" /> after reaching
     /// the decoder max depth.</summary>
     /// <param name="depth">The decoder max depth.</param>
     [TestCase(100)]

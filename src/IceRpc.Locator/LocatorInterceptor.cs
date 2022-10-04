@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace IceRpc.Locator;
 
 /// <summary>A locator interceptor intercepts ice requests that have no server address and attempts to assign a usable
-/// server address (and alt-server addresses) to such requests via the <see cref="IServerAddressFeature"/>. You would
+/// server address (and alt-server addresses) to such requests via the <see cref="IServerAddressFeature" />. You would
 /// usually install the retry interceptor before the locator interceptor in the invocation pipeline and use the
 /// connection cache invoker for the pipeline, with this setup the locator interceptor would be able to detect
 /// invocation retries and refreshes the server address when required, and the connection cache would take care of
@@ -20,7 +20,7 @@ public class LocatorInterceptor : IInvoker
 
     /// <summary>Constructs a locator interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="locationResolver">The location resolver. It is usually a <see cref="LocatorLocationResolver"/>.
+    /// <param name="locationResolver">The location resolver. It is usually a <see cref="LocatorLocationResolver" />.
     /// </param>
     public LocatorInterceptor(IInvoker next, ILocationResolver locationResolver)
     {
@@ -153,7 +153,7 @@ public readonly record struct Location
 
 /// <summary>A location resolver resolves a location into one or more server addresses carried by a dummy service
 /// address, and optionally maintains a cache for these resolutions. It's the "brain" of
-/// <see cref="LocatorInterceptor"/>. The same location resolver can be shared by multiple locator interceptors.
+/// <see cref="LocatorInterceptor" />. The same location resolver can be shared by multiple locator interceptors.
 /// </summary>
 public interface ILocationResolver
 {
@@ -171,7 +171,7 @@ public interface ILocationResolver
         CancellationToken cancellationToken);
 }
 
-/// <summary>Implements <see cref="ILocationResolver"/> using a locator proxy.</summary>
+/// <summary>Implements <see cref="ILocationResolver" /> using a locator proxy.</summary>
 public class LocatorLocationResolver : ILocationResolver
 {
     private readonly ILocationResolver _locationResolver;

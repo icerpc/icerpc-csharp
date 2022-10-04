@@ -10,8 +10,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The Slic connection implements an <see cref="IMultiplexedConnection"/> on top of a <see
-/// cref="IDuplexConnection"/>.</summary>
+/// <summary>The Slic connection implements an <see cref="IMultiplexedConnection" /> on top of a <see
+/// cref="IDuplexConnection" />.</summary>
 internal class SlicConnection : IMultiplexedConnection
 {
     public ServerAddress ServerAddress => _duplexConnection.ServerAddress;

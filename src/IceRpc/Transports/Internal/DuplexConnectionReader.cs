@@ -102,8 +102,8 @@ internal class DuplexConnectionReader : IDisposable
     internal void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
         _pipe.Reader.AdvanceTo(consumed, examined);
 
-    /// <summary>Writes <paramref name="byteCount"/> bytes read from this pipe reader or its underlying connection
-    /// into <paramref name="bufferWriter"/>.</summary>
+    /// <summary>Writes <paramref name="byteCount" /> bytes read from this pipe reader or its underlying connection
+    /// into <paramref name="bufferWriter" />.</summary>
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,

@@ -2,7 +2,7 @@
 
 namespace IceRpc;
 
-/// <summary>Adapts a function to the <see cref="IInvoker"/> interface.</summary>
+/// <summary>Adapts a function to the <see cref="IInvoker" /> interface.</summary>
 public class InlineInvoker : IInvoker
 {
     private readonly Func<OutgoingRequest, CancellationToken, Task<IncomingResponse>> _function;

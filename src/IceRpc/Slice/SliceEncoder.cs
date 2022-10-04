@@ -72,14 +72,14 @@ public ref partial struct SliceEncoder
     /// <summary>Computes the minimum number of bytes required to encode a long value using the Slice encoding's
     /// variable-size encoded representation.</summary>
     /// <param name="value">The long value.</param>
-    /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+    /// <returns>The minimum number of bytes required to encode <paramref name="value" />. Can be 1, 2, 4 or 8.
     /// </returns>
     public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
 
     /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding's
     /// variable-size encoded representation.</summary>
     /// <param name="value">The ulong value.</param>
-    /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+    /// <returns>The minimum number of bytes required to encode <paramref name="value" />. Can be 1, 2, 4 or 8.
     /// </returns>
     public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
@@ -443,11 +443,11 @@ public ref partial struct SliceEncoder
     /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the value is
     /// not known before encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
+    /// <param name="tag">The tag. Must be either FSize or OptimizedVSize.</param>
     /// <param name="tagFormat">The tag format.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is VSize.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat" /> is VSize.</exception>
     public void EncodeTagged<T>(
         int tag,
         TagFormat tagFormat,
@@ -478,9 +478,9 @@ public ref partial struct SliceEncoder
                 EncodeInt32(EncodedByteCount - startPos, placeholder);
                 break;
 
-            case TagFormat.OVSize:
+            case TagFormat.OptimizedVSize:
                 // Used to encode string, and sequences of non optional elements with 1 byte min wire size,
-                // in this case OVSize is always used to optimize out the size.
+                // in this case OptimizedVSize is always used to optimize out the size.
                 EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 encodeAction(ref this, v);
                 break;
@@ -563,7 +563,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Gets a placeholder to be filled-in later.</summary>
     /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
-    /// <returns>A buffer of length <paramref name="size"/>.</returns>
+    /// <returns>A buffer of length <paramref name="size" />.</returns>
     /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
     /// successive calls to GetMemory/GetSpan and Advance.</remarks>
     public Span<byte> GetPlaceholderSpan(int size)
@@ -617,7 +617,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Gets a placeholder to be filled-in later.</summary>
     /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
-    /// <returns>A buffer of length <paramref name="size"/>.</returns>
+    /// <returns>A buffer of length <paramref name="size" />.</returns>
     /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
     /// successive calls to GetMemory/GetSpan and Advance.</remarks>
     internal Memory<byte> GetPlaceholderMemory(int size)
@@ -740,7 +740,7 @@ public ref partial struct SliceEncoder
     private void EncodeTaggedParamHeader(int tag, TagFormat format)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
-        Debug.Assert(format != TagFormat.OVSize); // OVSize cannot be encoded
+        Debug.Assert(format != TagFormat.OptimizedVSize); // OptimizedVSize cannot be encoded
 
         int v = (int)format;
         if (tag < 30)

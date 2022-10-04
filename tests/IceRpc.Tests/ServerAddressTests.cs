@@ -8,8 +8,8 @@ namespace IceRpc.Tests;
 public class ServerAddressTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Create_server_address_from_valid_uri(Uri, string, ushort, string?, IDictionary{string, string})"/> test.
-    /// </summary>
+    /// <see cref="Create_server_address_from_valid_uri(Uri, string, ushort, string?, IDictionary{string, string})" />
+    /// test.</summary>
     private static IEnumerable<TestCaseData> ServerAddressUriSource
     {
         get
@@ -30,7 +30,7 @@ public class ServerAddressTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_an_server_address_into_a_string(Uri)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Convert_an_server_address_into_a_string(Uri)" /> test.</summary>
     private static IEnumerable<TestCaseData> ServerAddressToStringSource
     {
         get
@@ -42,7 +42,8 @@ public class ServerAddressTests
         }
     }
 
-    /// <summary>A collection of valid server address strings with its expected host, port, transport and parameters.</summary>
+    /// <summary>A collection of valid server address strings with its expected host, port, transport and parameters.
+    /// </summary>
     private static readonly (Uri Uri, string Host, ushort Port, string? Transport, IDictionary<string, string>? Parameters)[] _validServerAddresss =
         new (Uri, string, ushort, string?, IDictionary<string, string>?)[]
         {
@@ -116,8 +117,8 @@ public class ServerAddressTests
         });
     }
 
-    /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri"/> property is set for a server address created from an
-    /// URI.</summary>
+    /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri" /> property is set for a server address created
+    /// from an URI.</summary>
     [Test]
     public void ServerAddress_original_URI()
     {
@@ -126,8 +127,8 @@ public class ServerAddressTests
         Assert.That(serverAddress.OriginalUri, Is.Not.Null);
     }
 
-    /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri"/> property of a server address is set to null after
-    /// modifying the server address.</summary>
+    /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri" /> property of a server address is set to null
+    /// after modifying the server address.</summary>
     [Test]
     public void ServerAddress_original_URI_is_null_after_updating_the_server_address()
     {
@@ -180,7 +181,7 @@ public class ServerAddressTests
     }
 
     /// <summary>Verifies that setting the host works with a supported host name.</summary>
-    /// <param name="host">The value to set the <see cref="ServerAddress.Host"/> property to.</param>
+    /// <param name="host">The value to set the <see cref="ServerAddress.Host" /> property to.</param>
     [TestCase("localhost")]
     [TestCase("[::0]")]
     [TestCase("::1")]
@@ -259,9 +260,9 @@ public class ServerAddressTests
         Assert.That(serverAddress.Params[name], Is.EqualTo(value));
     }
 
-    /// <summary>Verifies that trying to set the <see cref="ServerAddress.Host"/> to an invalid value throws
-    /// <see cref="ArgumentException"/> and the <see cref="ServerAddress.Host"/> property remains unchanged.</summary>
-    /// <param name="host">The invalid value for <see cref="ServerAddress.Host"/> property.</param>
+    /// <summary>Verifies that trying to set the <see cref="ServerAddress.Host" /> to an invalid value throws
+    /// <see cref="ArgumentException" /> and the <see cref="ServerAddress.Host" /> property remains unchanged.</summary>
+    /// <param name="host">The invalid value for <see cref="ServerAddress.Host" /> property.</param>
     [TestCase("")]
     [TestCase("::1.2")]
     public void Setting_invalid_server_address_host_fails(string host)
@@ -273,8 +274,8 @@ public class ServerAddressTests
         Assert.That(serverAddress.Host, Is.EqualTo("localhost"));
     }
 
-    /// <summary>Verifies that trying to add an invalid server address parameter throws <see cref="ArgumentException"/> and
-    /// the <see cref="ServerAddress.Params"/> property remains unchanged.</summary>
+    /// <summary>Verifies that trying to add an invalid server address parameter throws <see cref="ArgumentException" />
+    /// and the <see cref="ServerAddress.Params" /> property remains unchanged.</summary>
     /// <param name="name">The server address parameter name.</param>
     /// <param name="value">The server address parameter value.</param>
     [TestCase("alt-server", "x")]

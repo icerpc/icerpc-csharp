@@ -40,7 +40,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     constructor_builder.add_comment(
         "summary",
         &format!(
-            r#"Constructs a new <see cref="{struct_name}"/> instance that
+            r#"Constructs a new <see cref="{struct_name}" /> instance that
 immediately encodes the return value of operation {operation_name}."#,
             struct_name = struct_name,
             operation_name = operation_name

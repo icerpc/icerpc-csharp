@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class BitSequenceWriterTests
 {
-    /// <summary>Provides test case data for <see cref="Write_fails(byte[], byte[], IList{Memory{byte}}?)"/> test.
+    /// <summary>Provides test case data for <see cref="Write_fails(byte[], byte[], IList{Memory{byte}}?)" /> test.
     /// </summary>
     private static IEnumerable<TestCaseData> WriteFailsDataSource
     {
@@ -31,7 +31,7 @@ public class BitSequenceWriterTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList{Memory{byte}}?, int)"/> test.</summary>
+    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList{Memory{byte}}?, int)" /> test.</summary>
     private static IEnumerable<TestCaseData> WriteClearsDataSource
     {
         get
@@ -88,7 +88,7 @@ public class BitSequenceWriterTests
         pipe.Reader.Complete();
     }
 
-    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified bit
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write" /> correctly writes the specified bit
     /// sequence to the provided spans and memory.</summary>
     /// <param name="pattern">The byte pattern to write.</param>
     [TestCase(0)]
@@ -124,7 +124,7 @@ public class BitSequenceWriterTests
         }
     }
 
-    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly zeros the provided spans
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write" /> correctly zeros the provided spans
     /// and additional memory.</summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
@@ -157,7 +157,7 @@ public class BitSequenceWriterTests
         Assert.That(current.ToArray().All(o => o == 0), Is.True);
     }
 
-    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> on a BitSequenceWriter that has already
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write" /> on a BitSequenceWriter that has already
     /// enumerated fully through its spans throws an invalid operation exception.</summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>

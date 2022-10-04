@@ -91,7 +91,7 @@ impl Visitor for ClassVisitor<'_> {
             );
         }
 
-        let constructor_summary = format!(r#"Constructs a new instance of <see cref="{}"/>."#, class_name);
+        let constructor_summary = format!(r#"Constructs a new instance of <see cref="{}" />."#, class_name);
 
         // One-shot ctor (may be parameterless)
         class_builder.add_block(constructor(

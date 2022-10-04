@@ -9,11 +9,11 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection"/>.</summary>
+/// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection" />.</summary>
 public static class IceRpcServiceCollectionExtensions
 {
-    /// <summary>Adds a <see cref="ClientConnection"/> and <see cref="IInvoker"/> singleton to this service collection.
-    /// </summary>
+    /// <summary>Adds a <see cref="ClientConnection" /> and <see cref="IInvoker" /> singleton to this service
+    /// collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>
@@ -26,7 +26,7 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
-    /// <summary>Adds a <see cref="ConnectionCache"/> and <see cref="IInvoker"/> singleton to this service collection.
+    /// <summary>Adds a <see cref="ConnectionCache" /> and <see cref="IInvoker" /> singleton to this service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
@@ -40,7 +40,7 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
 
-    /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
+    /// <summary>Adds an <see cref="IDispatcher" /> singleton to this service collection using a builder.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the dispatcher builder.</param>
     /// <returns>The service collection.</returns>
@@ -55,7 +55,7 @@ public static class IceRpcServiceCollectionExtensions
                 return builder.Build();
             });
 
-    /// <summary>Adds an <see cref="IInvoker"/> singleton to this service collection using a builder.</summary>
+    /// <summary>Adds an <see cref="IInvoker" /> singleton to this service collection using a builder.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the invoker builder.</param>
     /// <returns>The service collection.</returns>
@@ -70,7 +70,7 @@ public static class IceRpcServiceCollectionExtensions
                 return builder.Build();
             });
 
-    /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>
+    /// <summary>Adds a <see cref="Server" /> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the ServerOptions instance.</param>
     /// <returns>The service collection.</returns>
@@ -83,14 +83,14 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IDuplexServerTransport>(),
                     provider.GetRequiredService<IMultiplexedServerTransport>()));
 
-    /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
+    /// <summary>Adds a <see cref="Server" /> to this service collection. This method uses the default name ("") for the
     /// ServerOptions instance.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services) =>
         services.AddIceRpcServer(Options.Options.DefaultName);
 
-    /// <summary>Adds a <see cref="Server"/> with the specified dispatcher to this service collection.</summary>
+    /// <summary>Adds a <see cref="Server" /> with the specified dispatcher to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the ServerOptions instance.</param>
     /// <param name="dispatcher">The server dispatcher.</param>
@@ -105,7 +105,7 @@ public static class IceRpcServiceCollectionExtensions
         return services.AddIceRpcServer(optionsName);
     }
 
-    /// <summary>Adds a <see cref="Server"/> with the specified dispatcher to this service collection. This method uses
+    /// <summary>Adds a <see cref="Server" /> with the specified dispatcher to this service collection. This method uses
     /// the default name ("") for the ServerOptions instance.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="dispatcher">The server dispatcher.</param>
@@ -113,10 +113,10 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddIceRpcServer(optionsName: Options.Options.DefaultName, dispatcher);
 
-    /// <summary>Adds a <see cref="Server"/> with the specified name to this service collection. </summary>
+    /// <summary>Adds a <see cref="Server" /> with the specified name to this service collection. </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The server name.</param>
-    /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
+    /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder" />.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
@@ -138,10 +138,10 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IMultiplexedServerTransport>());
             });
 
-    /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
+    /// <summary>Adds a <see cref="Server" /> to this service collection. This method uses the default name ("") for the
     /// ServerOptions instance.</summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
+    /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder" />.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,

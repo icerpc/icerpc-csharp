@@ -310,7 +310,7 @@ public class OperationTests
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing parameter is mapped to
-    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
+    /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_param()
     {
@@ -330,7 +330,7 @@ public class OperationTests
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing return value is mapped to
-    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming return value is not affected.</summary>
+    /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming return value is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_return()
     {
@@ -356,7 +356,7 @@ public class OperationTests
     }
 
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a
-    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
+    /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_optional_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
@@ -375,7 +375,7 @@ public class OperationTests
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing optional return value is mapped to
-    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the optional incoming return value is not affected.</summary>
+    /// <see cref="ReadOnlyMemory{T}" /> the mapping for the optional incoming return value is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_optional_return(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
@@ -402,7 +402,7 @@ public class OperationTests
     }
 
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing tagged parameter is mapped to
-    /// a <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
+    /// a <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_tagged_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
@@ -421,7 +421,7 @@ public class OperationTests
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing tagged return value is mapped to
-    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the optional incoming return value is not affected.</summary>
+    /// <see cref="ReadOnlyMemory{T}" /> the mapping for the optional incoming return value is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_tagged_return(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
@@ -471,7 +471,7 @@ public class OperationTests
         });
     }
 
-    /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}"/> mapping has a
+    /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}" /> mapping has a
     /// default value that is equivalent to a non set tagged parameter.</summary>
     [Test]
     public async Task Proxy_tagged_default_values_with_readonly_memory_params()

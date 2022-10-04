@@ -26,7 +26,7 @@ class ClassWithTaggedMembers
     e: tag(5) FixedLengthStruct?,  // Uses VSize tag format
     f: tag(6) VarLengthStruct?,    // Use FSize tag format
     g: tag(7) MyEnum?,             // Uses Size tag format
-    h: tag(8) sequence<uint8>?,    // Uses OVSize tag format
+    h: tag(8) sequence<uint8>?,    // Uses OptimizedVSize tag format
     i: tag(9) sequence<int32>?,    // Uses FSize tag format
-    j: tag(10) string?             // Uses OVSize tag format
+    j: tag(10) string?             // Uses OptimizedVSize tag format
 }

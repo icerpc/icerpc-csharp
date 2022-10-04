@@ -42,7 +42,7 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         return default;
     }
 
-    /// <summary>Writes the source to the duplex connection. <paramref name="endStream"/> is ignored
+    /// <summary>Writes the source to the duplex connection. <paramref name="endStream" /> is ignored
     /// because the duplex connection has no use for it.</summary>
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,

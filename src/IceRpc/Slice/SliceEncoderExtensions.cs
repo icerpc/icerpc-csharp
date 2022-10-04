@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for <see cref="SliceEncoder"/>.</summary>
+/// <summary>Provides extension methods for <see cref="SliceEncoder" />.</summary>
 public static class SliceEncoderExtensions
 {
     /// <summary>Encodes a dictionary.</summary>
@@ -140,7 +140,7 @@ public static class SliceEncoderExtensions
     /// <summary>Encodes a span of fixed-size numeric values, such as int or ulong.</summary>
     /// <typeparam name="T">The span element type.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="v">The span of numeric values represented by a <see cref="ReadOnlySpan{T}"/>.</param>
+    /// <param name="v">The span of numeric values represented by a <see cref="ReadOnlySpan{T}" />.</param>
     public static void EncodeSpan<T>(this ref SliceEncoder encoder, ReadOnlySpan<T> v)
         where T : struct
     {

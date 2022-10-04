@@ -5,7 +5,7 @@ using System.Net;
 
 namespace IceRpc.Internal;
 
-/// <summary>Implements <see cref="IListener{T}"/> for protocol connections.</summary>
+/// <summary>Implements <see cref="IListener{T}" /> for protocol connections.</summary>
 /// <typeparam name="T">The transport connection type.</typeparam>
 internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
 {

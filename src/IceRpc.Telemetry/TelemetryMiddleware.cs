@@ -6,11 +6,11 @@ using System.Diagnostics;
 
 namespace IceRpc.Telemetry;
 
-/// <summary>A middleware that starts an <see cref="Activity"/> per request, following OpenTelemetry conventions. The
-/// middleware restores the parent invocation activity from the request <see cref="RequestFieldKey.TraceContext"/>
+/// <summary>A middleware that starts an <see cref="Activity" /> per request, following OpenTelemetry conventions. The
+/// middleware restores the parent invocation activity from the request <see cref="RequestFieldKey.TraceContext" />
 /// field before starting the dispatch activity. The activities are only created for requests using the icerpc
 /// protocol.</summary>
-/// <seealso cref="TelemetryInterceptor"/>
+/// <seealso cref="TelemetryInterceptor" />
 public class TelemetryMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
@@ -18,7 +18,7 @@ public class TelemetryMiddleware : IDispatcher
 
     /// <summary>Constructs a telemetry middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="activitySource">The <see cref="ActivitySource"/> is used to start the request activity.</param>
+    /// <param name="activitySource">The <see cref="ActivitySource" /> is used to start the request activity.</param>
     public TelemetryMiddleware(IDispatcher next, ActivitySource activitySource)
     {
         _next = next;

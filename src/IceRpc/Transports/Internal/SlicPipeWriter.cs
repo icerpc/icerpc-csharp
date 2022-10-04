@@ -230,13 +230,13 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     /// that the internal pipe reader isn't completed concurrently when it's being used by WriteAsync.</summary>
     private enum State : int
     {
-        /// <summary><see cref="Complete"/> was called on this Slic pipe writer.</summary>
+        /// <summary><see cref="Complete" /> was called on this Slic pipe writer.</summary>
         Completed = 1,
 
         /// <summary>Data is being read from the internal pipe reader.</summary>
         PipeReaderInUse = 2,
 
-        /// <summary>The internal pipe reader was completed either by <see cref="Abort"/>.</summary>
+        /// <summary>The internal pipe reader was completed either by <see cref="Abort" />.</summary>
         PipeReaderCompleted = 4
     }
 }

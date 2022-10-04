@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
-/// <summary>The base implementation of <see cref="IProtocolConnection"/>.</summary>
+/// <summary>The base implementation of <see cref="IProtocolConnection" />.</summary>
 internal abstract class ProtocolConnection : IProtocolConnection
 {
     public abstract ServerAddress ServerAddress { get; }

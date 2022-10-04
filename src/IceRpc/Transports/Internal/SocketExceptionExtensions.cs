@@ -6,7 +6,7 @@ namespace IceRpc.Transports.Internal;
 
 internal static class SocketExceptionExtensions
 {
-    /// <summary>Converts an exception from a socket operation into a <see cref="TransportException"/>.</summary>
+    /// <summary>Converts an exception from a socket operation into a <see cref="TransportException" />.</summary>
     internal static Exception ToTransportException(this Exception exception)
     {
         SocketException socketException =

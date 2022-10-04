@@ -100,14 +100,14 @@ public class TaggedTests
     {
         new MyStructWithTaggedMembers(10,
                                       new MyStruct(20, 20),
-                                      MyEnum.enum1,
+                                      MyEnum.Enum1,
                                       new byte[] { 1, 2, 3},
                                       "hello world!",
                                       new TraitStructA("hello world!")),
         new MyStructWithTaggedMembers(),
         new MyStructWithTaggedMembers(10,
                                       null,
-                                      MyEnum.enum1,
+                                      MyEnum.Enum1,
                                       null,
                                       "hello world!",
                                       null),
@@ -206,7 +206,7 @@ public class TaggedTests
         {
             encoder.EncodeTagged(
                 8,
-                TagFormat.OVSize,
+                TagFormat.OptimizedVSize,
                 expected.H,
                 (ref SliceEncoder encoder, IList<byte> value) => encoder.EncodeSequence(value));
         }
@@ -224,7 +224,7 @@ public class TaggedTests
         {
             encoder.EncodeTagged(
                 10,
-                TagFormat.OVSize,
+                TagFormat.OptimizedVSize,
                 expected.J,
                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
         }
@@ -409,7 +409,7 @@ public class TaggedTests
             Assert.That(
                 decoder.DecodeTagged(
                     8,
-                    TagFormat.OVSize,
+                    TagFormat.OptimizedVSize,
                     (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>(),
                     useTagEndMarker: false),
                 Is.EqualTo(c.H));
@@ -425,7 +425,7 @@ public class TaggedTests
             Assert.That(
                 decoder.DecodeTagged(
                     10,
-                    TagFormat.OVSize,
+                    TagFormat.OptimizedVSize,
                     (ref SliceDecoder decoder) => decoder.DecodeString(),
                     useTagEndMarker: false),
                 Is.EqualTo(c.J));

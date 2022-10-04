@@ -5,10 +5,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports;
 
-/// <summary>The <see cref="ReadOnlySequencePipeWriter"/> abstract class can be extended by pipe writers to provide
-/// a <see cref="PipeWriter.WriteAsync"/> method with a <see cref="ReadOnlySequence{T}"/> source. It also provides a
+/// <summary>The <see cref="ReadOnlySequencePipeWriter" /> abstract class can be extended by pipe writers to provide
+/// a <see cref="PipeWriter.WriteAsync" /> method with a <see cref="ReadOnlySequence{T}" /> source. It also provides a
 /// boolean to notify the pipe writer implementation that no more data will be written. This class is useful for
-/// implementing multiplexed stream pipe writers and to optimize the writing of a <see cref="ReadOnlySequence{T}"/>
+/// implementing multiplexed stream pipe writers and to optimize the writing of a <see cref="ReadOnlySequence{T}" />
 /// for transports that support a gather write API.</summary>
 public abstract class ReadOnlySequencePipeWriter : PipeWriter
 {

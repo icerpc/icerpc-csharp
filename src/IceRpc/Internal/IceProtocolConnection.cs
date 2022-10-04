@@ -532,7 +532,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 Payload = frameReader,
                 ResultType = replyStatus switch
                 {
-                    ReplyStatus.OK => ResultType.Success,
+                    ReplyStatus.Ok => ResultType.Success,
                     ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
                     _ => ResultType.Failure
                 }
@@ -1100,7 +1100,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
                     acquiredSemaphore = true;
 
-                    ReplyStatus replyStatus = ReplyStatus.OK;
+                    ReplyStatus replyStatus = ReplyStatus.Ok;
 
                     if (response.ResultType != ResultType.Success)
                     {

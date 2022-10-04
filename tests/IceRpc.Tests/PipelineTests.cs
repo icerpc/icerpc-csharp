@@ -8,7 +8,7 @@ namespace IceRpc.Tests;
 public class PipelineTests
 {
     /// <summary>Verifies that an invoker cannot be added after
-    /// <see cref="Pipeline.InvokeAsync(OutgoingRequest, CancellationToken)"/> has been called for the first time.
+    /// <see cref="Pipeline.InvokeAsync(OutgoingRequest, CancellationToken)" /> has been called for the first time.
     /// </summary>
     [Test]
     public void Cannot_add_invoker_after_calling_invoke()

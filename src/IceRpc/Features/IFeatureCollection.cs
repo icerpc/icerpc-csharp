@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features;
 
-/// <summary>A collection of features carried by <see cref="IncomingRequest"/> or <see cref="OutgoingRequest"/>. It is
+/// <summary>A collection of features carried by <see cref="IncomingRequest" /> or <see cref="OutgoingRequest" />. It is
 /// similar but not identical to the IFeatureCollection in Microsoft.AspNetCore.Http.Features.</summary>
 public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
 {

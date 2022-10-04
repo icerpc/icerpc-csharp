@@ -83,7 +83,7 @@ public ref struct BitSequenceWriter
         _index++;
     }
 
-    /// <summary>Constructs a bit sequence writer over a bit sequence represented by a <see cref="SpanEnumerator"/>.
+    /// <summary>Constructs a bit sequence writer over a bit sequence represented by a <see cref="SpanEnumerator" />.
     /// </summary>
     internal BitSequenceWriter(
         Span<byte> firstSpan,

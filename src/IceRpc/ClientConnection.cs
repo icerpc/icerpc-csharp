@@ -14,7 +14,7 @@ namespace IceRpc;
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
+    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport" /> property is always
     /// non-null.</value>
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
@@ -126,15 +126,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that provides the <see cref="TransportConnectionInformation"/> of the transport connection, once
-    /// this connection is established. This task can also complete with one of the following exceptions:
+    /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
+    /// once this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionException"/>if the connection establishment failed.</description></item>
-    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
-    /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
+    /// <item><description><see cref="ConnectionException" />if the connection establishment failed.</description>
+    /// </item>
+    /// <item><description><see cref="ObjectDisposedException" />if this connection is disposed.</description></item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException"/>if this connection attempt or a previous attempt exceeded
-    /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
+    /// <item><description><see cref="TimeoutException" />if this connection attempt or a previous attempt exceeded
+    /// <see cref="ConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed.</exception>
@@ -336,11 +337,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Provides a decorator for <see cref="IProtocolConnection"/> that ensures
-    /// <see cref="IInvoker.InvokeAsync"/> calls <see cref="IProtocolConnection.ConnectAsync"/> when the connection is
+    /// <summary>Provides a decorator for <see cref="IProtocolConnection" /> that ensures
+    /// <see cref="IInvoker.InvokeAsync" /> calls <see cref="IProtocolConnection.ConnectAsync" /> when the connection is
     /// not connected yet. This decorator also allows multiple and concurrent calls to
-    /// <see cref="IProtocolConnection.ConnectAsync"/>.</summary>
-    /// <seealso cref="ClientProtocolConnectionFactory.CreateConnection"/>
+    /// <see cref="IProtocolConnection.ConnectAsync" />.</summary>
+    /// <seealso cref="ClientProtocolConnectionFactory.CreateConnection" />
     private class ConnectProtocolConnectionDecorator : IProtocolConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
