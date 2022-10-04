@@ -8,11 +8,11 @@ namespace IceRpc.Features;
 /// </summary>
 public interface IServerAddressFeature
 {
-    /// <summary>Gets or sets the alternatives to <see cref="ServerAddress"/>. It is empty when ServerAddress is null.
+    /// <summary>Gets or sets the alternatives to <see cref="ServerAddress" />. It is empty when ServerAddress is null.
     /// </summary>
     ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
-    /// <summary>Gets or sets the list of <see cref="ServerAddress"/> that have been removed and will not be used for
+    /// <summary>Gets or sets the list of <see cref="ServerAddress" /> that have been removed and will not be used for
     /// the invocation.</summary>
     ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }
 

@@ -12,9 +12,9 @@
                 TaskFactory="CodeTaskFactory"
                 AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
         <ParameterGroup>
-            <WorkingDirectory ParameterType="System.String" Required="true"/>
-            <AdditionalOptions ParameterType="System.String" Required="true"/>
-            <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="True"/>
+            <WorkingDirectory ParameterType="System.String" Required="true" />
+            <AdditionalOptions ParameterType="System.String" Required="true" />
+            <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="True" />
         </ParameterGroup>
         <Task>
             <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)/SignTask.cs" />
@@ -45,17 +45,17 @@
     <SignTask
         WorkingDirectory="$(IntermediateOutputPath)"
         AdditionalOptions="$(SignCommandSHA1)"
-        Files="$(TargetName)$(TargetExt)"/>
+        Files="$(TargetName)$(TargetExt)" />
 
     <SignTask
         WorkingDirectory="$(IntermediateOutputPath)"
         AdditionalOptions="$(SignCommandSHA256)"
-        Files="$(TargetName)$(TargetExt)"/>
+        Files="$(TargetName)$(TargetExt)" />
 
     <WriteLinesToFile File                = "$(IntermediateOutputPath)sign.log"
                       Encoding            = "Unicode"
                       Overwrite           = "true"
-                      Lines               = "Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)"/>
+                      Lines               = "Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
   </Target>
 
   <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">

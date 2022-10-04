@@ -212,7 +212,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the
-    /// <see cref="ProtocolConnection.ShutdownComplete"/> task.</summary>
+    /// <see cref="ProtocolConnection.ShutdownComplete" /> task.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task ShutdownComplete_completes_when_disposing_not_connected_connection(Protocol protocol)
     {
@@ -432,7 +432,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing the client connection aborts pending invocations, the invocations will fail
-    /// with <see cref="ObjectDisposedException"/>.</summary>
+    /// with <see cref="ObjectDisposedException" />.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_aborts_pending_invocations(Protocol protocol)
     {
@@ -485,7 +485,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see
-    /// cref="ConnectionException"/>.</summary>
+    /// cref="ConnectionException" />.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Invoke_on_shutdown_connection_fails_with_connection_closed(Protocol protocol)
     {
@@ -848,7 +848,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(receivedPayload, Is.EqualTo(expectedPayload));
     }
 
-    /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
+    /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout" />
     /// time period.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connect_timeout(Protocol protocol)
@@ -1015,7 +1015,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
     }
 
-    /// <summary>Verifies that connection shutdown timeouts after the <see cref="ConnectionOptions.ShutdownTimeout"/>
+    /// <summary>Verifies that connection shutdown timeouts after the <see cref="ConnectionOptions.ShutdownTimeout" />
     /// time period.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task Shutdown_timeout(Protocol protocol, bool closeClientSide)

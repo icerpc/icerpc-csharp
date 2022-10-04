@@ -12,13 +12,13 @@ namespace IceRpc;
 public sealed class Server : IAsyncDisposable
 {
     /// <summary>Gets the server address of this server.</summary>
-    /// <value>The server address of this server. Its <see cref="ServerAddress.Transport"/> property is always non-null.
-    /// When the address's host is an IP address and the port is 0, <see cref="Listen"/> replaces the port by the actual
-    /// port the server is listening on.</value>
+    /// <value>The server address of this server. Its <see cref="ServerAddress.Transport" /> property is always
+    /// non-null. When the address's host is an IP address and the port is 0, <see cref="Listen" /> replaces the port by
+    /// the actual port the server is listening on.</value>
     public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
 
     /// <summary>Gets a task that completes when the server's shutdown is complete: see
-    /// <see cref="ShutdownAsync(string, CancellationToken)"/> This property can be retrieved before shutdown is
+    /// <see cref="ShutdownAsync(string, CancellationToken)" /> This property can be retrieved before shutdown is
     /// initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
@@ -47,9 +47,9 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
-    /// to <see cref="IDuplexServerTransport.Default"/>.</param>
+    /// to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
-    /// equivalent to <see cref="IMultiplexedServerTransport.Default"/>.</param>
+    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     public Server(
         ServerOptions options,
         IDuplexServerTransport? duplexServerTransport = null,
@@ -271,12 +271,12 @@ public sealed class Server : IAsyncDisposable
                     }
                     else
                     {
-                        // We don't wait for the connection to be activated or shutdown. This could take a while for some transports
-                        // such as TLS based transports where the handshake requires few round trips between the client and
-                        // server.
+                        // We don't wait for the connection to be activated or shutdown. This could take a while for
+                        // some transports such as TLS based transports where the handshake requires few round trips
+                        // between the client and server.
                         // Waiting could also cause a security issue if the client doesn't respond to the connection
-                        // initialization as we wouldn't be able to accept new connections in the meantime. The call will
-                        // eventually timeout if the ConnectTimeout expires.
+                        // initialization as we wouldn't be able to accept new connections in the meantime. The call
+                        // will eventually timeout if the ConnectTimeout expires.
                         _ = Task.Run(() => _ = connectionTask(connection, shutdownCancellationToken));
                     }
                 }
@@ -423,8 +423,8 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public override string ToString() => ServerAddress.ToString();
 
-    /// <summary>Provides a decorator that adds logging to a <see cref="IListener{T}"/> of
-    /// <see cref="IProtocolConnection"/>.</summary>
+    /// <summary>Provides a decorator that adds logging to a <see cref="IListener{T}" /> of
+    /// <see cref="IProtocolConnection" />.</summary>
     private class LogListenerDecorator : IListener<IProtocolConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
@@ -447,7 +447,7 @@ public sealed class Server : IAsyncDisposable
         internal LogListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
     }
 
-    /// <summary>Provides a decorator that adds EventSource-based logging to the <see cref="IProtocolConnection"/>.
+    /// <summary>Provides a decorator that adds EventSource-based logging to the <see cref="IProtocolConnection" />.
     /// </summary>
     private class LogProtocolConnectionDecorator : IProtocolConnection
     {

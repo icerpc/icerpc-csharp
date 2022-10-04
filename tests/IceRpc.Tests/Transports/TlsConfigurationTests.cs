@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(scope: ParallelScope.All)]
 public class TlsConfigurationTests
 {
-    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException"/>
+    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
     /// when the client certificate is not trusted.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
@@ -157,7 +157,7 @@ public class TlsConfigurationTests
         Assert.That(clientCertificateValidationCallback, Is.True);
     }
 
-    /// <summary>Verifies that the client connection establishment fail with <see cref="AuthenticationException"/> when
+    /// <summary>Verifies that the client connection establishment fail with <see cref="AuthenticationException" /> when
     /// the server certificate is not trusted.</summary>
     [Test]
     public async Task Tls_server_certificate_not_trusted()

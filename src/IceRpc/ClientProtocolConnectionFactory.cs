@@ -6,7 +6,7 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>The default implementation of <see cref="IClientProtocolConnectionFactory"/>.</summary>
+/// <summary>The default implementation of <see cref="IClientProtocolConnectionFactory" />.</summary>
 public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
 {
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
@@ -20,9 +20,9 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <param name="connectionOptions">The connection options.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     /// <param name="duplexClientTransport">The duplex client transport. Null is equivalent to
-    /// <see cref="IDuplexClientTransport.Default"/>.</param>
+    /// <see cref="IDuplexClientTransport.Default" />.</param>
     /// <param name="multiplexedClientTransport">The multiplexed client transport. Null is equivalent to
-    /// <see cref="IMultiplexedClientTransport.Default"/>.</param>
+    /// <see cref="IMultiplexedClientTransport.Default" />.</param>
     public ClientProtocolConnectionFactory(
         ConnectionOptions connectionOptions,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
@@ -59,8 +59,8 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <param name="serverAddress">The address of the server.</param>
     /// <returns>The new protocol connection.</returns>
     /// <remarks>The protocol connection returned by this factory method is not connected. The caller must call
-    /// <see cref="IProtocolConnection.ConnectAsync"/> exactly once on this connection before calling
-    /// <see cref="IInvoker.InvokeAsync"/>.</remarks>
+    /// <see cref="IProtocolConnection.ConnectAsync" /> exactly once on this connection before calling
+    /// <see cref="IInvoker.InvokeAsync" />.</remarks>
     public IProtocolConnection CreateConnection(ServerAddress serverAddress) =>
         serverAddress.Protocol == Protocol.Ice ?
             new IceProtocolConnection(

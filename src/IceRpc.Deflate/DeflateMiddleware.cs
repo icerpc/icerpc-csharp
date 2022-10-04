@@ -9,7 +9,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Deflate;
 
 /// <summary>A middleware that applies the deflate compression algorithm to the payload of a response depending on
-/// the <see cref="ICompressFeature"/> feature.</summary>
+/// the <see cref="ICompressFeature" /> feature.</summary>
 public class DeflateMiddleware : IDispatcher
 {
     private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =

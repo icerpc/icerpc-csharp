@@ -10,7 +10,7 @@ namespace IceRpc.Slice.Internal;
 
 internal delegate object ActivateObject(ref SliceDecoder decoder);
 
-/// <summary>The default implementation of <see cref="IActivator"/>, which uses a dictionary.</summary>
+/// <summary>The default implementation of <see cref="IActivator" />, which uses a dictionary.</summary>
 internal class Activator : IActivator
 {
     internal static Activator Empty { get; } =

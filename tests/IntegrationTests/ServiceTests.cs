@@ -10,7 +10,7 @@ namespace IceRpc.IntegrationTests;
 [Parallelizable(ParallelScope.All)]
 public class ServiceTests
 {
-    /// <summary>Verifies the operations of <see cref="Service"/>.</summary>
+    /// <summary>Verifies the operations of <see cref="Service" />.</summary>
     [Test]
     public async Task Service_operations([Values("ice", "icerpc")] string protocol)
     {

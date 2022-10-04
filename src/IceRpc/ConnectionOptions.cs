@@ -42,8 +42,8 @@ public record class ConnectionOptions
     /// limit is reached, the connection stops reading new requests off its underlying transport connection.</summary>
     /// <value>The maximum number of requests that a connection can dispatch concurrently. 0 means no maximum. The
     /// default value is 100 requests.</value>
-    /// <remarks>With the icerpc protocol, you may also need to set <see cref="MaxIceRpcBidirectionalStreams"/> and
-    /// <see cref="MaxIceRpcUnidirectionalStreams"/>. A typical two-way dispatch holds onto one bidirectional stream
+    /// <remarks>With the icerpc protocol, you may also need to set <see cref="MaxIceRpcBidirectionalStreams" /> and
+    /// <see cref="MaxIceRpcUnidirectionalStreams" />. A typical two-way dispatch holds onto one bidirectional stream
     /// while a typical oneway dispatch quickly releases its unidirectional stream and then executes without consuming
     /// any stream.</remarks>
     public int MaxDispatches
@@ -104,8 +104,8 @@ public record class ConnectionOptions
         set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
     }
 
-    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool"/>.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool"/>.</value>
+    /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
+    /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
     public int MinSegmentSize
     {
         get => _minSegmentSize;
@@ -129,7 +129,7 @@ public record class ConnectionOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
     }
 
-    /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>
+    /// <summary>The default value for <see cref="MaxIceRpcHeaderSize" />.</summary>
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
     private const int IceMinFrameSize = 256;

@@ -5,11 +5,11 @@ using IceRpc.Slice;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provide extension methods to add built-in middleware to a <see cref="IDispatcherBuilder"/>.
+/// <summary>This class provide extension methods to add built-in middleware to a <see cref="IDispatcherBuilder" />.
 /// </summary>
 public static class DispatcherBuilderExtensions
 {
-    /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature"/> feature
+    /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature" /> feature
     /// in all requests.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder.</returns>
@@ -36,7 +36,7 @@ public static class DispatcherBuilderExtensions
     /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
     /// an existing route at the same path, it is replaced.</summary>
     /// <typeparam name="TService">The type of the DI service that will handle the requests. The implementation of this
-    /// service must implement <see cref="IDispatcher"/>.</typeparam>
+    /// service must implement <see cref="IDispatcher" />.</typeparam>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>This builder.</returns>
     public static IDispatcherBuilder Map<TService>(this IDispatcherBuilder builder) where TService : notnull =>

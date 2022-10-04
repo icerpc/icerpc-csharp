@@ -224,8 +224,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException"/> after
-    /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
+    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException" />
+    /// after the async enumerable decoding action throws <see cref="InvalidDataException" />.</summary>
     [Test]
     public async Task Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload_with_an_exception()
     {
@@ -258,8 +258,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException"/> after
-    /// the async enumerable decoding action throws <see cref="InvalidDataException"/>.</summary>
+    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException" />
+    /// after  the async enumerable decoding action throws <see cref="InvalidDataException" />.</summary>
     [Test]
     public async Task Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload_with_an_exception()
     {

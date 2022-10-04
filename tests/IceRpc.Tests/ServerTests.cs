@@ -9,8 +9,8 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServerTests
 {
-    /// <summary>Verifies that calling <see cref="Server.Listen"/> more than once fails with
-    /// <see cref="InvalidOperationException"/> exception.</summary>
+    /// <summary>Verifies that calling <see cref="Server.Listen" /> more than once fails with
+    /// <see cref="InvalidOperationException" /> exception.</summary>
     [Test]
     public async Task Cannot_call_listen_twice()
     {
@@ -20,8 +20,8 @@ public class ServerTests
         Assert.Throws<InvalidOperationException>(() => server.Listen());
     }
 
-    /// <summary>Verifies that calling <see cref="Server.Listen"/> on a disposed server fails with
-    /// <see cref="ObjectDisposedException"/>.</summary>
+    /// <summary>Verifies that calling <see cref="Server.Listen" /> on a disposed server fails with
+    /// <see cref="ObjectDisposedException" />.</summary>
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
@@ -31,8 +31,8 @@ public class ServerTests
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
 
-    /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after
-    /// <see cref="Server.ShutdownAsync(CancellationToken)"/> completed.</summary>
+    /// <summary>Verifies that <see cref="Server.ShutdownComplete" /> task is completed after
+    /// <see cref="Server.ShutdownAsync(CancellationToken)" /> completed.</summary>
     [Test]
     public async Task The_shutdown_complete_task_is_completed_after_shutdown()
     {

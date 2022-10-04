@@ -4,7 +4,7 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The AsyncQueue provides queuing functionality with a <see cref="ValueTask"/> asynchronous dequeue
+/// <summary>The AsyncQueue provides queuing functionality with a <see cref="ValueTask" /> asynchronous dequeue
 /// function. This class is public even though it's in the internal namespace. It's used by the coloc transport
 /// which is implemented in another assembly.</summary>
 internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
@@ -45,8 +45,8 @@ internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
     internal bool Enqueue(T value) => _queue.Enqueue(value);
 
     /// <summary>Attempts to mark the queue as being completed, meaning no more elements will be queued. The exception
-    /// will be raised by <see cref="Enqueue"/> if it's called after this call. It will also be called by
-    /// <see cref="DequeueAsync"/> after the last element has been dequeued.</summary>
+    /// will be raised by <see cref="Enqueue" /> if it's called after this call. It will also be called by
+    /// <see cref="DequeueAsync" /> after the last element has been dequeued.</summary>
     /// <param name="exception">The exception indication why no more elements can be queued.</param>
     /// <returns><see langword="true" /> if the queue as been marked as completed, <see langword="false" /> if the queue
     /// was already completed.</returns>

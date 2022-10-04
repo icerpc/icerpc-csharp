@@ -29,15 +29,15 @@ public sealed class IceProtocolConnectionTests
     {
         get
         {
-            // Service not found failure with a service address that has no server address gets OtherReplica retry policy response
-            // field.
+            // Service not found failure with a service address that has no server address gets OtherReplica retry
+            // policy response field.
             yield return new TestCaseData(
                 new ServiceAddress(Protocol.Ice),
                 DispatchErrorCode.ServiceNotFound,
                 RetryPolicy.OtherReplica);
 
-            // Service not found failure with a service address that has server addresses does not get a retry policy response
-            // field
+            // Service not found failure with a service address that has server addresses does not get a retry policy
+            // response field
             yield return new TestCaseData(
                 new ServiceAddress(new Uri("ice://localhost/service")),
                 DispatchErrorCode.ServiceNotFound,
@@ -52,7 +52,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="DispatchException"/>.</summary>
+    /// cref="DispatchException" />.</summary>
     [Test]
     public async Task Disposing_server_connection_triggers_dispatch_exception([Values(false, true)] bool shutdown)
     {

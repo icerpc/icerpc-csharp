@@ -282,7 +282,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that completing a stream with unflushed bytes fails with
-    /// <see cref="NotSupportedException"/>.</summary>
+    /// <see cref="NotSupportedException" />.</summary>
     [Test]
     public async Task Complete_stream_with_unflushed_bytes_fails()
     {
@@ -962,7 +962,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that calling read with a canceled cancellation token fails with
-    /// <see cref="OperationCanceledException"/>.</summary>
+    /// <see cref="OperationCanceledException" />.</summary>
     [Test]
     public async Task Stream_read_with_canceled_token_fails()
     {
@@ -1030,7 +1030,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that calling write with a canceled cancellation token fails with
-    /// <see cref="OperationCanceledException"/>.</summary>
+    /// <see cref="OperationCanceledException" />.</summary>
     [Test]
     public async Task Stream_write_with_canceled_token_fails()
     {

@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Slice;
 public class SequenceEncodingTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Encode_fixed_sized_numeric_sequence(SliceEncoding, IEnumerable{int})"/> test.</summary>
+    /// <see cref="Encode_fixed_sized_numeric_sequence(SliceEncoding, IEnumerable{int})" /> test.</summary>
     private static IEnumerable<TestCaseData> SequenceLongData
     {
         get
@@ -32,9 +32,9 @@ public class SequenceEncodingTests
         }
     }
 
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T})"/> with a
+    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T})" /> with a
     /// value type.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the encoding.</param>
     /// <param name="expected">The enumerable to be encoded.</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
     public void Encode_fixed_sized_numeric_sequence(SliceEncoding encoding, IEnumerable<int> expected)
@@ -56,9 +56,9 @@ public class SequenceEncodingTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T}, EncodeAction{T})"/>
+    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T}, EncodeAction{T})" />
     /// with a sequence of non numeric types.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the encoding.</param>
     [Test]
     public void Encode_string_sequence(
         [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)

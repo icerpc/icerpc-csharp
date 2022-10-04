@@ -2,9 +2,9 @@
 
 namespace IceRpc;
 
-/// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use"/>.
+/// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use" />.
 /// The last invoker of the pipeline calls the connection carried by the request or throws
-/// <see cref="ArgumentNullException"/> if this connection is null.</summary>
+/// <see cref="ArgumentNullException" /> if this connection is null.</summary>
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
@@ -22,7 +22,7 @@ public sealed class Pipeline : IInvoker
     /// <param name="lastInvoker">The last invoker.</param>
     /// <returns>This pipeline.</returns>
     /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
-    /// <see cref="InvokeAsync"/>.</exception>
+    /// <see cref="InvokeAsync" />.</exception>
     public Pipeline Into(IInvoker lastInvoker)
     {
         if (_invoker.IsValueCreated)
@@ -38,7 +38,7 @@ public sealed class Pipeline : IInvoker
     /// <param name="interceptor">The interceptor to install.</param>
     /// <returns>This pipeline.</returns>
     /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
-    /// <see cref="InvokeAsync"/>.</exception>
+    /// <see cref="InvokeAsync" />.</exception>
     public Pipeline Use(Func<IInvoker, IInvoker> interceptor)
     {
         if (_invoker.IsValueCreated)
@@ -51,7 +51,7 @@ public sealed class Pipeline : IInvoker
     }
 
     /// <summary>Creates a pipeline of invokers by starting with the last invoker installed. This method is called
-    /// by the first call to <see cref="InvokeAsync"/>.</summary>
+    /// by the first call to <see cref="InvokeAsync" />.</summary>
     /// <returns>The pipeline of invokers.</returns>
     private IInvoker CreateInvokerPipeline()
     {

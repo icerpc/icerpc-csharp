@@ -249,7 +249,7 @@ public abstract class DuplexTransportConformanceTests
             async () => await sut.ClientConnection.ReadAsync(buffer, new CancellationToken(canceled: true)));
     }
 
-    /// <summary>Verifies that a read operation ends with <see cref="OperationCanceledException"/> if the given
+    /// <summary>Verifies that a read operation ends with <see cref="OperationCanceledException" /> if the given
     /// cancellation token is canceled.</summary>
     [Test]
     public async Task Read_cancellation()
@@ -269,7 +269,7 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(async () => await readTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling read on a connection fails with <see cref="TransportErrorCode.ConnectionReset"/>
+    /// <summary>Verifies that calling read on a connection fails with <see cref="TransportErrorCode.ConnectionReset" />
     /// if the peer connection is disposed.</summary>
     [Test]
     public async Task Read_from_disposed_peer_connection_fails_with_transport_reset_error(
@@ -288,11 +288,11 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
-            async() => await readFrom.ReadAsync(new byte[1], default));
+            async () => await readFrom.ReadAsync(new byte[1], default));
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
-    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.
+    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
     /// </summary>
     [Test]
     public async Task Read_from_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)
@@ -461,7 +461,7 @@ public abstract class DuplexTransportConformanceTests
             async () => await sut.ClientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
     }
 
-    /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the
+    /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException" /> once the
     /// cancellation token is canceled.</summary>
     [Test]
     public async Task Write_cancellation()
@@ -498,7 +498,7 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling write fails with <see cref="TransportErrorCode.ConnectionReset"/> when the peer
+    /// <summary>Verifies that calling write fails with <see cref="TransportErrorCode.ConnectionReset" /> when the peer
     /// connection is disposed.</summary>
     [Test]
     public async Task Write_to_disposed_peer_connection_fails_with_transport_reset_error()
@@ -532,7 +532,7 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
-    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.
+    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
     /// </summary>
     [Test]
     public async Task Write_to_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)

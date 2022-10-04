@@ -2,7 +2,7 @@
 
 namespace IceRpc.Locator;
 
-/// <summary>An options class for configuring a <see cref="LocatorLocationResolver"/>.</summary>
+/// <summary>An options class for configuring a <see cref="LocatorLocationResolver" />.</summary>
 public sealed record class LocatorOptions
 {
     /// <summary>Gets or sets a value indicating whether or not the locator must enable background lookups.</summary>

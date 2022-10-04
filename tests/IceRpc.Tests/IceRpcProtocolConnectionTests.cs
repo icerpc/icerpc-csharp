@@ -73,7 +73,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="IceRpcProtocolStreamException"/>.</summary>
+    /// cref="IceRpcProtocolStreamException" />.</summary>
     [Test]
     public async Task Disposing_server_connection_triggers_stream_exception(
         [Values(false, true)] bool shutdown)
@@ -105,7 +105,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the
     /// expected error code and no retry policy.</summary>
     /// <param name="thrownException">The exception to throw by the dispatcher.</param>
-    /// <param name="errorCode">The expected <see cref="DispatchErrorCode"/>.</param>
+    /// <param name="errorCode">The expected <see cref="DispatchErrorCode" />.</param>
     [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
     public async Task Exception_is_encoded_as_a_dispatch_exception(
         Exception thrownException,

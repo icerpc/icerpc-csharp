@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice.Internal;
 
-/// <summary>An enumerator over one or more <see cref="Span{T}"/> of bytes. Used by <see cref="BitSequenceWriter"/>.
+/// <summary>An enumerator over one or more <see cref="Span{T}" /> of bytes. Used by <see cref="BitSequenceWriter" />.
 /// </summary>
 internal ref struct SpanEnumerator
 {

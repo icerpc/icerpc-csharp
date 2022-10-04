@@ -13,8 +13,8 @@ public class ClientConnectionTests
 {
     private static List<Protocol> Protocols => new() { Protocol.IceRpc, Protocol.Ice };
 
-    /// <summary>Verifies that <see cref="ClientConnection.ConnectAsync"/> returns a valid <see
-    /// cref="TransportConnectionInformation"/></summary>
+    /// <summary>Verifies that <see cref="ClientConnection.ConnectAsync" /> returns a valid <see
+    /// cref="TransportConnectionInformation" /></summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connect_returns_transport_connection_information(Protocol protocol)
     {

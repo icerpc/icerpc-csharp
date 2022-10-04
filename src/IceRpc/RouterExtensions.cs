@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace IceRpc;
 
-/// <summary>This class provide extension methods to add built-in middleware to a <see cref="Router"/>.
+/// <summary>This class provide extension methods to add built-in middleware to a <see cref="Router" />.
 /// </summary>
 public static class RouterExtensions
 {
@@ -14,20 +14,20 @@ public static class RouterExtensions
     /// <typeparam name="TService">The service type used to get the default path.</typeparam>
     /// <param name="router">The router being configured.</param>
     /// <param name="service">The target service of this route.</param>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
-    /// <seealso cref="Router.Mount(string, IDispatcher)"/>
+    /// <seealso cref="Router.Mount(string, IDispatcher)" />
     public static void Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
         router.Map(typeof(TService).GetDefaultPath(), service);
 
     /// <summary>Creates a sub-router, configures this sub-router and mounts it (with
-    /// <see cref="Router.Mount(string, IDispatcher)"/>) at the given <c>prefix</c>.</summary>
+    /// <see cref="Router.Mount(string, IDispatcher)" />) at the given <c>prefix</c>.</summary>
     /// <param name="router">The router being configured.</param>
     /// <param name="prefix">The prefix of the route to the sub-router.</param>
     /// <param name="configure">A delegate that configures the new sub-router.</param>
     /// <returns>The new sub-router.</returns>
-    /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
+    /// <exception cref="FormatException">Thrown if <paramref name="prefix" /> is not a valid path.</exception>
     public static Router Route(this Router router, string prefix, Action<Router> configure)
     {
         ServiceAddress.CheckPath(prefix);
@@ -37,7 +37,7 @@ public static class RouterExtensions
         return subRouter;
     }
 
-    /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature"/> feature
+    /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature" /> feature
     /// in all requests.</summary>
     /// <param name="router">The router being configured.</param>
     /// <returns>The router being configured.</returns>

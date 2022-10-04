@@ -2,10 +2,10 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>The default implementation for <see cref="ISliceFeature"/>.</summary>
+/// <summary>The default implementation for <see cref="ISliceFeature" />.</summary>
 public sealed class SliceFeature : ISliceFeature
 {
-    /// <summary>Gets a <see cref="ISliceFeature"/> with default values for all properties.</summary>
+    /// <summary>Gets a <see cref="ISliceFeature" /> with default values for all properties.</summary>
     public static ISliceFeature Default { get; } = new DefaultSliceFeature();
 
     /// <inheritdoc/>
@@ -34,13 +34,13 @@ public sealed class SliceFeature : ISliceFeature
     /// <param name="activator">The activator.</param>
     /// <param name="encodeOptions">The encode options.</param>
     /// <param name="maxCollectionAllocation">The maximum collection allocation. Use <c>-1</c> to get the default value:
-    /// 8 times <paramref name="maxSegmentSize"/> if set, otherwise the value provided by
-    /// <paramref name="defaultFeature"/>.</param>
+    /// 8 times <paramref name="maxSegmentSize" /> if set, otherwise the value provided by
+    /// <paramref name="defaultFeature" />.</param>
     /// <param name="maxDepth">The maximum depth. Use <c>-1</c> to get the default value.</param>
     /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. Null is equivalent to
-    /// <see cref="Default"/>.</param>
+    /// <see cref="Default" />.</param>
     public SliceFeature(
         IActivator? activator = null,
         SliceEncodeOptions? encodeOptions = null,

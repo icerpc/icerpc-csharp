@@ -2,7 +2,7 @@
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>A trivial invoker that always throws <see cref="NotImplementedException"/>.</summary>
+/// <summary>A trivial invoker that always throws <see cref="NotImplementedException" />.</summary>
 public class NotImplementedInvoker : IInvoker
 {
     /// <summary>Gets the unique instance of this class.</summary>

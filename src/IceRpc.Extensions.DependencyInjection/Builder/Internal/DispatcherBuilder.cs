@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace IceRpc.Builder.Internal;
 
-/// <summary>Provides the default implementation of <see cref="IDispatcherBuilder"/>.</summary>
+/// <summary>Provides the default implementation of <see cref="IDispatcherBuilder" />.</summary>
 internal class DispatcherBuilder : IDispatcherBuilder
 {
     /// <inheritdoc/>

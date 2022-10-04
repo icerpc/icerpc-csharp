@@ -11,9 +11,9 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceDecodingTests
 {
-    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)"/> with a
+    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)" /> with a
     /// fixed-size numeric value type.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the decoding.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
     [Test]
     public void Decode_fixed_sized_numeric_sequence(
         [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
@@ -34,9 +34,9 @@ public class SequenceDecodingTests
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)"/> with a
+    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)" /> with a
     /// string sequence.</summary>
-    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the decoding.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
     [Test]
     public void Decode_string_sequence(
         [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)

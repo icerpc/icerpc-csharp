@@ -4,7 +4,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>A class to create a <see cref="IListener{T}"/> to accept incoming multiplexed connections.</summary>
+/// <summary>A class to create a <see cref="IListener{T}" /> to accept incoming multiplexed connections.</summary>
 public interface IMultiplexedServerTransport
 {
     /// <summary>Gets the default multiplexed server transport.</summary>

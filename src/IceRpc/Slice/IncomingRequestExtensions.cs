@@ -25,14 +25,14 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.
+    /// <summary>Creates an outgoing response with a <see cref="SliceResultType.ServiceFailure" /> result type.
     /// </summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="remoteException">The remote exception to encode in the payload.</param>
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException"/> is a dispatch exception or
-    /// its <see cref="RemoteException.ConvertToUnhandled"/> property is <see langword="true" />.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException" /> is a dispatch exception or
+    /// its <see cref="RemoteException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
     public static OutgoingResponse CreateServiceFailureResponse(
         this IncomingRequest request,
         RemoteException remoteException,

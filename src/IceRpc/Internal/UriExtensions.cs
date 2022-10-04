@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Internal;
 
-/// <summary>Extension methods for <see cref="Uri"/>.</summary>
+/// <summary>Extension methods for <see cref="Uri" />.</summary>
 internal static class UriExtensions
 {
     /// <summary>Parses the query portion of a URI into a dictionary of name/value. The value of the alt-server

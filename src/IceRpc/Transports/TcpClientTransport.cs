@@ -9,7 +9,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IDuplexClientTransport"/> for the tcp and ssl transports.</summary>
+/// <summary>Implements <see cref="IDuplexClientTransport" /> for the tcp and ssl transports.</summary>
 public class TcpClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
@@ -20,13 +20,13 @@ public class TcpClientTransport : IDuplexClientTransport
 
     private readonly TcpClientTransportOptions _options;
 
-    /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+    /// <summary>Constructs a <see cref="TcpClientTransport" />.</summary>
     public TcpClientTransport()
         : this(new())
     {
     }
 
-    /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+    /// <summary>Constructs a <see cref="TcpClientTransport" />.</summary>
     /// <param name="options">The transport options.</param>
     public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 

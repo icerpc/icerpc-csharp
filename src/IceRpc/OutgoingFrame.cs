@@ -21,8 +21,8 @@ public abstract class OutgoingFrame
     public Protocol Protocol { get; }
 
     /// <summary>Installs a payload writer interceptor in this outgoing frame. This interceptor is executed just
-    /// before sending <see cref="Payload"/>, and is typically used to compress both <see cref="Payload"/> and
-    /// <see cref="PayloadStream"/>.</summary>
+    /// before sending <see cref="Payload" />, and is typically used to compress both <see cref="Payload" /> and
+    /// <see cref="PayloadStream" />.</summary>
     /// <param name="payloadWriterInterceptor">The payload writer interceptor to install.</param>
     /// <returns>This outgoing frame.</returns>
     public OutgoingFrame Use(Func<PipeWriter, PipeWriter> payloadWriterInterceptor)

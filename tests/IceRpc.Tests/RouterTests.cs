@@ -45,7 +45,7 @@ public class RouterTests
             () => router.Mount("/foo", new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)))));
     }
 
-    /// <summary>Verifies that creating a <see cref="Router"/> with an invalid prefix fails.</summary>
+    /// <summary>Verifies that creating a <see cref="Router" /> with an invalid prefix fails.</summary>
     [Test]
     public void Creating_a_router_with_invalid_prefix_fails() =>
         Assert.Throws<FormatException>(() => new Router("foo"));
@@ -83,7 +83,8 @@ public class RouterTests
         Assert.That(currentPath, Is.EqualTo(path));
     }
 
-    /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)"/> fails when using an invalid path.</summary>
+    /// <summary>Verifies that <see cref="Router.Map(string, IDispatcher)" /> fails when using an invalid path.
+    /// </summary>
     [Test]
     public void Mapping_an_invalid_path_fails()
     {
@@ -92,7 +93,7 @@ public class RouterTests
         Assert.Throws<FormatException>(() => router.Mount("foo", ServiceNotFoundDispatcher.Instance));
     }
 
-    /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)"/>
+    /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)" />
     /// is selected for dispatch requests with a path starting with the given prefix.</summary>
     /// <param name="prefix">The prefix to mount the dispatcher.</param>
     /// <param name="path">The path for the request.</param>
@@ -124,7 +125,7 @@ public class RouterTests
         Assert.That(currentPath, Is.EqualTo(path));
     }
 
-    /// <summary>Verifies that <see cref="Router.Mount(string, IDispatcher)"/> fails when using an invalid path.
+    /// <summary>Verifies that <see cref="Router.Mount(string, IDispatcher)" /> fails when using an invalid path.
     /// </summary>
     [Test]
     public void Mounting_an_invalid_path_fails()
@@ -135,7 +136,7 @@ public class RouterTests
     }
 
     /// <summary>Verifies that a path that doesn't match any of the registered routes throws a dispatch
-    /// exception with <see cref="DispatchErrorCode.ServiceNotFound"/> error code.</summary>
+    /// exception with <see cref="DispatchErrorCode.ServiceNotFound" /> error code.</summary>
     [Test]
     public void Path_not_found()
     {
@@ -268,7 +269,7 @@ public class RouterTests
     }
 
     /// <summary>Helper method that creates a router and calls
-    /// <see cref="IDispatcher.DispatchAsync(IncomingRequest, CancellationToken)"/> this ensures that the router
+    /// <see cref="IDispatcher.DispatchAsync(IncomingRequest, CancellationToken)" /> this ensures that the router
     /// internal dispatcher is initialized.</summary>
     /// <returns>The router.</returns>
     private static async Task<Router> CreateRouterAndCallDispatchAsync()

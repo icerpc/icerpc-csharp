@@ -72,7 +72,7 @@ impl CommentPatcher {
                     Err(_) => s.to_owned(), // TODO log a warning
                 };
 
-                format!("<see cref=\"{identifier}\"/>")
+                format!("<see cref=\"{identifier}\" />")
             });
 
             Some(comment)

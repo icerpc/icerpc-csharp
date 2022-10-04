@@ -21,7 +21,7 @@ public class RetryInterceptor : IInvoker
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="options">The options to configure the retry interceptor.</param>
     /// <param name="logger">The logger.</param>
-    /// <see cref="RetryPolicy"/>
+    /// <see cref="RetryPolicy" />
     public RetryInterceptor(IInvoker next, RetryOptions options, ILogger logger)
     {
         _next = next;
