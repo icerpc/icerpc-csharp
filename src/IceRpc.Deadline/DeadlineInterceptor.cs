@@ -8,9 +8,9 @@ namespace IceRpc.Deadline;
 /// field. When the deadline expires, the invocation is canceled and the interceptor throws
 /// <see cref="TimeoutException"/>. When used in conjunction with the retry interceptor it is important to install this
 /// interceptor before the retry interceptor to ensure that the deadline is computed once per invocation and not once
-/// per each retry.</summary>
-/// <remarks>The remote dispatch of a oneway request cannot be canceled since the local invocation typically completes
-/// before this remote dispatch starts; as a result, for a oneway request, the deadline must enforced by the
+/// for each retry.</summary>
+/// <remarks>The dispatch of a oneway request cannot be canceled since the invocation typically completes before this
+/// dispatch starts; as a result, for a oneway request, the deadline must enforced by the
 /// <see cref="DeadlineMiddleware"/>.</remarks>
 /// <remarks>If the server installs a <see cref="DeadlineMiddleware"/>, this deadline middleware decodes the deadline
 /// and enforces it. In the unlikely event the middleware detects the expiration of the deadline before this
