@@ -22,11 +22,16 @@ unchecked enum DispatchErrorCode
     /// The dispatch failed with an unhandled exception.
     UnhandledException,
 
-    /// The dispatch failed because the request header or the request payload could not be decoded.
+    /// The dispatch failed because the request payload could not be decoded or because a middleware could not decode
+    /// a request field. It is typically due to a mismatch of the Slice definitions (or more generally IDL definitions)
+    /// used by the client and the server.
     InvalidData,
 
     /// The dispatch was canceled; it can be because the server is exiting.
     Canceled,
+
+    /// The dispatch failed because a read or write on the underlying transport stream failed.
+    StreamError,
 
     /// The request's deadline has expired.
     DeadlineExpired,

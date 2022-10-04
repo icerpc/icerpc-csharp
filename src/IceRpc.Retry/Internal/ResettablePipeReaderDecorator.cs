@@ -217,7 +217,8 @@ internal class ResettablePipeReaderDecorator : PipeReader
     }
 
     /// <summary>Resets this pipe reader.</summary>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable"/> is false.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable"/> is <see langword="false" />.
+    /// </exception>
     internal void Reset()
     {
         if (_isResettable)

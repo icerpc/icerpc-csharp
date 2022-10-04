@@ -11,7 +11,7 @@ internal static class PipeWriterExtensions
     /// <summary>Writes a read only sequence of bytes to this writer.</summary>
     /// <param name="writer">The pipe writer.</param>
     /// <param name="source">The source sequence.</param>
-    /// <param name="endStream">When true, no more data will be written to the writer.</param>
+    /// <param name="endStream">When <see langword="true" />, no more data will be written to the writer.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The flush result.</returns>
     internal static async ValueTask<FlushResult> WriteAsync(

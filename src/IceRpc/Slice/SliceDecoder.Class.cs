@@ -479,7 +479,8 @@ public ref partial struct SliceDecoder
     /// <summary>Skips and saves the body of the current slice; also skips and save the indirection table (if any).
     /// </summary>
     /// <param name="typeId">The type ID or compact ID of the current slice.</param>
-    /// <returns>True when the current slice is the last slice; otherwise, false.</returns>
+    /// <returns><see langword="true" /> when the current slice is the last slice; otherwise, <see langword="false" />.
+    /// </returns>
     private bool SkipSlice(string? typeId)
     {
         if (typeId is null)

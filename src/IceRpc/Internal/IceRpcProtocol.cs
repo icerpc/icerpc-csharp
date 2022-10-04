@@ -34,9 +34,6 @@ internal sealed class IceRpcProtocol : Protocol
 
                 IceRpcStreamErrorCode.ConnectionShutdown => new ConnectionException(ConnectionErrorCode.ClosedByPeer),
 
-                IceRpcStreamErrorCode.InvalidData =>
-                    new InvalidDataException("the remote peer failed to decode data from the stream"),
-
                 _ => new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode)
             };
 

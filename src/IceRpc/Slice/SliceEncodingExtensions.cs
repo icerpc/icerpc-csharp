@@ -29,8 +29,8 @@ public static class SliceEncodingExtensions
     /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
     /// <param name="encodeOptions">The Slice encode options.</param>
     /// <param name="encodeAction">The action used to encode the streamed member.</param>
-    /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
-    /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
+    /// <param name="useSegments"><see langword="true" /> if we are encoding a stream elements in segments this is the
+    /// case when the streamed elements are of variable size; otherwise, <see langword="false" />.</param>
     /// <returns>The pipe reader to read the payload stream for the given async enumerable.</returns>
     public static PipeReader CreatePayloadStream<T>(
         this SliceEncoding encoding,

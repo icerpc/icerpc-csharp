@@ -10,7 +10,7 @@ namespace IceRpc.Tests;
 public sealed class ConnectionCacheTests
 {
     /// <summary>Verifies that the connection cache does not prefer existing connections when
-    /// <c>preferExistingConnection</c> is false.</summary>
+    /// <c>preferExistingConnection</c> is <see langword="false" />.</summary>
     [Test]
     public async Task Do_not_prefer_existing_connection()
     {
@@ -147,7 +147,7 @@ public sealed class ConnectionCacheTests
     }
 
     /// <summary>Verifies that the connection cache prefers reusing an existing connection when
-    /// <c>preferExistingConnection</c> is true.</summary>
+    /// <c>preferExistingConnection</c> is <see langword="true" />.</summary>
     [Test]
     public async Task Prefer_existing_connection()
     {
