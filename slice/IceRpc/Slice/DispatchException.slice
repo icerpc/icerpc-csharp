@@ -30,7 +30,7 @@ unchecked enum DispatchErrorCode
     /// The dispatch was canceled; it can be because the server is exiting.
     Canceled,
 
-    /// The dispatch failed because it could not read from or write to the underlying transport stream.
+    /// The dispatch failed because a read or write on the underlying transport stream failed.
     StreamError,
 
     /// The request's deadline has expired.
