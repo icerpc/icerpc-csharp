@@ -8,7 +8,14 @@ namespace IceRpc.Deadline;
 /// field. When the deadline expires, the invocation is canceled and the interceptor throws
 /// <see cref="TimeoutException"/>. When used in conjunction with the retry interceptor it is important to install this
 /// interceptor before the retry interceptor to ensure that the deadline is computed once per invocation and not once
-/// per each retry.</summary>
+/// for each retry.</summary>
+/// <remarks>The dispatch of a oneway request cannot be canceled since the invocation typically completes before this
+/// dispatch starts; as a result, for a oneway request, the deadline must enforced by the
+/// <see cref="DeadlineMiddleware"/>.</remarks>
+/// <remarks>If the server installs a <see cref="DeadlineMiddleware"/>, this deadline middleware decodes the deadline
+/// and enforces it. In the unlikely event the middleware detects the expiration of the deadline before this
+/// interceptor, the invocation will fail with a <see cref="DispatchException"/> carrying the
+/// <see cref="DispatchErrorCode.DeadlineExpired"/> error code.</remarks>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;
@@ -18,10 +25,11 @@ public class DeadlineInterceptor : IInvoker
     /// <summary>Constructs a deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="defaultTimeout">The default timeout.</param>
-    /// <param name="alwaysEnforceDeadline">When <c>true</c> and the request carries a deadline, the interceptor always
-    /// creates a cancellation token source to enforce this deadline. When <c>false</c> and the request carries a
-    /// deadline, the interceptor creates a cancellation token source to enforce this deadline only when the
-    /// invocation's cancellation token cannot be canceled. The default value is <c>false</c>.</param>
+    /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
+    /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
+    /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
+    /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
+    /// </param>
     public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline)
     {
         _next = next;

@@ -2,7 +2,7 @@
 
 use crate::cs_util::escape_keyword;
 
-use convert_case::{Case, Casing};
+use slice::convert_case::{Case, Casing};
 use slice::grammar::Entity;
 
 pub trait EntityExt: Entity {

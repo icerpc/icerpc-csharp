@@ -32,7 +32,7 @@ public static class IncomingRequestExtensions
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException"/> is a dispatch exception or
-    /// its <see cref="RemoteException.ConvertToUnhandled"/> property is <c>true</c>.</exception>
+    /// its <see cref="RemoteException.ConvertToUnhandled"/> property is <see langword="true" />.</exception>
     public static OutgoingResponse CreateServiceFailureResponse(
         this IncomingRequest request,
         RemoteException remoteException,

@@ -16,7 +16,8 @@ public sealed class OutgoingRequest : OutgoingFrame
         ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
     /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
-    /// <value><c>true</c> for oneway requests, <c>false</c> otherwise. The default is <c>false</c>.</value>
+    /// <value><see langword="true" /> for oneway requests, <see langword="false" /> otherwise. The default is
+    /// <see langword="false" />.</value>
     public bool IsOneway { get; init; }
 
     /// <summary>Gets or initializes the name of the operation to call on the target service.</summary>
