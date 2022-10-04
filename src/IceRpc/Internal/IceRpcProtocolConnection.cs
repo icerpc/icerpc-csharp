@@ -101,7 +101,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (_streams.Count == 0)
             {
                 _isReadOnly = true;
-                ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was idle");
+                ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
             else
@@ -125,7 +125,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             exception.ApplicationErrorCode is ulong errorCode &&
             errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
         {
-            ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection establishment was refused");
+            ConnectionClosedException = new(
+                ConnectionErrorCode.ClosedByPeer,
+                "the connection establishment was refused");
+
             throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
         }
 
@@ -178,7 +181,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
-                InitiateShutdown(goAwayFrame.Message);
+                InitiateShutdown(ConnectionErrorCode.ClosedByPeer, goAwayFrame.Message);
                 return goAwayFrame;
             },
             CancellationToken.None);
@@ -204,7 +207,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             return; // already closing or closed
                         }
 
-                        ConnectionClosedException = new(ConnectionErrorCode.Closed, "the connection was lost");
+                        ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort, "the connection was lost");
                     }
 
                     ConnectionLost(exception);

@@ -305,7 +305,7 @@ public sealed class IceRpcProtocolConnectionTests
             Assert.That(invokeTask.IsCompleted, Is.False);
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
             Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -347,7 +347,7 @@ public sealed class IceRpcProtocolConnectionTests
             Assert.That(invokeTask.IsCompleted, Is.False);
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
             Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);

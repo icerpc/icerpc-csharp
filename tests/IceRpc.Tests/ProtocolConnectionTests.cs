@@ -404,7 +404,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await connectTask, Throws.InstanceOf<ConnectionException>());
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Client.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
 
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
@@ -500,7 +500,7 @@ public sealed class ProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
 
         await shutdownTask;
     }
@@ -568,7 +568,7 @@ public sealed class ProtocolConnectionTests
 
         // Act/Assert
         ConnectionException? exception = Assert.Throws<ConnectionException>(() => operation(sut.Client));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
     }
 
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>
@@ -883,7 +883,7 @@ public sealed class ProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => sut.Client.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.Closed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]

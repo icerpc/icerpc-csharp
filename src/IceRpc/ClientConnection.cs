@@ -157,7 +157,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             throw;
         }
-        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
+        catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
@@ -236,7 +236,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 throw;
             }
-            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.Closed)
+            catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
             {
                 if (RefreshConnection(connection) is IProtocolConnection newConnection)
                 {

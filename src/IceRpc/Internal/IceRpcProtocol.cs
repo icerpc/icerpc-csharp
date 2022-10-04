@@ -32,8 +32,7 @@ internal sealed class IceRpcProtocol : Protocol
             {
                 IceRpcStreamErrorCode.NoError => null,
 
-                IceRpcStreamErrorCode.ConnectionShutdown =>
-                    new ConnectionException(ConnectionErrorCode.Closed, "the connection was shutdown by the peer"),
+                IceRpcStreamErrorCode.ConnectionShutdown => new ConnectionException(ConnectionErrorCode.ClosedByPeer),
 
                 _ => new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode)
             };
@@ -46,7 +45,7 @@ internal sealed class IceRpcProtocol : Protocol
                 OperationCanceledException => (ulong)IceRpcStreamErrorCode.Canceled,
 
                 ConnectionException connectionException =>
-                    connectionException.ErrorCode == ConnectionErrorCode.Closed ?
+                    connectionException.ErrorCode.IsClosedErrorCode() ?
                         (ulong)IceRpcStreamErrorCode.ConnectionShutdown :
                         (ulong)IceRpcStreamErrorCode.Unspecified,
 
