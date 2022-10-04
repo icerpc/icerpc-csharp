@@ -163,8 +163,8 @@ public readonly record struct ServerAddress
 
     /// <summary>Checks if this server address is equal to another server address.</summary>
     /// <param name="other">The other server address.</param>
-    /// <returns><c>true</c>when the two server addresses have the same properties, including the same parameters;
-    /// otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true" /> when the two server addresses have the same properties, including the same
+    /// parameters; otherwise, <see langword="false" />.</returns>
     public bool Equals(ServerAddress other) =>
         Protocol == other.Protocol &&
         Host == other.Host &&

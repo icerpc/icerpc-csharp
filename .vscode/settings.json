@@ -7,6 +7,7 @@
         "decoratee",
         "icerpc",
         "inheritdoc",
+        "langword",
         "Nonmutating",
         "Parallelizable",
         "paramref",
@@ -14,6 +15,9 @@
         "Slic",
         "slicec",
         "struct",
+        "typeparam",
+        "varint",
+        "varuint",
         "zeroc"
     ],
     "rust-analyzer.linkedProjects": [

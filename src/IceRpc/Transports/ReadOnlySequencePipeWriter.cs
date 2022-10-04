@@ -14,7 +14,7 @@ public abstract class ReadOnlySequencePipeWriter : PipeWriter
 {
     /// <summary>Writes a readonly sequence.</summary>
     /// <param name="source">The source sequence.</param>
-    /// <param name="endStream">If <c>true</c>, no more data will be written to this pipe.</param>
+    /// <param name="endStream">If <see langword="true" />, no more data will be written to this pipe.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The flush result.</returns>
     public abstract ValueTask<FlushResult> WriteAsync(

@@ -11,11 +11,11 @@ internal static class ServerAddressExtensions
     /// <summary>Appends the server address and all its parameters (if any) to this string builder.</summary>
     /// <param name="sb">The string builder.</param>
     /// <param name="serverAddress">The server address to append.</param>
-    /// <param name="path">The path of the server address URI. Use this parameter to start building a service address URI.
-    /// </param>
-    /// <param name="includeScheme">When true, first appends the server address protocol followed by ://.</param>
-    /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.
-    /// </param>
+    /// <param name="path">The path of the server address URI. Use this parameter to start building a service address
+    /// URI.</param>
+    /// <param name="includeScheme">When <see langword="true" />, first appends the server address protocol followed by
+    /// ://.</param>
+    /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.</param>
     /// <returns>The string builder <paramref name="sb"/>.</returns>
     internal static StringBuilder AppendServerAddress(
         this StringBuilder sb,

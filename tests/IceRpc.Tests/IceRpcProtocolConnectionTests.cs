@@ -34,6 +34,7 @@ public sealed class IceRpcProtocolConnectionTests
         get
         {
             yield return new TestCaseData(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)99), 99ul);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), IceRpcStreamErrorCode.InvalidData);
             yield return new TestCaseData(new OperationCanceledException(), IceRpcStreamErrorCode.Canceled);
         }
     }
