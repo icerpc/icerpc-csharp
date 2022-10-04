@@ -478,9 +478,9 @@ public ref partial struct SliceDecoder
     /// <param name="tag">The tag.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tagged parameter or data member.
     /// </param>
-    /// <param name="useTagEndMarker">When <c>true</c>, we are decoding a data member and a tag end marker marks the
-    /// end of the tagged data members. When <c>false</c>, we are decoding a parameter and the end of the buffer
-    /// marks the end of the tagged parameters.</param>
+    /// <param name="useTagEndMarker">When <see langword="true" />, we are decoding a data member and a tag end marker
+    /// marks the end of the tagged data members. When <see langword="false" />, we are decoding a parameter and the end
+    /// of the buffer marks the end of the tagged parameters.</param>
     /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
     /// types such as string?.</remarks>
@@ -523,9 +523,9 @@ public ref partial struct SliceDecoder
     /// <param name="tag">The tag.</param>
     /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
-    /// <param name="useTagEndMarker">When <c>true</c>, we are decoding a data member and a tag end marker marks the
-    /// end of the tagged data members. When <c>false</c>, we are decoding a parameter and the end of the buffer
-    /// marks the end of the tagged parameters.</param>
+    /// <param name="useTagEndMarker">When <see langword="true" />, we are decoding a data member and a tag end marker
+    /// marks the end of the tagged data members. When <see langword="false" />, we are decoding a parameter and the end
+    /// of the buffer marks the end of the tagged parameters.</param>
     /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
     /// types such as string?.</remarks>
@@ -681,8 +681,8 @@ public ref partial struct SliceDecoder
     internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
 
     /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
-    /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
-    /// buffer.</param>
+    /// <param name="skipTaggedParams">When <see langword="true" />, first skips all remaining tagged parameters in the
+    /// current buffer.</param>
     internal void CheckEndOfBuffer(bool skipTaggedParams)
     {
         if (skipTaggedParams)
@@ -755,24 +755,24 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
-    /// <param name="value">When this method returns <c>true</c>, this value is set to the decoded byte. Otherwise,
-    /// this value is set to its default value.</param>
-    /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
-    /// <c>false</c> otherwise.</returns>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; <see langword="false" /> otherwise.</returns>
     internal bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
 
     /// <summary>Tries to decode a Slice int32 into an int.</summary>
-    /// <param name="value">When this method returns <c>true</c>, this value is set to the decoded int. Otherwise,
-    /// this value is set to its default value.</param>
-    /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
-    /// <c>false</c> otherwise.</returns>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded int.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; <see langword="false" /> otherwise.</returns>
     internal bool TryDecodeInt32(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
 
     /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
-    /// <param name="size">When this method returns <c>true</c>, this value is set to the decoded size. Otherwise,
-    /// this value is set to its default value.</param>
-    /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
-    /// <c>false</c> otherwise.</returns>
+    /// <param name="size">When this method returns <see langword="true" />, this value is set to the decoded size.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; <see langword="false" /> otherwise.</returns>
     internal bool TryDecodeSize(out int size)
     {
         if (Encoding == SliceEncoding.Slice1)
@@ -819,10 +819,10 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Tries to decode a Slice varuint62 into a ulong.</summary>
-    /// <param name="value">When this method returns <c>true</c>, this value is set to the decoded ulong. Otherwise,
-    /// this value is set to its default value.</param>
-    /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
-    /// <c>false</c> otherwise.</returns>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; <see langword="false" /> otherwise.</returns>
     internal bool TryDecodeVarUInt62(out ulong value)
     {
         if (_reader.TryPeek(out byte b))
@@ -994,7 +994,6 @@ public ref partial struct SliceDecoder
             else if (transportCode == TransportCode.Uri)
             {
                 // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
-
                 serverAddress = new ServerAddress(new Uri(DecodeString()));
                 if (serverAddress.Value.Protocol != protocol)
                 {

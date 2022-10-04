@@ -35,7 +35,7 @@ public record class ConnectionOptions
 
     /// <summary>Gets or sets a value indicating whether the inner exception details should be included in dispatch
     /// exceptions thrown by the connection.</summary>
-    /// <value>The default value is false.</value>
+    /// <value>The default value is <see langword="false" />.</value>
     public bool IncludeInnerExceptionDetails { get; set; }
 
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this

@@ -40,14 +40,15 @@ internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
 
     /// <summary>Enqueues a new element.</summary>
     /// <param name="value">The value of the element to enqueue.</param>
-    /// <returns><c>true</c> if the element is enqueued, <c>false</c> otherwise if the queue is completed.</returns>
+    /// <returns><see langword="true" /> if the element is enqueued, <see langword="false" /> otherwise if the queue is
+    /// completed.</returns>
     internal bool Enqueue(T value) => _queue.Enqueue(value);
 
-    /// <summary>Attempts to mark the queue as being completed, meaning no more elements will be queued. The
-    /// exception will be raised by <see cref="Enqueue"/> if it's called after this call. It will also be called by
+    /// <summary>Attempts to mark the queue as being completed, meaning no more elements will be queued. The exception
+    /// will be raised by <see cref="Enqueue"/> if it's called after this call. It will also be called by
     /// <see cref="DequeueAsync"/> after the last element has been dequeued.</summary>
     /// <param name="exception">The exception indication why no more elements can be queued.</param>
-    /// <returns><c>true</c> if the queue as been marked as completed, <c>false</c> if the queue was already
-    /// completed.</returns>
+    /// <returns><see langword="true" /> if the queue as been marked as completed, <see langword="false" /> if the queue
+    /// was already completed.</returns>
     internal bool TryComplete(Exception exception) => _queue.TryComplete(exception);
 }
