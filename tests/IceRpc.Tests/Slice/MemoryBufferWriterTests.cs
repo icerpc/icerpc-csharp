@@ -13,7 +13,7 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        Assert.That(writer.WrittenMemory.Length, Is.EqualTo(0));
+        Assert.That(writer.WrittenMemory, Has.Length.EqualTo(0));
     }
 
     [Test]
@@ -29,11 +29,14 @@ public class MemoryBufferWriterTests
 
         writer.GetMemory();
         writer.Advance(2);
-        var lengthAfterAdvance2 = writer.WrittenMemory.Length;
+        int lengthAfterAdvance2 = writer.WrittenMemory.Length;
         writer.Clear();
 
-        Assert.That(lengthAfterAdvance2, Is.EqualTo(2));
-        Assert.That(writer.WrittenMemory.Length, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            Assert.That(lengthAfterAdvance2, Is.EqualTo(2));
+            Assert.That(writer.WrittenMemory, Has.Length.EqualTo(0));
+        });
     }
 
     [Test]
@@ -42,12 +45,15 @@ public class MemoryBufferWriterTests
         var writer = new MemoryBufferWriter(new byte[10]);
 
         writer.Advance(5);
-        var lengthAfterAdvance5 = writer.WrittenMemory.Length;
+        int lengthAfterAdvance5 = writer.WrittenMemory.Length;
         writer.Advance(2);
-        var lengthAfterAdvance2 = writer.WrittenMemory.Length;
+        int lengthAfterAdvance2 = writer.WrittenMemory.Length;
 
-        Assert.That(lengthAfterAdvance5, Is.EqualTo(5));
-        Assert.That(lengthAfterAdvance2, Is.EqualTo(7));
+        Assert.Multiple(() =>
+        {
+            Assert.That(lengthAfterAdvance5, Is.EqualTo(5));
+            Assert.That(lengthAfterAdvance2, Is.EqualTo(7));
+        });
     }
 
     [Test]
@@ -55,8 +61,11 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        Assert.That(() => writer.Advance(11), Throws.InvalidOperationException);
-        Assert.That(() => writer.Advance(-1), Throws.ArgumentException);
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => writer.Advance(11), Throws.InvalidOperationException);
+            Assert.That(() => writer.Advance(-1), Throws.ArgumentException);
+        });
     }
 
     [Test]
@@ -64,12 +73,15 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        var initialMemoryLength = writer.GetMemory().Length;
+        int initialMemoryLength = writer.GetMemory().Length;
         writer.Advance(2);
-        var afterAdvanceMemoryLength = writer.GetMemory().Length;
+        int afterAdvanceMemoryLength = writer.GetMemory().Length;
 
-        Assert.That(initialMemoryLength, Is.EqualTo(10));
-        Assert.That(afterAdvanceMemoryLength, Is.EqualTo(8));
+        Assert.Multiple(() =>
+        {
+            Assert.That(initialMemoryLength, Is.EqualTo(10));
+            Assert.That(afterAdvanceMemoryLength, Is.EqualTo(8));
+        });
     }
 
     [Test]
@@ -77,12 +89,15 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        var initialMemoryLength = writer.GetMemory(2).Length;
+        int initialMemoryLength = writer.GetMemory(2).Length;
         writer.Advance(2);
-        var afterAdvanceMemoryLength = writer.GetMemory(2).Length;
+        int afterAdvanceMemoryLength = writer.GetMemory(2).Length;
 
-        Assert.That(initialMemoryLength, Is.EqualTo(10));
-        Assert.That(afterAdvanceMemoryLength, Is.EqualTo(8));
+        Assert.Multiple(() =>
+        {
+            Assert.That(initialMemoryLength, Is.EqualTo(10));
+            Assert.That(afterAdvanceMemoryLength, Is.EqualTo(8));
+        });
     }
 
     [Test]
@@ -98,10 +113,8 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        Span<byte> span = writer.GetSpan();
         writer.Advance(4);
-        span = writer.GetSpan();
 
-        Assert.That(span.Length, Is.EqualTo(6));
+        Assert.That(writer.GetSpan().Length, Is.EqualTo(6));
     }
 }

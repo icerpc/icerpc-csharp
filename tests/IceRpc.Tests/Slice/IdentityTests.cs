@@ -25,7 +25,7 @@ public class IdentityTests
     [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F%23%40")]
     public void Convert_an_identity_to_uri_path(string name, string category, string referencePath)
     {
-        var path = new Identity(name, category).ToPath();
+        string path = new Identity(name, category).ToPath();
 
         Assert.That(path, Is.EqualTo(referencePath));
     }
