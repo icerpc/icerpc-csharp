@@ -430,7 +430,7 @@ public sealed class ClassTests
             Assert.That(
                 decoder.DecodeTagged(
                     20,
-                    TagFormat.OVSize,
+                    TagFormat.OptimizedVSize,
                     (ref SliceDecoder decoder) => decoder.DecodeString(),
                     useTagEndMarker: false),
                 Is.EqualTo(b));
@@ -838,7 +838,7 @@ public sealed class ClassTests
         {
             encoder.EncodeTagged(
                 20,
-                TagFormat.OVSize,
+                TagFormat.OptimizedVSize,
                 b,
                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
         }

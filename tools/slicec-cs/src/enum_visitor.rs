@@ -45,7 +45,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
         code.add_block(&CodeBlock::from(format!(
             "{}\n{} = {},",
             CommentTag::new("summary", doc_comment_message(enumerator)),
-            enumerator.identifier(),
+            enumerator.identifier().to_case(Case::Pascal),
             enumerator.value
         )));
     }
@@ -110,7 +110,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     let mut as_enum_block = FunctionBuilder::new(
         format!("{} static", access).as_str(),
         &escaped_identifier,
-        format!("As{}", enum_def.identifier()).as_str(),
+        format!("As{}", enum_def.identifier().to_case(Case::Pascal)).as_str(),
         FunctionType::ExpressionBody,
     );
     as_enum_block
@@ -195,7 +195,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 {access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({underlying_type})value);"#,
             access = access,
-            identifier = enum_def.identifier(),
+            identifier = enum_def.identifier().to_case(Case::Pascal),
             escaped_identifier = escaped_identifier,
             encode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
@@ -242,7 +242,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 {access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     {underlying_extensions_class}.As{identifier}({decode_enum});"#,
             access = access,
-            identifier = enum_def.identifier(),
+            identifier = enum_def.identifier().to_case(Case::Pascal),
             escaped_identifier = escaped_identifier,
             underlying_extensions_class = underlying_extensions_class,
             decode_enum = match &enum_def.underlying {

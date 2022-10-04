@@ -443,7 +443,7 @@ public ref partial struct SliceEncoder
     /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the value is
     /// not known before encoding this value.</summary>
     /// <typeparam name="T">The type of the value being encoded.</typeparam>
-    /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
+    /// <param name="tag">The tag. Must be either FSize or OptimizedVSize.</param>
     /// <param name="tagFormat">The tag format.</param>
     /// <param name="v">The value to encode.</param>
     /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
@@ -478,9 +478,9 @@ public ref partial struct SliceEncoder
                 EncodeInt32(EncodedByteCount - startPos, placeholder);
                 break;
 
-            case TagFormat.OVSize:
+            case TagFormat.OptimizedVSize:
                 // Used to encode string, and sequences of non optional elements with 1 byte min wire size,
-                // in this case OVSize is always used to optimize out the size.
+                // in this case OptimizedVSize is always used to optimize out the size.
                 EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 encodeAction(ref this, v);
                 break;
@@ -740,7 +740,7 @@ public ref partial struct SliceEncoder
     private void EncodeTaggedParamHeader(int tag, TagFormat format)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
-        Debug.Assert(format != TagFormat.OVSize); // OVSize cannot be encoded
+        Debug.Assert(format != TagFormat.OptimizedVSize); // OptimizedVSize cannot be encoded
 
         int v = (int)format;
         if (tag < 30)

@@ -1085,7 +1085,7 @@ public ref partial struct SliceDecoder
             }
             else
             {
-                if (expectedFormat == TagFormat.OVSize)
+                if (expectedFormat == TagFormat.OptimizedVSize)
                 {
                     expectedFormat = TagFormat.VSize; // fix virtual tag format
                 }
