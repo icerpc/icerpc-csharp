@@ -34,5 +34,5 @@ enum TagFormat
     Class = 7,
 
     /// Pseudo non-encoded format: like VSize but the size is optimized out.
-    OvSize = 8,
+    OptimizedVSize = 8,
 }

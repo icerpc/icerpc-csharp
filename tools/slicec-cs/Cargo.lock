@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#050088219152eb5a394a5d49616a13a5ae7fea72"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#c690f9f4ee73f62f998c94da8723255b5970db42"
 dependencies = [
  "clap",
  "console",
