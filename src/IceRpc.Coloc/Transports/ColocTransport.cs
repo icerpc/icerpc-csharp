@@ -18,7 +18,7 @@ public sealed class ColocTransport
     /// <summary>Gets the colocated server transport.</summary>
     public IDuplexServerTransport ServerTransport { get; }
 
-    /// <summary>Constructs a <see cref="ColocTransport"/>.</summary>
+    /// <summary>Constructs a <see cref="ColocTransport" />.</summary>
     public ColocTransport()
     {
         var listeners = new ConcurrentDictionary<ServerAddress, ColocListener>();

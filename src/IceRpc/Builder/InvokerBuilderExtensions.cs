@@ -4,7 +4,7 @@ using IceRpc.Features;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provide extension methods for interface <see cref="IInvokerBuilder"/>.
+/// <summary>This class provide extension methods for interface <see cref="IInvokerBuilder" />.
 /// </summary>
 public static class InvokerBuilderExtensions
 {

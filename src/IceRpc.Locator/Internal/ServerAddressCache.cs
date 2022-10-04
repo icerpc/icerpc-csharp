@@ -7,7 +7,7 @@ namespace IceRpc.Locator.Internal;
 
 /// <summary>A server address cache maintains a dictionary of location to server address(es), where the server
 /// addresses are held by a dummy service address. It also keeps track of the insertion time of each entry. It's
-/// consumed by <see cref="LocationResolver"/>.</summary>
+/// consumed by <see cref="LocationResolver" />.</summary>
 internal interface IServerAddressCache
 {
     void Remove(Location location);
@@ -17,7 +17,7 @@ internal interface IServerAddressCache
     bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value);
 }
 
-/// <summary>The main implementation for <see cref="IServerAddressCache"/>.</summary>
+/// <summary>The main implementation for <see cref="IServerAddressCache" />.</summary>
 internal sealed class ServerAddressCache : IServerAddressCache
 {
     private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node)> _cache;

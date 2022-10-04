@@ -6,12 +6,12 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Builder;
 
-/// <summary>Extension methods for <see cref="IDispatcherBuilder"/>.</summary>
+/// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
 public static class DispatcherBuilderExtensions
 {
     /// <summary>Registers a middleware with one service dependency in its DispatchAsync method. Such a middleware
-    /// implements <see cref="IMiddleware{TDep}"/> and provides a single constructor that accepts a dispatcher (the next
-    /// dispatcher) followed by 0 or more DI-injected services.</summary>
+    /// implements <see cref="IMiddleware{TDep}" /> and provides a single constructor that accepts a dispatcher (the
+    /// next dispatcher) followed by 0 or more DI-injected services.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
     /// <typeparam name="TDep">The type of the service dependency.</typeparam>
     /// <param name="builder">This dispatcher builder.</param>
@@ -23,9 +23,9 @@ public static class DispatcherBuilderExtensions
             ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next)));
 
     /// <summary>Registers a middleware with an explicit Options parameter and with one service dependency in its
-    /// DispatchAsync method. Such a middleware implements <see cref="IMiddleware{TDep}"/> and provides a single
+    /// DispatchAsync method. Such a middleware implements <see cref="IMiddleware{TDep}" /> and provides a single
     /// constructor that accepts a dispatcher (the next dispatcher) followed by an instance of
-    /// <see cref="IOptions{TMiddlewareOptions}"/> and then 0 or more DI-injected services.</summary>
+    /// <see cref="IOptions{TMiddlewareOptions}" /> and then 0 or more DI-injected services.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
     /// <typeparam name="TMiddlewareOptions">The type of the Options parameter of this middleware.</typeparam>
     /// <typeparam name="TDep">The type of the service dependency.</typeparam>
@@ -42,7 +42,7 @@ public static class DispatcherBuilderExtensions
             ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next, Options.Create(options))));
 
     /// <summary>Registers a middleware with 2 service dependencies in its DispatchAsync method. Such a middleware
-    /// implements <see cref="IMiddleware{TDep1, TDep2}"/> and provides a single constructor that accepts a dispatcher
+    /// implements <see cref="IMiddleware{TDep1, TDep2}" /> and provides a single constructor that accepts a dispatcher
     /// (the next dispatcher) followed by 0 or more DI-injected services.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
     /// <typeparam name="TDep1">The type of the first service dependency.</typeparam>
@@ -57,9 +57,9 @@ public static class DispatcherBuilderExtensions
             ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next)));
 
     /// <summary>Registers a middleware with an Options parameter and with 2 service dependencies in its DispatchAsync
-    /// method. Such a middleware implements <see cref="IMiddleware{TDep1, TDep2}"/> and provides a single constructor
+    /// method. Such a middleware implements <see cref="IMiddleware{TDep1, TDep2}" /> and provides a single constructor
     /// that accepts a dispatcher (the next dispatcher) followed by an instance of
-    /// <see cref="IOptions{TMiddlewareOptions}"/> and then 0 or more DI-injected services.</summary>
+    /// <see cref="IOptions{TMiddlewareOptions}" /> and then 0 or more DI-injected services.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
     /// <typeparam name="TMiddlewareOptions">The type of Options parameter of this middleware.</typeparam>
     /// <typeparam name="TDep1">The type of the first service dependency.</typeparam>
@@ -78,7 +78,7 @@ public static class DispatcherBuilderExtensions
             ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next, Options.Create(options))));
 
     /// <summary>Registers a middleware with 3 service dependencies in its DispatchAsync method. Such a middleware
-    /// implements <see cref="IMiddleware{TDep1, TDep2, TDep3}"/> and provides a single constructor that accepts a
+    /// implements <see cref="IMiddleware{TDep1, TDep2, TDep3}" /> and provides a single constructor that accepts a
     /// dispatcher (the next dispatcher) followed by 0 or more DI-injected services.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
     /// <typeparam name="TDep1">The type of the first service dependency.</typeparam>
@@ -95,9 +95,9 @@ public static class DispatcherBuilderExtensions
             ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next)));
 
     /// <summary>Registers a middleware with an Options parameter and with 3 service dependencies in its DispatchAsync
-    /// method. Such a middleware implements <see cref="IMiddleware{TDep1, TDep2, TDep3}"/> and provides a single
+    /// method. Such a middleware implements <see cref="IMiddleware{TDep1, TDep2, TDep3}" /> and provides a single
     /// constructor that accepts a dispatcher (the next dispatcher) followed by an instance of
-    /// <see cref="IOptions{TMiddlewareOptions}"/> and then 0 or more DI-injected services.</summary>
+    /// <see cref="IOptions{TMiddlewareOptions}" /> and then 0 or more DI-injected services.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
     /// <typeparam name="TMiddlewareOptions">The type of Options parameter of this middleware.</typeparam>
     /// <typeparam name="TDep1">The type of the first service dependency.</typeparam>

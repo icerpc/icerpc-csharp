@@ -6,10 +6,10 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Metrics.Internal;
 
-/// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events.</summary>
+/// <summary>An <see cref="EventSource" /> implementation used to log request dispatch events.</summary>
 internal sealed class DispatchEventSource : EventSource
 {
-    /// <summary>The default <c>DispatchEventSource</c> used by <see cref="MetricsMiddleware"/>.
+    /// <summary>The default <c>DispatchEventSource</c> used by <see cref="MetricsMiddleware" />.
     /// </summary>
     internal static readonly DispatchEventSource Log = new("IceRpc-Dispatch");
     private static readonly double _ticksPerMillisecond = Stopwatch.Frequency / 1000d;
@@ -24,7 +24,7 @@ internal sealed class DispatchEventSource : EventSource
     private long _totalRequests;
     private readonly PollingCounter _totalRequestsCounter;
 
-    /// <summary>Creates a new instance of the <see cref="DispatchEventSource"/> class with the specified name.
+    /// <summary>Creates a new instance of the <see cref="DispatchEventSource" /> class with the specified name.
     /// </summary>
     /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
     internal DispatchEventSource(string eventSourceName)

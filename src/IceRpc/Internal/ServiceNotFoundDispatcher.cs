@@ -4,8 +4,8 @@ using IceRpc.Slice;
 
 namespace IceRpc.Internal;
 
-/// <summary>A trivial dispatcher that always throws a <see cref="DispatchException"/> with error code
-/// <see cref="DispatchErrorCode.ServiceNotFound"/>.</summary>
+/// <summary>A trivial dispatcher that always throws a <see cref="DispatchException" /> with error code
+/// <see cref="DispatchErrorCode.ServiceNotFound" />.</summary>
 internal class ServiceNotFoundDispatcher : IDispatcher
 {
     /// <summary>Gets the unique instance of this class.</summary>

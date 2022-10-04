@@ -14,7 +14,7 @@ public static class FieldsExtensions
     /// <param name="fields">The field dictionary.</param>
     /// <param name="key">The key to lookup in the field dictionary.</param>
     /// <param name="decodeFunc">The function used to decode the field value.</param>
-    /// <returns>The decoded field value, or default if the key was not found in <paramref name="fields"/>.
+    /// <returns>The decoded field value, or default if the key was not found in <paramref name="fields" />.
     /// </returns>
     public static TValue? DecodeValue<TKey, TValue>(
         this IDictionary<TKey, ReadOnlySequence<byte>> fields,

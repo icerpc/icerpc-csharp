@@ -5,12 +5,12 @@ namespace IceRpc;
 /// <summary>This exception reports that a service address has no server address or no usable server address.</summary>
 public class NoServerAddressException : Exception
 {
-    /// <summary>Constructs a new instance of the <see cref="NoServerAddressException"/> class.</summary>
+    /// <summary>Constructs a new instance of the <see cref="NoServerAddressException" /> class.</summary>
     public NoServerAddressException()
     {
     }
 
-    /// <summary>Constructs a new instance of the <see cref="NoServerAddressException"/> class.</summary>
+    /// <summary>Constructs a new instance of the <see cref="NoServerAddressException" /> class.</summary>
     /// <param name="serviceAddress">The service address with no server address or no usable server address.</param>
     public NoServerAddressException(ServiceAddress serviceAddress)
         : base($"service address '{serviceAddress}' has no usable serverAddress")
@@ -21,7 +21,7 @@ public class NoServerAddressException : Exception
 /// <summary>This exception reports that data (bytes) received are not in an expected format.</summary>
 public class InvalidDataException : Exception
 {
-    /// <summary>Constructs a new instance of the <see cref="InvalidDataException"/> class with a specified error
+    /// <summary>Constructs a new instance of the <see cref="InvalidDataException" /> class with a specified error
     /// message.</summary>
     /// <param name="message">The message that describes the error.</param>
     public InvalidDataException(string message)
@@ -29,7 +29,7 @@ public class InvalidDataException : Exception
     {
     }
 
-    /// <summary>Constructs a new instance of the <see cref="InvalidDataException"/> class with a specified error
+    /// <summary>Constructs a new instance of the <see cref="InvalidDataException" /> class with a specified error
     /// message and a reference to the inner exception that is the cause of this exception.</summary>
     /// <param name="message">The message that describes the error.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
@@ -43,7 +43,7 @@ public class InvalidDataException : Exception
 /// or response with a header size greater than the remote peer's max header size.</summary>
 public class ProtocolException : Exception
 {
-    /// <summary>Constructs a new instance of the <see cref="ProtocolException"/> class with a specified error
+    /// <summary>Constructs a new instance of the <see cref="ProtocolException" /> class with a specified error
     /// message.</summary>
     /// <param name="message">The message that describes the error.</param>
     public ProtocolException(string message)
@@ -51,7 +51,7 @@ public class ProtocolException : Exception
     {
     }
 
-    /// <summary>Constructs a new instance of the <see cref="ProtocolException"/> class with a specified error
+    /// <summary>Constructs a new instance of the <see cref="ProtocolException" /> class with a specified error
     /// message and a reference to the inner exception that is the cause of this exception.</summary>
     /// <param name="message">The message that describes the error.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>

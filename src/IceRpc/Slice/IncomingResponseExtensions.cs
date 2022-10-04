@@ -14,7 +14,7 @@ namespace IceRpc.Slice;
 /// Slice encoding.</summary>
 public static class IncomingResponseExtensions
 {
-    /// <summary>Decodes a response with a <see cref="ResultType.Failure"/> result type.</summary>
+    /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="sender">The proxy that sent the request.</param>

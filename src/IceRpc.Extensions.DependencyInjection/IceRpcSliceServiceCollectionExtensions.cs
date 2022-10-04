@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>Extension methods for setting up IceRpc.Slice services in an <see cref="IServiceCollection"/>.</summary>
+/// <summary>Extension methods for setting up IceRpc.Slice services in an <see cref="IServiceCollection" />.</summary>
 public static class IceRpcSliceServiceCollectionExtensions
 {
     /// <summary>Adds a proxy singleton to this service collection.</summary>

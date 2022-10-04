@@ -5,11 +5,11 @@ using System.Diagnostics;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provides extension methods to add the telemetry middleware to a <see cref="IDispatcherBuilder"/>.
-/// </summary>
+/// <summary>This class provides extension methods to add the telemetry middleware to a
+/// <see cref="IDispatcherBuilder" />.</summary>
 public static class TelemetryDispatcherBuilderExtensions
 {
-    /// <summary>Adds a <see cref="TelemetryMiddleware"/> to the dispatcher builder.</summary>
+    /// <summary>Adds a <see cref="TelemetryMiddleware" /> to the dispatcher builder.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IDispatcherBuilder UseTelemetry(this IDispatcherBuilder builder) =>

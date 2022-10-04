@@ -12,7 +12,7 @@ public class IncomingFrame
     public IConnectionContext ConnectionContext { get; set; }
 
     /// <summary>Gets or sets the payload of this frame.</summary>
-    /// <value>The payload of this frame. The default value is an empty <see cref="PipeReader"/>.</value>
+    /// <value>The payload of this frame. The default value is an empty <see cref="PipeReader" />.</value>
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
     /// <summary>Gets the protocol of this frame.</summary>

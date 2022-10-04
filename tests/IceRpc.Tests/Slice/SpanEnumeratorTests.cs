@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Slice;
 public class SpanEnumeratorTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Move_to_next_span(byte[], byte[], IList{Memory{byte}}?, int, byte[])"/> test.
+    /// <see cref="Move_to_next_span(byte[], byte[], IList{Memory{byte}}?, int, byte[])" /> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EnumeratorCurrentUpdatesSuccessfullySource
     {
@@ -50,7 +50,7 @@ public class SpanEnumeratorTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Move_past_the_end_fails(byte[], byte[], IList{Memory{byte}}?, int)"/> test.
+    /// <see cref="Move_past_the_end_fails(byte[], byte[], IList{Memory{byte}}?, int)" /> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EnumeratorNextFailsSource
     {
@@ -86,7 +86,7 @@ public class SpanEnumeratorTests
         }
     }
 
-    /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext"/> correctly enumerates through the spans
+    /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext" /> correctly enumerates through the spans
     /// held by the enumerator. </summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
@@ -113,7 +113,7 @@ public class SpanEnumeratorTests
         Assert.That(enumerator.Current.ToArray(), Is.EqualTo(expected.ToArray()));
     }
 
-    /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext"/> will not enumerate past the final
+    /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext" /> will not enumerate past the final
     /// span or memory provided to the enumerator.</summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>

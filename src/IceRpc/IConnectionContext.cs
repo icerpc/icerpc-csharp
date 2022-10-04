@@ -11,7 +11,7 @@ public interface IConnectionContext
     IInvoker Invoker { get; }
 
     /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
+    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport" /> property is always
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 

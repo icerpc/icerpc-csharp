@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provides extension methods to add the logger middleware to a <see cref="IDispatcherBuilder"/>.
+/// <summary>This class provides extension methods to add the logger middleware to a <see cref="IDispatcherBuilder" />.
 /// </summary>
 public static class LoggerDispatcherBuilderExtensions
 {
-    /// <summary>Adds a <see cref="LoggerMiddleware"/> to this dispatcher builder. This interceptor relies on the
-    /// <see cref="ILogger{T}"/> service managed by the service provider.</summary>
+    /// <summary>Adds a <see cref="LoggerMiddleware" /> to this dispatcher builder. This interceptor relies on the
+    /// <see cref="ILogger{T}" /> service managed by the service provider.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IDispatcherBuilder UseLogger(this IDispatcherBuilder builder) =>

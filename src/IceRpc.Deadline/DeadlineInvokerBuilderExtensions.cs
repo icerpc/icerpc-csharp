@@ -4,17 +4,17 @@ using IceRpc.Deadline;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provides extension methods to add the deadline interceptor to an <see cref="IInvokerBuilder"/>.
+/// <summary>This class provides extension methods to add the deadline interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>
 public static class DeadlineInvokerBuilderExtensions
 {
-    /// <summary>Adds a <see cref="DeadlineInterceptor"/> with an infinite default timeout to the builder.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor" /> with an infinite default timeout to the builder.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseDeadline(this IInvokerBuilder builder) =>
         builder.UseDeadline(Timeout.InfiniteTimeSpan);
 
-    /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the builder.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor" /> to the builder.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <param name="defaultTimeout">The default timeout.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the

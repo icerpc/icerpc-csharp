@@ -13,7 +13,7 @@ namespace IceRpc.Slice;
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">The cancellation token.</param>
-/// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
+/// <returns>A value task that contains the return value or a <see cref="RemoteException" /> when the response
 /// carries a failure.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
@@ -21,7 +21,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
     ServiceProxy sender,
     CancellationToken cancellationToken);
 
-/// <summary>Provides extension methods for interface <see cref="IProxy"/> and generated proxy structs that implement
+/// <summary>Provides extension methods for interface <see cref="IProxy" /> and generated proxy structs that implement
 /// this interface.</summary>
 public static class ProxyExtensions
 {
@@ -32,7 +32,7 @@ public static class ProxyExtensions
         }.ToImmutableDictionary();
 
     /// <summary>Tests whether the target service implements the interface implemented by the TProxy proxy. This
-    /// method is a wrapper for <see cref="IServiceProxy.IceIsAAsync"/>.</summary>
+    /// method is a wrapper for <see cref="IServiceProxy.IceIsAAsync" />.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source Proxy being tested.</param>
     /// <param name="features">The invocation features.</param>
@@ -54,7 +54,7 @@ public static class ProxyExtensions
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
     /// <param name="payloadStream">The optional payload stream of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
-    /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
+    /// <see cref="RemoteException" /> when the response payload contains a failure.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

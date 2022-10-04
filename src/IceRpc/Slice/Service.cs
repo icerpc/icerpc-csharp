@@ -13,7 +13,7 @@ public class Service : IService, IDispatcher
 {
     /// <summary>A delegate that matches the signature of the generated SliceDXxx methods. For the generated
     /// methods, the type of <c>target</c> is the type of the generated service interface, whereas for this
-    /// delegate it's <see cref="object"/>.</summary>
+    /// delegate it's <see cref="object" />.</summary>
     private delegate ValueTask<OutgoingResponse> DispatchMethod(
         object target,
         IncomingRequest request,

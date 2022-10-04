@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Internal;
 
-/// <summary>An <see cref="EventSource"/> implementation used to log server events.</summary>
+/// <summary>An <see cref="EventSource" /> implementation used to log server events.</summary>
 internal sealed class ServerEventSource : EventSource
 {
     internal static readonly ServerEventSource Log = new("IceRpc-Server");
@@ -30,7 +30,7 @@ internal sealed class ServerEventSource : EventSource
     private long _totalFailedConnections;
     private PollingCounter? _totalFailedConnectionsCounter;
 
-    /// <summary>Creates a new instance of the <see cref="ServerEventSource"/> class with the specified name.
+    /// <summary>Creates a new instance of the <see cref="ServerEventSource" /> class with the specified name.
     /// </summary>
     /// <param name="eventSourceName">The name to apply to the event source.</param>
     internal ServerEventSource(string eventSourceName)

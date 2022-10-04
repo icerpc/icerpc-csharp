@@ -4,14 +4,15 @@ using IceRpc.Transports;
 
 namespace IceRpc;
 
-/// <summary>Represents a connection for a <see cref="Protocol"/>. It is the building block for
-/// <see cref="ClientConnection"/>, <see cref="ConnectionCache"/> and the connections created by <see cref="Server"/>.
-/// Applications can use this interface to build their own custom client connection and connection cache classes.
+/// <summary>Represents a connection for a <see cref="Protocol" />. It is the building block for
+/// <see cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by
+/// <see cref="Server" />. Applications can use this interface to build their own custom client connection and
+/// connection cache classes.
 /// </summary>
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport"/> property is always
+    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport" /> property is always
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
@@ -23,14 +24,15 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is established  provides the <see
-    /// cref="TransportConnectionInformation"/> for this connection. This task can also complete with one of the
+    /// cref="TransportConnectionInformation" /> for this connection. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionException"/>if the connection establishment failed.</description></item>
-    /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
+    /// <item><description><see cref="ConnectionException" />if the connection establishment failed.</description>
+    /// </item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException"/>if the connection establishment attempt exceeded <see
-    /// cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
+    /// <item><description><see cref="TimeoutException" />if the connection establishment attempt exceeded <see
+    /// cref="ConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
@@ -43,11 +45,11 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionException"/>if the connection shutdown failed.</description></item>
-    /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
+    /// <item><description><see cref="ConnectionException" />if the connection shutdown failed.</description></item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException"/>if this shutdown attempt or a previous attempt exceeded
-    /// <see cref="ConnectionOptions.ShutdownTimeout"/>.</description></item>
+    /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded
+    /// <see cref="ConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>

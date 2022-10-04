@@ -12,7 +12,7 @@ namespace IceRpc.Telemetry.Tests;
 public sealed class TelemetryInterceptorTests
 {
     /// <summary>Verifies that the invocation activity is created using the activity source used to create the
-    /// <see cref="TelemetryInterceptor"/>.</summary>
+    /// <see cref="TelemetryInterceptor" />.</summary>
     [Test]
     public async Task Invocation_activity_created_from_activity_source()
     {
@@ -54,7 +54,7 @@ public sealed class TelemetryInterceptorTests
     }
 
     /// <summary>Verifies that the invocation activity context is encoded as a field with the
-    /// <see cref="RequestFieldKey.TraceContext"/> key.</summary>
+    /// <see cref="RequestFieldKey.TraceContext" /> key.</summary>
     [Test]
     public async Task Invocation_activity_encodes_trace_context_field()
     {

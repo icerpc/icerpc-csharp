@@ -43,8 +43,8 @@ public sealed class DeadlineInterceptorTests
         Assert.That(token.Value.IsCancellationRequested, Is.True);
     }
 
-    /// <summary>Verifies that the deadline value set in the <see cref="IDeadlineFeature"/> prevails over
-    /// the default timeout value configured when installing the <see cref="DeadlineInterceptor"/>.</summary>
+    /// <summary>Verifies that the deadline value set in the <see cref="IDeadlineFeature" /> prevails over
+    /// the default timeout value configured when installing the <see cref="DeadlineInterceptor" />.</summary>
     [Test]
     [NonParallelizable]
     public async Task Deadline_feature_value_prevails_over_default_timeout()

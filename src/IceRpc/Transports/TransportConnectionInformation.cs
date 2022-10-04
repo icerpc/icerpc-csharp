@@ -17,7 +17,7 @@ public sealed record class TransportConnectionInformation
     /// <summary>Gets the certificate of the remote peer, if provided.</summary>
     public X509Certificate? RemoteCertificate { get; }
 
-    /// <summary>Constructs a new instance of <see cref="TransportConnectionInformation"/>.</summary>
+    /// <summary>Constructs a new instance of <see cref="TransportConnectionInformation" />.</summary>
     /// <param name="localNetworkAddress">The local network address.</param>
     /// <param name="remoteNetworkAddress">The remote network address.</param>
     /// <param name="remoteCertificate">The remote certificate.</param>

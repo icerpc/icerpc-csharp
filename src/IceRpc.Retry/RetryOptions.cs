@@ -2,7 +2,7 @@
 
 namespace IceRpc.Retry;
 
-/// <summary>Options class to configure <see cref="RetryInterceptor"/>.</summary>
+/// <summary>Options class to configure <see cref="RetryInterceptor" />.</summary>
 public sealed record class RetryOptions
 {
     /// <summary>Gets or sets the maximum number of attempts for retrying a request.</summary>

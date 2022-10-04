@@ -10,8 +10,8 @@ using System.Text;
 namespace IceRpc;
 
 /// <summary>A service address corresponds to the URI of a service, parsed and processed for easier consumption by
-/// interceptors, <see cref="ConnectionCache"/> and other elements of the invocation pipeline. It's used to construct
-/// an <see cref="OutgoingRequest"/>.</summary>
+/// interceptors, <see cref="ConnectionCache" /> and other elements of the invocation pipeline. It's used to construct
+/// an <see cref="OutgoingRequest" />.</summary>
 // The properties of this class are sorted in URI order.
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress
@@ -118,7 +118,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets or initializes the parameters of this service address. Always empty when
-    /// <see cref="ServerAddress"/> is not null.</summary>
+    /// <see cref="ServerAddress" /> is not null.</summary>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -181,7 +181,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the URI used to create this service address, if this service address was created from a URI and
-    /// URI-derived properties such as <see cref="ServerAddress"/> have not been updated.</summary>
+    /// URI-derived properties such as <see cref="ServerAddress" /> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
 
     private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
@@ -192,8 +192,8 @@ public sealed record class ServiceAddress
 
     /// <summary>Constructs a service address from a protocol.</summary>
     /// <param name="protocol">The protocol, or null for a relative service address.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
-    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol" /> is not null or a supported
+    /// protocol.</exception>
     public ServiceAddress(Protocol? protocol = null) => Protocol = protocol;
 
     /// <summary>Constructs a service address from a URI.</summary>
@@ -440,10 +440,10 @@ public sealed record class ServiceAddress
     public Uri ToUri() =>
         OriginalUri ?? (Protocol is null ? new Uri(Path, UriKind.Relative) : new Uri(ToString(), UriKind.Absolute));
 
-    /// <summary>Checks if <paramref name="params"/> contains properly escaped names and values.</summary>
+    /// <summary>Checks if <paramref name="params" /> contains properly escaped names and values.</summary>
     /// <param name="params">The dictionary to check.</param>
     /// <exception cref="FormatException">Thrown if the dictionary is not valid.</exception>
-    /// <remarks>A dictionary returned by <see cref="UriExtensions.ParseQuery"/> is properly escaped.</remarks>
+    /// <remarks>A dictionary returned by <see cref="UriExtensions.ParseQuery" /> is properly escaped.</remarks>
     internal static void CheckParams(ImmutableDictionary<string, string> @params)
     {
         foreach ((string name, string value) in @params)
@@ -459,7 +459,7 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Checks if <paramref name="path"/> is a properly escaped URI absolute path, i.e. that it starts
+    /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts
     /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, or reserved characters other than
     /// <c>?</c> and <c>#</c>.</summary>
     /// <param name="path">The path to check.</param>
@@ -475,10 +475,10 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Checks if <paramref name="value"/> contains only unreserved characters, <c>%</c>, or reserved
+    /// <summary>Checks if <paramref name="value" /> contains only unreserved characters, <c>%</c>, or reserved
     /// characters other than <c>#</c> and <c>&#38;</c>.</summary>
     /// <param name="value">The value to check.</param>
-    /// <returns><see langword="true" /> if <paramref name="value"/> is a valid parameter value; otherwise,
+    /// <returns><see langword="true" /> if <paramref name="value" /> is a valid parameter value; otherwise,
     /// <see langword="false" />.</returns>
     internal static bool IsValidParamValue(string value) => IsValid(value, "\"<>#&\\^`{|}");
 
@@ -500,7 +500,7 @@ public sealed record class ServiceAddress
         _fragment = fragment;
     }
 
-    /// <summary>Checks if <paramref name="fragment"/> is a properly escaped URI fragment, i.e. it contains only
+    /// <summary>Checks if <paramref name="fragment" /> is a properly escaped URI fragment, i.e. it contains only
     ///  unreserved characters, reserved characters or '%'.</summary>
     /// <param name="fragment">The fragment to check.</param>
     /// <exception cref="FormatException">Thrown if the fragment is not valid.</exception>
@@ -530,11 +530,11 @@ public sealed record class ServiceAddress
         return true;
     }
 
-    /// <summary>Checks if <paramref name="name"/> is not empty, not equal to <c>alt-server</c> nor equal to
+    /// <summary>Checks if <paramref name="name" /> is not empty, not equal to <c>alt-server</c> nor equal to
     /// <c>transport</c> and contains only unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>,
     /// <c>&#38;</c> and <c>=</c>.</summary>
     /// <param name="name">The name to check.</param>
-    /// <returns><see langword="true" /> if <paramref name="name"/> is a valid parameter name; otherwise,
+    /// <returns><see langword="true" /> if <paramref name="name" /> is a valid parameter name; otherwise,
     /// <see langword="false" />.</returns>
     /// <remarks>The range of valid names is much larger than the range of names you should use. For example, you
     /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid

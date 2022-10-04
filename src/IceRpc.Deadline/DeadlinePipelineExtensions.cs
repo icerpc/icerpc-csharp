@@ -4,16 +4,16 @@ using IceRpc.Deadline;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add the deadline interceptor to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to add the deadline interceptor to a <see cref="Pipeline" />.
 /// </summary>
 public static class DeadlinePipelineExtensions
 {
-    /// <summary>Adds a <see cref="DeadlineInterceptor"/> with an infinite default timeout to the pipeline.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor" /> with an infinite default timeout to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseDeadline(this Pipeline pipeline) => pipeline.UseDeadline(Timeout.InfiniteTimeSpan);
 
-    /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the pipeline.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor" /> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="defaultTimeout">The default timeout.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the

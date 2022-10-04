@@ -69,7 +69,7 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarInt62"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarInt62" /> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varlong or smaller than the min value of a varlong.</summary>
     /// <param name="value">The varlong to be encoded.</param>
     [TestCase(SliceEncoder.VarInt62MinValue - 1)]
@@ -109,7 +109,7 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)" /> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varulong.</summary>
     /// <param name="value">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarUInt62MaxValue + 1)]

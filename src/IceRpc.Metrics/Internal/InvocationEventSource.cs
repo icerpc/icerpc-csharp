@@ -6,10 +6,10 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Metrics.Internal;
 
-/// <summary>An <see cref="EventSource"/> implementation used to log invocation dispatch events.</summary>
+/// <summary>An <see cref="EventSource" /> implementation used to log invocation dispatch events.</summary>
 internal sealed class InvocationEventSource : EventSource
 {
-    /// <summary>The default <c>InvocationEventSource</c> used by <see cref="MetricsInterceptor"/>.
+    /// <summary>The default <c>InvocationEventSource</c> used by <see cref="MetricsInterceptor" />.
     /// </summary>
     internal static readonly InvocationEventSource Log = new("IceRpc-Invocation");
     private static readonly double _ticksPerMillisecond = Stopwatch.Frequency / 1000d;
@@ -24,7 +24,7 @@ internal sealed class InvocationEventSource : EventSource
     private long _totalRequests;
     private readonly PollingCounter _totalRequestsCounter;
 
-    /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
+    /// <summary>Creates a new instance of the <see cref="InvocationEventSource" /> class with the specified name.
     /// </summary>
     /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
     internal InvocationEventSource(string eventSourceName)

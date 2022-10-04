@@ -5,7 +5,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>Implements <see cref="IMultiplexedClientTransport"/> using Slic over a duplex client transport.</summary>
+/// <summary>Implements <see cref="IMultiplexedClientTransport" /> using Slic over a duplex client transport.</summary>
 public class SlicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>

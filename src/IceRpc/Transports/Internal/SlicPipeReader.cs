@@ -268,16 +268,16 @@ internal class SlicPipeReader : PipeReader
 
     /// <summary>The state enumeration is used to ensure the reader is not used after it's completed and to ensure that
     /// the internal pipe writer isn't completed concurrently when it's being used by <see
-    /// cref="ReceivedStreamFrameAsync"/>.</summary>
+    /// cref="ReceivedStreamFrameAsync" />.</summary>
     private enum State : int
     {
-        /// <summary><see cref="Complete"/> was called on this Slic pipe reader.</summary>
+        /// <summary><see cref="Complete" /> was called on this Slic pipe reader.</summary>
         Completed = 1,
 
         /// <summary>Data is being written to the internal pipe writer.</summary>
         PipeWriterInUse = 2,
 
-        /// <summary>The internal pipe writer was completed by <see cref="Abort"/>.</summary>
+        /// <summary>The internal pipe writer was completed by <see cref="Abort" />.</summary>
         PipeWriterCompleted = 4
     }
 }

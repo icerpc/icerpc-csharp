@@ -17,7 +17,7 @@ public interface IMultiplexedStream : IDuplexPipe
 
     /// <summary>Gets a value indicating whether the stream is remote. A remote stream is a stream initiated by the peer
     /// and it's returned by <see
-    /// cref="IMultiplexedConnection.AcceptStreamAsync(CancellationToken)"/>.</summary>
+    /// cref="IMultiplexedConnection.AcceptStreamAsync(CancellationToken)" />.</summary>
     bool IsRemote { get; }
 
     /// <summary>Gets a value indicating whether the stream is started.</summary>
@@ -29,8 +29,8 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets a task that completes when writes are closed.</summary>
     Task WritesClosed { get; }
 
-    /// <summary>Aborts the stream by completing the <see cref="IDuplexPipe.Input"/> and <see
-    /// cref="IDuplexPipe.Output"/> with the given exception.</summary>
+    /// <summary>Aborts the stream by completing the <see cref="IDuplexPipe.Input" /> and <see
+    /// cref="IDuplexPipe.Output" /> with the given exception.</summary>
     /// <param name="exception">The completion exception.</param>
     void Abort(Exception exception);
 }

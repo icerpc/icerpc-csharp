@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features;
 
-/// <summary>The default implementation of <see cref="IServiceProviderFeature"/>.</summary>
+/// <summary>The default implementation of <see cref="IServiceProviderFeature" />.</summary>
 public class ServiceProviderFeature : IServiceProviderFeature
 {
     /// <inheritdoc/>

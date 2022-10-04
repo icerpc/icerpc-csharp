@@ -31,7 +31,7 @@ public record class TcpTransportOptions
     private int? _sendBufferSize;
 }
 
-/// <summary>The options class for configuring <see cref="TcpClientTransport"/>.</summary>
+/// <summary>The options class for configuring <see cref="TcpClientTransport" />.</summary>
 public sealed record class TcpClientTransportOptions : TcpTransportOptions
 {
     /// <summary>Gets or sets the address and port represented by a .NET IPEndPoint to use for a client
@@ -41,12 +41,12 @@ public sealed record class TcpClientTransportOptions : TcpTransportOptions
     public IPEndPoint? LocalNetworkAddress { get; set; }
 }
 
-/// <summary>The options class for configuring <see cref="TcpServerTransport"/>.</summary>
+/// <summary>The options class for configuring <see cref="TcpServerTransport" />.</summary>
 public sealed record class TcpServerTransportOptions : TcpTransportOptions
 {
     /// <summary>Gets or sets the length of the server socket queue for accepting new connections. If a new connection
     /// request arrives and the queue is full, the client connection establishment will fail with a <see
-    /// cref="TransportException"/> and the <see cref="TransportErrorCode.ConnectionRefused"/> error code.</summary>
+    /// cref="TransportException" /> and the <see cref="TransportErrorCode.ConnectionRefused" /> error code.</summary>
     /// <value>The server socket backlog size. The default is 511.</value>
     public int ListenerBackLog
     {

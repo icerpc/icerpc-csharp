@@ -2,7 +2,7 @@
 
 namespace IceRpc.Builder.Internal;
 
-/// <summary>Provides the default implementation of <see cref="IInvokerBuilder"/>.</summary>
+/// <summary>Provides the default implementation of <see cref="IInvokerBuilder" />.</summary>
 internal class InvokerBuilder : IInvokerBuilder
 {
     /// <inheritdoc/>

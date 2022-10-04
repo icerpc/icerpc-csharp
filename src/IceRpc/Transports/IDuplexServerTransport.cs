@@ -4,7 +4,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports;
 
-/// <summary>A class to create a <see cref="IListener{T}"/> to accept incoming duplex connections.</summary>
+/// <summary>A class to create a <see cref="IListener{T}" /> to accept incoming duplex connections.</summary>
 public interface IDuplexServerTransport
 {
     /// <summary>Gets the default duplex server transport.</summary>

@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServiceAddressTests
 {
-    /// <summary>Provides test case data for <see cref="Equal_service_addresses_produce_the_same_hash_code"/>
+    /// <summary>Provides test case data for <see cref="Equal_service_addresses_produce_the_same_hash_code" />
     /// test.</summary>
     private static IEnumerable<TestCaseData> ServiceAddressHashCodeSource
     {
@@ -25,7 +25,7 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Create_service_address_from_invalid_uri(Uri)"/>
+    /// <summary>Provides test case data for <see cref="Create_service_address_from_invalid_uri(Uri)" />
     /// test.</summary>
     private static IEnumerable<TestCaseData> ServiceAddressInvalidUriSource
     {
@@ -38,7 +38,7 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Create_service_address_from_uri(Uri, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Create_service_address_from_uri(Uri, string, string)" />
     /// test.</summary>
     private static IEnumerable<TestCaseData> ServiceAddressUriSource
     {
@@ -51,7 +51,7 @@ public class ServiceAddressTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_service_address_to_a_string(ServiceAddress)"/> test.
+    /// <summary>Provides test case data for <see cref="Convert_a_service_address_to_a_string(ServiceAddress)" /> test.
     /// </summary>
     private static IEnumerable<TestCaseData> ServiceAddressToStringSource
     {
@@ -76,7 +76,7 @@ public class ServiceAddressTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Create_service_address_with_alt_server(ServiceAddress, ServerAddress[])"/> test.</summary>
+    /// <see cref="Create_service_address_with_alt_server(ServiceAddress, ServerAddress[])" /> test.</summary>
     private static IEnumerable<TestCaseData> AltServerAddressesSource
     {
         get
@@ -314,8 +314,8 @@ public class ServiceAddressTests
             serviceAddress = serviceAddress with { ServerAddress = serverAddress });
     }
 
-    /// <summary>Verifies that the service address server address cannot be set when the service address contains any params.
-    /// </summary>
+    /// <summary>Verifies that the service address server address cannot be set when the service address contains any
+    /// params.</summary>
     [Test]
     public void Cannot_set_server_address_on_a_service_address_with_parameters()
     {
@@ -352,8 +352,8 @@ public class ServiceAddressTests
         );
     }
 
-    /// <summary>Verifies that the service address server address cannot be null when the service address contains has alt
-    /// server addresses.</summary>
+    /// <summary>Verifies that the service address server address cannot be null when the service address contains has
+    /// alt server addresses.</summary>
     [Test]
     public void Cannot_clear_server_address_when_alt_server_is_not_empty()
     {
@@ -473,7 +473,7 @@ public class ServiceAddressTests
         });
     }
 
-    /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException"/>.</summary>
+    /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException" />.</summary>
     /// <param name="uri">The URI to parse as a service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
     public void Create_service_address_from_invalid_uri(Uri uri) =>
@@ -578,8 +578,8 @@ public class ServiceAddressTests
         Assert.That(result, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that setting the alt servers containing server addresses that uses a protocol different than the
-    /// proxy protocol throws <see cref="ArgumentException"/>.</summary>
+    /// <summary>Verifies that setting the alt servers containing server addresses that uses a protocol different than
+    /// the proxy protocol throws <see cref="ArgumentException" />.</summary>
     [Test]
     public void Setting_alt_server_with_a_different_protocol_fails()
     {
@@ -604,7 +604,7 @@ public class ServiceAddressTests
     }
 
     /// <summary>Verifies that setting a server address that uses a protocol different than the service address protocol
-    /// throws <see cref="ArgumentException"/>.</summary>
+    /// throws <see cref="ArgumentException" />.</summary>
     [Test]
     public void Setting_server_address_with_a_different_protocol_fails()
     {

@@ -5,12 +5,13 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An <see cref="EventSource"/> implementation used to log locator events.</summary>
+/// <summary>An <see cref="EventSource" /> implementation used to log locator events.</summary>
 internal sealed class LocatorEventSource : EventSource
 {
     internal static readonly LocatorEventSource Log = new("IceRpc-Locator");
 
-    /// <summary>Creates a new instance of the <see cref="LocatorEventSource"/> class with the specified name.</summary>
+    /// <summary>Creates a new instance of the <see cref="LocatorEventSource" /> class with the specified name.
+    /// </summary>
     /// <param name="eventSourceName">The name to apply to the event source.</param>
     internal LocatorEventSource(string eventSourceName)
         : base(eventSourceName)

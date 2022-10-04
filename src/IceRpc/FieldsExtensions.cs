@@ -9,7 +9,7 @@ namespace IceRpc;
 public static class FieldsExtensions
 {
     /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
-    /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
+    /// <paramref name="fields" /> is read-only, a copy is created, modified then returned.</summary>
     /// <typeparam name="TKey">The type of the field key.</typeparam>
     /// <param name="fields">A fields dictionary.</param>
     /// <param name="key">The key of the entry to set.</param>
@@ -30,7 +30,7 @@ public static class FieldsExtensions
     }
 
     /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
-    /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
+    /// <paramref name="fields" /> is read-only, a copy is created, modified then returned.</summary>
     /// <typeparam name="TKey">The type of the field key.</typeparam>
     /// <param name="fields">A fields dictionary.</param>
     /// <param name="key">The key of the entry to set.</param>
@@ -50,7 +50,7 @@ public static class FieldsExtensions
     }
 
     /// <summary>Removes an entry in the fields dictionary and returns the fields dictionary. If
-    /// <paramref name="fields"/> is read-only and contains the value, a copy is created, modified then returned.
+    /// <paramref name="fields" /> is read-only and contains the value, a copy is created, modified then returned.
     /// </summary>
     /// <typeparam name="TKey">The type of the field key.</typeparam>
     /// <param name="fields">A fields dictionary.</param>

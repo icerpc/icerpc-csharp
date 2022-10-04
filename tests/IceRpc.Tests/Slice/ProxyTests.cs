@@ -12,8 +12,8 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Decode_proxy(ServiceAddress, ServiceAddress, SliceEncoding)"/> test.
-    /// </summary>
+    /// <summary>Provides test case data for <see cref="Decode_proxy(ServiceAddress, ServiceAddress, SliceEncoding)" />
+    /// test.</summary>
     private static IEnumerable<TestCaseData> DecodeProxyDataSource
     {
         get
@@ -68,7 +68,7 @@ public class ProxyTests
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
+    /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy" /> correctly decodes a proxy.</summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     /// <param name="encoding">The encoding used to decode the service address.</param>

@@ -8,6 +8,6 @@ public interface IInvoker
     /// <summary>Sends an outgoing request and returns the corresponding incoming response.</summary>
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
+    /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
     Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default);
 }

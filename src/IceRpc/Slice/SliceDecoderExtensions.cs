@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for <see cref="SliceDecoder"/>.</summary>
+/// <summary>Provides extension methods for <see cref="SliceDecoder" />.</summary>
 public static class SliceDecoderExtensions
 {
     /// <summary>Decodes a dictionary.</summary>

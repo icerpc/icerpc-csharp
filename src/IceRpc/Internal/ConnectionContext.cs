@@ -4,7 +4,7 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal;
 
-/// <summary>Implements <see cref="IConnectionContext"/> using a protocol connection.</summary>
+/// <summary>Implements <see cref="IConnectionContext" /> using a protocol connection.</summary>
 internal sealed class ConnectionContext : IConnectionContext
 {
     public IInvoker Invoker => _protocolConnection;

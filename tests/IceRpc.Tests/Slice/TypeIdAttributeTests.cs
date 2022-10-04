@@ -7,7 +7,7 @@ namespace IceRpc.Tests.Slice.TypeIdAttributeTestNamespace;
 
 public sealed class TypeIdAttributeTests
 {
-    /// <summary>Provides test case data for <see cref="Get_default_path(Type, string)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Get_default_path(Type, string)" /> test.</summary>
     private static IEnumerable<TestCaseData> GetDefaultPathSource
     {
         get
@@ -19,7 +19,7 @@ public sealed class TypeIdAttributeTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Get_typeId(Type, string?)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Get_typeId(Type, string?)" /> test.</summary>
     private static IEnumerable<TestCaseData> GetSliceTypeIdSource
     {
         get
@@ -65,7 +65,7 @@ public sealed class TypeIdAttributeTests
     };
 
     /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>
-    /// <param name="type">The <see cref="Type"/> of the generated type to test.</param>
+    /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [Test, TestCaseSource(nameof(GetSliceTypeIdSource))]
     public void Get_typeId(Type type, string? expected)
@@ -76,7 +76,7 @@ public sealed class TypeIdAttributeTests
     }
 
     /// <summary>Verifies that types generated from Slice definitions have the expected default path.</summary>
-    /// <param name="type">The <see cref="Type"/> of the generated type to test.</param>
+    /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [Test, TestCaseSource(nameof(GetDefaultPathSource))]
     public void Get_default_path(Type type, string? expected)
