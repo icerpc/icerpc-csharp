@@ -151,7 +151,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown);
+            ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown, "the connection was disposed");
 
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
