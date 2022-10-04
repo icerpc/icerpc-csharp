@@ -63,16 +63,16 @@ public class EnumTests
         };
 
         // Act
-        var payload = EnumOperationsProxy.Request.OpCheckedEnumSeq(expected);
+        PipeReader payload = EnumOperationsProxy.Request.OpCheckedEnumSeq(expected);
 
         // Assert
-        var decoded = Decode(payload);
+        MyEnum[] decoded = Decode(payload);
         Assert.That(decoded, Is.EqualTo(expected));
         payload.Complete();
 
         static MyEnum[] Decode(PipeReader payload)
         {
-            payload.TryRead(out var readResult);
+            payload.TryRead(out ReadResult readResult);
             var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
             decoder.SkipSize();
             return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyEnum());
@@ -91,16 +91,16 @@ public class EnumTests
         };
 
         // Act
-        var payload = EnumOperationsProxy.Request.OpCheckedEnumWithFixedLengthSeq(expected);
+        PipeReader payload = EnumOperationsProxy.Request.OpCheckedEnumWithFixedLengthSeq(expected);
 
         // Assert
-        var decoded = Decode(payload);
+        MyFixedLengthEnum[] decoded = Decode(payload);
         Assert.That(decoded, Is.EqualTo(expected));
         payload.Complete();
 
         static MyFixedLengthEnum[] Decode(PipeReader payload)
         {
-            payload.TryRead(out var readResult);
+            payload.TryRead(out ReadResult readResult);
             var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
             decoder.SkipSize();
             return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyFixedLengthEnum());
@@ -120,16 +120,16 @@ public class EnumTests
         };
 
         // Act
-        var payload = EnumOperationsProxy.Request.OpUncheckedEnumSeq(expected.AsMemory());
+        PipeReader payload = EnumOperationsProxy.Request.OpUncheckedEnumSeq(expected.AsMemory());
 
         // Assert
-        var decoded = Decode(payload);
+        MyUncheckedEnum[] decoded = Decode(payload);
         Assert.That(decoded, Is.EqualTo(expected));
         payload.Complete();
 
         static MyUncheckedEnum[] Decode(PipeReader payload)
         {
-            payload.TryRead(out var readResult);
+            payload.TryRead(out ReadResult readResult);
             var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
             decoder.SkipSize();
             return decoder.DecodeSequence<MyUncheckedEnum>();

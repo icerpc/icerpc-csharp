@@ -82,9 +82,13 @@ public sealed class ProtocolBridgingTests
 
         async Task<ProtocolBridgingTestProxy> TestProxyAsync(ProtocolBridgingTestProxy proxy, bool direct)
         {
-            var expectedPath = direct ? "/target" : "/forward";
-            Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(expectedPath));
-            Assert.That(await proxy.OpAsync(13), Is.EqualTo(13));
+            string expectedPath = direct ? "/target" : "/forward";
+
+            Assert.Multiple(async () =>
+            {
+                Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(expectedPath));
+                Assert.That(await proxy.OpAsync(13), Is.EqualTo(13));
+            });
             IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
                 new RequestContextFeature
                 {
@@ -102,11 +106,14 @@ public sealed class ProtocolBridgingTests
 
             Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
 
-            var dispatchException = Assert.ThrowsAsync<DispatchException>(
+            DispatchException? dispatchException = Assert.ThrowsAsync<DispatchException>(
                 () => proxy.OpServiceNotFoundExceptionAsync());
 
-            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
-            Assert.That(dispatchException!.Origin, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+                Assert.That(dispatchException!.Origin, Is.Not.Null);
+            });
 
             ProtocolBridgingTestProxy newProxy = await proxy.OpNewProxyAsync();
             return newProxy;

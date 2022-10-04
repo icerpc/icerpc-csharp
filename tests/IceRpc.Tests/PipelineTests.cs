@@ -14,7 +14,7 @@ public class PipelineTests
     public void Cannot_add_invoker_after_calling_invoke()
     {
         // Arrange
-        var pipeline = new Pipeline()
+        Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc))))
             .Into(VoidInvoker.Instance);

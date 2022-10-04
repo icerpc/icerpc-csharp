@@ -54,12 +54,17 @@ public sealed class ExceptionTests
 
         var value = decoder.DecodeUserException() as MyDerivedException;
 
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(value.K, Is.EqualTo(30));
-        Assert.That(value.L, Is.EqualTo(40));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(value.K, Is.EqualTo(30));
+            Assert.That(value.L, Is.EqualTo(40));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -87,10 +92,15 @@ public sealed class ExceptionTests
 
         var value = decoder.DecodeUserException() as MyException;
 
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -127,12 +137,17 @@ public sealed class ExceptionTests
 
         var value = decoder.DecodeUserException() as MyExceptionWithTaggedMembers;
 
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(value.K, Is.EqualTo(k));
-        Assert.That(value.L, Is.EqualTo(l));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(value.K, Is.EqualTo(k));
+            Assert.That(value.L, Is.EqualTo(l));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -157,9 +172,15 @@ public sealed class ExceptionTests
 
         var value = new MyException(ref decoder);
 
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        // Assert
+        long consumed = decoder.Consumed;
+        Assert.That(value, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -170,7 +191,7 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeString("my exception with tagged members");
-        var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
+        BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(2);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
         bitSequenceWriter.Write(k is not null);
@@ -188,12 +209,17 @@ public sealed class ExceptionTests
 
         var value = new MyExceptionWithOptionalMembers(ref decoder);
 
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(value.K, Is.EqualTo(k));
-        Assert.That(value.L, Is.EqualTo(l));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(value.K, Is.EqualTo(k));
+            Assert.That(value.L, Is.EqualTo(l));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -227,12 +253,17 @@ public sealed class ExceptionTests
 
         var value = new MyExceptionWithTaggedMembers(ref decoder);
 
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(value.K, Is.EqualTo(k));
-        Assert.That(value.L, Is.EqualTo(l));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(value.K, Is.EqualTo(k));
+            Assert.That(value.L, Is.EqualTo(l));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -252,11 +283,16 @@ public sealed class ExceptionTests
 
         MyException value = decoder.DecodeTrait<MyException>();
 
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.Message, Is.EqualTo("my exception"));
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.Message, Is.EqualTo("my exception"));
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     // Encode
@@ -277,11 +313,16 @@ public sealed class ExceptionTests
 
         // TODO how we test this without using DecodeUserException?
         var decoded = decoder.DecodeUserException() as MyDerivedException;
+
+        // Assert
         Assert.That(decoded, Is.Not.Null);
-        Assert.That(decoded.I, Is.EqualTo(expected.I));
-        Assert.That(decoded.J, Is.EqualTo(expected.J));
-        Assert.That(decoded.K, Is.EqualTo(expected.K));
-        Assert.That(decoded.L, Is.EqualTo(expected.L));
+        Assert.Multiple(() =>
+        {
+            Assert.That(decoded.I, Is.EqualTo(expected.I));
+            Assert.That(decoded.J, Is.EqualTo(expected.J));
+            Assert.That(decoded.K, Is.EqualTo(expected.K));
+            Assert.That(decoded.L, Is.EqualTo(expected.L));
+        });
     }
 
     [Test]
@@ -299,10 +340,16 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
         var value = decoder.DecodeUserException() as MyException;
+
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(expected.I));
-        Assert.That(value.J, Is.EqualTo(expected.J));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(expected.I));
+            Assert.That(value.J, Is.EqualTo(expected.J));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -322,12 +369,18 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedMembers).Assembly));
         var value = decoder.DecodeUserException() as MyExceptionWithTaggedMembers;
+
+        // Assert
+        long consumed = decoder.Consumed;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
-        Assert.That(value.J, Is.EqualTo(20));
-        Assert.That(value.K, Is.EqualTo(k));
-        Assert.That(value.L, Is.EqualTo(l));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.I, Is.EqualTo(10));
+            Assert.That(value.J, Is.EqualTo(20));
+            Assert.That(value.K, Is.EqualTo(k));
+            Assert.That(value.L, Is.EqualTo(l));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -340,11 +393,21 @@ public sealed class ExceptionTests
         value.Encode(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+
+        // Assert
+        string message = decoder.DecodeString();
+        int i = decoder.DecodeInt32();
+        int j = decoder.DecodeInt32();
+        int tagMarker = decoder.DecodeVarInt32();
+        long consumed = decoder.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(message, Is.EqualTo(value.Message));
+            Assert.That(i, Is.EqualTo(value.I));
+            Assert.That(j, Is.EqualTo(value.J));
+            Assert.That(tagMarker, Is.EqualTo(Slice2Definitions.TagEndMarker));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -360,7 +423,7 @@ public sealed class ExceptionTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        var bitSequenceReader = decoder.GetBitSequenceReader(2);
+        BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
         if (bitSequenceReader.Read())
@@ -371,8 +434,15 @@ public sealed class ExceptionTests
         {
             Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.L));
         }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+
+        // Assert
+        int tagMarker = decoder.DecodeVarInt32();
+        long consumed = decoder.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(tagMarker, Is.EqualTo(Slice2Definitions.TagEndMarker));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -387,9 +457,19 @@ public sealed class ExceptionTests
         value.Encode(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
+
+        // Assert
+        string message = decoder.DecodeString();
+        int i = decoder.DecodeInt32();
+        int j = decoder.DecodeInt32();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(message, Is.EqualTo(value.Message));
+            Assert.That(i, Is.EqualTo(value.I));
+            Assert.That(j, Is.EqualTo(value.J));
+        });
+
         if (k is not null)
         {
             Assert.That(
@@ -402,8 +482,15 @@ public sealed class ExceptionTests
                 decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),
                 Is.EqualTo(value.L));
         }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+
+        int tagMarker = decoder.DecodeVarInt32();
+        long consumed = decoder.Consumed;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tagMarker, Is.EqualTo(Slice2Definitions.TagEndMarker));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -416,12 +503,23 @@ public sealed class ExceptionTests
         value.EncodeTrait(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyException.SliceTypeId));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+
+        // Assert
+        string sliceTypeId = decoder.DecodeString();
+        string message = decoder.DecodeString();
+        int i = decoder.DecodeInt32();
+        int j = decoder.DecodeInt32();
+        int tagMarker = decoder.DecodeVarInt32();
+        long consumed = decoder.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(sliceTypeId, Is.EqualTo(MyException.SliceTypeId));
+            Assert.That(message, Is.EqualTo(value.Message));
+            Assert.That(i, Is.EqualTo(value.I));
+            Assert.That(j, Is.EqualTo(value.J));
+            Assert.That(tagMarker, Is.EqualTo(Slice2Definitions.TagEndMarker));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test, TestCaseSource(nameof(Slice2OperationThrowsSource))]

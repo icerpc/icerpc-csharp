@@ -70,8 +70,11 @@ public class OperationTests
 
         (int r1, int r2) = await proxy.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
-        Assert.That(r1, Is.EqualTo(10));
-        Assert.That(r2, Is.EqualTo(20));
+        Assert.Multiple(() =>
+        {
+            Assert.That(r1, Is.EqualTo(10));
+            Assert.That(r2, Is.EqualTo(20));
+        });
     }
 
     [Test]
@@ -86,18 +89,18 @@ public class OperationTests
         IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
-        var data = new byte[] { 1, 2, 3 };
+        byte[] data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
 
         // Act
-        var invokeTask = proxy.OpWithByteStreamArgumentAndReturnAsync(pipe.Reader);
-        var flushResult = await pipe.Writer.WriteAsync(data);
+        Task<PipeReader> invokeTask = proxy.OpWithByteStreamArgumentAndReturnAsync(pipe.Reader);
+        FlushResult flushResult = await pipe.Writer.WriteAsync(data);
         await pipe.Writer.CompleteAsync();
-        var reader = await invokeTask;
-        var readResult = await reader.ReadAtLeastAsync(data.Length);
+        PipeReader reader = await invokeTask;
+        ReadResult readResult = await reader.ReadAtLeastAsync(data.Length);
 
         // Assert
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(data.Length));
+        Assert.That(readResult.Buffer, Has.Length.EqualTo(data.Length));
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
         reader.AdvanceTo(readResult.Buffer.End);
         await reader.CompleteAsync();
@@ -116,18 +119,21 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
+        IAsyncEnumerable<int> r = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo(1));
+        IAsyncEnumerator<int> enumerator = r.GetAsyncEnumerator();
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo(1));
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo(2));
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo(2));
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo(3));
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo(3));
+        });
 
         Assert.That(await enumerator.MoveNextAsync(), Is.False);
 
@@ -153,20 +159,23 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
+        IAsyncEnumerable<string> r = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
+        IAsyncEnumerator<string> enumerator = r.GetAsyncEnumerator();
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo("hello world 2"));
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo("hello world 2"));
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo("hello world 3"));
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo("hello world 3"));
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.False);
+            Assert.That(await enumerator.MoveNextAsync(), Is.False);
+        });
 
         static async IAsyncEnumerable<string> GetDataAsync()
         {
@@ -196,15 +205,19 @@ public class OperationTests
         // Assert
         Assert.That(r1, Is.EqualTo(10));
 
-        var enumerator = r2.GetAsyncEnumerator();
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo(1));
+        IAsyncEnumerator<int> enumerator = r2.GetAsyncEnumerator();
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo(2));
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo(1));
 
-        Assert.That(await enumerator.MoveNextAsync(), Is.True);
-        Assert.That(enumerator.Current, Is.EqualTo(3));
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo(2));
+
+            Assert.That(await enumerator.MoveNextAsync(), Is.True);
+            Assert.That(enumerator.Current, Is.EqualTo(3));
+        });
 
         Assert.That(await enumerator.MoveNextAsync(), Is.False);
 
@@ -267,7 +280,7 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
+        int r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
 
         // Assert
         Assert.That(r, Is.EqualTo(10));
@@ -289,8 +302,11 @@ public class OperationTests
         (int r1, int r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
 
         // Assert
-        Assert.That(r1, Is.EqualTo(10));
-        Assert.That(r2, Is.EqualTo(20));
+        Assert.Multiple(() =>
+        {
+            Assert.That(r1, Is.EqualTo(10));
+            Assert.That(r2, Is.EqualTo(20));
+        });
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing parameter is mapped to
@@ -447,9 +463,12 @@ public class OperationTests
 
         await proxy.OpAsync(1, z: 10);
 
-        Assert.That(service.X, Is.EqualTo(1));
-        Assert.That(service.Y, Is.Null);
-        Assert.That(service.Z, Is.EqualTo(10));
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.X, Is.EqualTo(1));
+            Assert.That(service.Y, Is.Null);
+            Assert.That(service.Z, Is.EqualTo(10));
+        });
     }
 
     /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}"/> mapping has a
@@ -469,9 +488,12 @@ public class OperationTests
 
         await proxy.OpAsync(new int[] { 1 }, z: new int[] { 10 });
 
-        Assert.That(service.X, Is.EqualTo(new int[] { 1 }));
-        Assert.That(service.Y, Is.Null);
-        Assert.That(service.Z, Is.EqualTo(new int[] { 10 }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.X, Is.EqualTo(new int[] { 1 }));
+            Assert.That(service.Y, Is.Null);
+            Assert.That(service.Z, Is.EqualTo(new int[] { 10 }));
+        });
     }
 
     [Test]
@@ -592,7 +614,7 @@ public class OperationTests
             int[]? p1,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p1);
-        
+
         public ValueTask OpWithProxyParameterAsync(
             ServiceProxy service,
             IFeatureCollection features,

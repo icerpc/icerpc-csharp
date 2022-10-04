@@ -109,8 +109,14 @@ public class SpanEnumeratorTests
 
         bool operationSuccessful = enumerator.MoveNext();
 
-        Assert.That(operationSuccessful, Is.True);
-        Assert.That(enumerator.Current.ToArray(), Is.EqualTo(expected.ToArray()));
+        byte[] currentEnumerator = enumerator.Current.ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(currentEnumerator, Is.EqualTo(expected.ToArray()));
+            Assert.That(operationSuccessful, Is.True);
+        });
+
     }
 
     /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext"/> will not enumerate past the final

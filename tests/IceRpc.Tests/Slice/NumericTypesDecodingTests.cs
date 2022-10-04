@@ -88,14 +88,19 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, (ulong)5)]
     [TestCase(new byte[] { 0x01, 0x04 }, (ulong)256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, (ulong)16384)]
-    public void Decode_varulong_value(byte[] encodedBytes, ulong expected)
+    public void Decode_varuint62_value(byte[] encodedBytes, ulong expected)
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
         ulong r1 = sut.DecodeVarUInt62();
 
-        Assert.That(r1, Is.EqualTo(expected));
-        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
+        // Assert
+        long consumed = sut.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(r1, Is.EqualTo(expected));
+            Assert.That(consumed, Is.EqualTo(encodedBytes.Length));
+        });
     }
 
     /// <summary>Tests that attempting to decode a variable length unisgned int that that is out of bound throws
@@ -106,11 +111,11 @@ public class NumericTypesDecodingTests
     {
         Assert.That(() =>
         {
-            var buffer = new byte[256];
+            byte[] buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeVarUInt62(value);
-            var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
+            byte[] encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
             var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
             sut.DecodeVarUInt32();
@@ -129,9 +134,14 @@ public class NumericTypesDecodingTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice1);
 
-        var r1 = sut.DecodeSize();
+        int r1 = sut.DecodeSize();
 
-        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
-        Assert.That(r1, Is.EqualTo(expected));
+        // Assert
+        long consumed = sut.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(r1, Is.EqualTo(expected));
+            Assert.That(consumed, Is.EqualTo(encodedBytes.Length));
+        });
     }
 }

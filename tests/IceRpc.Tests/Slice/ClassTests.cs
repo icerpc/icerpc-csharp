@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
@@ -208,12 +210,18 @@ public sealed class ClassTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        // Assert
+        int instanceMarker = decoder.DecodeSize();
+        byte r1 = decoder.DecodeUInt8();
+        string typeId = decoder.DecodeString();
+        Assert.Multiple(() =>
+        {
+            Assert.That(instanceMarker, Is.EqualTo(1)); // Instance marker
+            Assert.That(
+                r1,
+                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(typeId, Is.EqualTo(MyClassA.SliceTypeId));
+        });
 
         // MyClassA.theB member encoded inline (2 Slices)
 
@@ -504,17 +512,21 @@ public sealed class ClassTests
         MyClassA theA = decoder.DecodeClass<MyClassA>();
 
         // Assert
-        Assert.That(theA.TheB, Is.Not.Null);
-        Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-        Assert.That(theA.TheB.TheA, Is.Null);
-        Assert.That(theA.TheB.TheB, Is.Null);
-        Assert.That(theA.TheB.TheC, Is.Null);
+        long consumed = decoder.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(theA.TheB, Is.Not.Null);
+            Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
+            Assert.That(theA.TheB.TheA, Is.Null);
+            Assert.That(theA.TheB.TheB, Is.Null);
+            Assert.That(theA.TheB.TheC, Is.Null);
 
-        Assert.That(theA.TheC, Is.Not.Null);
-        Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-        Assert.That(theA.TheC.TheB, Is.Null);
+            Assert.That(theA.TheC, Is.Not.Null);
+            Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
+            Assert.That(theA.TheC.TheB, Is.Null);
 
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -739,20 +751,24 @@ public sealed class ClassTests
         MyClassA theA = decoder.DecodeClass<MyClassA>();
 
         // Assert
-        Assert.That(theA.TheB, Is.Not.Null);
-        Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-        Assert.That(theA.TheB.TheA, Is.Null);
-        Assert.That(theA.TheB.TheB, Is.Null);
-        Assert.That(theA.TheB.TheC, Is.Not.Null);
+        long consumed = decoder.Consumed;
+        Assert.Multiple(() =>
+        {
+            Assert.That(theA.TheB, Is.Not.Null);
+            Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
+            Assert.That(theA.TheB.TheA, Is.Null);
+            Assert.That(theA.TheB.TheB, Is.Null);
+            Assert.That(theA.TheB.TheC, Is.Not.Null);
 
-        Assert.That(theA.TheC, Is.Not.Null);
-        Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-        Assert.That(theA.TheC.TheB, Is.Not.Null);
+            Assert.That(theA.TheC, Is.Not.Null);
+            Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
+            Assert.That(theA.TheC.TheB, Is.Not.Null);
 
-        Assert.That(theA.TheB.TheC, Is.EqualTo(theA.TheC));
-        Assert.That(theA.TheC.TheB, Is.EqualTo(theA.TheB));
+            Assert.That(theA.TheB.TheC, Is.EqualTo(theA.TheC));
+            Assert.That(theA.TheC.TheB, Is.EqualTo(theA.TheB));
 
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -881,11 +897,14 @@ public sealed class ClassTests
             activator: SliceDecoder.GetActivator(typeof(MyDerivedClassWithTaggedMembers).Assembly));
 
         // Act
-        var classWithTaggedMembers = decoder.DecodeClass<MyDerivedClassWithTaggedMembers>();
+        MyDerivedClassWithTaggedMembers classWithTaggedMembers = decoder.DecodeClass<MyDerivedClassWithTaggedMembers>();
 
         // Assert
-        Assert.That(classWithTaggedMembers.A, Is.EqualTo(a));
-        Assert.That(classWithTaggedMembers.B, Is.EqualTo(b));
+        Assert.Multiple(() =>
+        {
+            Assert.That(classWithTaggedMembers.A, Is.EqualTo(a));
+            Assert.That(classWithTaggedMembers.B, Is.EqualTo(b));
+        });
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 

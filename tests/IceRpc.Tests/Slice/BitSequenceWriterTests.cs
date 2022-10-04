@@ -73,8 +73,12 @@ public class BitSequenceWriterTests
         var reader = new BitSequenceReader(readResult.Buffer);
 
         // Assert
-        Assert.That(read, Is.True);
-        Assert.That(readResult.Buffer.IsSingleSegment, Is.EqualTo(bitSize <= maxBufferSize * 8));
+        Assert.Multiple(() =>
+        {
+            Assert.That(read, Is.True);
+            Assert.That(readResult.Buffer.IsSingleSegment, Is.EqualTo(bitSize <= maxBufferSize * 8));
+        });
+
         for (int i = 0; i < bitSize; ++i)
         {
             Assert.That(reader.Read(), Is.EqualTo(IsSet(i, pattern)));
@@ -165,7 +169,7 @@ public class BitSequenceWriterTests
         IList<Memory<byte>>? additionalMemory)
     {
         // We cannot follow traditional AAA with this test as the writer must be accessible inside of the lambda
-        // expression. Thus the arrange and act sections were moved into the Nunit assertion.
+        // expression. Thus the arrange and act sections were moved into the NUnit assertion.
         Assert.That(() =>
         {
             // Arrange

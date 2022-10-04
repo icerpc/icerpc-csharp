@@ -29,8 +29,11 @@ public class DictionaryMappingTests
                 new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
-        Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
-        Assert.That(r2, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
+            Assert.That(r2, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
+        });
     }
 
     [Test]
