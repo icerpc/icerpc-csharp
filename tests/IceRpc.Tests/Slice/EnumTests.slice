@@ -4,23 +4,23 @@ module IceRpc::Tests::Slice;
 
 enum MyEnum
 {
-    enum1,
-    enum2,
-    enum3,
+    Enum1,
+    Enum2,
+    Enum3,
 }
 
 enum MyFixedLengthEnum : int16
 {
-    senum1,
-    senum2,
-    senum3
+    SEnum1,
+    SEnum2,
+    SEnum3
 }
 
 enum MyEnumWithCustomEnumerators
 {
-    enum1 = -10,
-    enum2 = 20,
-    enum3 = 30,
+    Enum1 = -10,
+    Enum2 = 20,
+    Enum3 = 30,
 }
 
 [cs::attribute("System.Flags")] unchecked enum MyUncheckedEnum : uint32

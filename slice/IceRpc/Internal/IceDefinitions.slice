@@ -90,7 +90,7 @@ compact struct IceRequestHeader
 enum ReplyStatus
 {
     /// A successful reply message.
-    OK = 0,
+    Ok = 0,
 
     /// A user exception reply message.
     UserException = 1,
