@@ -24,7 +24,7 @@ public class TypeNameQualificationTests
         ITypeNameQualificationOperationsProxy proxy = provider.GetRequiredService<ITypeNameQualificationOperationsProxy>();
         provider.GetRequiredService<Server>().Listen();
 
-        var r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
+        S r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 
         Assert.That(r.V, Is.EqualTo("10"));
     }

@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
@@ -61,44 +59,47 @@ public sealed class ClassTests
         });
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        Assert.Multiple(() =>
+        {
+            var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |  // The first Slice include a type Id
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |  // The first Slice include a type Id
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
 
-        // MyClassA.theB member encoded inline (2 Slices)
+            // MyClassA.theB member encoded inline (2 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // theB - First Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theB - First Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // theB - Second Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theB - Second Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // MyClassA.theC member encoded inline (1 Slice)
+            // MyClassA.theC member encoded inline (1 Slice)
 
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo(1));
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(1));
 
-        // theC - First Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theC - First Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -116,69 +117,72 @@ public sealed class ClassTests
         });
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+        Assert.Multiple(() =>
+        {
+            var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |
-                (byte)Slice1Definitions.SliceFlags.HasIndirectionTable | // The sliced format includes an indirection
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |        // table and the Slice size for MyClassA
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasIndirectionTable | // The sliced format includes an indirection
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |        // table and the Slice size for MyClassA
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
 
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
 
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1));  // Reference the first entry in the indirection table
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(2));  // Reference the second entry in the indirection table
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1));  // Reference the first entry in the indirection table
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(2));  // Reference the second entry in the indirection table
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(2));  // Size of the indirection table
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(2));  // Size of the indirection table
 
-        // MyClassA.theB member encoded in the indirection table (2 Slices)
+            // MyClassA.theB member encoded in the indirection table (2 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // theB - First Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theB - First Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // theB - Second Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.Index |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // TypeId encoded as an index as this TypeId already appears
-                                                          // with the first instance.
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theB - Second Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.Index |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // TypeId encoded as an index as this TypeId already appears
+                                                              // with the first instance.
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // MyClassA.theC member encoded in the indirection table (1 Slices)
+            // MyClassA.theC member encoded in the indirection table (1 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // theC - First Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theC - First Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -208,48 +212,46 @@ public sealed class ClassTests
         // theB index 3
         // theC index 4
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-
         // Assert
-        int instanceMarker = decoder.DecodeSize();
-        byte r1 = decoder.DecodeUInt8();
-        string typeId = decoder.DecodeString();
         Assert.Multiple(() =>
         {
-            Assert.That(instanceMarker, Is.EqualTo(1)); // Instance marker
+            var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
             Assert.That(
-                r1,
+                decoder.DecodeUInt8(),
                 Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-            Assert.That(typeId, Is.EqualTo(MyClassA.SliceTypeId));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+
+            // MyClassA.theB member encoded inline (2 Slices)
+
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+
+            // theB - First Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
+
+            // theB - Second Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
+
+            // theB.theC instance encoded inline
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+
+            // MyClassA.theB.theC encoded inline (1 Slice)
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(3)); // reference to the 3rd instance
+
+            // MyClassA.TheC encoded as an index
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(4)); // reference to the 4th instance
+
+            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+
         });
-
-        // MyClassA.theB member encoded inline (2 Slices)
-
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-
-        // theB - First Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
-
-        // theB - Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
-
-        // theB.theC instance encoded inline
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-
-        // MyClassA.theB.theC encoded inline (1 Slice)
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(3)); // reference to the 3rd instance
-
-        // MyClassA.TheC encoded as an index
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(4)); // reference to the 4th instance
-
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
     [Test]
@@ -273,78 +275,81 @@ public sealed class ClassTests
         encoder.EncodeClass(theA);
 
         // Assert
+        Assert.Multiple(() =>
+        {
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+            var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |
-                (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // (reference 1st entry of the indirection table)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(2)); // (reference 2nd entry of the indirection table)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // (reference 1st entry of the indirection table)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(2)); // (reference 2nd entry of the indirection table)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(2)); // Indirection table size
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(2)); // Indirection table size
 
-        // MyClassA.theB member encoded in the indirection table (2 Slices)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        // First Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize));
+            // MyClassA.theB member encoded in the indirection table (2 Slices)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+                                                              // First Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize));
 
-        // theB - First Slice
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // theB - First Slice
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // theB - Second Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.Index |
-                (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // TypeId encoded as an index as this TypeId already appears
-                                                          // with the first instance.
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // (reference 1st entry of the indirection table)
+            // theB - Second Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.Index |
+                    (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // TypeId encoded as an index as this TypeId already appears
+                                                              // with the first instance.
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // (reference 1st entry of the indirection table)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Indirection table size
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Indirection table size
 
-        // MyClassA.theB.theC member encoded in the indirection table (1 Slice)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.String |
-                (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            // MyClassA.theB.theC member encoded in the indirection table (1 Slice)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
 
-        // First Slice
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // reference 1st entry of the indirection table
+            // First Slice
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // reference 1st entry of the indirection table
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Indirection table size
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Indirection table size
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(3)); // Reference to index 3
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(3)); // Reference to index 3
 
-        // MyClassA.theC encoded as an index
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(4)); // Reference to index 4
+            // MyClassA.theC encoded as an index
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(4)); // Reference to index 4
 
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -380,31 +385,34 @@ public sealed class ClassTests
         encoder.EncodeClass(new MyDerivedCompactClass());
 
         // Assert
-        var decoder = new SliceDecoder(
-            buffer.WrittenMemory,
-            SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+        Assert.Multiple(() =>
+        {
+            var decoder = new SliceDecoder(
+                buffer.WrittenMemory,
+                SliceEncoding.Slice1,
+                activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.CompactId |
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyDerivedCompactClass).GetCompactSliceTypeId()!.Value));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(4)); // Empty Slice 4 bytes
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.CompactId |
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyDerivedCompactClass).GetCompactSliceTypeId()!.Value));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(4)); // Empty Slice 4 bytes
 
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.CompactId |
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.CompactId |
 
-                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyCompactClass).GetCompactSliceTypeId()!.Value));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(4)); // Empty Slice 4 bytes
+                    (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyCompactClass).GetCompactSliceTypeId()!.Value));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(4)); // Empty Slice 4 bytes
 
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        });
     }
 
     [Test]
@@ -420,50 +428,54 @@ public sealed class ClassTests
         encoder.EncodeClass(new MyDerivedClassWithTaggedMembers(a, b));
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
-        Assert.That(decoder.DecodeUInt8(),
-            b is null ?
-                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String) :
-                Is.EqualTo(
-                    (byte)Slice1Definitions.TypeIdKind.String |
-                    (byte)Slice1Definitions.SliceFlags.HasTaggedMembers));
-
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedMembers.SliceTypeId));
-
-        // MyDerivedClassWithTaggedMembers.B
-        if (b is not null)
+        Assert.Multiple(() =>
         {
-            Assert.That(
-                decoder.DecodeTagged(
-                    20,
-                    TagFormat.OVSize,
-                    (ref SliceDecoder decoder) => decoder.DecodeString(),
-                    useTagEndMarker: false),
-                Is.EqualTo(b));
-            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
-        }
 
-        Assert.That(decoder.DecodeUInt8(),
-            a is null ?
-                Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice) :
-                Is.EqualTo(
-                    (byte)Slice1Definitions.SliceFlags.HasTaggedMembers |
-                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        // MyClassWithTaggedMembers.A
-        if (a is not null)
-        {
-            Assert.That(
-                decoder.DecodeTagged(
-                    10,
-                    TagFormat.F4,
-                    (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-                    useTagEndMarker: false),
-                Is.EqualTo(a));
-            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
-            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-        }
+            var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeUInt8(),
+                b is null ?
+                    Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String) :
+                    Is.EqualTo(
+                        (byte)Slice1Definitions.TypeIdKind.String |
+                        (byte)Slice1Definitions.SliceFlags.HasTaggedMembers));
+
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedMembers.SliceTypeId));
+
+            // MyDerivedClassWithTaggedMembers.B
+            if (b is not null)
+            {
+                Assert.That(
+                    decoder.DecodeTagged(
+                        20,
+                        TagFormat.OVSize,
+                        (ref SliceDecoder decoder) => decoder.DecodeString(),
+                        useTagEndMarker: false),
+                    Is.EqualTo(b));
+                Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
+            }
+
+            Assert.That(decoder.DecodeUInt8(),
+                a is null ?
+                    Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice) :
+                    Is.EqualTo(
+                        (byte)Slice1Definitions.SliceFlags.HasTaggedMembers |
+                        (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            // MyClassWithTaggedMembers.A
+            if (a is not null)
+            {
+                Assert.That(
+                    decoder.DecodeTagged(
+                        10,
+                        TagFormat.F4,
+                        (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                        useTagEndMarker: false),
+                    Is.EqualTo(a));
+                Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
+                Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+            }
+        });
     }
 
     [Test]
@@ -512,21 +524,17 @@ public sealed class ClassTests
         MyClassA theA = decoder.DecodeClass<MyClassA>();
 
         // Assert
-        long consumed = decoder.Consumed;
-        Assert.Multiple(() =>
-        {
-            Assert.That(theA.TheB, Is.Not.Null);
-            Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-            Assert.That(theA.TheB.TheA, Is.Null);
-            Assert.That(theA.TheB.TheB, Is.Null);
-            Assert.That(theA.TheB.TheC, Is.Null);
 
-            Assert.That(theA.TheC, Is.Not.Null);
-            Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-            Assert.That(theA.TheC.TheB, Is.Null);
+        Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
+        Assert.That(theA.TheB, Is.Not.Null);
+        Assert.That(theA.TheB.TheA, Is.Null);
+        Assert.That(theA.TheB.TheB, Is.Null);
+        Assert.That(theA.TheB.TheC, Is.Null);
 
-            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-        });
+        Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
+        Assert.That(theA.TheC, Is.Not.Null);
+        Assert.That(theA.TheC.TheB, Is.Null);
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
     [Test]
@@ -659,6 +667,7 @@ public sealed class ClassTests
         MyClassA theA = decoder.DecodeClass<MyClassA>();
 
         // Assert
+
         Assert.That(theA.TheB, Is.Not.Null);
         Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
         Assert.That(theA.TheB.TheA, Is.Null);
@@ -751,24 +760,21 @@ public sealed class ClassTests
         MyClassA theA = decoder.DecodeClass<MyClassA>();
 
         // Assert
-        long consumed = decoder.Consumed;
-        Assert.Multiple(() =>
-        {
-            Assert.That(theA.TheB, Is.Not.Null);
-            Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-            Assert.That(theA.TheB.TheA, Is.Null);
-            Assert.That(theA.TheB.TheB, Is.Null);
-            Assert.That(theA.TheB.TheC, Is.Not.Null);
 
-            Assert.That(theA.TheC, Is.Not.Null);
-            Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-            Assert.That(theA.TheC.TheB, Is.Not.Null);
+        Assert.That(theA.TheB, Is.Not.Null);
+        Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
+        Assert.That(theA.TheB.TheA, Is.Null);
+        Assert.That(theA.TheB.TheB, Is.Null);
+        Assert.That(theA.TheB.TheC, Is.Not.Null);
 
-            Assert.That(theA.TheB.TheC, Is.EqualTo(theA.TheC));
-            Assert.That(theA.TheC.TheB, Is.EqualTo(theA.TheB));
+        Assert.That(theA.TheC, Is.Not.Null);
+        Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
+        Assert.That(theA.TheC.TheB, Is.Not.Null);
 
-            Assert.That(consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-        });
+        Assert.That(theA.TheB.TheC, Is.EqualTo(theA.TheC));
+        Assert.That(theA.TheC.TheB, Is.EqualTo(theA.TheB));
+
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
     [Test]
@@ -912,28 +918,31 @@ public sealed class ClassTests
     public void Operation_request_with_compact_format()
     {
         // Act
-        var payload = CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+        PipeReader payload = CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
-        Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        Assert.Multiple(() =>
+        {
+            ReadResult readResult;
+            Assert.That(payload.TryRead(out readResult), Is.True);
+            Assert.That(readResult.IsCompleted, Is.True);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 
-        // MyClassB instance encoded with compact format (2 Slices)
+            // MyClassB instance encoded with compact format (2 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // First Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // First Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+            // Second Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+        });
     }
 
     [Test]
@@ -943,33 +952,36 @@ public sealed class ClassTests
         var payload = SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
-        Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        Assert.Multiple(() =>
+        {
+            ReadResult readResult;
+            Assert.That(payload.TryRead(out readResult), Is.True);
+            Assert.That(readResult.IsCompleted, Is.True);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 
-        // MyClassB instance encoded with sliced format (2 Slices)
+            // MyClassB instance encoded with sliced format (2 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // First Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // First Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo(
-            (byte)Slice1Definitions.TypeIdKind.String |
-            (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-            (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+            // Second Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(
+                (byte)Slice1Definitions.TypeIdKind.String |
+                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+        });
     }
 
     [Test]
@@ -979,25 +991,28 @@ public sealed class ClassTests
         var payload = ICompactFormatOperations.Response.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
-        Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        Assert.Multiple(() =>
+        {
+            ReadResult readResult;
+            Assert.That(payload.TryRead(out readResult), Is.True);
+            Assert.That(readResult.IsCompleted, Is.True);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 
-        // MyClassB instance encoded with compact format (2 Slices)
+            // MyClassB instance encoded with compact format (2 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // First Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // First Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+            // Second Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+        });
     }
 
     [Test]
@@ -1007,32 +1022,35 @@ public sealed class ClassTests
         var payload = ISlicedFormatOperations.Response.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
-        Assert.That(readResult.IsCompleted, Is.True);
-        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
+        Assert.Multiple(() =>
+        {
+            ReadResult readResult;
+            Assert.That(payload.TryRead(out readResult), Is.True);
+            Assert.That(readResult.IsCompleted, Is.True);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 
-        // MyClassB instance encoded with sliced format (2 Slices)
+            // MyClassB instance encoded with sliced format (2 Slices)
 
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
-        // First Slice
-        Assert.That(
-            decoder.DecodeUInt8(),
-            Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            // First Slice
+            Assert.That(
+                decoder.DecodeUInt8(),
+                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // Second Slice
-        Assert.That(decoder.DecodeUInt8(), Is.EqualTo(
-            (byte)Slice1Definitions.TypeIdKind.String |
-            (byte)Slice1Definitions.SliceFlags.HasSliceSize |
-            (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
-        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+            // Second Slice
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(
+                (byte)Slice1Definitions.TypeIdKind.String |
+                (byte)Slice1Definitions.SliceFlags.HasSliceSize |
+                (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+            Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
+            Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+        });
     }
 }

@@ -29,8 +29,11 @@ public class SequenceMappingTests
                 new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
-        Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
-        Assert.That(r2, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
+        Assert.Multiple(() =>
+        {
+            Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
+            Assert.That(r2, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
+        });
     }
 
     [Test]
