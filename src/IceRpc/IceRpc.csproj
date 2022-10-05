@@ -51,7 +51,7 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="System.IO.Pipelines" Version="7.0.0-rc.1.22426.10" />
+      <PackageReference Include="System.IO.Pipelines" Version="$(NetRuntimeVersion)" />
       <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview7" PrivateAssets="All" />
     </ItemGroup>
 </Project>

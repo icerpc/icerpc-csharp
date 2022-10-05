@@ -11,5 +11,6 @@
         <WarningLevel>4</WarningLevel>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
+        <NetRuntimeVersion Condition="'$(NetRuntimeVersion)' == ''">7.0.0-rc.1.22426.10</NetRuntimeVersion>
     </PropertyGroup>
 </Project>
