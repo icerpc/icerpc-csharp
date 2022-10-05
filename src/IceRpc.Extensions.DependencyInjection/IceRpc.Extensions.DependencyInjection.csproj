@@ -2,7 +2,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <Title>IceRpc Dependency Injection Extensions</Title>
-        <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>

@@ -1,11 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <PackageVersion>$(IceRpcVersion)</PackageVersion>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    <TargetFramework>net6.0</TargetFramework>
     <IsPackable>true</IsPackable>
-    <ThreadPoolMinThreads>50</ThreadPoolMinThreads>
   </PropertyGroup>
 
   <ItemGroup>

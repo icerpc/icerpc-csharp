@@ -9,6 +9,7 @@
         <WarningLevel>4</WarningLevel>
         <DefineConstants>TRACE</DefineConstants>
         <Nullable>enable</Nullable>
+        <TargetFramework>net6.0</TargetFramework>
         <LangVersion>10.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <ImplicitUsings>true</ImplicitUsings>
