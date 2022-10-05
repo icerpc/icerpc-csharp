@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use crate::slicec_ext::cs_attributes;
 use slice::grammar::Attributable;
 
 pub trait AttributeExt {
@@ -14,14 +15,4 @@ impl<T: Attributable + ?Sized> AttributeExt for T {
             vec![]
         }
     }
-}
-
-pub mod cs_attributes {
-    pub const ATTRIBUTE: &str = "cs::attribute";
-    pub const ENCODED_RESULT: &str = "cs::encodedResult";
-    pub const GENERIC: &str = "cs::generic";
-    pub const INTERNAL: &str = "cs::internal";
-    pub const NAMESPACE: &str = "cs::namespace";
-    pub const READONLY: &str = "cs::readonly";
-    pub const TYPE: &str = "cs::type";
 }
