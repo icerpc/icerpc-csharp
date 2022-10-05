@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use crate::cs_attributes;
 use crate::cs_util::escape_keyword;
 
 use slice::convert_case::{Case, Casing};
@@ -157,7 +158,7 @@ where
             .map(|(i, segment)| {
                 let mut escaped_module = escape_keyword(&segment.to_case(Case::Pascal));
                 if i == 0 {
-                    if let Some(attribute) = self.get_attribute("cs::namespace", true) {
+                    if let Some(attribute) = self.get_attribute(cs_attributes::NAMESPACE, true) {
                         escaped_module = attribute.first().unwrap().to_owned();
                     }
                 }
@@ -183,7 +184,7 @@ where
     }
 
     fn access_modifier(&self) -> String {
-        if self.has_attribute("cs::internal", true) {
+        if self.has_attribute(cs_attributes::INTERNAL, true) {
             "internal".to_owned()
         } else {
             "public".to_owned()
@@ -191,7 +192,7 @@ where
     }
 
     fn readonly_modifier(&self) -> Option<String> {
-        if self.has_attribute("cs::readonly", self.kind() == "data member") {
+        if self.has_attribute(cs_attributes::READONLY, self.kind() == "data member") {
             Some("readonly".to_owned())
         } else {
             None

@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
+use crate::cs_attributes;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
@@ -306,7 +307,7 @@ impl FunctionBuilder {
         for parameter in &parameters {
             // The attributes are a space separated list of attributes.
             // eg. [attribute1] [attribute2]
-            let parameter_attributes = parameter.get_attribute("cs::attribute", false).map_or_else(
+            let parameter_attributes = parameter.get_attribute(cs_attributes::ATTRIBUTE, false).map_or_else(
                 || "".to_owned(),
                 |vec| vec.iter().map(|a| format!("[{}]", a)).collect::<Vec<_>>().join("\n"),
             );

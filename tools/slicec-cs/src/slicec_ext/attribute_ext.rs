@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use crate::cs_attributes;
 use slice::grammar::Attributable;
 
 pub trait AttributeExt {
@@ -8,7 +9,7 @@ pub trait AttributeExt {
 
 impl<T: Attributable + ?Sized> AttributeExt for T {
     fn custom_attributes(&self) -> Vec<String> {
-        if let Some(attributes) = self.get_attribute("cs::attribute", false) {
+        if let Some(attributes) = self.get_attribute(cs_attributes::ATTRIBUTE, false) {
             attributes.to_vec()
         } else {
             vec![]
