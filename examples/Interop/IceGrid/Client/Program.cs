@@ -34,8 +34,8 @@ do
     try
     {
         Console.Write("==> ");
-        Console.Out.Flush();
-        line = Console.In.ReadLine();
+        await Console.Out.FlushAsync();
+        line = await Console.In.ReadLineAsync();
 
         switch (line)
         {
@@ -58,7 +58,7 @@ do
     }
     catch (Exception ex)
     {
-        Console.Error.WriteLine(ex);
+        await Console.Error.WriteLineAsync(ex.ToString());
     }
 } while (line != "x");
 
