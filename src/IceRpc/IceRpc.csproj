@@ -2,8 +2,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <Title>IceRpc .NET library</Title>
-        <TargetFramework>net6.0</TargetFramework>
-        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>

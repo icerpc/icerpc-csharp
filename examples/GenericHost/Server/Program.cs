@@ -20,7 +20,7 @@ public static class Program
     /// <summary>Creates the HostBuilder used to build the .NET Generic Host.</summary>
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
-            // Set the content root path to the build directory of the server (e.g.: Server/bin/Debug/net6.0)
+            // Set the content root path to the build directory of the server (e.g.: Server/bin/Debug/net7.0)
             .UseContentRoot(AppContext.BaseDirectory)
 
             // Configure the .NET Generic Host services.
