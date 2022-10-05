@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::slicec_ext::cs_attributes;
+use crate::cs_attributes;
 use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind};
 use slice::grammar::*;
 use slice::parse_result::{ParsedData, ParserResult};

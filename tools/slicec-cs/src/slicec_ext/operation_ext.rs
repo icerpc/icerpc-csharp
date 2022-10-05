@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use super::{cs_attributes, EntityExt, ParameterExt, ParameterSliceExt};
+use super::{EntityExt, ParameterExt, ParameterSliceExt};
+use crate::cs_attributes;
 
 use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
 use slice::utils::code_gen_util::TypeContext;

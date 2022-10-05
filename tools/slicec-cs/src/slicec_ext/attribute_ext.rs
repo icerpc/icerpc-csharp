@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::slicec_ext::cs_attributes;
+use crate::cs_attributes;
 use slice::grammar::Attributable;
 
 pub trait AttributeExt {

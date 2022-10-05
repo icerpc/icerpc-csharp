@@ -4,6 +4,7 @@ mod builders;
 mod class_visitor;
 mod comment_patcher;
 mod comments;
+mod cs_attributes;
 mod cs_options;
 mod cs_util;
 mod cs_validator;

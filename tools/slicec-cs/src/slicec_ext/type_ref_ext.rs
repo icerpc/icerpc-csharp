@@ -3,7 +3,7 @@
 use super::entity_ext::EntityExt;
 use super::interface_ext::InterfaceExt;
 use super::primitive_ext::PrimitiveExt;
-use crate::slicec_ext::cs_attributes;
+use crate::cs_attributes;
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::TypeContext;
