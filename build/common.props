@@ -14,6 +14,7 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
         <ImplicitUsings>true</ImplicitUsings>
+        <NetRuntimeVersion Condition="'$(NetRuntimeVersion)' == ''">7.0.0-rc.1.22426.10</NetRuntimeVersion>
         <!-- Slicec compiler location -->
         <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
         <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
