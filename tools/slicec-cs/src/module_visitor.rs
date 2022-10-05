@@ -2,6 +2,7 @@
 
 use crate::builders::{Builder, ContainerBuilder};
 use crate::generated_code::GeneratedCode;
+use crate::slicec_ext::cs_attributes;
 use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
@@ -37,7 +38,7 @@ impl ModuleVisitor<'_> {
                 // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
                 format!("{}.{}", prefix, module.identifier())
             }
-            None => match module.get_attribute("cs::namespace", false) {
+            None => match module.get_attribute(cs_attributes::NAMESPACE, false) {
                 // If a top-level module has a 'cs::namespace' attribute, use its argument as module
                 // identifier otherwise use the module identifier.
                 Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
