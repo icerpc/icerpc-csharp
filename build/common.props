@@ -12,6 +12,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <LangVersion>10.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <AnalysisMode>All</AnalysisMode>
         <ImplicitUsings>true</ImplicitUsings>
         <!-- Slicec compiler location -->
         <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>

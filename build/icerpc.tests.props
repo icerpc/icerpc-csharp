@@ -5,7 +5,6 @@
     <PackageVersion>$(IceRpcVersion)</PackageVersion>
     <IsPackable>false</IsPackable>
     <ThreadPoolMinThreads>50</ThreadPoolMinThreads>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <OutputPath>.</OutputPath>
     <!-- Missing XML comment for publicly visible type or member, we disable this warning because we don't care about
          public elements not being documented, we just want to ensure that bogus doc elments are detected. -->

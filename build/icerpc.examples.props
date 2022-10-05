@@ -10,6 +10,6 @@
         <ImplicitUsings>true</ImplicitUsings>
         <WarningLevel>4</WarningLevel>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <AnalysisMode>All</AnalysisMode>
     </PropertyGroup>
 </Project>
