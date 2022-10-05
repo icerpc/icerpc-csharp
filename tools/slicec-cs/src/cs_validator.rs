@@ -53,6 +53,21 @@ fn validate_cs_attribute(attribute: &Attribute, diagnostic_reporter: &mut Diagno
     }
 }
 
+fn validate_cs_identifier(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
+    // Validate that the user supplied a single argument
+    match attribute.arguments.len() {
+        1 => (), // Expected 1 argument
+        0 => diagnostic_reporter.report_error(Error::new(
+            ErrorKind::MissingRequiredArgument(cs_attributes::GENERIC.to_owned() + r#"("<identifier>")"#),
+            Some(attribute.span()),
+        )),
+        _ => diagnostic_reporter.report_error(Error::new(
+            ErrorKind::TooManyArguments(cs_attributes::GENERIC.to_owned() + r#"("<identifier>")"#),
+            Some(attribute.span()),
+        )),
+    }
+}
+
 fn validate_cs_internal(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     if !attribute.arguments.is_empty() {
         diagnostic_reporter.report_error(Error::new(
@@ -174,6 +189,7 @@ impl Visitor for CsValidator<'_> {
                     }
                 }
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
+                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -183,6 +199,7 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(class_def.attributes()) {
             match attribute.directive.as_ref() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
+                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -192,6 +209,7 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(exception_def.attributes()) {
             match attribute.directive.as_ref() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
+                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -202,6 +220,7 @@ impl Visitor for CsValidator<'_> {
             match attribute.directive.as_ref() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
+                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -211,6 +230,7 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(enum_def.attributes()) {
             match attribute.directive.as_ref() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
+                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -220,6 +240,7 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(operation.attributes()) {
             match attribute.directive.as_ref() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
+                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }

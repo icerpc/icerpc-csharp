@@ -8,7 +8,7 @@ use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
-use slice::grammar::{Attributable, Class, Commentable, Encoding, Entity, NamedSymbol, Operation};
+use slice::grammar::{Attributable, Class, Commentable, Encoding, Entity, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::TypeContext;
 
@@ -317,7 +317,7 @@ impl FunctionBuilder {
 
             // TODO: it would be better if we could use parameter.comment() to get the parameter
             // comment instead
-            let parameter_comment = operation_parameter_doc_comment(operation, parameter.identifier());
+            let parameter_comment = operation_parameter_doc_comment(operation, &parameter.cs_identifier(None));
 
             self.add_parameter(
                 &format!("{}{}", parameter_attributes, &parameter_type),
