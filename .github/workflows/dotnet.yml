@@ -34,6 +34,7 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: '7.0.x'
+        dotnet-quality: 'preview'
     - name: 🔗 Start SSH Agent
       uses: webfactory/ssh-agent@v0.5.4
       with:
