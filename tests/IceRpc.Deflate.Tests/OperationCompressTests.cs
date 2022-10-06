@@ -21,7 +21,7 @@ public class OperationGeneratedCodeTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<MyOperationsA>()
-            .AddColocTest(builder =>
+            .AddClientServerTest(builder =>
             {
                 builder.UseDeflate();
                 builder.Use(next => new InlineDispatcher(async (request, cancellationToken) =>

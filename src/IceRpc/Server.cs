@@ -177,13 +177,12 @@ public sealed class Server : IAsyncDisposable
             {
                 // already disposed by a previous or concurrent call.
             }
+        }
 
-            if (_listener is not null)
-            {
-                // Stop accepting new connections by disposing of the listener
-                _listener.Dispose();
-                _listener = null;
-            }
+        if (_listener is not null)
+        {
+            // Stop accepting new connections by disposing of the listener
+            await _listener.DisposeAsync().ConfigureAwait(false);
         }
 
         if (_listenTask is not null)
@@ -403,9 +402,12 @@ public sealed class Server : IAsyncDisposable
                 {
                     throw new ObjectDisposedException($"{typeof(Server)}");
                 }
+            }
 
-                // Stop accepting new connections by disposing of the listener.
-                _listener?.Dispose();
+            // Stop accepting new connections by disposing of the listener.
+            if (_listener is not null)
+            {
+                await _listener.DisposeAsync().ConfigureAwait(false);
             }
 
             await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(message, cancellationToken)))
@@ -442,7 +444,7 @@ public sealed class Server : IAsyncDisposable
             return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
         }
 
-        public void Dispose() => _decoratee.Dispose();
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
         internal LogListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
     }

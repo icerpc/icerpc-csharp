@@ -3,128 +3,131 @@
 using IceRpc.Builder;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Installs coloc client-server test.</summary>
-    public static IServiceCollection AddColocTest(
-        this IServiceCollection services,
-        IDispatcher dispatcher,
-        Protocol protocol,
-        string host = "colochost") =>
-        services.AddColocTransport().AddClientServerTest(dispatcher, new ServerAddress(protocol) { Host = host });
-
-    public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
-        services.AddColocTest(dispatcher, Protocol.IceRpc);
-
-    /// <summary>Installs coloc client-server test.</summary>
-    public static IServiceCollection AddColocTest(
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified server address
+    /// and the client connection connecting to the server's server address.</summary>
+    public static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure,
         Protocol protocol,
-        string host = "colochost") =>
-        services.AddColocTransport().AddClientServerTest(configure, new ServerAddress(protocol) { Host = host });
+        string host = "") =>
+        services.AddClientServerTest(protocol, host).AddIceRpcServer(configure);
 
-    public static IServiceCollection AddColocTest(
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified server address
+    /// and the client connection connecting to the server's server address.</summary>
+    public static IServiceCollection AddClientServerTest(
+        this IServiceCollection services,
+        IDispatcher dispatcher,
+        Protocol protocol,
+        string host = "")
+    {
+        services.AddOptions<ServerOptions>().Configure(options => options.ConnectionOptions.Dispatcher = dispatcher);
+        return services.AddClientServerTest(protocol, host).AddIceRpcServer();
+    }
+
+    public static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services.AddColocTest(configure, Protocol.IceRpc);
+        services.AddClientServerTest(configure, Protocol.IceRpc);
+
+    public static IServiceCollection AddClientServerTest(this IServiceCollection services, IDispatcher dispatcher) =>
+        services.AddClientServerTest(dispatcher, Protocol.IceRpc);
 
     /// <summary>Installs the coloc duplex transport.</summary>
-    public static IServiceCollection AddColocTransport(this IServiceCollection services)
-    {
-        services.TryAddSingleton<ColocTransport>();
-        return services
-            .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
-            .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
-    }
-    public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, ServerAddress serverAddress)
-    {
-        collection.AddSingleton(provider =>
+    public static IServiceCollection AddColocTransport(this IServiceCollection services) => services
+        .AddSingleton<ColocTransport>()
+        .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
+        .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
+
+    /// <summary>Adds Listener and IDuplexConnection singletons, with the listener listening on the specified server
+    /// address and the client connection connecting to the listener's server address.</summary>
+    public static IServiceCollection AddDuplexTransportClientServerTest(
+        this IServiceCollection services,
+        Uri serverAddressUri) => services
+            .AddSingleton(provider =>
+                provider.GetRequiredService<IDuplexServerTransport>().Listen(
+                    new ServerAddress(serverAddressUri),
+                    provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                    provider.GetService<SslServerAuthenticationOptions>()))
+            .AddSingleton(provider =>
+                provider.GetRequiredService<IDuplexClientTransport>().CreateConnection(
+                    provider.GetRequiredService<IListener<IDuplexConnection>>().ServerAddress,
+                    provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                    provider.GetService<SslClientAuthenticationOptions>()));
+
+    /// <summary>Adds Listener and IMultiplexedConnection singletons, with the listener listening on the specified
+    /// server address and the client connection connecting to the listener's server address.</summary>
+    public static IServiceCollection AddMultiplexedTransportClientServerTest(
+        this IServiceCollection services,
+        Uri serverAddressUri) => services
+            .AddSingleton(provider =>
+                provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
+                    new ServerAddress(serverAddressUri),
+                    provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
+                    provider.GetService<SslServerAuthenticationOptions>()))
+            .AddSingleton(provider =>
+                provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
+                    provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
+                    provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
+                    provider.GetService<SslClientAuthenticationOptions>()));
+
+    /// <summary>Installs the Slic multiplex transport.</summary>
+    public static IServiceCollection AddSlicTransport(this IServiceCollection services) => services
+        .AddSingleton<IMultiplexedServerTransport>(
+            provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
+        .AddSingleton<IMultiplexedClientTransport>(
+            provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
+
+    public static IServiceCollection AddTcpTransport(this IServiceCollection services) => services
+        .AddSingleton<IDuplexClientTransport>(provider =>
+            new TcpClientTransport(provider.GetService<IOptions<TcpClientTransportOptions>>()?.Value ?? new()))
+        .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(
+            provider.GetService<IOptions<TcpServerTransportOptions>>()?.Value ?? new()));
+
+    public static IServiceCollection AddTls(this IServiceCollection services) => services
+        .AddSingleton(provider => new SslClientAuthenticationOptions
         {
-            DuplexConnectionOptions? connectionOptions = provider.GetService<DuplexConnectionOptions>();
-            SslServerAuthenticationOptions? serverAuthenticationOptions =
-                provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
-            IDuplexServerTransport serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
-            return serverTransport.Listen(
-                serverAddress,
-                connectionOptions ?? new DuplexConnectionOptions(),
-                serverAuthenticationOptions);
+            ClientCertificates = new X509CertificateCollection()
+                    {
+                        new X509Certificate2("../../../certs/client.p12", "password")
+                    },
+            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                certificate?.Issuer.Contains("Ice Tests CA", StringComparison.Ordinal) ?? false
+        })
+        .AddSingleton(provider => new SslServerAuthenticationOptions
+        {
+            ClientCertificateRequired = false,
+            ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         });
 
-        collection.AddSingleton(provider =>
-        {
-            DuplexConnectionOptions? connectionOptions = provider.GetService<DuplexConnectionOptions>();
-            SslClientAuthenticationOptions? clientAuthenticationOptions =
-                provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
-            IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-            IDuplexClientTransport clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
-
-            return clientTransport.CreateConnection(
-                listener.ServerAddress,
-                connectionOptions ?? new DuplexConnectionOptions(),
-                clientAuthenticationOptions);
-        });
-        return collection;
-    }
-
-    public static ServiceCollection UseDuplexTransport(this ServiceCollection collection, Uri serverAddressUri) =>
-        collection.UseDuplexTransport(new ServerAddress(serverAddressUri));
-
-    /// <summary>Adds a Server and ClientConnection singletons, with the server listening on the specified server address and
-    /// the client connection connecting to the server's server address.</summary>
-    /// <remarks>When the server address port is 0 and transport is not coloc, you need to create the server and call Listen
-    /// on it before creating the client connection.</remarks>
     private static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
-        IDispatcher dispatcher,
-        ServerAddress serverAddress)
+        Protocol protocol,
+        string host)
     {
-        services.AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance);
-        services.AddSingleton(LogAttributeLoggerFactory.Instance.Logger);
+        if (host.Length == 0)
+        {
+            host = "colochost";
+        }
+
+        services
+            .AddColocTransport()
+            .AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance)
+            .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
+            .AddIceRpcClientConnection();
 
         services.AddOptions<ServerOptions>().Configure(options =>
-        {
-            options.ConnectionOptions.Dispatcher = dispatcher;
-            options.ServerAddress = serverAddress;
-        });
-        services.AddIceRpcServer();
-
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.ServerAddress = server.ServerAddress);
-
-        services.AddIceRpcClientConnection();
-
-        return services;
-    }
-
-    private static IServiceCollection AddClientServerTest(
-        this IServiceCollection services,
-        Action<IDispatcherBuilder> configure,
-        ServerAddress serverAddress)
-    {
-        services.AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance);
-        services.AddSingleton(provider =>
-        {
-            ILoggerFactory factory = provider.GetRequiredService<ILoggerFactory>();
-            return factory.CreateLogger("Test");
-        });
-
-        services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
-        services.AddIceRpcServer(configure);
-
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.ServerAddress = server.ServerAddress);
-
-        services.AddIceRpcClientConnection();
+            options.ServerAddress = new ServerAddress(protocol) { Host = host });
+        services.AddOptions<ClientConnectionOptions>().Configure<Server>(
+            (options, server) => options.ServerAddress = server.ServerAddress);
 
         return services;
     }

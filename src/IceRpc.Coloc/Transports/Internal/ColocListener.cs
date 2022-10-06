@@ -50,12 +50,12 @@ internal class ColocListener : IListener<IDuplexConnection>
         }
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
         if (_disposeCts.IsCancellationRequested)
         {
             // Dispose already called.
-            return;
+            return default;
         }
 
         // Cancel pending AcceptAsync.
@@ -80,6 +80,8 @@ internal class ColocListener : IListener<IDuplexConnection>
         _queue.TryComplete(new ObjectDisposedException($"{typeof(ColocListener)}"));
 
         _disposeCts.Dispose();
+
+        return default;
     }
 
     internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)

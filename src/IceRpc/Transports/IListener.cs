@@ -5,7 +5,7 @@ using System.Net;
 namespace IceRpc.Transports;
 
 /// <summary>The base interface for listeners.</summary>
-public interface IListener : IDisposable
+public interface IListener : IAsyncDisposable
 {
     /// <summary>Gets the server address of this listener. That's the address a client would connect to.</summary>
     ServerAddress ServerAddress { get; }

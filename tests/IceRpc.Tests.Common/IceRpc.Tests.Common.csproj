@@ -12,7 +12,6 @@
     <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Logger\IceRpc.Logger.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Extensions.DependencyInjection\IceRpc.Extensions.DependencyInjection.csproj" />
-    <ProjectReference Include="..\IceRpc.Conformance.Tests\IceRpc.Conformance.Tests.csproj" />
   </ItemGroup>
 
 </Project>

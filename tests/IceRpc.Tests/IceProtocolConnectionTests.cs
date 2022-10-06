@@ -62,7 +62,7 @@ public sealed class IceProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -100,7 +100,7 @@ public sealed class IceProtocolConnectionTests
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         var request = new OutgoingRequest(serviceAddress);
 
@@ -128,7 +128,7 @@ public sealed class IceProtocolConnectionTests
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
@@ -159,7 +159,7 @@ public sealed class IceProtocolConnectionTests
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
         // Act
@@ -180,7 +180,7 @@ public sealed class IceProtocolConnectionTests
             new DuplexConnectionOptions(),
             null);
 
-        using IListener<IProtocolConnection> listener =
+        await using IListener<IProtocolConnection> listener =
             new IceProtocolListener(new ConnectionOptions(), transportListener);
 
         IDuplexConnection clientTransport = IDuplexClientTransport.Default.CreateConnection(
