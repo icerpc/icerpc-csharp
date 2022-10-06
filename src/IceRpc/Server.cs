@@ -408,6 +408,7 @@ public sealed class Server : IAsyncDisposable
             if (_listener is not null)
             {
                 await _listener.DisposeAsync().ConfigureAwait(false);
+                _listener = null;
             }
 
             await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(message, cancellationToken)))

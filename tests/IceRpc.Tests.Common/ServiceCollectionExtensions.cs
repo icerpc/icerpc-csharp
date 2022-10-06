@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>()));
 
-    /// <summary>Installs the Slic multiplex transport.</summary>
+    /// <summary>Installs the Slic multiplexed transport.</summary>
     public static IServiceCollection AddSlicTransport(this IServiceCollection services) => services
         .AddSingleton<IMultiplexedServerTransport>(
             provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
@@ -95,7 +95,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddTls(this IServiceCollection services) => services
         .AddSingleton(provider => new SslClientAuthenticationOptions
         {
-            ClientCertificates = new X509CertificateCollection()
+            ClientCertificates = new X509CertificateCollection
                     {
                         new X509Certificate2("../../../certs/client.p12", "password")
                     },
@@ -117,14 +117,15 @@ public static class ServiceCollectionExtensions
 
         services
             .AddColocTransport()
+            .AddSlicTransport()
             .AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance)
             .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
             .AddIceRpcClientConnection();
 
         services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
 
-        // TODO: the following doesn't work quite well with other transports than coloc since the server address here
-        // not the listen server address.
+        // TODO: the following doesn't work with transports other than coloc. The server address is not the listen
+        // server address since server.Listen is not called yet at this point.
         services.AddOptions<ClientConnectionOptions>().Configure<Server>(
             (options, server) => options.ServerAddress = server.ServerAddress);
 
