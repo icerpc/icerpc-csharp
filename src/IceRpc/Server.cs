@@ -196,7 +196,7 @@ public sealed class Server : IAsyncDisposable
             if (_backgroundConnectionDisposeCount == 0)
             {
                 // There is no outstanding background dispose.
-                _backgroundConnectionDisposeTcs.SetResult();
+                _ = _backgroundConnectionDisposeTcs.TrySetResult();
             }
         }
 
