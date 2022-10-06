@@ -141,7 +141,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(isCompleted, Is.False);
         Assert.That(async () => await lastStreamTask, Throws.Nothing);
         await CompleteStreamsAsync(streams);
-        await CompleteStreamAsync(lastStreamTask.Result);
+        await CompleteStreamAsync(await lastStreamTask);
 
         async Task<IMultiplexedStream> CreateLastStreamAsync()
         {
