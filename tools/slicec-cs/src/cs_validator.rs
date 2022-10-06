@@ -58,11 +58,11 @@ fn validate_cs_identifier(attribute: &Attribute, diagnostic_reporter: &mut Diagn
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
         0 => diagnostic_reporter.report_error(Error::new(
-            ErrorKind::MissingRequiredArgument(cs_attributes::GENERIC.to_owned() + r#"("<identifier>")"#),
+            ErrorKind::MissingRequiredArgument(cs_attributes::IDENTIFIER.to_owned() + r#"("<identifier>")"#),
             Some(attribute.span()),
         )),
         _ => diagnostic_reporter.report_error(Error::new(
-            ErrorKind::TooManyArguments(cs_attributes::GENERIC.to_owned() + r#"("<identifier>")"#),
+            ErrorKind::TooManyArguments(cs_attributes::IDENTIFIER.to_owned() + r#"("<identifier>")"#),
             Some(attribute.span()),
         )),
     }
@@ -118,6 +118,7 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_
     for attribute in &cs_attributes(attributable.attributes()) {
         match attribute.directive.as_ref() {
             "generic" => validate_cs_generic(attribute, diagnostic_reporter),
+            "identifier" => validate_cs_identifier(attribute, diagnostic_reporter),
             _ => report_unexpected_attribute(attribute, diagnostic_reporter),
         }
     }
@@ -126,6 +127,7 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_
 fn validate_common_attributes(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute.directive.as_ref() {
         "attribute" => validate_cs_attribute(attribute, diagnostic_reporter),
+        "identifier" => validate_cs_identifier(attribute, diagnostic_reporter),
         _ => report_unexpected_attribute(attribute, diagnostic_reporter),
     }
 }
@@ -282,5 +284,69 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
         validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter);
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::super::*;
+
+    #[test]
+    fn cs_identifier_attribute_no_args() {
+        // Arrange
+        let slice = "
+            module Test;
+
+            [cs::identifier()]
+            struct S {}
+
+        ";
+
+        // Act
+        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+            .and_then(patch_comments)
+            .and_then(validate_cs_attributes)
+        {
+            Ok(data) => data.diagnostic_reporter,
+            Err(data) => data.diagnostic_reporter,
+        };
+
+        // Assert
+        let expected = [Error::new(
+            ErrorKind::MissingRequiredArgument(cs_attributes::IDENTIFIER.to_owned() + r#"("<identifier>")"#),
+            None,
+        )];
+        std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+            .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
+    }
+
+    #[test]
+    fn cs_identifier_attribute_multiple_args() {
+        // Arrange
+        let slice = "
+            module Test;
+
+            [cs::identifier(\"Foo\", \"Bar\")]
+            struct S {}
+
+        ";
+
+        // Act
+        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+            .and_then(patch_comments)
+            .and_then(validate_cs_attributes)
+        {
+            Ok(data) => data.diagnostic_reporter,
+            Err(data) => data.diagnostic_reporter,
+        };
+
+        // Assert
+        let expected = [Error::new(
+            ErrorKind::TooManyArguments(cs_attributes::IDENTIFIER.to_owned() + r#"("<identifier>")"#),
+            None,
+        )];
+        std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+            .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
     }
 }

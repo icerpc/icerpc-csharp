@@ -353,7 +353,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "slicec-cs"
+name = "slicec_cs"
 version = "0.1.0"
 dependencies = [
  "slicec",
