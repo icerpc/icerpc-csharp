@@ -301,13 +301,9 @@ public abstract class MultiplexedTransportConformanceTests
                         provider.GetService<SslClientAuthenticationOptions>());
                     connections.Add(connection);
 
-                    Task<TransportConnectionInformation> connectTask = connection.ConnectAsync(default);
-                    await Task.Delay(TimeSpan.FromMilliseconds(10));
-                    if (connectTask.IsFaulted)
-                    {
-                        await connectTask;
-                    }
-                    // Continue until connect fails
+                    await connection.ConnectAsync(default);
+
+                    // Continue until connect fails.
                 }
             }
             finally
@@ -1122,7 +1118,7 @@ public abstract class MultiplexedTransportConformanceTests
             default).ConfigureAwait(false);
 
         // Fill the stream send buffer until WriteAsync blocks.
-        ValueTask<FlushResult> writeTask = new();
+        var writeTask = new ValueTask<FlushResult>();
         byte[] payload = new byte[128 * 1024];
         while (writeTask.IsCompleted)
         {
@@ -1204,7 +1200,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
-    /// <summary>Verifies that stream write can be canceled.</summary>
+    /// <summary>Verifies that create stream fails if called before connect.</summary>
     [Test]
     public async Task Create_stream_before_calling_connect_fails()
     {
@@ -1325,11 +1321,10 @@ public abstract class MultiplexedTransportConformanceTests
 
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
-        IMultiplexedConnection remoteConnection,
-        bool bidirectional = true)
+        IMultiplexedConnection remoteConnection)
     {
         IMultiplexedStream localStream = await localConnection.CreateStreamAsync(
-            bidirectional,
+            bidirectional: true,
             default).ConfigureAwait(false);
         _ = await localStream.Output.WriteAsync(_oneBytePayload);
         IMultiplexedStream remoteStream = await remoteConnection.AcceptStreamAsync(default);

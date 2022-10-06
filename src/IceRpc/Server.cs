@@ -408,6 +408,9 @@ public sealed class Server : IAsyncDisposable
             if (_listener is not null)
             {
                 await _listener.DisposeAsync().ConfigureAwait(false);
+
+                // Clear the _listener to ensure that the ServerAddress property returns _serverAddress once the
+                // listener is disposed.
                 _listener = null;
             }
 

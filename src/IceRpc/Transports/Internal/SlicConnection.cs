@@ -371,7 +371,7 @@ internal class SlicConnection : IMultiplexedConnection
                 throw ExceptionUtil.Throw(_exception);
             }
 
-            // TODO: Cache SlicMultiplexedStream and implement stream max count flow control here like Quic?
+            // TODO: Cache SlicStream and implement stream max count flow control here like Quic?
             return new(new SlicStream(this, bidirectional, remote: false));
         }
     }

@@ -25,8 +25,6 @@ public static class ProtocolServiceCollectionExtensions
             services
                 .AddColocTransport()
                 .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-                // .AddTcpTransport()
-                // .AddDuplexTransportClientServerTest(new Uri("ice://127.0.0.1:0"))
                 .AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
         }
         else
@@ -34,8 +32,6 @@ public static class ProtocolServiceCollectionExtensions
             services
                 .AddColocTransport()
                 .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-                // .AddTcpTransport()
-                // .AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0"))
                 .AddSlicTransport()
                 .AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
         }

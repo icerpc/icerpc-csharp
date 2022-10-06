@@ -12,8 +12,8 @@ namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified server address
-    /// and the client connection connecting to the server's server address.</summary>
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host and the
+    /// client connection connecting to the server's server address.</summary>
     public static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure,
@@ -21,8 +21,8 @@ public static class ServiceCollectionExtensions
         string host = "") =>
         services.AddClientServerTest(protocol, host).AddIceRpcServer(configure);
 
-    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified server address
-    /// and the client connection connecting to the server's server address.</summary>
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host and the
+    /// client connection connecting to the server's server address.</summary>
     public static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         IDispatcher dispatcher,
@@ -92,7 +92,7 @@ public static class ServiceCollectionExtensions
         .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(
             provider.GetService<IOptions<TcpServerTransportOptions>>()?.Value ?? new()));
 
-    public static IServiceCollection AddTls(this IServiceCollection services) => services
+    public static IServiceCollection AddSslAuthenticationOptions(this IServiceCollection services) => services
         .AddSingleton(provider => new SslClientAuthenticationOptions
         {
             ClientCertificates = new X509CertificateCollection
@@ -115,9 +115,9 @@ public static class ServiceCollectionExtensions
     {
         var serverAddress = new ServerAddress(protocol) { Host = host.Length == 0 ? "colochost" : host };
 
+        // Note: the multiplexed transport is added by IceRpcServer/IceRpcClientConnection.
         services
             .AddColocTransport()
-            .AddSlicTransport()
             .AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance)
             .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
             .AddIceRpcClientConnection();

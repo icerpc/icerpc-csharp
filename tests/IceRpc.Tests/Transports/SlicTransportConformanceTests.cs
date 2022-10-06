@@ -19,8 +19,6 @@ public class SlicTransportConformanceTests : MultiplexedTransportConformanceTest
     {
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
-            // .AddTcpTransport()
-            // .AddTls()
             .AddSingleton<IMultiplexedServerTransport>(
                 provider => new SlicServerTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("server"),

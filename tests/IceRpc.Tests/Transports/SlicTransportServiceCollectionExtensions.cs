@@ -17,8 +17,6 @@ public static class SlicTransportServiceCollectionExtensions
     {
         services
             .AddColocTransport()
-            // .AddTcpTransport()
-            // .AddTls()
             .AddSingleton(provider =>
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
