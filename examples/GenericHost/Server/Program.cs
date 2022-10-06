@@ -38,7 +38,7 @@ public static class Program
                     .Bind(hostContext.Configuration.GetSection("Server"))
                     .Configure(options =>
                     {
-                        options.ServerAuthenticationOptions = new SslServerAuthenticationOptions()
+                        options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
                         {
                             ServerCertificate = new X509Certificate2(
                                 hostContext.Configuration.GetValue<string>("Certificate:File"),

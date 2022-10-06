@@ -34,27 +34,25 @@ public static class Program
                 services
                     .AddOptions<ClientConnectionOptions>()
                     .Bind(hostContext.Configuration.GetSection("Client"))
-                    .Configure<IOptions<SslClientAuthenticationOptions>>((options, clientAuthenticationOptions) =>
-                        options.ClientAuthenticationOptions = clientAuthenticationOptions.Value);
-
-                services
-                    .AddOptions<SslClientAuthenticationOptions>()
                     .Configure(options =>
                     {
                         // Configure the authentication options
                         var rootCA = new X509Certificate2(
                             hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
 
-                        // A certificate validation callback that uses the configured certificate authorities file
-                        // to validate the peer certificates.
-                        options.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                        options.ClientAuthenticationOptions = new SslClientAuthenticationOptions
                         {
-                            using var customChain = new X509Chain();
-                            customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                            customChain.ChainPolicy.DisableCertificateDownloads = true;
-                            customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                            customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-                            return customChain.Build((X509Certificate2)certificate!);
+                            // A certificate validation callback that uses the configured certificate authorities file
+                            // to validate the peer certificates.
+                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                            {
+                                using var customChain = new X509Chain();
+                                customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                                customChain.ChainPolicy.DisableCertificateDownloads = true;
+                                customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                                customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
+                                return customChain.Build((X509Certificate2)certificate!);
+                            }
                         };
                     });
 
