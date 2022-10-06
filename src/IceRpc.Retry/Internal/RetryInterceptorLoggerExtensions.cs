@@ -6,11 +6,11 @@ namespace IceRpc.Retry.Internal;
 
 internal static partial class RetryInterceptorLoggerExtensions
 {
-    private static readonly Func<ILogger, int, int, RetryPolicy, IDisposable> _retryScope =
+    private static readonly Func<ILogger, int, int, RetryPolicy, IDisposable?> _retryScope =
         LoggerMessage.DefineScope<int, int, RetryPolicy>(
             "Retry (Attempt = {Attempt}, MaxAttempts = {MaxAttempts}, RetryPolicy = {RetryPolicy})");
 
-    internal static IDisposable RetryScope(
+    internal static IDisposable? RetryScope(
         this ILogger
         logger,
         int attempt,

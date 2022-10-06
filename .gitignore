@@ -63,7 +63,7 @@ bld/
 .vs/
 *.d
 **/net6/*
-**/net6.0/*
+**/net7.0/*
 Resource.designer.cs
 *.apk
 *.apk.mSYM
