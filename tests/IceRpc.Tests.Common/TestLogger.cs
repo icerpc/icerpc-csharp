@@ -42,7 +42,7 @@ public class TestLogger : ILogger
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
-    public IDisposable BeginScope<TState>(TState state)
+    public IDisposable BeginScope<TState>(TState state) where TState : notnull
     {
         CurrentScope = new Dictionary<string, object?>(
             state as IEnumerable<KeyValuePair<string, object?>> ??

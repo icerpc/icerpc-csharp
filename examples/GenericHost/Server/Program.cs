@@ -41,7 +41,7 @@ public static class Program
                         options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
                         {
                             ServerCertificate = new X509Certificate2(
-                                hostContext.Configuration.GetValue<string>("Certificate:File"),
+                                hostContext.Configuration.GetValue<string>("Certificate:File")!,
                                 hostContext.Configuration.GetValue<string>("Certificate:Password"))
                         };
                     });
