@@ -27,7 +27,8 @@ public sealed class Server : IAsyncDisposable
     // The number of connections being disposed in the background.
     private int _backgroundConnectionDisposeCount;
 
-    private TaskCompletionSource? _backgroundConnectionDisposeTcs;
+    private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
@@ -190,9 +191,6 @@ public sealed class Server : IAsyncDisposable
                 _listener = null;
             }
 
-            // At this point, _backgroundConnectionDisposeCount can only be decremented and never incremented.
-            _backgroundConnectionDisposeTcs ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
-
             if (_backgroundConnectionDisposeCount == 0)
             {
                 // There is no outstanding background dispose.
@@ -350,7 +348,7 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            _ = BackgroundConnectionDisposeAsync(connection);
+            _ = BackgroundConnectionDisposeAsync(connection, shutdownCancellationToken);
         }
 
         // Remove the connection from _connections once shutdown completes
@@ -388,18 +386,20 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            _ = BackgroundConnectionDisposeAsync(connection);
+            _ = BackgroundConnectionDisposeAsync(connection, shutdownCancellationToken);
         }
 
-        async Task BackgroundConnectionDisposeAsync(IProtocolConnection connection)
+        async Task BackgroundConnectionDisposeAsync(
+            IProtocolConnection connection,
+            CancellationToken shutdownCancellationToken)
         {
             await connection.DisposeAsync().ConfigureAwait(false);
 
             lock (_mutex)
             {
-                if (--_backgroundConnectionDisposeCount == 0)
+                if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
                 {
-                    _backgroundConnectionDisposeTcs?.SetResult();
+                    _backgroundConnectionDisposeTcs.SetResult();
                 }
             }
         }
