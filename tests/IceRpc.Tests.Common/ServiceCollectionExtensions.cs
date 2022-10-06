@@ -113,10 +113,7 @@ public static class ServiceCollectionExtensions
         Protocol protocol,
         string host)
     {
-        if (host.Length == 0)
-        {
-            host = "colochost";
-        }
+        var serverAddress = new ServerAddress(protocol) { Host = host.Length == 0 ? "colochost" : host };
 
         services
             .AddColocTransport()
@@ -124,8 +121,10 @@ public static class ServiceCollectionExtensions
             .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
             .AddIceRpcClientConnection();
 
-        services.AddOptions<ServerOptions>().Configure(options =>
-            options.ServerAddress = new ServerAddress(protocol) { Host = host });
+        services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
+
+        // TODO: the following doesn't work quite well with other transports than coloc since the server address here
+        // not the listen server address.
         services.AddOptions<ClientConnectionOptions>().Configure<Server>(
             (options, server) => options.ServerAddress = server.ServerAddress);
 

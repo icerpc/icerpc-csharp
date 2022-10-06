@@ -22,11 +22,22 @@ public static class ProtocolServiceCollectionExtensions
 
         if (protocol == Protocol.Ice)
         {
-            services.AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
+            services
+                .AddColocTransport()
+                .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+                // .AddTcpTransport()
+                // .AddDuplexTransportClientServerTest(new Uri("ice://127.0.0.1:0"))
+                .AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
         }
         else
         {
-            services.AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
+            services
+                .AddColocTransport()
+                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+                // .AddTcpTransport()
+                // .AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0"))
+                .AddSlicTransport()
+                .AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
         }
         return services;
     }
@@ -34,12 +45,7 @@ public static class ProtocolServiceCollectionExtensions
     private static IServiceCollection AddIceProtocolTest(
         this IServiceCollection services,
         ConnectionOptions clientConnectionOptions,
-        ConnectionOptions serverConnectionOptions)
-    {
-        services
-            .AddColocTransport()
-            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"));
-
+        ConnectionOptions serverConnectionOptions) =>
         services.AddSingleton(provider =>
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceProtocolConnection(
@@ -52,19 +58,11 @@ public static class ProtocolServiceCollectionExtensions
                     serverConnectionOptions),
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
-        return services;
-    }
-
     private static IServiceCollection AddIceRpcProtocolTest(
         this IServiceCollection services,
         ConnectionOptions clientConnectionOptions,
         ConnectionOptions serverConnectionOptions)
     {
-        services
-            .AddColocTransport()
-            .AddSlicTransport()
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"));
-
         services.AddSingleton(provider =>
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceRpcProtocolConnection(
