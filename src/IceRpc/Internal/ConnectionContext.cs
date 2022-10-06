@@ -11,7 +11,7 @@ internal sealed class ConnectionContext : IConnectionContext
 
     public ServerAddress ServerAddress => _protocolConnection.ServerAddress;
 
-    public Task<string> ShutdownComplete => _protocolConnection.ShutdownComplete;
+    public Task ShutdownComplete => _protocolConnection.ShutdownComplete;
 
     public TransportConnectionInformation TransportConnectionInformation { get; }
 

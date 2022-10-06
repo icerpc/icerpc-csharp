@@ -65,7 +65,7 @@ public sealed class ProtocolConnectionTests
 
                 yield return new TestCaseData(
                     protocol,
-                    (IProtocolConnection connection) => connection.ShutdownAsync("", default),
+                    (IProtocolConnection connection) => connection.ShutdownAsync(),
                     true).SetName($"ShutdownAsync {protocol} {{m}}");
             }
         }
@@ -370,7 +370,7 @@ public sealed class ProtocolConnectionTests
 
         try
         {
-            await sut.Client.ShutdownAsync("Triggering connection reset", new CancellationToken(true));
+            await sut.Client.ShutdownAsync(new CancellationToken(true));
         }
         catch (OperationCanceledException)
         {
@@ -495,7 +495,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        Task shutdownTask = sut.Client.ShutdownAsync("");
+        Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
@@ -564,7 +564,7 @@ public sealed class ProtocolConnectionTests
         {
             await sut.ConnectAsync();
         }
-        await sut.Client.ShutdownAsync("", default);
+        await sut.Client.ShutdownAsync();
 
         // Act/Assert
         ConnectionException? exception = Assert.Throws<ConnectionException>(() => operation(sut.Client));
@@ -878,7 +878,7 @@ public sealed class ProtocolConnectionTests
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
 
-        await sut.Client.ShutdownAsync("");
+        await sut.Client.ShutdownAsync();
 
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
@@ -915,7 +915,7 @@ public sealed class ProtocolConnectionTests
 
         Task connectTask = sut.Client.ConnectAsync(default);
         using var cts = new CancellationTokenSource();
-        _ = sut.Client.ShutdownAsync("", cts.Token);
+        _ = sut.Client.ShutdownAsync(cts.Token);
 
         // Act
         cts.Cancel();
@@ -937,7 +937,7 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
+        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync();
 
         // Assert
         Assert.That(async () => await shutdownTask, Throws.Nothing);
@@ -957,7 +957,7 @@ public sealed class ProtocolConnectionTests
         Task connectTask = sut.Client.ConnectAsync(default);
 
         // Act
-        Task shutdownTask = sut.Client.ShutdownAsync("", default);
+        Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Assert
         sut.DisposeListener(); // dispose the listener to trigger the connection establishment failure.
@@ -984,7 +984,7 @@ public sealed class ProtocolConnectionTests
         Task connectTask = sut.Client.ConnectAsync(cts.Token);
 
         // Act
-        Task shutdownTask = sut.Client.ShutdownAsync("", default);
+        Task shutdownTask = sut.Client.ShutdownAsync();
         cts.Cancel();
 
         // Assert
@@ -1008,7 +1008,7 @@ public sealed class ProtocolConnectionTests
         Task connectTask = sut.Client.ConnectAsync(default);
 
         // Act
-        Task shutdownTask = sut.Client.ShutdownAsync("", default);
+        Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
@@ -1044,7 +1044,7 @@ public sealed class ProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
+        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync();
 
         // Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
@@ -1081,7 +1081,7 @@ public sealed class ProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync("");
+        Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync();
 
         // Assert
         Assert.Multiple(() =>

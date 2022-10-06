@@ -95,11 +95,11 @@ internal sealed class ClientEventSource : EventSource
     }
 
     [NonEvent]
-    internal void ConnectionShutdown(ServerAddress serverAddress, EndPoint localNetworkAddress, string message)
+    internal void ConnectionShutdown(ServerAddress serverAddress, EndPoint localNetworkAddress)
     {
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            ConnectionShutdown(serverAddress.ToString(), localNetworkAddress.ToString(), message);
+            ConnectionShutdown(serverAddress.ToString(), localNetworkAddress.ToString());
         }
     }
 
@@ -227,6 +227,6 @@ internal sealed class ClientEventSource : EventSource
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [Event(8, Level = EventLevel.Informational)]
-    private void ConnectionShutdown(string serverAddress, string? localNetworkAddress, string message) =>
-        WriteEvent(8, serverAddress, localNetworkAddress, message);
+    private void ConnectionShutdown(string serverAddress, string? localNetworkAddress) =>
+        WriteEvent(8, serverAddress, localNetworkAddress);
 }

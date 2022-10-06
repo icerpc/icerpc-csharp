@@ -94,7 +94,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         if (shutdown)
         {
-            _ = sut.Server.ShutdownAsync("");
+            _ = sut.Server.ShutdownAsync();
         }
         await sut.Server.DisposeAsync();
 
@@ -297,15 +297,14 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Act
-        _ = sut.Server.ShutdownAsync("server shutdown message");
+        _ = sut.Server.ShutdownAsync();
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
-            Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -339,15 +338,14 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        _ = sut.Server.ShutdownAsync("server shutdown message");
+        _ = sut.Server.ShutdownAsync();
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
             ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
-            Assert.That(exception!.Message, Is.EqualTo("server shutdown message"));
-            Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         });
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
@@ -633,7 +631,7 @@ public sealed class IceRpcProtocolConnectionTests
         _ = Task.Run(async () =>
         {
             (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
-            _ = connection.ShutdownAsync("shutting down", default);
+            _ = connection.ShutdownAsync();
         });
 
         // Act/Assert
