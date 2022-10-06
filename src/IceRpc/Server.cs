@@ -24,6 +24,11 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<IProtocolConnection> _refusedConnections = new();
 
+    // The number of connections being disposed in the background.
+    private int _backgroundConnectionDisposeCount;
+
+    private TaskCompletionSource? _backgroundConnectionDisposeTcs;
+
     private readonly HashSet<IProtocolConnection> _connections = new();
 
     private IListener? _listener;
@@ -184,6 +189,15 @@ public sealed class Server : IAsyncDisposable
                 _listener.Dispose();
                 _listener = null;
             }
+
+            // At this point, _backgroundConnectionDisposeCount can only be decremented and never incremented.
+            _backgroundConnectionDisposeTcs ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (_backgroundConnectionDisposeCount == 0)
+            {
+                // There is no outstanding background dispose.
+                _backgroundConnectionDisposeTcs.SetResult();
+            }
         }
 
         if (_listenTask is not null)
@@ -192,8 +206,9 @@ public sealed class Server : IAsyncDisposable
             await _listenTask.ConfigureAwait(false);
         }
 
-        await Task.WhenAll(_connections.Union(_refusedConnections).Select(
-            c => c.DisposeAsync().AsTask())).ConfigureAwait(false);
+        await Task.WhenAll(
+            _connections.Union(_refusedConnections).Select(c => c.DisposeAsync().AsTask())
+                .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
 
         _ = _shutdownCompleteSource.TrySetResult(null);
         _shutdownCts.Dispose();
@@ -331,10 +346,11 @@ public sealed class Server : IAsyncDisposable
                 else
                 {
                     _ = _refusedConnections.Remove(connection);
+                    _backgroundConnectionDisposeCount++;
                 }
             }
 
-            await connection.DisposeAsync().ConfigureAwait(false);
+            _ = BackgroundConnectionDisposeAsync(connection);
         }
 
         // Remove the connection from _connections once shutdown completes
@@ -368,10 +384,24 @@ public sealed class Server : IAsyncDisposable
                 else
                 {
                     _ = _connections.Remove(connection);
+                    _backgroundConnectionDisposeCount++;
                 }
             }
 
+            _ = BackgroundConnectionDisposeAsync(connection);
+        }
+
+        async Task BackgroundConnectionDisposeAsync(IProtocolConnection connection)
+        {
             await connection.DisposeAsync().ConfigureAwait(false);
+
+            lock (_mutex)
+            {
+                if (--_backgroundConnectionDisposeCount == 0)
+                {
+                    _backgroundConnectionDisposeTcs?.SetResult();
+                }
+            }
         }
     }
 
