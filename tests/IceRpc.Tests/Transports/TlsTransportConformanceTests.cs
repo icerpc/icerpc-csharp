@@ -19,22 +19,21 @@ public class TlsTransportConformanceTests : TcpTransportConformanceTests
     {
         var services = base.CreateServiceCollection();
 
-        services.AddOptions<SslClientAuthenticationOptions>().Configure(
-            options =>
+        services.AddSingleton(provider =>
+            new SslClientAuthenticationOptions
             {
-                options.ClientCertificates = new X509CertificateCollection()
-                {
-                    new X509Certificate2("../../../certs/client.p12", "password")
-                };
-                options.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true;
+                ClientCertificates = new X509CertificateCollection()
+                    {
+                        new X509Certificate2("../../../certs/client.p12", "password")
+                    },
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
             });
 
-        services.AddOptions<SslServerAuthenticationOptions>().Configure(
-            options =>
-            {
-                options.ClientCertificateRequired = false;
-                options.ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password");
-            });
+        services.AddSingleton(provider => new SslServerAuthenticationOptions
+        {
+            ClientCertificateRequired = false,
+            ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+        });
 
         return services;
     }

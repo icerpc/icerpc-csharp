@@ -16,9 +16,9 @@ public interface IConnectionContext
     ServerAddress ServerAddress { get; }
 
     /// <summary>Gets a task that completes when the connection is shut down or aborted.</summary>
-    /// <value>A task that completes with the shutdown message when the connection is successfully shut down. It
-    /// completes with an exception when the connection is aborted.</value>
-    Task<string> ShutdownComplete { get; }
+    /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
+    /// the connection is aborted.</value>
+    Task ShutdownComplete { get; }
 
     /// <summary>Gets the transport connection information.</summary>
     TransportConnectionInformation TransportConnectionInformation { get; }

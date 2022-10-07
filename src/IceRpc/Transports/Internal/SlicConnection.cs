@@ -66,7 +66,7 @@ internal class SlicConnection : IMultiplexedConnection
     {
         if (_disposeTask is not null)
         {
-            throw new TransportException(TransportErrorCode.ConnectionDisposed);
+            throw new ObjectDisposedException($"{typeof(SlicConnection)}");
         }
         else if (_exception is not null)
         {
@@ -295,7 +295,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_disposeTask is not null)
             {
-                throw new TransportException(TransportErrorCode.ConnectionDisposed);
+                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
             else if (_exception is not null)
             {
@@ -354,9 +354,27 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public IMultiplexedStream CreateStream(bool bidirectional) =>
-        // TODO: Cache SlicMultiplexedStream
-        new SlicStream(this, bidirectional, remote: false);
+    public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
+    {
+        lock (_mutex)
+        {
+            if (_readFramesTask is null)
+            {
+                throw new InvalidOperationException("the Slic connection is not connected");
+            }
+            else if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
+            }
+            else if (_exception is not null)
+            {
+                throw ExceptionUtil.Throw(_exception);
+            }
+
+            // TODO: Cache SlicStream and implement stream max count flow control here like Quic?
+            return new(new SlicStream(this, bidirectional, remote: false));
+        }
+    }
 
     public ValueTask DisposeAsync()
     {

@@ -236,18 +236,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down all connections managed by this cache, and send a default message to the servers.
-    /// </summary>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes when the shutdown is complete.</returns>
-    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-        ShutdownAsync("ConnectionCache shutdown", cancellationToken);
-
     /// <summary>Gracefully shuts down all connections managed by this cache.</summary>
-    /// <param name="message">The message to send to the server with the icerpc protocol.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the shutdown is complete.</returns>
-    public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
@@ -268,7 +260,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             .Concat(_activeConnections.Values);
 
         return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync(message, cancellationToken)));
+            allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)));
     }
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
@@ -377,7 +369,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             try
             {
-                _ = await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
             {

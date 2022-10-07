@@ -4,8 +4,6 @@ using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using System.Net;
 
 namespace IceRpc.Tests;
 
@@ -14,58 +12,76 @@ public static class ProtocolServiceCollectionExtensions
     public static IServiceCollection AddProtocolTest(
         this IServiceCollection services,
         Protocol protocol,
-        IDispatcher? dispatcher = null)
+        IDispatcher? dispatcher = null,
+        ConnectionOptions? clientConnectionOptions = null,
+        ConnectionOptions? serverConnectionOptions = null)
     {
-        services.AddColocTransport();
+        clientConnectionOptions ??= new();
+        serverConnectionOptions ??= new();
+        serverConnectionOptions.Dispatcher ??= dispatcher;
 
-        services.AddOptions<ServerOptions>().Configure(
-            options =>
-            {
-                options.ServerAddress = new ServerAddress(protocol) { Host = "colochost" };
-                options.ConnectionOptions.Dispatcher = dispatcher ?? ServiceNotFoundDispatcher.Instance;
-            });
+        if (protocol == Protocol.Ice)
+        {
+            services
+                .AddColocTransport()
+                .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+                .AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
+        }
+        else
+        {
+            services
+                .AddColocTransport()
+                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+                .AddSlicTransport()
+                .AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
+        }
+        return services;
+    }
 
-        services.AddSingleton<IMultiplexedServerTransport>(
-            provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()));
-        services.AddSingleton<IMultiplexedClientTransport>(
-            provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
+    private static IServiceCollection AddIceProtocolTest(
+        this IServiceCollection services,
+        ConnectionOptions clientConnectionOptions,
+        ConnectionOptions serverConnectionOptions) =>
+        services.AddSingleton(provider =>
+            new ClientServerProtocolConnection(
+                clientProtocolConnection: new IceProtocolConnection(
+                    provider.GetRequiredService<IDuplexConnection>(),
+                    isServer: false,
+                    clientConnectionOptions),
+                acceptServerConnectionAsync: async () => new IceProtocolConnection(
+                    (await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(default)).Connection,
+                    isServer: true,
+                    serverConnectionOptions),
+                listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
-        services.AddSingleton<IListener<IDuplexConnection>, DuplexListenerDecorator>();
-        services.AddSingleton<IListener<IMultiplexedConnection>, MultiplexedListenerDecorator>();
+    private static IServiceCollection AddIceRpcProtocolTest(
+        this IServiceCollection services,
+        ConnectionOptions clientConnectionOptions,
+        ConnectionOptions serverConnectionOptions)
+    {
+        services.AddSingleton(provider =>
+            new ClientServerProtocolConnection(
+                clientProtocolConnection: new IceRpcProtocolConnection(
+                    provider.GetRequiredService<IMultiplexedConnection>(),
+                    isServer: false,
+                    clientConnectionOptions),
+                acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
+                    (await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
+                        default)).Connection,
+                    isServer: true,
+                    serverConnectionOptions),
+                listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
 
-        if (protocol == Protocol.Ice)
-        {
-            services.AddSingleton<IClientServerProtocolConnection, ClientServerIceProtocolConnection>();
-        }
-        else
-        {
-            services.AddSingleton<IClientServerProtocolConnection, ClientServerIceRpcProtocolConnection>();
-        }
         return services;
     }
 }
 
-internal interface IClientServerProtocolConnection
-{
-    IProtocolConnection Client { get; }
-    IProtocolConnection Server { get; }
-
-    /// <summary>Establishes a client connection and accepts the server connection.</summary>
-    Task ConnectAsync();
-
-    /// <summary>Accepts the server connection only.</summary>
-    Task AcceptAsync();
-
-    /// <summary>Dispose the listener. This is useful to trigger connection establishment failures.</summary>
-    public void DisposeListener();
-}
-
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also ensures
 /// the connections are correctly disposed.</summary>
-internal abstract class ClientServerProtocolConnection : IClientServerProtocolConnection, IDisposable
+internal class ClientServerProtocolConnection : IDisposable
 {
     public IProtocolConnection Client { get; }
 
@@ -76,7 +92,7 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
     }
 
     private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
-    private readonly IDisposable _listener;
+    private readonly IAsyncDisposable _listener;
     private IProtocolConnection? _server;
 
     public async Task ConnectAsync()
@@ -98,129 +114,15 @@ internal abstract class ClientServerProtocolConnection : IClientServerProtocolCo
         _ = _server?.DisposeAsync().AsTask();
     }
 
-    public void DisposeListener() => _listener.Dispose();
+    public ValueTask DisposeListenerAsync() => _listener.DisposeAsync();
 
-    private protected ClientServerProtocolConnection(
+    internal ClientServerProtocolConnection(
         IProtocolConnection clientProtocolConnection,
         Func<Task<IProtocolConnection>> acceptServerConnectionAsync,
-        IDisposable listener)
+        IAsyncDisposable listener)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;
         _listener = listener;
         Client = clientProtocolConnection;
     }
-}
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Performance",
-    "CA1812:Avoid uninstantiated internal classes",
-    Justification = "DI instantiated")]
-internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolConnection
-{
-    // This constructor must be public to be usable by DI container
-#pragma warning disable CA2000 // the connection is disposed by the base class Dispose method
-    public ClientServerIceProtocolConnection(
-        IDuplexClientTransport clientTransport,
-        IListener<IDuplexConnection> listener,
-        IOptions<ClientConnectionOptions> clientConnectionOptions,
-        IOptions<ServerOptions> serverOptions,
-        IOptions<DuplexConnectionOptions> duplexConnectionOptions)
-        : base(
-            clientProtocolConnection: new IceProtocolConnection(
-                clientTransport.CreateConnection(
-                    listener.ServerAddress,
-                    duplexConnectionOptions.Value,
-                    clientConnectionOptions.Value.ClientAuthenticationOptions),
-                isServer: false,
-                clientConnectionOptions.Value),
-            acceptServerConnectionAsync: async () => new IceProtocolConnection(
-                (await listener.AcceptAsync(default)).Connection,
-                isServer: true,
-                serverOptions.Value.ConnectionOptions),
-            listener)
-    {
-    }
-#pragma warning restore CA2000
-}
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Performance",
-    "CA1812:Avoid uninstantiated internal classes",
-    Justification = "DI instantiated")]
-internal sealed class ClientServerIceRpcProtocolConnection : ClientServerProtocolConnection
-{
-    // This constructor must be public to be usable by DI container
-#pragma warning disable CA2000 // the connection is disposed by the base class Dispose method
-    public ClientServerIceRpcProtocolConnection(
-        IMultiplexedClientTransport clientTransport,
-        IListener<IMultiplexedConnection> listener,
-        IOptions<ClientConnectionOptions> clientConnectionOptions,
-        IOptions<ServerOptions> serverOptions,
-        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions)
-        : base(
-            clientProtocolConnection: new IceRpcProtocolConnection(
-                clientTransport.CreateConnection(
-                    listener.ServerAddress,
-                    multiplexedConnectionOptions.Value,
-                    clientConnectionOptions.Value.ClientAuthenticationOptions),
-                isServer: false,
-                clientConnectionOptions.Value),
-            acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
-                (await listener.AcceptAsync(default)).Connection,
-                isServer: true,
-                serverOptions.Value.ConnectionOptions),
-            listener)
-    {
-    }
-#pragma warning restore CA2000
-}
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Performance",
-    "CA1812:Avoid uninstantiated internal classes",
-    Justification = "DI instantiated")]
-internal class DuplexListenerDecorator : IListener<IDuplexConnection>
-{
-    public ServerAddress ServerAddress => _listener.ServerAddress;
-
-    private readonly IListener<IDuplexConnection> _listener;
-
-    public DuplexListenerDecorator(
-        IDuplexServerTransport serverTransport,
-        IOptions<ServerOptions> serverOptions,
-        IOptions<DuplexConnectionOptions> duplexConnectionOptions) =>
-        _listener = serverTransport.Listen(
-            serverOptions.Value.ServerAddress,
-            duplexConnectionOptions.Value,
-            serverOptions.Value.ServerAuthenticationOptions);
-
-    public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
-        CancellationToken cancellationToken) => _listener.AcceptAsync(cancellationToken);
-
-    public void Dispose() => _listener.Dispose();
-}
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Performance",
-    "CA1812:Avoid uninstantiated internal classes",
-    Justification = "DI instantiated")]
-internal class MultiplexedListenerDecorator : IListener<IMultiplexedConnection>
-{
-    public ServerAddress ServerAddress => _listener.ServerAddress;
-
-    private readonly IListener<IMultiplexedConnection> _listener;
-
-    public MultiplexedListenerDecorator(
-        IMultiplexedServerTransport serverTransport,
-        IOptions<ServerOptions> serverOptions,
-        IOptions<MultiplexedConnectionOptions> multiplexedConnectionOptions) =>
-        _listener = serverTransport.Listen(
-            serverOptions.Value.ServerAddress,
-            multiplexedConnectionOptions.Value,
-            serverOptions.Value.ServerAuthenticationOptions);
-
-    public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
-        CancellationToken cancellationToken) => _listener.AcceptAsync(cancellationToken);
-
-    public void Dispose() => _listener.Dispose();
 }

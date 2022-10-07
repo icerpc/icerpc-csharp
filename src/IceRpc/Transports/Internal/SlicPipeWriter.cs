@@ -57,7 +57,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
 
-    public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken) =>
+    public override ValueTask<FlushResult> WriteAsync(
+        ReadOnlyMemory<byte> source,
+        CancellationToken cancellationToken) =>
         // Writing an empty buffer completes the stream.
         WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancellationToken);
 

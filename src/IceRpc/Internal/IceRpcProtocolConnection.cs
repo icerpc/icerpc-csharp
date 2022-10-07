@@ -135,7 +135,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // This needs to be set before starting the accept requests task bellow.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        _controlStream = _transportConnection.CreateStream(false);
+        _controlStream = await _transportConnection.CreateStreamAsync(false, cancellationToken).ConfigureAwait(false);
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -181,7 +181,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
-                InitiateShutdown(ConnectionErrorCode.ClosedByPeer, goAwayFrame.Message);
+                InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
                 return goAwayFrame;
             },
             CancellationToken.None);
@@ -320,7 +320,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
 
             // Create the stream.
-            stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
+            stream = await _transportConnection.CreateStreamAsync(
+                bidirectional: !request.IsOneway,
+                invocationCts.Token).ConfigureAwait(false);
 
             // Keep track of the invocation for the shutdown logic.
             lock (_mutex)
@@ -440,7 +442,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancellationToken)
+    private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
     {
         Debug.Assert(ConnectionClosedException is not null);
 
@@ -470,7 +472,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     _dispatchesCompleted.TrySetResult();
                 }
-                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId);
             }
 
             await SendControlFrameAsync(

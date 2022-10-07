@@ -94,7 +94,7 @@ public static class Program
                     Console.WriteLine(await _hello.SayHelloAsync(name, cancellationToken: cancellationToken));
                 }
 
-                await _connection.ShutdownAsync("client is going away", cancellationToken);
+                await _connection.ShutdownAsync(cancellationToken);
             }
             catch (Exception exception)
             {
