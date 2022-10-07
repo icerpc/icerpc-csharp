@@ -39,7 +39,7 @@ pub trait EntityExt: Entity {
     fn interface_name(&self) -> String;
 
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.
-    fn scoped_interface_name(&self, current_namepsace: &str) -> String;
+    fn scoped_interface_name(&self, current_namespace: &str) -> String;
 
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String>;
 

@@ -30,7 +30,7 @@ public class IdentifierAttributeTests
 
         // Assert
         Assert.That(myStruct.__renamed_x, Is.EqualTo(1));
-        Assert.That(__renamed_struct.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::NonRenamedStruct"));
+        Assert.That(__renamed_struct.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalStruct"));
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class IdentifierAttributeTests
         __renamed_exception ex = new __renamed_exception();
 
         // Assert
-        Assert.That(__renamed_exception.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::NonRenamedException"));
+        Assert.That(__renamed_exception.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
     }
 
     [Test]
