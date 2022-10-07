@@ -132,4 +132,49 @@ public class ServerTests
         await Task.Delay(TimeSpan.FromSeconds(1));
         await connection3.ConnectAsync();
     }
+
+    [Test]
+    public async Task Dispose_waits_for_background_connection_dispose()
+    {
+        // Arrange
+        using var dispatchSemaphore = new SemaphoreSlim(0);
+        using var connectSemaphore = new SemaphoreSlim(0);
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            connectSemaphore.Release();
+            await dispatchSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            return new OutgoingResponse(request);
+        });
+        await using var server = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            });
+
+        server.Listen();
+        await using var connection = new ClientConnection(
+           new ClientConnectionOptions
+           {
+               ServerAddress = server.ServerAddress,
+           });
+
+        Task<IncomingResponse> invokeTask =
+            connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+
+        // Wait for invocation to be dispatched.
+        await connectSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        // Act
+        ValueTask disposeTask = server.DisposeAsync();
+
+        // Assert
+        Assert.That(disposeTask.IsCompleted, Is.False);
+        dispatchSemaphore.Release();
+        await disposeTask.ConfigureAwait(false);
+
+        IceRpcProtocolStreamException? exception =
+            Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await invokeTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
+    }
 }
