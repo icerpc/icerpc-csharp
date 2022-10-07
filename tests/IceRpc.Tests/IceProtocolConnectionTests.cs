@@ -71,7 +71,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         if (shutdown)
         {
-            _ = sut.Server.ShutdownAsync("");
+            _ = sut.Server.ShutdownAsync();
         }
         await sut.Server.DisposeAsync();
 
@@ -193,7 +193,7 @@ public sealed class IceProtocolConnectionTests
         _ = Task.Run(async () =>
         {
             (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
-            _ = connection.ShutdownAsync("shutting down", default);
+            _ = connection.ShutdownAsync();
         });
 
         // Act/Assert

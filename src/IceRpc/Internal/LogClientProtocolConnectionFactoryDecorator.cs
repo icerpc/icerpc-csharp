@@ -27,7 +27,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly IProtocolConnection _decoratee;
         private EndPoint? _localNetworkAddress;
@@ -65,8 +65,8 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(message, cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(cancellationToken);
 
         internal LogProtocolConnectionDecorator(IProtocolConnection decoratee)
         {
@@ -78,9 +78,9 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             {
                 try
                 {
-                    string message = await ShutdownComplete.ConfigureAwait(false);
+                    await ShutdownComplete.ConfigureAwait(false);
                     Debug.Assert(_localNetworkAddress is not null);
-                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress, message);
+                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress);
                 }
                 catch (Exception exception)
                 {

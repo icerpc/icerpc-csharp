@@ -17,9 +17,9 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     ServerAddress ServerAddress { get; }
 
     /// <summary>Gets a task that completes when the connection is shut down or fails.</summary>
-    /// <value>A task that completes with the shutdown message when the connection is successfully shut down. It
-    /// completes with an exception when the connection fails.</value>
-    Task<string> ShutdownComplete { get; }
+    /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
+    /// the connection fails.</value>
+    Task ShutdownComplete { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -40,7 +40,6 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Gracefully shuts down the connection.</summary>
-    /// <param name="message">The message transmitted to the peer with the icerpc protocol.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
@@ -54,5 +53,5 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    Task ShutdownAsync(string message, CancellationToken cancellationToken = default);
+    Task ShutdownAsync(CancellationToken cancellationToken = default);
 }

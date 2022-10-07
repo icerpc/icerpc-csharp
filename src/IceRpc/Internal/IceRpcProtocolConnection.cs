@@ -181,7 +181,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
-                InitiateShutdown(ConnectionErrorCode.ClosedByPeer, goAwayFrame.Message);
+                InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
                 return goAwayFrame;
             },
             CancellationToken.None);
@@ -442,7 +442,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancellationToken)
+    private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
     {
         Debug.Assert(ConnectionClosedException is not null);
 
@@ -472,7 +472,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     _dispatchesCompleted.TrySetResult();
                 }
-                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId);
             }
 
             await SendControlFrameAsync(
