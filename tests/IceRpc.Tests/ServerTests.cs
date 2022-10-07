@@ -139,8 +139,10 @@ public class ServerTests
         // Arrange
         using var dispatchSemaphore = new SemaphoreSlim(0);
         using var connectSemaphore = new SemaphoreSlim(0);
+        IConnectionContext? serverConnectionContext = null;
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
+            serverConnectionContext = request.ConnectionContext;
             connectSemaphore.Release();
             await dispatchSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             return new OutgoingResponse(request);
@@ -148,33 +150,41 @@ public class ServerTests
         await using var server = new Server(
             new ServerOptions
             {
-                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ConnectionOptions = new ConnectionOptions
+                {
+                    Dispatcher = dispatcher,
+                    ShutdownTimeout = TimeSpan.FromMilliseconds(500),
+                },
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             });
 
         server.Listen();
-        await using var connection = new ClientConnection(
+        await using var clientConnection = new ClientConnection(
            new ClientConnectionOptions
            {
+               ShutdownTimeout = TimeSpan.FromMilliseconds(500),
                ServerAddress = server.ServerAddress,
            });
 
         Task<IncomingResponse> invokeTask =
-            connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+            clientConnection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Wait for invocation to be dispatched.
         await connectSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
-        // Act
-        ValueTask disposeTask = server.DisposeAsync();
+        try
+        {
+            await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            await serverConnectionContext!.ShutdownComplete.ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+        }
 
-        // Assert
+        ValueTask disposeTask = server.DisposeAsync();
+        await Task.Delay(TimeSpan.FromSeconds(1));
         Assert.That(disposeTask.IsCompleted, Is.False);
         dispatchSemaphore.Release();
-        await disposeTask.ConfigureAwait(false);
-
-        IceRpcProtocolStreamException? exception =
-            Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
+        await disposeTask;
     }
 }
