@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::Tests::Slice;
+
+[cs::identifier("__renamed_class")]
+class NonRenamedClass {
+    [cs::identifier("__renamed_x")] x: int32,
+}

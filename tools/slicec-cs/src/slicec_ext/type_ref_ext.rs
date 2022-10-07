@@ -29,7 +29,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         let type_str = match &self.concrete_typeref() {
             TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute(cs_attributes::TYPE, false) {
                 Some(args) => args.first().unwrap().to_owned(),
-                None => struct_ref.escape_scoped_identifier(namespace),
+                None => struct_ref.definition().escape_scoped_identifier(namespace),
             },
             TypeRefs::Exception(exception_ref) => exception_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),

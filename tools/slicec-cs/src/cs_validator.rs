@@ -133,10 +133,18 @@ fn validate_common_attributes(attribute: &Attribute, diagnostic_reporter: &mut D
 }
 
 fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut DiagnosticReporter) {
-    match data_type.concrete_type() {
-        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, diagnostic_reporter),
-        _ => report_typeref_unexpected_attributes(data_type, diagnostic_reporter),
-    }
+    data_type
+        .attributes()
+        .iter()
+        .for_each(|attribute| match attribute.directive.as_ref() {
+            "identifier" => validate_cs_identifier(attribute, diagnostic_reporter),
+            _ => match data_type.concrete_type() {
+                Types::Sequence(_) | Types::Dictionary(_) => {
+                    validate_collection_attributes(data_type, diagnostic_reporter)
+                }
+                _ => report_typeref_unexpected_attributes(data_type, diagnostic_reporter),
+            },
+        });
 }
 
 fn report_typeref_unexpected_attributes<T: Attributable>(
@@ -173,6 +181,10 @@ impl Visitor for CsValidator<'_> {
                         ));
                     }
                 }
+                "identifier" => self.diagnostic_reporter.report_error(Error::new(
+                    ErrorKind::InvalidAttribute(cs_attributes::NAMESPACE.to_owned(), "module".to_owned()),
+                    Some(attribute.span()),
+                )),
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -293,14 +305,13 @@ mod test {
     use super::super::*;
 
     #[test]
-    fn cs_identifier_attribute_no_args() {
+    fn identifier_attribute_no_args() {
         // Arrange
         let slice = "
             module Test;
 
             [cs::identifier()]
             struct S {}
-
         ";
 
         // Act
@@ -322,14 +333,13 @@ mod test {
     }
 
     #[test]
-    fn cs_identifier_attribute_multiple_args() {
+    fn identifier_attribute_multiple_args() {
         // Arrange
         let slice = "
             module Test;
 
             [cs::identifier(\"Foo\", \"Bar\")]
             struct S {}
-
         ";
 
         // Act
@@ -344,6 +354,55 @@ mod test {
         // Assert
         let expected = [Error::new(
             ErrorKind::TooManyArguments(cs_attributes::IDENTIFIER.to_owned() + r#"("<identifier>")"#),
+            None,
+        )];
+        std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+            .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
+    }
+
+    #[test]
+    fn identifier_attribute_single_arg() {
+        // Arrange
+        let slice = "
+            module Test;
+
+            [cs::identifier(\"Foo\")]
+            struct S {}
+        ";
+
+        // Act
+        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+            .and_then(patch_comments)
+            .and_then(validate_cs_attributes)
+        {
+            Ok(data) => data.diagnostic_reporter,
+            Err(data) => data.diagnostic_reporter,
+        };
+
+        // Assert
+        assert!(diagnostic_reporter.into_diagnostics().is_empty());
+    }
+
+    #[test]
+    fn identifier_attribute_invalid_on_modules() {
+        // Arrange
+        let slice = "
+            [cs::identifier(\"Foo\")]
+            module Test;
+        ";
+
+        // Act
+        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+            .and_then(patch_comments)
+            .and_then(validate_cs_attributes)
+        {
+            Ok(data) => data.diagnostic_reporter,
+            Err(data) => data.diagnostic_reporter,
+        };
+
+        // Assert
+        let expected = [Error::new(
+            ErrorKind::InvalidAttribute(cs_attributes::NAMESPACE.to_owned(), "module".to_owned()),
             None,
         )];
         std::iter::zip(expected, diagnostic_reporter.into_diagnostics())

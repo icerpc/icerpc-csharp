@@ -1,0 +1,29 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Tests::Slice;
+
+[cs::identifier("__renamed_struct")]
+struct NonRenamedStruct
+{
+    [cs::identifier("__renamed_x")] x: int32,
+}
+
+[cs::identifier("__renamed_interface")]
+interface NonRenamedInterface
+{
+    [cs::identifier("__renamed_op")]
+    op([cs::identifier("__renamed_param")] myParam: NonRenamedStruct) ->
+        (
+            [cs::identifier("__renamed_return_one")] myReturnOne: int32,
+            [cs::identifier("__renamed_return_two")] myReturnTwo: int32
+        );
+}
+
+[cs::identifier("__renamed_exception")]
+exception NonRenamedException {}
+
+[cs::identifier("__renamed_enum")]
+enum NonRenamedEnum
+{
+    [cs::identifier("__renamed_enumerator")] enumerator
+}

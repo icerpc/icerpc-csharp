@@ -145,15 +145,7 @@ where
     }
 
     fn interface_name(&self) -> String {
-        let identifier = self.cs_identifier(Some(Case::Pascal));
-        let mut chars = identifier.chars();
-
-        // Check if the interface already follows the 'I' prefix convention.
-        if identifier.chars().count() > 2 && chars.next().unwrap() == 'I' && chars.next().unwrap().is_uppercase() {
-            identifier.to_owned()
-        } else {
-            format!("I{}", identifier)
-        }
+        format!("I{}", self.cs_identifier(Some(Case::Pascal)))
     }
 
     fn scoped_interface_name(&self, current_namespace: &str) -> String {
