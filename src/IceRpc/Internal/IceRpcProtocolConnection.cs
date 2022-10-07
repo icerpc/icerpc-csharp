@@ -135,7 +135,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // This needs to be set before starting the accept requests task bellow.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        _controlStream = _transportConnection.CreateStream(false);
+        _controlStream = await _transportConnection.CreateStreamAsync(false, cancellationToken).ConfigureAwait(false);
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -320,7 +320,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
 
             // Create the stream.
-            stream = _transportConnection.CreateStream(bidirectional: !request.IsOneway);
+            stream = await _transportConnection.CreateStreamAsync(
+                bidirectional: !request.IsOneway,
+                invocationCts.Token).ConfigureAwait(false);
 
             // Keep track of the invocation for the shutdown logic.
             lock (_mutex)

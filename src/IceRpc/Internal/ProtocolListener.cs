@@ -21,7 +21,7 @@ internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
         return (CreateProtocolConnection(transportConnection), remoteNetworkAddress);
     }
 
-    public void Dispose() => _transportListener.Dispose();
+    public ValueTask DisposeAsync() => _transportListener.DisposeAsync();
 
     internal ProtocolListener(IListener<T> transportListener) => _transportListener = transportListener;
 

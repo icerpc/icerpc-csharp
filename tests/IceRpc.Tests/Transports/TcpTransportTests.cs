@@ -110,7 +110,7 @@ public class TcpTransportTests
     public async Task Configure_server_connection_buffer_size(int bufferSize)
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
@@ -173,7 +173,7 @@ public class TcpTransportTests
     public async Task Configure_server_connection_listen_backlog()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 18
@@ -213,21 +213,21 @@ public class TcpTransportTests
     }
 
     [Test]
-    public void Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
+    public async Task Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener();
+        await using IListener<IDuplexConnection> listener = CreateTcpListener();
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
         var acceptTask = listener.AcceptAsync(default);
 
         // Act
-        listener.Dispose();
+        await listener.DisposeAsync();
 
         // Assert
-        TransportException exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
-        Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.Unspecified));
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.Unspecified));
     }
 
     /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see
@@ -250,7 +250,7 @@ public class TcpTransportTests
         // Arrange
 
         using var cts = new CancellationTokenSource();
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
@@ -277,7 +277,7 @@ public class TcpTransportTests
     {
         // Arrange
         using var cts = new CancellationTokenSource();
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
@@ -313,7 +313,7 @@ public class TcpTransportTests
     public async Task Tls_server_connection_connect_fails_exception()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener =
+        await using IListener<IDuplexConnection> listener =
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
         using TcpClientConnection clientConnection =
             CreateTcpClientConnection(listener.ServerAddress, authenticationOptions: DefaultSslClientAuthenticationOptions);
@@ -336,7 +336,7 @@ public class TcpTransportTests
     public async Task Tls_server_connect_operation_canceled_exception()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
