@@ -16,6 +16,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly Dictionary<ServerAddress, IProtocolConnection> _activeConnections =
         new(ServerAddressComparer.OptionalTransport);
 
+    private int _backgroundConnectionDisposeCount;
+
+    private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly IClientProtocolConnectionFactory _connectionFactory;
 
     private readonly object _mutex = new();
@@ -70,14 +75,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 // already disposed by a previous or concurrent call.
             }
+
+            if (_backgroundConnectionDisposeCount == 0)
+            {
+                // There is no outstanding background dispose.
+                _ = _backgroundConnectionDisposeTcs.TrySetResult();
+            }
         }
 
         // Dispose all connections managed by this cache.
         IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
             .Concat(_activeConnections.Values);
 
-        await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
-            .ConfigureAwait(false);
+        await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask())
+            .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
 
         _shutdownCts.Dispose();
     }
@@ -391,10 +402,18 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     bool removed = _activeConnections.Remove(connection.ServerAddress);
                     Debug.Assert(removed);
+                    _backgroundConnectionDisposeCount++;
                 }
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
+            lock (_mutex)
+            {
+                if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
+                {
+                    _backgroundConnectionDisposeTcs.SetResult();
+                }
+            }
         }
     }
 }
