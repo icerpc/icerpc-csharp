@@ -23,9 +23,7 @@ public class StreamTests
         var expected = Enumerable.Range(0, size).Select(i => i).ToArray();
 
         // Act
-        PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
-            GetDataAsync(size),
-            encodeOptions: null,
+        var payload = GetDataAsync(size).ToPipeReader(
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             useSegments: false);
 
@@ -87,9 +85,7 @@ public class StreamTests
         var expected = Enumerable.Range(0, size).Select(i => $"hello-{i}").ToArray();
 
         // Act
-        PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
-            GetDataAsync(size),
-            encodeOptions: null,
+        var payload = GetDataAsync(size).ToPipeReader(
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
             useSegments: true);
 
