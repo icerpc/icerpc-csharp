@@ -2,28 +2,28 @@
 
 module IceRpc::Tests::Slice;
 
-[cs::identifier("__renamed_struct")]
+[cs::identifier("REnamedStruct")]
 struct OriginalStruct
 {
-    [cs::identifier("__renamed_x")] x: int32,
+    [cs::identifier("renamedX")] x: int32,
 }
 
-[cs::identifier("__renamed_interface")]
+[cs::identifier("REnamedInterface")]
 interface OriginalInterface
 {
-    [cs::identifier("__renamed_op")]
-    op([cs::identifier("__renamed_param")] myParam: OriginalStruct) ->
+    [cs::identifier("REnamedOp")]
+    op([cs::identifier("renamedParam")] myParam: OriginalStruct) ->
         (
-            [cs::identifier("__renamed_return_one")] myReturnOne: int32,
-            [cs::identifier("__renamed_return_two")] myReturnTwo: int32
+            [cs::identifier("renamedReturnOne")] myReturnOne: int32,
+            [cs::identifier("renamedReturnTwo")] myReturnTwo: int32
         );
 }
 
-[cs::identifier("__renamed_exception")]
+[cs::identifier("REnamedException")]
 exception OriginalException {}
 
-[cs::identifier("__renamed_enum")]
+[cs::identifier("REnamedEnum")]
 enum OriginalEnum
 {
-    [cs::identifier("__renamed_enumerator")] enumerator
+    [cs::identifier("REnamedEnumerator")] originalEnumerator
 }

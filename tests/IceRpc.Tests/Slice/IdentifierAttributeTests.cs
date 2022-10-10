@@ -14,10 +14,10 @@ namespace IceRpc.Tests.Slice.Identifiers;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentifierAttributeTests
 {
-    class IdentifierOperations : Service, I__renamed_interface
+    class IdentifierOperations : Service, IREnamedInterface
     {
-        public ValueTask<(int, int)> __renamed_opAsync(
-            __renamed_struct __renamed_param,
+        public ValueTask<(int, int)> REnamedOpAsync(
+            REnamedStruct __renamed_param,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new((1, 2));
     }
@@ -26,11 +26,11 @@ public class IdentifierAttributeTests
     public void Renamed_struct_identifier()
     {
         // Act
-        __renamed_struct myStruct = new __renamed_struct(1);
+        REnamedStruct myStruct = new REnamedStruct(1);
 
         // Assert
-        Assert.That(myStruct.__renamed_x, Is.EqualTo(1));
-        Assert.That(__renamed_struct.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalStruct"));
+        Assert.That(myStruct.renamedX, Is.EqualTo(1));
+        Assert.That(REnamedStruct.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalStruct"));
     }
 
     [Test]
@@ -39,43 +39,43 @@ public class IdentifierAttributeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new IdentifierOperations())
-            .AddIceRpcProxy<I__renamed_interfaceProxy, __renamed_interfaceProxy>()
+            .AddIceRpcProxy<IREnamedInterfaceProxy, REnamedInterfaceProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        I__renamed_interfaceProxy proxy = provider.GetRequiredService<I__renamed_interfaceProxy>();
+        IREnamedInterfaceProxy proxy = provider.GetRequiredService<IREnamedInterfaceProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act / Assert
-        _ = await proxy.__renamed_opAsync(new __renamed_struct(1));
+        _ = await proxy.REnamedOpAsync(new REnamedStruct(1));
     }
 
     [Test]
     public void Renamed_exception()
     {
         // Act
-        __renamed_exception ex = new __renamed_exception();
+        REnamedException ex = new REnamedException();
 
         // Assert
-        Assert.That(__renamed_exception.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
+        Assert.That(REnamedException.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
     }
 
     [Test]
     public void Renamed_enum_and_enumerators()
     {
         // Act / Assert
-        __renamed_enum myEnum = __renamed_enum.__renamed_enumerator;
+        REnamedEnum myEnum = REnamedEnum.REnamedEnumerator;
 
         // Assert
-        Assert.That(myEnum, Is.EqualTo(__renamed_enum.__renamed_enumerator));
+        Assert.That(myEnum, Is.EqualTo(REnamedEnum.REnamedEnumerator));
     }
 
     [Test]
     public void Renamed_class_with_renamed_data_member()
     {
         // Act / Assert
-        __renamed_class myClass = new __renamed_class(1);
+        REnamedClass myClass = new REnamedClass(1);
 
         // Assert
-        Assert.That(myClass.__renamed_x, Is.EqualTo(1));
+        Assert.That(myClass.renamedX, Is.EqualTo(1));
     }
 }
