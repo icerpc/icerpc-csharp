@@ -90,43 +90,21 @@ public static class AsyncEnumerableExtensions
                         _pipe.Writer.Advance(4);
                     }
 
-                    int size = 0;
-                    ValueTask<bool> moveNext;
-                    while (hasNext)
-                    {
-                        size += EncodeElement(_asyncEnumerator.Current);
-
-                        // If we reached the stream flush threshold, it's time to flush.
-                        if (size >= _streamFlushThreshold)
-                        {
-                            break;
-                        }
-
-                        moveNext = _asyncEnumerator.MoveNextAsync();
-
-                        // If we can't get the element synchronously we save the move next task for the next
-                        // ReadAsync call and end the loop to flush the encoded elements.
-                        if (!moveNext.IsCompletedSuccessfully)
-                        {
-                            _moveNext = moveNext.AsTask();
-                            break;
-                        }
-
-                        hasNext = moveNext.Result;
-                    }
+                    (int size, _moveNext) = EncodeElements(_asyncEnumerator);
 
                     if (_useSegments)
                     {
                         SliceEncoder.EncodeVarUInt62((ulong)size, sizePlaceholder.Span);
                     }
 
-                    if (hasNext)
+                    if (_moveNext is null)
                     {
-                        await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                        await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        // And the next ReadAsync will await _moveNext.
                     }
                 }
                 else
@@ -137,13 +115,34 @@ public static class AsyncEnumerableExtensions
 
             return await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-            int EncodeElement(T element)
+            (int Size, Task<bool>? MoveNext) EncodeElements(IAsyncEnumerator<T> asyncEnumerator)
             {
-                // TODO: An encoder is very lightweight, however, creating an encoder per element seems extreme for
-                // tiny elements. We could instead add the elements to a List<T> and encode elements in batches.
                 var encoder = new SliceEncoder(_pipe.Writer, _encoding);
-                _encodeAction(ref encoder, element);
-                return encoder.EncodedByteCount;
+                bool hasNext;
+
+                do
+                {
+                    _encodeAction(ref encoder, _asyncEnumerator.Current);
+                    ValueTask<bool> moveNext = _asyncEnumerator.MoveNextAsync();
+
+                    // If we can't get the next element synchronously, we return the move next task and end the loop to
+                    // flush the encoded elements.
+                    if (!moveNext.IsCompletedSuccessfully)
+                    {
+                        return (encoder.EncodedByteCount, moveNext.AsTask());
+                    }
+
+                    hasNext = moveNext.Result;
+
+                    // If we reached the stream flush threshold, it's time to flush.
+                    if (encoder.EncodedByteCount >= _streamFlushThreshold)
+                    {
+                        return (encoder.EncodedByteCount, hasNext ? moveNext.AsTask() : null);
+                    }
+                }
+                while (hasNext);
+
+                return (encoder.EncodedByteCount, null);
             }
         }
 
