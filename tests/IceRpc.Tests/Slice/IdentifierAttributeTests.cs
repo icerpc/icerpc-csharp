@@ -46,7 +46,7 @@ public class IdentifierAttributeTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act / Assert
-        _ = await proxy.REnamedOpAsync(new REnamedStruct(1));
+        _ = await proxy.REnamedOpAsync(renamedParam: new REnamedStruct(1));
     }
 
     [Test]
