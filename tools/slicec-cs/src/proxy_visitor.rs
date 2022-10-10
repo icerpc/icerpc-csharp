@@ -239,17 +239,17 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
             _ => {
                 invocation_builder.add_argument(
                     FunctionCallBuilder::new(&format!(
-                        "{}.CreatePayloadStream<{}>",
-                        encoding,
+                        "{}.ToPipeReader<{}>",
+                        stream_parameter_name,
                         stream_type.cs_type_string(namespace, TypeContext::Encode, false)
                     ))
                     .use_semi_colon(false)
-                    .add_argument(stream_parameter_name)
-                    .add_argument("this.EncodeOptions")
                     .add_argument(
                         encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
                     )
                     .add_argument(!stream_type.is_fixed_size())
+                    .add_argument(encoding)
+                    .add_argument("this.EncodeOptions")
                     .build(),
                 );
             }

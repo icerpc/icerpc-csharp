@@ -545,17 +545,17 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                 Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => stream_arg.into(),
                 _ => format!(
                     "\
-{encoding}.CreatePayloadStream(
-    {stream_arg},
-    {encode_options},
+{stream_arg}.ToPipeReader(
     {encode_action},
-    {use_segments})",
-                    encoding = encoding,
+    {use_segments},
+    {encoding},
+    {encode_options})",
                     stream_arg = stream_arg,
-                    encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
                     encode_action =
                         encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
-                    use_segments = !stream_type.is_fixed_size()
+                    use_segments = !stream_type.is_fixed_size(),
+                    encoding = encoding,
+                    encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions"
                 )
                 .into(),
             }
