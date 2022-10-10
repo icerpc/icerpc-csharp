@@ -19,7 +19,7 @@ public class InvocationTests
         // Arrange
         IInvoker? callbackInvoker = null;
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(new InlineDispatcher(
+            .AddClientServerTest(new InlineDispatcher(
                 (request, cancellationToken) =>
                 {
                     callbackInvoker = request.ConnectionContext.Invoker;
@@ -59,7 +59,7 @@ public class InvocationTests
         IInvoker? callbackInvoker = null;
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(new InlineDispatcher(
+            .AddClientServerTest(new InlineDispatcher(
                 (request, cancellationToken) =>
                 {
                     callbackInvoker = request.ConnectionContext.Invoker;
@@ -89,7 +89,7 @@ public class InvocationTests
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0x1, 0x2, 0x3 }));
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(new InlineDispatcher(
+            .AddClientServerTest(new InlineDispatcher(
                 async (request, cancellationToken) =>
                 {
                     dispatchStartTcs.SetResult();

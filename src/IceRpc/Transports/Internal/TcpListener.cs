@@ -58,7 +58,11 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         }
     }
 
-    public void Dispose() => _socket.Dispose();
+    public ValueTask DisposeAsync()
+    {
+        _socket.Dispose();
+        return default;
+    }
 
     internal TcpListener(
         ServerAddress serverAddress,

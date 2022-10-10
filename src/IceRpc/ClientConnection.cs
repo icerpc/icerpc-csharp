@@ -73,7 +73,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 try
                 {
                     // For example, wait for the shutdown initiated by the peer to complete successfully.
-                    _ = await connection.ShutdownComplete.ConfigureAwait(false);
+                    await connection.ShutdownComplete.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -86,7 +86,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 try
                 {
-                    _ = await connection.ShutdownComplete.ConfigureAwait(false);
+                    await connection.ShutdownComplete.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -249,23 +249,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down the connection with a default message.</summary>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes once the shutdown is complete.</returns>
-    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-        ShutdownAsync("ClientConnection shutdown", cancellationToken);
-
     /// <summary>Gracefully shuts down the connection.</summary>
-    /// <param name="message">The message transmitted to the server with the icerpc protocol.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
-    public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
             _isResumable = false;
         }
-        return _connection.ShutdownAsync(message, cancellationToken);
+        return _connection.ShutdownAsync(cancellationToken);
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
@@ -296,7 +289,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly Task _cleanupTask;
 
@@ -327,8 +320,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(message, cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(cancellationToken);
 
         internal CleanupProtocolConnectionDecorator(IProtocolConnection decoratee, Task cleanupTask)
         {
@@ -346,7 +339,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task<string> ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task ShutdownComplete => _decoratee.ShutdownComplete;
 
         private Task<TransportConnectionInformation>? _connectTask;
 
@@ -410,8 +403,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        public Task ShutdownAsync(string message, CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(message, cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(cancellationToken);
 
         internal ConnectProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
     }

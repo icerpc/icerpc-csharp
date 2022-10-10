@@ -22,7 +22,7 @@ public class TlsConfigurationTests
     public async Task Tls_client_certificate_not_trusted()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ClientCertificateRequired = true,
@@ -65,7 +65,7 @@ public class TlsConfigurationTests
         using var expectedCertificate = new X509Certificate2("../../../certs/client.p12", "password");
         X509Certificate? clientCertificate = null;
         bool localCertificateSelectionCallbackCalled = false;
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -116,7 +116,7 @@ public class TlsConfigurationTests
         // Arrange
         bool serverCertificateValidationCallback = false;
         bool clientCertificateValidationCallback = false;
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
@@ -163,7 +163,7 @@ public class TlsConfigurationTests
     public async Task Tls_server_certificate_not_trusted()
     {
         // Arrange
-        using IListener<IDuplexConnection> listener = CreateTcpListener(
+        await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions()
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),

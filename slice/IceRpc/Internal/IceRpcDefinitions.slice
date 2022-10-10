@@ -56,10 +56,11 @@ unchecked enum IceRpcSettingKey : varuint62
 /// and to provide the stream IDs of the requests already dispatched or that are still being dispatched by the local
 /// peer. Requests carried by streams with IDs superior to these stream IDs can safely be retried since the local peer
 /// did not process them at all. A null stream ID value indicates that no request was dispatched by the local peer.
-[cs::readonly] compact struct IceRpcGoAway {
+[cs::readonly]
+compact struct IceRpcGoAway
+{
     lastBidirectionalStreamId: varuint62?,
     lastUnidirectionalStreamId: varuint62?,
-    message: string,
 }
 
 /// The icerpc-specific error codes carried by multiplexed connections. These values are shared and carried blindly by

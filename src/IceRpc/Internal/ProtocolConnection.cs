@@ -10,7 +10,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 {
     public abstract ServerAddress ServerAddress { get; }
 
-    public Task<string> ShutdownComplete => _shutdownCompleteSource.Task;
+    public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
     private protected bool IsServer { get; }
 
@@ -35,7 +35,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
 
-    private readonly TaskCompletionSource<string> _shutdownCompleteSource =
+    private readonly TaskCompletionSource _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _shutdownCts = new();
@@ -118,14 +118,16 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 {
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed");
+                        "the connection establishment failed",
+                        exception);
                     throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
                 }
                 catch (Exception exception)
                 {
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed");
+                        "the connection establishment failed",
+                        exception);
                     throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
                 }
             }
@@ -160,7 +162,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             if (_connectTask is null)
             {
-                _ = _shutdownCompleteSource.TrySetResult(""); // disposing non-connected connection
+                _ = _shutdownCompleteSource.TrySetResult(); // disposing non-connected connection
             }
             else
             {
@@ -174,9 +176,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        _shutdownTask = CreateShutdownTask(
-                            IsServer ? "server connection going away" : "client connection going away",
-                            cancelDispatchesAndInvocations: true);
+                        _shutdownTask = CreateShutdownTask(cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
@@ -248,7 +248,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    public Task ShutdownAsync(string message, CancellationToken cancellationToken = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
@@ -277,7 +277,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else
             {
-                _shutdownTask ??= CreateShutdownTask(message);
+                _shutdownTask ??= CreateShutdownTask();
             }
         }
 
@@ -314,7 +314,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 if (CheckIfIdle())
                 {
-                    InitiateShutdown(ConnectionErrorCode.ClosedByIdle, "the connection was idle");
+                    InitiateShutdown(ConnectionErrorCode.ClosedByIdle);
                 }
             });
     }
@@ -329,7 +329,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
         CancellationToken cancellationToken);
 
     private protected void ConnectionLost(Exception exception) =>
-        _ = _shutdownCompleteSource.TrySetException(exception);
+        _ = _shutdownCompleteSource.TrySetException(new ConnectionException(
+            ConnectionErrorCode.ClosedByAbort,
+            "the connection was lost",
+            exception));
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -340,7 +343,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Initiate shutdown if it's not already initiated.</summary>
-    private protected void InitiateShutdown(ConnectionErrorCode closedErrorCode, string message)
+    private protected void InitiateShutdown(ConnectionErrorCode closedErrorCode)
     {
         lock (_mutex)
         {
@@ -349,8 +352,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 return;
             }
 
-            ConnectionClosedException = new(closedErrorCode, message);
-            _shutdownTask = CreateShutdownTask(message);
+            ConnectionClosedException = new(closedErrorCode);
+            _shutdownTask = CreateShutdownTask();
         }
     }
 
@@ -358,9 +361,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
         OutgoingRequest request,
         CancellationToken cancellationToken);
 
-    private protected abstract Task ShutdownAsyncCore(string message, CancellationToken cancellationToken);
+    private protected abstract Task ShutdownAsyncCore(CancellationToken cancellationToken);
 
-    private async Task CreateShutdownTask(string message, bool cancelDispatchesAndInvocations = false)
+    private async Task CreateShutdownTask(bool cancelDispatchesAndInvocations = false)
     {
         // Make sure we execute the function without holding the connection mutex lock.
         await Task.Yield();
@@ -390,9 +393,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
 
             // Wait for shutdown to complete.
-            await ShutdownAsyncCore(message, cts.Token).ConfigureAwait(false);
+            await ShutdownAsyncCore(cts.Token).ConfigureAwait(false);
 
-            _shutdownCompleteSource.SetResult(message);
+            _shutdownCompleteSource.SetResult();
         }
         catch (OperationCanceledException operationCanceledException)
         {

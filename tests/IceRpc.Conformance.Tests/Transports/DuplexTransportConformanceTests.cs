@@ -52,7 +52,7 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        listener.Dispose();
+        await listener.DisposeAsync();
 
         // Act/Assert
         Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
@@ -70,7 +70,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Act
         cancelationSource.Cancel();
-        listener.Dispose();
+        await listener.DisposeAsync();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
@@ -94,8 +94,8 @@ public abstract class DuplexTransportConformanceTests
         {
             IDuplexConnection? connection = clientTransport.CreateConnection(
                 listener.ServerAddress,
-                provider.GetService<DuplexConnectionOptions>() ?? new DuplexConnectionOptions(),
-                clientAuthenticationOptions: provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value);
+                provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
             try
             {
                 connectTask = connection.ConnectAsync(cts.Token);
@@ -142,8 +142,8 @@ public abstract class DuplexTransportConformanceTests
         {
             IDuplexConnection? connection = clientTransport.CreateConnection(
                 listener.ServerAddress,
-                provider.GetService<DuplexConnectionOptions>() ?? new DuplexConnectionOptions(),
-                clientAuthenticationOptions: provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value);
+                provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
             try
             {
                 connectTask = connection.ConnectAsync(default);
@@ -166,7 +166,7 @@ public abstract class DuplexTransportConformanceTests
         }
 
         // Act
-        listener.Dispose();
+        await listener.DisposeAsync();
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<TransportException>());

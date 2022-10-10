@@ -251,7 +251,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer, "the connection was shut down by the peer");
+                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
                 }
                 catch (TransportException exception) when (
                     exception.ErrorCode == TransportErrorCode.ConnectionReset &&
@@ -270,7 +270,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort, "the connection was lost");
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByAbort,
+                        "the connection was lost",
+                        exception);
 
                     // Notify the ConnectionLost callback.
                     ConnectionLost(exception);
@@ -633,7 +636,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancellationToken)
+    private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
     {
         lock (_mutex)
         {

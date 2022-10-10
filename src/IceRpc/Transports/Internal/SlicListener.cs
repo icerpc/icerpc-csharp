@@ -19,7 +19,7 @@ internal class SlicListener : IListener<IMultiplexedConnection>
         return (new SlicConnection(duplexConnection, _options, _slicOptions, isServer: true), remoteNetworkAddress);
     }
 
-    public void Dispose() => _duplexListener.Dispose();
+    public ValueTask DisposeAsync() => _duplexListener.DisposeAsync();
 
     internal SlicListener(
         IListener<IDuplexConnection> duplexListener,
