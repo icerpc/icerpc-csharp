@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Net;
 
 namespace IceRpc.Logger;
