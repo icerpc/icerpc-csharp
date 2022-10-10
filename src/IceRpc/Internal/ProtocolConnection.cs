@@ -118,14 +118,16 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 {
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed");
+                        "the connection establishment failed",
+                        exception);
                     throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
                 }
                 catch (Exception exception)
                 {
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed");
+                        "the connection establishment failed",
+                        exception);
                     throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
                 }
             }
@@ -327,7 +329,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
         CancellationToken cancellationToken);
 
     private protected void ConnectionLost(Exception exception) =>
-        _ = _shutdownCompleteSource.TrySetException(exception);
+        _ = _shutdownCompleteSource.TrySetException(new ConnectionException(
+            ConnectionErrorCode.ClosedByAbort,
+            "the connection was lost",
+            exception));
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);

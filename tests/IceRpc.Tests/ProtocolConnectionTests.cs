@@ -371,9 +371,9 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>

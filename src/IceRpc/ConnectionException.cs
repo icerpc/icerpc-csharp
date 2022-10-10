@@ -74,4 +74,12 @@ public class ConnectionException : Exception
     public ConnectionException(ConnectionErrorCode errorCode, Exception? innerException)
         : base($"{nameof(ConnectionException)} {{ ErrorCode = {errorCode} }}", innerException) =>
         ErrorCode = errorCode;
+
+    /// <summary>Constructs a new instance of the <see cref="ConnectionException" /> class with a specified error
+    /// code, message and inner exception.</summary>
+    /// <param name="errorCode">The error code.</param>
+    /// <param name="message">The message.</param>
+    /// <param name="innerException">The exception that is the cause of the current exception.</param>
+    public ConnectionException(ConnectionErrorCode errorCode, string message, Exception? innerException)
+        : base(message, innerException) => ErrorCode = errorCode;
 }
