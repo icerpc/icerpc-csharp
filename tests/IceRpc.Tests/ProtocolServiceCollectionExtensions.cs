@@ -81,7 +81,7 @@ public static class ProtocolServiceCollectionExtensions
 
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also ensures
 /// the connections are correctly disposed.</summary>
-internal class ClientServerProtocolConnection : IDisposable
+internal class ClientServerProtocolConnection : IAsyncDisposable
 {
     public IProtocolConnection Client { get; }
 
@@ -108,10 +108,13 @@ internal class ClientServerProtocolConnection : IDisposable
         await _server.ConnectAsync(CancellationToken.None);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _ = Client.DisposeAsync().AsTask();
-        _ = _server?.DisposeAsync().AsTask();
+        await Client.DisposeAsync();
+        if (_server is not null)
+        {
+            await _server.DisposeAsync();
+        }
     }
 
     public ValueTask DisposeListenerAsync() => _listener.DisposeAsync();
