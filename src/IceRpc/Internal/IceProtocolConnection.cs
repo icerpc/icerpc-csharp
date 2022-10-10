@@ -270,7 +270,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort, "the connection was lost");
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByAbort,
+                        "the connection was lost",
+                        exception);
 
                     // Notify the ConnectionLost callback.
                     ConnectionLost(exception);
