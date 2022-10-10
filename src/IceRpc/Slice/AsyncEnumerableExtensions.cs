@@ -83,19 +83,7 @@ public static class AsyncEnumerableExtensions
 
                 if (hasNext)
                 {
-                    Memory<byte> sizePlaceholder = null;
-                    if (_useSegments)
-                    {
-                        sizePlaceholder = _pipe.Writer.GetMemory(4)[0..4];
-                        _pipe.Writer.Advance(4);
-                    }
-
-                    (int size, _moveNext) = EncodeElements(_asyncEnumerator);
-
-                    if (_useSegments)
-                    {
-                        SliceEncoder.EncodeVarUInt62((ulong)size, sizePlaceholder.Span);
-                    }
+                    _moveNext = EncodeElements();
 
                     if (_moveNext is null)
                     {
@@ -115,10 +103,18 @@ public static class AsyncEnumerableExtensions
 
             return await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-            (int Size, Task<bool>? MoveNext) EncodeElements(IAsyncEnumerator<T> asyncEnumerator)
+            Task<bool>? EncodeElements()
             {
+                Memory<byte> sizePlaceholder = null;
+                if (_useSegments)
+                {
+                    sizePlaceholder = _pipe.Writer.GetMemory(4)[0..4];
+                    _pipe.Writer.Advance(4);
+                }
+
                 var encoder = new SliceEncoder(_pipe.Writer, _encoding);
-                bool hasNext;
+                Task<bool>? result = null;
+                bool flushNow;
 
                 do
                 {
@@ -129,20 +125,32 @@ public static class AsyncEnumerableExtensions
                     // flush the encoded elements.
                     if (!moveNext.IsCompletedSuccessfully)
                     {
-                        return (encoder.EncodedByteCount, moveNext.AsTask());
+                        result = moveNext.AsTask();
+                        flushNow = true;
                     }
-
-                    hasNext = moveNext.Result;
-
-                    // If we reached the stream flush threshold, it's time to flush.
-                    if (encoder.EncodedByteCount >= _streamFlushThreshold)
+                    else
                     {
-                        return (encoder.EncodedByteCount, hasNext ? moveNext.AsTask() : null);
+                        bool hasNext = moveNext.Result;
+
+                        // If we reached the stream flush threshold, it's time to flush.
+                        if (encoder.EncodedByteCount >= _streamFlushThreshold)
+                        {
+                            result = hasNext ? moveNext.AsTask() : null;
+                            flushNow = true;
+                        }
+                        else
+                        {
+                            flushNow = !hasNext;
+                        }
                     }
                 }
-                while (hasNext);
+                while (!flushNow);
 
-                return (encoder.EncodedByteCount, null);
+                if (_useSegments)
+                {
+                    SliceEncoder.EncodeVarUInt62((ulong)encoder.EncodedByteCount, sizePlaceholder.Span);
+                }
+                return result;
             }
         }
 
