@@ -5,6 +5,7 @@ encoding = 1;
 module IceRpc::Tests::Slice;
 
 [cs::identifier("REnamedClass")]
-class OriginalClass {
+class OriginalClass
+{
     [cs::identifier("renamedX")] x: int32,
 }

@@ -17,7 +17,7 @@ public class IdentifierAttributeTests
     class IdentifierOperations : Service, IREnamedInterface
     {
         public ValueTask<(int, int)> REnamedOpAsync(
-            REnamedStruct __renamed_param,
+            REnamedStruct renamedParam,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new((1, 2));
     }
