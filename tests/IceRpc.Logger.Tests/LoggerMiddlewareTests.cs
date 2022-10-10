@@ -36,7 +36,6 @@ public sealed class LoggerMiddlewareTests
             Assert.That(
                 entries[0].State["RemoteNetworkAddress"],
                 Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
-            Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
         });
     }
 
@@ -66,7 +65,6 @@ public sealed class LoggerMiddlewareTests
             Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchException));
             Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
             Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-            Assert.That(entries[0].State["TotalMilliseconds"], Is.Not.Null);
             Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
         });
     }

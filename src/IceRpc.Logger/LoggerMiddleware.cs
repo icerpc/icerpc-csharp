@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Net;
 
 namespace IceRpc.Logger;
@@ -30,31 +29,24 @@ public class LoggerMiddleware : IDispatcher
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync()
         {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             try
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
-                stopwatch.Stop();
 
                 _logger.LogDispatch(
                     request.Path,
                     request.Operation,
                     request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
                     request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                    response.ResultType,
-                    stopwatch.Elapsed.TotalMilliseconds);
+                    response.ResultType);
                 return response;
             }
             catch (Exception ex)
             {
-                stopwatch.Stop();
                 _logger.LogDispatchException(
                     ex,
                     request.Path,
-                    request.Operation,
-                    stopwatch.Elapsed.TotalMilliseconds);
+                    request.Operation);
                 throw;
             }
         }
@@ -68,26 +60,24 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerInterceptorEventId.Invoke,
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
-        Message = "Dispatched {Operation} to {Path} using {LocalNetworkAddress}<->{RemoteNetworkAddress} and " +
-            "received {ResultType} response after {TotalMilliseconds:F} ms")]
+        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and " +
+            "received {ResultType} response")]
     internal static partial void LogDispatch(
         this ILogger logger,
         string path,
         string operation,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
-        ResultType resultType,
-        double totalMilliseconds);
+        ResultType resultType);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventId.InvokeException,
         EventName = nameof(LoggerInterceptorEventId.InvokeException),
         Level = LogLevel.Information,
-        Message = "Failed to dispatch {Operation} to {Path} in {TotalMilliseconds:F} ms")]
+        Message = "Failed to dispatch {Operation} to {Path}")]
     internal static partial void LogDispatchException(
         this ILogger logger,
         Exception exception,
         string path,
-        string operation,
-        double totalMilliseconds);
+        string operation);
 }
