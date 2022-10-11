@@ -173,7 +173,7 @@ impl Visitor for CsValidator<'_> {
                     }
                 }
                 "identifier" => self.diagnostic_reporter.report_error(Error::new_with_notes(
-                    ErrorKind::InvalidAttribute("cs::".to_owned() + cs_attributes::IDENTIFIER, "module".to_owned()),
+                    ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "module".to_owned()),
                     Some(attribute.span()),
                     vec![Note::new(
                         "To rename a module use cs::namespace instead".to_owned(),
