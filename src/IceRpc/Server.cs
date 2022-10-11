@@ -31,6 +31,10 @@ public sealed class Server : IAsyncDisposable
 
     private IListener? _listener;
 
+    // We keep this task to await the completion of listener's DisposeAsync when making concurrent calls to
+    // ShutdownAsync and/or DisposeAsync.
+    private Task? _listenerDisposeTask;
+
     private readonly Func<IListener<IProtocolConnection>> _listenerFactory;
 
     private Task? _listenTask;
@@ -42,7 +46,7 @@ public sealed class Server : IAsyncDisposable
 
     private readonly ServerAddress _serverAddress;
 
-    private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
+    private readonly TaskCompletionSource _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _shutdownCts = new();
@@ -186,12 +190,13 @@ public sealed class Server : IAsyncDisposable
                 // There is no outstanding background dispose.
                 _ = _backgroundConnectionDisposeTcs.TrySetResult();
             }
-        }
 
-        if (_listener is not null)
-        {
-            // Stop accepting new connections by disposing of the listener
-            await _listener.DisposeAsync().ConfigureAwait(false);
+            if (_listener is not null)
+            {
+                // Stop accepting new connections by disposing of the listener.
+                _listenerDisposeTask = _listener.DisposeAsync().AsTask();
+                _listener = null;
+            }
         }
 
         if (_listenTask is not null)
@@ -200,9 +205,14 @@ public sealed class Server : IAsyncDisposable
             await _listenTask.ConfigureAwait(false);
         }
 
+        if (_listenerDisposeTask is not null)
+        {
+            await _listenerDisposeTask.ConfigureAwait(false);
+        }
+
         await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())
             .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
-        _ = _shutdownCompleteSource.TrySetResult(null);
+        _ = _shutdownCompleteSource.TrySetResult();
         _shutdownCts.Dispose();
     }
 
@@ -410,27 +420,32 @@ public sealed class Server : IAsyncDisposable
                 {
                     throw new ObjectDisposedException($"{typeof(Server)}");
                 }
+
+                if (_listener is not null)
+                {
+                    // Stop accepting new connections by disposing of the listener.
+                    _listenerDisposeTask = _listener.DisposeAsync().AsTask();
+                    _listener = null;
+                }
             }
 
-            // Stop accepting new connections by disposing of the listener.
-            if (_listener is not null)
+            if (_listenerDisposeTask is not null)
             {
-                await _listener.DisposeAsync().ConfigureAwait(false);
-
-                // Clear the _listener to ensure that the ServerAddress property returns _serverAddress once the
-                // listener is disposed.
-                _listener = null;
+                await _listenerDisposeTask.ConfigureAwait(false);
             }
 
             await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
                 .ConfigureAwait(false);
-        }
-        finally
-        {
+
             // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
             // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
             // using Result or Wait()), ShutdownAsync will complete.
-            _ = _shutdownCompleteSource.TrySetResult(null);
+            _ = _shutdownCompleteSource.TrySetResult();
+        }
+        catch (Exception exception)
+        {
+            _ = _shutdownCompleteSource.TrySetException(exception);
+            throw;
         }
     }
 
