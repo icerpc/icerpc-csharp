@@ -226,7 +226,6 @@ impl Visitor for CsValidator<'_> {
             match attribute.directive.as_ref() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
-                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
