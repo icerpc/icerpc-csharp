@@ -8,7 +8,7 @@ use slice::grammar::Entity;
 
 pub trait EntityExt: Entity {
     // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified casing or
-    // the identifier specified by the cs::identifier attribute if one is present.
+    // the identifier specified by the cs::identifier attribute if present.
     fn cs_identifier(&self, case: Option<Case>) -> String;
 
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -74,9 +74,13 @@ where
     T: Entity + ?Sized,
 {
     fn cs_identifier(&self, case: Option<Case>) -> String {
-        self.get_cs_identifier()
-            // If no cs::identifier attribute argument is found, use the entity's identifier with the supplied casing
-            .unwrap_or_else(|| case.map_or_else(|| self.identifier().to_owned(), |c| self.identifier().to_case(c)))
+        if let Some(args) = self.get_attribute(cs_attributes::IDENTIFIER) {
+            args[0].to_owned()
+        } else if let Some(c) = case {
+            self.identifier().to_case(c)
+        } else {
+            self.identifier().to_owned()
+        }
     }
 
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -98,7 +102,7 @@ where
             "{}{}{}",
             prefix,
             self.cs_identifier(Some(Case::Pascal)),
-            suffix
+            suffix,
         ))
     }
 
