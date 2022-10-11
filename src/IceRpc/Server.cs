@@ -22,6 +22,11 @@ public sealed class Server : IAsyncDisposable
     /// </summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
+    private int _backgroundConnectionDisposeCount;
+
+    private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly HashSet<IProtocolConnection> _connections = new();
 
     private IListener? _listener;
@@ -175,6 +180,12 @@ public sealed class Server : IAsyncDisposable
             {
                 // already disposed by a previous or concurrent call.
             }
+
+            if (_backgroundConnectionDisposeCount == 0)
+            {
+                // There is no outstanding background dispose.
+                _ = _backgroundConnectionDisposeTcs.TrySetResult();
+            }
         }
 
         if (_listener is not null)
@@ -189,8 +200,8 @@ public sealed class Server : IAsyncDisposable
             await _listenTask.ConfigureAwait(false);
         }
 
-        await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())).ConfigureAwait(false);
-
+        await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())
+            .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult(null);
         _shutdownCts.Dispose();
     }
@@ -251,6 +262,7 @@ public sealed class Server : IAsyncDisposable
                         {
                             // We have too many connections and can't accept any more.
                             // Reject the underlying transport connection by disposing the protocol connection.
+                            _backgroundConnectionDisposeCount++;
                             connectFunc = RefuseConnectionAsync;
                         }
                         else
@@ -316,7 +328,7 @@ public sealed class Server : IAsyncDisposable
                 // ignore and continue
             }
 
-            await connection.DisposeAsync().ConfigureAwait(false);
+            _ = BackgroundConnectionDisposeAsync(connection, shutdownCancellationToken);
         }
 
         // Remove the connection from _connections once shutdown completes
@@ -350,10 +362,31 @@ public sealed class Server : IAsyncDisposable
                 else
                 {
                     _ = _connections.Remove(connection);
+                    _backgroundConnectionDisposeCount++;
                 }
             }
 
-            await connection.DisposeAsync().ConfigureAwait(false);
+            _ = BackgroundConnectionDisposeAsync(connection, shutdownCancellationToken);
+        }
+
+        async Task BackgroundConnectionDisposeAsync(
+            IProtocolConnection connection,
+            CancellationToken shutdownCancellationToken)
+        {
+            try
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                lock (_mutex)
+                {
+                    if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
+                    {
+                        _backgroundConnectionDisposeTcs.SetResult();
+                    }
+                }
+            }
         }
     }
 

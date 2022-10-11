@@ -3,6 +3,8 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Security;
 
 namespace IceRpc.Tests;
 
@@ -131,5 +133,228 @@ public class ServerTests
         // Artificial delay to ensure the server has time to cleanup connection.
         await Task.Delay(TimeSpan.FromSeconds(1));
         await connection3.ConnectAsync();
+    }
+
+    [Test]
+    public async Task Dispose_waits_for_background_connection_dispose()
+    {
+        // Arrange
+        using var dispatchSemaphore = new SemaphoreSlim(0);
+        using var connectSemaphore = new SemaphoreSlim(0);
+        IConnectionContext? serverConnectionContext = null;
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            serverConnectionContext = request.ConnectionContext;
+            connectSemaphore.Release();
+            await dispatchSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            return new OutgoingResponse(request);
+        });
+        await using var server = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions
+                {
+                    Dispatcher = dispatcher,
+                    ShutdownTimeout = TimeSpan.FromMilliseconds(500),
+                },
+                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+            });
+
+        server.Listen();
+        await using var clientConnection = new ClientConnection(
+           new ClientConnectionOptions
+           {
+               ShutdownTimeout = TimeSpan.FromMilliseconds(500),
+               ServerAddress = server.ServerAddress,
+           });
+
+        Task<IncomingResponse> invokeTask =
+            clientConnection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+
+        // Wait for invocation to be dispatched. Then shutdown the client and server connections.
+        // Since the dispatch is blocking we wait for shutdown to timeout (We use a 500ms timeout).
+        await connectSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            await serverConnectionContext!.ShutdownComplete.ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+        }
+
+        // Act
+
+        // Dispose the server. This will wait for the background connection dispose to complete.
+        ValueTask disposeTask = server.DisposeAsync();
+
+        // Assert
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        Assert.That(disposeTask.IsCompleted, Is.False);
+        // Release the dispatch semaphore, allowing the background connection dispose to complete.
+        dispatchSemaphore.Release();
+        await disposeTask;
+    }
+
+
+    [Test]
+    public async Task Dispose_waits_for_refused_connection_disposal()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var colocTransport = new ColocTransport();
+
+        using var refusedSemaphore = new SemaphoreSlim(0);
+        using var disposeSemaphore = new SemaphoreSlim(0);
+
+        var serverTransport = new RefusedMultiplexServerTransport(
+            new SlicServerTransport(colocTransport.ServerTransport),
+            disposeSemaphore,
+            refusedSemaphore);
+
+        await using var server = new Server(
+           new ServerOptions
+           {
+               ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+               MaxConnections = 1,
+               ServerAddress = new ServerAddress(new Uri("icerpc://server"))
+           },
+           multiplexedServerTransport: serverTransport);
+
+        server.Listen();
+
+        await using var clientConnection1 = new ClientConnection(
+           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
+           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        await using var clientConnection2 = new ClientConnection(
+           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
+           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        await clientConnection1.ConnectAsync();
+
+        try
+        {
+            await clientConnection2.ConnectAsync();
+        }
+        catch (ConnectionException)
+        {
+            // Connection refused
+        }
+
+        // Wait for the connection to began disposal.
+        await disposeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        disposeSemaphore.Release(); // ensure disposing any future connections does not block
+
+        await clientConnection1.ShutdownAsync();
+
+        // Act
+
+        // Dispose the server. This will wait for the background connection dispose to complete.
+        ValueTask disposeTask = server.DisposeAsync();
+
+        // Assert
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        Assert.That(disposeTask.IsCompleted, Is.False);
+        refusedSemaphore.Release();
+        await disposeTask;
+    }
+
+    private class RefusedMultiplexServerTransport : IMultiplexedServerTransport
+    {
+        public string Name => _serverTransport.Name;
+        private readonly SemaphoreSlim _disposeSemaphore;
+        private readonly SemaphoreSlim _refusedSemaphore;
+
+        private readonly IMultiplexedServerTransport _serverTransport;
+
+        public RefusedMultiplexServerTransport(
+            IMultiplexedServerTransport serverTransport,
+            SemaphoreSlim disposeSemaphore,
+            SemaphoreSlim refusedSemaphore)
+        {
+            _disposeSemaphore = disposeSemaphore;
+            _refusedSemaphore = refusedSemaphore;
+            _serverTransport = serverTransport;
+        }
+
+        public IListener<IMultiplexedConnection> Listen(
+        ServerAddress serverAddress,
+        MultiplexedConnectionOptions options,
+        SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+            new RefusedConnectionListener(
+                _serverTransport.Listen(serverAddress, options, serverAuthenticationOptions),
+                _disposeSemaphore,
+                _refusedSemaphore);
+    }
+
+    private class RefusedConnectionListener : IListener<IMultiplexedConnection>
+    {
+        public ServerAddress ServerAddress => _listener.ServerAddress;
+        private readonly IListener<IMultiplexedConnection> _listener;
+        private readonly SemaphoreSlim _disposeSemaphore;
+        private readonly SemaphoreSlim _refusedSemaphore;
+
+        public RefusedConnectionListener(
+            IListener<IMultiplexedConnection> listener,
+            SemaphoreSlim disposeSemaphore,
+            SemaphoreSlim refusedSemaphore)
+        {
+            _listener = listener;
+            _disposeSemaphore = disposeSemaphore;
+            _refusedSemaphore = refusedSemaphore;
+        }
+
+        public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)>
+        AcceptAsync(CancellationToken cancellationToken)
+        {
+            (IMultiplexedConnection connection, EndPoint endpoint) = await _listener.AcceptAsync(cancellationToken);
+            return (new RefusedMultiplexedConneciton(connection, _disposeSemaphore, _refusedSemaphore), endpoint);
+        }
+
+        public ValueTask DisposeAsync() => _listener.DisposeAsync();
+    }
+
+    private class RefusedMultiplexedConneciton : IMultiplexedConnection
+    {
+        public ServerAddress ServerAddress => _connection.ServerAddress;
+
+        private readonly IMultiplexedConnection _connection;
+        private readonly SemaphoreSlim _disposeSemaphore;
+        private readonly SemaphoreSlim _refusedSemaphore;
+
+        public RefusedMultiplexedConneciton(
+            IMultiplexedConnection connection,
+            SemaphoreSlim disposeSemaphore,
+            SemaphoreSlim refusedSemaphore)
+        {
+            _connection = connection;
+            _disposeSemaphore = disposeSemaphore;
+            _refusedSemaphore = refusedSemaphore;
+        }
+
+        public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
+            _connection.AcceptStreamAsync(cancellationToken);
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+            _connection.ConnectAsync(cancellationToken);
+
+        public Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
+            _connection.CloseAsync(applicationErrorCode, cancellationToken);
+
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
+            => _connection.CreateStreamAsync(bidirectional, cancellationToken);
+
+        public async ValueTask DisposeAsync()
+        {
+            // The first connection dispose is the refused connection and will wait for the refused semaphore.
+            if (_disposeSemaphore.CurrentCount == 0)
+            {
+                _disposeSemaphore.Release();
+                await _refusedSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false); ;
+            }
+            await _connection.DisposeAsync();
+        }
     }
 }

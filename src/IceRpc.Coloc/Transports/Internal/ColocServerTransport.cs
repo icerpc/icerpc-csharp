@@ -17,9 +17,9 @@ internal class ColocServerTransport : IDuplexServerTransport
     public IListener<IDuplexConnection> Listen(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticatioinOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAuthenticatioinOptions is not null)
+        if (serverAuthenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create secure Coloc server");
         }
