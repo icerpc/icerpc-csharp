@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice.Identifiers;
 
-/// <summary>These tests verify that the cs::identifier attribute will cause slicec-cs to generate c sharp with the
+/// <summary>These tests verify that the cs::identifier attribute will cause slicec-cs to generate C# with the
 /// specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure that the
 /// code generation worked correctly. </summary>
 [Parallelizable(scope: ParallelScope.All)]
