@@ -35,7 +35,7 @@ pub trait EntityExt: Entity {
     ) -> String;
 
     // Returns the identifier contained in the cs::identifier attribute if it exists, otherwise returns None.
-    fn get_cs_identifier(&self, check_parent: bool) -> Option<String>;
+    fn get_cs_identifier(&self) -> Option<String>;
 
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
@@ -74,7 +74,7 @@ where
     T: Entity + ?Sized,
 {
     fn cs_identifier(&self, case: Option<Case>) -> String {
-        self.get_cs_identifier(false)
+        self.get_cs_identifier()
             // If no cs::identifier attribute argument is found, use the entity's identifier with the supplied casing
             .unwrap_or_else(|| case.map_or_else(|| self.identifier().to_owned(), |c| self.identifier().to_case(c)))
     }
@@ -141,8 +141,8 @@ where
         )
     }
 
-    fn get_cs_identifier(&self, check_parent: bool) -> Option<String> {
-        self.get_attribute(cs_attributes::IDENTIFIER, check_parent)
+    fn get_cs_identifier(&self) -> Option<String> {
+        self.get_attribute(cs_attributes::IDENTIFIER, false)
             .and_then(|args| args.first())
             .map(|arg| arg.to_owned())
     }
