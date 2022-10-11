@@ -7,8 +7,8 @@ use slice::convert_case::{Case, Casing};
 use slice::grammar::Entity;
 
 pub trait EntityExt: Entity {
-    // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified casing or
-    // the identifier specified by the cs::identifier attribute if present.
+    // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified
+    // casing or the identifier specified by the cs::identifier attribute if present.
     fn cs_identifier(&self, case: Option<Case>) -> String;
 
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -33,9 +33,6 @@ pub trait EntityExt: Entity {
         suffix: &str,
         current_namespace: &str,
     ) -> String;
-
-    // Returns the identifier contained in the cs::identifier attribute if it exists, otherwise returns None.
-    fn get_cs_identifier(&self) -> Option<String>;
 
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
@@ -74,7 +71,7 @@ where
     T: Entity + ?Sized,
 {
     fn cs_identifier(&self, case: Option<Case>) -> String {
-        if let Some(args) = self.get_attribute(cs_attributes::IDENTIFIER) {
+        if let Some(args) = self.get_attribute(cs_attributes::IDENTIFIER, false) {
             args[0].to_owned()
         } else if let Some(c) = case {
             self.identifier().to_case(c)
@@ -143,12 +140,6 @@ where
             &self.namespace(),
             current_namespace,
         )
-    }
-
-    fn get_cs_identifier(&self) -> Option<String> {
-        self.get_attribute(cs_attributes::IDENTIFIER, false)
-            .and_then(|args| args.first())
-            .map(|arg| arg.to_owned())
     }
 
     /// The helper name for this Entity
