@@ -9,7 +9,7 @@ use slice::grammar::{DataMember, Member, Primitive, Types};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
-    if parameters.iter().any(|p| p.identifier() == name) {
+    if parameters.iter().any(|p| p.cs_identifier(None) == name) {
         name.to_owned() + "_"
     } else {
         name.to_owned()

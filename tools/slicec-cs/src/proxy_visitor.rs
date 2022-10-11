@@ -41,7 +41,7 @@ impl Visitor for ProxyVisitor<'_> {
         let summary_message = format!(
             r#"The client-side interface for Slice interface {}. <seealso cref="{}" />.
 {}"#,
-            interface_def.identifier(),
+            interface_def.cs_identifier(None),
             interface_def.interface_name(),
             doc_comment_message(interface_def)
         );
@@ -83,7 +83,7 @@ public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#,
-                               interface_name = interface_def.identifier(),
+                               interface_name = interface_def.cs_identifier(None),
                                proxy_impl = proxy_impl
             ).into());
 
@@ -205,7 +205,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
     invocation_builder.arguments_on_newline(true);
 
     // The operation to call
-    invocation_builder.add_argument(format!(r#""{}""#, operation.identifier()));
+    invocation_builder.add_argument(format!(r#""{}""#, operation.cs_identifier(None)));
 
     // The encoding if operation is void
     invocation_builder.add_argument_if(void_return, encoding);
@@ -367,7 +367,10 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment(
             "summary",
-            &format!("Creates the request payload for operation {}.", operation.identifier()),
+            &format!(
+                "Creates the request payload for operation {}.",
+                operation.cs_identifier(None),
+            ),
         );
 
         for param in &params {
@@ -375,7 +378,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
                 &param.cs_type_string(namespace, TypeContext::Encode, false),
                 &param.parameter_name(),
                 None,
-                operation_parameter_doc_comment(operation, param.identifier()),
+                operation_parameter_doc_comment(operation, &param.cs_identifier(None)),
             );
         }
 
@@ -451,7 +454,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             "summary",
             &format!(
                 r#"The <see cref="ResponseDecodeFunc{{T}}" /> for the return value type of operation {}."#,
-                operation.identifier()
+                operation.cs_identifier(None)
             ),
         );
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);

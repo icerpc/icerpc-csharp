@@ -33,8 +33,8 @@ jobs:
     - name: 🔗 Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '7.0.x'
-        dotnet-quality: 'preview'
+        dotnet-version: "7.0.x"
+        dotnet-quality: "preview"
     - name: 🔗 Start SSH Agent
       uses: webfactory/ssh-agent@v0.5.4
       with:
@@ -48,6 +48,11 @@ jobs:
       uses: actions-rs/clippy@master
       with:
         args: --all-features --no-deps --all-targets --manifest-path tools/slicec-cs/Cargo.toml
+    - name: 🧪 Test Slice Compiler
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path tools/slicec-cs/Cargo.toml
     - name: 🔗 Add github NuGet repository
       run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ secrets.NUGET_API_TOKEN }}
     - name: 🔗 Restore dependencies

@@ -28,7 +28,7 @@ impl Visitor for DispatchVisitor<'_> {
         let summary_comment = format!(
             r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />.
 {}"#,
-            interface_def.identifier(),
+            interface_def.cs_identifier(None),
             interface_def.proxy_name(),
             doc_comment_message(interface_def)
         );
@@ -209,7 +209,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                         &param.cs_type_string(namespace, TypeContext::Encode, false),
                         &param.parameter_name(),
                         None,
-                        operation_parameter_doc_comment(operation, param.identifier()),
+                        operation_parameter_doc_comment(operation, &param.cs_identifier(None)),
                     );
                 }
             }
@@ -347,7 +347,7 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
     {dispatch_body}
 }}
 "#,
-        name = operation.identifier(),
+        name = operation.cs_identifier(None),
         internal_name = internal_name,
         interface_name = operation.parent().unwrap().interface_name(),
         dispatch_body = operation_dispatch_body(operation).indent()

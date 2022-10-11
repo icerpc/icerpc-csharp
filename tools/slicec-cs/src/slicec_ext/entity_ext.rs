@@ -7,10 +7,14 @@ use slice::convert_case::{Case, Casing};
 use slice::grammar::Entity;
 
 pub trait EntityExt: Entity {
+    // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified
+    // casing or the identifier specified by the cs::identifier attribute if present.
+    fn cs_identifier(&self, case: Option<Case>) -> String;
+
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String;
-    fn escape_identifier_with_prefix(&self, suffix: &str) -> String;
+    fn escape_identifier_with_prefix(&self, prefix: &str) -> String;
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String;
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String;
 
@@ -37,7 +41,7 @@ pub trait EntityExt: Entity {
     fn interface_name(&self) -> String;
 
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.
-    fn scoped_interface_name(&self, current_namepsace: &str) -> String;
+    fn scoped_interface_name(&self, current_namespace: &str) -> String;
 
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String>;
 
@@ -66,22 +70,37 @@ impl<T> EntityExt for T
 where
     T: Entity + ?Sized,
 {
+    fn cs_identifier(&self, case: Option<Case>) -> String {
+        if let Some(args) = self.get_attribute(cs_attributes::IDENTIFIER, false) {
+            args[0].to_owned()
+        } else if let Some(c) = case {
+            self.identifier().to_case(c)
+        } else {
+            self.identifier().to_owned()
+        }
+    }
+
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String {
-        escape_identifier_impl(self.identifier())
+        escape_keyword(&self.cs_identifier(Some(Case::Pascal)))
     }
 
     fn escape_identifier_with_prefix(&self, prefix: &str) -> String {
-        escape_identifier_impl(&format!("{}{}", prefix, self.identifier()))
+        escape_keyword(&format!("{}{}", prefix, self.cs_identifier(Some(Case::Pascal))))
     }
 
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String {
-        escape_identifier_impl(&format!("{}{}", self.identifier(), suffix))
+        escape_keyword(&format!("{}{}", self.cs_identifier(Some(Case::Pascal)), suffix))
     }
 
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
-        escape_identifier_impl(&format!("{}{}{}", prefix, self.identifier(), suffix))
+        escape_keyword(&format!(
+            "{}{}{}",
+            prefix,
+            self.cs_identifier(Some(Case::Pascal)),
+            suffix,
+        ))
     }
 
     /// Escapes and returns the definition's identifier, fully scoped.
@@ -129,15 +148,7 @@ where
     }
 
     fn interface_name(&self) -> String {
-        let identifier = self.identifier().to_case(Case::Pascal);
-        let mut chars = identifier.chars();
-
-        // Check if the interface already follows the 'I' prefix convention.
-        if identifier.chars().count() > 2 && chars.next().unwrap() == 'I' && chars.next().unwrap().is_uppercase() {
-            identifier.to_owned()
-        } else {
-            format!("I{}", identifier)
-        }
+        format!("I{}", self.cs_identifier(Some(Case::Pascal)))
     }
 
     fn scoped_interface_name(&self, current_namespace: &str) -> String {
@@ -206,10 +217,6 @@ where
             self.access_modifier()
         }
     }
-}
-
-fn escape_identifier_impl(identifier: &str) -> String {
-    escape_keyword(&identifier.to_case(Case::Pascal))
 }
 
 fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_namespace: &str) -> String {
