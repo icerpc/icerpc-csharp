@@ -64,6 +64,7 @@ public static class AsyncEnumerableExtensions
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
             // If no more buffered data to read, fill the pipe with new data.
+            // Also returns true when the writer is completed.
             if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
                 return readResult;
@@ -81,19 +82,11 @@ public static class AsyncEnumerableExtensions
                     _moveNext = null;
                 }
 
-                if (hasNext)
+                if (hasNext && EncodeElements() is Task<bool> moveNext)
                 {
-                    _moveNext = EncodeElements();
-
-                    if (_moveNext is null)
-                    {
-                        await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-                        // And the next ReadAsync will await _moveNext.
-                    }
+                    _moveNext = moveNext;
+                    _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    // And the next ReadAsync will await _moveNext.
                 }
                 else
                 {
@@ -105,50 +98,52 @@ public static class AsyncEnumerableExtensions
 
             Task<bool>? EncodeElements()
             {
-                Memory<byte> sizePlaceholder = null;
+                var encoder = new SliceEncoder(_pipe.Writer, _encoding);
+
+                Span<byte> sizePlaceholder = default;
                 if (_useSegments)
                 {
-                    sizePlaceholder = _pipe.Writer.GetMemory(4)[0..4];
-                    _pipe.Writer.Advance(4);
+                    sizePlaceholder = encoder.GetPlaceholderSpan(4);
                 }
 
-                var encoder = new SliceEncoder(_pipe.Writer, _encoding);
                 Task<bool>? result = null;
-                bool flushNow;
+                bool keepEncoding;
 
                 do
                 {
                     _encodeAction(ref encoder, _asyncEnumerator.Current);
                     ValueTask<bool> moveNext = _asyncEnumerator.MoveNextAsync();
 
-                    // If we can't get the next element synchronously, we return the move next task and end the loop to
-                    // flush the encoded elements.
-                    if (!moveNext.IsCompletedSuccessfully)
-                    {
-                        result = moveNext.AsTask();
-                        flushNow = true;
-                    }
-                    else
+                    if (moveNext.IsCompletedSuccessfully)
                     {
                         bool hasNext = moveNext.Result;
 
                         // If we reached the stream flush threshold, it's time to flush.
-                        if (encoder.EncodedByteCount >= _streamFlushThreshold)
+                        if (encoder.EncodedByteCount - sizePlaceholder.Length >= _streamFlushThreshold)
                         {
                             result = hasNext ? moveNext.AsTask() : null;
-                            flushNow = true;
+                            keepEncoding = false;
                         }
                         else
                         {
-                            flushNow = !hasNext;
+                            keepEncoding = hasNext;
                         }
                     }
+                    else
+                    {
+                        // If we can't get the next element synchronously, we return the move next task and end the loop
+                        // to flush the encoded elements.
+                        result = moveNext.AsTask();
+                        keepEncoding = false;
+                    }
                 }
-                while (!flushNow);
+                while (keepEncoding);
 
                 if (_useSegments)
                 {
-                    SliceEncoder.EncodeVarUInt62((ulong)encoder.EncodedByteCount, sizePlaceholder.Span);
+                    SliceEncoder.EncodeVarUInt62(
+                        (ulong)(encoder.EncodedByteCount - sizePlaceholder.Length),
+                        sizePlaceholder);
                 }
                 return result;
             }
