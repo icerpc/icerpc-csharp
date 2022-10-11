@@ -7,12 +7,14 @@ use slice::convert_case::{Case, Casing};
 use slice::grammar::Entity;
 
 pub trait EntityExt: Entity {
+    // Returns the identifier for the entity and formats it with the specified casing if the entity does not have the
+    // cs::identifier attribute. Otherwise returns the identifier specified by the cs::identifier attribute.
     fn cs_identifier(&self, case: Option<Case>) -> String;
 
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String;
-    fn escape_identifier_with_prefix(&self, suffix: &str) -> String;
+    fn escape_identifier_with_prefix(&self, prefix: &str) -> String;
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String;
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String;
 
@@ -31,6 +33,9 @@ pub trait EntityExt: Entity {
         suffix: &str,
         current_namespace: &str,
     ) -> String;
+
+    // Returns the identifier contained in the cs::identifier attribute if it exists, otherwise returns None.
+    fn get_cs_identifier(&self, check_parent: bool) -> Option<String>;
 
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
@@ -69,30 +74,27 @@ where
     T: Entity + ?Sized,
 {
     fn cs_identifier(&self, case: Option<Case>) -> String {
-        self.attributes()
-            .iter()
-            .find(|a| a.prefixed_directive == cs_attributes::IDENTIFIER)
-            .map(|a| a.arguments.get(0).unwrap().to_owned())
-            // If no cs::identifier attribute is found, use the entity's identifier with the supplied casing
+        self.get_cs_identifier(false)
+            // If no cs::identifier attribute argument is found, use the entity's identifier with the supplied casing
             .unwrap_or_else(|| case.map_or_else(|| self.identifier().to_owned(), |c| self.identifier().to_case(c)))
     }
 
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String {
-        escape_identifier_impl(&self.cs_identifier(Some(Case::Pascal)))
+        escape_keyword(&self.cs_identifier(Some(Case::Pascal)))
     }
 
     fn escape_identifier_with_prefix(&self, prefix: &str) -> String {
-        escape_identifier_impl(&format!("{}{}", prefix, self.cs_identifier(Some(Case::Pascal))))
+        escape_keyword(&format!("{}{}", prefix, self.cs_identifier(Some(Case::Pascal))))
     }
 
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String {
-        escape_identifier_impl(&format!("{}{}", self.cs_identifier(Some(Case::Pascal)), suffix))
+        escape_keyword(&format!("{}{}", self.cs_identifier(Some(Case::Pascal)), suffix))
     }
 
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
-        escape_identifier_impl(&format!(
+        escape_keyword(&format!(
             "{}{}{}",
             prefix,
             self.cs_identifier(Some(Case::Pascal)),
@@ -137,6 +139,12 @@ where
             &self.namespace(),
             current_namespace,
         )
+    }
+
+    fn get_cs_identifier(&self, check_parent: bool) -> Option<String> {
+        self.get_attribute(cs_attributes::IDENTIFIER, check_parent)
+            .and_then(|args| args.first())
+            .map(|arg| arg.to_owned())
     }
 
     /// The helper name for this Entity
@@ -214,10 +222,6 @@ where
             self.access_modifier()
         }
     }
-}
-
-fn escape_identifier_impl(identifier: &str) -> String {
-    escape_keyword(identifier)
 }
 
 fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_namespace: &str) -> String {
