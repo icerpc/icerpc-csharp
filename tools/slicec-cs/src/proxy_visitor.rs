@@ -369,7 +369,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             "summary",
             &format!(
                 "Creates the request payload for operation {}.",
-                operation.cs_identifier(None)
+                operation.cs_identifier(None),
             ),
         );
 

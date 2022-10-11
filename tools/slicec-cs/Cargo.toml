@@ -1,5 +1,5 @@
 [package]
-name = "slicec_cs"
+name = "slicec-cs"
 version = "0.1.0"
 authors = ["ZeroC Inc."]
 description = """

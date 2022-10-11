@@ -20,7 +20,7 @@ impl<T: Member> MemberExt for T {
     }
 
     fn parameter_name_with_prefix(&self, prefix: &str) -> String {
-        let name = prefix.to_owned() + &self.cs_identifier(Some(Case::Pascal));
+        let name = prefix.to_owned() + &self.cs_identifier(Some(Case::Camel));
         escape_keyword(&name)
     }
 

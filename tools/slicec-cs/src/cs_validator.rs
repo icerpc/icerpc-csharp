@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_attributes;
-use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind};
+use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note};
 use slice::grammar::*;
 use slice::parse_result::{ParsedData, ParserResult};
 use slice::visitor::Visitor;
@@ -118,7 +118,6 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_
     for attribute in &cs_attributes(attributable.attributes()) {
         match attribute.directive.as_ref() {
             "generic" => validate_cs_generic(attribute, diagnostic_reporter),
-            "identifier" => validate_cs_identifier(attribute, diagnostic_reporter),
             _ => report_unexpected_attribute(attribute, diagnostic_reporter),
         }
     }
@@ -133,18 +132,10 @@ fn validate_common_attributes(attribute: &Attribute, diagnostic_reporter: &mut D
 }
 
 fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut DiagnosticReporter) {
-    data_type
-        .attributes()
-        .iter()
-        .for_each(|attribute| match attribute.directive.as_ref() {
-            "identifier" => validate_cs_identifier(attribute, diagnostic_reporter),
-            _ => match data_type.concrete_type() {
-                Types::Sequence(_) | Types::Dictionary(_) => {
-                    validate_collection_attributes(data_type, diagnostic_reporter)
-                }
-                _ => report_typeref_unexpected_attributes(data_type, diagnostic_reporter),
-            },
-        });
+    match data_type.concrete_type() {
+        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, diagnostic_reporter),
+        _ => report_typeref_unexpected_attributes(data_type, diagnostic_reporter),
+    }
 }
 
 fn report_typeref_unexpected_attributes<T: Attributable>(
@@ -181,9 +172,13 @@ impl Visitor for CsValidator<'_> {
                         ));
                     }
                 }
-                "identifier" => self.diagnostic_reporter.report_error(Error::new(
-                    ErrorKind::InvalidAttribute(cs_attributes::NAMESPACE.to_owned(), "module".to_owned()),
+                "identifier" => self.diagnostic_reporter.report_error(Error::new_with_notes(
+                    ErrorKind::InvalidAttribute("cs::".to_owned() + cs_attributes::IDENTIFIER, "module".to_owned()),
                     Some(attribute.span()),
+                    vec![Note::new(
+                        "To rename a module use cs::namespace instead".to_owned(),
+                        None,
+                    )],
                 )),
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
@@ -203,7 +198,6 @@ impl Visitor for CsValidator<'_> {
                     }
                 }
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
-                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -213,7 +207,6 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(class_def.attributes()) {
             match attribute.directive.as_ref() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
-                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -223,7 +216,6 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(exception_def.attributes()) {
             match attribute.directive.as_ref() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
-                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -244,7 +236,6 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(enum_def.attributes()) {
             match attribute.directive.as_ref() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
-                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -254,7 +245,6 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(operation.attributes()) {
             match attribute.directive.as_ref() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
-                "identity" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }
@@ -287,15 +277,30 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
-        validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter);
+        for attribute in &cs_attributes(type_alias.attributes()) {
+            match attribute.directive.as_ref() {
+                "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
+                _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
+            }
+        }
     }
 
     fn visit_data_member(&mut self, data_member: &DataMember) {
-        validate_data_type_attributes(&data_member.data_type, self.diagnostic_reporter);
+        for attribute in &cs_attributes(data_member.attributes()) {
+            match attribute.directive.as_ref() {
+                "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
+                _ => validate_data_type_attributes(&data_member.data_type, self.diagnostic_reporter),
+            }
+        }
     }
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
-        validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter);
+        for attribute in &cs_attributes(parameter.attributes()) {
+            match attribute.directive.as_ref() {
+                "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
+                _ => validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter),
+            }
+        }
     }
 }
 
@@ -407,5 +412,29 @@ mod test {
         )];
         std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
             .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
+    }
+
+    #[test]
+    fn identifier_attribute_on_parameter() {
+        // Arrange
+        let slice = "
+            module Test;
+
+            interface I {
+                oP([cs::identifier(\"newParam\")] myParam: int32);
+            }
+        ";
+
+        // Act
+        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+            .and_then(patch_comments)
+            .and_then(validate_cs_attributes)
+        {
+            Ok(data) => data.diagnostic_reporter,
+            Err(data) => data.diagnostic_reporter,
+        };
+
+        // Assert
+        assert_eq!(diagnostic_reporter.into_diagnostics().len(), 0);
     }
 }

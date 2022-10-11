@@ -53,7 +53,7 @@ pub fn main() {
     std::process::exit(parsed_data.into_exit_code());
 }
 
-pub fn try_main() -> ParserResult {
+fn try_main() -> ParserResult {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
     let mut parsed_data = slice::parse_from_options(slice_options)
