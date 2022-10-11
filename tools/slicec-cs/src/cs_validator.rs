@@ -176,7 +176,7 @@ impl Visitor for CsValidator<'_> {
                     ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "module".to_owned()),
                     Some(attribute.span()),
                     vec![Note::new(
-                        "To rename a module use cs::namespace instead".to_owned(),
+                        format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
                         None,
                     )],
                 )),
