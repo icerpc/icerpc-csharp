@@ -116,7 +116,7 @@ fn validate_cs_type(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticR
 
 fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_reporter: &mut DiagnosticReporter) {
     for attribute in &cs_attributes(attributable.attributes()) {
-        match attribute.directive.as_ref() {
+        match attribute.directive.as_str() {
             "generic" => validate_cs_generic(attribute, diagnostic_reporter),
             _ => report_unexpected_attribute(attribute, diagnostic_reporter),
         }
@@ -124,7 +124,7 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_
 }
 
 fn validate_common_attributes(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
-    match attribute.directive.as_ref() {
+    match attribute.directive.as_str() {
         "attribute" => validate_cs_attribute(attribute, diagnostic_reporter),
         "identifier" => validate_cs_identifier(attribute, diagnostic_reporter),
         _ => report_unexpected_attribute(attribute, diagnostic_reporter),
@@ -150,7 +150,7 @@ fn report_typeref_unexpected_attributes<T: Attributable>(
 impl Visitor for CsValidator<'_> {
     fn visit_module_start(&mut self, module_def: &Module) {
         for attribute in &cs_attributes(module_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "namespace" => {
                     match attribute.arguments.len() {
                         1 => (), // Expected 1 argument
@@ -188,7 +188,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_struct_start(&mut self, struct_def: &Struct) {
         for attribute in &cs_attributes(struct_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "readonly" => {
                     if !attribute.arguments.is_empty() {
                         self.diagnostic_reporter.report_error(Error::new(
@@ -205,7 +205,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_class_start(&mut self, class_def: &Class) {
         for attribute in &cs_attributes(class_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -214,7 +214,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_exception_start(&mut self, exception_def: &Exception) {
         for attribute in &cs_attributes(exception_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -223,7 +223,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         for attribute in &cs_attributes(interface_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
@@ -233,7 +233,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_enum_start(&mut self, enum_def: &Enum) {
         for attribute in &cs_attributes(enum_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -242,7 +242,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_operation_start(&mut self, operation: &Operation) {
         for attribute in &cs_attributes(operation.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -251,7 +251,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_trait(&mut self, trait_def: &Trait) {
         for attribute in &cs_attributes(trait_def.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "internal" => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -268,7 +268,7 @@ impl Visitor for CsValidator<'_> {
         }
 
         for attribute in &cs_attributes(custom_type.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "type" => validate_cs_type(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -277,7 +277,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for attribute in &cs_attributes(type_alias.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
             }
@@ -286,7 +286,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_data_member(&mut self, data_member: &DataMember) {
         for attribute in &cs_attributes(data_member.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_data_type_attributes(&data_member.data_type, self.diagnostic_reporter),
             }
@@ -295,7 +295,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
         for attribute in &cs_attributes(parameter.attributes()) {
-            match attribute.directive.as_ref() {
+            match attribute.directive.as_str() {
                 "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
                 _ => validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter),
             }
