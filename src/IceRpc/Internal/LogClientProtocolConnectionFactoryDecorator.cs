@@ -7,7 +7,6 @@ using System.Net;
 namespace IceRpc.Internal;
 
 /// <summary>Provides a log decorator for client protocol connection factory.</summary>
-// TODO: should we make this class public?
 internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConnectionFactory
 {
     private readonly IClientProtocolConnectionFactory _decoratee;

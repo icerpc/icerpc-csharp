@@ -978,14 +978,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
                 // cleanup the dispatch if DisposeAsync is called.
-                _ = Task.Run(
-                    () => DispatchRequestAsync(request, contextReader),
-                    CancellationToken.None);
+                _ = Task.Run(() => DispatchRequestAsync(request, contextReader), CancellationToken.None);
             }
             else
             {
                 // If shutting down or aborted, ignore the incoming request.
-                // TODO: replace with payload exception and error code
                 await request.Payload.CompleteAsync(connectionClosedException).ConfigureAwait(false);
                 if (contextReader is not null)
                 {
