@@ -425,13 +425,11 @@ mod test {
         ";
 
         // Act
-        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+        let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
             .and_then(patch_comments)
             .and_then(validate_cs_attributes)
-        {
-            Ok(data) => data.diagnostic_reporter,
-            Err(data) => data.diagnostic_reporter,
-        };
+            .unwrap()
+            .diagnostic_reporter;
 
         // Assert
         assert_eq!(diagnostic_reporter.into_diagnostics().len(), 0);
