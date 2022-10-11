@@ -7,8 +7,8 @@ use slice::convert_case::{Case, Casing};
 use slice::grammar::Entity;
 
 pub trait EntityExt: Entity {
-    // Returns the identifier for the entity and formats it with the specified casing if the entity does not have the
-    // cs::identifier attribute. Otherwise returns the identifier specified by the cs::identifier attribute.
+    // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified casing or
+    // the identifier specified by the cs::identifier attribute if one is present.
     fn cs_identifier(&self, case: Option<Case>) -> String;
 
     /// Escapes and returns the definition's identifier, without any scoping.
