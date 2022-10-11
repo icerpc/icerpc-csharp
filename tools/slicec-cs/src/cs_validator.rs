@@ -319,14 +319,11 @@ mod test {
         ";
 
         // Act
-        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+        let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
             .and_then(patch_comments)
             .and_then(validate_cs_attributes)
-        {
-            Ok(data) => data.diagnostic_reporter,
-            Err(data) => data.diagnostic_reporter,
-        };
-
+            .unwrap_err()
+            .diagnostic_reporter;
         // Assert
         let expected = [Error::new(
             ErrorKind::MissingRequiredArgument(cs_attributes::IDENTIFIER.to_owned() + r#"("<identifier>")"#),
@@ -347,13 +344,11 @@ mod test {
         ";
 
         // Act
-        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+        let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
             .and_then(patch_comments)
             .and_then(validate_cs_attributes)
-        {
-            Ok(data) => data.diagnostic_reporter,
-            Err(data) => data.diagnostic_reporter,
-        };
+            .unwrap_err()
+            .diagnostic_reporter;
 
         // Assert
         let expected = [Error::new(
@@ -375,13 +370,11 @@ mod test {
         ";
 
         // Act
-        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+        let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
             .and_then(patch_comments)
             .and_then(validate_cs_attributes)
-        {
-            Ok(data) => data.diagnostic_reporter,
-            Err(data) => data.diagnostic_reporter,
-        };
+            .unwrap()
+            .diagnostic_reporter;
 
         // Assert
         assert!(diagnostic_reporter.into_diagnostics().is_empty());
@@ -396,17 +389,14 @@ mod test {
         ";
 
         // Act
-        let diagnostic_reporter = match slice::parse_from_strings(&[slice], None)
+        let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
             .and_then(patch_comments)
             .and_then(validate_cs_attributes)
-        {
-            Ok(data) => data.diagnostic_reporter,
-            Err(data) => data.diagnostic_reporter,
-        };
-
+            .unwrap_err()
+            .diagnostic_reporter;
         // Assert
         let expected = [Error::new(
-            ErrorKind::InvalidAttribute(cs_attributes::NAMESPACE.to_owned(), "module".to_owned()),
+            ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "module".to_owned()),
             None,
         )];
         std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
