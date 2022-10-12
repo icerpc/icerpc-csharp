@@ -224,10 +224,12 @@ public sealed class ConnectionCacheTests
         // Make a request to establish a connection
         await new ServiceProxy(cache, new Uri("icerpc://foo")).IcePingAsync();
 
-        // Wait for invocation to be dispatched.
+        // Get the last connection created by the cache
         CachedConnection connection = clientTransport.LastConnection!;
+
         // Shutdown the server. This will trigger connection closure.
         await server.ShutdownAsync();
+
         await connection.WaitForDisposeAsync(CancellationToken.None);
 
         // Act
