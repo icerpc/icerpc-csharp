@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <Title>IceRpc.Quic .NET library</Title>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <Authors>ZeroC</Authors>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+        <PackageIcon>logo.png</PackageIcon>
+        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Description>IceRPC C#/.NET SDK.</Description>
+        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageTags>IceRPC</PackageTags>
+    </PropertyGroup>
+    <ItemGroup>
+      <SupportedPlatform Include="linux" />
+      <SupportedPlatform Include="macOS" />
+      <SupportedPlatform Include="windows" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <!-- TODO update to 1.2 stable release https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187#issuecomment-1043221630 -->
+        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="System.IO.Pipelines" Version="$(NetRuntimeVersion)" />
+    </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+      <None Include="..\..\build\logo.png">
+          <Pack>True</Pack>
+          <PackagePath>.</PackagePath>
+      </None>
+    </ItemGroup>
+</Project>

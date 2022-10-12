@@ -31,21 +31,21 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    public PipeReader Input => IsRemote || IsBidirectional ?
-        _inputPipeReader :
+    public PipeReader Input =>
+        _inputPipeReader ??
         throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
 
     /// <inheritdoc/>
     public bool IsBidirectional { get; }
 
     /// <inheritdoc/>
-    public bool IsRemote => _id != ulong.MaxValue && _id % 2 == (_connection.IsServer ? 0ul : 1ul);
+    public bool IsRemote { get; }
 
     /// <inheritdoc/>
     public bool IsStarted => Thread.VolatileRead(ref _id) != ulong.MaxValue;
 
-    public PipeWriter Output => !IsRemote || IsBidirectional ?
-        _outputPipeWriter :
+    public PipeWriter Output =>
+        _outputPipeWriter ??
         throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
 
     public Task ReadsClosed => _readsClosedCompletionSource.Task;
@@ -60,8 +60,8 @@ internal class SlicStream : IMultiplexedStream
 
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
-    private readonly SlicPipeReader _inputPipeReader;
-    private readonly SlicPipeWriter _outputPipeWriter;
+    private readonly SlicPipeReader? _inputPipeReader;
+    private readonly SlicPipeWriter? _outputPipeWriter;
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
@@ -73,11 +73,11 @@ internal class SlicStream : IMultiplexedStream
     {
         if (TrySetReadsClosed(completeException))
         {
-            _inputPipeReader.Abort(completeException);
+            _inputPipeReader?.Abort(completeException);
         }
         if (TrySetWritesClosed(completeException))
         {
-            _outputPipeWriter.Abort(completeException);
+            _outputPipeWriter?.Abort(completeException);
         }
     }
 
@@ -86,19 +86,12 @@ internal class SlicStream : IMultiplexedStream
         _connection = connection;
         _sendCredit = _connection.PeerPauseWriterThreshold;
 
-        _inputPipeReader = new SlicPipeReader(
-            this,
-            _connection.Pool,
-            _connection.MinSegmentSize,
-            _connection.ResumeWriterThreshold,
-            _connection.PauseWriterThreshold);
-
-        _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinSegmentSize);
-
         IsBidirectional = bidirectional;
+        IsRemote = remote;
+
         if (!IsBidirectional)
         {
-            if (remote)
+            if (IsRemote)
             {
                 // Write-side of remote unidirectional stream is marked as completed.
                 TrySetWritesClosed(exception: null);
@@ -108,6 +101,21 @@ internal class SlicStream : IMultiplexedStream
                 // Read-side of local unidirectional stream is marked as completed.
                 TrySetReadsClosed(exception: null);
             }
+        }
+
+        if (IsRemote || IsBidirectional)
+        {
+            _inputPipeReader = new SlicPipeReader(
+                this,
+                _connection.Pool,
+                _connection.MinSegmentSize,
+                _connection.ResumeWriterThreshold,
+                _connection.PauseWriterThreshold);
+        }
+
+        if (!IsRemote || IsBidirectional)
+        {
+            _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinSegmentSize);
         }
     }
 
@@ -241,8 +249,11 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken) =>
-        ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
+    internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
+    {
+        Debug.Assert(_inputPipeReader is not null);
+        return ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
+    }
 
     internal void ReceivedResetFrame(ulong errorCode)
     {
@@ -256,7 +267,7 @@ internal class SlicStream : IMultiplexedStream
         Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
         if (TrySetReadsClosed(exception))
         {
-            _inputPipeReader.Abort(exception);
+            _inputPipeReader?.Abort(exception);
         }
     }
 
@@ -272,7 +283,7 @@ internal class SlicStream : IMultiplexedStream
         Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
         if (TrySetWritesClosed(exception))
         {
-            _outputPipeWriter.Abort(exception);
+            _outputPipeWriter?.Abort(exception);
         }
     }
 

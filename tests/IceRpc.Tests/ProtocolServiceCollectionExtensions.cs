@@ -9,36 +9,7 @@ namespace IceRpc.Tests;
 
 public static class ProtocolServiceCollectionExtensions
 {
-    public static IServiceCollection AddProtocolTest(
-        this IServiceCollection services,
-        Protocol protocol,
-        IDispatcher? dispatcher = null,
-        ConnectionOptions? clientConnectionOptions = null,
-        ConnectionOptions? serverConnectionOptions = null)
-    {
-        clientConnectionOptions ??= new();
-        serverConnectionOptions ??= new();
-        serverConnectionOptions.Dispatcher ??= dispatcher;
-
-        if (protocol == Protocol.Ice)
-        {
-            services
-                .AddColocTransport()
-                .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-                .AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
-        }
-        else
-        {
-            services
-                .AddColocTransport()
-                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-                .AddSlicTransport()
-                .AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
-        }
-        return services;
-    }
-
-    private static IServiceCollection AddIceProtocolTest(
+    public static IServiceCollection AddIceProtocolTest(
         this IServiceCollection services,
         ConnectionOptions clientConnectionOptions,
         ConnectionOptions serverConnectionOptions) =>
@@ -54,7 +25,7 @@ public static class ProtocolServiceCollectionExtensions
                     serverConnectionOptions),
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
-    private static IServiceCollection AddIceRpcProtocolTest(
+    public static IServiceCollection AddIceRpcProtocolTest(
         this IServiceCollection services,
         ConnectionOptions clientConnectionOptions,
         ConnectionOptions serverConnectionOptions)
@@ -75,6 +46,42 @@ public static class ProtocolServiceCollectionExtensions
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
 
+        return services;
+    }
+
+    public static IServiceCollection AddProtocolTest(
+        this IServiceCollection services,
+        Protocol protocol,
+        IDispatcher? dispatcher = null,
+        ConnectionOptions? clientConnectionOptions = null,
+        ConnectionOptions? serverConnectionOptions = null)
+    {
+        clientConnectionOptions ??= new();
+        serverConnectionOptions ??= new();
+        serverConnectionOptions.Dispatcher ??= dispatcher;
+
+        if (protocol == Protocol.Ice)
+        {
+            services
+                .AddColocTransport()
+                .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+                .AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
+        }
+        else
+        {
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsWindows())
+            {
+                services.AddQuicTransport().AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0"));
+            }
+            else
+            {
+                services
+                    .AddColocTransport()
+                    .AddSlicTransport()
+                    .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"));
+            }
+            services.AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
+        }
         return services;
     }
 }
