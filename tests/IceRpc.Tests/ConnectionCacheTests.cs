@@ -300,6 +300,7 @@ public sealed class ConnectionCacheTests
 
         public Task WaitForDisposeAsync(CancellationToken cancellationToken) =>
             _waitDisposeSemaphore.WaitAsync(cancellationToken);
+
         public void ReleaseDispose() => _continueDisposeSemaphore.Release();
     }
 }
