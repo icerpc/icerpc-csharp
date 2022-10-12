@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="NUnit.Analyzers" Version="3.3.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview7" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="NUnit" Version="3.13.3" />
   </ItemGroup>
 
