@@ -32,12 +32,13 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             throw new ArgumentException(nameof(options), $"{nameof(options.StreamErrorCodeConverter)} is null");
         }
 
+        ServerAddress = serverAddress;
+
         _errorCodeConverter = options.StreamErrorCodeConverter;
         _pauseReaderThreshold = quicTransportOptions.PauseReaderThreshold;
         _resumeReaderThreshold = quicTransportOptions.ResumeReaderThreshold;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
-        ServerAddress = serverAddress;
     }
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)

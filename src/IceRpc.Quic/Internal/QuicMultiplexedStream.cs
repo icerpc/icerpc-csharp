@@ -43,7 +43,7 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         _outputPipeWriter?.Abort(completeException);
     }
 
-    public QuicMultiplexedStream(
+    internal QuicMultiplexedStream(
         QuicStream stream,
         bool isRemote,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,

@@ -78,6 +78,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
         Debug.Assert(task.IsCompleted);
         _listener = task.Result;
+
         ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
     }
 

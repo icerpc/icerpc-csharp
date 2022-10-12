@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-#pragma warning disable CA1001 // Type owns disposable field(s) '_pipeCts' but is not disposable
+#pragma warning disable CA1001 // Type owns disposable field(s) '_abortCts' but is not disposable
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
@@ -98,13 +98,13 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         ReadResult readResult = default;
         if (_pipe.Writer.UnflushedBytes > 0)
         {
-            // Make sure the pipe reader is not completed while it's being used.
+            // Make sure the pipe reader is not completed by Abort while it's being used.
             if (!_state.TrySetFlag(State.PipeReaderInUse))
             {
                 throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
             }
 
-            // Flush the internal pipe. It can be completed if the peer stopped reading.
+            // Flush the internal pipe.
             FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             Debug.Assert(!flushResult.IsCanceled && !flushResult.IsCompleted);
 

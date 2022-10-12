@@ -69,17 +69,14 @@ public static class ProtocolServiceCollectionExtensions
         }
         else
         {
-            if (OperatingSystem.IsLinux() || OperatingSystem.IsWindows())
-            {
-                services.AddQuicTransport().AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0"));
-            }
-            else
-            {
-                services
-                    .AddColocTransport()
-                    .AddSlicTransport()
-                    .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"));
-            }
+            // Uncomment to run protocol tests with Quic instead of Slic. You also need to comment out the code below.
+            // services.AddQuicTransport().AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0"));
+
+            services
+                .AddColocTransport()
+                .AddSlicTransport()
+                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"));
+
             services.AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
         }
         return services;

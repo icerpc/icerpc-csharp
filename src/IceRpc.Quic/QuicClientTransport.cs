@@ -19,7 +19,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
     /// <param name="options">The options to configure the Quic transport.</param>
     public QuicClientTransport(QuicClientTransportOptions options) => _quicTransportOptions = options;
 
-    /// <summary>Constructs a Slic client transport.</summary>
+    /// <summary>Constructs a Quic client transport.</summary>
     public QuicClientTransport()
         : this(new())
     {

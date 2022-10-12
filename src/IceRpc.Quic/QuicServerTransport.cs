@@ -31,7 +31,7 @@ public class QuicServerTransport : IMultiplexedServerTransport
     {
         if (serverAddress.Params.Count > 0)
         {
-            throw new FormatException($"cannot create a TCP listener for server address '{serverAddress}'");
+            throw new FormatException($"cannot create a Quic listener for server address '{serverAddress}'");
         }
 
         if (serverAuthenticationOptions is null)

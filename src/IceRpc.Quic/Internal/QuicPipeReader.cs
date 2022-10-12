@@ -7,7 +7,7 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Internal;
 
-#pragma warning disable CA1001 // Type owns disposable field(s) '_pipeCts' but is not disposable
+#pragma warning disable CA1001 // Type owns disposable field(s) '_abortCts' but is not disposable
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -77,7 +77,7 @@ internal class QuicPipeReader : PipeReader
                 {
                     while (true)
                     {
-                        // Make sure the pipe writer is not completed while it's being used.
+                        // Make sure the pipe writer is not completed by Abort while it's being used.
                         _ = _state.TrySetFlag(State.PipeWriterInUse);
                         try
                         {
