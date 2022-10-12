@@ -3,7 +3,7 @@
 use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
 
-use slice::convert_case::{Case, Casing};
+use slice::convert_case::Case;
 use slice::grammar::{Member, Parameter, Types};
 use slice::utils::code_gen_util::TypeContext;
 
@@ -16,16 +16,16 @@ pub trait MemberExt {
 
 impl<T: Member> MemberExt for T {
     fn parameter_name(&self) -> String {
-        escape_keyword(&self.identifier().to_case(Case::Camel))
+        escape_keyword(&self.cs_identifier(Some(Case::Camel)))
     }
 
     fn parameter_name_with_prefix(&self, prefix: &str) -> String {
-        let name = prefix.to_owned() + &self.identifier().to_case(Case::Camel);
+        let name = prefix.to_owned() + &self.cs_identifier(Some(Case::Camel));
         escape_keyword(&name)
     }
 
     fn field_name(&self, field_type: FieldType) -> String {
-        mangle_name(&self.escape_identifier().to_case(Case::Pascal), field_type)
+        mangle_name(&self.escape_identifier(), field_type)
     }
 
     fn is_default_initialized(&self) -> bool {

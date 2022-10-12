@@ -118,12 +118,6 @@ public class ServerTests
                 ServerAddress = server.ServerAddress,
             });
 
-        await using var connection3 = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            });
-
         await connection1.ConnectAsync();
 
         // Act/Assert
@@ -131,8 +125,8 @@ public class ServerTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
         await connection1.ShutdownAsync();
         // Artificial delay to ensure the server has time to cleanup connection.
-        await Task.Delay(TimeSpan.FromSeconds(1));
-        await connection3.ConnectAsync();
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        await connection2.ConnectAsync();
     }
 
     [Test]
@@ -196,7 +190,6 @@ public class ServerTests
         dispatchSemaphore.Release();
         await disposeTask;
     }
-
 
     [Test]
     public async Task Dispose_waits_for_refused_connection_disposal()

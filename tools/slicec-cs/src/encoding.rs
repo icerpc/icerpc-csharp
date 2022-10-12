@@ -6,7 +6,7 @@ use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
-use slice::convert_case::{Case, Casing};
+use slice::convert_case::Case;
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
 
@@ -131,7 +131,7 @@ fn encode_type(
                         "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
                         encoder_extensions_class =
                             custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
-                        identifier = custom_type_ref.identifier(),
+                        identifier = custom_type_ref.cs_identifier(None),
                         encoder_param = encoder_param,
                         value = value
                     )
@@ -157,7 +157,7 @@ fn encode_type(
                     "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
                     encoder_extensions_class =
                         enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
-                    name = enum_ref.identifier().to_case(Case::Pascal),
+                    name = enum_ref.cs_identifier(Some(Case::Pascal)),
                     param = value,
                     encoder_param = encoder_param
                 ),
@@ -465,7 +465,7 @@ pub fn encode_action(
                 encoder_extensions_class = enum_ref.escape_scoped_identifier_with_suffix(
                     "SliceEncoderExtensions",
                     namespace),
-                name = enum_ref.identifier().to_case(Case::Pascal),
+                name = enum_ref.cs_identifier(Some(Case::Pascal)),
                 value = value
             )
         }
@@ -518,7 +518,7 @@ pub fn encode_action(
                 encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_suffix(
                     "SliceEncoderExtensions",
                     namespace),
-                identifier = custom_type_ref.identifier()
+                identifier = custom_type_ref.cs_identifier(None)
             )
         }
     }
