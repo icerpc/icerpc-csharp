@@ -124,9 +124,22 @@ public class ServerTests
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(() => connection2.ConnectAsync());
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
         await connection1.ShutdownAsync();
-        // Artificial delay to ensure the server has time to cleanup connection.
-        await Task.Delay(TimeSpan.FromSeconds(2));
-        await connection2.ConnectAsync();
+
+        // Artificial delay to ensure the server has time to dispose and cleanup the connection.
+        // This is not ideal but it's the best we can do for now.
+        int retry = 5;
+        while (retry-- > 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            try
+            {
+                await connection2.ConnectAsync();
+                break;
+            }
+            catch (ConnectionException)
+            {
+            }
+        }
     }
 
     [Test]
