@@ -100,7 +100,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.ConnectionShutdown));
     }
 
     /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the

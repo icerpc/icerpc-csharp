@@ -858,7 +858,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (dispatchCts.Token == exception.CancellationToken)
             {
-                await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                await stream.Output.CompleteAsync((Exception?)ConnectionClosedException ?? exception)
+                    .ConfigureAwait(false);
                 request.Complete();
                 return;
             }
