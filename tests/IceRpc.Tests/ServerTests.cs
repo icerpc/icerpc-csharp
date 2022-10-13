@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Collections;
 using System.Net;
 using System.Net.Security;
 
@@ -96,7 +97,9 @@ public class ServerTests
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var connections = new NotifiedConnectionCollection();
         await using var server = new Server(
+            connections,
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
@@ -125,21 +128,11 @@ public class ServerTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
         await connection1.ShutdownAsync();
 
-        // Artificial delay to ensure the server has time to dispose and cleanup the connection.
-        // This is not ideal but it's the best we can do for now.
-        int retry = 5;
-        while (retry-- > 0)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            try
-            {
-                await connection2.ConnectAsync();
-                break;
-            }
-            catch (ConnectionException)
-            {
-            }
-        }
+        // Wait for the server to remove the connection from the collection.
+        await connections.WaitForRemovedAsync();
+
+        // Server connection count is now 0, so the connection should be accepted.
+        await connection2.ConnectAsync();
     }
 
     [Test]
@@ -265,6 +258,39 @@ public class ServerTests
         Assert.That(disposeTask.IsCompleted, Is.False);
         refusedSemaphore.Release();
         await disposeTask;
+    }
+
+    /// <summary>This collection is used to notify when a connection is removed from the collection.</summary>
+    private class NotifiedConnectionCollection : ICollection<IProtocolConnection>
+    {
+        private readonly ICollection<IProtocolConnection> _connections = new HashSet<IProtocolConnection>();
+        public int Count => _connections.Count;
+
+        public bool IsReadOnly => false;
+
+        private readonly TaskCompletionSource _removedSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void Add(IProtocolConnection item) => _connections.Add(item);
+
+        public void Clear() => _connections.Clear();
+
+        public bool Contains(IProtocolConnection item) => _connections.Contains(item);
+
+        public void CopyTo(IProtocolConnection[] array, int arrayIndex) => _connections.CopyTo(array, arrayIndex);
+
+        IEnumerator<IProtocolConnection> IEnumerable<IProtocolConnection>.GetEnumerator()
+            => _connections.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => _connections.GetEnumerator();
+
+        public bool Remove(IProtocolConnection item)
+        {
+            bool result = _connections.Remove(item);
+            _removedSource.TrySetResult();
+            return result;
+        }
+
+        public Task WaitForRemovedAsync() => _removedSource.Task;
     }
 
     private class RefusedMultiplexServerTransport : IMultiplexedServerTransport
