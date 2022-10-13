@@ -30,7 +30,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
 
         private readonly IProtocolConnection _decoratee;
         private EndPoint? _localNetworkAddress;
-        private readonly Task? _logShutdownAsync;
+        private readonly Task _logShutdownAsync;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
@@ -58,10 +58,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            if (_logShutdownAsync is not null)
-            {
-                await _logShutdownAsync.ConfigureAwait(false);
-            }
+            await _logShutdownAsync.ConfigureAwait(false);
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
