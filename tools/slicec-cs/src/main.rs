@@ -1,37 +1,23 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 mod builders;
-mod class_visitor;
 mod comment_patcher;
 mod comments;
 mod cs_attributes;
 mod cs_options;
 mod cs_util;
-mod cs_validator;
 mod decoding;
-mod dispatch_visitor;
 mod encoded_result;
 mod encoding;
-mod enum_visitor;
-mod exception_visitor;
 mod generated_code;
 mod member_util;
-mod module_visitor;
-mod proxy_visitor;
 mod slicec_ext;
-mod struct_visitor;
-mod trait_visitor;
+mod validators;
+mod visitors;
 
-use class_visitor::ClassVisitor;
 use comment_patcher::patch_comments;
 use cs_options::CsOptions;
-use cs_validator::validate_cs_attributes;
-use dispatch_visitor::DispatchVisitor;
-use enum_visitor::EnumVisitor;
-use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
-use module_visitor::ModuleVisitor;
-use proxy_visitor::ProxyVisitor;
 use slice::clap::Parser;
 use slice::diagnostics::{Error, ErrorKind};
 use slice::parse_result::ParserResult;
@@ -40,8 +26,11 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-use struct_visitor::StructVisitor;
-use trait_visitor::TraitVisitor;
+use validators::cs_validator::validate_cs_attributes;
+use visitors::{
+    ClassVisitor, DispatchVisitor, EnumVisitor, ExceptionVisitor, ModuleVisitor, ProxyVisitor, StructVisitor,
+    TraitVisitor,
+};
 
 use slice::code_block::CodeBlock;
 
