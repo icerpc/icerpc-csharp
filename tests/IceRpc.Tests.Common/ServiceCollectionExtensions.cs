@@ -36,7 +36,9 @@ public static class ServiceCollectionExtensions
         Action<IDispatcherBuilder> configure) =>
         services.AddClientServerColocTest(configure, Protocol.IceRpc);
 
-    public static IServiceCollection AddClientServerColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
+    public static IServiceCollection AddClientServerColocTest(
+        this IServiceCollection services,
+        IDispatcher dispatcher) =>
         services.AddClientServerColocTest(dispatcher, Protocol.IceRpc);
 
     /// <summary>Installs the coloc duplex transport.</summary>
