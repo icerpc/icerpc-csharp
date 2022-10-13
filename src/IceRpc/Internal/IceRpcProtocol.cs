@@ -27,13 +27,13 @@ internal sealed class IceRpcProtocol : Protocol
 
     private class ErrorCodeConverter : IMultiplexedStreamErrorCodeConverter
     {
+        // We don't map error codes received from the peer to exceptions such as OperationCanceledException,
+        // ConnectionException or InvalidData as it would be confusing: OperationCanceledException etc. are local
+        // exceptions that don't report remote events.
         public Exception? FromErrorCode(ulong errorCode) =>
             (IceRpcStreamErrorCode)errorCode switch
             {
                 IceRpcStreamErrorCode.NoError => null,
-
-                IceRpcStreamErrorCode.ConnectionShutdown => new ConnectionException(ConnectionErrorCode.ClosedByPeer),
-
                 _ => new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode)
             };
 

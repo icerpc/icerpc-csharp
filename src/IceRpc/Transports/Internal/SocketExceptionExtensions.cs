@@ -15,7 +15,7 @@ internal static class SocketExceptionExtensions
             throw new TransportException(TransportErrorCode.Unspecified, exception);
 
         SocketError error = socketException.SocketErrorCode;
-        if (error == SocketError.ConnectionReset || error == SocketError.Shutdown)
+        if (error == SocketError.ConnectionReset || error == SocketError.Shutdown || error == SocketError.NotConnected)
         {
             // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer closing
             // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty

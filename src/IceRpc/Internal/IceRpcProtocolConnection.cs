@@ -147,8 +147,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         await SendControlFrameAsync(
             IceRpcControlFrameType.Settings,
-            (ref SliceEncoder encoder) => settings.Encode(ref encoder),
-            endStream: false,
+            settings.Encode,
             cancellationToken).ConfigureAwait(false);
 
         // Wait for the remote control stream to be accepted and read the protocol Settings frame
@@ -480,8 +479,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAway,
-                (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
-                endStream: true,
+                goAwayFrame.Encode,
                 cancellationToken).ConfigureAwait(false);
 
             // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has
@@ -512,7 +510,22 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 _dispatchesCompleted.Task,
                 _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            // Shutdown the transport and wait for the peer shutdown.
+            // Close the control stream to notify the peer that on our side, all the streams completed.
+            _controlStream!.Output.Complete();
+
+            // Wait for the peer notification that on its side all the streams are completed. It's important to wait for
+            // this notification before closing the connection. In particular with Quic where closing the connection
+            // before all the streams are processed could lead to a stream failure.
+            try
+            {
+                await _remoteControlStream!.ReadsClosed.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Expected if the peer closed the connection.
+            }
+
+            // We can now safely close the connection.
             await _transportConnection.CloseAsync(
                 (ulong)IceRpcConnectionErrorCode.NoError,
                 cancellationToken).ConfigureAwait(false);
@@ -858,7 +871,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (dispatchCts.Token == exception.CancellationToken)
             {
-                await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                await stream.Output.CompleteAsync((Exception?)ConnectionClosedException ?? exception)
+                    .ConfigureAwait(false);
                 request.Complete();
                 return;
             }
@@ -1186,14 +1200,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction encodeAction,
-        bool endStream,
         CancellationToken cancellationToken)
     {
         PipeWriter output = _controlStream!.Output;
 
         EncodeFrame(output);
 
-        return output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream, cancellationToken); // Flush
+        return output.FlushAsync(cancellationToken); // Flush
 
         void EncodeFrame(IBufferWriter<byte> buffer)
         {

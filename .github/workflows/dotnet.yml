@@ -35,6 +35,12 @@ jobs:
       with:
         dotnet-version: "7.0.x"
         dotnet-quality: "preview"
+    - name: 🔗 Setup MsQuic
+      run: |
+        curl -sSL https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/microsoft-prod.list
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+        sudo apt-get update
+        sudo apt-get install libmsquic
     - name: 🔗 Start SSH Agent
       uses: webfactory/ssh-agent@v0.5.4
       with:
