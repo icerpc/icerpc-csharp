@@ -52,22 +52,6 @@ internal class QuicPipeReader : PipeReader
             task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
             return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (QuicException exception) when (
-            exception.QuicError == QuicError.StreamAborted &&
-            exception.ApplicationErrorCode is not null)
-        {
-            throw _abortException ?? _errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode)!;
-        }
-        catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
-        {
-            // If the connection is closed before the stream. This indicates that the peer forcefully closed the
-            // connection (it called DisposeAsync before completing the streams).
-            throw _abortException ?? new TransportException(TransportErrorCode.ConnectionReset, exception);
-        }
-        catch (QuicException exception)
-        {
-            throw _abortException ?? exception.ToTransportException();
-        }
         catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
             // We can't let task run in the background: we need to abort it and wait for its completion.
@@ -82,9 +66,29 @@ internal class QuicPipeReader : PipeReader
             }
             throw exception;
         }
+        catch when (_abortException is not null)
+        {
+            throw _abortException;
+        }
+        catch (QuicException exception) when (
+            exception.QuicError == QuicError.StreamAborted &&
+            exception.ApplicationErrorCode is not null)
+        {
+            throw _errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode)!;
+        }
+        catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
+        {
+            // If the connection is closed before the stream. This indicates that the peer forcefully closed the
+            // connection (it called DisposeAsync before completing the streams).
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToTransportException();
+        }
         catch (Exception exception)
         {
-            throw _abortException ?? new TransportException(TransportErrorCode.Unspecified, exception);
+            throw new TransportException(TransportErrorCode.Unspecified, exception);
         }
     }
 
