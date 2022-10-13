@@ -15,11 +15,14 @@ internal class QuicPipeReader : PipeReader
 #pragma warning restore CA1001
 {
     private readonly CancellationTokenSource _abortCts = new();
+    private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private Exception? _exception;
     private readonly Pipe _pipe;
     private int _state;
     private readonly QuicStream _stream;
+
+    public bool IsCompleted => _state.HasFlag(State.Completed);
 
     public override void AdvanceTo(SequencePosition consumed) =>
         _pipe.Reader.AdvanceTo(consumed);
@@ -41,6 +44,9 @@ internal class QuicPipeReader : PipeReader
 
             // Cleanup resources.
             _abortCts.Dispose();
+
+            // Notify the stream of the reader completion.
+            _completedCallback();
         }
     }
 
@@ -55,10 +61,12 @@ internal class QuicPipeReader : PipeReader
         int pauseReaderThreshold,
         int resumeReaderThreshold,
         MemoryPool<byte> pool,
-        int minimumSegmentSize)
+        int minimumSegmentSize,
+        Action completedCallback)
     {
         _stream = stream;
         _errorCodeConverter = errorCodeConverter;
+        _completedCallback = completedCallback;
 
         // The pause/resume reader threshold configuration are in turn the configuration for the pipe writer
         // pause/resume writer threshold. The background reads from the Quic stream will stop once the pause writer
