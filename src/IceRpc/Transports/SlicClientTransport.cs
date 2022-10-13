@@ -26,7 +26,7 @@ public class SlicClientTransport : IMultiplexedClientTransport
     /// <summary>Constructs a Slic client transport.</summary>
     /// <param name="duplexClientTransport">The duplex client transport.</param>
     public SlicClientTransport(IDuplexClientTransport duplexClientTransport)
-        : this(new(), duplexClientTransport)
+        : this(new SlicTransportOptions(), duplexClientTransport)
     {
     }
 

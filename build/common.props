@@ -11,6 +11,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Nullable>enable</Nullable>
         <TargetFramework>net7.0</TargetFramework>
+        <EnablePreviewFeatures>True</EnablePreviewFeatures>
         <LangVersion>10.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>

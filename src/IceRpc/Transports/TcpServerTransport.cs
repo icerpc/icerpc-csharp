@@ -15,7 +15,7 @@ public class TcpServerTransport : IDuplexServerTransport
 
     /// <summary>Constructs a <see cref="TcpServerTransport" />.</summary>
     public TcpServerTransport()
-        : this(new())
+        : this(new TcpServerTransportOptions())
     {
     }
 
