@@ -4,7 +4,7 @@
     <SliceCompile Include="../Hello.slice" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview7" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Retry" Version="$(IceRpcVersion)" />

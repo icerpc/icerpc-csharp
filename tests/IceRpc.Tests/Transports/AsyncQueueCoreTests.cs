@@ -88,9 +88,7 @@ public class AsyncQueueCoreTests
         internal bool IsGetStatusCalled { get; private set; }
         internal bool IsCancelCalled { get; private set; }
 
-#pragma warning disable CA1805 // member is explicitly initialized to its default value
         private AsyncQueueCore<bool> _queue = new();
-#pragma warning restore CA1805
 
         internal void Enqueue(bool value) => _queue.Enqueue(value);
 

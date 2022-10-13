@@ -24,9 +24,7 @@ def usage():
     print("                 name (default is to use the IP address)." )
     sys.exit(1)
 
-#
 # Check arguments
-#
 debug = False
 ip = None
 dns = None
@@ -66,9 +64,7 @@ def request(question, newvalue, value):
         else:
             return value
 
-#
 # Change to the directory where the certs files are stored
-#
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 if not ip:
@@ -84,43 +80,15 @@ if not dns:
 CertificateFactory = vars(IceCertUtils)[impl + "CertificateFactory"]
 factory = CertificateFactory(debug=debug, cn="Ice Tests CA")
 
-#
 # CA certificate
-#
 factory.getCA().save("cacert.pem").save("cacert.der")
 
-#
 # Client certificate
-#
 client = factory.create("client", extendedKeyUsage="clientAuth")
 client.save("client.p12")
 
-#
 # Server certificate
-#
-# NOTE: server.pem is used by scripts/TestController.py
-#
 server = factory.create("server", cn = (dns if usedns else "server"), ip=ip, dns=dns, extendedKeyUsage="serverAuth,clientAuth")
-server.save("server.p12").save("server.pem")
-
-try:
-    server.save("server.jks", caalias="cacert")
-    client.save("client.jks", caalias="cacert")
-
-    # Don't try to generate the BKS if the JKS generation fails
-    try:
-        server.save("server.bks", caalias="cacert")
-        client.save("client.bks", caalias="cacert")
-    except Exception as ex:
-        for f in ["server.bks", "client.bks"]:
-            if os.path.exists(f): os.remove(f)
-        print("warning: couldn't generate BKS certificates for Android applications:\n" + str(ex))
-        print("Please fix this issue if you want to run the Android tests.")
-
-except Exception as ex:
-    for f in ["server.jks", "client.jks"]:
-        if os.path.exists(f): os.remove(f)
-    print("warning: couldn't generate JKS certificates for Java applications:\n" + str(ex))
-    print("Please fix this issue if you want to run the Java tests.")
+server.save("server.p12")
 
 factory.destroy()

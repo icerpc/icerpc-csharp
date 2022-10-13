@@ -499,7 +499,7 @@ public class ServiceAddressTests
             new SliceFeature(serviceProxyFactory: (serviceAddress, _) => new ServiceProxy(pipeline, serviceAddress)));
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerTest(router)
+            .AddClientServerColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
@@ -517,7 +517,7 @@ public class ServiceAddressTests
     {
         var service = new SendProxyTest();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerTest(service)
+            .AddClientServerColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
@@ -535,7 +535,7 @@ public class ServiceAddressTests
     public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerTest(new ReceiveProxyTest())
+            .AddClientServerColocTest(new ReceiveProxyTest())
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();

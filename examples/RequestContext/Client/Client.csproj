@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <SliceCompile Include="../Hello.slice" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview7" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.RequestContext" Version="$(IceRpcVersion)" />
   </ItemGroup>

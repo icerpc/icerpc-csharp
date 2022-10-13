@@ -1207,7 +1207,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        await using IMultiplexedConnection sut =provider.GetRequiredService<IMultiplexedConnection>();
+        await using IMultiplexedConnection sut = provider.GetRequiredService<IMultiplexedConnection>();
 
         // Act/Assert
         Assert.That(

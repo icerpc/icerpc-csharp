@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- TODO: the file is misnamed: it's common to tests and src, but not used by examples -->
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$(MSBuildThisFileDirectory)icerpc.version.props" />
     <PropertyGroup>
@@ -15,7 +16,10 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
         <ImplicitUsings>true</ImplicitUsings>
-        <NetRuntimeVersion Condition="'$(NetRuntimeVersion)' == ''">7.0.0-rc.1.22426.10</NetRuntimeVersion>
+        <NetRuntimeVersion>7.0.0-rc.1.22426.10</NetRuntimeVersion>
+        <!-- TODO update to 1.2 stable release https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187#issuecomment-1043221630 -->
+        <StyleCopAnalyzersVersion>1.2.0-beta.435</StyleCopAnalyzersVersion>
+        <IceRpcBuilderVersion>0.1.0-preview7</IceRpcBuilderVersion>
         <!-- Slicec compiler location -->
         <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
         <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
