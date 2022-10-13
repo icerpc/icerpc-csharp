@@ -79,12 +79,6 @@ public static class ServiceCollectionExtensions
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>()));
 
-    /// <summary>Installs the Quic multiplexed transport.</summary>
-    public static IServiceCollection AddQuicTransport(this IServiceCollection services) => services
-        .AddSslAuthenticationOptions()
-        .AddSingleton<IMultiplexedServerTransport>(provider => new QuicServerTransport())
-        .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport());
-
     /// <summary>Installs the Slic multiplexed transport.</summary>
     public static IServiceCollection AddSlicTransport(this IServiceCollection services) => services
         .AddSingleton<IMultiplexedServerTransport>(
