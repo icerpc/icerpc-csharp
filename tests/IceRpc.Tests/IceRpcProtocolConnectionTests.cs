@@ -75,9 +75,10 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="IceRpcProtocolStreamException" />.</summary>
+    /// cref="IceRpcProtocolStreamException" /> with the <see cref="IceRpcStreamErrorCode.ConnectionShutdown" />
+    /// error code.</summary>
     [Test]
-    public async Task Disposing_server_connection_triggers_stream_exception(
+    public async Task Disposing_server_connection_triggers_stream_exception_with_ConnectionShutdown(
         [Values(false, true)] bool shutdown)
     {
         // Arrange
