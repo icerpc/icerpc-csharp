@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Quic\IceRpc.Quic.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Logger\IceRpc.Logger.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Extensions.DependencyInjection\IceRpc.Extensions.DependencyInjection.csproj" />
   </ItemGroup>

@@ -22,7 +22,7 @@ public class TcpClientTransport : IDuplexClientTransport
 
     /// <summary>Constructs a <see cref="TcpClientTransport" />.</summary>
     public TcpClientTransport()
-        : this(new())
+        : this(new TcpClientTransportOptions())
     {
     }
 

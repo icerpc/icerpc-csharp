@@ -140,7 +140,7 @@ public class ClientConnectionTests
         // Arrange
         await using ServiceProvider provider =
             new ServiceCollection()
-                .AddClientServerTest(
+                .AddClientServerColocTest(
                     new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
                     serviceAddress.Protocol!,
                     host: "testhost.com")
@@ -188,7 +188,7 @@ public class ClientConnectionTests
         // Arrange
         await using ServiceProvider provider =
             new ServiceCollection()
-                .AddClientServerTest(
+                .AddClientServerColocTest(
                     new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
                     serverAddress.Protocol,
                     host: serverAddress.Host)

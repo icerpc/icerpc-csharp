@@ -40,6 +40,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    [Ignore("See #1859")]
     public async Task Close_server_multiplexed_connection_before_connect()
     {
         await using ServiceProvider provider = new ServiceCollection()
@@ -51,7 +52,7 @@ public sealed class IceRpcProtocolConnectionTests
             clientTransport.CreateConnection(
                 listener.ServerAddress,
                 options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                clientAuthenticationOptions: null),
+                clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>()),
             isServer: false,
             options: new());
 
@@ -177,6 +178,11 @@ public sealed class IceRpcProtocolConnectionTests
                     {
                         ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
                         dispatchTcs.TrySetResult();
+                        if (result.IsCompleted)
+                        {
+                            dispatchCompleteTcs.SetResult();
+                            break;
+                        }
                         request.Payload.AdvanceTo(result.Buffer.End);
                     }
                 }
@@ -282,10 +288,15 @@ public sealed class IceRpcProtocolConnectionTests
         using var dispatcher = new TestDispatcher();
 
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddColocTransport()
+            .AddSlicTransport()
             .AddSingleton<IMultiplexedServerTransport>(
                 provider => serverTransport = new HoldMultiplexedServerTransport(
                     new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>())))
+            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+            .AddIceRpcProtocolTest(
+                clientConnectionOptions: new(),
+                serverConnectionOptions: new () { Dispatcher = dispatcher})
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -319,10 +330,15 @@ public sealed class IceRpcProtocolConnectionTests
         using var dispatcher = new TestDispatcher();
 
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddColocTransport()
+            .AddSlicTransport()
             .AddSingleton<IMultiplexedClientTransport>(
                 provider => clientTransport = new HoldMultiplexedClientTransport(
                     new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>())))
+            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+            .AddIceRpcProtocolTest(
+                clientConnectionOptions: new(),
+                serverConnectionOptions: new() { Dispatcher = dispatcher })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();

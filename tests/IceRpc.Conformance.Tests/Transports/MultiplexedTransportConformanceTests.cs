@@ -483,8 +483,8 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamAsync(remoteStream);
     }
 
-    /// <summary>Write data until the transport flow control start blocking, at this point we start
-    /// a read task and ensure that this unblocks the pending write calls.</summary>
+    /// <summary>Write data until the transport flow control start blocking, at this point we start a read task and
+    /// ensure that this unblocks the pending write calls.</summary>
     [Test]
     public async Task Flow_control()
     {
@@ -1207,7 +1207,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        await using IMultiplexedConnection sut =provider.GetRequiredService<IMultiplexedConnection>();
+        await using IMultiplexedConnection sut = provider.GetRequiredService<IMultiplexedConnection>();
 
         // Act/Assert
         Assert.That(
@@ -1263,6 +1263,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
+    [Ignore("See #1859")]
     public async Task Close_client_connection_before_connect_fails_with_transport_connection_closed_error()
     {
         // Arrange
@@ -1285,6 +1286,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
+    [Ignore("See #1859")]
     public async Task Close_server_connection_before_connect_fails_with_transport_connection_closed_error()
     {
         // Arrange

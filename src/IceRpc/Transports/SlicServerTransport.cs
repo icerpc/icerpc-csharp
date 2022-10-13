@@ -26,7 +26,7 @@ public class SlicServerTransport : IMultiplexedServerTransport
     /// <summary>Constructs a Slic server transport.</summary>
     /// <param name="duplexServerTransport">The duplex server transport.</param>
     public SlicServerTransport(IDuplexServerTransport duplexServerTransport)
-        : this(new(), duplexServerTransport)
+        : this(new SlicTransportOptions(), duplexServerTransport)
     {
     }
 
