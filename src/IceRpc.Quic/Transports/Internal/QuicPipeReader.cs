@@ -28,7 +28,8 @@ internal class QuicPipeReader : PipeReader
 
     public override void Complete(Exception? exception = null)
     {
-        // This does not call _stream.Dispose since leaveOpen is set to true.
+        // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
+        // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
         _pipeReader.Complete(exception);
 
         // TODO: it appears we need to call Abort even when exception is null, which does not make sense. Otherwise,
