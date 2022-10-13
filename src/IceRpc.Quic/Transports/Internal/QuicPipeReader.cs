@@ -15,11 +15,8 @@ internal class QuicPipeReader : PipeReader
     private Exception? _abortException;
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
-    private volatile bool _isCompleted;
     private readonly PipeReader _pipeReader;
     private readonly QuicStream _stream;
-
-    public bool IsCompleted => _isCompleted;
 
     // StreamPipeReader.AdvanceTo does not call the underlying stream and as a result does not throw any QuicException.
     public override void AdvanceTo(SequencePosition consumed) => _pipeReader.AdvanceTo(consumed);
@@ -40,8 +37,6 @@ internal class QuicPipeReader : PipeReader
 
         // Notify the stream of the reader completion, which can trigger the stream disposal.
         _completedCallback();
-
-        _isCompleted = true;
     }
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)

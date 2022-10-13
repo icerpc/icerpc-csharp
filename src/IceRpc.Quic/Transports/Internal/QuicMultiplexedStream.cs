@@ -33,7 +33,9 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     public Task WritesClosed { get; }
 
     private readonly QuicPipeReader? _inputPipeReader;
+    private volatile bool _inputPipeReaderIsCompleted;
     private readonly QuicPipeWriter? _outputPipeWriter;
+    private volatile bool _outputPipeWriterIsCompleted;
     private readonly QuicStream _stream;
 
     public void Abort(Exception completeException)
@@ -78,8 +80,10 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
         void OnPipeReaderCompleted()
         {
-            // If the writer is completed, we can dispose the stream.
-            if (_outputPipeWriter?.IsCompleted ?? true)
+            _inputPipeReaderIsCompleted = true;
+
+            // If there is no writer or the writer is completed, we can dispose the stream.
+            if (_outputPipeWriter is null || _outputPipeWriterIsCompleted)
             {
                 // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
                 // stream disposal and it will eventually complete in the background.
@@ -89,8 +93,10 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
         void OnPipeWriterCompleted()
         {
-            // If the reader is completed, we can dispose the stream.
-            if (_inputPipeReader?.IsCompleted ?? true)
+            _outputPipeWriterIsCompleted = true;
+
+            // If there is no reader or the reader is completed, we can dispose the stream.
+            if (_inputPipeReader is null || _inputPipeReaderIsCompleted)
             {
                 // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
                 // stream disposal and it will eventually complete in the background.
