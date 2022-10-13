@@ -6,15 +6,27 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
+using System.Net.Quic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
 
-[Platform(Exclude = "MacOsX")]
 [Parallelizable(ParallelScope.All)]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportConformanceTests : MultiplexedTransportConformanceTests
 {
+    [OneTimeSetUp]
+    public void FixtureSetUp()
+    {
+        if (!QuicConnection.IsSupported)
+        {
+            Assert.Ignore("Quic is not supported on this platform");
+        }
+    }
+
     /// <summary>Creates the service collection used for Quic multiplexed transports for conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection()
     {
