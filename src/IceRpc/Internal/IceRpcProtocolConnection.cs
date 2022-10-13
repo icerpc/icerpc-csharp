@@ -520,9 +520,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 await _remoteControlStream!.ReadsClosed.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (TransportException)
+            catch (TransportException exception) when (
+                exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
+                exception.ApplicationErrorCode == (ulong)IceRpcConnectionErrorCode.NoError)
             {
-                // Expected if the peer closed the connection.
+                // Expected if the peer closed the connection first.
             }
 
             // We can now safely close the connection.
