@@ -5,11 +5,10 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>The Quic multiplexed connection implements an <see cref="IMultiplexedConnection"/>.</summary>
+/// <summary>The Quic multiplexed connection implements an <see cref="IMultiplexedConnection" />.</summary>
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-
 internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 {
     public ServerAddress ServerAddress { get; }

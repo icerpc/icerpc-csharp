@@ -11,7 +11,7 @@ namespace IceRpc.Transports;
 public class QuicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>
-    public string Name => TransportNames.Quic;
+    public string Name => "quic";
 
     private readonly QuicClientTransportOptions _quicTransportOptions;
 
@@ -40,7 +40,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             throw new NotSupportedException("the Quic transport requires TLS server authentication options");
         }
 
-        if ((serverAddress.Transport is string transport && transport != TransportNames.Quic) ||
+        if ((serverAddress.Transport is string transport && transport != Name) ||
             !CheckParams(serverAddress))
         {
             throw new FormatException($"cannot create a Quic connection to server address '{serverAddress}'");

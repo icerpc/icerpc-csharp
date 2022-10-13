@@ -8,5 +8,4 @@ internal static class TransportNames
     internal const string Opaque = "opaque";  // ice only (i.e. no special handling with icerpc)
     internal const string Ssl = "ssl";
     internal const string Tcp = "tcp";
-    internal const string Quic = "quic";
 }

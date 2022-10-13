@@ -9,7 +9,7 @@ namespace IceRpc.Transports;
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
-    public string Name => TransportNames.Quic;
+    public string Name => "quic";
 
     private readonly QuicServerTransportOptions _quicOptions;
 
