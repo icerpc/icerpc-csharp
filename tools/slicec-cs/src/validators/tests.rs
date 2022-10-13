@@ -105,7 +105,7 @@ fn identifier_attribute_on_parameter() {
             module Test;
 
             interface I {
-                oP([cs::identifier(\"newParam\")] myParam: int32);
+                op([cs::identifier(\"newParam\")] myParam: int32);
             }
         ";
 
@@ -118,4 +118,30 @@ fn identifier_attribute_on_parameter() {
 
     // Assert
     assert_eq!(diagnostic_reporter.into_diagnostics().len(), 0);
+}
+
+#[test]
+fn identifier_attribute_on_type_alias_fails() {
+    // Arrange
+    let slice = "
+            module Test;
+
+            [cs::identifier(\"Foo\")]
+            typealias S = int32;
+        ";
+
+    // Act
+    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+        .and_then(patch_comments)
+        .and_then(validate_cs_attributes)
+        .unwrap_err()
+        .diagnostic_reporter;
+
+    // Assert
+    let expected = [Error::new(
+        ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "typealias".to_owned()),
+        None,
+    )];
+    std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+        .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
 }

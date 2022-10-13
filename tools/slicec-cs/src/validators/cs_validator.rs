@@ -278,7 +278,10 @@ impl Visitor for CsValidator<'_> {
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for attribute in &cs_attributes(type_alias.attributes()) {
             match attribute.directive.as_str() {
-                "identifier" => validate_cs_identifier(attribute, self.diagnostic_reporter),
+                "identifier" => self.diagnostic_reporter.report_error(Error::new(
+                    ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "typealias".to_owned()),
+                    Some(type_alias.span()),
+                )),
                 _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
             }
         }
