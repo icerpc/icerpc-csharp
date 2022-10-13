@@ -10,7 +10,6 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-
 internal class QuicMultiplexedStream : IMultiplexedStream
 {
     public ulong Id => (ulong)_stream.Id;
