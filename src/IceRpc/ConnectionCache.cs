@@ -399,6 +399,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
+
             lock (_mutex)
             {
                 if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
