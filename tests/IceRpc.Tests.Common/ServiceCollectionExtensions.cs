@@ -12,34 +12,34 @@ namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host and the
-    /// client connection connecting to the server's server address.</summary>
-    public static IServiceCollection AddClientServerTest(
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
+    public static IServiceCollection AddClientServerColocTest(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure,
         Protocol protocol,
         string host = "") =>
-        services.AddClientServerTest(protocol, host).AddIceRpcServer(configure);
+        services.AddClientServerColocTest(protocol, host).AddIceRpcServer(configure);
 
-    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host and the
-    /// client connection connecting to the server's server address.</summary>
-    public static IServiceCollection AddClientServerTest(
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
+    public static IServiceCollection AddClientServerColocTest(
         this IServiceCollection services,
         IDispatcher dispatcher,
         Protocol protocol,
         string host = "")
     {
         services.AddOptions<ServerOptions>().Configure(options => options.ConnectionOptions.Dispatcher = dispatcher);
-        return services.AddClientServerTest(protocol, host).AddIceRpcServer();
+        return services.AddClientServerColocTest(protocol, host).AddIceRpcServer();
     }
 
-    public static IServiceCollection AddClientServerTest(
+    public static IServiceCollection AddClientServerColocTest(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services.AddClientServerTest(configure, Protocol.IceRpc);
+        services.AddClientServerColocTest(configure, Protocol.IceRpc);
 
-    public static IServiceCollection AddClientServerTest(this IServiceCollection services, IDispatcher dispatcher) =>
-        services.AddClientServerTest(dispatcher, Protocol.IceRpc);
+    public static IServiceCollection AddClientServerColocTest(
+        this IServiceCollection services,
+        IDispatcher dispatcher) =>
+        services.AddClientServerColocTest(dispatcher, Protocol.IceRpc);
 
     /// <summary>Installs the coloc duplex transport.</summary>
     public static IServiceCollection AddColocTransport(this IServiceCollection services) => services
@@ -86,12 +86,6 @@ public static class ServiceCollectionExtensions
         .AddSingleton<IMultiplexedClientTransport>(
             provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
 
-    public static IServiceCollection AddTcpTransport(this IServiceCollection services) => services
-        .AddSingleton<IDuplexClientTransport>(provider =>
-            new TcpClientTransport(provider.GetService<IOptions<TcpClientTransportOptions>>()?.Value ?? new()))
-        .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(
-            provider.GetService<IOptions<TcpServerTransportOptions>>()?.Value ?? new()));
-
     public static IServiceCollection AddSslAuthenticationOptions(this IServiceCollection services) => services
         .AddSingleton(provider => new SslClientAuthenticationOptions
         {
@@ -108,7 +102,7 @@ public static class ServiceCollectionExtensions
             ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         });
 
-    private static IServiceCollection AddClientServerTest(
+    private static IServiceCollection AddClientServerColocTest(
         this IServiceCollection services,
         Protocol protocol,
         string host)
@@ -123,11 +117,7 @@ public static class ServiceCollectionExtensions
             .AddIceRpcClientConnection();
 
         services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
-
-        // TODO: the following doesn't work with transports other than coloc. The server address is not the listen
-        // server address since server.Listen is not called yet at this point.
-        services.AddOptions<ClientConnectionOptions>().Configure<Server>(
-            (options, server) => options.ServerAddress = server.ServerAddress);
+        services.AddOptions<ClientConnectionOptions>().Configure(options => options.ServerAddress = serverAddress);
 
         return services;
     }
