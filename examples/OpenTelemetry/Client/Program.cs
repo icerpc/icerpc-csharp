@@ -27,9 +27,6 @@ pipeline.Into(connection);
 
 var hello = new HelloProxy(pipeline);
 
-Console.Write("To say hello to the server, type your name: ");
+string greeting = await hello.SayHelloAsync(Environment.UserName);
 
-if (Console.ReadLine() is string name)
-{
-    Console.WriteLine(await hello.SayHelloAsync(name));
-}
+Console.WriteLine(greeting);
