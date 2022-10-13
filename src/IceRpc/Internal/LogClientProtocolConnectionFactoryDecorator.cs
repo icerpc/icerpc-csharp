@@ -30,11 +30,10 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
 
         private readonly IProtocolConnection _decoratee;
         private EndPoint? _localNetworkAddress;
-        private Task? _logShutdownAsync;
+        private readonly Task? _logShutdownAsync;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
-            _logShutdownAsync = LogShutdownAsync();
             ClientEventSource.Log.ConnectStart(ServerAddress);
             try
             {
@@ -54,28 +53,12 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             {
                 ClientEventSource.Log.ConnectStop(ServerAddress, _localNetworkAddress);
             }
-
-            // This task executes exactly once per decorated connection.
-            async Task LogShutdownAsync()
-            {
-                try
-                {
-                    await ShutdownComplete.ConfigureAwait(false);
-                    Debug.Assert(_localNetworkAddress is not null);
-                    ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress);
-                }
-                catch (Exception exception)
-                {
-                    ClientEventSource.Log.ConnectionFailure(ServerAddress, _localNetworkAddress, exception);
-                }
-                ClientEventSource.Log.ConnectionStop(ServerAddress, _localNetworkAddress);
-            }
         }
 
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            if (_logShutdownAsync != null)
+            if (_logShutdownAsync is not null)
             {
                 await _logShutdownAsync.ConfigureAwait(false);
             }
@@ -87,6 +70,28 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(cancellationToken);
 
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
+        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee)
+        {
+            _decoratee = decoratee;
+            _logShutdownAsync = LogShutdownAsync();
+
+            // This task executes exactly once per decorated connection.
+            async Task LogShutdownAsync()
+            {
+                try
+                {
+                    await ShutdownComplete.ConfigureAwait(false);
+                    if (_localNetworkAddress is not null)
+                    {
+                        ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    ClientEventSource.Log.ConnectionFailure(ServerAddress, _localNetworkAddress, exception);
+                }
+                ClientEventSource.Log.ConnectionStop(ServerAddress, _localNetworkAddress);
+            }
+        }
     }
 }
