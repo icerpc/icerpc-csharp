@@ -30,10 +30,11 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
 
         private readonly IProtocolConnection _decoratee;
         private EndPoint? _localNetworkAddress;
-        private readonly Task _logShutdownAsync;
+        private Task? _logShutdownAsync;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
+            _logShutdownAsync = LogShutdownAsync();
             ClientEventSource.Log.ConnectStart(ServerAddress);
             try
             {
@@ -53,24 +54,6 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             {
                 ClientEventSource.Log.ConnectStop(ServerAddress, _localNetworkAddress);
             }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-            await _logShutdownAsync.ConfigureAwait(false);
-        }
-
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
-            _decoratee.InvokeAsync(request, cancellationToken);
-
-        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(cancellationToken);
-
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee)
-        {
-            _decoratee = decoratee;
-            _logShutdownAsync = LogShutdownAsync();
 
             // This task executes exactly once per decorated connection.
             async Task LogShutdownAsync()
@@ -88,5 +71,22 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 ClientEventSource.Log.ConnectionStop(ServerAddress, _localNetworkAddress);
             }
         }
+
+        public async ValueTask DisposeAsync()
+        {
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            if (_logShutdownAsync != null)
+            {
+                await _logShutdownAsync.ConfigureAwait(false);
+            }
+        }
+
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
+            _decoratee.InvokeAsync(request, cancellationToken);
+
+        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(cancellationToken);
+
+        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
     }
 }
