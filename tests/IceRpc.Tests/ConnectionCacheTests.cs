@@ -207,7 +207,7 @@ public sealed class ConnectionCacheTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
 
         var colocTransport = new ColocTransport();
-        var clientTransport = new CachedConnectionTransport(new SlicClientTransport(colocTransport.ClientTransport));
+        var clientTransport = new SlowDisposeClientTransport(new SlicClientTransport(colocTransport.ClientTransport));
         await using var server = new Server(
             new ServerOptions
             {
@@ -225,7 +225,7 @@ public sealed class ConnectionCacheTests
         await new ServiceProxy(cache, new Uri("icerpc://foo")).IcePingAsync();
 
         // Get the last connection created by the cache
-        CachedConnection connection = clientTransport.LastConnection!;
+        SlowDisposeConnection connection = clientTransport.LastConnection!;
 
         // Shutdown the server. This will trigger connection closure.
         await server.ShutdownAsync();
@@ -242,16 +242,16 @@ public sealed class ConnectionCacheTests
         await disposeTask;
     }
 
-    private class CachedConnectionTransport : IMultiplexedClientTransport
+    private class SlowDisposeClientTransport : IMultiplexedClientTransport
     {
         public string Name => _transport.Name;
 
-        public CachedConnection? LastConnection { get; set; }
+        public SlowDisposeConnection? LastConnection { get; set; }
 
         private readonly IMultiplexedClientTransport _transport;
 
         public bool CheckParams(ServerAddress serverAddress) => _transport.CheckParams(serverAddress);
-        public CachedConnectionTransport(IMultiplexedClientTransport transport) => _transport = transport;
+        public SlowDisposeClientTransport(IMultiplexedClientTransport transport) => _transport = transport;
 
         public IMultiplexedConnection CreateConnection(
             ServerAddress serverAddress,
@@ -263,12 +263,12 @@ public sealed class ConnectionCacheTests
                 options,
                 clientAuthenticationOptions);
             Assert.That(LastConnection, Is.Null);
-            LastConnection = new CachedConnection(connection);
+            LastConnection = new SlowDisposeConnection(connection);
             return LastConnection;
         }
     }
 
-    private class CachedConnection : IMultiplexedConnection
+    private class SlowDisposeConnection : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _connection.ServerAddress;
 
@@ -277,7 +277,7 @@ public sealed class ConnectionCacheTests
         private readonly SemaphoreSlim _continueDisposeSemaphore = new(0);
         private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
 
-        public CachedConnection(IMultiplexedConnection connection) => _connection = connection;
+        public SlowDisposeConnection(IMultiplexedConnection connection) => _connection = connection;
 
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
             _connection.AcceptStreamAsync(cancellationToken);
