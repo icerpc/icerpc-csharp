@@ -46,8 +46,6 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         QuicStream stream,
         bool isRemote,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
-        int pauseReaderThreshold,
-        int resumeReaderThreshold,
         MemoryPool<byte> pool,
         int minSegmentSize)
     {
@@ -60,8 +58,6 @@ internal class QuicMultiplexedStream : IMultiplexedStream
             _inputPipeReader = new QuicPipeReader(
                 _stream,
                 errorCodeConverter,
-                pauseReaderThreshold,
-                resumeReaderThreshold,
                 pool,
                 minSegmentSize,
                 OnPipeReaderCompleted);

@@ -25,8 +25,8 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         return (new QuicMultiplexedServerConnection(
             ServerAddress,
             connection,
-            _options,
-            _quicTransportOptions), connection.RemoteEndPoint);
+            _options),
+            connection.RemoteEndPoint);
     }
 
     public ValueTask DisposeAsync() => _listener.DisposeAsync();

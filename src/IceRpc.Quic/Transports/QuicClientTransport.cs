@@ -73,7 +73,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
                     MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
                 };
 
-            return new QuicMultiplexedClientConnection(serverAddress, options, _quicTransportOptions, quicClientOptions);
+            return new QuicMultiplexedClientConnection(serverAddress, options, quicClientOptions);
         }
         else
         {
