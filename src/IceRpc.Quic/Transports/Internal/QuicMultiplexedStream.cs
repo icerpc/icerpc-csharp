@@ -64,16 +64,33 @@ internal class QuicMultiplexedStream : IMultiplexedStream
                 pauseReaderThreshold,
                 resumeReaderThreshold,
                 pool,
-                minSegmentSize);
+                minSegmentSize,
+                CompletedCallback);
         }
 
         if (_stream.CanWrite)
         {
-            _outputPipeWriter = new QuicPipeWriter(_stream, errorCodeConverter, pool, minSegmentSize);
+            _outputPipeWriter = new QuicPipeWriter(
+                _stream,
+                errorCodeConverter,
+                pool,
+                minSegmentSize,
+                CompletedCallback);
         }
 
         WritesClosed = HandleQuicException(_stream.WritesClosed);
         ReadsClosed = HandleQuicException(_stream.ReadsClosed);
+
+        void CompletedCallback()
+        {
+            // If both the reader and writer are completed, we can dispose the stream.
+            if ((_inputPipeReader?.IsCompleted ?? true) && (_outputPipeWriter?.IsCompleted ?? true))
+            {
+                // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
+                // stream disposal and it will eventually complete in the background.
+                _ = _stream.DisposeAsync().AsTask();
+            }
+        }
 
         static async Task HandleQuicException(Task task)
         {

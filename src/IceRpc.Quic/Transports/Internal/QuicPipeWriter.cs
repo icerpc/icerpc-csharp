@@ -18,6 +18,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     private const int MaxCoalesceSize = 16 * 1024;
 
     private readonly CancellationTokenSource _abortCts = new();
+    private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private Exception? _exception;
     private readonly int _minSegmentSize;
@@ -25,6 +26,8 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     private readonly MemoryPool<byte> _pool;
     private int _state;
     private readonly QuicStream _stream;
+
+    public bool IsCompleted => _state.HasFlag(State.Completed);
 
     public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
@@ -57,6 +60,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
             // Cleanup resources.
             _abortCts.Dispose();
+
+            // Notify the stream of the writer completion.
+            _completedCallback();
         }
     }
 
@@ -284,12 +290,14 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         QuicStream stream,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
-        int minSegmentSize)
+        int minSegmentSize,
+        Action completedCallback)
     {
         _stream = stream;
         _errorCodeConverter = errorCodeConverter;
         _pool = pool;
         _minSegmentSize = minSegmentSize;
+        _completedCallback = completedCallback;
 
         // Create a pipe that never pauses on flush or write. The QuicPipeWriter will pause the flush or write if the
         // Quic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to avoid
