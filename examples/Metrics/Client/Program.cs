@@ -8,7 +8,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"))
 
 IHelloProxy hello = new HelloProxy(connection);
 
-double requestsPerSecond = 100;
+double requestsPerSecond = 20;
 Console.WriteLine($"Sending {requestsPerSecond} requests per second...");
 
 // Cancel the client on Ctrl+C or Ctrl+Break
@@ -21,10 +21,7 @@ Console.CancelKeyPress += (sender, eventArgs) =>
 };
 
 // Start invoking the remote method
-try
+while (await periodicTimer.WaitForNextTickAsync())
 {
-    while (await periodicTimer.WaitForNextTickAsync())
-    {
-        await hello.SayHelloAsync();
-    }
+    await hello.SayHelloAsync();
 }
