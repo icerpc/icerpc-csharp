@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#[cfg(test)]
 use super::super::*;
 
 #[test]
