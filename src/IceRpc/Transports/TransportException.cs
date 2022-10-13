@@ -68,8 +68,7 @@ public class TransportException : Exception
     /// <param name="errorCode">The error code.</param>
     /// <param name="applicationErrorCode">The application error code.</param>
     public TransportException(TransportErrorCode errorCode, ulong applicationErrorCode)
-        : base(@$"{nameof(TransportException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode = {
-            applicationErrorCode} }}")
+        : base($"{nameof(TransportException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode = {applicationErrorCode} }}")
     {
         ErrorCode = errorCode;
         ApplicationErrorCode = applicationErrorCode;
@@ -89,8 +88,7 @@ public class TransportException : Exception
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public TransportException(TransportErrorCode errorCode, ulong applicationErrorCode, Exception innerException)
         : base(
-            @$"{nameof(TransportException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode = {
-                applicationErrorCode} }}",
+            $"{nameof(TransportException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode = {applicationErrorCode} }}",
             innerException)
     {
         ErrorCode = errorCode;

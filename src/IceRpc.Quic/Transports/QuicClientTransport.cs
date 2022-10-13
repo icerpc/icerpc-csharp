@@ -21,7 +21,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
 
     /// <summary>Constructs a Quic client transport.</summary>
     public QuicClientTransport()
-        : this(new())
+        : this(new QuicClientTransportOptions())
     {
     }
 
@@ -35,11 +35,6 @@ public class QuicClientTransport : IMultiplexedClientTransport
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? authenticationOptions)
     {
-        if (authenticationOptions is null)
-        {
-            throw new NotSupportedException("the Quic transport requires TLS server authentication options");
-        }
-
         if ((serverAddress.Transport is string transport && transport != Name) ||
             !CheckParams(serverAddress))
         {
@@ -51,7 +46,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             serverAddress = serverAddress with { Transport = Name };
         }
 
-        authenticationOptions = authenticationOptions.Clone();
+        authenticationOptions = authenticationOptions?.Clone() ?? new();
         authenticationOptions.TargetHost ??= serverAddress.Host;
         authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> // Mandatory with Quic
             {
@@ -82,7 +77,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
         }
         else
         {
-            throw new NotSupportedException("Quic transport is only supported on Linux and Windows");
+            throw new NotSupportedException("the Quic transport is only supported on Linux and Windows");
         }
     }
 }

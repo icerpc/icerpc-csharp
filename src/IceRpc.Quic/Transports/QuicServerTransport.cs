@@ -19,7 +19,7 @@ public class QuicServerTransport : IMultiplexedServerTransport
 
     /// <summary>Constructs a Quic server transport.</summary>
     public QuicServerTransport()
-        : this(new())
+        : this(new QuicServerTransportOptions())
     {
     }
 
@@ -50,7 +50,7 @@ public class QuicServerTransport : IMultiplexedServerTransport
         }
         else
         {
-            throw new NotSupportedException("Quic transport is only supported on Linux and Windows");
+            throw new NotSupportedException("the Quic transport is only supported on Linux and Windows");
         }
     }
 }
