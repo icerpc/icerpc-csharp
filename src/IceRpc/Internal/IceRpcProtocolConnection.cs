@@ -522,7 +522,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (TransportException exception) when (
                 exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
-                exception.ApplicationErrorCode == (ulong)IceRpcConnectionErrorCode.NoError)
+                exception.ApplicationErrorCode is ulong errorCode &&
+                (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
             {
                 // Expected if the peer closed the connection first.
             }
