@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Diagnostics;
 using System.Net;
 
 namespace IceRpc.Internal;
@@ -80,6 +79,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                     await ShutdownComplete.ConfigureAwait(false);
                     if (_localNetworkAddress is not null)
                     {
+                        // We only log Shutdown when the ConnectAsync completed successfully.
                         ClientEventSource.Log.ConnectionShutdown(ServerAddress, _localNetworkAddress);
                     }
                 }
