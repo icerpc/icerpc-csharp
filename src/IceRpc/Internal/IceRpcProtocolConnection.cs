@@ -518,11 +518,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // before all the streams are processed could lead to a stream failure.
             try
             {
-                await _remoteControlStream!.ReadsClosed.ConfigureAwait(false);
+                await _remoteControlStream!.ReadsClosed.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch
+            catch (TransportException exception) when (
+                exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
+                exception.ApplicationErrorCode is ulong errorCode &&
+                (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
             {
-                // Expected if the peer closed the connection.
+                // Expected if the peer closed the connection first.
             }
 
             // We can now safely close the connection.
