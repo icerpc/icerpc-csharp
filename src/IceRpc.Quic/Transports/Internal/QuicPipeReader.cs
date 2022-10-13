@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Quic;
 
@@ -20,8 +21,8 @@ internal class QuicPipeReader : PipeReader
 
     public bool IsCompleted => _isCompleted;
 
-    public override void AdvanceTo(SequencePosition consumed) =>
-        _pipeReader.AdvanceTo(consumed);
+    // StreamPipeReader.AdvanceTo does not call the underlying stream and as a result does not throw any QuicException.
+    public override void AdvanceTo(SequencePosition consumed) => _pipeReader.AdvanceTo(consumed);
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
         _pipeReader.AdvanceTo(consumed, examined);
@@ -30,14 +31,14 @@ internal class QuicPipeReader : PipeReader
 
     public override void Complete(Exception? exception = null)
     {
-        // This does not call _stream.Dispose since we have leaveOpen set to true.
+        // This does not call _stream.Dispose since leaveOpen is set to true.
         _pipeReader.Complete(exception);
 
         // TODO: it appears we need to call Abort even when exception is null, which does not make sense. Otherwise,
         // we apparently close with the default error code.
         Abort(exception);
 
-        // Notify the stream of the reader completion.
+        // Notify the stream of the reader completion, which can trigger the stream disposal.
         _completedCallback();
 
         _isCompleted = true;
@@ -45,10 +46,11 @@ internal class QuicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
+        Task<ReadResult>? task = null;
         try
         {
-            return await _pipeReader.ReadAsync(CancellationToken.None).AsTask().WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
+            task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
+            return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception) when (
             exception.QuicError == QuicError.StreamAborted &&
@@ -68,9 +70,17 @@ internal class QuicPipeReader : PipeReader
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
-            // We can't let _pipeReader.ReadAsync(CancellationToken.None) run, we need to abort it.
+            // We can't let task run in the background: we need to abort it and wait for its completion.
+            Debug.Assert(task is not null);
             Abort(exception);
-            throw _abortException ?? exception;
+            try
+            {
+                _ = await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+            throw exception;
         }
         catch (Exception exception)
         {
@@ -78,6 +88,8 @@ internal class QuicPipeReader : PipeReader
         }
     }
 
+    // StreamPipeReader.TryRead does not call the underlying stream and as a result does not throw any QuicException.
+    // TODO: should be throw _abortException if not null?
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
     internal QuicPipeReader(
@@ -97,7 +109,7 @@ internal class QuicPipeReader : PipeReader
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
     }
 
-    // Note that the exception has 2 separate purposes: transmit an error code to the peer _and_ throw this exception
+    // Note that the exception has 2 separate purposes: transmit an error code to the peer and throw this exception
     // from the current or next ReadAsync.
     internal void Abort(Exception? exception)
     {
