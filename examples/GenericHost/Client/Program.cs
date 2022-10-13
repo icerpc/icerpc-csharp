@@ -5,8 +5,6 @@ using IceRpc.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -88,12 +86,8 @@ public static class Program
         {
             try
             {
-                Console.Write("To say hello to the server, type your name: ");
-                if (Console.ReadLine() is string name)
-                {
-                    Console.WriteLine(await _hello.SayHelloAsync(name, cancellationToken: cancellationToken));
-                }
-
+                string greeting = await _hello.SayHelloAsync(Environment.UserName, cancellationToken: cancellationToken);
+                Console.WriteLine(greeting);
                 await _connection.ShutdownAsync(cancellationToken);
             }
             catch (Exception exception)

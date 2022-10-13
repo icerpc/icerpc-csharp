@@ -17,7 +17,7 @@ public class NumberStream : Service, INumberStream
         // Ctrl+Break events. This is used to notify the client that the server is shutting down.
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         uint count = 0;
-        await foreach (var number in numbers.WithCancellation(cts.Token))
+        await foreach (int number in numbers.WithCancellation(cts.Token))
         {
             // After receiving 10 numbers, cancel the stream
             if (count == 10)

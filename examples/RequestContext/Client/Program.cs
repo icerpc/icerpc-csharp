@@ -12,19 +12,17 @@ var pipeline = new Pipeline().UseRequestContext().Into(connection);
 
 var hello = new HelloProxy(pipeline);
 
-Console.Write("To say hello to the server, type your name: ");
-
-if (Console.ReadLine() is string name)
-{
-    var features = new FeatureCollection();
-    // Add the request context feature to the request features for the SayHello invocation.
-    features.Set<IRequestContextFeature>(new RequestContextFeature
+var features = new FeatureCollection();
+// Add the request context feature to the request features for the SayHello invocation.
+features.Set<IRequestContextFeature>(new RequestContextFeature
+    {
+        Value = new Dictionary<string, string>
         {
-            Value = new Dictionary<string, string>
-            {
-                ["UserId"] = name.ToLowerInvariant(),
-                ["MachineName"] = Environment.MachineName
-            }
-        });
-    Console.WriteLine(await hello.SayHelloAsync(name, features));
-}
+            ["UserId"] = Environment.UserName.ToLowerInvariant(),
+            ["MachineName"] = Environment.MachineName
+        }
+    });
+
+string greeting = await hello.SayHelloAsync(Environment.UserName, features);
+
+Console.WriteLine(greeting);

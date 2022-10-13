@@ -53,31 +53,26 @@ for (int i = 2; i < serverInstances; i++)
 }
 var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
 
-Console.Write("To say hello to the server, type your name: ");
-
 CancellationToken cancellationToken = cts.Token;
-if (Console.ReadLine() is string name)
+try
 {
-    try
+    while (true)
     {
-        while (true)
-        {
-            string helloResponse = await hello.SayHelloAsync(name, cancellationToken: cancellationToken);
-            logger.LogResponse(helloResponse);
-            logger.LogLooping();
-            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
-        }
+        string greeting = await hello.SayHelloAsync(Environment.UserName, cancellationToken: cancellationToken);
+        logger.LogResponse(greeting);
+        logger.LogLooping();
+        await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
     }
-    catch (DispatchException dispatchException)
-    {
-        // The request failed because we reached the allowed max attempts or because all server addresses were excluded
-        // due to the failure retry policy.
-        logger.LogException(dispatchException);
-    }
-    catch (OperationCanceledException)
-    {
-        // Expected, from Ctrl+C.
-    }
+}
+catch (DispatchException dispatchException)
+{
+    // The request failed because we reached the allowed max attempts or because all server addresses were excluded
+    // due to the failure retry policy.
+    logger.LogException(dispatchException);
+}
+catch (OperationCanceledException)
+{
+    // Expected, from Ctrl+C.
 }
 
 internal static partial class RetryExampleLoggerExtensions
