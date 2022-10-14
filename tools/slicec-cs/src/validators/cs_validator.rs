@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_attributes;
-use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note};
+use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note, Warning, WarningKind};
 use slice::grammar::*;
 use slice::parse_result::{ParsedData, ParserResult};
 use slice::visitor::Visitor;
@@ -278,10 +278,16 @@ impl Visitor for CsValidator<'_> {
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for attribute in &cs_attributes(type_alias.attributes()) {
             match attribute.directive.as_str() {
-                "identifier" => self.diagnostic_reporter.report_error(Error::new(
-                    ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "typealias".to_owned()),
-                    Some(type_alias.span()),
-                )),
+                "identifier" => self.diagnostic_reporter.report_warning(
+                    Warning::new(
+                        WarningKind::InconsequentialUseOfAttribute(
+                            cs_attributes::IDENTIFIER.to_owned(),
+                            "typealias".to_owned(),
+                        ),
+                        type_alias.span(),
+                    ),
+                    type_alias,
+                ),
                 _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
             }
         }

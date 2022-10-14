@@ -1,6 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use slice::diagnostics::{Warning, WarningKind};
+
 use super::super::*;
+
+// A helper function to create a warning with no location.
+fn new_warning(kind: WarningKind) -> Warning {
+    let span = slice::slice_file::Span {
+        start: slice::slice_file::Location { row: 0, col: 0 },
+        end: slice::slice_file::Location { row: 0, col: 0 },
+        file: "string".to_string(),
+    };
+    Warning::new(kind, &span)
+}
 
 #[test]
 fn identifier_attribute_no_args() {
@@ -138,10 +150,10 @@ fn identifier_attribute_on_type_alias_fails() {
         .diagnostic_reporter;
 
     // Assert
-    let expected = [Error::new(
-        ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "typealias".to_owned()),
-        None,
-    )];
+    let expected = [new_warning(WarningKind::InconsequentialUseOfAttribute(
+        cs_attributes::IDENTIFIER.to_owned(),
+        "typealias".to_owned(),
+    ))];
     std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
 }
