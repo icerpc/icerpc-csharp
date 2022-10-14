@@ -791,31 +791,6 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamsAsync(sut);
     }
 
-    /// <summary>Verifies that completed the write-side of the stream triggers ReadsClosed on the read-side.</summary>
-    [Test]
-    public async Task Stream_ReadsClosed_when_output_completed()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
-
-        // Act
-        await sut.LocalStream.Output.CompleteAsync(); // null exception, i.e. no error
-
-        // Assert
-        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.Nothing);
-
-        // Cleanup
-        await CompleteStreamsAsync(sut);
-    }
-
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>
     /// <param name="delay">Number of milliseconds to delay the read and write operation.</param>
     /// <param name="streams">The number of streams to create.</param>
