@@ -32,8 +32,8 @@ internal class QuicPipeReader : PipeReader
         // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
         _pipeReader.Complete(exception);
 
-        // TODO: it appears we need to call Abort even when exception is null, which does not make sense. Otherwise,
-        // we apparently close with the default error code.
+        // We need to call Abort even when exception is null. Otherwise, the stream.DisposeAsync() sends the default
+        // stream error code configured in Quic(Client,Server)ConnectionOptions.
         Abort(exception);
 
         // Notify the stream of the reader completion, which can trigger the stream disposal.
@@ -48,9 +48,11 @@ internal class QuicPipeReader : PipeReader
             task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
             return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+        catch (OperationCanceledException exception)
         {
-            // We can't let task run in the background: we need to abort it and wait for its completion.
+            // We can't let task run in the background - it's not ok to call Complete or any other method on PipeReader
+            // (except CancelPendingRead) while a ReadAsync is running in a separate thread. So we need to abort the
+            // stream and wait for task to complete.
             Debug.Assert(task is not null);
             Abort(exception);
             try
@@ -60,11 +62,11 @@ internal class QuicPipeReader : PipeReader
             catch
             {
             }
-            throw exception;
+            throw;
         }
-        catch when (_abortException is not null)
+        catch when (Volatile.Read(ref _abortException) is Exception abortException)
         {
-            throw _abortException;
+            throw abortException;
         }
         catch (QuicException exception) when (
             exception.QuicError == QuicError.StreamAborted &&
@@ -103,7 +105,6 @@ internal class QuicPipeReader : PipeReader
         _errorCodeConverter = errorCodeConverter;
         _completedCallback = completedCallback;
 
-        // TODO: configure minimumReadSize?
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
@@ -113,15 +114,10 @@ internal class QuicPipeReader : PipeReader
     // from the current or next ReadAsync.
     internal void Abort(Exception? exception)
     {
-        _abortException ??= exception;
-
-        try
+        if (Interlocked.CompareExchange(ref _abortException, exception, null) is null)
         {
+            // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
-        }
-        catch (ObjectDisposedException)
-        {
-            // ignored
         }
     }
 }

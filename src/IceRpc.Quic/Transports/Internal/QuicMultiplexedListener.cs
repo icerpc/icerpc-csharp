@@ -22,11 +22,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
         QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
-        return (new QuicMultiplexedServerConnection(
-            ServerAddress,
-            connection,
-            _options),
-            connection.RemoteEndPoint);
+        return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 
     public ValueTask DisposeAsync() => _listener.DisposeAsync();

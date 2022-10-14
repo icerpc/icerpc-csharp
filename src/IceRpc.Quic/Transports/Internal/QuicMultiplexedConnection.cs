@@ -43,12 +43,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         try
         {
             QuicStream stream = await _connection.AcceptInboundStreamAsync(cancellationToken).ConfigureAwait(false);
-            return new QuicMultiplexedStream(
-                stream,
-                isRemote: true,
-                _errorCodeConverter,
-                _pool,
-                _minSegmentSize);
+            return new QuicMultiplexedStream(stream, isRemote: true, _errorCodeConverter, _pool, _minSegmentSize);
         }
         catch (QuicException exception)
         {
