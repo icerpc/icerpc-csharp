@@ -730,7 +730,9 @@ public sealed class ProtocolConnectionTests
         byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            ReadResult readResult = await request.Payload.ReadAllAsync(cancellationToken);
+            ReadResult readResult = await request.Payload.ReadAtLeastAsync(
+                expectedPayload.Length + 1,
+                cancellationToken);
             request.Payload.AdvanceTo(readResult.Buffer.End);
             return new OutgoingResponse(request)
             {
@@ -752,8 +754,12 @@ public sealed class ProtocolConnectionTests
             });
 
         // Assert
-        ReadResult readResult = await response.Payload.ReadAllAsync(default);
+        ReadResult readResult = await response.Payload.ReadAtLeastAsync(expectedPayload.Length + 1, default);
+        Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(expectedPayload));
+
+        // Cleanup
+        await response.Payload.CompleteAsync();
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -817,7 +823,9 @@ public sealed class ProtocolConnectionTests
         byte[]? receivedPayload = null;
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            ReadResult readResult = await request.Payload.ReadAllAsync(cancellationToken);
+            ReadResult readResult = await request.Payload.ReadAtLeastAsync(
+                expectedPayload.Length + 1,
+                cancellationToken);
             receivedPayload = readResult.Buffer.ToArray();
             request.Payload.AdvanceTo(readResult.Buffer.End);
             return new OutgoingResponse(request);
