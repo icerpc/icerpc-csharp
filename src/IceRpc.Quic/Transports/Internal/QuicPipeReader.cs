@@ -84,6 +84,8 @@ internal class QuicPipeReader : PipeReader
         {
             // If the connection is closed before the stream. This indicates that the peer forcefully closed the
             // connection (it called DisposeAsync before completing the streams).
+            // TODO: this is ultra confusing when you see a stack trace with ConnectionReset and the inner
+            // QuicException is "Connection aborted".
             throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
         catch (QuicException exception)
