@@ -2,6 +2,8 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -387,6 +389,34 @@ public class StreamTests
         }
     }
 
+    [Test]
+    public async Task Decode_stream_param_from_oneway_request()
+    {
+        var service = new MyOperationsA();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(service)
+            .AddIceRpcProxy<IMyStreamOperationsAProxy, MyStreamOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        var proxy = provider.GetRequiredService<IMyStreamOperationsAProxy>();
+        provider.GetRequiredService<Server>().Listen();
+        await proxy.OpAsync(GetNumbersAsync());
+
+        Assert.That(async () => await service.Contents, Is.EqualTo(Enumerable.Range(0, 255).ToList()));
+
+        async IAsyncEnumerable<int> GetNumbersAsync()
+        {
+            for (int i = 0; i < 255; ++i)
+            {
+                if (i % 10 == 0)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(100));
+                }
+                yield return i;
+            }
+        }
+    }
+
     private class WaitForCompletionPipeReaderDecorator : PipeReader
     {
         public Task Completed => _completionTcs.Task;
@@ -417,5 +447,30 @@ public class StreamTests
         public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ReadAsync(cancellationToken);
         public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
+    }
+
+    class MyOperationsA : Service, IMyStreamOperationsA
+    {
+        public Task<List<int>> Contents => _contentsCompletionSource.Task;
+
+        private readonly TaskCompletionSource<List<int>> _contentsCompletionSource = new();
+
+        public ValueTask OpAsync(
+            IAsyncEnumerable<int> contents,
+            Features.IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            Task.Run(async () =>
+                {
+                    var received = new List<int>();
+                    await foreach(int i in contents)
+                    {
+                        received.Add(i);
+                    }
+                    _contentsCompletionSource.SetResult(received);
+                },
+                default);
+            return default;
+        }
     }
 }
