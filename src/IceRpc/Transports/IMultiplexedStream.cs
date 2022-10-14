@@ -36,8 +36,8 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <see cref="IDuplexPipe.Input" /> and <see cref="IDuplexPipe.Output" /> throw this exception as well.</summary>
     /// <param name="exception">The abort exception.</param>
     /// <remarks><see cref="Abort" /> can be called while other threads are reading or writing
-    /// <see cref="IDuplexPipe.Input" /> resp. <see cref="IDuplexPipe.Output" />. <see cref="Abort" /> can be called
-    /// multiple times, and even concurrently. Only the first call has an effect.</remarks>
+    /// <see cref="IDuplexPipe.Input" /> respectively <see cref="IDuplexPipe.Output" />. <see cref="Abort" /> can be
+    /// called multiple times, and even concurrently. Only the first call has an effect.</remarks>
     /// <seealso cref="MultiplexedConnectionOptions" />
     void Abort(Exception exception);
 }
