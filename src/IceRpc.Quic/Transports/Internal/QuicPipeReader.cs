@@ -15,6 +15,7 @@ internal class QuicPipeReader : PipeReader
     private Exception? _abortException;
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private bool _isCompleted;
     private readonly PipeReader _pipeReader;
     private readonly QuicStream _stream;
 
@@ -28,16 +29,21 @@ internal class QuicPipeReader : PipeReader
 
     public override void Complete(Exception? exception = null)
     {
-        // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
-        // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
-        _pipeReader.Complete(exception);
+        if (!_isCompleted)
+        {
+            _isCompleted = true;
 
-        // We need to call Abort even when exception is null. Otherwise, the stream.DisposeAsync() sends the default
-        // stream error code configured in Quic(Client,Server)ConnectionOptions.
-        Abort(exception);
+            // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
+            // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
+            _pipeReader.Complete(exception);
 
-        // Notify the stream of the reader completion, which can trigger the stream disposal.
-        _completedCallback();
+            // We need to call Abort even when exception is null. Otherwise, the stream.DisposeAsync() sends the default
+            // stream error code configured in Quic(Client,Server)ConnectionOptions.
+            Abort(exception);
+
+            // Notify the stream of the reader completion, which can trigger the stream disposal.
+            _completedCallback();
+        }
     }
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)

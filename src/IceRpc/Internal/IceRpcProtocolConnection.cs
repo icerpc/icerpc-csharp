@@ -518,6 +518,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // before all the streams are processed could lead to a stream failure.
             try
             {
+                try
+                {
+                    // TODO: temporary work-around for Quic bug where ReadsClosed is not signaled unless we read.
+                    _ = await _remoteControlStream!.Input.ReadAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                }
                 await _remoteControlStream!.ReadsClosed.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (TransportException exception) when (
