@@ -716,11 +716,17 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
+        var request = new OutgoingRequest(new ServiceAddress(protocol));
+
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+
+        // Cleanup
+        await responseTask;
+        request.Complete();
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
