@@ -6,6 +6,9 @@ using System.Net.Security;
 namespace IceRpc.Transports;
 
 /// <summary>Implements <see cref="IMultiplexedServerTransport"/> using Quic.</summary>
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
@@ -44,13 +47,6 @@ public class QuicServerTransport : IMultiplexedServerTransport
             serverAddress = serverAddress with { Transport = Name };
         }
 
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsWindows())
-        {
-            return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
-        }
-        else
-        {
-            throw new NotSupportedException("the Quic transport is only supported on Linux and Windows");
-        }
+        return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
     }
 }

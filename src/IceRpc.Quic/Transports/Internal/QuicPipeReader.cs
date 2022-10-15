@@ -7,6 +7,7 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Internal;
 
+/// <summary>Implements a PipeReader over a QuicStream.</summary>
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -126,8 +127,8 @@ internal class QuicPipeReader : PipeReader
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
     }
 
-    // Note that the exception has 2 separate purposes: transmit an error code to the peer and throw this exception
-    // from the current or next ReadAsync.
+    // The exception has 2 separate purposes: transmit an error code to the remote writer and throw this
+    // exception from the current or next ReadAsync.
     internal void Abort(Exception exception)
     {
         // If ReadsClosed is already completed or this is not the first call to Abort, there is nothing to abort.
