@@ -16,7 +16,9 @@
     "Slic",
     "slicec",
     "struct",
+    "typealias",
     "typeparam",
+    "typeref",
     "varint",
     "varuint",
     "zeroc"
