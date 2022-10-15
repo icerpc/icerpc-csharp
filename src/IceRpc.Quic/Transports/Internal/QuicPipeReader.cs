@@ -37,9 +37,19 @@ internal class QuicPipeReader : PipeReader
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
 
-            // We need to call Abort even when exception is null. Otherwise, the stream.DisposeAsync() sends the default
-            // stream error code configured in Quic(Client,Server)ConnectionOptions.
-            Abort(exception);
+            if (exception is null)
+            {
+                if (!_stream.ReadsClosed.IsCompleted)
+                {
+                    // Tell the remote writer we're done reading, with the error code of a null exception. This also
+                    // completes _stream.ReadsClosed.
+                    _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(null));
+                }
+            }
+            else
+            {
+                Abort(exception);
+            }
 
             // Notify the stream of the reader completion, which can trigger the stream disposal.
             _completedCallback();
@@ -70,7 +80,7 @@ internal class QuicPipeReader : PipeReader
             }
             throw;
         }
-        catch when (Volatile.Read(ref _abortException) is Exception abortException)
+        catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
         {
             throw abortException;
         }
@@ -84,6 +94,7 @@ internal class QuicPipeReader : PipeReader
         {
             // If the connection is closed before the stream. This indicates that the peer forcefully closed the
             // connection (it called DisposeAsync before completing the streams).
+
             // TODO: this is ultra confusing when you see a stack trace with ConnectionReset and the inner
             // QuicException is "Connection aborted".
             throw new TransportException(TransportErrorCode.ConnectionReset, exception);
@@ -92,14 +103,11 @@ internal class QuicPipeReader : PipeReader
         {
             throw exception.ToTransportException();
         }
-        catch (Exception exception)
-        {
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
-        }
+        // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
+        // attempting to read while another read is in progress.
     }
 
     // StreamPipeReader.TryRead does not call the underlying stream and as a result does not throw any QuicException.
-    // TODO: should be throw _abortException if not null?
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
     internal QuicPipeReader(
@@ -120,9 +128,11 @@ internal class QuicPipeReader : PipeReader
 
     // Note that the exception has 2 separate purposes: transmit an error code to the peer and throw this exception
     // from the current or next ReadAsync.
-    internal void Abort(Exception? exception)
+    internal void Abort(Exception exception)
     {
-        if (Interlocked.CompareExchange(ref _abortException, exception, null) is null)
+        // If ReadsClosed is already completed or this is not the first call to Abort, there is nothing to abort.
+        if (!_stream.ReadsClosed.IsCompleted &&
+            Interlocked.CompareExchange(ref _abortException, exception, null) is null)
         {
             // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
