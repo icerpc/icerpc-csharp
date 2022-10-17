@@ -20,7 +20,7 @@ internal class QuicPipeReader : PipeReader
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly PipeReader _pipeReader;
-    private readonly TaskCompletionSource _readEverythingTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _readsCompleteTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private ReadResult _readResult; // most recent readResult
     private readonly QuicStream _stream;
 
@@ -32,7 +32,7 @@ internal class QuicPipeReader : PipeReader
         _pipeReader.AdvanceTo(consumed, examined);
         if (_readResult.IsCompleted && consumed.Equals(_readResult.Buffer.End))
         {
-            _ = _readEverythingTcs.TrySetResult();
+            _ = _readsCompleteTcs.TrySetResult();
         }
     }
 
@@ -47,7 +47,7 @@ internal class QuicPipeReader : PipeReader
             // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
-            _ = _readEverythingTcs.TrySetResult();
+            _ = _readsCompleteTcs.TrySetResult();
 
             if (exception is null)
             {
@@ -161,6 +161,10 @@ internal class QuicPipeReader : PipeReader
             // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
+
+        // We also complete _readsCompleteTcs no matter what. This is useful in the situation where Abort is called
+        // after_stream.ReadsClosed completed or while it's completing.
+        _readsCompleteTcs.TrySetException(exception);
     }
 
     private async Task CreateReadsClosedTask()
@@ -175,6 +179,6 @@ internal class QuicPipeReader : PipeReader
         }
         // we don't wrap other exceptions
 
-        await _readEverythingTcs.Task.ConfigureAwait(false);
+        await _readsCompleteTcs.Task.ConfigureAwait(false);
     }
 }
