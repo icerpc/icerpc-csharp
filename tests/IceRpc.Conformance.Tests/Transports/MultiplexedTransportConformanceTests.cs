@@ -961,7 +961,7 @@ public abstract class MultiplexedTransportConformanceTests
 
     /// <summary>Verifies that stream output completes after the peer completes the input.</summary>
     [Test]
-    public async Task Stream_output_completes_after_completing_peer_input()
+    public async Task Stream_output_completes_after_completing_peer_input([Values(true, false)]bool bidirectional)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -972,7 +972,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, bidirectional);
         await sut.LocalStream.Input.CompleteAsync();
         await sut.RemoteStream.Output.CompleteAsync();
 
@@ -1323,10 +1323,11 @@ public abstract class MultiplexedTransportConformanceTests
 
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
-        IMultiplexedConnection remoteConnection)
+        IMultiplexedConnection remoteConnection,
+        bool bidirectional = true)
     {
         IMultiplexedStream localStream = await localConnection.CreateStreamAsync(
-            bidirectional: true,
+            bidirectional: bidirectional,
             default).ConfigureAwait(false);
         _ = await localStream.Output.WriteAsync(_oneBytePayload);
         IMultiplexedStream remoteStream = await remoteConnection.AcceptStreamAsync(default);
