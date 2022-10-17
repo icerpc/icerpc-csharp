@@ -398,6 +398,38 @@ public sealed class ProtocolConnectionTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
 
+    /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    public async Task Dispatch_cancellation_token_is_not_canceled(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<bool>();
+
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            tcs.SetResult(cancellationToken.IsCancellationRequested);
+            return new(new OutgoingResponse(request));
+        });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Act
+        var request = new OutgoingRequest(new ServiceAddress(protocol)) { IsOneway = isOneway };
+        _ = await sut.Client.InvokeAsync(request);
+        bool tokenCanceled = await tcs.Task;
+
+        // Assert
+        Assert.That(tokenCanceled, Is.False);
+
+        // Cleanup
+        request.Complete();
+    }
+
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_cancels_dispatches(Protocol protocol)

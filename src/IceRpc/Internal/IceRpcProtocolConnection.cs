@@ -839,8 +839,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var dispatchCts = new CancellationTokenSource();
 
-            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
-            _ = CancelDispatchOnWritesClosedAsync();
+            if (!request.IsOneway)
+            {
+                // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
+                _ = CancelDispatchOnWritesClosedAsync();
+            }
 
             // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
             using CancellationTokenRegistration tokenRegistration =
