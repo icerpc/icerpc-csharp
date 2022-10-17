@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -463,6 +462,7 @@ public class StreamTests
 
         // Cleanup
         streamRequest.Complete();
+        request.Complete();
 
         static void EncodeData(PipeWriter writer)
         {
