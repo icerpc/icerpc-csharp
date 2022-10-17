@@ -23,10 +23,21 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     bool IsStarted { get; }
 
-    /// <summary>Gets a task that completes when reads are closed.</summary>
+    /// <summary>Gets a task that completes when reads are closed. Reads are closed when either:
+    /// <list type="bullet">
+    /// <item><description>the stream <see cref="IDuplexPipe.Input" /> returns a completed <see cref="ReadResult"
+    /// />.</description></item>
+    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete"/> with a non-null exception
+    /// on the stream <see cref="IDuplexPipe.Output" />.</description></item>
+    /// </list>
+    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></summary>
     Task ReadsClosed { get; }
 
-    /// <summary>Gets a task that completes when writes are closed.</summary>
+    /// <summary>Gets a task that completes when writes are closed. Writes are closed when either:
+    /// <list type="bullet">
+    /// <item><description>the peer called <see cref="PipeReader.Complete"/> on its <see cref="IDuplexPipe.Input"
+    /// />.</description></item>
+    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></list></summary>
     Task WritesClosed { get; }
 
     /// <summary>Aborts the stream. The implementation converts <paramref name="exception"/> into an error code using

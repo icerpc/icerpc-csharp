@@ -518,7 +518,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // before all the streams are processed could lead to a stream failure.
             try
             {
-                await _remoteControlStream!.ReadsClosed.WaitAsync(cancellationToken).ConfigureAwait(false);
+                await _remoteControlStream!.Input.ReadAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (TransportException exception) when (
                 exception.ErrorCode == TransportErrorCode.ConnectionClosed &&

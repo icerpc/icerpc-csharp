@@ -119,18 +119,14 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        List<IMultiplexedStream> streams = await CreateStreamsAsync(
-            clientConnection,
-            streamMaxCount,
-            bidirectional,
-            _oneBytePayload);
+        List<IMultiplexedStream> streams = await CreateStreamsAsync(streamMaxCount, bidirectional);
 
         Task<IMultiplexedStream> lastStreamTask = CreateLastStreamAsync();
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
         if (bidirectional)
         {
-            await serverStream.Output.CompleteAsync();
+            await serverStream.Output.CompleteAsync(new OperationCanceledException());
         }
         bool isCompleted = lastStreamTask.IsCompleted;
 
@@ -138,8 +134,12 @@ public abstract class MultiplexedTransportConformanceTests
         await serverStream.Input.CompleteAsync();
 
         // Assert
-        Assert.That(isCompleted, Is.False);
-        Assert.That(async () => await lastStreamTask, Throws.Nothing);
+        Assert.Multiple(() =>
+        {
+            Assert.That(isCompleted, Is.False);
+            Assert.That(async () => await lastStreamTask, Throws.Nothing);
+        });
+
         await CompleteStreamsAsync(streams);
         await CompleteStreamAsync(await lastStreamTask);
 
@@ -160,6 +160,20 @@ public abstract class MultiplexedTransportConformanceTests
                 lastStream = await lastStreamTask;
             }
             return lastStream;
+        }
+
+        async Task<List<IMultiplexedStream>> CreateStreamsAsync(int count, bool bidirectional)
+        {
+            var streams = new List<IMultiplexedStream>();
+            for (int i = 0; i < count; i++)
+            {
+                IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
+                    bidirectional,
+                    default).ConfigureAwait(false);
+                streams.Add(stream);
+                await stream.Output.WriteAsync(_oneBytePayload, default);
+            }
+            return streams;
         }
     }
 
@@ -959,6 +973,89 @@ public abstract class MultiplexedTransportConformanceTests
         }
     }
 
+    [Test]
+    public async Task Stream_reads_closed_after_completing_peer_output()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        localStream.Output.Complete();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
+            Assert.That(async () => (await remoteStream.Input.ReadAsync(default)).IsCompleted, Is.True);
+            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+        });
+
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
+    }
+
+    [Test]
+    public async Task Stream_reads_closed_after_completing_peer_output_and_reading_completes()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        byte[] buffer = new byte[512 * 1024];
+
+        // Act
+        _ = WriteDataAsync();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
+            Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
+            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+        });
+
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
+
+        async Task<int> ReadDataAsync()
+        {
+            ReadResult readResult;
+            int readLength = 0;
+            do
+            {
+                readResult = await remoteStream.Input.ReadAsync(default);
+                readLength += (int)readResult.Buffer.Length;
+                remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+            }
+            while (!remoteStream.ReadsClosed.IsCompleted);
+            return readLength;
+        }
+
+        async Task WriteDataAsync()
+        {
+            // Send a large buffer to ensure the transport (eventually) buffers the sending of the data.
+            await localStream.Output.WriteAsync(buffer);
+
+            // Act
+            localStream.Output.Complete();
+        }
+    }
+
     /// <summary>Verifies that stream output completes after the peer completes the input.</summary>
     [Test]
     public async Task Stream_output_completes_after_completing_peer_input()
@@ -1340,27 +1437,6 @@ public abstract class MultiplexedTransportConformanceTests
     {
         await CompleteStreamAsync(sut.LocalStream);
         await CompleteStreamAsync(sut.RemoteStream);
-    }
-
-    private static async Task<List<IMultiplexedStream>> CreateStreamsAsync(
-        IMultiplexedConnection connection,
-        int count,
-        bool bidirectional,
-        ReadOnlyMemory<byte> payload)
-    {
-        var streams = new List<IMultiplexedStream>();
-        for (int i = 0; i < count; i++)
-        {
-            IMultiplexedStream stream = await connection.CreateStreamAsync(
-                bidirectional,
-                default).ConfigureAwait(false);
-            streams.Add(stream);
-            if (!payload.IsEmpty)
-            {
-                await stream.Output.WriteAsync(payload, default);
-            }
-        }
-        return streams;
     }
 
     private static async Task CompleteStreamAsync(IMultiplexedStream stream)

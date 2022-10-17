@@ -215,6 +215,36 @@ internal class SlicStream : IMultiplexedStream
         return _sendCredit;
     }
 
+    internal void CompleteWrites()
+    {
+        if (!IsStarted)
+        {
+            // If the stream is not started or the connection aborted, there's no need to send a StreamLast frame.
+            TrySetWritesClosed(exception: null);
+        }
+        else if (!WritesCompleted)
+        {
+            _ = SendStreamLastFrameAsync();
+        }
+
+        async Task SendStreamLastFrameAsync()
+        {
+            try
+            {
+                await _connection.SendStreamFrameAsync(
+                    this,
+                    ReadOnlySequence<byte>.Empty,
+                    ReadOnlySequence<byte>.Empty,
+                    endStream: true,
+                    default).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore.
+            }
+        }
+    }
+
     internal void ConsumeSendCredit(int consumed)
     {
         // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed,
