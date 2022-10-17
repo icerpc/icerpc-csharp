@@ -27,7 +27,7 @@ public sealed class Server : IAsyncDisposable
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly ICollection<IProtocolConnection> _connections;
+    private readonly HashSet<IProtocolConnection> _connections = new();
 
     private IListener? _listener;
 
@@ -61,68 +61,7 @@ public sealed class Server : IAsyncDisposable
         ServerOptions options,
         IDuplexServerTransport? duplexServerTransport = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null)
-        : this(new HashSet<IProtocolConnection>(), options, duplexServerTransport, multiplexedServerTransport)
     {
-    }
-
-    /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
-    /// have their default values.</summary>
-    /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="authenticationOptions">The server authentication options.</param>
-    public Server(IDispatcher dispatcher, SslServerAuthenticationOptions? authenticationOptions = null)
-        : this(new ServerOptions
-        {
-            ServerAuthenticationOptions = authenticationOptions,
-            ConnectionOptions = new()
-            {
-                Dispatcher = dispatcher,
-            }
-        })
-    {
-    }
-
-    /// <summary>Constructs a server with the specified dispatcher, server address and authentication options. All other
-    /// properties have their default values.</summary>
-    /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="serverAddress">The server address of the server.</param>
-    /// <param name="authenticationOptions">The server authentication options.</param>
-    public Server(
-        IDispatcher dispatcher,
-        ServerAddress serverAddress,
-        SslServerAuthenticationOptions? authenticationOptions = null)
-        : this(
-            new ServerOptions
-            {
-                ServerAuthenticationOptions = authenticationOptions,
-                ConnectionOptions = new()
-                {
-                    Dispatcher = dispatcher,
-                },
-                ServerAddress = serverAddress
-            })
-    {
-    }
-
-    /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
-    /// other properties have their default values.</summary>
-    /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
-    /// <param name="authenticationOptions">The server authentication options.</param>
-    public Server(
-        IDispatcher dispatcher,
-        Uri serverAddressUri,
-        SslServerAuthenticationOptions? authenticationOptions = null)
-        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions)
-    {
-    }
-
-    internal Server(
-        ICollection<IProtocolConnection> connections,
-        ServerOptions options,
-        IDuplexServerTransport? duplexServerTransport = null,
-        IMultiplexedServerTransport? multiplexedServerTransport = null)
-    {
-        _connections = connections;
         if (options.ConnectionOptions.Dispatcher is null)
         {
             throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
@@ -177,6 +116,57 @@ public sealed class Server : IAsyncDisposable
             }
             return new LogListenerDecorator(listener);
         };
+    }
+
+    /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
+    /// have their default values.</summary>
+    /// <param name="dispatcher">The dispatcher of the server.</param>
+    /// <param name="authenticationOptions">The server authentication options.</param>
+    public Server(IDispatcher dispatcher, SslServerAuthenticationOptions? authenticationOptions = null)
+        : this(new ServerOptions
+        {
+            ServerAuthenticationOptions = authenticationOptions,
+            ConnectionOptions = new()
+            {
+                Dispatcher = dispatcher,
+            }
+        })
+    {
+    }
+
+    /// <summary>Constructs a server with the specified dispatcher, server address and authentication options. All other
+    /// properties have their default values.</summary>
+    /// <param name="dispatcher">The dispatcher of the server.</param>
+    /// <param name="serverAddress">The server address of the server.</param>
+    /// <param name="authenticationOptions">The server authentication options.</param>
+    public Server(
+        IDispatcher dispatcher,
+        ServerAddress serverAddress,
+        SslServerAuthenticationOptions? authenticationOptions = null)
+        : this(
+            new ServerOptions
+            {
+                ServerAuthenticationOptions = authenticationOptions,
+                ConnectionOptions = new()
+                {
+                    Dispatcher = dispatcher,
+                },
+                ServerAddress = serverAddress
+            })
+    {
+    }
+
+    /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
+    /// other properties have their default values.</summary>
+    /// <param name="dispatcher">The dispatcher of the server.</param>
+    /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
+    /// <param name="authenticationOptions">The server authentication options.</param>
+    public Server(
+        IDispatcher dispatcher,
+        Uri serverAddressUri,
+        SslServerAuthenticationOptions? authenticationOptions = null)
+        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions)
+    {
     }
 
     /// <inheritdoc/>
