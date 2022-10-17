@@ -351,6 +351,63 @@ public abstract class MultiplexedTransportConformanceTests
         await stream.Input.CompleteAsync();
     }
 
+    /// <summary>Ensures that completing the stream output after writing data doesn't discard the data. A successful
+    /// write doesn't imply that the data is actually sent by the underlying transport. The completion of the stream
+    /// output should make sure that this data buffered by the underlying transport is not discarded.</summary>
+    [Test]
+    public async Task Complete_stream_output_after_write_does_not_discard_data()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        byte[] buffer = new byte[512 * 1024];
+
+        // Act
+        _ = WriteDataAsync();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
+            Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
+            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+        });
+
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
+
+        async Task<int> ReadDataAsync()
+        {
+            ReadResult readResult;
+            int readLength = 0;
+            do
+            {
+                readResult = await remoteStream.Input.ReadAsync(default);
+                readLength += (int)readResult.Buffer.Length;
+                remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+            }
+            while (!remoteStream.ReadsClosed.IsCompleted);
+            return readLength;
+        }
+
+        async Task WriteDataAsync()
+        {
+            // Send a large buffer to ensure the transport (eventually) buffers the sending of the data.
+            await localStream.Output.WriteAsync(buffer);
+
+            // Act
+            localStream.Output.Complete();
+        }
+    }
+
     /// <summary>Verifies that disabling the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
     public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
@@ -973,6 +1030,8 @@ public abstract class MultiplexedTransportConformanceTests
         }
     }
 
+    /// <summary>Ensures that reads are closed when the peer completes its output and only once ReadAsync returns a
+    /// result with IsCompleted=true.</summary>
     [Test]
     public async Task Stream_reads_closed_after_completing_peer_output()
     {
@@ -1000,60 +1059,6 @@ public abstract class MultiplexedTransportConformanceTests
 
         await CompleteStreamAsync(localStream);
         await CompleteStreamAsync(remoteStream);
-    }
-
-    [Test]
-    public async Task Stream_reads_closed_after_completing_peer_output_and_reading_completes()
-    {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
-
-        byte[] buffer = new byte[512 * 1024];
-
-        // Act
-        _ = WriteDataAsync();
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
-            Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
-        });
-
-        await CompleteStreamAsync(localStream);
-        await CompleteStreamAsync(remoteStream);
-
-        async Task<int> ReadDataAsync()
-        {
-            ReadResult readResult;
-            int readLength = 0;
-            do
-            {
-                readResult = await remoteStream.Input.ReadAsync(default);
-                readLength += (int)readResult.Buffer.Length;
-                remoteStream.Input.AdvanceTo(readResult.Buffer.End);
-            }
-            while (!remoteStream.ReadsClosed.IsCompleted);
-            return readLength;
-        }
-
-        async Task WriteDataAsync()
-        {
-            // Send a large buffer to ensure the transport (eventually) buffers the sending of the data.
-            await localStream.Output.WriteAsync(buffer);
-
-            // Act
-            localStream.Output.Complete();
-        }
     }
 
     /// <summary>Verifies that stream output completes after the peer completes the input.</summary>
