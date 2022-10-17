@@ -13,18 +13,28 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
+    internal Task ReadsClosed => CreateReadsClosedTask();
+
     private Exception? _abortException;
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly PipeReader _pipeReader;
+    private readonly TaskCompletionSource _readEverythingTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private ReadResult _readResult; // most recent readResult
     private readonly QuicStream _stream;
 
     // StreamPipeReader.AdvanceTo does not call the underlying stream and as a result does not throw any QuicException.
     public override void AdvanceTo(SequencePosition consumed) => _pipeReader.AdvanceTo(consumed);
 
-    public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+    public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+    {
         _pipeReader.AdvanceTo(consumed, examined);
+        if (_readResult.IsCompleted && consumed.Equals(_readResult.Buffer.End))
+        {
+            _ = _readEverythingTcs.TrySetResult();
+        }
+    }
 
     public override void CancelPendingRead() => _pipeReader.CancelPendingRead();
 
@@ -37,6 +47,7 @@ internal class QuicPipeReader : PipeReader
             // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
+            _ = _readEverythingTcs.TrySetResult();
 
             if (exception is null)
             {
@@ -63,7 +74,8 @@ internal class QuicPipeReader : PipeReader
         try
         {
             task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
-            return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            _readResult = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return _readResult;
         }
         catch (OperationCanceledException exception)
         {
@@ -109,7 +121,18 @@ internal class QuicPipeReader : PipeReader
     }
 
     // StreamPipeReader.TryRead does not call the underlying stream and as a result does not throw any QuicException.
-    public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
+    public override bool TryRead(out ReadResult result)
+    {
+        if (_pipeReader.TryRead(out result))
+        {
+            _readResult = result;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     internal QuicPipeReader(
         QuicStream stream,
@@ -138,5 +161,20 @@ internal class QuicPipeReader : PipeReader
             // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
+    }
+
+    private async Task CreateReadsClosedTask()
+    {
+        try
+        {
+            await _stream.ReadsClosed.ConfigureAwait(false);
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToTransportException();
+        }
+        // we don't wrap other exceptions
+
+        await _readEverythingTcs.Task.ConfigureAwait(false);
     }
 }
