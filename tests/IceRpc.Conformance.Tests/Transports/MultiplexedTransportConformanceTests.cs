@@ -733,13 +733,13 @@ public abstract class MultiplexedTransportConformanceTests
         var tasks = new List<Task>();
         for (int i = 0; i < createStreamCount; ++i)
         {
-            tasks.Add(ClientWriteAsync());
+            tasks.Add(ClientWriteAsync(i));
         }
 
         // Act
         for (int i = 0; i < createStreamCount; ++i)
         {
-            tasks.Add(ServerReadAsync(await serverConnection.AcceptStreamAsync(default)));
+            tasks.Add(ServerReadAsync(i, await serverConnection.AcceptStreamAsync(default)));
         }
 
         // Assert
@@ -748,7 +748,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         await CompleteStreamsAsync(streams);
 
-        async Task ClientWriteAsync()
+        async Task ClientWriteAsync(int i)
         {
             IMultiplexedStream stream = await clientConnection.CreateStreamAsync(false, default);
             streams.Add(stream);
@@ -759,34 +759,24 @@ public abstract class MultiplexedTransportConformanceTests
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
 
-            // It's important to write enough data to ensure that the last stream frame is not received before the
-            // receiver starts reading.
-            await stream.Output.WriteAsync(payload);
-            await stream.Output.WriteAsync(payload);
-            await stream.Output.WriteAsync(payload);
             await stream.Output.WriteAsync(payload);
 
             await stream.Output.CompleteAsync();
         }
 
-        async Task ServerReadAsync(IMultiplexedStream stream)
+        async Task ServerReadAsync(int i, IMultiplexedStream stream)
         {
-            // The stream is terminated as soon as the last frame of the request is received, so we have
-            // to decrement the count here before the request receive completes.
+            ReadResult readResult;
+            do
+            {
+                readResult = await stream.Input.ReadAsync();
+                stream.Input.AdvanceTo(readResult.Buffer.End);
+            }
+            while (!readResult.IsCompleted);
+
             lock (mutex)
             {
                 streamCount--;
-            }
-
-            while (true)
-            {
-                ReadResult readResult = await stream.Input.ReadAsync();
-                if (readResult.IsCompleted)
-                {
-                    stream.Input.AdvanceTo(readResult.Buffer.End);
-                    break;
-                }
-                stream.Input.AdvanceTo(readResult.Buffer.End);
             }
 
             await stream.Input.CompleteAsync();
@@ -1033,7 +1023,7 @@ public abstract class MultiplexedTransportConformanceTests
     /// <summary>Ensures that reads are closed when the peer completes its output and only once ReadAsync returns a
     /// result with IsCompleted=true.</summary>
     [Test]
-    public async Task Stream_reads_closed_after_completing_peer_output()
+    public async Task Stream_reads_closed_after_completing_peer_output([Values(false, true)] bool isBidirectional)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -1044,7 +1034,7 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection, isBidirectional);
 
         // Act
         localStream.Output.Complete();
@@ -1052,9 +1042,8 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
-            Assert.That(async () => (await remoteStream.Input.ReadAsync(default)).IsCompleted, Is.True);
             Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+            Assert.That(async () => (await remoteStream.Input.ReadAsync(default)).IsCompleted, Is.True);
         });
 
         await CompleteStreamAsync(localStream);
@@ -1425,10 +1414,11 @@ public abstract class MultiplexedTransportConformanceTests
 
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
-        IMultiplexedConnection remoteConnection)
+        IMultiplexedConnection remoteConnection,
+        bool isBidirectional = true)
     {
         IMultiplexedStream localStream = await localConnection.CreateStreamAsync(
-            bidirectional: true,
+            bidirectional: isBidirectional,
             default).ConfigureAwait(false);
         _ = await localStream.Output.WriteAsync(_oneBytePayload);
         IMultiplexedStream remoteStream = await remoteConnection.AcceptStreamAsync(default);
@@ -1449,8 +1439,16 @@ public abstract class MultiplexedTransportConformanceTests
         if (stream.IsBidirectional)
         {
             await stream.Input.CompleteAsync();
+            await stream.Output.CompleteAsync();
         }
-        await stream.Output.CompleteAsync();
+        else if (stream.IsRemote)
+        {
+            await stream.Input.CompleteAsync();
+        }
+        else
+        {
+            await stream.Output.CompleteAsync();
+        }
     }
 
     private static async Task CompleteStreamsAsync(IEnumerable<IMultiplexedStream> streams)
