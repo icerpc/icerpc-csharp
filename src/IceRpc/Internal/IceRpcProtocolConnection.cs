@@ -518,7 +518,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // before all the streams are processed could lead to a stream failure.
             try
             {
-                await _remoteControlStream!.Input.ReadAsync(cancellationToken).ConfigureAwait(false);
+                // Wait for the _remoteControlStream Input completion.
+                ReadResult readResult = await _remoteControlStream!.Input.ReadAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                Debug.Assert(!readResult.IsCanceled);
+
+                if (!readResult.IsCompleted || !readResult.Buffer.IsEmpty)
+                {
+                    throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
+                }
             }
             catch (TransportException exception) when (
                 exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
@@ -839,8 +848,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             using var dispatchCts = new CancellationTokenSource();
 
-            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
-            _ = CancelDispatchOnWritesClosedAsync();
+            if (!request.IsOneway)
+            {
+                // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
+                _ = CancelDispatchOnWritesClosedAsync();
+            }
 
             // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
             using CancellationTokenRegistration tokenRegistration =

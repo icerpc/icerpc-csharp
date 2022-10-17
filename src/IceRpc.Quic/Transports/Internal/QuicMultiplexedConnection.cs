@@ -17,14 +17,9 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private readonly int _minSegmentSize;
-    private readonly int _pauseReaderThreshold;
     private readonly MemoryPool<byte> _pool;
-    private readonly int _resumeReaderThreshold;
 
-    private protected QuicMultiplexedConnection(
-        ServerAddress serverAddress,
-        MultiplexedConnectionOptions options,
-        QuicTransportOptions quicTransportOptions)
+    private protected QuicMultiplexedConnection(ServerAddress serverAddress, MultiplexedConnectionOptions options)
     {
         if (options.StreamErrorCodeConverter is null)
         {
@@ -34,8 +29,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         ServerAddress = serverAddress;
 
         _errorCodeConverter = options.StreamErrorCodeConverter;
-        _pauseReaderThreshold = quicTransportOptions.PauseReaderThreshold;
-        _resumeReaderThreshold = quicTransportOptions.ResumeReaderThreshold;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
     }
@@ -50,14 +43,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         try
         {
             QuicStream stream = await _connection.AcceptInboundStreamAsync(cancellationToken).ConfigureAwait(false);
-            return new QuicMultiplexedStream(
-                stream,
-                isRemote: true,
-                _errorCodeConverter,
-                _pauseReaderThreshold,
-                _resumeReaderThreshold,
-                _pool,
-                _minSegmentSize);
+            return new QuicMultiplexedStream(stream, isRemote: true, _errorCodeConverter, _pool, _minSegmentSize);
         }
         catch (QuicException exception)
         {
@@ -143,8 +129,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             stream,
             isRemote: false,
             _errorCodeConverter,
-            _pauseReaderThreshold,
-            _resumeReaderThreshold,
             _pool,
             _minSegmentSize);
     }
@@ -194,9 +178,8 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
     internal QuicMultiplexedClientConnection(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        QuicTransportOptions quicTransportOptions,
         QuicClientConnectionOptions quicOptions)
-        : base(serverAddress, options, quicTransportOptions) => _quicClientConnectionOptions = quicOptions;
+        : base(serverAddress, options) => _quicClientConnectionOptions = quicOptions;
 }
 
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
@@ -213,7 +196,6 @@ internal class QuicMultiplexedServerConnection : QuicMultiplexedConnection
     internal QuicMultiplexedServerConnection(
         ServerAddress serverAddress,
         QuicConnection connection,
-        MultiplexedConnectionOptions options,
-        QuicTransportOptions quicTransportOptions)
-        : base(serverAddress, options, quicTransportOptions) => _connection = connection;
+        MultiplexedConnectionOptions options)
+        : base(serverAddress, options) => _connection = connection;
 }

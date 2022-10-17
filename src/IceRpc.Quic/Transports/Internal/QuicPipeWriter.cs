@@ -27,8 +27,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     private int _state;
     private readonly QuicStream _stream;
 
-    public bool IsCompleted => _state.HasFlag(State.Completed);
-
     public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     public override void CancelPendingFlush() => _pipe.Writer.CancelPendingFlush();

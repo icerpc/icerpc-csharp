@@ -17,32 +17,7 @@ public record class QuicTransportOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
     }
 
-    /// <summary>Gets or sets the number of bytes when reads from a Quic stream stop.</summary>
-    /// <value>The pause reader threshold.</value>
-    public int PauseReaderThreshold
-    {
-        get => _pauseReaderThreshold;
-        set => _pauseReaderThreshold = value >= 1024 ? value :
-            throw new ArgumentException($"{nameof(PauseReaderThreshold)} can't be less than 1KB", nameof(value));
-    }
-
-    /// <summary>Gets or sets the number of bytes when reads on a Quic stream resume.</summary>
-    /// <value>The resume reader threshold.</value>
-    public int ResumeReaderThreshold
-    {
-        get => _resumeReaderThreshold;
-        set => _resumeReaderThreshold =
-            value < 1024 ? throw new ArgumentException(
-                $"{nameof(ResumeReaderThreshold)} can't be less than 1KB", nameof(value)) :
-            value > _pauseReaderThreshold ? throw new ArgumentException(
-                $"{nameof(ResumeReaderThreshold)} can't be greater than {nameof(PauseReaderThreshold)}",
-                nameof(value)) :
-            value;
-    }
-
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
-    private int _pauseReaderThreshold = 65536;
-    private int _resumeReaderThreshold = 32768;
 }
 
 /// <summary>The options class for configuring <see cref="QuicClientTransport"/>.</summary>
