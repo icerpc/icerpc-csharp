@@ -724,7 +724,7 @@ public abstract class MultiplexedTransportConformanceTests
 
     [TestCase(100)]
     [TestCase(15)]
-    public async Task Stream_abort_read(byte errorCode)
+    public async Task Stream_abort_read(int errorCode)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -763,7 +763,7 @@ public abstract class MultiplexedTransportConformanceTests
 
     [TestCase(100)]
     [TestCase(15)]
-    public async Task Stream_abort_write(byte errorCode)
+    public async Task Stream_abort_write(int errorCode)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()

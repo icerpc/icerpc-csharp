@@ -32,6 +32,7 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
     public Task WritesClosed { get; }
 
+    private int _streamRefCount;
     private readonly QuicPipeReader? _inputPipeReader;
     private readonly QuicPipeWriter? _outputPipeWriter;
     private readonly QuicStream _stream;
@@ -46,55 +47,44 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         QuicStream stream,
         bool isRemote,
         IMultiplexedStreamErrorCodeConverter errorCodeConverter,
-        int pauseReaderThreshold,
-        int resumeReaderThreshold,
         MemoryPool<byte> pool,
         int minSegmentSize)
     {
         IsRemote = isRemote;
 
         _stream = stream;
+        _streamRefCount = 0;
 
         if (_stream.CanRead)
         {
+            _streamRefCount++;
+
             _inputPipeReader = new QuicPipeReader(
                 _stream,
                 errorCodeConverter,
-                pauseReaderThreshold,
-                resumeReaderThreshold,
                 pool,
                 minSegmentSize,
-                OnPipeReaderCompleted);
+                OnCompleted);
         }
 
         if (_stream.CanWrite)
         {
+            _streamRefCount++;
+
             _outputPipeWriter = new QuicPipeWriter(
                 _stream,
                 errorCodeConverter,
                 pool,
                 minSegmentSize,
-                OnPipeWriterCompleted);
+                OnCompleted);
         }
 
         WritesClosed = HandleQuicException(_stream.WritesClosed);
         ReadsClosed = HandleQuicException(_stream.ReadsClosed);
 
-        void OnPipeReaderCompleted()
+        void OnCompleted()
         {
-            // If the writer is completed, we can dispose the stream.
-            if (_outputPipeWriter?.IsCompleted ?? true)
-            {
-                // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
-                // stream disposal and it will eventually complete in the background.
-                _ = _stream.DisposeAsync().AsTask();
-            }
-        }
-
-        void OnPipeWriterCompleted()
-        {
-            // If the reader is completed, we can dispose the stream.
-            if (_inputPipeReader?.IsCompleted ?? true)
+            if (Interlocked.Decrement(ref _streamRefCount) == 0)
             {
                 // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
                 // stream disposal and it will eventually complete in the background.

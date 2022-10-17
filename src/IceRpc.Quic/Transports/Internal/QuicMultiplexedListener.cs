@@ -17,16 +17,11 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     private readonly QuicListener _listener;
     private readonly MultiplexedConnectionOptions _options;
     private readonly QuicServerConnectionOptions _quicServerOptions;
-    private readonly QuicTransportOptions _quicTransportOptions;
 
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
         QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
-        return (new QuicMultiplexedServerConnection(
-            ServerAddress,
-            connection,
-            _options,
-            _quicTransportOptions), connection.RemoteEndPoint);
+        return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 
     public ValueTask DisposeAsync() => _listener.DisposeAsync();
@@ -38,25 +33,24 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         SslServerAuthenticationOptions authenticationOptions)
     {
         _options = options;
-        _quicTransportOptions = quicTransportOptions;
 
         authenticationOptions = authenticationOptions.Clone();
         authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> // Mandatory with Quic
-            {
-                new SslApplicationProtocol(serverAddress.Protocol.Name)
-            };
+        {
+            new SslApplicationProtocol(serverAddress.Protocol.Name)
+        };
 
         // We use the maximum value for DefaultStreamErrorCode to ensure that the abort on the peer will show this
         // value if the stream is aborted when we do not expect it (https://github.com/dotnet/runtime/issues/72607)
         _quicServerOptions = new QuicServerConnectionOptions
-            {
-                DefaultStreamErrorCode = (1L << 62) - 1,
-                DefaultCloseErrorCode = 0,
-                IdleTimeout = quicTransportOptions.IdleTimeout,
-                ServerAuthenticationOptions = authenticationOptions,
-                MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
-                MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
-            };
+        {
+            DefaultStreamErrorCode = (1L << 62) - 1,
+            DefaultCloseErrorCode = 0,
+            IdleTimeout = quicTransportOptions.IdleTimeout,
+            ServerAuthenticationOptions = authenticationOptions,
+            MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
+            MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
+        };
 
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
