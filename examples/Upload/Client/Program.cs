@@ -15,7 +15,7 @@ var image = new FileStream("Client/images/Earth.png", FileMode.Open);
 Console.WriteLine("Uploading image of the Earth...");
 
 // Wrap the FileStream in a PipeReader.
-PipeReader reader = PipeReader.Create(image);
+var reader = PipeReader.Create(image);
 
 // Begin streaming the data to the server.
 // The IceRpc runtime will automatically complete the PipeReader for the client once the await returns.

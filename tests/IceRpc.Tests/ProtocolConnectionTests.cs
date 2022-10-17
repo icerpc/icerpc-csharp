@@ -398,6 +398,38 @@ public sealed class ProtocolConnectionTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
 
+    /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    public async Task Dispatch_cancellation_token_is_not_canceled(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<bool>();
+
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            tcs.SetResult(cancellationToken.IsCancellationRequested);
+            return new(new OutgoingResponse(request));
+        });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Act
+        var request = new OutgoingRequest(new ServiceAddress(protocol)) { IsOneway = isOneway };
+        _ = await sut.Client.InvokeAsync(request);
+        bool tokenCanceled = await tcs.Task;
+
+        // Assert
+        Assert.That(tokenCanceled, Is.False);
+
+        // Cleanup
+        request.Complete();
+    }
+
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_cancels_dispatches(Protocol protocol)
@@ -716,11 +748,17 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
+        var request = new OutgoingRequest(new ServiceAddress(protocol));
+
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+
+        // Cleanup
+        await responseTask;
+        request.Complete();
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -730,7 +768,9 @@ public sealed class ProtocolConnectionTests
         byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            ReadResult readResult = await request.Payload.ReadAllAsync(cancellationToken);
+            ReadResult readResult = await request.Payload.ReadAtLeastAsync(
+                expectedPayload.Length + 1,
+                cancellationToken);
             request.Payload.AdvanceTo(readResult.Buffer.End);
             return new OutgoingResponse(request)
             {
@@ -752,8 +792,12 @@ public sealed class ProtocolConnectionTests
             });
 
         // Assert
-        ReadResult readResult = await response.Payload.ReadAllAsync(default);
+        ReadResult readResult = await response.Payload.ReadAtLeastAsync(expectedPayload.Length + 1, default);
+        Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(expectedPayload));
+
+        // Cleanup
+        await response.Payload.CompleteAsync();
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -817,7 +861,9 @@ public sealed class ProtocolConnectionTests
         byte[]? receivedPayload = null;
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            ReadResult readResult = await request.Payload.ReadAllAsync(cancellationToken);
+            ReadResult readResult = await request.Payload.ReadAtLeastAsync(
+                expectedPayload.Length + 1,
+                cancellationToken);
             receivedPayload = readResult.Buffer.ToArray();
             request.Payload.AdvanceTo(readResult.Buffer.End);
             return new OutgoingResponse(request);

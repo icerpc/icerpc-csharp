@@ -12,9 +12,6 @@ IInvoker pipeline = new Pipeline().UseDeflate().Into(connection);
 // Create the proxy using the invocation pipeline
 var hello = new HelloProxy(pipeline);
 
-Console.Write("To say hello to the server, type your name: ");
+string greeting = await hello.SayHelloAsync(Environment.UserName);
 
-if (Console.ReadLine() is string name)
-{
-    Console.WriteLine(await hello.SayHelloAsync(name));
-}
+Console.WriteLine(greeting);

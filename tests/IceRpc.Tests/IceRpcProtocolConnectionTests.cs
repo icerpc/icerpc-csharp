@@ -467,11 +467,17 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
+
+        // Cleanup
+        await responseTask;
+        request.Complete();
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload stream.</summary>

@@ -93,7 +93,7 @@ public class InvocationTests
                 async (request, cancellationToken) =>
                 {
                     dispatchStartTcs.SetResult();
-                    await request.Payload.ReadAllAsync(cancellationToken);
+                    await request.Payload.ReadAtLeastAsync(4, cancellationToken);
                     return new OutgoingResponse(request);
                 }))
             .BuildServiceProvider(validateScopes: true);
