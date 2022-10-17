@@ -35,7 +35,7 @@ public interface IMultiplexedStream : IDuplexPipe
 
     /// <summary>Gets a task that completes when writes are closed. Writes are closed when either:
     /// <list type="bullet">
-    /// <item><description>the peer called <see cref="PipeReader.Complete"/> on its <see cref="IDuplexPipe.Input"
+    /// <item><description>the peer calls <see cref="PipeReader.Complete"/> on its <see cref="IDuplexPipe.Input"
     /// />.</description></item>
     /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></list></summary>
     Task WritesClosed { get; }

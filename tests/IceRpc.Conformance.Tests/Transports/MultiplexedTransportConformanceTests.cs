@@ -733,13 +733,13 @@ public abstract class MultiplexedTransportConformanceTests
         var tasks = new List<Task>();
         for (int i = 0; i < createStreamCount; ++i)
         {
-            tasks.Add(ClientWriteAsync(i));
+            tasks.Add(ClientWriteAsync());
         }
 
         // Act
         for (int i = 0; i < createStreamCount; ++i)
         {
-            tasks.Add(ServerReadAsync(i, await serverConnection.AcceptStreamAsync(default)));
+            tasks.Add(ServerReadAsync(await serverConnection.AcceptStreamAsync(default)));
         }
 
         // Assert
@@ -748,7 +748,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         await CompleteStreamsAsync(streams);
 
-        async Task ClientWriteAsync(int i)
+        async Task ClientWriteAsync()
         {
             IMultiplexedStream stream = await clientConnection.CreateStreamAsync(false, default);
             streams.Add(stream);
@@ -764,7 +764,7 @@ public abstract class MultiplexedTransportConformanceTests
             await stream.Output.CompleteAsync();
         }
 
-        async Task ServerReadAsync(int i, IMultiplexedStream stream)
+        async Task ServerReadAsync(IMultiplexedStream stream)
         {
             ReadResult readResult;
             do

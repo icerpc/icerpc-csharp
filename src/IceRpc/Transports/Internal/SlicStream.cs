@@ -224,7 +224,7 @@ internal class SlicStream : IMultiplexedStream
     internal void CompleteUnidirectionalStreamReads()
     {
         // Notify the peer that reads are completed. The connection will release the unidirectional stream semaphore
-        // and eventually allow it to open a new unidirectional stream if the maximum unidirectional count was reached.
+        // and allow opening a new unidirectional stream if the maximum unidirectional count was reached.
 
         _ = SendUnidirectionalStreamReleaseAsync();
 
