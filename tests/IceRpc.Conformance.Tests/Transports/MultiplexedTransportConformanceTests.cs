@@ -973,8 +973,11 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, bidirectional);
-        await sut.LocalStream.Input.CompleteAsync();
-        await sut.RemoteStream.Output.CompleteAsync();
+        if (bidirectional)
+        {
+            await sut.LocalStream.Input.CompleteAsync();
+            await sut.RemoteStream.Output.CompleteAsync();
+        }
 
         Task writeTask = WriteAsync(sut.LocalStream);
         ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
