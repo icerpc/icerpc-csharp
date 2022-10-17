@@ -392,27 +392,84 @@ public class StreamTests
     [Test]
     public async Task Decode_stream_param_from_oneway_request()
     {
-        var service = new MyOperationsA();
+        // Arrange
+        var pipe = new Pipe();
+
+        var tcs = new TaskCompletionSource<List<int>>();
+
+        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+        {
+            await request.DecodeEmptyArgsAsync(SliceEncoding.Slice2, cancellationToken).ConfigureAwait(false);
+            if (request.IsOneway)
+            {
+                PipeReader payloadStream = request.DetachPayload();
+                IAsyncEnumerable<int> contents = payloadStream.ToAsyncEnumerable(
+                    SliceEncoding.Slice2,
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                    4);
+
+                // Read the stream payload in the background
+                _ = Task.Run(
+                    async () =>
+                    {
+                        var received = new List<int>();
+                        await foreach (int i in contents)
+                        {
+                            received.Add(i);
+                        }
+                        tcs.SetResult(received);
+                    },
+                    default);
+            }
+            return new OutgoingResponse(request);
+        });
+
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(service)
-            .AddIceRpcProxy<IMyStreamOperationsAProxy, MyStreamOperationsAProxy>()
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                serverConnectionOptions: new ConnectionOptions
+                {
+                    MaxDispatches = 1,
+                })
             .BuildServiceProvider(validateScopes: true);
 
-        var proxy = provider.GetRequiredService<IMyStreamOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
-        await proxy.OpAsync(GetNumbersAsync());
-
-        Assert.That(async () => await service.Contents, Is.EqualTo(Enumerable.Range(0, 255).ToList()));
-
-        async IAsyncEnumerable<int> GetNumbersAsync()
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var streamRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
+            IsOneway = true,
+            Payload = SliceEncoding.Slice2.CreateSizeZeroPayload(),
+            PayloadStream = pipe.Reader,
+        };
+
+        _ = await sut.Client.InvokeAsync(streamRequest);
+
+        // Awaiting the twoway request below, with a MaxDispatch set to 1, ensures that the dispatch of the
+        // first oneway request has finished before we start writing to its payload stream.
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            IsOneway = false,
+            Payload = SliceEncoding.Slice2.CreateSizeZeroPayload()
+        };
+        await sut.Client.InvokeAsync(request);
+
+        // Act
+        EncodeData(pipe.Writer);
+
+        // Assert
+        await pipe.Writer.CompleteAsync();
+        Assert.That(await tcs.Task, Is.EqualTo(Enumerable.Range(0, 255).ToList()));
+
+        // Cleanup
+        streamRequest.Complete();
+
+        static void EncodeData(PipeWriter writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
             for (int i = 0; i < 255; ++i)
             {
-                if (i % 10 == 0)
-                {
-                    await Task.Delay(TimeSpan.FromMilliseconds(100));
-                }
-                yield return i;
+                encoder.EncodeInt32(i);
             }
         }
     }
@@ -447,30 +504,5 @@ public class StreamTests
         public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ReadAsync(cancellationToken);
         public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
-    }
-
-    class MyOperationsA : Service, IMyStreamOperationsA
-    {
-        public Task<List<int>> Contents => _contentsCompletionSource.Task;
-
-        private readonly TaskCompletionSource<List<int>> _contentsCompletionSource = new();
-
-        public ValueTask OpAsync(
-            IAsyncEnumerable<int> contents,
-            Features.IFeatureCollection features,
-            CancellationToken cancellationToken)
-        {
-            Task.Run(async () =>
-                {
-                    var received = new List<int>();
-                    await foreach(int i in contents)
-                    {
-                        received.Add(i);
-                    }
-                    _contentsCompletionSource.SetResult(received);
-                },
-                default);
-            return default;
-        }
     }
 }

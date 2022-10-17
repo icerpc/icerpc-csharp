@@ -1,9 +1,0 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
-
-module IceRpc::Tests::Slice;
-
-// Used for testing the generated code of operations with stream parameters.
-interface MyStreamOperationsA
-{
-    [oneway] op(contents: stream int32);
-}
