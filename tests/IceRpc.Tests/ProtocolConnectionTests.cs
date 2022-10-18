@@ -134,12 +134,14 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var request = new OutgoingRequest(new ServiceAddress(protocol));
+        var requestList = new List<OutgoingRequest>();
         var responseTasks = new List<Task<IncomingResponse>>();
 
         // Act
         for (int i = 0; i < maxDispatches + 1; ++i)
         {
+            var request = new OutgoingRequest(new ServiceAddress(protocol));
+            requestList.Add(request);
             responseTasks.Add(sut.Client.InvokeAsync(request));
         }
         // wait for maxDispatches dispatches to start
@@ -158,6 +160,12 @@ public sealed class ProtocolConnectionTests
 
         await Task.WhenAll(responseTasks);
         Assert.That(maxCount, Is.EqualTo(maxDispatches));
+
+        // Cleanup
+        foreach (OutgoingRequest request in requestList)
+        {
+            request.Complete();
+        }
     }
 
     /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that aborting the server
@@ -636,12 +644,17 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadDecorator.Completed, Is.Null);
+
+        // Cleanup
+        _ = await responseTask;
+        request.Complete();
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -851,6 +864,9 @@ public sealed class ProtocolConnectionTests
                 (ref SliceDecoder decoder) => decoder.DecodeString(),
                 (ref SliceDecoder decoder) => decoder.DecodeString());
         }
+
+        // Cleanup
+        request.Complete();
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -874,15 +890,19 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
+        var request = new OutgoingRequest(new ServiceAddress(protocol))
+        {
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
+        };
+
         // Act
-        await sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(protocol))
-            {
-                Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
-            });
+        await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(receivedPayload, Is.EqualTo(expectedPayload));
+
+        // Cleanup
+        request.Complete();
     }
 
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout" />
@@ -1113,7 +1133,8 @@ public sealed class ProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        Task invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)));
+        var request = new OutgoingRequest(new ServiceAddress(protocol));
+        Task invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
@@ -1126,10 +1147,9 @@ public sealed class ProtocolConnectionTests
             Assert.That(shutdownTask.IsCompleted, Is.False);
         });
         dispatcher.ReleaseDispatch();
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await invokeTask, Throws.Nothing);
-            Assert.That(async () => await shutdownTask, Throws.Nothing);
-        });
+
+        Assert.That(async () => await invokeTask, Throws.Nothing);
+        request.Complete();
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 }
