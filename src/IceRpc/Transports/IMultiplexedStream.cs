@@ -31,8 +31,10 @@ public interface IMultiplexedStream : IDuplexPipe
     /// and all the data is consumed.</description></item>
     /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
     /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
-    /// </list>
-    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></summary>
+    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
+    /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
+    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item>
+    /// <item><description>the connection is disposed or reset.</description></item></list></summary>
     Task ReadsClosed { get; }
 
     /// <summary>Gets a task that completes when writes are closed. Writes are closed when either:
@@ -41,7 +43,8 @@ public interface IMultiplexedStream : IDuplexPipe
     /// cref="IDuplexPipe.Input" />.</description></item>
     /// <item><description>the peer calls <see cref="PipeReader.Complete(Exception?)"/> on the stream's <see
     /// cref="IDuplexPipe.Input" />.</description></item>
-    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></list></summary>
+    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item>
+    /// <item><description>the connection is disposed or reset.</description></item></list></summary>
     Task WritesClosed { get; }
 
     /// <summary>Aborts the stream. The implementation converts <paramref name="exception"/> into an error code using
