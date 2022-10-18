@@ -25,7 +25,7 @@ internal class QuicPipeReader : PipeReader
     private readonly QuicStream _stream;
 
     // StreamPipeReader.AdvanceTo does not call the underlying stream and as a result does not throw any QuicException.
-    public override void AdvanceTo(SequencePosition consumed) => _pipeReader.AdvanceTo(consumed);
+    public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {

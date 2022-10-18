@@ -23,10 +23,26 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     bool IsStarted { get; }
 
-    /// <summary>Gets a task that completes when reads are closed.</summary>
+    /// <summary>Gets a task that completes when reads are closed. Reads are closed when either:
+    /// <list type="bullet">
+    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on the stream's <see
+    /// cref="IDuplexPipe.Input" />.</description></item>
+    /// <item><description>the stream's <see cref="IDuplexPipe.Input" /> returns a completed <see cref="ReadResult" />
+    /// and all the data is consumed.</description></item>
+    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
+    /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
+    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item>
+    /// <item><description>the connection is disposed or reset.</description></item></list></summary>
     Task ReadsClosed { get; }
 
-    /// <summary>Gets a task that completes when writes are closed.</summary>
+    /// <summary>Gets a task that completes when writes are closed. Writes are closed when either:
+    /// <list type="bullet">
+    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on the stream's <see
+    /// cref="IDuplexPipe.Input" />.</description></item>
+    /// <item><description>the peer calls <see cref="PipeReader.Complete(Exception?)"/> on the stream's <see
+    /// cref="IDuplexPipe.Input" />.</description></item>
+    /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item>
+    /// <item><description>the connection is disposed or reset.</description></item></list></summary>
     Task WritesClosed { get; }
 
     /// <summary>Aborts the stream. The implementation converts <paramref name="exception"/> into an error code using
