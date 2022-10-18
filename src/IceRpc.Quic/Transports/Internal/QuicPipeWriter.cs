@@ -15,6 +15,8 @@ namespace IceRpc.Transports.Internal;
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
+    internal Task WritesClosed { get; }
+
     private readonly CancellationTokenSource _abortCts = new();
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
@@ -249,6 +251,21 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             minimumSegmentSize: minSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
+
+        WritesClosed = CreateWritesClosedTask();
+
+        async Task CreateWritesClosedTask()
+        {
+            try
+            {
+                await _stream.WritesClosed.ConfigureAwait(false);
+            }
+            catch (QuicException exception)
+            {
+                throw exception.ToTransportException();
+            }
+            // we don't wrap other exceptions
+        }
     }
 
     internal void Abort(Exception? exception)

@@ -15,8 +15,8 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     public ulong Id => (ulong)_stream.Id;
 
     public PipeReader Input =>
-         _inputPipeReader ??
-         throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
+        _inputPipeReader ??
+        throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
 
     public bool IsBidirectional => _stream.Type == QuicStreamType.Bidirectional;
 
@@ -30,7 +30,7 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
     public Task ReadsClosed => _inputPipeReader?.ReadsClosed ?? Task.CompletedTask;
 
-    public Task WritesClosed { get; }
+    public Task WritesClosed => _outputPipeWriter?.WritesClosed ?? Task.CompletedTask;
 
     private int _streamRefCount;
     private readonly QuicPipeReader? _inputPipeReader;
@@ -79,8 +79,6 @@ internal class QuicMultiplexedStream : IMultiplexedStream
                 OnCompleted);
         }
 
-        WritesClosed = HandleQuicException(_stream.WritesClosed);
-
         void OnCompleted()
         {
             if (Interlocked.Decrement(ref _streamRefCount) == 0)
@@ -88,22 +86,6 @@ internal class QuicMultiplexedStream : IMultiplexedStream
                 // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
                 // stream disposal and it will eventually complete in the background.
                 _ = _stream.DisposeAsync().AsTask();
-            }
-        }
-
-        static async Task HandleQuicException(Task task)
-        {
-            try
-            {
-                await task.ConfigureAwait(false);
-            }
-            catch (QuicException exception)
-            {
-                throw exception.ToTransportException();
-            }
-            catch (Exception exception)
-            {
-                throw new TransportException(TransportErrorCode.Unspecified, exception);
             }
         }
     }

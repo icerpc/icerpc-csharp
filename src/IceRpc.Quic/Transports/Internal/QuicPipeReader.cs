@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
-    internal Task ReadsClosed => CreateReadsClosedTask();
+    internal Task ReadsClosed { get; }
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
@@ -131,6 +131,23 @@ internal class QuicPipeReader : PipeReader
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
+
+        ReadsClosed = CreateReadsClosedTask();
+
+        async Task CreateReadsClosedTask()
+        {
+            try
+            {
+                await _stream.ReadsClosed.ConfigureAwait(false);
+            }
+            catch (QuicException exception)
+            {
+                throw exception.ToTransportException();
+            }
+            // we don't wrap other exceptions
+
+            await _readsCompleteTcs.Task.ConfigureAwait(false);
+        }
     }
 
     // The exception has 2 separate purposes: transmit an error code to the remote writer and throw this
@@ -148,20 +165,5 @@ internal class QuicPipeReader : PipeReader
         // We also complete _readsCompleteTcs no matter what. This is useful in the situation where Abort is called
         // after_stream.ReadsClosed completed or while it's completing.
         _readsCompleteTcs.TrySetException(exception);
-    }
-
-    private async Task CreateReadsClosedTask()
-    {
-        try
-        {
-            await _stream.ReadsClosed.ConfigureAwait(false);
-        }
-        catch (QuicException exception)
-        {
-            throw exception.ToTransportException();
-        }
-        // we don't wrap other exceptions
-
-        await _readsCompleteTcs.Task.ConfigureAwait(false);
     }
 }
