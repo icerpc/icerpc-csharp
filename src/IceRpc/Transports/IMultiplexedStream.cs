@@ -25,18 +25,22 @@ public interface IMultiplexedStream : IDuplexPipe
 
     /// <summary>Gets a task that completes when reads are closed. Reads are closed when either:
     /// <list type="bullet">
-    /// <item><description>the stream <see cref="IDuplexPipe.Input" /> returns a completed <see cref="ReadResult"
-    /// />.</description></item>
-    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete"/> with a non-null exception
-    /// on the stream <see cref="IDuplexPipe.Output" />.</description></item>
+    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on the stream's <see
+    /// cref="IDuplexPipe.Input" />.</description></item>
+    /// <item><description>the stream's <see cref="IDuplexPipe.Input" /> returns a completed <see cref="ReadResult" />
+    /// and all the data is consumed.</description></item>
+    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
+    /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
     /// </list>
     /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></summary>
     Task ReadsClosed { get; }
 
     /// <summary>Gets a task that completes when writes are closed. Writes are closed when either:
     /// <list type="bullet">
-    /// <item><description>the peer calls <see cref="PipeReader.Complete"/> on its <see cref="IDuplexPipe.Input"
-    /// />.</description></item>
+    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on the stream's <see
+    /// cref="IDuplexPipe.Input" />.</description></item>
+    /// <item><description>the peer calls <see cref="PipeReader.Complete(Exception?)"/> on the stream's <see
+    /// cref="IDuplexPipe.Input" />.</description></item>
     /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item></list></summary>
     Task WritesClosed { get; }
 

@@ -10,7 +10,6 @@ internal class SlicPipeReader : PipeReader
 {
     private int _examined;
     private Exception? _exception;
-    private volatile bool _hasDataToRead;
     private long _lastExaminedOffset;
     private readonly Pipe _pipe;
     private ReadResult _readResult;
@@ -42,16 +41,13 @@ internal class SlicPipeReader : PipeReader
             _examined = 0;
         }
 
-        if (consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset)
-        {
-            _hasDataToRead = false;
-        }
+        bool complete = consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
 
         _pipe.Reader.AdvanceTo(consumed, examined);
 
-        // If we reached the end of the sequence and the peer won't be sending additional data, we can mark reads as
+        // If all the data has been consumed and the peer won't be sending additional data, we can mark reads as
         // completed on the stream.
-        if (_readResult.IsCompleted && !_hasDataToRead)
+        if (_readResult.IsCompleted && complete)
         {
             _stream.TrySetReadsClosed(exception: null);
         }
@@ -100,7 +96,6 @@ internal class SlicPipeReader : PipeReader
         // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
         // completed on the stream.
         _readResult = result;
-        _hasDataToRead = result.Buffer.Length > 0;
         return result;
     }
 
@@ -212,17 +207,9 @@ internal class SlicPipeReader : PipeReader
             if (endStream)
             {
                 await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
-
-                // There's no pending data for the application to read, we can complete reads now to complete the
-                // ReadsClosed task. Otherwise, we wait for the application to read the data before completing reads.
-                if (!_hasDataToRead)
-                {
-                    _stream.TrySetReadsClosed(exception: null);
-                }
             }
             else
             {
-                _hasDataToRead = true;
                 _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
