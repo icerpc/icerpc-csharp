@@ -41,13 +41,14 @@ internal class SlicPipeReader : PipeReader
             _examined = 0;
         }
 
-        bool complete = consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
+        // AdvanceTo can modify the read result buffer so this must be called before.
+        bool consumedAllData = consumed.Equals(_readResult.Buffer.End);
 
         _pipe.Reader.AdvanceTo(consumed, examined);
 
         // If all the data has been consumed and the peer won't be sending additional data, we can mark reads as
         // completed on the stream.
-        if (_readResult.IsCompleted && complete)
+        if (_readResult.IsCompleted && consumedAllData)
         {
             _stream.TrySetReadsClosed(exception: null);
         }
