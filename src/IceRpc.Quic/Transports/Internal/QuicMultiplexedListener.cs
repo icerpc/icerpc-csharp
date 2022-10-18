@@ -46,7 +46,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         }
 
         // We use the "operation canceled" error code as default error code because that's the error code transmitted
-        // when when an operation such as stream.ReadAsync or stream.WriteAsync is canceled.
+        // when an operation such as stream.ReadAsync or stream.WriteAsync is canceled.
         // See https://github.com/dotnet/runtime/issues/72607.
         _quicServerOptions = new QuicServerConnectionOptions
         {
