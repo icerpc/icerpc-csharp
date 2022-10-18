@@ -15,15 +15,12 @@ namespace IceRpc.Transports.Internal;
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
-    private const int MaxCoalesceSize = 16 * 1024;
-
     private readonly CancellationTokenSource _abortCts = new();
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private Exception? _exception;
     private readonly int _minSegmentSize;
     private readonly Pipe _pipe;
-    private readonly MemoryPool<byte> _pool;
     private int _state;
     private readonly QuicStream _stream;
 
@@ -100,121 +97,62 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             _abortCts);
 
         ReadResult readResult = default;
-        if (_pipe.Writer.UnflushedBytes > 0)
-        {
-            // Make sure the pipe reader is not completed by Abort while it's being used.
-            if (!_state.TrySetFlag(State.PipeReaderInUse))
-            {
-                throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
-            }
 
-            // Flush the internal pipe.
-            FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            Debug.Assert(!flushResult.IsCanceled && !flushResult.IsCompleted);
-
-            // Read the data from the pipe.
-            readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
-            Debug.Assert(!readResult.IsCanceled && !readResult.IsCompleted && readResult.Buffer.Length > 0);
-        }
-
-        // Coalesce leading small buffers up to MaxCoalesceSize. We assume buffers later on are large enough and don't
-        // need coalescing.
-        ReadOnlySequence<byte> coalesceSequence1;
-        ReadOnlySequence<byte> coalesceSequence2;
-        ReadOnlySequence<byte> pipeSequence = readResult.Buffer;
-        if (pipeSequence.IsEmpty)
+        // Make sure the pipe reader is not completed by Abort while it's being used.
+        if (!_state.TrySetFlag(State.PipeReaderInUse))
         {
-            if (source.Length < MaxCoalesceSize)
-            {
-                coalesceSequence1 = source;
-                coalesceSequence2 = ReadOnlySequence<byte>.Empty;
-                source = ReadOnlySequence<byte>.Empty;
-            }
-            else
-            {
-                coalesceSequence1 = ReadOnlySequence<byte>.Empty;
-                coalesceSequence2 = ReadOnlySequence<byte>.Empty;
-            }
-        }
-        else if (pipeSequence.Length < MaxCoalesceSize)
-        {
-            coalesceSequence1 = pipeSequence;
-            pipeSequence = ReadOnlySequence<byte>.Empty;
-
-            coalesceSequence2 = source.Slice(0, Math.Min(source.Length, MaxCoalesceSize - coalesceSequence1.Length));
-            source = source.Slice(coalesceSequence2.Length);
-        }
-        else
-        {
-            coalesceSequence1 = pipeSequence.Slice(0, MaxCoalesceSize);
-            pipeSequence = pipeSequence.Slice(MaxCoalesceSize);
-            coalesceSequence2 = ReadOnlySequence<byte>.Empty;
+            throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
         }
 
         try
         {
-            long coalesceSize = coalesceSequence1.Length + coalesceSequence2.Length;
-            if (coalesceSize > 0)
+            if (_pipe.Writer.UnflushedBytes > 0)
             {
-                if (coalesceSequence1.IsSingleSegment && coalesceSequence2.IsEmpty)
+                if (!source.IsEmpty && source.Length < _minSegmentSize)
                 {
-                    Debug.Assert(source.IsEmpty && pipeSequence.Length < MaxCoalesceSize);
-                    await WriteAsync(coalesceSequence1.First, completeWrites: endStream).ConfigureAwait(false);
-                }
-                else
-                {
-                    using IMemoryOwner<byte> bufferOwner = _pool.Rent(Math.Max(_minSegmentSize, (int)coalesceSize));
-                    int offset = 0;
-                    Memory<byte> writeBuffer = bufferOwner.Memory;
-                    foreach (ReadOnlyMemory<byte> buffer in coalesceSequence1)
+                    // When source fits in the last segment of _pipe.Writer, we copy it into _pipe.Writer.
+
+                    Memory<byte> pipeMemory = _pipe.Writer.GetMemory();
+                    if (source.Length <= pipeMemory.Length)
                     {
-                        buffer.CopyTo(writeBuffer[offset..]);
-                        offset += buffer.Length;
+                        source.CopyTo(pipeMemory.Span);
+                        _pipe.Writer.Advance((int)source.Length);
+                        source = ReadOnlySequence<byte>.Empty;
                     }
-                    foreach (ReadOnlyMemory<byte> buffer in coalesceSequence2)
+                    else
                     {
-                        buffer.CopyTo(writeBuffer[offset..]);
-                        offset += buffer.Length;
+                        _pipe.Writer.Advance(0);
                     }
-                    await WriteAsync(
-                        writeBuffer[..offset],
-                        completeWrites: endStream && pipeSequence.IsEmpty && source.IsEmpty).ConfigureAwait(false);
                 }
-            }
 
-            SequencePosition position;
+                // Flush the internal pipe.
+                FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                Debug.Assert(!flushResult.IsCanceled && !flushResult.IsCompleted);
 
-            // Send the remaining buffers from pipeSequence
-            if (pipeSequence.Length > 0)
-            {
-                position = pipeSequence.Start;
-                while (pipeSequence.TryGet(ref position, out ReadOnlyMemory<byte> buffer, advance: true))
+                // Read the data from the pipe.
+                bool tryReadOk = _pipe.Reader.TryRead(out readResult);
+                Debug.Assert(tryReadOk);
+                Debug.Assert(!readResult.IsCanceled && !readResult.IsCompleted && readResult.Buffer.Length > 0);
+
+                try
                 {
-                    await WriteAsync(
-                        buffer,
-                        completeWrites:
-                            endStream && position.Equals(pipeSequence.End) && source.IsEmpty).ConfigureAwait(false);
+                    // Write buffered data to the stream
+                    await WriteSequenceAsync(readResult.Buffer, completeWrites: endStream && source.IsEmpty)
+                        .ConfigureAwait(false);
                 }
-            }
-
-            // We're done with sending the data from the pipe, we can advance the pipe reader.
-            if (!readResult.Buffer.IsEmpty)
-            {
-                _pipe.Reader.AdvanceTo(readResult.Buffer.End);
-            }
-
-            // Send the remaining buffers from source
-            if (source.Length > 0)
-            {
-                position = source.Start;
-                while (source.TryGet(ref position, out ReadOnlyMemory<byte> buffer, advance: true))
+                finally
                 {
-                    await WriteAsync(
-                        buffer,
-                        completeWrites: endStream && position.Equals(source.End)).ConfigureAwait(false);
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+                }
+
+                if (source.IsEmpty)
+                {
+                    // We're done, we don't want to write again an empty sequence.
+                    return new FlushResult(isCanceled: false, isCompleted: endStream);
                 }
             }
 
+            await WriteSequenceAsync(source, completeWrites: endStream).ConfigureAwait(false);
             return new FlushResult(isCanceled: false, isCompleted: endStream);
         }
         catch (QuicException exception) when (
@@ -260,27 +198,44 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
         finally
         {
-            if (!readResult.Buffer.IsEmpty)
+            if (_state.HasFlag(State.PipeReaderCompleted))
             {
-                if (_state.HasFlag(State.PipeReaderCompleted))
-                {
-                    // If the pipe reader has been completed while we were writing the stream data, we make sure to
-                    // complete the reader now since Complete or Abort didn't do it.
-                    await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
-                }
-                _state.ClearFlag(State.PipeReaderInUse);
+                // If the pipe reader has been completed while we were writing the stream data, we make sure to
+                // complete the reader now since Complete or Abort didn't do it.
+                await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
             }
+            _state.ClearFlag(State.PipeReaderInUse);
         }
 
-        // We don't cancel QuicStream.WriteAsync since its cancellation aborts the stream reads under the hood. See
-        // https://github.com/dotnet/runtime/issues/72607
-        Task WriteAsync(ReadOnlyMemory<byte> buffer, bool completeWrites)
+        Task WriteSequenceAsync(ReadOnlySequence<byte> sequence, bool completeWrites)
         {
-            _abortCts.Token.ThrowIfCancellationRequested();
+            return sequence.IsSingleSegment ?
+                WriteBufferAsync(sequence.First, completeWrites) : PerformWriteSequenceAsync();
 
-            // TODO: add support for ValueTask.WaitAsync
-            return _stream.WriteAsync(buffer, completeWrites, CancellationToken.None).AsTask().WaitAsync(
-                _abortCts.Token);
+            async Task PerformWriteSequenceAsync()
+            {
+                var enumerator = new ReadOnlySequence<byte>.Enumerator(sequence);
+                bool hasMore = enumerator.MoveNext();
+                Debug.Assert(hasMore);
+                do
+                {
+                    ReadOnlyMemory<byte> buffer = enumerator.Current;
+                    hasMore = enumerator.MoveNext();
+                    await WriteBufferAsync(buffer, completeWrites: completeWrites && !hasMore).ConfigureAwait(false);
+                }
+                while (hasMore);
+            }
+
+            // We don't cancel QuicStream.WriteAsync since its cancellation aborts the stream reads under the hood. See
+            // https://github.com/dotnet/runtime/issues/72607
+            Task WriteBufferAsync(ReadOnlyMemory<byte> buffer, bool completeWrites)
+            {
+                _abortCts.Token.ThrowIfCancellationRequested();
+
+                // TODO: add support for ValueTask.WaitAsync
+                return _stream.WriteAsync(buffer, completeWrites, CancellationToken.None).AsTask().WaitAsync(
+                    _abortCts.Token);
+            }
         }
     }
 
@@ -293,7 +248,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     {
         _stream = stream;
         _errorCodeConverter = errorCodeConverter;
-        _pool = pool;
         _minSegmentSize = minSegmentSize;
         _completedCallback = completedCallback;
 

@@ -96,37 +96,48 @@ public class ServerTests
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var colocTransport = new ColocTransport();
+
+        var serverTransport = new DelayDisposeMultiplexServerTransport(
+            new SlicServerTransport(colocTransport.ServerTransport));
+
         await using var server = new Server(
-            new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                MaxConnections = 1,
-                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-            });
+           new ServerOptions
+           {
+               ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+               MaxConnections = 1,
+               ServerAddress = new ServerAddress(new Uri("icerpc://server"))
+           },
+           multiplexedServerTransport: serverTransport);
 
         server.Listen();
 
-        await using var connection1 = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            });
+        // The listener is now available
+        DelayDisposeConnectionListener serverListener = serverTransport.Listener!;
 
-        await using var connection2 = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            });
+        await using var clientConnection1 = new ClientConnection(
+            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        await connection1.ConnectAsync();
+        await using var clientConnection2 = new ClientConnection(
+            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        // No need to delay the disposal of any connections (the default behavior)
+        serverListener.DelayDisposeNewConnections = false;
+
+        await clientConnection1.ConnectAsync();
+        DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
 
         // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(() => connection2.ConnectAsync());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
-        await connection1.ShutdownAsync();
-        // Artificial delay to ensure the server has time to cleanup connection.
-        await Task.Delay(TimeSpan.FromSeconds(2));
-        await connection2.ConnectAsync();
+        Assert.ThrowsAsync<ConnectionException>(() => clientConnection2.ConnectAsync());
+
+        // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
+        // thus removed from the server's connection list.
+        await clientConnection1.ShutdownAsync();
+        await serverConnection1.WaitForDisposeStart();
+
+        await clientConnection2.ConnectAsync();
     }
 
     [Test]
@@ -155,6 +166,7 @@ public class ServerTests
             });
 
         server.Listen();
+
         await using var clientConnection = new ClientConnection(
            new ClientConnectionOptions
            {
@@ -198,13 +210,8 @@ public class ServerTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var colocTransport = new ColocTransport();
 
-        using var refusedSemaphore = new SemaphoreSlim(0);
-        using var disposeSemaphore = new SemaphoreSlim(0);
-
-        var serverTransport = new RefusedMultiplexServerTransport(
-            new SlicServerTransport(colocTransport.ServerTransport),
-            disposeSemaphore,
-            refusedSemaphore);
+        var serverTransport = new DelayDisposeMultiplexServerTransport(
+            new SlicServerTransport(colocTransport.ServerTransport));
 
         await using var server = new Server(
            new ServerOptions
@@ -217,6 +224,9 @@ public class ServerTests
 
         server.Listen();
 
+        // The listener is now available
+        DelayDisposeConnectionListener serverListener = serverTransport.Listener!;
+
         await using var clientConnection1 = new ClientConnection(
            new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
@@ -225,22 +235,31 @@ public class ServerTests
            new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
+        // Don't delay dispose of the first server connection
+        serverListener.DelayDisposeNewConnections = false;
         await clientConnection1.ConnectAsync();
 
+        DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
         try
         {
+            // Delay dispose of the second server connection
+            serverListener.DelayDisposeNewConnections = true;
             await clientConnection2.ConnectAsync();
+            // This should always throw
         }
         catch (ConnectionException)
         {
             // Connection refused
         }
 
-        // Wait for the connection to began disposal.
-        await disposeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        disposeSemaphore.Release(); // ensure disposing any future connections does not block
+        DelayDisposeMultiplexedConneciton serverConnection2 = serverListener.LastConnection!;
 
+        // Wait for the connection to began disposal.
+        await serverConnection2.WaitForDisposeStart();
+
+        // Shutdown the first client connection and wait for the corresponding server connection to be disposed.
         await clientConnection1.ShutdownAsync();
+        await serverConnection1.WaitForDisposeStart();
 
         // Act
 
@@ -250,81 +269,72 @@ public class ServerTests
         // Assert
         await Task.Delay(TimeSpan.FromSeconds(1));
         Assert.That(disposeTask.IsCompleted, Is.False);
-        refusedSemaphore.Release();
+        serverConnection2.ReleaseDispose();
         await disposeTask;
     }
 
-    private class RefusedMultiplexServerTransport : IMultiplexedServerTransport
+    private class DelayDisposeMultiplexServerTransport : IMultiplexedServerTransport
     {
         public string Name => _serverTransport.Name;
-        private readonly SemaphoreSlim _disposeSemaphore;
-        private readonly SemaphoreSlim _refusedSemaphore;
+
+        public DelayDisposeConnectionListener? Listener { get; set; }
 
         private readonly IMultiplexedServerTransport _serverTransport;
 
-        public RefusedMultiplexServerTransport(
-            IMultiplexedServerTransport serverTransport,
-            SemaphoreSlim disposeSemaphore,
-            SemaphoreSlim refusedSemaphore)
-        {
-            _disposeSemaphore = disposeSemaphore;
-            _refusedSemaphore = refusedSemaphore;
-            _serverTransport = serverTransport;
-        }
+        public DelayDisposeMultiplexServerTransport(IMultiplexedServerTransport serverTransport)
+            => _serverTransport = serverTransport;
 
         public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions) =>
-            new RefusedConnectionListener(
-                _serverTransport.Listen(serverAddress, options, serverAuthenticationOptions),
-                _disposeSemaphore,
-                _refusedSemaphore);
+        SslServerAuthenticationOptions? serverAuthenticationOptions)
+        {
+            Listener = new DelayDisposeConnectionListener(
+                _serverTransport.Listen(serverAddress, options, serverAuthenticationOptions));
+            return Listener;
+        }
     }
 
-    private class RefusedConnectionListener : IListener<IMultiplexedConnection>
+    private class DelayDisposeConnectionListener : IListener<IMultiplexedConnection>
     {
         public ServerAddress ServerAddress => _listener.ServerAddress;
-        private readonly IListener<IMultiplexedConnection> _listener;
-        private readonly SemaphoreSlim _disposeSemaphore;
-        private readonly SemaphoreSlim _refusedSemaphore;
 
-        public RefusedConnectionListener(
-            IListener<IMultiplexedConnection> listener,
-            SemaphoreSlim disposeSemaphore,
-            SemaphoreSlim refusedSemaphore)
-        {
-            _listener = listener;
-            _disposeSemaphore = disposeSemaphore;
-            _refusedSemaphore = refusedSemaphore;
-        }
+        // Gets the last connection created by this listener
+        public DelayDisposeMultiplexedConneciton? LastConnection { get; private set; }
+
+        // Sets whether to delay dispose of the next connection created by this listener
+        public bool DelayDisposeNewConnections { private get; set; } = true;
+
+        private readonly IListener<IMultiplexedConnection> _listener;
+
+        public DelayDisposeConnectionListener(IListener<IMultiplexedConnection> listener) => _listener = listener;
 
         public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)>
         AcceptAsync(CancellationToken cancellationToken)
         {
             (IMultiplexedConnection connection, EndPoint endpoint) = await _listener.AcceptAsync(cancellationToken);
-            return (new RefusedMultiplexedConneciton(connection, _disposeSemaphore, _refusedSemaphore), endpoint);
+            LastConnection = new DelayDisposeMultiplexedConneciton(connection, DelayDisposeNewConnections);
+            return (LastConnection, endpoint);
         }
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
     }
 
-    private class RefusedMultiplexedConneciton : IMultiplexedConnection
+    private class DelayDisposeMultiplexedConneciton : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _connection.ServerAddress;
 
         private readonly IMultiplexedConnection _connection;
-        private readonly SemaphoreSlim _disposeSemaphore;
-        private readonly SemaphoreSlim _refusedSemaphore;
 
-        public RefusedMultiplexedConneciton(
-            IMultiplexedConnection connection,
-            SemaphoreSlim disposeSemaphore,
-            SemaphoreSlim refusedSemaphore)
+        private readonly bool _delayDispose;
+
+        private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
+        private readonly SemaphoreSlim _delayDisposeSemaphore = new(0);
+
+        public DelayDisposeMultiplexedConneciton(IMultiplexedConnection connection, bool delayDispose)
         {
             _connection = connection;
-            _disposeSemaphore = disposeSemaphore;
-            _refusedSemaphore = refusedSemaphore;
+            _delayDispose = delayDispose;
         }
 
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
@@ -341,13 +351,17 @@ public class ServerTests
 
         public async ValueTask DisposeAsync()
         {
-            // The first connection dispose is the refused connection and will wait for the refused semaphore.
-            if (_disposeSemaphore.CurrentCount == 0)
+            _waitDisposeSemaphore.Release();
+
+            if (_delayDispose)
             {
-                _disposeSemaphore.Release();
-                await _refusedSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false); ;
+                await _delayDisposeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false); ;
             }
             await _connection.DisposeAsync();
         }
+
+        public Task WaitForDisposeStart() => _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
+
+        public void ReleaseDispose() => _delayDisposeSemaphore.Release();
     }
 }
