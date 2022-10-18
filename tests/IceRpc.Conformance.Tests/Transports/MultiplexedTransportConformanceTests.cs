@@ -760,12 +760,22 @@ public abstract class MultiplexedTransportConformanceTests
             }
 
             await stream.Output.WriteAsync(payload);
+            await stream.Output.WriteAsync(payload);
+            await stream.Output.WriteAsync(payload);
+            await stream.Output.WriteAsync(payload);
 
             await stream.Output.CompleteAsync();
         }
 
         async Task ServerReadAsync(IMultiplexedStream stream)
         {
+            // The stream is terminated as soon as the last frame of the request is received, so we have
+            // to decrement the count here before the request receive completes.
+            lock (mutex)
+            {
+                streamCount--;
+            }
+
             ReadResult readResult;
             do
             {
@@ -773,11 +783,6 @@ public abstract class MultiplexedTransportConformanceTests
                 stream.Input.AdvanceTo(readResult.Buffer.End);
             }
             while (!readResult.IsCompleted);
-
-            lock (mutex)
-            {
-                streamCount--;
-            }
 
             await stream.Input.CompleteAsync();
         }
