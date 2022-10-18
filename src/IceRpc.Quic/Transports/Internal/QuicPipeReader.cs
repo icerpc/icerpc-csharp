@@ -150,15 +150,14 @@ internal class QuicPipeReader : PipeReader
         }
     }
 
-    // The exception has 2 separate purposes: transmit an error code to the remote writer and throw this
-    // exception from the current or next ReadAsync.
+    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception from
+    // the current or next ReadAsync.
     internal void Abort(Exception exception)
     {
         // If ReadsClosed is already completed or this is not the first call to Abort, there is nothing to abort.
         if (!_stream.ReadsClosed.IsCompleted &&
             Interlocked.CompareExchange(ref _abortException, exception, null) is null)
         {
-            // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
 

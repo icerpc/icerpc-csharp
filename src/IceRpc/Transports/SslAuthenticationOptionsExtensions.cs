@@ -2,11 +2,16 @@
 
 using System.Net.Security;
 
-namespace IceRpc.Transports.Internal;
+namespace IceRpc.Transports;
 
-internal static class SslAuthenticationOptionsExtensions
+/// <summary>Provides extension methods for <see cref="SslClientAuthenticationOptions" /> and
+/// <see cref="SslServerAuthenticationOptions" />.</summary>
+public static class SslAuthenticationOptionsExtensions
 {
-    internal static SslClientAuthenticationOptions Clone(this SslClientAuthenticationOptions value) =>
+    /// <summary>Makes a shallow copy of an SSL client authentication options.</summary>
+    /// <param name="value">The options to copy.</param>
+    /// <returns>The shallow copy.</returns>
+    public static SslClientAuthenticationOptions Clone(this SslClientAuthenticationOptions value) =>
         new()
         {
             AllowRenegotiation = value.AllowRenegotiation,
@@ -21,7 +26,10 @@ internal static class SslAuthenticationOptionsExtensions
             TargetHost = value.TargetHost
         };
 
-    internal static SslServerAuthenticationOptions Clone(this SslServerAuthenticationOptions value) =>
+    /// <summary>Makes a shallow copy of an SSL server authentication options.</summary>
+    /// <param name="value">The options to copy.</param>
+    /// <returns>The shallow copy.</returns>
+    public static SslServerAuthenticationOptions Clone(this SslServerAuthenticationOptions value) =>
         new()
         {
             AllowRenegotiation = value.AllowRenegotiation,
