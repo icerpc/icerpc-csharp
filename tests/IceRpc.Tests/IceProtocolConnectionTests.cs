@@ -140,6 +140,9 @@ public sealed class IceProtocolConnectionTests
         var exception = await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client)) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
+
+        // Cleanup
+        request.Complete();
     }
 
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support

@@ -134,6 +134,9 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
         Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
+
+        // Cleanup
+        request.Complete();
     }
 
     [Test]
@@ -279,6 +282,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         Assert.That(streamException, Is.Not.Null);
         Assert.That(streamException!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)expectedErrorCode));
+
+        // Cleanup
+        request.Complete();
     }
 
     [Test]
@@ -625,6 +631,9 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
+
+        // Cleanup
+        request.Complete();
     }
 
     /// <summary>Shutting down a non-connected server connection sends connection refused.</summary>
