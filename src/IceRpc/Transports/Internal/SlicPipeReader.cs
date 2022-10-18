@@ -41,19 +41,15 @@ internal class SlicPipeReader : PipeReader
             _examined = 0;
         }
 
-        // AdvanceTo can modify the read result buffer so this must be called before. Note: we don't use
-        // SequencePosition.Equals because equality does not guarantee that the two instances point to the same location
-        // in a ReadOnlySequence.
-        bool consumedAllData = consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
-
-        _pipe.Reader.AdvanceTo(consumed, examined);
-
-        // If all the data has been consumed and the peer won't be sending additional data, we can mark reads as
-        // completed on the stream.
-        if (_readResult.IsCompleted && consumedAllData)
+        // We don't use SequencePosition.Equals because equality does not guarantee that the two instances point to the
+        // same location in a ReadOnlySequence.
+        if (_readResult.IsCompleted &&
+            consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset)
         {
             _stream.TrySetReadsClosed(exception: null);
         }
+
+        _pipe.Reader.AdvanceTo(consumed, examined);
     }
 
     public override void CancelPendingRead() => _pipe.Reader.CancelPendingRead();
