@@ -29,11 +29,12 @@ internal class QuicPipeReader : PipeReader
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        _pipeReader.AdvanceTo(consumed, examined);
-        if (_readResult.IsCompleted && consumed.Equals(_readResult.Buffer.End))
+        if (_readResult.Buffer.GetOffset(consumed) == _readResult.Buffer.GetOffset(_readResult.Buffer.End))
         {
             _ = _readsCompleteTcs.TrySetResult();
         }
+
+        _pipeReader.AdvanceTo(consumed, examined);
     }
 
     public override void CancelPendingRead() => _pipeReader.CancelPendingRead();
