@@ -39,7 +39,14 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                         $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
                 }
 
-                _stream.AbortWrite(exception);
+                if (exception is null)
+                {
+                    _stream.CompleteWrites();
+                }
+                else
+                {
+                    _stream.AbortWrite(exception);
+                }
             }
 
             _pipe.Writer.Complete(exception);

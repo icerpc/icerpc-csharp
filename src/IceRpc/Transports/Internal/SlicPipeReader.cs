@@ -32,8 +32,8 @@ internal class SlicPipeReader : PipeReader
         _examined += (int)(examinedOffset - _lastExaminedOffset);
         _lastExaminedOffset = examinedOffset - consumedOffset;
 
-        // If the number of examined bytes is superior to the resume threshold notifies the sender it's safe
-        // to send additional data.
+        // If the number of examined bytes is superior to the resume threshold notifies the sender it's safe to send
+        // additional data.
         if (_examined >= _resumeThreshold)
         {
             Interlocked.Add(ref _receiveCredit, _examined);
@@ -41,20 +41,15 @@ internal class SlicPipeReader : PipeReader
             _examined = 0;
         }
 
-        // If we reached the end of the sequence and the peer won't be sending additional data, we can mark reads as
-        // completed on the stream.
-        bool isRemoteWriteCompleted =
-            _readResult.IsCompleted &&
-            consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
-
-        _pipe.Reader.AdvanceTo(consumed, examined);
-
-        if (isRemoteWriteCompleted)
+        // We don't use SequencePosition.Equals because equality does not guarantee that the two instances point to the
+        // same location in a ReadOnlySequence.
+        if (_readResult.IsCompleted &&
+            consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset)
         {
-            // The application consumed all the byes and the peer is done sending data, we can mark reads as
-            // completed on the stream.
             _stream.TrySetReadsClosed(exception: null);
         }
+
+        _pipe.Reader.AdvanceTo(consumed, examined);
     }
 
     public override void CancelPendingRead() => _pipe.Reader.CancelPendingRead();
@@ -67,6 +62,11 @@ internal class SlicPipeReader : PipeReader
             {
                 // If the peer is no longer sending data, just mark reads as completed on the stream.
                 _stream.TrySetReadsClosed(exception: null);
+            }
+
+            if (!_stream.IsBidirectional)
+            {
+                _stream.CompleteUnidirectionalStreamReads();
             }
 
             if (!_stream.ReadsCompleted)
@@ -95,12 +95,6 @@ internal class SlicPipeReader : PipeReader
         // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
         // completed on the stream.
         _readResult = result;
-        if (result.Buffer.IsEmpty && result.IsCompleted)
-        {
-            // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
-            // stream count.
-            _stream.TrySetReadsClosed(exception: null);
-        }
         return result;
     }
 
@@ -211,11 +205,6 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
-                // We complete the pipe writer but we don't mark reads as completed. Reads will be marked as completed
-                // once the application calls TryRead/ReadAsync. It's important for unidirectional stream which would
-                // otherwise be shutdown before the data has been consumed by the application. This would allow a
-                // malicious client to open many unidirectional streams before the application gets a chance to consume
-                // the data, defeating the purpose of the UnidirectionalStreamMaxCount option.
                 await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
             }
             else
