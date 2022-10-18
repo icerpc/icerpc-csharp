@@ -976,9 +976,13 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Output.Complete();
 
         // Assert
-        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
-        Assert.That(readResult.IsCompleted, Is.True);
-        sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
+        ReadResult readResult;
+        while(!(readResult = await sut.RemoteStream.Input.ReadAsync()).IsCompleted)
+        {
+            sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
+            // Wait for ReadResult.IsCompleted=true
+            await Task.Delay(1);
+        }
 
         await CompleteStreamsAsync(sut);
     }
@@ -1000,7 +1004,11 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Input.Complete();
 
         // Assert
-        Assert.That(async () => (await sut.RemoteStream.Output.WriteAsync(new byte[1])).IsCompleted, Is.True);
+        while (!(await sut.RemoteStream.Output.WriteAsync(new byte[1])).IsCompleted)
+        {
+            // Wait for FlushResult.IsCompleted=true
+            await Task.Delay(1);
+        }
 
         await CompleteStreamsAsync(sut);
     }
@@ -1024,7 +1032,11 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Input.Complete();
 
         // Assert
-        Assert.That(async () => (await sut.RemoteStream.Output.FlushAsync()).IsCompleted, Is.True);
+        while (!(await sut.RemoteStream.Output.FlushAsync()).IsCompleted)
+        {
+            // Wait for FlushResult.IsCompleted=true
+            await Task.Delay(1);
+        }
 
         await CompleteStreamsAsync(sut);
     }
