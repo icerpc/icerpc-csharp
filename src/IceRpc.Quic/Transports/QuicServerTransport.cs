@@ -47,6 +47,10 @@ public class QuicServerTransport : IMultiplexedServerTransport
             serverAddress = serverAddress with { Transport = Name };
         }
 
-        return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
+        return new QuicMultiplexedListener(
+            serverAddress,
+            options,
+            _quicOptions,
+            serverAuthenticationOptions);
     }
 }

@@ -207,12 +207,12 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             _state.ClearFlag(State.PipeReaderInUse);
         }
 
-        Task WriteSequenceAsync(ReadOnlySequence<byte> sequence, bool completeWrites)
+        ValueTask WriteSequenceAsync(ReadOnlySequence<byte> sequence, bool completeWrites)
         {
             return sequence.IsSingleSegment ?
-                WriteBufferAsync(sequence.First, completeWrites) : PerformWriteSequenceAsync();
+                _stream.WriteAsync(sequence.First, completeWrites, _abortCts.Token) : PerformWriteSequenceAsync();
 
-            async Task PerformWriteSequenceAsync()
+            async ValueTask PerformWriteSequenceAsync()
             {
                 var enumerator = new ReadOnlySequence<byte>.Enumerator(sequence);
                 bool hasMore = enumerator.MoveNext();
@@ -221,20 +221,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 {
                     ReadOnlyMemory<byte> buffer = enumerator.Current;
                     hasMore = enumerator.MoveNext();
-                    await WriteBufferAsync(buffer, completeWrites: completeWrites && !hasMore).ConfigureAwait(false);
+                    await _stream.WriteAsync(buffer, completeWrites: completeWrites && !hasMore, _abortCts.Token)
+                        .ConfigureAwait(false);
                 }
                 while (hasMore);
-            }
-
-            // We don't cancel QuicStream.WriteAsync since its cancellation aborts the stream reads under the hood. See
-            // https://github.com/dotnet/runtime/issues/72607
-            Task WriteBufferAsync(ReadOnlyMemory<byte> buffer, bool completeWrites)
-            {
-                _abortCts.Token.ThrowIfCancellationRequested();
-
-                // TODO: add support for ValueTask.WaitAsync
-                return _stream.WriteAsync(buffer, completeWrites, CancellationToken.None).AsTask().WaitAsync(
-                    _abortCts.Token);
             }
         }
     }

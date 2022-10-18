@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Quic;
 
@@ -72,28 +71,10 @@ internal class QuicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        Task<ReadResult>? task = null;
         try
         {
-            task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
-            _readResult = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            _readResult = await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
             return _readResult;
-        }
-        catch (OperationCanceledException exception)
-        {
-            // We can't let task run in the background - it's not ok to call Complete or any other method on PipeReader
-            // (except CancelPendingRead) while a ReadAsync is running in a separate thread. So we need to abort the
-            // stream and wait for task to complete.
-            Debug.Assert(task is not null);
-            Abort(exception);
-            try
-            {
-                _ = await task.ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-            throw;
         }
         catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
         {
