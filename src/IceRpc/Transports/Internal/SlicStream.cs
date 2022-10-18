@@ -128,13 +128,7 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (IsBidirectional && !ReadsCompleted)
         {
-            if (IsBidirectional)
-            {
-                _ = SendStopSendingFrameAndCompleteReadsAsync();
-            }
-            else
-            {
-            }
+            _ = SendStopSendingFrameAndCompleteReadsAsync();
         }
 
         async Task SendStopSendingFrameAndCompleteReadsAsync()

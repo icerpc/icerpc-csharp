@@ -42,8 +42,8 @@ internal class SlicPipeReader : PipeReader
         }
 
         // AdvanceTo can modify the read result buffer so this must be called before. Note: we don't use
-        // SequencePosition.Equals since it doesn't guarantee that to equal sequence position point to the same position
-        // in a ReadOnlySequence<byte> (see the documentation).
+        // SequencePosition.Equals because equality does not guarantee that the two instances point to the same location
+        // in a ReadOnlySequence.
         bool consumedAllData = consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
 
         _pipe.Reader.AdvanceTo(consumed, examined);
