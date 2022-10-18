@@ -29,7 +29,8 @@ internal class QuicPipeReader : PipeReader
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        if (_readResult.Buffer.GetOffset(consumed) == _readResult.Buffer.GetOffset(_readResult.Buffer.End))
+        if (_readResult.IsCompleted &&
+            _readResult.Buffer.GetOffset(consumed) == _readResult.Buffer.GetOffset(_readResult.Buffer.End))
         {
             _ = _readsCompleteTcs.TrySetResult();
         }
