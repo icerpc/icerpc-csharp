@@ -340,7 +340,11 @@ dependencies = [
 [[package]]
 name = "slicec"
 version = "0.1.0"
+<<<<<<< HEAD
 source = "git+ssh://git@github.com/zeroc-ice/icerpc#87e3407ef943b02ed580c3d893514c461c745864"
+=======
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#588f90e73648095ab50493a07b9779d832079446"
+>>>>>>> Fixed attribute placement and bogus mappings.
 dependencies = [
  "clap",
  "console",

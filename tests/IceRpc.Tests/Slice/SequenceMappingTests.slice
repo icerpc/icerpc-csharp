@@ -5,12 +5,12 @@ module IceRpc::Tests::Slice;
 interface SequenceMappingOperations
 {
     opReturnTuple() ->
-        ([cs::generic("CustomSequence")] r1: sequence<int32>,
-         [cs::generic("CustomSequence")] r2: sequence<int32>);
+        (r1: [cs::generic("CustomSequence")] sequence<int32>,
+         r2: [cs::generic("CustomSequence")] sequence<int32>);
 
     opReturnSingleType() -> [cs::generic("CustomSequence")] sequence<int32>;
 
-    opSingleParameter([cs::generic("CustomSequence")] p: sequence<int32>);
+    opSingleParameter(p: [cs::generic("CustomSequence")] sequence<int32>);
 
     opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>;
     opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>;

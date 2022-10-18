@@ -43,15 +43,14 @@ public class SequenceMappingTests
             Payload = responsePayload
         };
 
-        // TODO bogus mapping this should return CustomSequence<int>
-        int[] r =
+        CustomSequence<int> r =
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
                 new ServiceProxy(NotImplementedInvoker.Instance),
                 default);
 
-        Assert.That(r, Is.EqualTo(new int[] { 1, 2, 3 }));
+        Assert.That(r, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
     }
 
     [Test]
