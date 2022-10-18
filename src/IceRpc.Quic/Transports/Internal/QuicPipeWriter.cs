@@ -50,6 +50,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
 
             _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
 
             // Notify the stream of the writer completion.
             _completedCallback();
