@@ -117,7 +117,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                     {
                         source.CopyTo(pipeMemory.Span);
                         _pipe.Writer.Advance((int)source.Length);
-                        source = default;
+                        source = ReadOnlySequence<byte>.Empty;
                     }
                     else
                     {
