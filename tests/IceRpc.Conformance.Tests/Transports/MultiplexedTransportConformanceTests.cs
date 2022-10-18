@@ -1044,7 +1044,6 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.Multiple(() =>
         {
             Assert.That(readResult.IsCompleted , Is.True);
-            Assert.That(() => remoteStream.ReadsClosed.IsCompleted, Is.False);
             remoteStream.Input.AdvanceTo(readResult.Buffer.End);
             Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
         });
