@@ -40,7 +40,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    public async Task Dispose_connection_aborts_request_payload_stream()
+    public async Task Dispose_connection_aborts_non_completed_request_payload()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -51,15 +51,21 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         var outgoingRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        outgoingRequest.PayloadStream = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]));
+        outgoingRequest.PayloadStream = new HoldPipeReader(new byte[10]);
         var invokeTask = sut.Client.InvokeAsync(outgoingRequest);
         IncomingRequest incomingRequest = await dispatcher.DispatchStart; // Wait for the dispatch to start
         var payload = incomingRequest.DetachPayload();
         dispatcher.ReleaseDispatch();
         await invokeTask;
 
-        // Act/Assert
+        // Act
         await sut.Server.DisposeAsync();
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(() => payload.ReadAsync().AsTask());
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionDisposed));
+
+        incomingRequest.Payload.Complete();
     }
 
     [Test]
