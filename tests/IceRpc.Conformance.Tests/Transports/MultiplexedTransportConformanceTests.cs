@@ -488,7 +488,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    // [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
+    [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
     [TestCase(100)]
     [TestCase(512 * 1024)]
     public async Task Disposing_the_connection_does_not_close_reads_on_completed_write_streams(int payloadSize)
