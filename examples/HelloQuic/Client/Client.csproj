@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Enable preview features to use the QUIC transport -->
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
+  </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="../Hello.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
