@@ -298,10 +298,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
-        // Abort remaining streams which are not longer bound to invocations or dispatches. Streams Input/Output
+        // Abort remaining streams which are no longer bound to invocations or dispatches. Streams Input/Output
         // operations only raise TransportException so we use a TransportException to abort the streams. TODO: This
-        // behavior is specific to Quic, see https://github.com/dotnet/runtime/issues/77216. We might remove this if
-        // Quic is fixed.
+        // behavior is required when using Quic, see https://github.com/dotnet/runtime/issues/77216. We could remove
+        // this code if this Quic issue is fixed.
         foreach (IMultiplexedStream stream in _streams)
         {
             stream.Abort(new TransportException(TransportErrorCode.ConnectionDisposed));
