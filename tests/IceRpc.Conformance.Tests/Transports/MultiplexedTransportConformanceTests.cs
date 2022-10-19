@@ -1230,6 +1230,77 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
     }
 
+    /// <summary>Verifies that stream read can be canceled.</summary>
+    [Test]
+    public async Task Stream_cancel_pending_read_returns_canceled_read_result()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        ValueTask<ReadResult> readTask = sut.LocalStream.Input.ReadAsync();
+        sut.LocalStream.Input.CancelPendingRead();
+
+        // Assert
+        ReadResult readResult1 = await readTask;
+        await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
+        ReadResult readResult2 = await sut.LocalStream.Input.ReadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(readResult1.IsCanceled, Is.True);
+            Assert.That(readResult1.IsCompleted, Is.False);
+            Assert.That(readResult2.IsCanceled, Is.False);
+            Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
+        });
+
+        await CompleteStreamsAsync(sut);
+    }
+
+    /// <summary>Verifies that stream read can be canceled.</summary>
+    [Test]
+    public async Task Stream_cancel_pending_read_before_read_returns_canceled_read_result()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
+
+        // Act
+        sut.LocalStream.Input.CancelPendingRead();
+        await Task.Delay(100); // Delay to ensure the data is ready to be read by the client stream.
+
+        // Assert
+        ReadResult readResult1 = await sut.LocalStream.Input.ReadAsync();
+        ReadResult readResult2 = await sut.LocalStream.Input.ReadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(readResult1.IsCanceled, Is.True);
+            Assert.That(readResult1.IsCompleted, Is.False);
+            Assert.That(readResult2.IsCanceled, Is.False);
+            Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
+        });
+
+        await CompleteStreamsAsync(sut);
+    }
+
     /// <summary>Verifies that aborting the stream cancels a pending read.</summary>
     [Test]
     public async Task Stream_abort_cancels_read()
@@ -1314,6 +1385,43 @@ public abstract class MultiplexedTransportConformanceTests
         // Act/Assert
         Assert.CatchAsync<InvalidOperationException>(async () => await writeTask);
     }
+
+    [Test]
+    public async Task Stream_cancel_pending_flush_before_write_returns_canceled_flush_result()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        Memory<byte> _ = sut.LocalStream.Output.GetMemory();
+        sut.LocalStream.Output.Advance(1);
+
+        // Act
+        sut.LocalStream.Output.CancelPendingFlush();
+
+        // Assert
+        FlushResult flushResult1 = await sut.LocalStream.Output.FlushAsync();
+        FlushResult flushResult2 = await sut.LocalStream.Output.FlushAsync();
+        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(flushResult1.IsCanceled, Is.True);
+            Assert.That(flushResult1.IsCompleted, Is.False);
+            Assert.That(flushResult2.IsCanceled, Is.False);
+            Assert.That(flushResult2.IsCompleted, Is.False);
+            Assert.That(readResult.Buffer, Has.Length.EqualTo(1));
+        });
+
+        await CompleteStreamsAsync(sut);
+}
 
     [Test]
     public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()

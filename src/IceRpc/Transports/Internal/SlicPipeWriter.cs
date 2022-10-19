@@ -87,18 +87,18 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 tcs => ((CancellationTokenSource)tcs!).Cancel(),
                 _abortCts);
 
-        if (_pipe.Writer.UnflushedBytes > 0)
+        ReadResult readResult = default;
+        try
         {
             if (!_state.TrySetFlag(State.PipeReaderInUse))
             {
                 throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
             }
 
-            try
+            if (_pipe.Writer.UnflushedBytes > 0)
             {
                 // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
-                FlushResult flushResult = await _pipe.Writer.FlushAsync(
-                    CancellationToken.None).ConfigureAwait(false);
+                FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 if (flushResult.IsCanceled)
                 {
                     return GetFlushResult();
@@ -107,66 +107,57 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 {
                     return flushResult;
                 }
+            }
 
-                // Read the data from the pipe.
-                ReadResult readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
-
+            ReadOnlySequence<byte> source1;
+            ReadOnlySequence<byte> source2;
+            if (_pipe.Reader.TryRead(out readResult))
+            {
                 Debug.Assert(!readResult.IsCanceled && !readResult.IsCompleted && readResult.Buffer.Length > 0);
-                try
-                {
-                    // Send the unflushed bytes and the source.
-                    return await _stream.SendStreamFrameAsync(
-                        readResult.Buffer,
-                        source,
-                        endStream,
-                        _abortCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return GetFlushResult();
-                }
-                finally
-                {
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+                source1 = readResult.Buffer;
+                source2 = source;
+            }
+            else
+            {
+                source1 = source;
+                source2 = ReadOnlySequence<byte>.Empty;
+            }
 
-                    // Make sure there's no more data to consume from the pipe.
-                    Debug.Assert(!_pipe.Reader.TryRead(out ReadResult _));
-                }
-            }
-            finally
+            if (source1.IsEmpty && source2.IsEmpty && !endStream)
             {
-                if (_state.HasFlag(State.PipeReaderCompleted))
-                {
-                    // If the pipe reader has been completed while we were writing the stream data, we make sure to
-                    // complete the reader now since Complete or Abort didn't do it.
-                    await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
-                }
-                _state.ClearFlag(State.PipeReaderInUse);
+                // WriteAsync is called with an empty buffer and completeWhenDone = false. Some payload writers such as
+                // the deflate compressor might do this.
+                return new FlushResult(isCanceled: false, isCompleted: false);
             }
+
+            return await _stream.SendStreamFrameAsync(
+                source1,
+                source2,
+                endStream,
+                _abortCts.Token).ConfigureAwait(false);
         }
-        else if (source.Length > 0 || endStream)
+        catch (OperationCanceledException)
         {
-            // If there's no unflushed bytes, we just send the source.
-            try
-            {
-                return await _stream.SendStreamFrameAsync(
-                    source,
-                    ReadOnlySequence<byte>.Empty,
-                    endStream,
-                    _abortCts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return GetFlushResult();
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return GetFlushResult();
         }
-        else
+        finally
         {
-            // WriteAsync is called with an empty buffer and completeWhenDone = false. Some payload writers such as
-            // the deflate compressor might do this.
-            return new FlushResult(isCanceled: false, isCompleted: false);
+            if (readResult.Buffer.Length > 0)
+            {
+                _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+
+                // Make sure there's no more data to consume from the pipe.
+                Debug.Assert(!_pipe.Reader.TryRead(out ReadResult _));
+            }
+
+            if (_state.HasFlag(State.PipeReaderCompleted))
+            {
+                // If the pipe reader has been completed while we were writing the stream data, we make sure to
+                // complete the reader now since Complete or Abort didn't do it.
+                await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
+            }
+            _state.ClearFlag(State.PipeReaderInUse);
         }
 
         FlushResult GetFlushResult()
