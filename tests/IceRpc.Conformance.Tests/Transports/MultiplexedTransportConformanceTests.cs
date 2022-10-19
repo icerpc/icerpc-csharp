@@ -1231,6 +1231,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
+    [Ignore("see issue #1939")]
     public async Task Stream_read_returns_canceled_read_result_on_cancel_pending_read()
     {
         // Arrange
@@ -1385,6 +1386,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
+    [Ignore("see issue #1939")]
     public async Task Stream_write_returns_canceled_flush_result_after_cancel_pending_flush()
     {
         // Arrange
