@@ -212,9 +212,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
 
-        WritesClosed = CreateWritesClosedTask();
+        WritesClosed = WritesClosedAsync();
 
-        async Task CreateWritesClosedTask()
+        async Task WritesClosedAsync()
         {
             try
             {

@@ -132,9 +132,9 @@ internal class QuicPipeReader : PipeReader
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
 
-        ReadsClosed = CreateReadsClosedTask();
+        ReadsClosed = ReadsClosedAsync();
 
-        async Task CreateReadsClosedTask()
+        async Task ReadsClosedAsync()
         {
             try
             {
