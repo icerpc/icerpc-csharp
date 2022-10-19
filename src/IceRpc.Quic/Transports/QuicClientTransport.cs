@@ -60,12 +60,19 @@ public class QuicClientTransport : IMultiplexedClientTransport
             new IPEndPoint(ipAddress, serverAddress.Port) :
             new DnsEndPoint(serverAddress.Host, serverAddress.Port);
 
-        // We use the maximum value for DefaultStreamErrorCode to ensure that the abort on the peer will show this
-        // value if the stream is aborted when we do not expect it (https://github.com/dotnet/runtime/issues/72607)
+        if (options.StreamErrorCodeConverter is null)
+        {
+            throw new ArgumentException("options.StreamErrorConverter is null", nameof(options));
+        }
+
+        // We use the "operation canceled" error code as default error code because that's the error code transmitted
+        // when an operation such as stream.ReadAsync or stream.WriteAsync is canceled.
+        // See https://github.com/dotnet/runtime/issues/72607.
         var quicClientOptions = new QuicClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            DefaultStreamErrorCode = (1L << 62) - 1,
+            DefaultStreamErrorCode =
+                (long)options.StreamErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
