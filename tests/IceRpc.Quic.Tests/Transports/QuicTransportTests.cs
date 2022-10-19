@@ -51,7 +51,7 @@ public class QuicTransportTests
         var acceptTask = listener.AcceptAsync(default);
 
         // Assert
-        Assert.That(async () => connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
+        Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
         clientValidationCallback.Result = true; // Allow next connection to success
         Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
         Assert.That(async () => await acceptTask, Throws.Nothing);
