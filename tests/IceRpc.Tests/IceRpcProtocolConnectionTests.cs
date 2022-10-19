@@ -40,6 +40,29 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    public async Task Dispose_connection_aborts_request_payload_stream()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var outgoingRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        outgoingRequest.PayloadStream = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]));
+        var invokeTask = sut.Client.InvokeAsync(outgoingRequest);
+        IncomingRequest incomingRequest = await dispatcher.DispatchStart; // Wait for the dispatch to start
+        var payload = incomingRequest.DetachPayload();
+        dispatcher.ReleaseDispatch();
+        await invokeTask;
+
+        // Act/Assert
+        await sut.Server.DisposeAsync();
+    }
+
+    [Test]
     [Ignore("See #1859")]
     public async Task Close_server_multiplexed_connection_before_connect()
     {

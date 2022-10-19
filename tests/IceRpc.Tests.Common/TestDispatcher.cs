@@ -5,18 +5,18 @@ namespace IceRpc.Tests.Common;
 public sealed class TestDispatcher : IDispatcher, IDisposable
 {
     public Task DispatchComplete => _completeTaskCompletionSource.Task;
-    public Task<IConnectionContext> DispatchStart => _startTaskCompletionSource.Task;
+    public Task<IncomingRequest> DispatchStart => _startTaskCompletionSource.Task;
 
     private readonly TaskCompletionSource _completeTaskCompletionSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SemaphoreSlim _hold = new(0);
-    private readonly TaskCompletionSource<IConnectionContext> _startTaskCompletionSource =
+    private readonly TaskCompletionSource<IncomingRequest> _startTaskCompletionSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        _startTaskCompletionSource.TrySetResult(request.ConnectionContext);
+        _startTaskCompletionSource.TrySetResult(request);
         try
         {
             await _hold.WaitAsync(cancellationToken);
