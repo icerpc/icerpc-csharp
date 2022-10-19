@@ -1448,6 +1448,7 @@ public abstract class MultiplexedTransportConformanceTests
     [Test]
     public async Task Stream_properties_readable_after_input_and_output_completed()
     {
+        // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
