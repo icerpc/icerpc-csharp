@@ -19,6 +19,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
+
+    // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
+    // WriteAsync with an endStream/completeWrites parameter while QuicStream does.
     private readonly Pipe _pipe;
     private readonly QuicStream _stream;
 
@@ -209,9 +212,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
 
-        WritesClosed = CreateWritesClosedTask();
+        WritesClosed = WritesClosedAsync();
 
-        async Task CreateWritesClosedTask()
+        async Task WritesClosedAsync()
         {
             try
             {

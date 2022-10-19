@@ -12,13 +12,13 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicMultiplexedStream : IMultiplexedStream
 {
-    public ulong Id => (ulong)_stream.Id;
+    public ulong Id { get; }
 
     public PipeReader Input =>
         _inputPipeReader ??
         throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
 
-    public bool IsBidirectional => _stream.Type == QuicStreamType.Bidirectional;
+    public bool IsBidirectional { get; }
 
     public bool IsRemote { get; }
 
@@ -32,10 +32,8 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
     public Task WritesClosed => _outputPipeWriter?.WritesClosed ?? Task.CompletedTask;
 
-    private int _streamRefCount;
     private readonly QuicPipeReader? _inputPipeReader;
     private readonly QuicPipeWriter? _outputPipeWriter;
-    private readonly QuicStream _stream;
 
     public void Abort(Exception completeException)
     {
@@ -50,29 +48,30 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         MemoryPool<byte> pool,
         int minSegmentSize)
     {
+        Id = (ulong)stream.Id;
         IsRemote = isRemote;
+        IsBidirectional = stream.Type == QuicStreamType.Bidirectional;
 
-        _stream = stream;
-        _streamRefCount = 0;
+        int streamRefCount = 0;
 
-        if (_stream.CanRead)
+        if (stream.CanRead)
         {
-            _streamRefCount++;
+            streamRefCount++;
 
             _inputPipeReader = new QuicPipeReader(
-                _stream,
+                stream,
                 errorCodeConverter,
                 pool,
                 minSegmentSize,
                 OnCompleted);
         }
 
-        if (_stream.CanWrite)
+        if (stream.CanWrite)
         {
-            _streamRefCount++;
+            streamRefCount++;
 
             _outputPipeWriter = new QuicPipeWriter(
-                _stream,
+                stream,
                 errorCodeConverter,
                 pool,
                 minSegmentSize,
@@ -81,11 +80,11 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
         void OnCompleted()
         {
-            if (Interlocked.Decrement(ref _streamRefCount) == 0)
+            if (Interlocked.Decrement(ref streamRefCount) == 0)
             {
                 // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
                 // stream disposal and it will eventually complete in the background.
-                _ = _stream.DisposeAsync().AsTask();
+                _ = stream.DisposeAsync().AsTask();
             }
         }
     }
