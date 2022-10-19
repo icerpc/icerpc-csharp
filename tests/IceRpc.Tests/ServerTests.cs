@@ -92,6 +92,7 @@ public class ServerTests
     }
 
     [Test]
+    [Ignore("issue #1920")]
     public async Task Connection_accepted_when_max_counter_is_reached_then_decremented()
     {
         // Arrange
