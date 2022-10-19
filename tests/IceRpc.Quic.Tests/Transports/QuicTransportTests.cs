@@ -47,14 +47,14 @@ public class QuicTransportTests
         QuicMultiplexedConnection connection2 = CreateClientConnection();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Act/Assert
-        var connectTask = connection1.ConnectAsync(default);
+        // Act
         var acceptTask = listener.AcceptAsync(default);
 
-        Assert.That(async () => await connectTask, Throws.TypeOf<TransportException>());
+        // Assert
+        Assert.That(async () => connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
         clientValidationCallback.Result = true; // Allow next connection to success
         Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
-        Assert.That(async () => await acceptTask, Throws.Nothing));
+        Assert.That(async () => await acceptTask, Throws.Nothing);
 
         QuicMultiplexedConnection CreateClientConnection() =>
             (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
