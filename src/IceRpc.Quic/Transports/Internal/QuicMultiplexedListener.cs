@@ -20,8 +20,37 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
-        return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
+        while (true)
+        {
+            try
+            {
+                QuicConnection connection =
+                    await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
+                return (
+                    new QuicMultiplexedServerConnection(ServerAddress, connection, _options),
+                    connection.RemoteEndPoint);
+            }
+            catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
+            {
+                // Listener was disposed while accept was in progress
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (ObjectDisposedException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                // Either the client rejected the connection durring Ssl certificate validation or the
+                // ConnectionOptionsCallback throw when called from AcceptConnectionAsync in both cases
+                // we don't want to stop accepting connections
+                // TODO Log this error
+            }
+        }
     }
 
     public ValueTask DisposeAsync() => _listener.DisposeAsync();
