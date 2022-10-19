@@ -1230,9 +1230,8 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
     }
 
-    /// <summary>Verifies that stream read can be canceled.</summary>
     [Test]
-    public async Task Stream_cancel_pending_read_returns_canceled_read_result()
+    public async Task Stream_read_returns_canceled_read_result_on_cancel_pending_read()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -1265,9 +1264,8 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamsAsync(sut);
     }
 
-    /// <summary>Verifies that stream read can be canceled.</summary>
     [Test]
-    public async Task Stream_cancel_pending_read_before_read_returns_canceled_read_result()
+    public async Task Stream_read_returns_canceled_read_result_after_cancel_pending_read()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -1387,7 +1385,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Stream_cancel_pending_flush_before_write_returns_canceled_flush_result()
+    public async Task Stream_write_returns_canceled_flush_result_after_cancel_pending_flush()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
