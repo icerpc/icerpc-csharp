@@ -41,9 +41,9 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamAsync(localStream);
     }
 
-    /// <summary>Verifies that no new streams can be accepted after the connection is shutdown.</summary>
+    /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
     [Test]
-    public async Task Accepting_a_stream_fails_after_shutdown()
+    public async Task Accepting_a_stream_fails_after_close()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -177,12 +177,12 @@ public abstract class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verify streams cannot be created after shutting down the connection.</summary>
-    /// <param name="shutdownServerConnection">Whether to shutdown the server connection or the client connection.
+    /// <summary>Verify streams cannot be created after closing down the connection.</summary>
+    /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
     /// </param>
     [Test]
     public async Task Cannot_create_streams_with_a_closed_connection(
-        [Values(true, false)] bool shutdownServerConnection)
+        [Values(true, false)] bool closeServerConnection)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -193,12 +193,12 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        IMultiplexedConnection shutdownConnection =
-            shutdownServerConnection ? serverConnection : clientConnection;
+        IMultiplexedConnection closeConnection =
+            closeServerConnection ? serverConnection : clientConnection;
         IMultiplexedConnection peerConnection =
-            shutdownServerConnection ? clientConnection : serverConnection;
+            closeServerConnection ? clientConnection : serverConnection;
 
-        await shutdownConnection.CloseAsync(applicationErrorCode: 5ul, CancellationToken.None);
+        await closeConnection.CloseAsync(applicationErrorCode: 5ul, CancellationToken.None);
 
         TransportException? exception;
 
@@ -525,7 +525,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Disposing_the_connection_shuts_down_the_streams()
+    public async Task Disposing_the_connection_completes_the_streams()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -759,6 +759,8 @@ public abstract class MultiplexedTransportConformanceTests
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
 
+            // It's important to write enough data to ensure that the last stream frame is not received before the
+            // receiver starts reading.
             await stream.Output.WriteAsync(payload);
             await stream.Output.WriteAsync(payload);
             await stream.Output.WriteAsync(payload);
@@ -823,7 +825,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(ex, Is.Not.Null);
         Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
 
-        // Complete the pipe readers/writers to shutdown the stream.
+        // Complete the pipe readers/writers to complete the stream.
         await CompleteStreamsAsync(sut);
     }
 
@@ -853,7 +855,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(ex, Is.Not.Null);
         Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
 
-        // Complete the pipe readers/writers to shutdown the stream.
+        // Complete the pipe readers/writers to complete the stream.
         await CompleteStreamsAsync(sut);
     }
 
@@ -1023,6 +1025,88 @@ public abstract class MultiplexedTransportConformanceTests
             }
             await stream.Output.CompleteAsync();
         }
+    }
+
+    [Test]
+    public async Task Stream_local_input_read_returns_completed_read_result_when_remote_output_is_completed()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        sut.LocalStream.Output.Complete();
+
+        // Assert
+        ReadResult readResult;
+        while(!(readResult = await sut.RemoteStream.Input.ReadAsync()).IsCompleted)
+        {
+            sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
+            // Wait for ReadResult.IsCompleted=true
+            await Task.Delay(1);
+        }
+
+        await CompleteStreamsAsync(sut);
+    }
+
+    [Test]
+    public async Task Stream_local_output_write_returns_completed_flush_result_when_remote_input_is_completed()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        sut.LocalStream.Input.Complete();
+
+        // Assert
+        while (!(await sut.RemoteStream.Output.WriteAsync(new byte[1])).IsCompleted)
+        {
+            // Wait for FlushResult.IsCompleted=true
+            await Task.Delay(1);
+        }
+
+        await CompleteStreamsAsync(sut);
+    }
+
+    [Test]
+    public async Task Stream_local_output_flush_returns_completed_flush_result_when_remote_input_is_completed()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        Memory<byte> _ = sut.RemoteStream.Output.GetMemory();
+        sut.RemoteStream.Output.Advance(1);
+
+        // Act
+        sut.LocalStream.Input.Complete();
+
+        // Assert
+        while (!(await sut.RemoteStream.Output.FlushAsync()).IsCompleted)
+        {
+            // Wait for FlushResult.IsCompleted=true
+            await Task.Delay(1);
+        }
+
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Ensures that reads are closed when the peer completes its output and only once ReadAsync returns a
@@ -1349,14 +1433,14 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        Task clientShutdownTask = clientConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
-        Task serverShutdownTask = serverConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
+        Task clientCloseTask = clientConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
+        Task serverCloseTask = serverConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(() => clientShutdownTask, Throws.Nothing);
-            Assert.That(() => serverShutdownTask, Throws.Nothing);
+            Assert.That(() => clientCloseTask, Throws.Nothing);
+            Assert.That(() => serverCloseTask, Throws.Nothing);
         });
     }
 
