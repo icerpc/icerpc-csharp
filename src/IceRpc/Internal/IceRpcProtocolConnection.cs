@@ -302,10 +302,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // operations only raise TransportException so we use a TransportException to abort the streams. TODO: This
         // behavior is specific to Quic, see https://github.com/dotnet/runtime/issues/77216. We might remove this if
         // Quic is fixed.
-        // foreach (IMultiplexedStream stream in _streams)
-        // {
-        //     stream.Abort(new TransportException(TransportErrorCode.ConnectionDisposed));
-        // }
+        foreach (IMultiplexedStream stream in _streams)
+        {
+            stream.Abort(new TransportException(TransportErrorCode.ConnectionDisposed));
+        }
 
         // Next, wait for dispatches and invocations to complete.
         await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
