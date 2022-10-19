@@ -17,8 +17,10 @@ namespace IceRpc.Tests.Transports;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportTests
 {
+    /// <summary>Verififes that the QuicListener doesn't stop accepting connections, when an accept call fails
+    /// </summary>
     [Test]
-    public async Task Accept_stream_failure()
+    public async Task Accept_continues_after_connection_rejection_failure()
     {
         // Arrange
         var clientValidationCallback = new CertificateValidationCallback();
@@ -43,20 +45,16 @@ public class QuicTransportTests
 
         QuicMultiplexedConnection connection1 = CreateClientConnection();
         QuicMultiplexedConnection connection2 = CreateClientConnection();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        Task<TransportConnectionInformation> connectTask = connection1.ConnectAsync(default);
-        using var cts = new CancellationTokenSource();
-        Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask =
-            listener.AcceptAsync(cts.Token);
+        // Act/Assert
+        var connectTask = connection1.ConnectAsync(default);
+        var acceptTask = listener.AcceptAsync(default);
 
         Assert.That(async () => await connectTask, Throws.TypeOf<TransportException>());
-        clientValidationCallback.Result = true;
-        connectTask = connection2.ConnectAsync(default);
-        Assert.That(async () => await connectTask, Throws.TypeOf<TransportException>());
-        cts.Cancel();
-        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+        clientValidationCallback.Result = true; // Allow next connection to success
+        Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
+        Assert.That(async () => await acceptTask, Throws.Nothing));
 
         QuicMultiplexedConnection CreateClientConnection() =>
             (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
