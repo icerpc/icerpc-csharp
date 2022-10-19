@@ -1444,6 +1444,59 @@ public abstract class MultiplexedTransportConformanceTests
         });
     }
 
+    /// <summary>Verifies we can read the properties of a stream after completing its Input and Output.</summary>
+    [Test]
+    public async Task Stream_properties_readable_after_input_and_output_completed()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Exchange byte
+        _ = await sut.LocalStream.Output.WriteAsync(_oneBytePayload);
+        _ = await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
+        _ = await sut.LocalStream.Input.ReadAsync();
+        _ = await sut.RemoteStream.Input.ReadAsync();
+
+        // Act
+        sut.LocalStream.Output.Complete();
+        // With Quic, there is occasionally a small delay between the CompleteWrites in Complete and the completion of
+        // the WritesClosed task.
+        await sut.LocalStream.WritesClosed;
+
+        sut.RemoteStream.Output.Complete();
+        await sut.RemoteStream.WritesClosed;
+
+        sut.LocalStream.Input.Complete();
+        sut.RemoteStream.Input.Complete();
+
+        // Assert
+        Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
+
+        Assert.That(sut.LocalStream.IsBidirectional, Is.True);
+        Assert.That(sut.RemoteStream.IsBidirectional, Is.True);
+
+        Assert.That(sut.LocalStream.IsRemote, Is.False);
+        Assert.That(sut.RemoteStream.IsRemote, Is.True);
+
+        Assert.That(sut.LocalStream.IsStarted, Is.True);
+        Assert.That(sut.RemoteStream.IsStarted, Is.True);
+
+        Assert.That(sut.LocalStream.WritesClosed.IsCompletedSuccessfully, Is.True);
+        Assert.That(sut.RemoteStream.WritesClosed.IsCompletedSuccessfully, Is.True);
+
+        // TODO: with Quic it's Faulted because we did not read the endStream before calling Complete, while with
+        // Slic it completes successfully.
+        Assert.That(sut.LocalStream.ReadsClosed.IsCompleted, Is.True);
+        Assert.That(sut.RemoteStream.ReadsClosed.IsCompleted, Is.True);
+    }
+
     [Test]
     [Ignore("See #1859")]
     public async Task Close_client_connection_before_connect_fails_with_transport_connection_closed_error()
