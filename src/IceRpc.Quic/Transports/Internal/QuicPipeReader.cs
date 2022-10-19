@@ -52,12 +52,9 @@ internal class QuicPipeReader : PipeReader
 
             if (exception is null)
             {
-                if (!_stream.ReadsClosed.IsCompleted)
-                {
-                    // Tell the remote writer we're done reading, with the error code of a null exception. This also
-                    // completes _stream.ReadsClosed.
-                    _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(null));
-                }
+                // Tell the remote writer we're done reading, with the error code of a null exception. This also
+                // completes _stream.ReadsClosed.
+                _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(null));
             }
             else
             {
@@ -84,6 +81,7 @@ internal class QuicPipeReader : PipeReader
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
         {
+            // TODO: the "!" is not quite correct. We could receive a incorrect "no error" from the remote peer.
             throw _errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode)!;
         }
         catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
@@ -136,15 +134,55 @@ internal class QuicPipeReader : PipeReader
 
         async Task ReadsClosedAsync()
         {
-            try
+            Task completedFirst = await Task.WhenAny(_stream.ReadsClosed, _readsCompleteTcs.Task).ConfigureAwait(false);
+
+            if (completedFirst == _stream.ReadsClosed)
             {
-                await _stream.ReadsClosed.ConfigureAwait(false);
+                try
+                {
+                    await _stream.ReadsClosed.ConfigureAwait(false);
+                }
+                catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
+                {
+                    throw abortException;
+                }
+                catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
+                {
+                    if (!_readsCompleteTcs.Task.IsCompleted)
+                    {
+                        throw exception.ToTransportException();
+                    }
+                    // else it means we called Complete(null) on this pipe reader.
+                }
+                catch (QuicException exception) when (
+                    exception.QuicError == QuicError.StreamAborted &&
+                    exception.ApplicationErrorCode is not null)
+                {
+                    if (_errorCodeConverter.FromErrorCode(
+                            (ulong)exception.ApplicationErrorCode) is Exception actualException)
+                    {
+                        throw actualException;
+                    }
+
+                    // Unexpected stream aborted with ApplicationErrorCode = "no error" received from remote peer (the
+                    // peer should send endStream/completeWrites instead).
+                    throw exception.ToTransportException();
+                }
+                catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
+                {
+                    // If the connection is closed before the stream. This indicates that the peer forcefully closed the
+                    // connection (it called DisposeAsync before completing the streams).
+
+                    // TODO: this is ultra confusing when you see a stack trace with ConnectionReset and the inner
+                    // QuicException is "Connection aborted".
+                    throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+                }
+                catch (QuicException exception)
+                {
+                    throw exception.ToTransportException();
+                }
+                // we don't wrap other exceptions
             }
-            catch (QuicException exception)
-            {
-                throw exception.ToTransportException();
-            }
-            // we don't wrap other exceptions
 
             await _readsCompleteTcs.Task.ConfigureAwait(false);
         }

@@ -1466,15 +1466,16 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act
         sut.LocalStream.Output.Complete();
-        // With Quic, there is occasionally a small delay between the CompleteWrites in Complete and the completion of
-        // the WritesClosed task.
         await sut.LocalStream.WritesClosed;
 
         sut.RemoteStream.Output.Complete();
         await sut.RemoteStream.WritesClosed;
 
         sut.LocalStream.Input.Complete();
+        await sut.LocalStream.ReadsClosed;
+
         sut.RemoteStream.Input.Complete();
+        await sut.RemoteStream.ReadsClosed;
 
         // Assert
         Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
@@ -1487,15 +1488,6 @@ public abstract class MultiplexedTransportConformanceTests
 
         Assert.That(sut.LocalStream.IsStarted, Is.True);
         Assert.That(sut.RemoteStream.IsStarted, Is.True);
-
-        Assert.That(sut.LocalStream.WritesClosed.IsCompletedSuccessfully, Is.True);
-        Assert.That(sut.RemoteStream.WritesClosed.IsCompletedSuccessfully, Is.True);
-
-        // TODO: with Quic it's Faulted because we did not read the endStream before calling Complete, while with
-        // Slic it completes successfully.
-
-        // Assert.That(sut.LocalStream.ReadsClosed.IsCompleted, Is.True); // TODO: occasionally fails with Quic
-        Assert.That(sut.RemoteStream.ReadsClosed.IsCompleted, Is.True);
     }
 
     [Test]
