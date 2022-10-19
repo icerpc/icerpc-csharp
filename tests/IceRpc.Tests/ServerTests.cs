@@ -123,6 +123,10 @@ public class ServerTests
             new ClientConnectionOptions { ServerAddress = server.ServerAddress },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
+        await using var clientConnection3 = new ClientConnection(
+            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
         // No need to delay the disposal of any connections (the default behavior)
         serverListener.DelayDisposeNewConnections = false;
 
@@ -137,7 +141,7 @@ public class ServerTests
         await clientConnection1.ShutdownAsync();
         await serverConnection1.WaitForDisposeStart();
 
-        await clientConnection2.ConnectAsync();
+        await clientConnection3.ConnectAsync();
     }
 
     [Test]
