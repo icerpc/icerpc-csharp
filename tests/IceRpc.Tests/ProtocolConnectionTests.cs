@@ -1113,8 +1113,8 @@ public sealed class ProtocolConnectionTests
         else
         {
             await sut.Server.DisposeAsync();
-            TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await invokeTask);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
         }
     }
 

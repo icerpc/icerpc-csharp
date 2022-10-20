@@ -84,15 +84,6 @@ internal class QuicPipeReader : PipeReader
             // TODO: the "!" is not quite correct. We could receive a incorrect "no error" from the remote peer.
             throw _errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode)!;
         }
-        catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
-        {
-            // If the connection is closed before the stream. This indicates that the peer forcefully closed the
-            // connection (it called DisposeAsync before completing the streams).
-
-            // TODO: this is ultra confusing when you see a stack trace with ConnectionReset and the inner
-            // QuicException is "Connection aborted".
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
-        }
         catch (QuicException exception)
         {
             throw exception.ToTransportException();
@@ -167,15 +158,6 @@ internal class QuicPipeReader : PipeReader
                     // Unexpected stream aborted with ApplicationErrorCode = "no error" received from remote peer (the
                     // peer should send endStream/completeWrites instead).
                     throw exception.ToTransportException();
-                }
-                catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
-                {
-                    // If the connection is closed before the stream. This indicates that the peer forcefully closed the
-                    // connection (it called DisposeAsync before completing the streams).
-
-                    // TODO: this is ultra confusing when you see a stack trace with ConnectionReset and the inner
-                    // QuicException is "Connection aborted".
-                    throw new TransportException(TransportErrorCode.ConnectionReset, exception);
                 }
                 catch (QuicException exception)
                 {

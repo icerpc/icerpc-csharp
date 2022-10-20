@@ -432,15 +432,33 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             await request.Payload.CompleteAsync().ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
+        catch (OperationCanceledException exception)
         {
-            completeException = _invocationCanceledException;
-            throw completeException;
+            if (_invocationCanceledException is not null)
+            {
+                completeException = exception;
+                throw ExceptionUtil.Throw(_invocationCanceledException);
+            }
+            else
+            {
+                completeException = exception;
+                throw;
+            }
+        }
+        catch (ConnectionException exception)
+        {
+            completeException = exception;
+            throw;
+        }
+        catch (TransportException exception)
+        {
+            completeException = exception;
+            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
         }
         catch (Exception exception)
         {
             completeException = exception;
-            throw;
+            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
         }
         finally
         {
@@ -541,15 +559,33 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             };
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
+        catch (OperationCanceledException exception)
         {
-            completeException = _invocationCanceledException;
-            throw completeException;
+            if (_invocationCanceledException is not null)
+            {
+                completeException = exception;
+                throw ExceptionUtil.Throw(_invocationCanceledException);
+            }
+            else
+            {
+                completeException = exception;
+                throw;
+            }
+        }
+        catch (ConnectionException exception)
+        {
+            completeException = exception;
+            throw;
+        }
+        catch (TransportException exception)
+        {
+            completeException = exception;
+            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
         }
         catch (Exception exception)
         {
             completeException = exception;
-            throw;
+            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
         }
         finally
         {

@@ -314,6 +314,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             cancellationToken,
             _dispatchesAndInvocationsCts.Token);
 
+        Exception? completeException = null;
         try
         {
             if (request.ServiceAddress.Fragment.Length > 0)
@@ -352,26 +353,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // SendPayloadAsync takes care of the completion of the stream output.
             await SendPayloadAsync(request, stream, invocationCts.Token).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (stream is not null)
-        {
-            await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-            if (stream.IsBidirectional)
-            {
-                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-            }
-            if (_dispatchesAndInvocationsCanceledException is not null)
-            {
-                throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
-            }
 
-            throw new ConnectionException(
-                exception is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
-                exception);
-        }
-
-        try
-        {
             if (request.IsOneway)
             {
                 return new IncomingResponse(request, _connectionContext!);
@@ -400,17 +382,55 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ResultType = header.ResultType
             };
         }
-        catch (Exception exception)
+        catch (OperationCanceledException exception)
         {
-            await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
             if (_dispatchesAndInvocationsCanceledException is not null)
             {
+                completeException = exception;
                 throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
             }
-
-            throw new ConnectionException(
-                exception is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
-                exception);
+            else
+            {
+                completeException = exception;
+                throw;
+            }
+        }
+        catch (IceRpcProtocolStreamException exception)
+        {
+            completeException = exception;
+            throw;
+        }
+        catch (ConnectionException exception)
+        {
+            completeException = exception;
+            throw;
+        }
+        catch (ProtocolException exception)
+        {
+            // TODO: should we throw IceRpcProtocolStreamException(IceRpcStreamErrorCode.ProtocolError) instead?
+            completeException = exception;
+            throw;
+        }
+        catch (TransportException exception)
+        {
+            completeException = exception;
+            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+        }
+        catch (Exception exception)
+        {
+            completeException = exception;
+            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
+        }
+        finally
+        {
+            if (stream is not null && completeException is not null)
+            {
+                await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
+                if (stream.IsBidirectional)
+                {
+                    await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
+                }
+            }
         }
 
         void EncodeHeader(PipeWriter writer)
