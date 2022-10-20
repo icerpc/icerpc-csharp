@@ -17,29 +17,22 @@ namespace IceRpc.Tests.Transports;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportTests
 {
-    /// <summary>Verififes that the QuicListener doesn't stop accepting connections, when an accept call fails
-    /// </summary>
     [Test]
-    public async Task Accept_continues_after_connection_rejection_failure()
+    public async Task Accept_continues_after_client_certificate_validation_callback_rejects_the_connection()
     {
         // Arrange
-        var clientValidationCallback = new CertificateValidationCallback();
+        bool clientValidationCallbackResult = false;
         IServiceCollection services = new ServiceCollection().AddQuicTest();
         services.AddSingleton(
             new SslServerAuthenticationOptions
             {
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
-                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             });
         services.AddSingleton(
             new SslClientAuthenticationOptions
             {
-                ClientCertificates = new X509CertificateCollection()
-                {
-                    new X509Certificate2("../../../certs/client.p12", "password")
-                },
                 RemoteCertificateValidationCallback =
-                    (sender, certificate, chain, errors) => clientValidationCallback.Validate(),
+                    (sender, certificate, chain, errors) => clientValidationCallbackResult,
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
@@ -52,7 +45,7 @@ public class QuicTransportTests
 
         // Assert
         Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
-        clientValidationCallback.Result = true; // Allow next connection to success
+        clientValidationCallbackResult = true; // Allow next connection to success
         Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
         Assert.That(async () => await acceptTask, Throws.Nothing);
 
@@ -63,9 +56,48 @@ public class QuicTransportTests
                 provider.GetService<SslClientAuthenticationOptions>());
     }
 
-    public class CertificateValidationCallback
+    [Test]
+    public async Task Accept_continues_after_server_certificate_validation_callback_rejects_the_connection()
     {
-        public bool Result { get; set; } = false;
-        public bool Validate() => Result;
+        // Arrange
+        bool serverValidationCallbackResult = false;
+        IServiceCollection services = new ServiceCollection().AddQuicTest();
+        services.AddSingleton(
+            new SslServerAuthenticationOptions
+            {
+                ClientCertificateRequired = true,
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
+                RemoteCertificateValidationCallback =
+                    (sender, certificate, chain, errors) => serverValidationCallbackResult,
+            });
+        services.AddSingleton(
+            new SslClientAuthenticationOptions
+            {
+                ClientCertificates = new X509CertificateCollection()
+                {
+                    new X509Certificate2("../../../certs/client.p12", "password")
+                },
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
+            });
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        QuicMultiplexedConnection connection1 = CreateClientConnection();
+        QuicMultiplexedConnection connection2 = CreateClientConnection();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Assert
+        Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
+        serverValidationCallbackResult = true; // Allow next connection to success
+        Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
+        Assert.That(async () => await acceptTask, Throws.Nothing);
+
+        QuicMultiplexedConnection CreateClientConnection() =>
+            (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
+                provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
+                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                provider.GetService<SslClientAuthenticationOptions>());
     }
 }
