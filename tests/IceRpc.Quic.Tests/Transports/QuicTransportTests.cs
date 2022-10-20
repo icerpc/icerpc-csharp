@@ -5,8 +5,9 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
-using System.Net;
+using System.Net.Quic;
 using System.Net.Security;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
@@ -17,6 +18,15 @@ namespace IceRpc.Tests.Transports;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportTests
 {
+    [OneTimeSetUp]
+    public void FixtureSetUp()
+    {
+        if (!QuicConnection.IsSupported)
+        {
+            Assert.Ignore("Quic is not supported on this platform");
+        }
+    }
+
     [Test]
     public async Task Listener_accepts_new_connection_after_client_certificate_validation_callback_rejects_the_connection()
     {
@@ -24,14 +34,9 @@ public class QuicTransportTests
         int connectionNum = 0;
         IServiceCollection services = new ServiceCollection().AddQuicTest();
         services.AddSingleton(
-            new SslServerAuthenticationOptions
-            {
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-            });
-        services.AddSingleton(
             new SslClientAuthenticationOptions
             {
-                // First connection is rejected, following connections are accepted
+                // First connection is rejected, the following connections are accepted.
                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => ++connectionNum > 1,
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -59,27 +64,15 @@ public class QuicTransportTests
     public async Task Listener_accepts_new_connection_after_server_certificate_validation_callback_rejects_the_connection()
     {
         // Arrange
-        //int connectionNum = 0;
+        int connectionNum = 0;
         IServiceCollection services = new ServiceCollection().AddQuicTest();
         services.AddSingleton(
             new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = true,
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
-                // First connection is rejected, following connections are accepted
-                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => {
-                    System.Diagnostics.Debug.Assert(false);
-                    return false;
-                },
-            });
-        services.AddSingleton(
-            new SslClientAuthenticationOptions
-            {
-                /*ClientCertificates = new X509CertificateCollection()
-                {
-                    new X509Certificate2("../../../certs/client.p12", "password")
-                },*/
-                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
+                // First connection is rejected, the following connections are accepted.
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => ++connectionNum > 1,
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
@@ -92,6 +85,8 @@ public class QuicTransportTests
 
         // Assert
         Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
+        Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
+        Assert.That(async () => await acceptTask, Throws.Nothing);
 
         QuicMultiplexedConnection CreateClientConnection() =>
             (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(

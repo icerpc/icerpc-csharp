@@ -38,9 +38,12 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (QuicException)
             {
+                // TODO Log this exception
             }
             catch (AuthenticationException)
             {
+                // The connection was rejected due to an authentication exception.
+                // TODO Log this exception
             }
         }
     }

@@ -86,8 +86,8 @@ public static class ServiceCollectionExtensions
         .AddSingleton<IMultiplexedClientTransport>(
             provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
 
-    public static IServiceCollection AddSslAuthenticationOptions(this IServiceCollection services) => services
-        .AddSingleton(provider => new SslClientAuthenticationOptions
+    public static IServiceCollection AddSslAuthenticationOptions(this IServiceCollection services) =>
+        services.AddSingleton(provider => new SslClientAuthenticationOptions
         {
             ClientCertificates = new X509CertificateCollection
                     {
