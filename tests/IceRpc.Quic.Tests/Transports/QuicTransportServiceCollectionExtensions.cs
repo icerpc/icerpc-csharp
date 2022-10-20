@@ -18,17 +18,17 @@ public static class QuicTransportServiceCollectionExtensions
     public static IServiceCollection AddQuicTest(this IServiceCollection services)
     {
         services
-            .AddColocTransport()
+            .AddSslAuthenticationOptions()
             .AddSingleton(provider =>
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetService<SslServerAuthenticationOptions>()))
+                    provider.GetRequiredService<SslServerAuthenticationOptions>()))
             .AddSingleton(provider =>
                 (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
                     provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetService<SslClientAuthenticationOptions>()))
+                    provider.GetRequiredService<SslClientAuthenticationOptions>()))
             .AddSingleton<IMultiplexedServerTransport>(provider =>
                 new QuicServerTransport(
                     provider.GetRequiredService<IOptionsMonitor<QuicServerTransportOptions>>().Get("server")))
@@ -36,8 +36,8 @@ public static class QuicTransportServiceCollectionExtensions
                 new QuicClientTransport(
                     provider.GetRequiredService<IOptionsMonitor<QuicClientTransportOptions>>().Get("client")));
 
-        services.AddOptions<SlicTransportOptions>("client");
-        services.AddOptions<SlicTransportOptions>("server");
+        services.AddOptions<QuicServerTransportOptions>("client");
+        services.AddOptions<QuicClientTransportOptions>("server");
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
             options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
 
