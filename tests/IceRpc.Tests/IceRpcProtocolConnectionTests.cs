@@ -81,8 +81,8 @@ public sealed class IceRpcProtocolConnectionTests
 
         payload.Complete();
 
-        pipe.Reader.Complete();
         pipe.Writer.Complete();
+        outgoingRequest.Complete();
     }
 
     [Test]
