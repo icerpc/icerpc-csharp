@@ -17,14 +17,10 @@ public static class Program
         using var rootCA = new X509Certificate2("../../certs/cacert.der");
         var authenticationOptions = new SslClientAuthenticationOptions
         {
-            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
+            ClientCertificates = new X509CertificateCollection()
             {
-                using var customChain = new X509Chain();
-                customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                customChain.ChainPolicy.DisableCertificateDownloads = true;
-                customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-                return customChain.Build((X509Certificate2)certificate!);
+                new X509Certificate2("../../certs/client.p12", "password")
             }
         };
 

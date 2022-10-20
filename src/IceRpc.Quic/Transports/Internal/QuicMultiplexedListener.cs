@@ -36,18 +36,11 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 // Listener was disposed while accept was in progress
                 throw;
             }
-            catch (OperationCanceledException)
+            catch (QuicException)
             {
-                throw;
             }
-            catch (ObjectDisposedException)
+            catch (AuthenticationException)
             {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                // AuthenticationException
-                Console.WriteLine(ex);
             }
         }
     }

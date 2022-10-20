@@ -18,7 +18,7 @@ public static class QuicTransportServiceCollectionExtensions
     public static IServiceCollection AddQuicTest(this IServiceCollection services)
     {
         services
-            .AddSslAuthenticationOptions()
+            //            .AddSslAuthenticationOptions()
             .AddSingleton(provider =>
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
