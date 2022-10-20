@@ -36,8 +36,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
-    /// connections.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
+    /// </param>
     public ConnectionCache(
         ConnectionCacheOptions options,
         IDuplexClientTransport? duplexClientTransport = null,
