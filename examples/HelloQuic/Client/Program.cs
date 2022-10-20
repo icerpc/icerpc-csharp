@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
 using IceRpc.Transports;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+
+namespace Demo;
 
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -14,7 +15,7 @@ public static class Program
     static async Task Main(string[] args)
     {
         using var rootCA = new X509Certificate2("../../certs/cacert.der");
-        var authenticationOptions = new SslClientAuthenticationOptions()
+        var authenticationOptions = new SslClientAuthenticationOptions
         {
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
             {

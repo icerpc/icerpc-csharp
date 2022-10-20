@@ -1,17 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
 using IceRpc.Transports;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+
+namespace Demo;
 
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main()
     {
         var hello = new Hello();
         await using var server = new Server(
@@ -27,8 +28,6 @@ public static class Program
                 }
             },
             multiplexedServerTransport: new QuicServerTransport());
-
-
 
         // Shuts down the server on Ctrl+C
         Console.CancelKeyPress += (sender, eventArgs) =>
