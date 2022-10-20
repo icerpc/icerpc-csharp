@@ -1567,12 +1567,6 @@ public abstract class MultiplexedTransportConformanceTests
 
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
-        // Exchange byte
-        _ = await sut.LocalStream.Output.WriteAsync(_oneBytePayload);
-        _ = await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
-        _ = await sut.LocalStream.Input.ReadAsync();
-        _ = await sut.RemoteStream.Input.ReadAsync();
-
         // Act
         sut.LocalStream.Output.Complete();
         await sut.LocalStream.WritesClosed;
