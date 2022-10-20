@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Quic;
 
@@ -13,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
-    internal Task ReadsClosed => CreateReadsClosedTask();
+    internal Task ReadsClosed { get; }
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
@@ -53,12 +52,9 @@ internal class QuicPipeReader : PipeReader
 
             if (exception is null)
             {
-                if (!_stream.ReadsClosed.IsCompleted)
-                {
-                    // Tell the remote writer we're done reading, with the error code of a null exception. This also
-                    // completes _stream.ReadsClosed.
-                    _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(null));
-                }
+                // Tell the remote writer we're done reading, with the error code of a null exception. This also
+                // completes _stream.ReadsClosed.
+                _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(null));
             }
             else
             {
@@ -72,28 +68,10 @@ internal class QuicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        Task<ReadResult>? task = null;
         try
         {
-            task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
-            _readResult = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            _readResult = await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
             return _readResult;
-        }
-        catch (OperationCanceledException exception)
-        {
-            // We can't let task run in the background - it's not ok to call Complete or any other method on PipeReader
-            // (except CancelPendingRead) while a ReadAsync is running in a separate thread. So we need to abort the
-            // stream and wait for task to complete.
-            Debug.Assert(task is not null);
-            Abort(exception);
-            try
-            {
-                _ = await task.ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-            throw;
         }
         catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
         {
@@ -103,6 +81,7 @@ internal class QuicPipeReader : PipeReader
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
         {
+            // TODO: the "!" is not quite correct. We could receive a incorrect "no error" from the remote peer.
             throw _errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode)!;
         }
         catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
@@ -150,37 +129,78 @@ internal class QuicPipeReader : PipeReader
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
+
+        ReadsClosed = ReadsClosedAsync();
+
+        async Task ReadsClosedAsync()
+        {
+            Task completedFirst = await Task.WhenAny(_stream.ReadsClosed, _readsCompleteTcs.Task).ConfigureAwait(false);
+
+            if (completedFirst == _stream.ReadsClosed)
+            {
+                try
+                {
+                    await _stream.ReadsClosed.ConfigureAwait(false);
+                }
+                catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
+                {
+                    throw abortException;
+                }
+                catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
+                {
+                    if (!_readsCompleteTcs.Task.IsCompleted)
+                    {
+                        throw exception.ToTransportException();
+                    }
+                    // else it means we called Complete(null) on this pipe reader.
+                }
+                catch (QuicException exception) when (
+                    exception.QuicError == QuicError.StreamAborted &&
+                    exception.ApplicationErrorCode is not null)
+                {
+                    if (_errorCodeConverter.FromErrorCode(
+                            (ulong)exception.ApplicationErrorCode) is Exception actualException)
+                    {
+                        throw actualException;
+                    }
+
+                    // Unexpected stream aborted with ApplicationErrorCode = "no error" received from remote peer (the
+                    // peer should send endStream/completeWrites instead).
+                    throw exception.ToTransportException();
+                }
+                catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
+                {
+                    // If the connection is closed before the stream. This indicates that the peer forcefully closed the
+                    // connection (it called DisposeAsync before completing the streams).
+
+                    // TODO: this is ultra confusing when you see a stack trace with ConnectionReset and the inner
+                    // QuicException is "Connection aborted".
+                    throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+                }
+                catch (QuicException exception)
+                {
+                    throw exception.ToTransportException();
+                }
+                // we don't wrap other exceptions
+            }
+
+            await _readsCompleteTcs.Task.ConfigureAwait(false);
+        }
     }
 
-    // The exception has 2 separate purposes: transmit an error code to the remote writer and throw this
-    // exception from the current or next ReadAsync.
+    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception from
+    // the current or next ReadAsync.
     internal void Abort(Exception exception)
     {
         // If ReadsClosed is already completed or this is not the first call to Abort, there is nothing to abort.
         if (!_stream.ReadsClosed.IsCompleted &&
             Interlocked.CompareExchange(ref _abortException, exception, null) is null)
         {
-            // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
 
         // We also complete _readsCompleteTcs no matter what. This is useful in the situation where Abort is called
         // after_stream.ReadsClosed completed or while it's completing.
         _readsCompleteTcs.TrySetException(exception);
-    }
-
-    private async Task CreateReadsClosedTask()
-    {
-        try
-        {
-            await _stream.ReadsClosed.ConfigureAwait(false);
-        }
-        catch (QuicException exception)
-        {
-            throw exception.ToTransportException();
-        }
-        // we don't wrap other exceptions
-
-        await _readsCompleteTcs.Task.ConfigureAwait(false);
     }
 }
