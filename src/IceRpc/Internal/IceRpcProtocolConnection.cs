@@ -292,10 +292,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
 
-        // Abort remaining streams which are no longer bound to invocations or dispatches. Since streams Input/Output
-        // operations only raise TransportException, we also use a TransportException here. TODO: This is only needed
-        // when using Quic, see https://github.com/dotnet/runtime/issues/77216. We could remove this code if this issue
-        // is fixed.
+        // Abort streams.
         var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
         foreach (IMultiplexedStream stream in _streams)
         {
