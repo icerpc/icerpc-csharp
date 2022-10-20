@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -43,12 +44,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Either the client rejected the connection durring Ssl certificate validation or the
-                // ConnectionOptionsCallback throw when called from AcceptConnectionAsync in both cases
-                // we don't want to stop accepting connections
-                // TODO Log this error
+                // AuthenticationException
+                Console.WriteLine(ex);
             }
         }
     }
