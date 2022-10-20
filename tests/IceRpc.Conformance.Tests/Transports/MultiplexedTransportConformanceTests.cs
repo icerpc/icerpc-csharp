@@ -1441,7 +1441,7 @@ public abstract class MultiplexedTransportConformanceTests
         await sut.LocalStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty);
 
         // We read at least 2 (instead of a plain read) otherwise with Quic, readResult.IsCompleted is false because
-        // we get IsCompleted=true only when the _second_ call reads 0 bytes from the underlying QuicStream.
+        // we get IsCompleted=true only when a _second_ call reads 0 bytes from the underlying QuicStream.
         Task<ReadResult> task = sut.RemoteStream.Input.ReadAtLeastAsync(2).AsTask();
         await ((ReadOnlySequencePipeWriter)sut.LocalStream.Output)
             .WriteAsync(new ReadOnlySequence<byte>(_oneBytePayload), endStream: true, default);
