@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -11,17 +10,19 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-#pragma warning disable CA1001 // Type owns disposable field(s) '_abortCts' but is not disposable
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
-#pragma warning restore CA1001
 {
-    private readonly CancellationTokenSource _abortCts = new();
+    internal Task WritesClosed { get; }
+
+    private Exception? _abortException;
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
-    private Exception? _exception;
+    private bool _isCompleted;
     private readonly int _minSegmentSize;
+
+    // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
+    // WriteAsync with an endStream/completeWrites parameter while QuicStream does.
     private readonly Pipe _pipe;
-    private int _state;
     private readonly QuicStream _stream;
 
     public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
@@ -30,12 +31,14 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     public override void Complete(Exception? exception = null)
     {
-        if (_state.TrySetFlag(State.Completed))
+        if (!_isCompleted)
         {
             if (exception is null && _pipe.Writer.UnflushedBytes > 0)
             {
                 throw new NotSupportedException($"can't complete {nameof(QuicPipeWriter)} with unflushed bytes");
             }
+
+            _isCompleted = true;
 
             if (exception is null)
             {
@@ -46,15 +49,11 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                // Abort the write side of the stream with the error code corresponding to the exception.
-                _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
+                Abort(exception);
             }
 
             _pipe.Writer.Complete();
-            Abort(exception);
-
-            // Cleanup resources.
-            _abortCts.Dispose();
+            _pipe.Reader.Complete();
 
             // Notify the stream of the writer completion.
             _completedCallback();
@@ -80,28 +79,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         bool endStream,
         CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Completed))
+        if (_isCompleted)
         {
-            // If the writer is completed, the caller is bogus, it shouldn't call write operations after completing the
-            // pipe writer.
             throw new InvalidOperationException("writing is not allowed once the writer is completed");
-        }
-
-        if (_exception is not null)
-        {
-            throw ExceptionUtil.Throw(_exception);
-        }
-
-        using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
-            cts => ((CancellationTokenSource)cts!).Cancel(),
-            _abortCts);
-
-        ReadResult readResult = default;
-
-        // Make sure the pipe reader is not completed by Abort while it's being used.
-        if (!_state.TrySetFlag(State.PipeReaderInUse))
-        {
-            throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
         }
 
         try
@@ -130,15 +110,17 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 Debug.Assert(!flushResult.IsCanceled && !flushResult.IsCompleted);
 
                 // Read the data from the pipe.
-                bool tryReadOk = _pipe.Reader.TryRead(out readResult);
+                bool tryReadOk = _pipe.Reader.TryRead(out ReadResult readResult);
                 Debug.Assert(tryReadOk);
                 Debug.Assert(!readResult.IsCanceled && !readResult.IsCompleted && readResult.Buffer.Length > 0);
 
                 try
                 {
                     // Write buffered data to the stream
-                    await WriteSequenceAsync(readResult.Buffer, completeWrites: endStream && source.IsEmpty)
-                        .ConfigureAwait(false);
+                    await WriteSequenceAsync(
+                        readResult.Buffer,
+                        completeWrites: endStream && source.IsEmpty,
+                        cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -152,8 +134,12 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 }
             }
 
-            await WriteSequenceAsync(source, completeWrites: endStream).ConfigureAwait(false);
+            await WriteSequenceAsync(source, completeWrites: endStream, cancellationToken).ConfigureAwait(false);
             return new FlushResult(isCanceled: false, isCompleted: endStream);
+        }
+        catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
+        {
+            throw abortException;
         }
         catch (QuicException exception) when (
             exception.QuicError == QuicError.StreamAborted &&
@@ -178,41 +164,17 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         {
             throw exception.ToTransportException();
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            // Aborted
-            Debug.Assert(_exception is not null);
-            throw ExceptionUtil.Throw(_exception);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (ObjectDisposedException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
-        }
-        finally
-        {
-            if (_state.HasFlag(State.PipeReaderCompleted))
-            {
-                // If the pipe reader has been completed while we were writing the stream data, we make sure to
-                // complete the reader now since Complete or Abort didn't do it.
-                await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
-            }
-            _state.ClearFlag(State.PipeReaderInUse);
-        }
+        // We don't wrap other exceptions
 
-        Task WriteSequenceAsync(ReadOnlySequence<byte> sequence, bool completeWrites)
+        ValueTask WriteSequenceAsync(
+            ReadOnlySequence<byte> sequence,
+            bool completeWrites,
+            CancellationToken cancellationToken)
         {
             return sequence.IsSingleSegment ?
-                WriteBufferAsync(sequence.First, completeWrites) : PerformWriteSequenceAsync();
+                _stream.WriteAsync(sequence.First, completeWrites, cancellationToken) : PerformWriteSequenceAsync();
 
-            async Task PerformWriteSequenceAsync()
+            async ValueTask PerformWriteSequenceAsync()
             {
                 var enumerator = new ReadOnlySequence<byte>.Enumerator(sequence);
                 bool hasMore = enumerator.MoveNext();
@@ -221,20 +183,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 {
                     ReadOnlyMemory<byte> buffer = enumerator.Current;
                     hasMore = enumerator.MoveNext();
-                    await WriteBufferAsync(buffer, completeWrites: completeWrites && !hasMore).ConfigureAwait(false);
+                    await _stream.WriteAsync(buffer, completeWrites: completeWrites && !hasMore, cancellationToken)
+                        .ConfigureAwait(false);
                 }
                 while (hasMore);
-            }
-
-            // We don't cancel QuicStream.WriteAsync since its cancellation aborts the stream reads under the hood. See
-            // https://github.com/dotnet/runtime/issues/72607
-            Task WriteBufferAsync(ReadOnlyMemory<byte> buffer, bool completeWrites)
-            {
-                _abortCts.Token.ThrowIfCancellationRequested();
-
-                // TODO: add support for ValueTask.WaitAsync
-                return _stream.WriteAsync(buffer, completeWrites, CancellationToken.None).AsTask().WaitAsync(
-                    _abortCts.Token);
             }
         }
     }
@@ -259,33 +211,32 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             minimumSegmentSize: minSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
-    }
 
-    internal void Abort(Exception? exception)
-    {
-        Interlocked.CompareExchange(ref _exception, exception, null);
+        WritesClosed = WritesClosedAsync();
 
-        if (_state.TrySetFlag(State.PipeReaderCompleted))
+        async Task WritesClosedAsync()
         {
-            _abortCts.Cancel();
-            if (!_state.HasFlag(State.PipeReaderInUse))
+            try
             {
-                _pipe.Reader.Complete(exception);
+                await _stream.WritesClosed.ConfigureAwait(false);
             }
+            catch (QuicException exception)
+            {
+                throw exception.ToTransportException();
+            }
+            // we don't wrap other exceptions
         }
     }
 
-    /// <summary>The state enumeration is used to ensure the writer is not used after it's completed and to ensure
-    /// that the internal pipe reader isn't completed concurrently when it's being used by WriteAsync.</summary>
-    private enum State : int
+    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception
+    // exception from the current or next WriteAsync or FlushAsync.
+    internal void Abort(Exception exception)
     {
-        /// <summary><see cref="Complete" /> was called on this Slic pipe writer.</summary>
-        Completed = 1,
-
-        /// <summary>Data is being read from the internal pipe reader.</summary>
-        PipeReaderInUse = 2,
-
-        /// <summary>The internal pipe reader was completed either by <see cref="Abort" />.</summary>
-        PipeReaderCompleted = 4
+        // If WritesClosed is already completed or this is not the first call to Abort, there is nothing to abort.
+        if (!_stream.WritesClosed.IsCompleted &&
+            Interlocked.CompareExchange(ref _abortException, exception, null) is null)
+        {
+            _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
+        }
     }
 }

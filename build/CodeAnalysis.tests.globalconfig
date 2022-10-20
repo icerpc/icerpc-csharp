@@ -20,3 +20,6 @@ dotnet_diagnostic.NUnit2006.severity = none
 
 # NUnit2031: Consider using Assert.That(actual, Is.Not.SameAs(expected))
 dotnet_diagnostic.NUnit2031.severity = none
+
+# NUnit2045: Use Assert.Multiple
+dotnet_diagnostic.NUnit2045.severity = none

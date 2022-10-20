@@ -92,6 +92,7 @@ public class ServerTests
     }
 
     [Test]
+    [Ignore("issue #1920")]
     public async Task Connection_accepted_when_max_counter_is_reached_then_decremented()
     {
         // Arrange
@@ -123,6 +124,10 @@ public class ServerTests
             new ClientConnectionOptions { ServerAddress = server.ServerAddress },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
+        await using var clientConnection3 = new ClientConnection(
+            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
         // No need to delay the disposal of any connections (the default behavior)
         serverListener.DelayDisposeNewConnections = false;
 
@@ -137,7 +142,7 @@ public class ServerTests
         await clientConnection1.ShutdownAsync();
         await serverConnection1.WaitForDisposeStart();
 
-        await clientConnection2.ConnectAsync();
+        await clientConnection3.ConnectAsync();
     }
 
     [Test]

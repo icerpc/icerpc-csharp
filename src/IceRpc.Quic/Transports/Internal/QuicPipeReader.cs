@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Quic;
 
@@ -13,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
-    internal Task ReadsClosed => CreateReadsClosedTask();
+    internal Task ReadsClosed { get; }
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
@@ -72,28 +71,10 @@ internal class QuicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        Task<ReadResult>? task = null;
         try
         {
-            task = _pipeReader.ReadAsync(CancellationToken.None).AsTask();
-            _readResult = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            _readResult = await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
             return _readResult;
-        }
-        catch (OperationCanceledException exception)
-        {
-            // We can't let task run in the background - it's not ok to call Complete or any other method on PipeReader
-            // (except CancelPendingRead) while a ReadAsync is running in a separate thread. So we need to abort the
-            // stream and wait for task to complete.
-            Debug.Assert(task is not null);
-            Abort(exception);
-            try
-            {
-                _ = await task.ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-            throw;
         }
         catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
         {
@@ -150,37 +131,38 @@ internal class QuicPipeReader : PipeReader
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
+
+        ReadsClosed = ReadsClosedAsync();
+
+        async Task ReadsClosedAsync()
+        {
+            try
+            {
+                await _stream.ReadsClosed.ConfigureAwait(false);
+            }
+            catch (QuicException exception)
+            {
+                throw exception.ToTransportException();
+            }
+            // we don't wrap other exceptions
+
+            await _readsCompleteTcs.Task.ConfigureAwait(false);
+        }
     }
 
-    // The exception has 2 separate purposes: transmit an error code to the remote writer and throw this
-    // exception from the current or next ReadAsync.
+    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception from
+    // the current or next ReadAsync.
     internal void Abort(Exception exception)
     {
         // If ReadsClosed is already completed or this is not the first call to Abort, there is nothing to abort.
         if (!_stream.ReadsClosed.IsCompleted &&
             Interlocked.CompareExchange(ref _abortException, exception, null) is null)
         {
-            // _abortException was null before this call, which means we did not abort it yet.
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
 
         // We also complete _readsCompleteTcs no matter what. This is useful in the situation where Abort is called
         // after_stream.ReadsClosed completed or while it's completing.
         _readsCompleteTcs.TrySetException(exception);
-    }
-
-    private async Task CreateReadsClosedTask()
-    {
-        try
-        {
-            await _stream.ReadsClosed.ConfigureAwait(false);
-        }
-        catch (QuicException exception)
-        {
-            throw exception.ToTransportException();
-        }
-        // we don't wrap other exceptions
-
-        await _readsCompleteTcs.Task.ConfigureAwait(false);
     }
 }
