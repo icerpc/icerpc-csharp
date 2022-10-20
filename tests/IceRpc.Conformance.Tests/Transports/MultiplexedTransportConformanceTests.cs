@@ -657,10 +657,10 @@ public abstract class MultiplexedTransportConformanceTests
         async Task ClientReadWriteAsync()
         {
             IMultiplexedStream stream = await clientConnection.CreateStreamAsync(true, default);
-            streams.Add(stream);
             await stream.Output.WriteAsync(payload);
             lock (mutex)
             {
+                streams.Add(stream);
                 streamCount++;
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
@@ -751,10 +751,10 @@ public abstract class MultiplexedTransportConformanceTests
         async Task ClientWriteAsync()
         {
             IMultiplexedStream stream = await clientConnection.CreateStreamAsync(false, default);
-            streams.Add(stream);
             await stream.Output.WriteAsync(payload);
             lock (mutex)
             {
+                streams.Add(stream);
                 streamCount++;
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
