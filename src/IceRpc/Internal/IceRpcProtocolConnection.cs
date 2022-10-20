@@ -364,7 +364,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
             }
-            throw;
+
+            throw new ConnectionException(
+                exception is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
+                exception);
         }
 
         try
@@ -404,7 +407,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
             }
-            throw;
+
+            throw new ConnectionException(
+                exception is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
+                exception);
         }
 
         void EncodeHeader(PipeWriter writer)
