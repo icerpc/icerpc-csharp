@@ -39,9 +39,10 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>This test ensures that aborting the connection correctly aborts the incoming request payload.</summary>
+    /// <summary>This test ensures that aborting the connection correctly aborts the incoming request underlying
+    /// stream.</summary>
     [Test]
-    public async Task Aborting_connection_aborts_non_completed_request_payload()
+    public async Task Aborting_connection_aborts_non_completed_incoming_request_stream()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
