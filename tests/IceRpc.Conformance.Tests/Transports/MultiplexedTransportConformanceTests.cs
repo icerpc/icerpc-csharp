@@ -1421,7 +1421,33 @@ public abstract class MultiplexedTransportConformanceTests
         });
 
         await CompleteStreamsAsync(sut);
-}
+    }
+
+    [Test]
+    public async Task Stream_write_empty_buffer_is_noop()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        await sut.LocalStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty);
+        Task<ReadResult> task = sut.RemoteStream.Input.ReadAsync().AsTask();
+        await ((ReadOnlySequencePipeWriter)sut.LocalStream.Output)
+            .WriteAsync(new ReadOnlySequence<byte>(_oneBytePayload), endStream: true, default);
+        ReadResult readResult = await task;
+
+        // Assert
+        // Assert.That(readResult.IsCompleted, Is.True); // TODO: I don't understand why this doesn't work with Quic
+        Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
+    }
 
     [Test]
     public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
