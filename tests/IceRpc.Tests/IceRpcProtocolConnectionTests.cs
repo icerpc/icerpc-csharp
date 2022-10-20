@@ -39,8 +39,7 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>This test ensures that aborting the connection correctly aborts the non-completed streams and doesn't
-    /// hang waiting for streams to complete.</summary>
+    /// <summary>This test ensures that aborting the connection correctly aborts the incoming request payload.</summary>
     [Test]
     public async Task Aborting_connection_aborts_non_completed_request_payload()
     {
@@ -52,10 +51,15 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+
         var outgoingRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        outgoingRequest.PayloadStream = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]));
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+        outgoingRequest.PayloadStream = pipe.Reader;
+
         var invokeTask = sut.Client.InvokeAsync(outgoingRequest);
         IncomingRequest incomingRequest = await dispatcher.DispatchStart; // Wait for the dispatch to start
+        // Make sure the payload stream isn't completed by the dispatch termination.
         var payload = incomingRequest.DetachPayload();
         dispatcher.ReleaseDispatch();
         await invokeTask;
@@ -71,7 +75,14 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         await sut.Server.DisposeAsync();
 
+        // Assert
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await payload.ReadAsync());
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+
         payload.Complete();
+
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     [Test]

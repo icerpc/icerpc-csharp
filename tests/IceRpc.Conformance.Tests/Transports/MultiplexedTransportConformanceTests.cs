@@ -491,7 +491,7 @@ public abstract class MultiplexedTransportConformanceTests
     [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
     [TestCase(100)]
     [TestCase(512 * 1024)]
-    public async Task Disposing_the_connection_does_not_close_reads_on_completed_write_streams(int payloadSize)
+    public async Task Disposing_the_server_connection_completes_ReadsClosed_on_streams(int payloadSize)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -513,11 +513,8 @@ public abstract class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
-            Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
-        });
+        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
 
         await CompleteStreamsAsync(sut);
     }
