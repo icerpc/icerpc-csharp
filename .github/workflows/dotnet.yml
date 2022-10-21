@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: IceRPC C# Continuous Integration
 
 on:
   push:
@@ -46,19 +46,7 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.ICERPC_DEPLOY_KEY }}
     - name: 🔨 Build Slice Compiler
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --manifest-path tools/slicec-cs/Cargo.toml
-    - name: 🔎 Lint Slice Compiler
-      uses: actions-rs/clippy@master
-      with:
-        args: --all-features --no-deps --all-targets --manifest-path tools/slicec-cs/Cargo.toml
-    - name: 🧪 Test Slice Compiler
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --manifest-path tools/slicec-cs/Cargo.toml
+      run: cargo build --manifest-path tools/slicec-cs/Cargo.toml
     - name: 🔗 Add github NuGet repository
       run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ secrets.NUGET_API_TOKEN }}
     - name: 🔗 Restore dependencies
