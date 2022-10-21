@@ -23,27 +23,29 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     bool IsStarted { get; }
 
-    /// <summary>Gets a task that completes when reads are closed. Reads are closed when either:
+    /// <summary>Gets a task that completes when all read network activity ceases for this stream. This occurs when:
     /// <list type="bullet">
-    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on the stream's <see
+    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on this stream's <see
     /// cref="IDuplexPipe.Input" />.</description></item>
-    /// <item><description>the stream's <see cref="IDuplexPipe.Input" /> returns a completed <see cref="ReadResult" />
-    /// and all the data is consumed.</description></item>
+    /// <item><description>the implementation detects that the peer wrote an "end stream" to mark a successful
+    /// write completion.</description></item>
     /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
     /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
     /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item>
-    /// <item><description>the connection is disposed or reset.</description></item></list></summary>
-    Task ReadsClosed { get; }
+    /// <item><description>the implementation detects a network failure that prevents further reads on the underlying
+    /// network stream.</description></item></list></summary>
+    Task InputClosed { get; }
 
-    /// <summary>Gets a task that completes when writes are closed. Writes are closed when either:
+    /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:
     /// <list type="bullet">
-    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on the stream's <see
-    /// cref="IDuplexPipe.Input" />.</description></item>
+    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on this stream's <see
+    /// cref="IDuplexPipe.Output" />.</description></item>
     /// <item><description>the peer calls <see cref="PipeReader.Complete(Exception?)"/> on the stream's <see
     /// cref="IDuplexPipe.Input" />.</description></item>
     /// <item><description>the stream is aborted with <see cref="Abort" />.</description></item>
-    /// <item><description>the connection is disposed or reset.</description></item></list></summary>
-    Task WritesClosed { get; }
+    /// <item><description>the implementation detects a network failure that prevents further writes on the underlying
+    /// network stream.</description></item></list></summary>
+    Task OutputClosed { get; }
 
     /// <summary>Aborts the stream. The implementation converts <paramref name="exception"/> into an error code using
     /// the configured <see cref="IMultiplexedStreamErrorCodeConverter" /> and transmits this error code to the remote

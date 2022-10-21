@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
-    internal Task WritesClosed { get; }
+    internal Task Closed { get; }
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
@@ -219,9 +219,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
 
-        WritesClosed = WritesClosedAsync();
+        Closed = ClosedAsync();
 
-        async Task WritesClosedAsync()
+        async Task ClosedAsync()
         {
             try
             {

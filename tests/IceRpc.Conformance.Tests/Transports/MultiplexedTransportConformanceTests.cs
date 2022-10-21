@@ -376,9 +376,9 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
+            Assert.That(remoteStream.InputClosed.IsCompleted, Is.False);
             Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+            Assert.That(async () => await remoteStream.InputClosed, Throws.Nothing);
         });
 
         CompleteStream(localStream);
@@ -394,7 +394,7 @@ public abstract class MultiplexedTransportConformanceTests
                 readLength += (int)readResult.Buffer.Length;
                 remoteStream.Input.AdvanceTo(readResult.Buffer.End);
             }
-            while (!remoteStream.ReadsClosed.IsCompleted);
+            while (!remoteStream.InputClosed.IsCompleted);
             return readLength;
         }
 
@@ -513,8 +513,8 @@ public abstract class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
-        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<TransportException>());
 
         CompleteStreams(sut);
     }
@@ -557,7 +557,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Disposing_the_connection_completes_the_streams()
+    public async Task Disposing_the_connection_closes_the_streams()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -575,13 +575,11 @@ public abstract class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await localStream.ReadsClosed, Throws.TypeOf<TransportException>());
-            Assert.That(async () => await localStream.WritesClosed, Throws.TypeOf<TransportException>());
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.TypeOf<TransportException>());
-            Assert.That(async () => await remoteStream.WritesClosed, Throws.TypeOf<TransportException>());
-        });
+        Assert.That(async () => await localStream.InputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await localStream.OutputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await remoteStream.InputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await remoteStream.OutputClosed, Throws.TypeOf<TransportException>());
+
         CompleteStream(localStream);
         CompleteStream(remoteStream);
     }
@@ -1166,7 +1164,7 @@ public abstract class MultiplexedTransportConformanceTests
         {
             Assert.That(readResult.IsCompleted , Is.True);
             remoteStream.Input.AdvanceTo(readResult.Buffer.End);
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+            Assert.That(async () => await remoteStream.InputClosed, Throws.Nothing);
         });
 
         CompleteStream(localStream);
@@ -1651,16 +1649,16 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act
         sut.LocalStream.Output.Complete();
-        await sut.LocalStream.WritesClosed;
+        await sut.LocalStream.OutputClosed;
 
         sut.RemoteStream.Output.Complete();
-        await sut.RemoteStream.WritesClosed;
+        await sut.RemoteStream.OutputClosed;
 
         sut.LocalStream.Input.Complete();
-        await sut.LocalStream.ReadsClosed;
+        await sut.LocalStream.InputClosed;
 
         sut.RemoteStream.Input.Complete();
-        await sut.RemoteStream.ReadsClosed;
+        await sut.RemoteStream.InputClosed;
 
         // Assert
         Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
