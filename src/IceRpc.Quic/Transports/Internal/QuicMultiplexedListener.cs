@@ -21,35 +21,31 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
+        QuicConnection connection;
         while (true)
         {
             try
             {
-                Console.WriteLine("Accepting connections");
-                QuicConnection connection =
-                    await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
-                Console.WriteLine($"Connection accepted: {connection}");
-                return (
-                    new QuicMultiplexedServerConnection(ServerAddress, connection, _options),
-                    connection.RemoteEndPoint);
+                connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
+                break;
             }
             catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
             {
                 // Listener was disposed while accept was in progress
                 throw;
             }
-            catch (QuicException ex)
+            catch (QuicException)
             {
+                // There was a problem establishing the connection.
                 // TODO Log this exception
-                Console.WriteLine($"QuicException:\n{ex}");
             }
-            catch (AuthenticationException ex)
+            catch (AuthenticationException)
             {
                 // The connection was rejected due to an authentication exception.
                 // TODO Log this exception
-                Console.WriteLine($"AuthenticationException:\n{ex}");
             }
         }
+        return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 
     public ValueTask DisposeAsync() => _listener.DisposeAsync();
