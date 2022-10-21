@@ -1,4 +1,4 @@
-name: IceRPC Continuous Integration
+name: icerpc-csharp Continuous Integration
 
 on:
   push:
