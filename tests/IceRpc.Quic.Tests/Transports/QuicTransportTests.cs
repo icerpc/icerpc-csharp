@@ -80,7 +80,6 @@ public class QuicTransportTests
             {
                 new X509Certificate2("../../../certs/client.p12", "password")
             },
-            // First connection is rejected, the following connections are accepted.
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
         };
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
