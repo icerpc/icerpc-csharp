@@ -283,19 +283,6 @@ internal class TcpClientConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-
-            try
-            {
-                return new TransportConnectionInformation(
-                    localNetworkAddress: Socket.LocalEndPoint!,
-                    remoteNetworkAddress: Socket.RemoteEndPoint!,
-                    _sslStream?.RemoteCertificate);
-            }
-            catch (SocketException exception)
-            {
-                // The peer closed the exception if we can't get the socket endpoints.
-                throw new TransportException(TransportErrorCode.ConnectionReset, exception);
-            }
         }
         catch (AuthenticationException)
         {
@@ -318,6 +305,18 @@ internal class TcpClientConnection : TcpConnection
         catch (Exception exception)
         {
             throw exception.ToTransportException();
+        }
+
+        try
+        {
+            return new TransportConnectionInformation(
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
+                _sslStream?.RemoteCertificate);
+        }
+        catch (Exception exception)
+        {
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
     }
 
@@ -401,19 +400,6 @@ internal class TcpServerConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-
-            try
-            {
-                return new TransportConnectionInformation(
-                    localNetworkAddress: Socket.LocalEndPoint!,
-                    remoteNetworkAddress: Socket.RemoteEndPoint!,
-                    _sslStream?.RemoteCertificate);
-            }
-            catch (SocketException exception)
-            {
-                // The peer closed the exception if we can't get the socket endpoints.
-                throw new TransportException(TransportErrorCode.ConnectionReset, exception);
-            }
         }
         catch (AuthenticationException)
         {
@@ -436,6 +422,18 @@ internal class TcpServerConnection : TcpConnection
         catch (Exception exception)
         {
             throw exception.ToTransportException();
+        }
+
+        try
+        {
+            return new TransportConnectionInformation(
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
+                _sslStream?.RemoteCertificate);
+        }
+        catch (Exception exception)
+        {
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
     }
 

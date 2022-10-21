@@ -320,10 +320,10 @@ public sealed class ProtocolConnectionTests
         {
             Assert.That(
                 TimeSpan.FromMilliseconds(clientIdleCalledTime!.Value),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
             Assert.That(
                 TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
         });
 
         async Task WaitForClientConnectionAsync()
