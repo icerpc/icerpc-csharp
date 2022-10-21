@@ -91,8 +91,8 @@ internal class QuicPipeReader : PipeReader
         // attempting to read while another read is in progress.
     }
 
-    // StreamPipeReader.TryRead does not call the underlying QuicStream and as a result does not throw any QuicException
-    // and cannot be the first to receive a result with IsCompleted = true.
+    // StreamPipeReader.TryRead does not call the underlying QuicStream and as a result does not throw any
+    // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
     internal QuicPipeReader(
