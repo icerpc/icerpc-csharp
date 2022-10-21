@@ -37,8 +37,8 @@ public abstract class MultiplexedTransportConformanceTests
 
         Assert.That(localStream.Id, Is.EqualTo(remoteStream.Id));
 
-        await CompleteStreamAsync(remoteStream);
-        await CompleteStreamAsync(localStream);
+        CompleteStream(remoteStream);
+        CompleteStream(localStream);
     }
 
     /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
@@ -140,8 +140,8 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(async () => await lastStreamTask, Throws.Nothing);
         });
 
-        await CompleteStreamsAsync(streams);
-        await CompleteStreamAsync(await lastStreamTask);
+        CompleteStreams(streams);
+        CompleteStream(await lastStreamTask);
 
         async Task<IMultiplexedStream> CreateLastStreamAsync()
         {
@@ -381,8 +381,8 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
         });
 
-        await CompleteStreamAsync(localStream);
-        await CompleteStreamAsync(remoteStream);
+        CompleteStream(localStream);
+        CompleteStream(remoteStream);
 
         async Task<int> ReadDataAsync()
         {
@@ -516,7 +516,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
         Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
@@ -552,8 +552,8 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.ThrowsAsync<TransportException>(async () => await peerStream.Input.ReadAsync());
         Assert.ThrowsAsync<TransportException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
 
-        await CompleteStreamAsync(localStream);
-        await CompleteStreamAsync(remoteStream);
+        CompleteStream(localStream);
+        CompleteStream(remoteStream);
     }
 
     [Test]
@@ -582,8 +582,8 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(async () => await remoteStream.ReadsClosed, Throws.TypeOf<TransportException>());
             Assert.That(async () => await remoteStream.WritesClosed, Throws.TypeOf<TransportException>());
         });
-        await CompleteStreamAsync(localStream);
-        await CompleteStreamAsync(remoteStream);
+        CompleteStream(localStream);
+        CompleteStream(remoteStream);
     }
 
     /// <summary>Write data until the transport flow control start blocking, at this point we start a read task and
@@ -684,7 +684,7 @@ public abstract class MultiplexedTransportConformanceTests
         await Task.WhenAll(tasks);
         Assert.That(streamCountMax, Is.LessThanOrEqualTo(streamMaxCount));
 
-        await CompleteStreamsAsync(streams);
+        CompleteStreams(streams);
 
         async Task ClientReadWriteAsync()
         {
@@ -778,7 +778,7 @@ public abstract class MultiplexedTransportConformanceTests
         await Task.WhenAll(tasks);
         Assert.That(streamCountMax, Is.LessThanOrEqualTo(streamMaxCount));
 
-        await CompleteStreamsAsync(streams);
+        CompleteStreams(streams);
 
         async Task ClientWriteAsync()
         {
@@ -858,7 +858,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
 
         // Complete the pipe readers/writers to complete the stream.
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     [TestCase(100)]
@@ -888,7 +888,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
 
         // Complete the pipe readers/writers to complete the stream.
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>
@@ -1084,7 +1084,7 @@ public abstract class MultiplexedTransportConformanceTests
             await Task.Delay(1);
         }
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     [Test]
@@ -1110,7 +1110,7 @@ public abstract class MultiplexedTransportConformanceTests
             await Task.Delay(1);
         }
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     [Test]
@@ -1138,7 +1138,7 @@ public abstract class MultiplexedTransportConformanceTests
             await Task.Delay(1);
         }
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     /// <summary>Ensures that reads are closed when the peer completes its output and only once ReadAsync returns a
@@ -1169,8 +1169,8 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
         });
 
-        await CompleteStreamAsync(localStream);
-        await CompleteStreamAsync(remoteStream);
+        CompleteStream(localStream);
+        CompleteStream(remoteStream);
     }
 
     /// <summary>Verifies that stream output completes after the peer completes the input.</summary>
@@ -1313,7 +1313,7 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
         }
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     [Test]
@@ -1348,7 +1348,7 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
         });
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     /// <summary>Verifies that aborting the stream cancels a pending read.</summary>
@@ -1471,7 +1471,7 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(readResult.Buffer, Has.Length.EqualTo(1));
         });
 
-        await CompleteStreamsAsync(sut);
+        CompleteStreams(sut);
     }
 
     [Test]
@@ -1501,6 +1501,8 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
+
+        CompleteStreams(sut);
     }
 
     [Test]
@@ -1747,35 +1749,34 @@ public abstract class MultiplexedTransportConformanceTests
         return (localStream, remoteStream);
     }
 
-    private static async Task CompleteStreamsAsync(
-        (IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream) sut)
+    private static void CompleteStreams((IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream) sut)
     {
-        await CompleteStreamAsync(sut.LocalStream);
-        await CompleteStreamAsync(sut.RemoteStream);
+        CompleteStream(sut.LocalStream);
+        CompleteStream(sut.RemoteStream);
     }
 
-    private static async Task CompleteStreamAsync(IMultiplexedStream stream)
+    private static void CompleteStream(IMultiplexedStream stream)
     {
         if (stream.IsBidirectional)
         {
-            await stream.Input.CompleteAsync();
-            await stream.Output.CompleteAsync();
+            stream.Input.Complete();
+            stream.Output.Complete();
         }
         else if (stream.IsRemote)
         {
-            await stream.Input.CompleteAsync();
+            stream.Input.Complete();
         }
         else
         {
-            await stream.Output.CompleteAsync();
+            stream.Output.Complete();
         }
     }
 
-    private static async Task CompleteStreamsAsync(IEnumerable<IMultiplexedStream> streams)
+    private static void CompleteStreams(IEnumerable<IMultiplexedStream> streams)
     {
         foreach (IMultiplexedStream stream in streams)
         {
-            await CompleteStreamAsync(stream);
+            CompleteStream(stream);
         }
     }
 
