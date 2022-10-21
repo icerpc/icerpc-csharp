@@ -309,6 +309,7 @@ internal class TcpClientConnection : TcpConnection
 
         try
         {
+            // Connection was reset if we can't get the local/remote endpoint of the socket.
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
@@ -426,6 +427,7 @@ internal class TcpServerConnection : TcpConnection
 
         try
         {
+            // Connection was reset if we can't get the local/remote endpoint of the socket.
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
