@@ -99,28 +99,44 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Constructs a resumable client connection with the specified server address and client authentication
-    /// options. All other properties have their default values.</summary>
+    /// options. All other <see cref="ClientConnectionOptions" /> properties have their default values.</summary>
     /// <param name="serverAddress">The connection's server address.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
     public ClientConnection(
         ServerAddress serverAddress,
-        SslClientAuthenticationOptions? clientAuthenticationOptions = null)
-        : this(new ClientConnectionOptions
-        {
-            ClientAuthenticationOptions = clientAuthenticationOptions,
-            ServerAddress = serverAddress
-        })
+        SslClientAuthenticationOptions? clientAuthenticationOptions = null,
+        IDuplexClientTransport? duplexClientTransport = null,
+        IMultiplexedClientTransport? multiplexedClientTransport = null)
+        : this(
+            new ClientConnectionOptions
+            {
+                ClientAuthenticationOptions = clientAuthenticationOptions,
+                ServerAddress = serverAddress
+            },
+            duplexClientTransport,
+            multiplexedClientTransport)
     {
     }
 
     /// <summary>Constructs a resumable client connection with the specified server address URI and client
-    /// authentication options. All other properties have their default values.</summary>
+    /// authentication options. All other <see cref="ClientConnectionOptions" /> properties have their default values.
+    /// </summary>
     /// <param name="serverAddressUri">The connection's server address URI.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
+    /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
     public ClientConnection(
         Uri serverAddressUri,
-        SslClientAuthenticationOptions? clientAuthenticationOptions = null)
-        : this(new ServerAddress(serverAddressUri), clientAuthenticationOptions)
+        SslClientAuthenticationOptions? clientAuthenticationOptions = null,
+        IDuplexClientTransport? duplexClientTransport = null,
+        IMultiplexedClientTransport? multiplexedClientTransport = null)
+        : this(
+            new ServerAddress(serverAddressUri),
+            clientAuthenticationOptions,
+            duplexClientTransport,
+            multiplexedClientTransport)
     {
     }
 

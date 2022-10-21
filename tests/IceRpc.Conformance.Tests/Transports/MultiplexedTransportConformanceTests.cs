@@ -487,6 +487,38 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
+    [Test]
+    [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
+    [TestCase(100)]
+    [TestCase(512 * 1024)]
+    public async Task Disposing_the_server_connection_completes_ReadsClosed_on_streams(int payloadSize)
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        var payload = new ReadOnlySequence<byte>(new byte[payloadSize]);
+        _ = sut.LocalStream.Output.WriteAsync(payload, endStream: true, CancellationToken.None).AsTask();
+        _ = sut.RemoteStream.Output.WriteAsync(payload, endStream: true, CancellationToken.None).AsTask();
+
+        await Task.Delay(100); // Ensures that the EOS is received by the remote stream.
+
+        // Act
+        await serverConnection.DisposeAsync();
+
+        // Assert
+        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+
+        await CompleteStreamsAsync(sut);
+    }
+
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
     /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
     /// </param>
@@ -1550,6 +1582,47 @@ public abstract class MultiplexedTransportConformanceTests
             Assert.That(() => clientCloseTask, Throws.Nothing);
             Assert.That(() => serverCloseTask, Throws.Nothing);
         });
+    }
+
+    /// <summary>Verifies we can read the properties of a stream after completing its Input and Output.</summary>
+    [Test]
+    public async Task Stream_properties_readable_after_input_and_output_completed()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        sut.LocalStream.Output.Complete();
+        await sut.LocalStream.WritesClosed;
+
+        sut.RemoteStream.Output.Complete();
+        await sut.RemoteStream.WritesClosed;
+
+        sut.LocalStream.Input.Complete();
+        await sut.LocalStream.ReadsClosed;
+
+        sut.RemoteStream.Input.Complete();
+        await sut.RemoteStream.ReadsClosed;
+
+        // Assert
+        Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
+
+        Assert.That(sut.LocalStream.IsBidirectional, Is.True);
+        Assert.That(sut.RemoteStream.IsBidirectional, Is.True);
+
+        Assert.That(sut.LocalStream.IsRemote, Is.False);
+        Assert.That(sut.RemoteStream.IsRemote, Is.True);
+
+        Assert.That(sut.LocalStream.IsStarted, Is.True);
+        Assert.That(sut.RemoteStream.IsStarted, Is.True);
     }
 
     [Test]

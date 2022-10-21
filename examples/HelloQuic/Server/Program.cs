@@ -14,18 +14,11 @@ public static class Program
 {
     static async Task Main()
     {
-        var hello = new Hello();
         await using var server = new Server(
-            new ServerOptions
+            new Hello(),
+            new SslServerAuthenticationOptions
             {
-                ServerAuthenticationOptions = new SslServerAuthenticationOptions
-                {
-                    ServerCertificate = new X509Certificate2("../../certs/server.p12", "password")
-                },
-                ConnectionOptions = new ConnectionOptions
-                {
-                    Dispatcher = hello
-                }
+                ServerCertificate = new X509Certificate2("../../certs/server.p12", "password")
             },
             multiplexedServerTransport: new QuicServerTransport());
 
