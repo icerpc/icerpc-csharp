@@ -1437,44 +1437,6 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    [Ignore("see issue #1939")]
-    public async Task Stream_write_returns_canceled_flush_result_after_cancel_pending_flush()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
-
-        Memory<byte> _ = sut.LocalStream.Output.GetMemory();
-        sut.LocalStream.Output.Advance(1);
-
-        // Act
-        sut.LocalStream.Output.CancelPendingFlush();
-
-        // Assert
-        FlushResult flushResult1 = await sut.LocalStream.Output.FlushAsync();
-        FlushResult flushResult2 = await sut.LocalStream.Output.FlushAsync();
-        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(flushResult1.IsCanceled, Is.True);
-            Assert.That(flushResult1.IsCompleted, Is.False);
-            Assert.That(flushResult2.IsCanceled, Is.False);
-            Assert.That(flushResult2.IsCompleted, Is.False);
-            Assert.That(readResult.Buffer, Has.Length.EqualTo(1));
-        });
-
-        CompleteStreams(sut);
-    }
-
-    [Test]
     public async Task Stream_write_empty_buffer_is_noop()
     {
         // Arrange
