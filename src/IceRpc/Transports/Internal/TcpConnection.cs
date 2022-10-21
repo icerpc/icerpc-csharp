@@ -284,10 +284,18 @@ internal class TcpClientConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
 
-            return new TransportConnectionInformation(
-                localNetworkAddress: Socket.LocalEndPoint!,
-                remoteNetworkAddress: Socket.RemoteEndPoint!,
-                _sslStream?.RemoteCertificate);
+            try
+            {
+                return new TransportConnectionInformation(
+                    localNetworkAddress: Socket.LocalEndPoint!,
+                    remoteNetworkAddress: Socket.RemoteEndPoint!,
+                    _sslStream?.RemoteCertificate);
+            }
+            catch (SocketException exception)
+            {
+                // The peer closed the exception if we can't get the socket endpoints.
+                throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            }
         }
         catch (AuthenticationException)
         {
@@ -394,10 +402,18 @@ internal class TcpServerConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
 
-            return new TransportConnectionInformation(
-                localNetworkAddress: Socket.LocalEndPoint!,
-                remoteNetworkAddress: Socket.RemoteEndPoint!,
-                _sslStream?.RemoteCertificate);
+            try
+            {
+                return new TransportConnectionInformation(
+                    localNetworkAddress: Socket.LocalEndPoint!,
+                    remoteNetworkAddress: Socket.RemoteEndPoint!,
+                    _sslStream?.RemoteCertificate);
+            }
+            catch (SocketException exception)
+            {
+                // The peer closed the exception if we can't get the socket endpoints.
+                throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            }
         }
         catch (AuthenticationException)
         {

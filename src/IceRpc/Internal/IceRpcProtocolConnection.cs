@@ -14,7 +14,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
-    private Exception? _dispatchesAndInvocationsCanceledException;
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -66,31 +65,26 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
     }
 
-    private protected override void CancelDispatchesAndInvocations(Exception exception)
+    private protected override void CancelDispatchesAndInvocations()
     {
-        lock (_mutex)
+        if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            if (_dispatchesAndInvocationsCanceledException is not null)
-            {
-                return;
-            }
+            _dispatchesAndInvocationsCts.Cancel();
 
-            _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
-
-            // Set the abort exception for invocations.
-            _dispatchesAndInvocationsCanceledException = exception;
-
-            if (_streams.Count == 0)
+            lock (_mutex)
             {
-                _streamsCompleted.TrySetResult();
-            }
-            if (_dispatchCount == 0)
-            {
-                _dispatchesCompleted.TrySetResult();
+                _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
+
+                if (_streams.Count == 0)
+                {
+                    _streamsCompleted.TrySetResult();
+                }
+                if (_dispatchCount == 0)
+                {
+                    _dispatchesCompleted.TrySetResult();
+                }
             }
         }
-
-        _dispatchesAndInvocationsCts.Cancel();
     }
 
     private protected override bool CheckIfIdle()
@@ -216,7 +210,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
-                    CancelDispatchesAndInvocations(exception);
+                    CancelDispatchesAndInvocations();
 
                     // Also kill the transport connection right away instead of waiting DisposeAsync to be called.
                     await _transportConnection.DisposeAsync().ConfigureAwait(false);
@@ -293,7 +287,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndInvocations(new ConnectionException(ConnectionErrorCode.OperationAborted));
+        CancelDispatchesAndInvocations();
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
@@ -384,10 +378,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (OperationCanceledException exception)
         {
-            if (_dispatchesAndInvocationsCanceledException is not null)
+            if (_dispatchesAndInvocationsCts.IsCancellationRequested)
             {
                 completeException = exception;
-                throw ExceptionUtil.Throw(_dispatchesAndInvocationsCanceledException);
+                throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
             else
             {
