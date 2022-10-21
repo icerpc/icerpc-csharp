@@ -1,4 +1,4 @@
-name: IceRPC C# Continuous Integration
+name: IceRPC Continuous Integration
 
 on:
   push:
