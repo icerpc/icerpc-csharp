@@ -122,15 +122,26 @@ public sealed class Server : IAsyncDisposable
     /// have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
-    public Server(IDispatcher dispatcher, SslServerAuthenticationOptions? authenticationOptions = null)
-        : this(new ServerOptions
-        {
-            ServerAuthenticationOptions = authenticationOptions,
-            ConnectionOptions = new()
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
+    /// to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
+    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    public Server(
+        IDispatcher dispatcher,
+        SslServerAuthenticationOptions? authenticationOptions = null,
+        IDuplexServerTransport? duplexServerTransport = null,
+        IMultiplexedServerTransport? multiplexedServerTransport = null)
+        : this(
+            new ServerOptions
             {
-                Dispatcher = dispatcher,
-            }
-        })
+                ServerAuthenticationOptions = authenticationOptions,
+                ConnectionOptions = new()
+                {
+                    Dispatcher = dispatcher,
+                }
+            },
+            duplexServerTransport,
+            multiplexedServerTransport)
     {
     }
 
@@ -139,10 +150,16 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
+    /// to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
+    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     public Server(
         IDispatcher dispatcher,
         ServerAddress serverAddress,
-        SslServerAuthenticationOptions? authenticationOptions = null)
+        SslServerAuthenticationOptions? authenticationOptions = null,
+        IDuplexServerTransport? duplexServerTransport = null,
+        IMultiplexedServerTransport? multiplexedServerTransport = null)
         : this(
             new ServerOptions
             {
@@ -152,7 +169,9 @@ public sealed class Server : IAsyncDisposable
                     Dispatcher = dispatcher,
                 },
                 ServerAddress = serverAddress
-            })
+            },
+            duplexServerTransport,
+            multiplexedServerTransport)
     {
     }
 
@@ -161,11 +180,22 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
+    /// to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
+    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     public Server(
         IDispatcher dispatcher,
         Uri serverAddressUri,
-        SslServerAuthenticationOptions? authenticationOptions = null)
-        : this(dispatcher, new ServerAddress(serverAddressUri), authenticationOptions)
+        SslServerAuthenticationOptions? authenticationOptions = null,
+        IDuplexServerTransport? duplexServerTransport = null,
+        IMultiplexedServerTransport? multiplexedServerTransport = null)
+        : this(
+            dispatcher,
+            new ServerAddress(serverAddressUri),
+            authenticationOptions,
+            duplexServerTransport,
+            multiplexedServerTransport)
     {
     }
 

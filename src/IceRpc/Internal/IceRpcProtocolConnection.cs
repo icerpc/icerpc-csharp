@@ -286,6 +286,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
 
+        // Abort streams.
+        var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
+        foreach (IMultiplexedStream stream in _streams)
+        {
+            stream.Abort(exception);
+        }
+
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations();
 

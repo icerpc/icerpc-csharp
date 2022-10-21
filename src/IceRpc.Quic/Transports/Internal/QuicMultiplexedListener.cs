@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -20,7 +21,30 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
+        QuicConnection connection;
+        while (true)
+        {
+            try
+            {
+                connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
+                break;
+            }
+            catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
+            {
+                // Listener was disposed while accept was in progress
+                throw;
+            }
+            catch (QuicException)
+            {
+                // There was a problem establishing the connection.
+                // TODO Log this exception
+            }
+            catch (AuthenticationException)
+            {
+                // The connection was rejected due to an authentication exception.
+                // TODO Log this exception
+            }
+        }
         return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 
