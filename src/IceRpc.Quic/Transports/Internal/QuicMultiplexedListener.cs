@@ -25,8 +25,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         {
             try
             {
+                Console.WriteLine("Accepting connections");
                 QuicConnection connection =
                     await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
+                Console.WriteLine($"Connection accepted: {connection}");
                 return (
                     new QuicMultiplexedServerConnection(ServerAddress, connection, _options),
                     connection.RemoteEndPoint);
@@ -36,14 +38,16 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 // Listener was disposed while accept was in progress
                 throw;
             }
-            catch (QuicException)
+            catch (QuicException ex)
             {
                 // TODO Log this exception
+                Console.WriteLine($"QuicException:\n{ex}");
             }
-            catch (AuthenticationException)
+            catch (AuthenticationException ex)
             {
                 // The connection was rejected due to an authentication exception.
                 // TODO Log this exception
+                Console.WriteLine($"AuthenticationException:\n{ex}");
             }
         }
     }
