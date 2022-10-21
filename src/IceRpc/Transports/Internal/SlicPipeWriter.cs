@@ -67,8 +67,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     public override ValueTask<FlushResult> WriteAsync(
         ReadOnlyMemory<byte> source,
         CancellationToken cancellationToken) =>
-        // Writing an empty buffer completes the stream.
-        WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancellationToken);
+        WriteAsync(new ReadOnlySequence<byte>(source), endStream: false, cancellationToken);
 
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
@@ -125,8 +124,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
             if (source1.IsEmpty && source2.IsEmpty && !endStream)
             {
-                // WriteAsync is called with an empty buffer and completeWhenDone = false. Some payload writers such as
-                // the deflate compressor might do this.
+                // WriteAsync is called with an empty buffer, typically by a call to FlushAsync. Some payload writers
+                // such as the deflate compressor might do this.
                 return new FlushResult(isCanceled: false, isCompleted: false);
             }
 

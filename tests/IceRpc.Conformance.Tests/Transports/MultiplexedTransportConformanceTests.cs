@@ -487,6 +487,38 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
+    [Test]
+    [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
+    [TestCase(100)]
+    [TestCase(512 * 1024)]
+    public async Task Disposing_the_server_connection_completes_ReadsClosed_on_streams(int payloadSize)
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        var payload = new ReadOnlySequence<byte>(new byte[payloadSize]);
+        _ = sut.LocalStream.Output.WriteAsync(payload, endStream: true, CancellationToken.None).AsTask();
+        _ = sut.RemoteStream.Output.WriteAsync(payload, endStream: true, CancellationToken.None).AsTask();
+
+        await Task.Delay(100); // Ensures that the EOS is received by the remote stream.
+
+        // Act
+        await serverConnection.DisposeAsync();
+
+        // Assert
+        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+
+        CompleteStreams(sut);
+    }
+
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
     /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
     /// </param>
@@ -657,10 +689,10 @@ public abstract class MultiplexedTransportConformanceTests
         async Task ClientReadWriteAsync()
         {
             IMultiplexedStream stream = await clientConnection.CreateStreamAsync(true, default);
-            streams.Add(stream);
             await stream.Output.WriteAsync(payload);
             lock (mutex)
             {
+                streams.Add(stream);
                 streamCount++;
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
@@ -751,10 +783,10 @@ public abstract class MultiplexedTransportConformanceTests
         async Task ClientWriteAsync()
         {
             IMultiplexedStream stream = await clientConnection.CreateStreamAsync(false, default);
-            streams.Add(stream);
             await stream.Output.WriteAsync(payload);
             lock (mutex)
             {
+                streams.Add(stream);
                 streamCount++;
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
@@ -1231,7 +1263,6 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    [Ignore("see issue #1939")]
     public async Task Stream_read_returns_canceled_read_result_on_cancel_pending_read()
     {
         // Arrange
@@ -1251,16 +1282,36 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         ReadResult readResult1 = await readTask;
-        await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
-        ReadResult readResult2 = await sut.LocalStream.Input.ReadAsync();
 
-        Assert.Multiple(() =>
+        try
         {
-            Assert.That(readResult1.IsCanceled, Is.True);
-            Assert.That(readResult1.IsCompleted, Is.False);
-            Assert.That(readResult2.IsCanceled, Is.False);
-            Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
-        });
+            await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
+            // successful completion is an acceptable behavior
+        }
+        catch (IceRpcProtocolStreamException exception) when (exception.ErrorCode == IceRpcStreamErrorCode.Canceled)
+        {
+            // acceptable behavior (and that's what Quic does)
+        }
+
+        ReadResult? readResult2 = null;
+        try
+        {
+            readResult2 = await sut.LocalStream.Input.ReadAsync();
+        }
+        catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.ConnectionReset)
+        {
+            // acceptable behavior (and that's what Quic does)
+            // TODO: unexpected error code
+        }
+
+        Assert.That(readResult1.IsCanceled, Is.True);
+        Assert.That(readResult1.IsCompleted, Is.False);
+
+        if (readResult2 is not null)
+        {
+            Assert.That(readResult2.Value.IsCanceled, Is.False);
+            Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
+        }
 
         CompleteStreams(sut);
     }
@@ -1421,7 +1472,38 @@ public abstract class MultiplexedTransportConformanceTests
         });
 
         CompleteStreams(sut);
-}
+    }
+
+    [Test]
+    public async Task Stream_write_empty_buffer_is_noop()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Act
+        await sut.LocalStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty);
+
+        // We read at least 2 (instead of a plain read) otherwise with Quic, readResult.IsCompleted is false because
+        // we get IsCompleted=true only when a _second_ call reads 0 bytes from the underlying QuicStream.
+        Task<ReadResult> task = sut.RemoteStream.Input.ReadAtLeastAsync(2).AsTask();
+        await ((ReadOnlySequencePipeWriter)sut.LocalStream.Output)
+            .WriteAsync(new ReadOnlySequence<byte>(_oneBytePayload), endStream: true, default);
+        ReadResult readResult = await task;
+
+        // Assert
+        Assert.That(readResult.IsCompleted, Is.True);
+        Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
+
+        CompleteStreams(sut);
+    }
 
     [Test]
     public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()

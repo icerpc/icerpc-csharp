@@ -71,8 +71,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     public override ValueTask<FlushResult> WriteAsync(
         ReadOnlyMemory<byte> source,
         CancellationToken cancellationToken) =>
-        // Writing an empty buffer completes the stream.
-        WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancellationToken);
+        WriteAsync(new ReadOnlySequence<byte>(source), endStream: false, cancellationToken);
 
     public override async ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
@@ -134,8 +133,16 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 }
             }
 
-            await WriteSequenceAsync(source, completeWrites: endStream, cancellationToken).ConfigureAwait(false);
-            return new FlushResult(isCanceled: false, isCompleted: endStream);
+            if (source.IsEmpty && !endStream)
+            {
+                // Nothing to do; this typically corresponds to a call to FlushAsync when there was no unflushed bytes.
+                return new FlushResult(isCanceled: false, isCompleted: false);
+            }
+            else
+            {
+                await WriteSequenceAsync(source, completeWrites: endStream, cancellationToken).ConfigureAwait(false);
+                return new FlushResult(isCanceled: false, isCompleted: endStream);
+            }
         }
         catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
         {

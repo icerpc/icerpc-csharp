@@ -15,7 +15,7 @@ public static class Program
     static async Task Main(string[] args)
     {
         using var rootCA = new X509Certificate2("../../certs/cacert.der");
-        var authenticationOptions = new SslClientAuthenticationOptions
+        var clientAuthenticationOptions = new SslClientAuthenticationOptions
         {
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
             {
@@ -29,11 +29,8 @@ public static class Program
         };
 
         await using var connection = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1")),
-                ClientAuthenticationOptions = authenticationOptions
-            },
+            new Uri("icerpc://127.0.0.1"),
+            clientAuthenticationOptions,
             multiplexedClientTransport: new QuicClientTransport());
 
         var helloProxy = new HelloProxy(connection);
