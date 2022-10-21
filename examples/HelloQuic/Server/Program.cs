@@ -15,15 +15,12 @@ public static class Program
     static async Task Main()
     {
         var hello = new Hello();
-        int client = 0;
         await using var server = new Server(
             new ServerOptions
             {
                 ServerAuthenticationOptions = new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = new X509Certificate2("../../certs/server.p12", "password"),
-                    ClientCertificateRequired = true,
-                    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => (++client % 2) == 0,
+                    ServerCertificate = new X509Certificate2("../../certs/server.p12", "password")
                 },
                 ConnectionOptions = new ConnectionOptions
                 {
