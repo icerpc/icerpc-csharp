@@ -1,15 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
+using System.Diagnostics;
 using System.Net.Quic;
 using System.Net.Security;
-using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
 
