@@ -100,22 +100,40 @@ public class QuicTransportTests
 
         var clientTransport = new QuicClientTransport();
         await using var connection1 = new ClientConnection(
-            server.ServerAddress,
-            blockingClientAuthenticationOptions,
+            new ClientConnectionOptions
+            {
+                ConnectTimeout = TimeSpan.FromSeconds(30),
+                ServerAddress = server.ServerAddress,
+                ClientAuthenticationOptions = blockingClientAuthenticationOptions
+            },
             multiplexedClientTransport: clientTransport);
 
         await using var connection2 = new ClientConnection(
-            server.ServerAddress,
-            clientAuthenticationOptions,
+            new ClientConnectionOptions
+            {
+                ConnectTimeout = TimeSpan.FromSeconds(30),
+                ServerAddress = server.ServerAddress,
+                ClientAuthenticationOptions = clientAuthenticationOptions,
+            },
             multiplexedClientTransport: clientTransport);
 
-        var serviceProxy1 = new ServiceProxy(connection1);
-        var serviceProxy2 = new ServiceProxy(connection2);
-
-        _ = serviceProxy1.IcePingAsync();
+        Task<TransportConnectionInformation> connect1Task = connection1.ConnectAsync();
         await tcs.Task;
-        // Act/Assert
-        Assert.That(async () => await serviceProxy2.IcePingAsync(), Throws.Nothing);
+
+        Console.WriteLine("establishing second connection");
+
+        Task<TransportConnectionInformation> connect2Task = connection2.ConnectAsync();
+
+        await Task.Delay(TimeSpan.FromSeconds(15));
+        Console.WriteLine($"connect1Task is completed after 15s: {connect1Task.IsCompleted}");
+        Console.WriteLine($"connect2Task is completed after 15s: {connect2Task.IsCompleted}");
+        Console.WriteLine("releasing semaphore for connect1Task");
         semaphore.Release();
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        Console.WriteLine($"connect1Task is completed after 20s: {connect1Task.IsCompleted}"); // should be true
+        Console.WriteLine($"connect2Task is completed after 20s: {connect2Task.IsCompleted}"); // should be true, is often false
+
+        Assert.That(async () => await connect1Task, Throws.InstanceOf<ConnectionException>());
+        Assert.That(async () => await connect2Task, Throws.InstanceOf<TimeoutException>()); // unexpected
     }
 }
