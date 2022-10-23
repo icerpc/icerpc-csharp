@@ -169,6 +169,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
+                Console.WriteLine("Retrying connect on ODE");
                 // Try again once with the new connection
                 return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -178,6 +179,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
+                Console.WriteLine("retrying connect on ConnectionException");
                 // Try again once with the new connection
                 return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
             }

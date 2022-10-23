@@ -34,17 +34,20 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 // Listener was disposed while accept was in progress
                 throw;
             }
-            catch (QuicException)
+            catch (QuicException exception)
             {
+                Console.WriteLine($"QuicListener retry on QuicException, QuicError = {exception.QuicError}");
                 // There was a problem establishing the connection.
                 // TODO Log this exception
             }
             catch (AuthenticationException)
             {
+                Console.WriteLine("QuicListener retry on AuthenticationException");
                 // The connection was rejected due to an authentication exception.
                 // TODO Log this exception
             }
         }
+        Console.WriteLine("Accepted new Quic connection");
         return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 

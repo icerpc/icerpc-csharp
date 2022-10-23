@@ -135,5 +135,6 @@ public class QuicTransportTests
 
         Assert.That(async () => await connect1Task, Throws.InstanceOf<ConnectionException>());
         Assert.That(async () => await connect2Task, Throws.InstanceOf<TimeoutException>()); // unexpected
+        // Assert.That(async () => await connect2Task, Throws.Nothing);
     }
 }
