@@ -31,6 +31,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
             {
+                Console.WriteLine("QuicListener aborted by OperationAborted");
                 // Listener was disposed while accept was in progress
                 throw;
             }
@@ -45,6 +46,16 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 Console.WriteLine("QuicListener retry on AuthenticationException");
                 // The connection was rejected due to an authentication exception.
                 // TODO Log this exception
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                Console.WriteLine($"QuicListener aborted by OCE with correct token");
+                throw;
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"QuicListener aborted by {exception.GetType()}");
+                throw;
             }
         }
         Console.WriteLine("Accepted new Quic connection");
