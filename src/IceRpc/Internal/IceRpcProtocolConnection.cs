@@ -168,7 +168,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
-            Console.WriteLine($"failed to accept stream, exception = {exception.GetType()}, iServer = {IsServer}, ReadsClosed is completed = {_controlStream.ReadsClosed.IsCompleted}");
+            Console.WriteLine($"failed to accept stream, exception = {exception.GetType()}, iServer = {IsServer}, WritesClosed is completed = {_controlStream.WritesClosed.IsCompleted}");
             throw;
         }
 
