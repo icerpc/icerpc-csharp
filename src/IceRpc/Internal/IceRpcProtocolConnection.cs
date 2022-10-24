@@ -157,26 +157,31 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _readGoAwayTask = Task.Run(
             async () =>
             {
-                IceRpcGoAway goAwayFrame;
                 try
                 {
                     CancellationToken cancellationToken = _tasksCts.Token;
                     await ReceiveControlFrameHeaderAsync(
                         IceRpcControlFrameType.GoAway,
                         cancellationToken).ConfigureAwait(false);
-                    goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
+                    IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
+                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
+                    return goAwayFrame;
                 }
-                catch (Exception exception)
+                catch (TransportException)
                 {
-                    // Abort the remote control stream to trigger its completion with a failure. The _acceptRequests
-                    // task below will abort the connection.
-                    // TODO: if the exception is not a transport exception, the GoAway away is likely bogus. Should we
-                    // simply kill the transport connection is this case since there's a protocol violation?
-                    _remoteControlStream.Abort(exception);
+                    throw; // The connection with peer was lost.
+                }
+                catch (OperationCanceledException)
+                {
+                    throw; // The connection was disposed.
+                }
+                catch
+                {
+                    // Any other failure to read the GoAway frame is considered as a protocol violation. We kill the
+                    // transport connection in this case.
+                    await _transportConnection.DisposeAsync().ConfigureAwait(false);
                     throw;
                 }
-                InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
-                return goAwayFrame;
             },
             CancellationToken.None);
 
