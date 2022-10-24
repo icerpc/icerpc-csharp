@@ -102,7 +102,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             {
                 // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
                 FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                Debug.Assert(!flushResult.IsCanceled); // CancelPendingFlush never called on _pipe.Writer
+                Debug.Assert(!flushResult.IsCanceled); // CancelPendingFlush is never called on _pipe.Writer
                 if (flushResult.IsCompleted)
                 {
                     return new FlushResult(isCanceled: false, isCompleted: true);
