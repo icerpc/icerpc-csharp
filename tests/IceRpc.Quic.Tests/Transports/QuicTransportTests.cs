@@ -8,6 +8,7 @@ using NUnit.Framework;
 using System.Diagnostics;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
 
@@ -58,5 +59,60 @@ public class QuicTransportTests
                 provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 provider.GetRequiredService<SslClientAuthenticationOptions>());
+    }
+
+    /// <summary>Verifies that the local certificate selection callback is used to select the client certificate.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "Certificate validation is not required for this test")]
+    [Test]
+    public async Task Tls_client_certificate_selection_callback_called()
+    {
+        // Arrange
+        using var expectedCertificate = new X509Certificate2("../../../certs/client.p12", "password");
+        X509Certificate? clientCertificate = null;
+        bool localCertificateSelectionCallbackCalled = false;
+        IServiceCollection services = new ServiceCollection().AddQuicTest();
+        services.AddSingleton(
+            new SslServerAuthenticationOptions()
+            {
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
+                ClientCertificateRequired = true,
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                {
+                    clientCertificate = certificate;
+                    return true;
+                }
+            });
+
+        services.AddSingleton(new SslClientAuthenticationOptions
+            {
+                LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) =>
+                {
+                    localCertificateSelectionCallbackCalled = true;
+                    return expectedCertificate;
+                },
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+            });
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act
+
+        // Perform the TLS handshake by calling connect on the client and server connections and wait for the
+        // connection establishment.
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
+        await serverConnection.ConnectAsync(default);
+        await clientConnectTask;
+
+        // Assert
+        Assert.That(localCertificateSelectionCallbackCalled, Is.True);
+        Assert.That(clientCertificate, Is.Not.Null);
+        Assert.That(clientCertificate, Is.EqualTo(expectedCertificate));
     }
 }
