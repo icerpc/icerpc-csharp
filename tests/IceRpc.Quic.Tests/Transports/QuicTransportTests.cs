@@ -8,7 +8,9 @@ using NUnit.Framework;
 using System.Diagnostics;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Transports;
 
@@ -169,5 +171,31 @@ public class QuicTransportTests
         // Assert
         Assert.That(serverCertificateValidationCallback, Is.True);
         Assert.That(clientCertificateValidationCallback, Is.True);
+    }
+
+    /// <summary>Verifies that the client connection establishment fail with <see cref="AuthenticationException" /> when
+    /// the server certificate is not trusted.</summary>
+    [Test]
+    public async Task Tls_server_certificate_not_trusted()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddQuicTest();
+        services.AddSingleton(new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false
+            });
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Start the TLS handshake by calling connect on the client and server connections and wait for the
+        // connection establishment.
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+        await serverConnection.ConnectAsync(default);
+        await clientConnectTask;
+
+        // Act/Assert
+        Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
     }
 }
