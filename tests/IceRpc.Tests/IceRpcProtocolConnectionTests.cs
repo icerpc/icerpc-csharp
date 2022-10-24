@@ -429,7 +429,7 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
     /// <summary>Ensures that the request payload stream is completed on valid request.</summary>

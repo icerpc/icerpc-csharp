@@ -16,7 +16,7 @@ public sealed class DispatchEventSourceTests
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
@@ -41,7 +41,7 @@ public sealed class DispatchEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
@@ -67,7 +67,7 @@ public sealed class DispatchEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
@@ -92,7 +92,7 @@ public sealed class DispatchEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"

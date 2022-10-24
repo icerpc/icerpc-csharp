@@ -922,16 +922,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            var request = new IncomingRequest(_connectionContext!)
-            {
-                Fields = fields,
-                Fragment = requestHeader.Fragment,
-                IsOneway = requestId == 0,
-                Operation = requestHeader.Operation,
-                Path = requestHeader.Path,
-                Payload = requestFrameReader,
-            };
-
             if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
             {
                 // This prevents us from receiving any frame until EnterAsync returns.
@@ -970,19 +960,29 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
                 // cleanup the dispatch if DisposeAsync is called.
-                _ = Task.Run(() => DispatchRequestAsync(request, contextReader), CancellationToken.None);
+                _ = Task.Run(
+                    async () =>
+                    {
+                        using var request = new IncomingRequest(_connectionContext!)
+                        {
+                            Fields = fields,
+                            Fragment = requestHeader.Fragment,
+                            IsOneway = requestId == 0,
+                            Operation = requestHeader.Operation,
+                            Path = requestHeader.Path,
+                            Payload = requestFrameReader,
+                        };
+                        await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
+                    },
+                    CancellationToken.None);
             }
             else
             {
                 // If shutting down or aborted, ignore the incoming request.
-                await request.Payload.CompleteAsync(connectionClosedException).ConfigureAwait(false);
+                await requestFrameReader.CompleteAsync(connectionClosedException).ConfigureAwait(false);
                 if (contextReader is not null)
                 {
                     await contextReader.CompleteAsync().ConfigureAwait(false);
-
-                    // The field values are now invalid - they point to potentially recycled and reused memory. We
-                    // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
-                    request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                 }
             }
 
@@ -1137,7 +1137,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 finally
                 {
-                    request.Complete(completeException);
                     await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
 
                     if (acquiredSemaphore)

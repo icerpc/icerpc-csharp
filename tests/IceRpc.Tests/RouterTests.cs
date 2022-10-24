@@ -71,13 +71,10 @@ public class RouterTests
             }));
 
         router.Mount(path, new InlineDispatcher((current, cancellationToken) => new(new OutgoingResponse(current))));
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = path };
 
         // Act
-        _ = await router.DispatchAsync(
-            new IncomingRequest(FakeConnectionContext.IceRpc)
-            {
-                Path = path
-            });
+        _ = await router.DispatchAsync(request);
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -113,13 +110,10 @@ public class RouterTests
                 currentPath = current.Path;
                 return new(new OutgoingResponse(current));
             }));
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = path };
 
         // Act
-        _ = await router.DispatchAsync(
-            new IncomingRequest(FakeConnectionContext.IceRpc)
-            {
-                Path = path
-            });
+        _ = await router.DispatchAsync(request);
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -181,9 +175,10 @@ public class RouterTests
                     calls.Add("middleware-4");
                     return new(new OutgoingResponse(request));
                 }));
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
 
         // Act
-        _ = await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
+        _ = await router.DispatchAsync(request);
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -256,13 +251,10 @@ public class RouterTests
                     }));
             });
         });
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = path };
 
         // Act
-        _ = await router.DispatchAsync(
-            new IncomingRequest(FakeConnectionContext.IceRpc)
-            {
-                Path = path
-            });
+        _ = await router.DispatchAsync(request);
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -277,8 +269,9 @@ public class RouterTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var router = new Router();
         router.Mount("/", dispatcher);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
 
-        _ = await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
+        _ = await router.DispatchAsync(request);
         return router;
     }
 }

@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 namespace IceRpc;
 
 /// <summary>Represents a request frame received by the application.</summary>
-public sealed class IncomingRequest : IncomingFrame
+public sealed class IncomingRequest : IncomingFrame, IDisposable
 {
     /// <summary>Gets or sets the features of this request.</summary>
     public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
@@ -66,16 +66,15 @@ public sealed class IncomingRequest : IncomingFrame
     {
     }
 
-    /// <summary>Completes the payload of this request, and the response associated with this request (if
-    /// any).</summary>
-    /// <param name="exception">The exception that caused this completion.</param>
-    public void Complete(Exception? exception = null)
+    /// <summary>Disposes this incoming request. This completes the payload of this request and the payload(s) of the
+    /// response associated with this request (if set).</summary>
+    public void Dispose()
     {
-        Payload.Complete(exception);
+        Payload.Complete();
         if (_response is not null)
         {
-            _response.Payload.Complete(exception);
-            _response.PayloadStream?.Complete(exception);
+            _response.Payload.Complete();
+            _response.PayloadStream?.Complete();
         }
     }
 }
