@@ -106,7 +106,7 @@ public class QuicTransportTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
+        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -114,5 +114,56 @@ public class QuicTransportTests
         Assert.That(localCertificateSelectionCallbackCalled, Is.True);
         Assert.That(clientCertificate, Is.Not.Null);
         Assert.That(clientCertificate, Is.EqualTo(expectedCertificate));
+    }
+
+    /// <summary>Verifies that the remote certificate validation callbacks set with the client and server connections
+    /// are used during the tls handshake.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "Certificate validation is not required for this test")]
+    [Test]
+    public async Task Tls_remote_certificate_validation_callback_called()
+    {
+        // Arrange
+        bool serverCertificateValidationCallback = false;
+        bool clientCertificateValidationCallback = false;
+        IServiceCollection services = new ServiceCollection().AddQuicTest();
+        services.AddSingleton(new SslServerAuthenticationOptions()
+            {
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
+                ClientCertificateRequired = true,
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                {
+                    serverCertificateValidationCallback = true;
+                    return true;
+                }
+            });
+
+        services.AddSingleton(new SslClientAuthenticationOptions
+            {
+                ClientCertificates = new X509CertificateCollection()
+                {
+                    new X509Certificate2("../../../certs/client.p12", "password")
+                },
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                {
+                    clientCertificateValidationCallback = true;
+                    return true;
+                }
+            });
+
+        // Act
+
+        // Perform the TLS handshake by calling connect on the client and server connections and wait for the
+        // connection establishment.
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+        await serverConnection.ConnectAsync(default);
+        await clientConnectTask;
+
+        // Assert
+        Assert.That(serverCertificateValidationCallback, Is.True);
+        Assert.That(clientCertificateValidationCallback, Is.True);
     }
 }
