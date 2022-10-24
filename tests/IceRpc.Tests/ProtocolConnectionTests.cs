@@ -320,10 +320,10 @@ public sealed class ProtocolConnectionTests
         {
             Assert.That(
                 TimeSpan.FromMilliseconds(clientIdleCalledTime!.Value),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
             Assert.That(
                 TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
         });
 
         async Task WaitForClientConnectionAsync()
@@ -1113,8 +1113,8 @@ public sealed class ProtocolConnectionTests
         else
         {
             await sut.Server.DisposeAsync();
-            TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await invokeTask);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
+            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
         }
     }
 

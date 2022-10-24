@@ -283,11 +283,6 @@ internal class TcpClientConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-
-            return new TransportConnectionInformation(
-                localNetworkAddress: Socket.LocalEndPoint!,
-                remoteNetworkAddress: Socket.RemoteEndPoint!,
-                _sslStream?.RemoteCertificate);
         }
         catch (AuthenticationException)
         {
@@ -310,6 +305,19 @@ internal class TcpClientConnection : TcpConnection
         catch (Exception exception)
         {
             throw exception.ToTransportException();
+        }
+
+        try
+        {
+            // Connection was reset if we can't get the local/remote endpoint of the socket.
+            return new TransportConnectionInformation(
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
+                _sslStream?.RemoteCertificate);
+        }
+        catch (Exception exception)
+        {
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
     }
 
@@ -393,11 +401,6 @@ internal class TcpServerConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-
-            return new TransportConnectionInformation(
-                localNetworkAddress: Socket.LocalEndPoint!,
-                remoteNetworkAddress: Socket.RemoteEndPoint!,
-                _sslStream?.RemoteCertificate);
         }
         catch (AuthenticationException)
         {
@@ -420,6 +423,19 @@ internal class TcpServerConnection : TcpConnection
         catch (Exception exception)
         {
             throw exception.ToTransportException();
+        }
+
+        try
+        {
+            // Connection was reset if we can't get the local/remote endpoint of the socket.
+            return new TransportConnectionInformation(
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
+                _sslStream?.RemoteCertificate);
+        }
+        catch (Exception exception)
+        {
+            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
     }
 
