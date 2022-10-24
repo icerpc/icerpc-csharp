@@ -331,13 +331,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         OutgoingRequest request,
         CancellationToken cancellationToken)
     {
-        int requestId = 0;
-        TaskCompletionSource<PipeReader>? responseCompletionSource = null;
-        PipeWriter payloadWriter = _payloadWriter;
-        PipeReader? frameReader = null;
-
         CancellationTokenSource? cts = null;
-        Exception? completeException = null;
 
         lock (_mutex)
         {
@@ -356,6 +350,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 cancellationToken);
         }
 
+        PipeReader? frameReader = null;
+        int requestId = 0;
+        Exception? completeException = null;
         try
         {
             if (request.PayloadStream is not null)
@@ -373,6 +370,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
             // serialize the writing of frames.
             await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
+            PipeWriter payloadWriter = _payloadWriter;
+            TaskCompletionSource<PipeReader>? responseCompletionSource = null;
             try
             {
                 // Assign the request ID for twoway invocations and keep track of the invocation for receiving the

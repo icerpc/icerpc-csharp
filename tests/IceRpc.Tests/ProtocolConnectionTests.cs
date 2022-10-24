@@ -262,13 +262,10 @@ public sealed class ProtocolConnectionTests
         await Task.WhenAll(WaitForClientConnectionAsync(), WaitForServerConnectionAsync());
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(clientIdleCalledTime, Is.Not.Null);
-            Assert.That(serverIdleCalledTime, Is.Not.Null);
-            Assert.That(clientIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
-            Assert.That(serverIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
-        });
+        Assert.That(clientIdleCalledTime, Is.Not.Null);
+        Assert.That(serverIdleCalledTime, Is.Not.Null);
+        Assert.That(clientIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(serverIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
 
         async Task WaitForClientConnectionAsync()
         {
@@ -316,15 +313,12 @@ public sealed class ProtocolConnectionTests
         await Task.WhenAll(clientTask, serverTask);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(
-                TimeSpan.FromMilliseconds(clientIdleCalledTime!.Value),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
-            Assert.That(
-                TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
-        });
+        Assert.That(
+            TimeSpan.FromMilliseconds(clientIdleCalledTime!.Value),
+            Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
+        Assert.That(
+            TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
+            Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
 
         async Task WaitForClientConnectionAsync()
         {
@@ -500,19 +494,13 @@ public sealed class ProtocolConnectionTests
         await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Act/Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(disposeTask.IsCompleted, Is.False);
-            Assert.That(connectTask.IsCompleted, Is.False);
-        });
+        Assert.That(disposeTask.IsCompleted, Is.False);
+        Assert.That(connectTask.IsCompleted, Is.False);
 
         await sut.AcceptAsync();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await connectTask, Throws.Nothing);
-            Assert.That(async () => await disposeTask, Throws.Nothing);
-        });
+        Assert.That(async () => await connectTask, Throws.Nothing);
+        Assert.That(async () => await disposeTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see
@@ -850,11 +838,8 @@ public sealed class ProtocolConnectionTests
         _ = await sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(field, Is.Not.Null);
-            Assert.That(DecodeField(), Is.EqualTo(expectedValue));
-        });
+        Assert.That(field, Is.Not.Null);
+        Assert.That(DecodeField(), Is.EqualTo(expectedValue));
 
         Dictionary<string, string> DecodeField()
         {
@@ -1016,11 +1001,8 @@ public sealed class ProtocolConnectionTests
         // Assert
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
-        Assert.Multiple(() =>
-        {
-            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
-            Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
-        });
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
+        Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
     }
 
     /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if
@@ -1141,11 +1123,8 @@ public sealed class ProtocolConnectionTests
         Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(invokeTask.IsCompleted, Is.False);
-            Assert.That(shutdownTask.IsCompleted, Is.False);
-        });
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        Assert.That(shutdownTask.IsCompleted, Is.False);
         dispatcher.ReleaseDispatch();
 
         Assert.That(async () => await invokeTask, Throws.Nothing);
