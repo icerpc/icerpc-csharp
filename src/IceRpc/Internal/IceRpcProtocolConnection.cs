@@ -44,7 +44,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _tasksCts = new();
-    private Task? _waitForConnectionFailure;
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
@@ -169,8 +168,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // Abort the remote control stream to trigger its completion with a failure. The
-                    // _waitForConnectionFailure task below will abort the connection.
+                    // Abort the remote control stream to trigger its completion with a failure. The _acceptRequests
+                    // task below will abort the connection.
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
@@ -179,13 +178,42 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to detect connection failures.
-        _waitForConnectionFailure = Task.Run(
+        // Start a task to start accepting requests.
+        _acceptRequestsTask = Task.Run(
             async () =>
             {
                 try
                 {
-                    await _remoteControlStream!.InputClosed.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+                    while (true)
+                    {
+                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                        {
+                            await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+                        }
+
+                        IMultiplexedStream stream;
+
+                        try
+                        {
+                            stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
+                                .ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            _dispatchSemaphore?.Release();
+                            throw;
+                        }
+
+                        try
+                        {
+                            // AcceptRequestAsync is responsible to release the dispatch semaphore.
+                            await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
+                        }
+                        catch (IceRpcProtocolStreamException)
+                        {
+                            // A stream failure is not a fatal connection error; we can continue accepting new requests.
+                        }
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -218,54 +246,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to start accepting requests if a dispatcher is set.
-        if (_dispatcher is not null)
-        {
-            _acceptRequestsTask = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        while (true)
-                        {
-                            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                            {
-                                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-                            }
-
-                            IMultiplexedStream stream;
-
-                            try
-                            {
-                                stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
-                                    .ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                _dispatchSemaphore?.Release();
-                                throw;
-                            }
-
-                            try
-                            {
-                                // AcceptRequestAsync is responsible to release the dispatch semaphore.
-                                await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
-                            }
-                            catch (IceRpcProtocolStreamException)
-                            {
-                                // A stream failure is not a fatal connection error; we can continue accepting new
-                                // requests.
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore connection failures here, this is handled by the _waitForConnectionFailure task.
-                    }
-                },
-                CancellationToken.None);
-        }
-
         return transportConnectionInformation;
     }
 
@@ -278,8 +258,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             await Task.WhenAll(
                 _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask,
-                _waitForConnectionFailure ?? Task.CompletedTask).ConfigureAwait(false);
+                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
         }
         catch
         {
