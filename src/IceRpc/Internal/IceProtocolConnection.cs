@@ -33,7 +33,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
-    private Exception? _invocationCanceledException;
     private int _dispatchCount;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -148,28 +147,23 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override void CancelDispatchesAndInvocations(Exception exception)
+    private protected override void CancelDispatchesAndInvocations()
     {
-        lock (_mutex)
+        if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            if (_invocationCanceledException is not null)
+            // Cancel dispatches and invocations for a speedy shutdown.
+            _dispatchesAndInvocationsCts.Cancel();
+
+            lock (_mutex)
             {
-                return;
-            }
+                _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
-            _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
-
-            // Set the abort exception for invocations.
-            _invocationCanceledException = exception;
-
-            if (_invocations.Count == 0 && _dispatchCount == 0)
-            {
-                _dispatchesAndInvocationsCompleted.TrySetResult();
+                if (_invocations.Count == 0 && _dispatchCount == 0)
+                {
+                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                }
             }
         }
-
-        // Cancel dispatches and invocations for a speedy shutdown.
-        _dispatchesAndInvocationsCts.Cancel();
     }
 
     private protected override bool CheckIfIdle()
@@ -232,7 +226,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _readFramesTask = Task.Run(
             async () =>
             {
-                Exception? completeException = null;
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
@@ -266,7 +259,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // This can occur if DisposeAsync is called. This can only be called on a connected connection so
                     // ConnectionClosedException should always be set at this point.
                     Debug.Assert(ConnectionClosedException is not null);
-                    completeException = new ConnectionException(ConnectionErrorCode.OperationAborted);
                 }
                 catch (Exception exception)
                 {
@@ -277,7 +269,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Notify the ConnectionLost callback.
                     ConnectionLost(exception);
-                    completeException = exception;
                 }
                 finally
                 {
@@ -286,8 +277,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
                     // be running.
-                    Debug.Assert(ConnectionClosedException is not null);
-                    CancelDispatchesAndInvocations(completeException ?? ConnectionClosedException);
+                    CancelDispatchesAndInvocations();
                 }
             },
             CancellationToken.None);
@@ -324,7 +314,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _duplexConnection.Dispose();
 
         // Cancel dispatches and invocations.
-        CancelDispatchesAndInvocations(exception);
+        CancelDispatchesAndInvocations();
 
         // Next, wait for dispatches and invocations to complete.
         await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
@@ -341,10 +331,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         OutgoingRequest request,
         CancellationToken cancellationToken)
     {
-        bool acquiredSemaphore = false;
         int requestId = 0;
         TaskCompletionSource<PipeReader>? responseCompletionSource = null;
         PipeWriter payloadWriter = _payloadWriter;
+        PipeReader? frameReader = null;
 
         CancellationTokenSource? cts = null;
         Exception? completeException = null;
@@ -383,91 +373,69 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
             // serialize the writing of frames.
             await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
-            acquiredSemaphore = true;
-
-            // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
-            // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
-            // canceled request to allocate a request ID that won't be used.
-            if (!request.IsOneway)
+            try
             {
-                lock (_mutex)
+                // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+                // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
+                // canceled request to allocate a request ID that won't be used.
+                if (!request.IsOneway)
                 {
-                    if (_isReadOnly)
+                    lock (_mutex)
                     {
-                        Debug.Assert(ConnectionClosedException is not null);
-                        throw ConnectionClosedException;
-                    }
-                    else
-                    {
-                        if (_invocations.Count == 0 && _dispatchCount == 0)
+                        if (_isReadOnly)
                         {
-                            DisableIdleCheck();
+                            Debug.Assert(ConnectionClosedException is not null);
+                            throw ConnectionClosedException;
                         }
+                        else
+                        {
+                            if (_invocations.Count == 0 && _dispatchCount == 0)
+                            {
+                                DisableIdleCheck();
+                            }
 
-                        requestId = ++_nextRequestId;
-                        responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                        _invocations[requestId] = responseCompletionSource;
+                            requestId = ++_nextRequestId;
+                            responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                            _invocations[requestId] = responseCompletionSource;
+                        }
                     }
                 }
+
+                EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
+
+                payloadWriter = request.GetPayloadWriter(payloadWriter);
+
+                // The writing of the request can only be canceled if the connection is disposed.
+                FlushResult flushResult = await payloadWriter.WriteAsync(
+                    payload,
+                    endStream: false,
+                    _tasksCts.Token).ConfigureAwait(false);
+
+                // If a payload writer decorator returns a canceled or completed flush result, we have to throw
+                // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
+                // payload to be sent over the connection.
+                if (flushResult.IsCanceled || flushResult.IsCompleted)
+                {
+                    throw new NotSupportedException(
+                        "payload writer cancellation or completion is not supported with the ice protocol");
+                }
+
+                await request.Payload.CompleteAsync().ConfigureAwait(false);
             }
-
-            EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
-
-            payloadWriter = request.GetPayloadWriter(payloadWriter);
-
-            // The writing of the request can only be canceled if the connection is disposed.
-            FlushResult flushResult = await payloadWriter.WriteAsync(
-                payload,
-                endStream: false,
-                _tasksCts.Token).ConfigureAwait(false);
-
-            // If a payload writer decorator returns a canceled or completed flush result, we have to throw
-            // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
-            // payload to be sent over the connection.
-            if (flushResult.IsCanceled || flushResult.IsCompleted)
+            finally
             {
-                throw new NotSupportedException(
-                    "payload writer cancellation or completion is not supported with the ice protocol");
-            }
+                await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
 
-            await request.Payload.CompleteAsync().ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
-        {
-            completeException = _invocationCanceledException;
-            throw completeException;
-        }
-        catch (Exception exception)
-        {
-            completeException = exception;
-            throw;
-        }
-        finally
-        {
-            if (completeException is not null)
-            {
-                UnregisterInvocation();
-
-                cts?.Dispose();
-            }
-
-            await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
-
-            if (acquiredSemaphore)
-            {
                 _writeSemaphore.Release();
             }
-        }
 
-        // Wait to receive the response.
-        PipeReader? frameReader = null;
-        try
-        {
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
                 return new IncomingResponse(request, _connectionContext!);
             }
+
+            // Wait to receive the response.
 
             Debug.Assert(responseCompletionSource is not null);
             try
@@ -506,7 +474,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
 
                 // Sanity check
-                int payloadSize = encapsulationHeader.EncapsulationSize - 6;
+                payloadSize = encapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != readResult.Buffer.Length - headerSize)
                 {
                     throw new InvalidDataException(
@@ -541,21 +509,67 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             };
         }
-        catch (OperationCanceledException) when (_invocationCanceledException is not null)
+        catch (OperationCanceledException exception)
         {
-            completeException = _invocationCanceledException;
-            throw completeException;
+            if (_dispatchesAndInvocationsCts.IsCancellationRequested)
+            {
+                if (ConnectionClosedException is ConnectionException connectionException &&
+                    connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
+                {
+                    // If the connection was lost, report a transport error.
+                    throw new ConnectionException(
+                        ConnectionErrorCode.TransportError,
+                        connectionException.InnerException);
+                }
+                else
+                {
+                    // Otherwise, the invocation was canceled because of a speedy-shutdown.
+                    throw new ConnectionException(ConnectionErrorCode.OperationAborted);
+                }
+            }
+            else
+            {
+                completeException = exception;
+                throw;
+            }
+        }
+        catch (ConnectionException exception)
+        {
+            completeException = exception;
+            throw;
+        }
+        catch (TransportException exception)
+        {
+            completeException = exception;
+            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
         }
         catch (Exception exception)
         {
             completeException = exception;
-            throw;
+            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
         }
         finally
         {
             if (!request.IsOneway)
             {
-                UnregisterInvocation();
+                // Unregister the invocation.
+                lock (_mutex)
+                {
+                    if (_invocations.Remove(requestId))
+                    {
+                        if (_invocations.Count == 0 && _dispatchCount == 0)
+                        {
+                            if (_isReadOnly)
+                            {
+                                _dispatchesAndInvocationsCompleted.TrySetResult();
+                            }
+                            else
+                            {
+                                EnableIdleCheck();
+                            }
+                        }
+                    }
+                }
             }
 
             cts?.Dispose();
@@ -563,27 +577,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (completeException is not null && frameReader is not null)
             {
                 await frameReader.CompleteAsync(completeException).ConfigureAwait(false);
-            }
-        }
-
-        void UnregisterInvocation()
-        {
-            lock (_mutex)
-            {
-                if (_invocations.Remove(requestId))
-                {
-                    if (_invocations.Count == 0 && _dispatchCount == 0)
-                    {
-                        if (_isReadOnly)
-                        {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
-                        }
-                        else
-                        {
-                            EnableIdleCheck();
-                        }
-                    }
-                }
             }
         }
 
