@@ -169,7 +169,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (TransportException)
                 {
-                    throw; // The connection with peer was lost.
+                    throw; // The connection with the peer was lost.
                 }
                 catch (OperationCanceledException)
                 {
