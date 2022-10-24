@@ -31,30 +31,30 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
             {
-                Console.WriteLine("QuicListener aborted by OperationAborted");
+                Console.WriteLine($"{DateTime.Now} QuicListener aborted by OperationAborted");
                 // Listener was disposed while accept was in progress
                 throw;
             }
             catch (QuicException exception)
             {
-                Console.WriteLine($"QuicListener retry on QuicException, QuicError = {exception.QuicError}");
+                Console.WriteLine($"{DateTime.Now} QuicListener retry on QuicException, QuicError = {exception.QuicError}");
                 // There was a problem establishing the connection.
                 // TODO Log this exception
             }
             catch (AuthenticationException)
             {
-                Console.WriteLine("QuicListener retry on AuthenticationException");
+                Console.WriteLine($"{DateTime.Now} QuicListener retry on AuthenticationException");
                 // The connection was rejected due to an authentication exception.
                 // TODO Log this exception
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
-                Console.WriteLine($"QuicListener aborted by OCE with correct token");
+                Console.WriteLine($"{DateTime.Now} QuicListener aborted by OCE with correct token");
                 throw;
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine($"QuicListener caught OCE with wrong token, retrying now={DateTime.Now}");
+                Console.WriteLine($"{DateTime.Now} QuicListener caught OCE with wrong token, retrying");
             }
             catch (Exception exception)
             {
@@ -62,7 +62,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 throw;
             }
         }
-        Console.WriteLine("QuicListener accepted new Quic connection");
+        Console.WriteLine($"{DateTime.Now} QuicListener accepted new Quic connection");
         return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 

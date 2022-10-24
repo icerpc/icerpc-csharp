@@ -118,16 +118,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         TransportConnectionInformation transportConnectionInformation;
         try
         {
-            Console.WriteLine($"Calling connectAsync on transport connection isServer = {IsServer}");
+            Console.WriteLine($"{DateTime.Now} Calling connectAsync on transport connection isServer = {IsServer}");
             transportConnectionInformation = await _transportConnection.ConnectAsync(
                 cancellationToken).ConfigureAwait(false);
-            Console.WriteLine($"ConnectAsync completed on transport connection isServer = {IsServer}: success");
+            Console.WriteLine($"{DateTime.Now} ConnectAsync completed on transport connection isServer = {IsServer}: success");
         }
         catch (TransportException exception) when (
             exception.ApplicationErrorCode is ulong errorCode &&
             errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
         {
-            Console.WriteLine($"ConnectAsync failed on transport connection isServer = {IsServer}: connection refused");
+            Console.WriteLine($"{DateTime.Now} ConnectAsync failed on transport connection isServer = {IsServer}: connection refused");
             ConnectionClosedException = new(
                 ConnectionErrorCode.ClosedByPeer,
                 "the connection establishment was refused");
@@ -136,7 +136,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            Console.WriteLine($"ConnectAsync on transport connection isServer = {IsServer}: other failure");
+            Console.WriteLine($"{DateTime.Now} ConnectAsync on transport connection isServer = {IsServer}: other failure");
             throw;
         }
 
@@ -145,7 +145,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         _controlStream = await _transportConnection.CreateStreamAsync(false, cancellationToken).ConfigureAwait(false);
 
-        Console.WriteLine($"created control stream to peer, isServer = {IsServer}");
+        Console.WriteLine($"{DateTime.Now} created control stream to peer, isServer = {IsServer}");
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -160,7 +160,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             settings.Encode,
             cancellationToken).ConfigureAwait(false);
 
-        Console.WriteLine($"sent Settings successfully, isServer = {IsServer}");
+        Console.WriteLine($"{DateTime.Now} sent Settings successfully, isServer = {IsServer}");
 
         try
         {
@@ -170,21 +170,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
-            Console.WriteLine($"failed to accept stream, exception = {exception.GetType()}, iServer = {IsServer}, WritesClosed is completed = {_controlStream.WritesClosed.IsCompleted}");
+            Console.WriteLine($"{DateTime.Now} failed to accept stream, exception = {exception.GetType()}, iServer = {IsServer}, WritesClosed is completed = {_controlStream.WritesClosed.IsCompleted}");
             throw;
         }
 
-        Console.WriteLine($"accepted remote control stream, isServer = {IsServer}");
+        Console.WriteLine($"{DateTime.Now} accepted remote control stream, isServer = {IsServer}");
 
         await ReceiveControlFrameHeaderAsync(
             IceRpcControlFrameType.Settings,
             cancellationToken).ConfigureAwait(false);
 
-        Console.WriteLine($"received Settings header isServer = {IsServer}");
+        Console.WriteLine($"{DateTime.Now} received Settings header isServer = {IsServer}");
 
         await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
 
-        Console.WriteLine($"received Settings body isServer = {IsServer}");
+        Console.WriteLine($"{DateTime.Now} received Settings body isServer = {IsServer}");
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.
         _readGoAwayTask = Task.Run(
