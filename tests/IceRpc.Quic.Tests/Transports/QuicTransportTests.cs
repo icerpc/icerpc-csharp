@@ -191,11 +191,8 @@ public class QuicTransportTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
-        await serverConnection.ConnectAsync(default);
-        await clientConnectTask;
 
         // Act/Assert
-        Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await clientConnectTask, Throws.TypeOf<TransportException>());
     }
 }
