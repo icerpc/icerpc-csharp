@@ -16,7 +16,7 @@ public sealed class InvocationEventSourceTests
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestStart(request);
 
@@ -38,7 +38,7 @@ public sealed class InvocationEventSourceTests
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestStop(request, ResultType.Success, 0);
 
@@ -61,7 +61,7 @@ public sealed class InvocationEventSourceTests
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestCancel(request);
 
@@ -83,7 +83,7 @@ public sealed class InvocationEventSourceTests
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var ex = new InvalidOperationException("Op");
 
         eventSource.RequestFailure(request, ex);

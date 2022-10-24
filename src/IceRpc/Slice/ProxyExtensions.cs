@@ -94,22 +94,23 @@ public static class ProxyExtensions
             PayloadStream = payloadStream
         };
 
+        Task<IncomingResponse> responseTask;
         try
         {
-            // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancellationToken), request);
+            responseTask = invoker.InvokeAsync(request, cancellationToken);
         }
-        catch (Exception exception)
+        catch
         {
-            // synchronous exception throws by InvokeAsync
-            request.Complete(exception);
+            // synchronous exception thrown by InvokeAsync
+            request.Dispose();
             throw;
         }
-        // if the call succeeds, ReadResponseAsync is responsible for completing the request
+
+        // ReadResponseAsync is responsible for disposing the request
+        return ReadResponseAsync(responseTask, request);
 
         async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
         {
-            Exception? exception = null;
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
@@ -119,14 +120,9 @@ public static class ProxyExtensions
                     new ServiceProxy(invoker, proxy.ServiceAddress, proxy.EncodeOptions),
                     cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                exception = ex;
-                throw;
-            }
             finally
             {
-                request.Complete(exception);
+                request.Dispose();
             }
         }
     }
@@ -183,22 +179,23 @@ public static class ProxyExtensions
             PayloadStream = payloadStream
         };
 
+        Task<IncomingResponse> responseTask;
         try
         {
-            // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancellationToken), request);
+            responseTask = invoker.InvokeAsync(request, cancellationToken);
         }
-        catch (Exception exception)
+        catch
         {
             // synchronous exception thrown by InvokeAsync
-            request.Complete(exception);
+            request.Dispose();
             throw;
         }
-        // if the call succeeds, ReadResponseAsync is responsible for completing the request
+
+        // ReadResponseAsync is responsible for disposing the request
+        return ReadResponseAsync(responseTask, request);
 
         async Task ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
         {
-            Exception? exception = null;
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
@@ -210,14 +207,9 @@ public static class ProxyExtensions
                     defaultActivator,
                     cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                exception = ex;
-                throw;
-            }
             finally
             {
-                request.Complete(exception);
+                request.Dispose();
             }
         }
     }

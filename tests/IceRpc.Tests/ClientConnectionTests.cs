@@ -106,7 +106,7 @@ public class ClientConnectionTests
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
-        var request = new OutgoingRequest(new ServiceAddress(protocol));
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act/Assert
         Assert.That(async () => await connection.InvokeAsync(request), Throws.Nothing);

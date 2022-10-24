@@ -45,7 +45,7 @@ public class InvokeAsyncTests
     /// <summary>Verifies that InvokeAsync completes the request payload and payload stream when an exception is thrown
     /// "on the way out".</summary>
     [Test]
-    public async Task InvokeAsync_completes_all_payloads_on_outgoing_exception()
+    public void InvokeAsync_completes_all_payloads_on_outgoing_exception()
     {
         var sut = new ServiceProxy
         {
@@ -67,9 +67,7 @@ public class InvokeAsyncTests
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
 
-        Assert.That(requestPayload.Completed.IsCompleted, Is.True);
-        Assert.That(requestPayloadStream.Completed.IsCompleted, Is.True);
-        Assert.That(await requestPayload.Completed, Is.TypeOf<InvalidDataException>());
-        Assert.That(await requestPayloadStream.Completed, Is.TypeOf<InvalidDataException>());
+        Assert.That(requestPayload.Completed.IsCompletedSuccessfully, Is.True);
+        Assert.That(requestPayloadStream.Completed.IsCompletedSuccessfully, Is.True);
     }
 }

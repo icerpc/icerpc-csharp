@@ -50,7 +50,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory.CreateLogger<RetryInterceptor>());
 
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -83,7 +83,7 @@ public sealed class RetryInterceptorTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act/Assert
         Assert.That(async () => await sut.InvokeAsync(request, default), Throws.TypeOf(exception.GetType()));
@@ -107,7 +107,7 @@ public sealed class RetryInterceptorTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
@@ -148,7 +148,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -188,7 +188,7 @@ public sealed class RetryInterceptorTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
@@ -213,7 +213,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttempts }, NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var request = new OutgoingRequest(serviceAddress)
+        using var request = new OutgoingRequest(serviceAddress)
         {
             Operation = "Op"
         };
@@ -242,7 +242,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -280,7 +280,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -318,7 +318,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var request = new OutgoingRequest(serviceAddress)
+        using var request = new OutgoingRequest(serviceAddress)
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
             {
@@ -379,7 +379,7 @@ public sealed class RetryInterceptorTests
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 }, NullLogger.Instance);
 
-        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
+        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act

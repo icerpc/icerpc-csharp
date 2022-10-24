@@ -64,7 +64,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
@@ -102,7 +102,7 @@ public sealed class IceProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var request = new OutgoingRequest(serviceAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         // Act
         var response = await sut.Client.InvokeAsync(request);
@@ -130,7 +130,7 @@ public sealed class IceProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
         var response = await sut.Client.InvokeAsync(request);
@@ -140,9 +140,6 @@ public sealed class IceProtocolConnectionTests
         var exception = await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client)) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
-
-        // Cleanup
-        request.Complete();
     }
 
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support
@@ -164,9 +161,10 @@ public sealed class IceProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
+        _ = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());

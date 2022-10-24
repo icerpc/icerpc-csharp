@@ -166,7 +166,7 @@ public sealed class ProtocolBridgingTests
 
             Protocol targetProtocol = _target.ServiceAddress.Protocol!;
 
-            var outgoingRequest = new OutgoingRequest(_target.ServiceAddress)
+            using var outgoingRequest = new OutgoingRequest(_target.ServiceAddress)
             {
                 IsOneway = request.IsOneway,
                 Operation = request.Operation,
@@ -194,6 +194,7 @@ public sealed class ProtocolBridgingTests
             }
 
             // Don't forward RetryPolicy
+            // TODO: copy fields memory?
             var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
                     incomingResponse.Fields.Select(
                         pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
@@ -204,7 +205,7 @@ public sealed class ProtocolBridgingTests
             return new OutgoingResponse(request)
             {
                 Fields = fields,
-                Payload = incomingResponse.Payload,
+                Payload = incomingResponse.DetachPayload(),
                 ResultType = incomingResponse.ResultType
             };
         }

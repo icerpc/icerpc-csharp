@@ -22,7 +22,7 @@ public sealed class MetricsInterceptorTests
             ("canceled-requests", "1"),
             ("current-requests", "0"));
         using var eventSource = new InvocationEventSource(name);
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
         var sut = new MetricsInterceptor(invoker, eventSource);
 
         try
@@ -50,7 +50,7 @@ public sealed class MetricsInterceptorTests
             ("failed-requests", "1"),
             ("current-requests", "0"));
         using var eventSource = new InvocationEventSource(name);
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
         var sut = new MetricsInterceptor(invoker, eventSource);
 
         try
@@ -78,7 +78,7 @@ public sealed class MetricsInterceptorTests
             ("total-requests", "1"),
             ("current-requests", "0"));
         using var eventSource = new InvocationEventSource(name);
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
         var sut = new MetricsInterceptor(invoker, eventSource);
 
         await sut.InvokeAsync(request, default);
