@@ -68,7 +68,7 @@ public class QuicTransportTests
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
-        Justification = "Certificate validation is not required for this test")]
+        Justification = "Server certificate validation is not required for this test")]
     [Test]
     public async Task Tls_client_certificate_not_trusted()
     {
