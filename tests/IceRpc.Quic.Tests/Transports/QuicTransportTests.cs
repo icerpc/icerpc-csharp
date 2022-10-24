@@ -152,6 +152,8 @@ public class QuicTransportTests
                     return true;
                 }
             });
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
