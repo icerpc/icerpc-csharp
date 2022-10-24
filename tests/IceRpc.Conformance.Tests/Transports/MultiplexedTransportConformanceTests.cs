@@ -62,11 +62,9 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         TransportException ex = Assert.ThrowsAsync<TransportException>(async () => await acceptStreams)!;
-        Assert.Multiple(() =>
-        {
-            Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-            Assert.That(ex.ApplicationErrorCode, Is.EqualTo(2ul));
-        });
+        Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(ex.ApplicationErrorCode, Is.EqualTo(2ul));
+
     }
 
     /// <summary>Verifies that accept stream calls can be canceled.</summary>
@@ -134,11 +132,8 @@ public abstract class MultiplexedTransportConformanceTests
         await serverStream.Input.CompleteAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(isCompleted, Is.False);
-            Assert.That(async () => await lastStreamTask, Throws.Nothing);
-        });
+        Assert.That(isCompleted, Is.False);
+        Assert.That(async () => await lastStreamTask, Throws.Nothing);
 
         CompleteStreams(streams);
         CompleteStream(await lastStreamTask);
@@ -205,18 +200,13 @@ public abstract class MultiplexedTransportConformanceTests
         // Act/Assert
         exception = Assert.ThrowsAsync<TransportException>(
             () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.Multiple(() =>
-        {
-            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-            Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
-        });
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
+
         exception = Assert.ThrowsAsync<TransportException>(
             () => peerConnection.CreateStreamAsync(true, default).AsTask());
-        Assert.Multiple(() =>
-        {
-            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-            Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
-        });
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
@@ -374,12 +364,9 @@ public abstract class MultiplexedTransportConformanceTests
         _ = WriteDataAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
-            Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
-        });
+        Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
+        Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
+        Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -575,13 +562,11 @@ public abstract class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await localStream.ReadsClosed, Throws.TypeOf<TransportException>());
-            Assert.That(async () => await localStream.WritesClosed, Throws.TypeOf<TransportException>());
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.TypeOf<TransportException>());
-            Assert.That(async () => await remoteStream.WritesClosed, Throws.TypeOf<TransportException>());
-        });
+        Assert.That(async () => await localStream.ReadsClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await localStream.WritesClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await remoteStream.ReadsClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await remoteStream.WritesClosed, Throws.TypeOf<TransportException>());
+
         CompleteStream(localStream);
         CompleteStream(remoteStream);
     }
@@ -1077,7 +1062,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         ReadResult readResult;
-        while(!(readResult = await sut.RemoteStream.Input.ReadAsync()).IsCompleted)
+        while (!(readResult = await sut.RemoteStream.Input.ReadAsync()).IsCompleted)
         {
             sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
             // Wait for ReadResult.IsCompleted=true
@@ -1162,12 +1147,9 @@ public abstract class MultiplexedTransportConformanceTests
         ReadResult readResult = await remoteStream.Input.ReadAsync(default);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(readResult.IsCompleted , Is.True);
-            remoteStream.Input.AdvanceTo(readResult.Buffer.End);
-            Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
-        });
+        Assert.That(readResult.IsCompleted, Is.True);
+        remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+        Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -1340,13 +1322,10 @@ public abstract class MultiplexedTransportConformanceTests
         ReadResult readResult1 = await sut.LocalStream.Input.ReadAsync();
         ReadResult readResult2 = await sut.LocalStream.Input.ReadAsync();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(readResult1.IsCanceled, Is.True);
-            Assert.That(readResult1.IsCompleted, Is.False);
-            Assert.That(readResult2.IsCanceled, Is.False);
-            Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
-        });
+        Assert.That(readResult1.IsCanceled, Is.True);
+        Assert.That(readResult1.IsCompleted, Is.False);
+        Assert.That(readResult2.IsCanceled, Is.False);
+        Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
 
         CompleteStreams(sut);
     }
@@ -1462,14 +1441,11 @@ public abstract class MultiplexedTransportConformanceTests
         FlushResult flushResult2 = await sut.LocalStream.Output.FlushAsync();
         ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(flushResult1.IsCanceled, Is.True);
-            Assert.That(flushResult1.IsCompleted, Is.False);
-            Assert.That(flushResult2.IsCanceled, Is.False);
-            Assert.That(flushResult2.IsCompleted, Is.False);
-            Assert.That(readResult.Buffer, Has.Length.EqualTo(1));
-        });
+        Assert.That(flushResult1.IsCanceled, Is.True);
+        Assert.That(flushResult1.IsCompleted, Is.False);
+        Assert.That(flushResult2.IsCanceled, Is.False);
+        Assert.That(flushResult2.IsCompleted, Is.False);
+        Assert.That(readResult.Buffer, Has.Length.EqualTo(1));
 
         CompleteStreams(sut);
     }
@@ -1551,11 +1527,8 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(clientConnection.ServerAddress.Transport, Is.EqualTo(transport));
-            Assert.That(serverConnection.ServerAddress.Transport, Is.EqualTo(transport));
-        });
+        Assert.That(clientConnection.ServerAddress.Transport, Is.EqualTo(transport));
+        Assert.That(serverConnection.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
     [Test]
@@ -1600,15 +1573,12 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act/Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await clientConnection.CloseAsync(
-                applicationErrorCode: 0ul,
-                CancellationToken.None), Throws.Nothing);
-            Assert.That(async () => await serverConnection.CloseAsync(
-                applicationErrorCode: 0ul,
-                CancellationToken.None), Throws.Nothing);
-        });
+        Assert.That(async () => await clientConnection.CloseAsync(
+            applicationErrorCode: 0ul,
+            CancellationToken.None), Throws.Nothing);
+        Assert.That(async () => await serverConnection.CloseAsync(
+            applicationErrorCode: 0ul,
+            CancellationToken.None), Throws.Nothing);
     }
 
     [Test]
@@ -1627,11 +1597,8 @@ public abstract class MultiplexedTransportConformanceTests
         Task serverCloseTask = serverConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(() => clientCloseTask, Throws.Nothing);
-            Assert.That(() => serverCloseTask, Throws.Nothing);
-        });
+        Assert.That(() => clientCloseTask, Throws.Nothing);
+        Assert.That(() => serverCloseTask, Throws.Nothing);
     }
 
     /// <summary>Verifies we can read the properties of a stream after completing its Input and Output.</summary>
@@ -1691,11 +1658,8 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.Multiple(() =>
-        {
-            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-            Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(4ul));
-        });
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(4ul));
     }
 
     [Test]
@@ -1715,11 +1679,9 @@ public abstract class MultiplexedTransportConformanceTests
         // Act/Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.Multiple(() =>
-        {
-            Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-            Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(2ul));
-        });
+
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(2ul));
 
         // Cleanup
         await serverConnection!.DisposeAsync();

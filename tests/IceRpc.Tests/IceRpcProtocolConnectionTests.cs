@@ -206,11 +206,8 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-            Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
-        });
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
     }
 
     [Test]
@@ -266,11 +263,8 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchCompleteTcs.Task);
-        Assert.Multiple(() =>
-        {
-            Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
-            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-        });
+        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     [Test, TestCaseSource(nameof(PayloadStreamReadExceptions))]
@@ -314,11 +308,9 @@ public sealed class IceRpcProtocolConnectionTests
             // initial payload and then fail or directly fail.
 
             ReadResult result = await remotePayload.ReadAsync();
-            Assert.Multiple(() =>
-            {
-                Assert.That(result.IsCompleted, Is.False);
-                Assert.That(result.Buffer, Has.Length.EqualTo(10));
-            });
+            Assert.That(result.IsCompleted, Is.False);
+            Assert.That(result.Buffer, Has.Length.EqualTo(10));
+
             remotePayload.AdvanceTo(result.Buffer.End);
             await remotePayload.ReadAsync();
         }
@@ -350,7 +342,7 @@ public sealed class IceRpcProtocolConnectionTests
             .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
             .AddIceRpcProtocolTest(
                 clientConnectionOptions: new(),
-                serverConnectionOptions: new () { Dispatcher = dispatcher})
+                serverConnectionOptions: new() { Dispatcher = dispatcher })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -365,12 +357,9 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Server.ShutdownAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(invokeTask.IsCompleted, Is.False);
-            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
-        });
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
     }
@@ -411,12 +400,9 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Server.ShutdownAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(invokeTask.IsCompleted, Is.False);
-            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
-        });
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask2);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
     }

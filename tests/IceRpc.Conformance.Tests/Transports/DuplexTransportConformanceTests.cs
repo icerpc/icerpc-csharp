@@ -205,11 +205,8 @@ public abstract class DuplexTransportConformanceTests
         Task readTask = ReadAsync(sut.ServerConnection, writtenSize);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await writeTask, Throws.Nothing);
-            Assert.That(async () => await readTask, Throws.Nothing);
-        });
+        Assert.That(async () => await writeTask, Throws.Nothing);
+        Assert.That(async () => await readTask, Throws.Nothing);
 
         static async Task ReadAsync(IDuplexConnection connection, int size)
         {
@@ -328,11 +325,8 @@ public abstract class DuplexTransportConformanceTests
         int serverRead = await sut.ServerConnection.ReadAsync(new byte[1], CancellationToken.None);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(clientRead, Is.EqualTo(0));
-            Assert.That(serverRead, Is.EqualTo(0));
-        });
+        Assert.That(clientRead, Is.EqualTo(0));
+        Assert.That(serverRead, Is.EqualTo(0));
     }
 
     [Test]
@@ -373,11 +367,8 @@ public abstract class DuplexTransportConformanceTests
             provider.GetRequiredService<IDuplexConnection>());
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(sut.ClientConnection.ServerAddress.Transport, Is.EqualTo(transport));
-            Assert.That(sut.ServerConnection.ServerAddress.Transport, Is.EqualTo(transport));
-        });
+        Assert.That(sut.ClientConnection.ServerAddress.Transport, Is.EqualTo(transport));
+        Assert.That(sut.ServerConnection.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
     [Test]
@@ -597,11 +588,9 @@ public abstract class DuplexTransportConformanceTests
             offset += await readConnection.ReadAsync(readBuffer[offset..], default);
         }
         await writeTask;
-        Assert.Multiple(() =>
-        {
-            Assert.That(offset, Is.EqualTo(size));
-            Assert.That(readBuffer.Span.SequenceEqual(writeBuffer), Is.True);
-        });
+        Assert.That(offset, Is.EqualTo(size));
+        Assert.That(readBuffer.Span.SequenceEqual(writeBuffer), Is.True);
+
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>

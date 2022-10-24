@@ -29,16 +29,12 @@ public class ColocTransportTests
         // Assert
         Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.TypeOf<ColocEndPoint>());
         var localNetworkAddress = (ColocEndPoint?)transportConnectionInformation.LocalNetworkAddress;
-        Assert.Multiple(() =>
-        {
-            Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
-            Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
-        });
+        Assert.That(localNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+        Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
+
         var remoteNetworkAddress = (ColocEndPoint?)transportConnectionInformation.RemoteNetworkAddress;
-        Assert.Multiple(() =>
-        {
-            Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
-            Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
-        });
+
+        Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
+        Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
     }
 }

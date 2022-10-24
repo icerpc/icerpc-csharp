@@ -107,14 +107,11 @@ public class ServerAddressTests
     {
         var serverAddress = new ServerAddress();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(serverAddress.Protocol, Is.EqualTo(Protocol.IceRpc));
-            Assert.That(serverAddress.Host, Is.EqualTo("::0"));
-            Assert.That(serverAddress.Port, Is.EqualTo(Protocol.IceRpc.DefaultPort));
-            Assert.That(serverAddress.Transport, Is.Null);
-            Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
-        });
+        Assert.That(serverAddress.Protocol, Is.EqualTo(Protocol.IceRpc));
+        Assert.That(serverAddress.Host, Is.EqualTo("::0"));
+        Assert.That(serverAddress.Port, Is.EqualTo(Protocol.IceRpc.DefaultPort));
+        Assert.That(serverAddress.Transport, Is.Null);
+        Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
     }
 
     /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri" /> property is set for a server address created
@@ -171,13 +168,10 @@ public class ServerAddressTests
     {
         var serverAddress = new ServerAddress(uri);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(serverAddress.Host, Is.EqualTo(host));
-            Assert.That(serverAddress.Port, Is.EqualTo(port));
-            Assert.That(serverAddress.Transport, Is.EqualTo(transport));
-            Assert.That(serverAddress.Params, Is.EquivalentTo(parameters));
-        });
+        Assert.That(serverAddress.Host, Is.EqualTo(host));
+        Assert.That(serverAddress.Port, Is.EqualTo(port));
+        Assert.That(serverAddress.Transport, Is.EqualTo(transport));
+        Assert.That(serverAddress.Params, Is.EquivalentTo(parameters));
     }
 
     /// <summary>Verifies that setting the host works with a supported host name.</summary>

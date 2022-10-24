@@ -41,11 +41,8 @@ public class ClientConnectionTests
         TransportConnectionInformation transportConnectionInformation = await connection.ConnectAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.Not.Null);
-            Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.Not.Null);
-        });
+        Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.Not.Null);
+        Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.Not.Null);
     }
 
     [Test]
