@@ -52,13 +52,17 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 Console.WriteLine($"QuicListener aborted by OCE with correct token");
                 throw;
             }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("QuicListener caught OCE with wrong token, retrying");
+            }
             catch (Exception exception)
             {
                 Console.WriteLine($"QuicListener aborted by {exception.GetType()}");
                 throw;
             }
         }
-        Console.WriteLine("Accepted new Quic connection");
+        Console.WriteLine("QuicListener accepted new Quic connection");
         return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
     }
 

@@ -118,16 +118,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         TransportConnectionInformation transportConnectionInformation;
         try
         {
-            Console.WriteLine($"ConnectAsync on transport connection isServer = {IsServer}");
+            Console.WriteLine($"Calling connectAsync on transport connection isServer = {IsServer}");
             transportConnectionInformation = await _transportConnection.ConnectAsync(
                 cancellationToken).ConfigureAwait(false);
-            Console.WriteLine($"ConnectAsync on transport connection isServer = {IsServer}: success");
+            Console.WriteLine($"ConnectAsync completed on transport connection isServer = {IsServer}: success");
         }
         catch (TransportException exception) when (
             exception.ApplicationErrorCode is ulong errorCode &&
             errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
         {
-            Console.WriteLine($"ConnectAsync on transport connection isServer = {IsServer}: connection refused");
+            Console.WriteLine($"ConnectAsync failed on transport connection isServer = {IsServer}: connection refused");
             ConnectionClosedException = new(
                 ConnectionErrorCode.ClosedByPeer,
                 "the connection establishment was refused");
@@ -144,6 +144,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _controlStream = await _transportConnection.CreateStreamAsync(false, cancellationToken).ConfigureAwait(false);
+
+        Console.WriteLine($"created control stream to peer, isServer = {IsServer}");
 
         var settings = new IceRpcSettings(
             _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?

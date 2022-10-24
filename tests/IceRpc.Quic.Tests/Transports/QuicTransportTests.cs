@@ -117,19 +117,6 @@ public class QuicTransportTests
             },
             multiplexedClientTransport: clientTransport);
 
-
-        await using var connection0 = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ConnectTimeout = TimeSpan.FromSeconds(30),
-                ServerAddress = server.ServerAddress,
-                ClientAuthenticationOptions = clientAuthenticationOptions,
-            },
-            multiplexedClientTransport: clientTransport);
-
-        await connection0.ConnectAsync();
-        Console.WriteLine("connection0 connected");
-
         Task<TransportConnectionInformation> connect1Task = connection1.ConnectAsync();
         await tcs.Task;
 
@@ -147,19 +134,6 @@ public class QuicTransportTests
         Console.WriteLine($"connect2Task is completed after 20s: {connect2Task.IsCompleted}"); // should be true, is often false
 
         Assert.That(async () => await connect1Task, Throws.InstanceOf<ConnectionException>());
-        Assert.That(async () => await connect2Task, Throws.InstanceOf<TimeoutException>()); // unexpected
-        // Assert.That(async () => await connect2Task, Throws.Nothing);
-
-        await using var connection3 = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ConnectTimeout = TimeSpan.FromSeconds(30),
-                ServerAddress = server.ServerAddress,
-                ClientAuthenticationOptions = clientAuthenticationOptions,
-            },
-            multiplexedClientTransport: clientTransport);
-
-        await connection3.ConnectAsync();
-        Console.WriteLine("done");
+        Assert.That(async () => await connect2Task, Throws.Nothing);
     }
 }
