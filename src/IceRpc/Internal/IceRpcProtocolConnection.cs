@@ -170,6 +170,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Abort the remote control stream to trigger its completion with a failure. The _acceptRequests
                     // task below will abort the connection.
+                    // TODO: if the exception is not a transport exception, the GoAway away is likely bogus. Should we
+                    // simply kill the transport connection is this case since there's a protocol violation?
                     _remoteControlStream.Abort(exception);
                     throw;
                 }
