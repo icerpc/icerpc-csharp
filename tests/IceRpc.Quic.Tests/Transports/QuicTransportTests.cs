@@ -10,7 +10,6 @@ using System.Net.Quic;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Transports;
 
@@ -61,6 +60,48 @@ public class QuicTransportTests
                 provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 provider.GetRequiredService<SslClientAuthenticationOptions>());
+    }
+
+    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
+    /// when the client certificate is not trusted.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "Certificate validation is not required for this test")]
+    [Test]
+    public async Task Tls_client_certificate_not_trusted()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddQuicTest();
+        services.AddSingleton(new SslServerAuthenticationOptions()
+            {
+                ClientCertificateRequired = true,
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
+            });
+
+        services.AddSingleton(new SslClientAuthenticationOptions
+            {
+                ClientCertificates = new X509CertificateCollection()
+                {
+                    new X509Certificate2("../../../certs/client.p12", "password")
+                },
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+            });
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Start the TLS handshake by calling connect on the client and server connections and wait for the
+        // connection establishment.
+        _ = clientConnection.ConnectAsync(default);
+        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+
+        // Act/Assert
+        Assert.That(
+            async () => await serverConnection.ConnectAsync(default),
+            Throws.TypeOf<AuthenticationException>());
     }
 
     /// <summary>Verifies that the local certificate selection callback is used to select the client certificate.
@@ -191,8 +232,11 @@ public class QuicTransportTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+        await serverConnection.ConnectAsync(default);
+        await clientConnectTask;
 
         // Act/Assert
-        Assert.That(async () => await clientConnectTask, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
     }
 }
