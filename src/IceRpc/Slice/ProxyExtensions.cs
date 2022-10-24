@@ -101,7 +101,6 @@ public static class ProxyExtensions
         }
         catch
         {
-            // synchronous exception thrown by InvokeAsync
             request.Dispose();
             throw;
         }
@@ -186,7 +185,6 @@ public static class ProxyExtensions
         }
         catch
         {
-            // synchronous exception thrown by InvokeAsync
             request.Dispose();
             throw;
         }
