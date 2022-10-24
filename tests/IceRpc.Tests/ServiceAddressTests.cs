@@ -413,12 +413,9 @@ public class ServiceAddressTests
 
         int hashCode1 = serviceAddress1.GetHashCode();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(serviceAddress1, Is.EqualTo(serviceAddress2));
-            Assert.That(hashCode1, Is.EqualTo(serviceAddress1.GetHashCode()));
-            Assert.That(hashCode1, Is.EqualTo(serviceAddress2.GetHashCode()));
-        });
+        Assert.That(serviceAddress1, Is.EqualTo(serviceAddress2));
+        Assert.That(hashCode1, Is.EqualTo(serviceAddress1.GetHashCode()));
+        Assert.That(hashCode1, Is.EqualTo(serviceAddress2.GetHashCode()));
     }
 
     /// <summary>Verifies that a service address created from a path has the expected protocol, path and serverAddress
@@ -429,12 +426,9 @@ public class ServiceAddressTests
     {
         var serviceAddress = new ServiceAddress { Path = path };
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(serviceAddress.Protocol, Is.Null);
-            Assert.That(serviceAddress.Path, Is.EqualTo(path));
-            Assert.That(serviceAddress.ServerAddress, Is.Null);
-        });
+        Assert.That(serviceAddress.Protocol, Is.Null);
+        Assert.That(serviceAddress.Path, Is.EqualTo(path));
+        Assert.That(serviceAddress.ServerAddress, Is.Null);
     }
 
     [Test]
@@ -466,11 +460,8 @@ public class ServiceAddressTests
     {
         var serviceAddress = new ServiceAddress(uri);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(serviceAddress.Path, Is.EqualTo(path));
-            Assert.That(serviceAddress.Fragment, Is.EqualTo(fragment));
-        });
+        Assert.That(serviceAddress.Path, Is.EqualTo(path));
+        Assert.That(serviceAddress.Fragment, Is.EqualTo(fragment));
     }
 
     /// <summary>Verifies that an invalid URI results in an <see cref="ArgumentException" />.</summary>
@@ -592,15 +583,12 @@ public class ServiceAddressTests
         }.ToImmutableList();
 
         // Act/Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(() =>
-                serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }, Throws.ArgumentException
-            );
+        Assert.That(() =>
+            serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }, Throws.ArgumentException
+        );
 
-            // Ensure the alt servers weren't updated
-            Assert.That(serviceAddress.AltServerAddresses, Is.Empty);
-        });
+        // Ensure the alt servers weren't updated
+        Assert.That(serviceAddress.AltServerAddresses, Is.Empty);
     }
 
     /// <summary>Verifies that setting a server address that uses a protocol different than the service address protocol
@@ -612,13 +600,10 @@ public class ServiceAddressTests
         ServerAddress? serverAddress = serviceAddress.ServerAddress;
         ServerAddress newServerAddress = new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(() => serviceAddress = serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
+        Assert.That(() => serviceAddress = serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
 
-            // Ensure the server address wasn't updated
-            Assert.That(serviceAddress.ServerAddress, Is.EqualTo(serverAddress));
-        });
+        // Ensure the server address wasn't updated
+        Assert.That(serviceAddress.ServerAddress, Is.EqualTo(serverAddress));
     }
 
     /// <summary>Verifies that we can set the fragment on an ice service address</summary>
@@ -629,11 +614,8 @@ public class ServiceAddressTests
 
         serviceAddress = serviceAddress with { Fragment = "bar" };
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
-            Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
-        });
+        Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
+        Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
     }
 
     [Test]
@@ -646,11 +628,8 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(uri);
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
-            Assert.That(serviceAddress.Protocol, Is.Null);
-        });
+        Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
+        Assert.That(serviceAddress.Protocol, Is.Null);
     }
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest

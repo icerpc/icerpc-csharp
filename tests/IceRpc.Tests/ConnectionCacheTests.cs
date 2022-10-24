@@ -56,11 +56,8 @@ public sealed class ConnectionCacheTests
         await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(serverAddress?.Host, Is.EqualTo(server1.ServerAddress.Host));
-            Assert.That(server1.ServerAddress, Is.Not.EqualTo(server2.ServerAddress));
-        });
+        Assert.That(serverAddress?.Host, Is.EqualTo(server1.ServerAddress.Host));
+        Assert.That(server1.ServerAddress, Is.Not.EqualTo(server2.ServerAddress));
     }
 
     /// <summary>Verifies that the connection cache uses the alt-server when it cannot connect to the main server address.
@@ -193,11 +190,8 @@ public sealed class ConnectionCacheTests
         await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(serverAddress?.Host, Is.EqualTo(server2.ServerAddress.Host));
-            Assert.That(server1.ServerAddress, Is.Not.EqualTo(server2.ServerAddress));
-        });
+        Assert.That(serverAddress?.Host, Is.EqualTo(server2.ServerAddress.Host));
+        Assert.That(server1.ServerAddress, Is.Not.EqualTo(server2.ServerAddress));
     }
 
     [Test]

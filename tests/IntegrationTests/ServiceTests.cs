@@ -27,12 +27,9 @@ public class ServiceTests
             "::IceRpc::Slice::Service",
         };
 
-        Assert.Multiple(async () =>
-        {
-            Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
-            Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
-            Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
-            Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
-        });
+        Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
+        Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
+        Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
+        Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 }

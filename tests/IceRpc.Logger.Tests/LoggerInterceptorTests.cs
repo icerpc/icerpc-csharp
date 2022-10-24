@@ -22,20 +22,18 @@ public sealed class LoggerInterceptorTests
 
         Assert.That(loggerFactory.Logger, Is.Not.Null);
         List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
-        Assert.Multiple(() =>
-        {
-            Assert.That(entries.Count, Is.EqualTo(1));
-            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.Invoke));
-            Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
-            Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-            Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
-            Assert.That(
-                entries[0].State["LocalNetworkAddress"],
-                Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));
-            Assert.That(
-                entries[0].State["RemoteNetworkAddress"],
-                Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
-        });
+
+        Assert.That(entries.Count, Is.EqualTo(1));
+        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.Invoke));
+        Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
+        Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
+        Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
+        Assert.That(
+            entries[0].State["LocalNetworkAddress"],
+            Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));
+        Assert.That(
+            entries[0].State["RemoteNetworkAddress"],
+            Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
     }
 
     [Test]
@@ -58,13 +56,11 @@ public sealed class LoggerInterceptorTests
         Assert.That(loggerFactory.Logger, Is.Not.Null);
 
         List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
-        Assert.Multiple(() =>
-        {
-            Assert.That(entries.Count, Is.EqualTo(1));
-            Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.InvokeException));
-            Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
-            Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-            Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
-        });
+
+        Assert.That(entries.Count, Is.EqualTo(1));
+        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.InvokeException));
+        Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
+        Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
+        Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
     }
 }

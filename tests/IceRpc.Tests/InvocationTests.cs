@@ -41,13 +41,9 @@ public class InvocationTests
         // Assert
         RemoteException exception = await response.DecodeFailureAsync(
             request,
-            new ServiceProxy(callbackInvoker, callback.ServiceAddress));
-        Assert.Multiple(
-            () =>
-            {
-                Assert.That(exception, Is.InstanceOf<DispatchException>());
-                Assert.That(((DispatchException)exception).ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
-            });
+        new ServiceProxy(callbackInvoker, callback.ServiceAddress));
+        Assert.That(exception, Is.InstanceOf<DispatchException>());
+        Assert.That(((DispatchException)exception).ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
 
     /// <summary>Verifies that a callback on a connection without dispatcher does not accept requests with the icerpc
@@ -112,14 +108,10 @@ public class InvocationTests
         // Assert
         var response = await invokeTask;
         RemoteException exception = await response.DecodeFailureAsync(request, new ServiceProxy());
-        Assert.Multiple(
-            () =>
-            {
-                Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-                Assert.That(exception, Is.TypeOf<DispatchException>());
-                DispatchException dispatchException = (DispatchException)exception;
-                Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.StreamError));
-            });
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        Assert.That(exception, Is.TypeOf<DispatchException>());
+        DispatchException dispatchException = (DispatchException)exception;
+        Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.StreamError));
         await pipe.Writer.CompleteAsync();
     }
 }

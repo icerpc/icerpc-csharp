@@ -39,13 +39,10 @@ public class SlicTransportTests
         var serverConnection = (SlicConnection)await acceptTask;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
-            Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
-            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
-            Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
-        });
+        Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
+        Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
+        Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
+        Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
     }
 
     [TestCase(1024 * 32)]

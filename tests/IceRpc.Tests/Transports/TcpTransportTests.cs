@@ -54,32 +54,23 @@ public class TcpTransportTests
             });
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            // The OS might allocate more space than the requested size.
-            Assert.That(connection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
-            Assert.That(connection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
-        });
+        // The OS might allocate more space than the requested size.
+        Assert.That(connection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+        Assert.That(connection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
 
         // But ensure it doesn't allocate too much as well
         if (OperatingSystem.IsLinux())
         {
-            Assert.Multiple(() =>
-            {
-                // Linux allocates twice the size.
-                Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
-                Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
-            });
+            // Linux allocates twice the size.
+            Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+            Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
         }
         else
         {
-            Assert.Multiple(() =>
-            {
-                // Windows typically allocates the requested size and macOS allocates a little more than the
-                // requested size.
-                Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
-                Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
-            });
+            // Windows typically allocates the requested size and macOS allocates a little more than the
+            // requested size.
+            Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+            Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
         }
     }
 
@@ -128,42 +119,30 @@ public class TcpTransportTests
         using var serverConnection = (TcpServerConnection)(await acceptTask).Connection;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            // The OS might allocate more space than the requested size.
-            Assert.That(serverConnection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
-            Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
-        });
+        // The OS might allocate more space than the requested size.
+        Assert.That(serverConnection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+        Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
 
         // But ensure it doesn't allocate too much as well
         if (OperatingSystem.IsMacOS())
         {
-            Assert.Multiple(() =>
-            {
-                // macOS appears to have a low limit of a little more than 256KB for the receive buffer and
-                // 64KB for the send buffer.
-                Assert.That(serverConnection.Socket.SendBufferSize,
-                            Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
-                Assert.That(serverConnection.Socket.ReceiveBufferSize,
-                            Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
-            });
+            // macOS appears to have a low limit of a little more than 256KB for the receive buffer and
+            // 64KB for the send buffer.
+            Assert.That(serverConnection.Socket.SendBufferSize,
+                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
+            Assert.That(serverConnection.Socket.ReceiveBufferSize,
+                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
         }
         else if (OperatingSystem.IsLinux())
         {
-            Assert.Multiple(() =>
-            {
-                // Linux allocates twice the size
-                Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
-                Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
-            });
+            // Linux allocates twice the size
+            Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+            Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
         }
         else
         {
-            Assert.Multiple(() =>
-            {
-                Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
-                Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
-            });
+            Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+            Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
         }
     }
 

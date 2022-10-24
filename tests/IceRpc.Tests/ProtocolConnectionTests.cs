@@ -119,10 +119,10 @@ public sealed class ProtocolConnectionTests
         var services = new ServiceCollection().AddProtocolTest(
             protocol,
             serverConnectionOptions: new ConnectionOptions
-                {
-                    Dispatcher = dispatcher,
-                    MaxDispatches = maxDispatches
-                });
+            {
+                Dispatcher = dispatcher,
+                MaxDispatches = maxDispatches
+            });
 
         // TODO: this configuration is very confusing. AddProtocolTest does not create a Server but use some
         // ServerOptions and does not forward these ServerOptions to the underlying transport.
@@ -197,10 +197,10 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(
                 protocol,
                 serverConnectionOptions: new ConnectionOptions
-                    {
-                        Dispatcher = dispatcher,
-                        MaxDispatches = 1
-                    })
+                {
+                    Dispatcher = dispatcher,
+                    MaxDispatches = 1
+                })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -289,10 +289,10 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(
                 protocol,
                 serverConnectionOptions: new ConnectionOptions
-                    {
-                        IdleTimeout = TimeSpan.FromMilliseconds(500),
-                        Dispatcher = ServiceNotFoundDispatcher.Instance
-                    })
+                {
+                    IdleTimeout = TimeSpan.FromMilliseconds(500),
+                    Dispatcher = ServiceNotFoundDispatcher.Instance
+                })
             .BuildServiceProvider(validateScopes: true);
 
         long startTime = Environment.TickCount64;
