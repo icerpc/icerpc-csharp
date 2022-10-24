@@ -62,8 +62,9 @@ public class QuicTransportTests
                 provider.GetRequiredService<SslClientAuthenticationOptions>());
     }
 
-    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
-    /// when the client certificate is not trusted.</summary>
+
+    /// <summary>Verifies that the client connection fails when the server rejects the client certificate, with Quic
+    /// this error is not reported until we try to read or write from a stream created with the connection.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
@@ -93,15 +94,25 @@ public class QuicTransportTests
         var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake by calling connect on the client and server connections and wait for the
-        // connection establishment.
-        _ = clientConnection.ConnectAsync(default);
-        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+        // Start the TLS handshake by calling accept on the listener and  connect on the client connection.
+        var acceptTask = listener.AcceptAsync(default);
 
         // Act/Assert
-        Assert.That(
-            async () => await serverConnection.ConnectAsync(default),
-            Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.Nothing);
+        // This is timing dependend the exception can be thrown either by CreateStreamAsync or by the XxxClosed task
+        Assert.That(async () =>
+            {
+                var stream = await clientConnection.CreateStreamAsync(bidirectional: true, cancellationToken: default);
+                await stream.WritesClosed;
+            },
+            Throws.TypeOf<TransportException>().Or.TypeOf<AuthenticationException>());
+        Assert.That(async () =>
+            {
+                var stream = await clientConnection.CreateStreamAsync(bidirectional: true, cancellationToken: default);
+                await stream.ReadsClosed;
+            },
+            Throws.TypeOf<TransportException>().Or.TypeOf<AuthenticationException>());
+        Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
     /// <summary>Verifies that the local certificate selection callback is used to select the client certificate.
@@ -214,7 +225,7 @@ public class QuicTransportTests
         Assert.That(clientCertificateValidationCallback, Is.True);
     }
 
-    /// <summary>Verifies that the client connection establishment fail with <see cref="AuthenticationException" /> when
+    /// <summary>Verifies that the client connection establishment fail with <see cref="TransportException" /> when
     /// the server certificate is not trusted.</summary>
     [Test]
     public async Task Tls_server_certificate_not_trusted()
@@ -228,15 +239,14 @@ public class QuicTransportTests
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
 
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        await using IMultiplexedConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
-        await serverConnection.ConnectAsync(default);
-        await clientConnectTask;
 
         // Act/Assert
-        Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await clientConnectTask, Throws.TypeOf<TransportException>());
+        Assert.That(acceptTask.IsCompleted, Is.False);
     }
 }
