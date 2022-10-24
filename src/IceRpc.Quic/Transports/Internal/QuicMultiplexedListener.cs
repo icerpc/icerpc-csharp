@@ -54,7 +54,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine("QuicListener caught OCE with wrong token, retrying");
+                Console.WriteLine($"QuicListener caught OCE with wrong token, retrying now={DateTime.Now}");
             }
             catch (Exception exception)
             {

@@ -120,18 +120,18 @@ public class QuicTransportTests
         Task<TransportConnectionInformation> connect1Task = connection1.ConnectAsync();
         await tcs.Task;
 
-        Console.WriteLine("establishing second connection");
+        Console.WriteLine($"establishing second connection now={DateTime.Now}");
 
         Task<TransportConnectionInformation> connect2Task = connection2.ConnectAsync();
 
-        await Task.Delay(TimeSpan.FromSeconds(15));
-        Console.WriteLine($"connect1Task is completed after 15s: {connect1Task.IsCompleted}");
-        Console.WriteLine($"connect2Task is completed after 15s: {connect2Task.IsCompleted}");
+        await Task.Delay(TimeSpan.FromSeconds(20));
+        Console.WriteLine($"connect1Task is completed after 20s: {connect1Task.IsCompleted}");
+        Console.WriteLine($"connect2Task is completed after 20s: {connect2Task.IsCompleted}");
         Console.WriteLine("releasing semaphore for connect1Task");
         semaphore.Release();
         await Task.Delay(TimeSpan.FromSeconds(5));
-        Console.WriteLine($"connect1Task is completed after 20s: {connect1Task.IsCompleted}"); // should be true
-        Console.WriteLine($"connect2Task is completed after 20s: {connect2Task.IsCompleted}"); // should be true, is often false
+        Console.WriteLine($"connect1Task is completed after 25s: {connect1Task.IsCompleted}"); // should be true
+        Console.WriteLine($"connect2Task is completed after 25s: {connect2Task.IsCompleted}"); // should be true, is often false
 
         Assert.That(async () => await connect1Task, Throws.InstanceOf<ConnectionException>());
         Assert.That(async () => await connect2Task, Throws.Nothing);
