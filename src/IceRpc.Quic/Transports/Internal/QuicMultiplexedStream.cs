@@ -28,9 +28,9 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         _outputPipeWriter ??
         throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
 
-    public Task ReadsClosed => _inputPipeReader?.ReadsClosed ?? Task.CompletedTask;
+    public Task InputClosed => _inputPipeReader?.Closed ?? Task.CompletedTask;
 
-    public Task WritesClosed => _outputPipeWriter?.WritesClosed ?? Task.CompletedTask;
+    public Task OutputClosed => _outputPipeWriter?.Closed ?? Task.CompletedTask;
 
     private readonly QuicPipeReader? _inputPipeReader;
     private readonly QuicPipeWriter? _outputPipeWriter;

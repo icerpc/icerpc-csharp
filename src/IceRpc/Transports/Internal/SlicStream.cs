@@ -48,9 +48,9 @@ internal class SlicStream : IMultiplexedStream
         _outputPipeWriter ??
         throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
 
-    public Task ReadsClosed => _readsClosedCompletionSource.Task;
+    public Task InputClosed => _readsClosedCompletionSource.Task;
 
-    public Task WritesClosed => _writesClosedCompletionSource.Task;
+    public Task OutputClosed => _writesClosedCompletionSource.Task;
 
     internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
