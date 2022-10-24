@@ -840,9 +840,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         public PipeWriter Output => _output ?? _decoratee.Output;
 
-        public Task ReadsClosed => _decoratee.ReadsClosed;
+        public Task InputClosed => _decoratee.InputClosed;
 
-        public Task WritesClosed => _decoratee.WritesClosed;
+        public Task OutputClosed => _decoratee.OutputClosed;
 
         public HoldOperation HoldOperation =>
             // Don't hold operations for the icerpc control stream

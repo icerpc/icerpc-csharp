@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
-    internal Task WritesClosed { get; }
+    internal Task Closed { get; }
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
@@ -27,7 +27,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
-    public override void CancelPendingFlush() => _pipe.Writer.CancelPendingFlush();
+    // QuicPipeWriter does not support this method: the IceRPC core does not need it. And when the application code
+    // installs a payload writer interceptor, this interceptor should never call it on "next".
+    public override void CancelPendingFlush() => throw new NotSupportedException();
 
     public override void Complete(Exception? exception = null)
     {
@@ -219,9 +221,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
 
-        WritesClosed = WritesClosedAsync();
+        Closed = ClosedAsync();
 
-        async Task WritesClosedAsync()
+        async Task ClosedAsync()
         {
             try
             {

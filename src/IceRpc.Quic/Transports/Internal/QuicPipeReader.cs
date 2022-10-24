@@ -12,30 +12,22 @@ namespace IceRpc.Transports.Internal;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
-    internal Task ReadsClosed { get; }
+    internal Task Closed { get; }
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
-    private bool _isCompleted;
+
+    // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
+    private volatile bool _isCompleted;
     private readonly PipeReader _pipeReader;
-    private readonly TaskCompletionSource _readsCompleteTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private ReadResult _readResult; // most recent readResult
     private readonly QuicStream _stream;
 
     // StreamPipeReader.AdvanceTo does not call the underlying stream and as a result does not throw any QuicException.
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
-    public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
-    {
-        if (_readResult.IsCompleted &&
-            _readResult.Buffer.GetOffset(consumed) == _readResult.Buffer.GetOffset(_readResult.Buffer.End))
-        {
-            _ = _readsCompleteTcs.TrySetResult();
-        }
-
+    public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
         _pipeReader.AdvanceTo(consumed, examined);
-    }
 
     public override void CancelPendingRead() => _pipeReader.CancelPendingRead();
 
@@ -48,7 +40,6 @@ internal class QuicPipeReader : PipeReader
             // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
-            _ = _readsCompleteTcs.TrySetResult();
 
             if (exception is null)
             {
@@ -70,8 +61,7 @@ internal class QuicPipeReader : PipeReader
     {
         try
         {
-            _readResult = await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            return _readResult;
+            return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
         {
@@ -92,19 +82,9 @@ internal class QuicPipeReader : PipeReader
         // attempting to read while another read is in progress.
     }
 
-    // StreamPipeReader.TryRead does not call the underlying stream and as a result does not throw any QuicException.
-    public override bool TryRead(out ReadResult result)
-    {
-        if (_pipeReader.TryRead(out result))
-        {
-            _readResult = result;
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+    // StreamPipeReader.TryRead does not call the underlying QuicStream and as a result does not throw any
+    // QuicException.
+    public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
     internal QuicPipeReader(
         QuicStream stream,
@@ -121,52 +101,41 @@ internal class QuicPipeReader : PipeReader
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
 
-        ReadsClosed = ReadsClosedAsync();
+        Closed = ClosedAsync();
 
-        async Task ReadsClosedAsync()
+        async Task ClosedAsync()
         {
-            Task completedFirst = await Task.WhenAny(_stream.ReadsClosed, _readsCompleteTcs.Task).ConfigureAwait(false);
-
-            if (completedFirst == _stream.ReadsClosed)
+            try
             {
-                try
-                {
-                    await _stream.ReadsClosed.ConfigureAwait(false);
-                }
-                catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
-                {
-                    throw abortException;
-                }
-                catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
-                {
-                    if (!_readsCompleteTcs.Task.IsCompleted)
-                    {
-                        throw exception.ToTransportException();
-                    }
-                    // else it means we called Complete(null) on this pipe reader.
-                }
-                catch (QuicException exception) when (
-                    exception.QuicError == QuicError.StreamAborted &&
-                    exception.ApplicationErrorCode is not null)
-                {
-                    if (_errorCodeConverter.FromErrorCode(
-                            (ulong)exception.ApplicationErrorCode) is Exception actualException)
-                    {
-                        throw actualException;
-                    }
-
-                    // Unexpected stream aborted with ApplicationErrorCode = "no error" received from remote peer (the
-                    // peer should send endStream/completeWrites instead).
-                    throw exception.ToTransportException();
-                }
-                catch (QuicException exception)
-                {
-                    throw exception.ToTransportException();
-                }
-                // we don't wrap other exceptions
+                await _stream.ReadsClosed.ConfigureAwait(false);
             }
+            catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
+            {
+                throw abortException;
+            }
+            catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted && _isCompleted)
+            {
+                // Ignore exception: this occurs when we call Complete(null) on this pipe reader.
+            }
+            catch (QuicException exception) when (
+                exception.QuicError == QuicError.StreamAborted &&
+                exception.ApplicationErrorCode is not null)
+            {
+                if (_errorCodeConverter.FromErrorCode(
+                    (ulong)exception.ApplicationErrorCode) is Exception actualException)
+                {
+                    throw actualException;
+                }
 
-            await _readsCompleteTcs.Task.ConfigureAwait(false);
+                // Unexpected stream aborted with ApplicationErrorCode = "no error" received from remote peer (the
+                // peer should send endStream/completeWrites instead).
+                throw exception.ToTransportException();
+            }
+            catch (QuicException exception)
+            {
+                throw exception.ToTransportException();
+            }
+            // we don't wrap other exceptions
         }
     }
 
@@ -180,9 +149,5 @@ internal class QuicPipeReader : PipeReader
         {
             _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
-
-        // We also complete _readsCompleteTcs no matter what. This is useful in the situation where Abort is called
-        // after_stream.ReadsClosed completed or while it's completing.
-        _readsCompleteTcs.TrySetException(exception);
     }
 }

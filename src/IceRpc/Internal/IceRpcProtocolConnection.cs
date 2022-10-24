@@ -185,7 +185,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    await _remoteControlStream!.ReadsClosed.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+                    await _remoteControlStream!.InputClosed.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -727,7 +727,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException) when (stream.WritesClosed.IsCompleted)
+                    catch (OperationCanceledException) when (stream.OutputClosed.IsCompleted)
                     {
                         // This either throws the WritesClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
@@ -773,7 +773,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    await stream.WritesClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
+                    await stream.OutputClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -1061,7 +1061,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    await stream.WritesClosed.ConfigureAwait(false);
+                    await stream.OutputClosed.ConfigureAwait(false);
                 }
                 catch
                 {
@@ -1212,7 +1212,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         try
         {
-            await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+            await Task.WhenAll(stream.InputClosed, stream.OutputClosed).ConfigureAwait(false);
         }
         catch
         {

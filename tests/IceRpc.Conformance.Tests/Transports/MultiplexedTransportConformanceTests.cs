@@ -364,9 +364,9 @@ public abstract class MultiplexedTransportConformanceTests
         _ = WriteDataAsync();
 
         // Assert
-        Assert.That(remoteStream.ReadsClosed.IsCompleted, Is.False);
+        Assert.That(remoteStream.InputClosed.IsCompleted, Is.False);
         Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
-        Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+        Assert.That(async () => await remoteStream.InputClosed, Throws.Nothing);
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -381,7 +381,7 @@ public abstract class MultiplexedTransportConformanceTests
                 readLength += (int)readResult.Buffer.Length;
                 remoteStream.Input.AdvanceTo(readResult.Buffer.End);
             }
-            while (!remoteStream.ReadsClosed.IsCompleted);
+            while (!remoteStream.InputClosed.IsCompleted);
             return readLength;
         }
 
@@ -500,8 +500,8 @@ public abstract class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.InstanceOf<TransportException>());
-        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<TransportException>());
 
         CompleteStreams(sut);
     }
@@ -544,7 +544,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Disposing_the_connection_completes_the_streams()
+    public async Task Disposing_the_connection_closes_the_streams()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -562,10 +562,10 @@ public abstract class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await localStream.ReadsClosed, Throws.TypeOf<TransportException>());
-        Assert.That(async () => await localStream.WritesClosed, Throws.TypeOf<TransportException>());
-        Assert.That(async () => await remoteStream.ReadsClosed, Throws.TypeOf<TransportException>());
-        Assert.That(async () => await remoteStream.WritesClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await localStream.InputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await localStream.OutputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await remoteStream.InputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await remoteStream.OutputClosed, Throws.TypeOf<TransportException>());
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -1149,7 +1149,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         Assert.That(readResult.IsCompleted, Is.True);
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
-        Assert.That(async () => await remoteStream.ReadsClosed, Throws.Nothing);
+        Assert.That(async () => await remoteStream.InputClosed, Throws.Nothing);
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -1416,41 +1416,6 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    [Ignore("see issue #1939")]
-    public async Task Stream_write_returns_canceled_flush_result_after_cancel_pending_flush()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
-
-        Memory<byte> _ = sut.LocalStream.Output.GetMemory();
-        sut.LocalStream.Output.Advance(1);
-
-        // Act
-        sut.LocalStream.Output.CancelPendingFlush();
-
-        // Assert
-        FlushResult flushResult1 = await sut.LocalStream.Output.FlushAsync();
-        FlushResult flushResult2 = await sut.LocalStream.Output.FlushAsync();
-        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
-
-        Assert.That(flushResult1.IsCanceled, Is.True);
-        Assert.That(flushResult1.IsCompleted, Is.False);
-        Assert.That(flushResult2.IsCanceled, Is.False);
-        Assert.That(flushResult2.IsCompleted, Is.False);
-        Assert.That(readResult.Buffer, Has.Length.EqualTo(1));
-
-        CompleteStreams(sut);
-    }
-
-    [Test]
     public async Task Stream_write_empty_buffer_is_noop()
     {
         // Arrange
@@ -1618,16 +1583,16 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act
         sut.LocalStream.Output.Complete();
-        await sut.LocalStream.WritesClosed;
+        await sut.LocalStream.OutputClosed;
 
         sut.RemoteStream.Output.Complete();
-        await sut.RemoteStream.WritesClosed;
+        await sut.RemoteStream.OutputClosed;
 
         sut.LocalStream.Input.Complete();
-        await sut.LocalStream.ReadsClosed;
+        await sut.LocalStream.InputClosed;
 
         sut.RemoteStream.Input.Complete();
-        await sut.RemoteStream.ReadsClosed;
+        await sut.RemoteStream.InputClosed;
 
         // Assert
         Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
