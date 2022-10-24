@@ -152,6 +152,8 @@ public class QuicTransportTests
                     return true;
                 }
             });
+        var clientConnection = provider.GetRequiredService<QuicMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
         // Act
 
