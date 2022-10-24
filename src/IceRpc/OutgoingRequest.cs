@@ -50,8 +50,8 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
                 nameof(serviceAddress))) =>
         ServiceAddress = serviceAddress;
 
-    /// <summary>Completes the payload and payload stream of this request, and the response associated with this
-    /// request (if any).</summary>
+    /// <summary>Disposes this outgoing request. This completes the payload and payload stream of this request, and the
+    /// response associated with this request (if already received).</summary>
     public void Dispose()
     {
         Payload.Complete();
