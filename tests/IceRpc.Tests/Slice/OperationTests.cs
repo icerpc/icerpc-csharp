@@ -325,7 +325,7 @@ public class OperationTests
         PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemory(readOnlyMemory);
 
         // Assert
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
@@ -371,7 +371,7 @@ public class OperationTests
         PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemoryOptional(readOnlyMemory);
 
         // Assert
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
@@ -417,7 +417,7 @@ public class OperationTests
         PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemoryTagged(readOnlyMemory);
 
         // Assert
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload

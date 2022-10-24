@@ -16,7 +16,7 @@ public class SequenceMappingTests
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnTuple(
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
@@ -37,7 +37,7 @@ public class SequenceMappingTests
     public async Task Return_single_type_using_cs_generic_attribute()
     {
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
@@ -87,7 +87,7 @@ public class SequenceMappingTests
                 },
             },
         };
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpStructNestedSequence(data)
@@ -113,7 +113,7 @@ public class SequenceMappingTests
                 new List<byte>() { 1, 2, 3 },
             },
         };
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpNumericTypeNestedSequence(data)

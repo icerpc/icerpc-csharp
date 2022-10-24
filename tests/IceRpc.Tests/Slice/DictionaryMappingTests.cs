@@ -16,7 +16,7 @@ public class DictionaryMappingTests
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
@@ -38,7 +38,7 @@ public class DictionaryMappingTests
     {
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
-        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload

@@ -20,7 +20,7 @@ public class LocatorInterceptorTests
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/path"));
-        var request = new OutgoingRequest(serviceAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
 
@@ -41,7 +41,7 @@ public class LocatorInterceptorTests
         {
             Params = new Dictionary<string, string> { ["adapter-id"] = "foo" }.ToImmutableDictionary()
         };
-        var request = new OutgoingRequest(serviceAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
 
@@ -61,7 +61,7 @@ public class LocatorInterceptorTests
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };
-        var request = new OutgoingRequest(serviceAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
 
@@ -81,7 +81,7 @@ public class LocatorInterceptorTests
         var locationResolver = new MockCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };
-        var request = new OutgoingRequest(serviceAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
 
@@ -103,7 +103,7 @@ public class LocatorInterceptorTests
         var locationResolver = new MockNonCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };
-        var request = new OutgoingRequest(serviceAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         await sut.InvokeAsync(request, default);
 

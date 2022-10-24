@@ -16,7 +16,7 @@ public sealed class RequestContextInterceptorTests
     {
         var context = new Dictionary<string, string> { ["Foo"] = "Bar" };
         var proxy = new ServiceAddress(Protocol.IceRpc);
-        var request = new OutgoingRequest(proxy)
+        using var request = new OutgoingRequest(proxy)
         {
             Features = new FeatureCollection().With<IRequestContextFeature>(
                 new RequestContextFeature()

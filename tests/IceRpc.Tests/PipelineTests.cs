@@ -18,7 +18,8 @@ public class PipelineTests
             .Use(next => new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc))))
             .Into(VoidInvoker.Instance);
-        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        pipeline.InvokeAsync(request);
 
         // Assert/Act
         Assert.Throws<InvalidOperationException>(
@@ -60,7 +61,8 @@ public class PipelineTests
                 }))
              .Into(VoidInvoker.Instance);
 
-        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        pipeline.InvokeAsync(request);
 
         Assert.That(calls, Is.EqualTo(expectedCalls));
     }
@@ -83,7 +85,8 @@ public class PipelineTests
             feature = request.Features.Get<string>();
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
         }));
-        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        pipeline.InvokeAsync(request);
         Assert.That(feature, Is.EqualTo(expected));
     }
 }

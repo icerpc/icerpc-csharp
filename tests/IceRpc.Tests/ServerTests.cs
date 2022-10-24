@@ -179,8 +179,8 @@ public class ServerTests
                ServerAddress = server.ServerAddress,
            });
 
-        Task<IncomingResponse> invokeTask =
-            clientConnection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        Task<IncomingResponse> invokeTask = clientConnection.InvokeAsync(request);
 
         // Wait for invocation to be dispatched. Then shutdown the client and server connections.
         // Since the dispatch is blocking we wait for shutdown to timeout (We use a 500ms timeout).
