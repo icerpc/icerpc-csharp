@@ -23,7 +23,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         _pipe.Writer.Advance(bytes);
     }
 
-    public override void CancelPendingFlush() => _pipe.Writer.CancelPendingFlush();
+    // SlicPipeWriter does not support this method: the IceRPC core does not need it. And when the application code
+    // installs a payload writer interceptor, this interceptor should never call it on "next".
+    public override void CancelPendingFlush() => throw new NotSupportedException();
 
     public override void Complete(Exception? exception = null)
     {
@@ -78,7 +80,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         if (_state.HasFlag(State.PipeReaderCompleted))
         {
-            return GetFlushResult();
+            return _exception is null ?
+                new FlushResult(isCanceled: false, isCompleted: true) :
+                throw ExceptionUtil.Throw(_exception);
         }
 
         // Abort the stream if the invocation is canceled.
@@ -98,13 +102,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             {
                 // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
                 FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                if (flushResult.IsCanceled)
+                Debug.Assert(!flushResult.IsCanceled); // CancelPendingFlush never called on _pipe.Writer
+                if (flushResult.IsCompleted)
                 {
-                    return GetFlushResult();
-                }
-                else if (flushResult.IsCompleted)
-                {
-                    return flushResult;
+                    return new FlushResult(isCanceled: false, isCompleted: true);
                 }
             }
 
@@ -138,7 +139,11 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return GetFlushResult();
+
+            Debug.Assert(_abortCts.IsCancellationRequested);
+            return _exception is null ?
+                new FlushResult(isCanceled: false, isCompleted: true) :
+                throw ExceptionUtil.Throw(_exception);
         }
         finally
         {
@@ -157,25 +162,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
             }
             _state.ClearFlag(State.PipeReaderInUse);
-        }
-
-        FlushResult GetFlushResult()
-        {
-            if (_state.HasFlag(State.PipeReaderCompleted))
-            {
-                if (_exception is null)
-                {
-                    return new FlushResult(isCanceled: false, isCompleted: true);
-                }
-                else
-                {
-                    throw ExceptionUtil.Throw(_exception);
-                }
-            }
-            else
-            {
-                return new FlushResult(isCanceled: true, isCompleted: false);
-            }
         }
     }
 
@@ -204,11 +190,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             // Cancel write if pending.
             _abortCts.Cancel();
 
-            if (_state.HasFlag(State.PipeReaderInUse))
-            {
-                _pipe.Writer.CancelPendingFlush();
-            }
-            else
+            if (!_state.HasFlag(State.PipeReaderInUse))
             {
                 _pipe.Reader.Complete(exception);
             }
