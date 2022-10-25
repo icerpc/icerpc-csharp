@@ -1045,7 +1045,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Stream_local_input_read_returns_completed_read_result_when_remote_output_is_completed()
+    public async Task Stream_remote_input_read_returns_completed_read_result_when_local_output_is_completed()
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -1061,19 +1061,14 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Output.Complete();
 
         // Assert
-        ReadResult readResult;
-        while (!(readResult = await sut.RemoteStream.Input.ReadAsync()).IsCompleted)
-        {
-            sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
-            // Wait for ReadResult.IsCompleted=true
-            await Task.Delay(1);
-        }
+        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
+        Assert.That(readResult.IsCompleted, Is.True);
 
         CompleteStreams(sut);
     }
 
     [Test]
-    public async Task Stream_local_output_write_returns_completed_flush_result_when_remote_input_is_completed()
+    public async Task Stream_remote_output_write_returns_completed_flush_result_when_local_input_is_completed()
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -1089,17 +1084,15 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Input.Complete();
 
         // Assert
-        while (!(await sut.RemoteStream.Output.WriteAsync(new byte[1])).IsCompleted)
-        {
-            // Wait for FlushResult.IsCompleted=true
-            await Task.Delay(1);
-        }
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time for frame to reach Output
+        FlushResult flushResult = await sut.RemoteStream.Output.WriteAsync(new byte[1]);
+        Assert.That(flushResult.IsCompleted, Is.True);
 
         CompleteStreams(sut);
     }
 
     [Test]
-    public async Task Stream_local_output_flush_returns_completed_flush_result_when_remote_input_is_completed()
+    public async Task Stream_remote_output_flush_returns_completed_flush_result_when_local_input_is_completed()
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -1117,19 +1110,16 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Input.Complete();
 
         // Assert
-        while (!(await sut.RemoteStream.Output.FlushAsync()).IsCompleted)
-        {
-            // Wait for FlushResult.IsCompleted=true
-            await Task.Delay(1);
-        }
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time for frame to reach Output
+        FlushResult flushResult = await sut.RemoteStream.Output.FlushAsync();
+        Assert.That(flushResult.IsCompleted, Is.True);
 
         CompleteStreams(sut);
     }
 
-    /// <summary>Ensures that reads are closed when the peer completes its output and only once ReadAsync returns a
-    /// result with IsCompleted=true.</summary>
+    /// <summary>Ensures that remote input is closed when the we complete the local output.</summary>
     [Test]
-    public async Task Stream_reads_closed_after_completing_peer_output([Values(false, true)] bool isBidirectional)
+    public async Task Stream_remote_input_closed_after_completing_local_output([Values(false, true)] bool isBidirectional)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
