@@ -166,13 +166,10 @@ where
 
         // List of all recursive (it and its parents) cs::namespace attributes for this entity.
         let mut attribute_list = self.get_attribute_list(cs_attributes::NAMESPACE);
-        assert!(attribute_list.len() >= module_scope.len());
-
-        // Drain attributes which are not associated with modules
-        attribute_list.drain(0..attribute_list.len() - module_scope.len());
         // Reverse the list so that the top level module name is first.
         attribute_list.reverse();
-        assert_eq!(module_scope.len(), attribute_list.len());
+
+        assert!(attribute_list.len() >= module_scope.len());
 
         module_scope
             .iter()
