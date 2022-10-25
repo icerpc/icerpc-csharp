@@ -39,10 +39,10 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>This test ensures that aborting the connection correctly aborts the incoming request underlying
+    /// <summary>This test ensures that disposing the connection correctly aborts the incoming request underlying
     /// stream.</summary>
     [Test]
-    public async Task Aborting_connection_aborts_non_completed_incoming_request_stream()
+    public async Task Disposing_connection_aborts_non_completed_incoming_request_stream()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -77,8 +77,9 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await payload.ReadAsync());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionDisposed));
+        Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<TransportException>()
+            .With.Property("ErrorCode").EqualTo(TransportErrorCode.ConnectionDisposed)
+            .Or.EqualTo(TransportErrorCode.ConnectionReset));
 
         payload.Complete();
 
