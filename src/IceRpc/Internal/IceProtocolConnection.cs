@@ -978,16 +978,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 try
                 {
-                    if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                    {
-                        // This prevents us from receiving any frame until EnterAsync returns.
-                        await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
-                            .ConfigureAwait(false);
-                        enteredSemaphore = true;
-                    }
-
                     try
                     {
+                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                        {
+                            // This prevents us from receiving any frame until EnterAsync returns.
+                            await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
+                                .ConfigureAwait(false);
+                            enteredSemaphore = true;
+                        }
                         // The dispatcher can complete the incoming request payload to release its memory as soon as
                         // possible.
                         response = await _dispatcher.DispatchAsync(

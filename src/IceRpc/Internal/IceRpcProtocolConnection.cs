@@ -877,13 +877,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             bool enteredSemaphore = false;
             try
             {
-                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                {
-                    await dispatchSemaphore.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
-                    enteredSemaphore = true;
-                }
                 try
                 {
+                    if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                    {
+                        await dispatchSemaphore.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
+                        enteredSemaphore = true;
+                    }
                     response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
                 }
                 finally
