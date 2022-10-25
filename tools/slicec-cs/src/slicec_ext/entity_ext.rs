@@ -168,7 +168,7 @@ where
         let mut attribute_list = self.get_attribute_list(cs_attributes::NAMESPACE);
         assert!(attribute_list.len() >= module_scope.len());
 
-        // From away attributes which are not associated with modules
+        // Drain attributes which are not associated with modules
         attribute_list.drain(0..attribute_list.len() - module_scope.len());
         // Reverse the list so that the top level module name is first.
         attribute_list.reverse();
