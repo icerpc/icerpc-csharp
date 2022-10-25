@@ -162,18 +162,21 @@ where
 
     /// The C# namespace of this Entity
     fn namespace(&self) -> String {
-        self.raw_scope()
-            .module_scope
+        let module_scope = &self.raw_scope().module_scope;
+
+        // List of all recursive (it and its parents) cs::namespace attributes for this entity.
+        let mut attribute_list = self.get_attribute_list(cs_attributes::NAMESPACE);
+        // Reverse the list so that the top level module name is first.
+        attribute_list.reverse();
+
+        assert!(attribute_list.len() >= module_scope.len());
+
+        module_scope
             .iter()
             .enumerate()
-            .map(|(i, segment)| {
-                let mut escaped_module = escape_keyword(&segment.to_case(Case::Pascal));
-                if i == 0 {
-                    if let Some(attribute) = self.get_attribute(cs_attributes::NAMESPACE, true) {
-                        escaped_module = attribute.first().unwrap().to_owned();
-                    }
-                }
-                escaped_module
+            .map(|(i, s)| match attribute_list[i] {
+                Some(args) => args[0].to_owned(),
+                None => escape_keyword(&s.to_case(Case::Pascal)),
             })
             .collect::<Vec<_>>()
             .join(".")

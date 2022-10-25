@@ -13,10 +13,10 @@ public class NamespaceAttributeTests
 {
     class NamespaceOperations : Service, INamespaceOperations
     {
-        public ValueTask<NamespaceAttribute.WithNamespace.N1.N2.S1> Op1Async(
+        public ValueTask<NamespaceAttribute.WithNamespace.N1.O2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,
             IFeatureCollection features,
-            CancellationToken cancellationToken) => new(new NamespaceAttribute.WithNamespace.N1.N2.S1($"{p.I}"));
+            CancellationToken cancellationToken) => new(new NamespaceAttribute.WithNamespace.N1.O2.S1($"{p.I}"));
     }
 
     [Test]
@@ -30,7 +30,7 @@ public class NamespaceAttributeTests
         INamespaceOperationsProxy proxy = provider.GetRequiredService<INamespaceOperationsProxy>();
         provider.GetRequiredService<Server>().Listen();
 
-        NamespaceAttribute.WithNamespace.N1.N2.S1 r =
+        NamespaceAttribute.WithNamespace.N1.O2.S1 r =
             await proxy.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
 
         Assert.That(r.I, Is.EqualTo("10"));

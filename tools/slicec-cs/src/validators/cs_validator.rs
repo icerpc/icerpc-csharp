@@ -165,12 +165,6 @@ impl Visitor for CsValidator<'_> {
                             Some(attribute.span()),
                         )),
                     }
-                    if !module_def.is_top_level() {
-                        self.diagnostic_reporter.report_error(Error::new(
-                            ErrorKind::AttributeOnlyValidForTopLevelModules(cs_attributes::NAMESPACE.to_owned()),
-                            Some(attribute.span()),
-                        ));
-                    }
                 }
                 "identifier" => self.diagnostic_reporter.report_error(Error::new_with_notes(
                     ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "module".to_owned()),
