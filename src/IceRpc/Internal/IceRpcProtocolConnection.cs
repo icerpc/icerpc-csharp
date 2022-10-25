@@ -286,6 +286,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
 
         _tasksCts.Dispose();
+        _dispatchSemaphore?.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
     }
 
@@ -776,11 +777,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         try
         {
-            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-            {
-                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-            }
-
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
@@ -854,8 +850,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 
-            _dispatchSemaphore?.Release();
-
             throw;
         }
 
@@ -879,8 +873,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     dispatchCts);
 
             OutgoingResponse response;
+
+            bool enteredSemaphor = false;
             try
             {
+                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                {
+                    await dispatchSemaphore.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
+                    enteredSemaphor = true;
+                }
+
                 response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
 
                 if (response != request.Response)
@@ -979,6 +981,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             finally
             {
+                if (enteredSemaphor)
+                {
+                    _dispatchSemaphore?.Release();
+                }
+
                 if (fieldsPipeReader is not null)
                 {
                     await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
@@ -999,8 +1006,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _dispatchesCompleted.TrySetResult();
                     }
                 }
-
-                _dispatchSemaphore?.Release();
             }
 
             if (request.IsOneway)

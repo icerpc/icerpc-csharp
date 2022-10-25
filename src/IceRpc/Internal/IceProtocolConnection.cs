@@ -922,22 +922,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-            {
-                // This prevents us from receiving any frame until EnterAsync returns.
-                try
-                {
-                    await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
-                        .ConfigureAwait(false);
-                }
-                catch
-                {
-                    Debug.Assert(_isReadOnly);
-
-                    // continue to cleanup the request below.
-                }
-            }
-
             Exception? connectionClosedException = null;
             lock (_mutex)
             {
@@ -989,8 +973,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
                 OutgoingResponse? response = null;
+                bool enteredSemaphore = false;
+
                 try
                 {
+                    if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                    {
+                        // This prevents us from receiving any frame until EnterAsync returns.
+
+                        await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
+                            .ConfigureAwait(false);
+                        enteredSemaphore = true;
+                    }
+
                     // The dispatcher can complete the incoming request payload to release its memory as soon as
                     // possible.
                     response = await _dispatcher.DispatchAsync(
@@ -1051,6 +1046,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 finally
                 {
+                    if (enteredSemaphore)
+                    {
+                        _dispatchSemaphore?.Release();
+                    }
+
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
                     if (contextReader is not null)
                     {
@@ -1059,12 +1059,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         // The field values are now invalid - they point to potentially recycled and reused memory. We
                         // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
                         request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
-                    }
-                    // Dispatch is done, we can release the dispatch semaphore.
-                    lock (_mutex)
-                    {
-                        _dispatchSemaphore?.Release();
-                        --_dispatchCount;
                     }
                 }
 
@@ -1152,6 +1146,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     lock (_mutex)
                     {
+                        // Dispatch is done.
+                        --_dispatchCount;
                         if (_invocations.Count == 0 && _dispatchCount == 0)
                         {
                             if (_isReadOnly)
