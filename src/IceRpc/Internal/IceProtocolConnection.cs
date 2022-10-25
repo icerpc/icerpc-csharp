@@ -324,6 +324,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _duplexConnectionWriter.Dispose();
 
         _tasksCts.Dispose();
+        _dispatchSemaphore?.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
     }
 
@@ -980,17 +981,26 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                     {
                         // This prevents us from receiving any frame until EnterAsync returns.
-
                         await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
                             .ConfigureAwait(false);
                         enteredSemaphore = true;
                     }
 
-                    // The dispatcher can complete the incoming request payload to release its memory as soon as
-                    // possible.
-                    response = await _dispatcher.DispatchAsync(
-                        request,
-                        _dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                    try
+                    {
+                        // The dispatcher can complete the incoming request payload to release its memory as soon as
+                        // possible.
+                        response = await _dispatcher.DispatchAsync(
+                            request,
+                            _dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        if (enteredSemaphore)
+                        {
+                            _dispatchSemaphore?.Release();
+                        }
+                    }
 
                     if (response != request.Response)
                     {
@@ -1046,11 +1056,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 finally
                 {
-                    if (enteredSemaphore)
-                    {
-                        _dispatchSemaphore?.Release();
-                    }
-
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
                     if (contextReader is not null)
                     {

@@ -882,8 +882,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     await dispatchSemaphore.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
                     enteredSemaphore = true;
                 }
-
-                response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
+                try
+                {
+                    response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (enteredSemaphore)
+                    {
+                        _dispatchSemaphore?.Release();
+                    }
+                }
 
                 if (response != request.Response)
                 {
@@ -981,11 +990,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             finally
             {
-                if (enteredSemaphore)
-                {
-                    _dispatchSemaphore?.Release();
-                }
-
                 if (fieldsPipeReader is not null)
                 {
                     await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
