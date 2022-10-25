@@ -193,20 +193,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     while (true)
                     {
-                        IMultiplexedStream stream;
-
-                        try
-                        {
-                            // If _dispatcher is null, this call will be block indefinitely until the connection is
-                            // closed because the multiplexed connection MaxUnidirectionalStreams and
-                            // MaxBidirectionalStreams options don't allow the peer to open streams.
-                            stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
-                                .ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            throw;
-                        }
+                        // If _dispatcher is null, this call will be block indefinitely until the connection is
+                        // closed because the multiplexed connection MaxUnidirectionalStreams and
+                        // MaxBidirectionalStreams options don't allow the peer to open streams.
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
+                            .ConfigureAwait(false);
 
                         try
                         {
@@ -874,9 +865,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             OutgoingResponse response;
 
-            bool enteredSemaphore = false;
             try
             {
+                bool enteredSemaphore = false;
+
                 try
                 {
                     if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)

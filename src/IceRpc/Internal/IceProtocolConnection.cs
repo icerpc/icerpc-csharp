@@ -923,6 +923,16 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
+            bool enteredSemaphore = false;
+
+            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+            {
+                // This prevents us from receiving any frame until EnterAsync returns.
+                await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
+                    .ConfigureAwait(false);
+                enteredSemaphore = true;
+            }
+
             Exception? connectionClosedException = null;
             lock (_mutex)
             {
@@ -974,19 +984,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
                 OutgoingResponse? response = null;
-                bool enteredSemaphore = false;
-
                 try
                 {
                     try
                     {
-                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                        {
-                            // This prevents us from receiving any frame until EnterAsync returns.
-                            await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
-                                .ConfigureAwait(false);
-                            enteredSemaphore = true;
-                        }
                         // The dispatcher can complete the incoming request payload to release its memory as soon as
                         // possible.
                         response = await _dispatcher.DispatchAsync(
