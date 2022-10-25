@@ -694,7 +694,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             // If the peer is no longer reading the payload, call Cancel on readCts.
-            Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
+            Task cancelOnOutputClosedTask = CancelOnOutputClosedAsync(readCts);
 
             FlushResult flushResult;
 
@@ -709,7 +709,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch (OperationCanceledException) when (stream.OutputClosed.IsCompleted)
                     {
-                        // This either throws the WritesClosed exception or returns a completed FlushResult.
+                        // This either throws the OutputClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                     }
 
@@ -744,12 +744,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             finally
             {
                 readCts.Cancel();
-                await cancelOnWritesClosedTask.ConfigureAwait(false);
+                await cancelOnOutputClosedTask.ConfigureAwait(false);
             }
 
             return flushResult;
 
-            async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
+            async Task CancelOnOutputClosedAsync(CancellationTokenSource readCts)
             {
                 try
                 {
@@ -1190,7 +1190,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            // Ignore the reason of the reads/writes close.
+            // Ignore the reason of the Input/Output closure
         }
 
         lock (_mutex)
