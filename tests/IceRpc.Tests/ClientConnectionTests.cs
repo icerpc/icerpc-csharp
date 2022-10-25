@@ -106,10 +106,14 @@ public class ClientConnectionTests
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
-        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+        {
+            // Create a separate scope to ensure the call to DisposeAsync runs after
+            // request is disposed by the using directive.
+            using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
-        // Act/Assert
-        Assert.That(async () => await connection.InvokeAsync(request), Throws.Nothing);
+            // Act/Assert
+            Assert.That(async () => await connection.InvokeAsync(request), Throws.Nothing);
+        }
 
         await server.DisposeAsync();
     }
