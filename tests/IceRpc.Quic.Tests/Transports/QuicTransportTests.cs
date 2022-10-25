@@ -70,7 +70,7 @@ public class QuicTransportTests
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "Server certificate validation is not required for this test")]
     [Test]
-    public async Task Tls_client_certificate_not_trusted()
+    public async Task Connection_fails_when_the_server_rejects_client_certificate()
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddQuicTest();
@@ -102,16 +102,12 @@ public class QuicTransportTests
         // This is timing dependend the exception can be thrown either by CreateStreamAsync or by the XxxClosed task
         Assert.That(async () =>
             {
-                var stream = await clientConnection.CreateStreamAsync(bidirectional: true, cancellationToken: default);
-                await stream.WritesClosed;
+                IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
+                    bidirectional: false,
+                    cancellationToken: default);
+                await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(), default);
             },
-            Throws.TypeOf<TransportException>().Or.TypeOf<AuthenticationException>());
-        Assert.That(async () =>
-            {
-                var stream = await clientConnection.CreateStreamAsync(bidirectional: true, cancellationToken: default);
-                await stream.ReadsClosed;
-            },
-            Throws.TypeOf<TransportException>().Or.TypeOf<AuthenticationException>());
+            Throws.TypeOf<AuthenticationException>());
         Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
