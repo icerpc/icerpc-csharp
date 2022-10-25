@@ -44,7 +44,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _tasksCts = new();
-    private Task? _waitForConnectionFailure;
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
@@ -158,34 +157,73 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _readGoAwayTask = Task.Run(
             async () =>
             {
-                IceRpcGoAway goAwayFrame;
                 try
                 {
                     CancellationToken cancellationToken = _tasksCts.Token;
                     await ReceiveControlFrameHeaderAsync(
                         IceRpcControlFrameType.GoAway,
                         cancellationToken).ConfigureAwait(false);
-                    goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
+                    IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
+                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
+                    return goAwayFrame;
                 }
-                catch (Exception exception)
+                catch (TransportException)
                 {
-                    // Abort the remote control stream to trigger its completion with a failure. The
-                    // _waitForConnectionFailure task below will abort the connection.
-                    _remoteControlStream.Abort(exception);
+                    throw; // The connection with the peer was lost.
+                }
+                catch (OperationCanceledException)
+                {
+                    throw; // The connection was disposed.
+                }
+                catch
+                {
+                    // Any other failure to read the GoAway frame is considered as a protocol violation. We kill the
+                    // transport connection in this case.
+                    await _transportConnection.DisposeAsync().ConfigureAwait(false);
                     throw;
                 }
-                InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
-                return goAwayFrame;
             },
             CancellationToken.None);
 
-        // Start a task to detect connection failures.
-        _waitForConnectionFailure = Task.Run(
+        // Start a task to start accepting requests.
+        _acceptRequestsTask = Task.Run(
             async () =>
             {
                 try
                 {
-                    await _remoteControlStream!.InputClosed.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+                    while (true)
+                    {
+                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                        {
+                            await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+                        }
+
+                        IMultiplexedStream stream;
+
+                        try
+                        {
+                            // If _dispatcher is null, this call will be block indefinitely until the connection is
+                            // closed because the multiplexed connection MaxUnidirectionalStreams and
+                            // MaxBidirectionalStreams options don't allow the peer to open streams.
+                            stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
+                                .ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            _dispatchSemaphore?.Release();
+                            throw;
+                        }
+
+                        try
+                        {
+                            // AcceptRequestAsync is responsible to release the dispatch semaphore.
+                            await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
+                        }
+                        catch (IceRpcProtocolStreamException)
+                        {
+                            // A stream failure is not a fatal connection error; we can continue accepting new requests.
+                        }
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -218,54 +256,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to start accepting requests if a dispatcher is set.
-        if (_dispatcher is not null)
-        {
-            _acceptRequestsTask = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        while (true)
-                        {
-                            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                            {
-                                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-                            }
-
-                            IMultiplexedStream stream;
-
-                            try
-                            {
-                                stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
-                                    .ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                _dispatchSemaphore?.Release();
-                                throw;
-                            }
-
-                            try
-                            {
-                                // AcceptRequestAsync is responsible to release the dispatch semaphore.
-                                await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
-                            }
-                            catch (IceRpcProtocolStreamException)
-                            {
-                                // A stream failure is not a fatal connection error; we can continue accepting new
-                                // requests.
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore connection failures here, this is handled by the _waitForConnectionFailure task.
-                    }
-                },
-                CancellationToken.None);
-        }
-
         return transportConnectionInformation;
     }
 
@@ -278,8 +268,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             await Task.WhenAll(
                 _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask,
-                _waitForConnectionFailure ?? Task.CompletedTask).ConfigureAwait(false);
+                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
         }
         catch
         {
