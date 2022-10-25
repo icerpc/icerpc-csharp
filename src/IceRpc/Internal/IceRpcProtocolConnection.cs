@@ -202,6 +202,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                         try
                         {
+                            // If _dispatcher is null, this call will be block indefinitely until the connection is
+                            // closed because the multiplexed connection MaxUnidirectionalStreams and
+                            // MaxBidirectionalStreams options don't allow the peer to open streams.
                             stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
                                 .ConfigureAwait(false);
                         }
