@@ -33,8 +33,8 @@ impl ModuleVisitor<'_> {
         let code_blocks = self.generated_code.remove_scoped(module);
 
         let identifier = match module.get_attribute(cs_attributes::NAMESPACE, false) {
-            Some(attribute) => attribute.first().unwrap().to_owned(),
-            _ => module.identifier().to_owned(),
+            Some(attribute) => attribute.first().unwrap(),
+            _ => module.identifier(),
         };
 
         let module_identifier = match &module_prefix {
