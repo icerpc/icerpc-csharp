@@ -23,7 +23,8 @@ public sealed class DispatcherBuilderTests
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" });
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
+        _ = await dispatcher.DispatchAsync(request);
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
@@ -40,8 +41,9 @@ public sealed class DispatcherBuilderTests
         var builder = new DispatcherBuilder(provider);
         builder.Mount<ITestService>("/");
         IDispatcher dispatcher = builder.Build();
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(request);
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
@@ -62,8 +64,9 @@ public sealed class DispatcherBuilderTests
         builder.UseMiddleware<UserMiddleware, IUser>();
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(request);
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
@@ -87,8 +90,9 @@ public sealed class DispatcherBuilderTests
         builder.UseMiddleware<TripleMiddleware, IUser, IDep2, IDep3>();
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(request);
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(3));
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));

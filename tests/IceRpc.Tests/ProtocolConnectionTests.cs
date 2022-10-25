@@ -668,7 +668,7 @@ public sealed class ProtocolConnectionTests
         _ = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -697,7 +697,7 @@ public sealed class ProtocolConnectionTests
         _ = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid request.</summary>

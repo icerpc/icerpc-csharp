@@ -167,7 +167,7 @@ public sealed class IceProtocolConnectionTests
         _ = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await payloadStreamDecorator.Completed, Throws.Nothing);
     }
 
     /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.

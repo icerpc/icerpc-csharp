@@ -826,17 +826,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            var request = new IncomingRequest(_connectionContext!)
-            {
-                Fields = fields,
-                IsOneway = !stream.IsBidirectional,
-                Operation = header.Operation,
-                Path = header.Path,
-                Payload = stream.Input
-            };
-
             _ = Task.Run(
-                () => DispatchRequestAsync(request, stream, fieldsPipeReader),
+                async () =>
+                {
+                    using var request = new IncomingRequest(_connectionContext!)
+                    {
+                        Fields = fields,
+                        IsOneway = !stream.IsBidirectional,
+                        Operation = header.Operation,
+                        Path = header.Path,
+                        Payload = stream.Input
+                    };
+                    await DispatchRequestAsync(request, stream, fieldsPipeReader).ConfigureAwait(false);
+                },
                 CancellationToken.None);
         }
         catch (Exception exception)
@@ -897,14 +899,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             catch when (request.IsOneway || _tasksCts.IsCancellationRequested)
             {
                 // No reply for oneway requests or if the connection is disposed.
-                request.Complete();
                 return;
             }
             catch (OperationCanceledException exception) when (dispatchCts.Token == exception.CancellationToken)
             {
                 await stream.Output.CompleteAsync((Exception?)ConnectionClosedException ?? exception)
                     .ConfigureAwait(false);
-                request.Complete();
                 return;
             }
             catch (Exception exception)
@@ -1005,7 +1005,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (request.IsOneway)
             {
-                request.Complete();
                 return;
             }
 
@@ -1016,11 +1015,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
                 // output.
                 await SendPayloadAsync(response, stream, dispatchCts.Token).ConfigureAwait(false);
-                request.Complete();
             }
             catch (Exception exception)
             {
-                request.Complete(exception);
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 

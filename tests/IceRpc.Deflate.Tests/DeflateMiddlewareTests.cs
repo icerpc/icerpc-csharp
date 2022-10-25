@@ -35,9 +35,10 @@ public class CompressorMiddlewareTests
         var sut = new DeflateMiddleware(dispatcher);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
 
         // Act
-        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
+        OutgoingResponse response = await sut.DispatchAsync(request);
 
         // Assert
         PipeWriter payloadWriter = response.GetPayloadWriter(output);
@@ -59,8 +60,9 @@ public class CompressorMiddlewareTests
     {
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var sut = new DeflateMiddleware(dispatcher);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
 
-        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
+        OutgoingResponse response = await sut.DispatchAsync(request);
 
         var pipe = new Pipe();
         Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
@@ -83,8 +85,9 @@ public class CompressorMiddlewareTests
             return new(response);
         });
         var sut = new DeflateMiddleware(dispatcher);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
 
-        var response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc), default);
+        var response = await sut.DispatchAsync(request, default);
 
         var pipe = new Pipe();
         Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
@@ -104,7 +107,7 @@ public class CompressorMiddlewareTests
             return new(new OutgoingResponse(request));
         });
         var sut = new DeflateMiddleware(dispatcher);
-        IncomingRequest request = CreateRequestWitCompressionFormatField(_unknownEncodedCompressionFormatValue);
+        using IncomingRequest request = CreateRequestWitCompressionFormatField(_unknownEncodedCompressionFormatValue);
 
         await sut.DispatchAsync(request, default);
 
@@ -118,7 +121,7 @@ public class CompressorMiddlewareTests
     {
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var sut = new DeflateMiddleware(dispatcher);
-        IncomingRequest request = CreateRequestWitCompressionFormatField(_deflateEncodedCompressionFormatValue);
+        using IncomingRequest request = CreateRequestWitCompressionFormatField(_deflateEncodedCompressionFormatValue);
         request.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
 
         OutgoingResponse response = await sut.DispatchAsync(request, default);

@@ -21,7 +21,7 @@ public sealed class MetricsMiddlewareTests
             ("canceled-requests", "1"),
             ("current-requests", "0"));
         using var eventSource = new DispatchEventSource(name);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, eventSource);
 
         try
@@ -50,7 +50,7 @@ public sealed class MetricsMiddlewareTests
             ("failed-requests", "1"),
             ("current-requests", "0"));
         using var eventSource = new DispatchEventSource(name);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, eventSource);
 
         try
@@ -77,7 +77,7 @@ public sealed class MetricsMiddlewareTests
             ("total-requests", "1"),
             ("current-requests", "0"));
         using var eventSource = new DispatchEventSource(name);
-        var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, eventSource);
 
         await sut.DispatchAsync(request, default);
