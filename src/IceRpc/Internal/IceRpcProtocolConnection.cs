@@ -874,13 +874,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             OutgoingResponse response;
 
-            bool enteredSemaphor = false;
+            bool enteredSemaphore = false;
             try
             {
                 if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                 {
                     await dispatchSemaphore.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
-                    enteredSemaphor = true;
+                    enteredSemaphore = true;
                 }
 
                 response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
@@ -981,7 +981,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             finally
             {
-                if (enteredSemaphor)
+                if (enteredSemaphore)
                 {
                     _dispatchSemaphore?.Release();
                 }
