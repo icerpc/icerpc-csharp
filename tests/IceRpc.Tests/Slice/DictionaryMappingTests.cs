@@ -44,8 +44,7 @@ public class DictionaryMappingTests
             Payload = responsePayload
         };
 
-        // TODO bogus mapping, this should return CustomDictionary<int, int>
-        Dictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
+        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
             new ServiceProxy(NotImplementedInvoker.Instance),
