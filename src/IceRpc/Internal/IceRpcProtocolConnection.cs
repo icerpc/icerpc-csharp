@@ -208,11 +208,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             throw;
                         }
 
-                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                        {
-                            await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-                        }
-
                         try
                         {
                             // AcceptRequestAsync is responsible to release the dispatch semaphore.
@@ -781,6 +776,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         try
         {
+            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+            {
+                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+            }
+
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
@@ -836,6 +836,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         Path = header.Path,
                         Payload = stream.Input
                     };
+
                     await DispatchRequestAsync(request, stream, fieldsPipeReader).ConfigureAwait(false);
                 },
                 CancellationToken.None);
