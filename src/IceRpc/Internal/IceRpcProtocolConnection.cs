@@ -193,11 +193,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     while (true)
                     {
-                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                        {
-                            await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-                        }
-
                         IMultiplexedStream stream;
 
                         try
@@ -210,8 +205,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                         catch
                         {
-                            _dispatchSemaphore?.Release();
                             throw;
+                        }
+                        finally
+                        {
+                            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                            {
+                                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
+                            }
                         }
 
                         try

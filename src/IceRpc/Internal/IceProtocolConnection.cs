@@ -1060,6 +1060,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
                         request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                     }
+                    // Dispatch is done, we can release the dispatch semaphore.
+                    lock (_mutex)
+                    {
+                        _dispatchSemaphore?.Release();
+                        --_dispatchCount;
+                    }
                 }
 
                 PipeWriter payloadWriter = _payloadWriter;
@@ -1146,10 +1152,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     lock (_mutex)
                     {
-                        _dispatchSemaphore?.Release();
-
-                        // Dispatch is done.
-                        --_dispatchCount;
                         if (_invocations.Count == 0 && _dispatchCount == 0)
                         {
                             if (_isReadOnly)
