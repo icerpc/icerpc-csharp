@@ -207,12 +207,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         {
                             throw;
                         }
-                        finally
+
+                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                         {
-                            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                            {
-                                await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-                            }
+                            await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
                         }
 
                         try
