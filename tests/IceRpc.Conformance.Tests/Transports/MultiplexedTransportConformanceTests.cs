@@ -1084,7 +1084,7 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Input.Complete();
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time for frame to reach Output
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time to StopSending frame to reach Output
         FlushResult flushResult = await sut.RemoteStream.Output.WriteAsync(new byte[1]);
         Assert.That(flushResult.IsCompleted, Is.True);
 
@@ -1110,7 +1110,7 @@ public abstract class MultiplexedTransportConformanceTests
         sut.LocalStream.Input.Complete();
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time for frame to reach Output
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time to StopSending frame to reach Output
         FlushResult flushResult = await sut.RemoteStream.Output.FlushAsync();
         Assert.That(flushResult.IsCompleted, Is.True);
 
