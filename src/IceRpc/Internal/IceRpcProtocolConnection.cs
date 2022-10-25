@@ -89,7 +89,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
-            if (_streamCount == 0)
+            if (!_isReadOnly && _streamCount == 0)
             {
                 _isReadOnly = true;
                 ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
@@ -273,21 +273,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
 
-        // Abort all local streams since we're waiting for their completion below.
-        var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
-        foreach (IMultiplexedStream stream in _localStreams)
-        {
-            stream.Abort(exception);
-        }
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations();
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
-        // Next, wait for dispatches and local streams to complete (local streams are used as an approximation for
-        // invocations).
-        await Task.WhenAll(_dispatchesCompleted.Task, _localStreamsCompleted.Task).ConfigureAwait(false);
+        // Next, wait for dispatches to complete. We're not waiting for local streams - they are irrelevant here.
+        await _dispatchesCompleted.Task.ConfigureAwait(false);
 
         _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
@@ -519,7 +512,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 stream.Abort(ConnectionClosedException);
             }
 
-            // Wait for dispatches and local streams to complete.
+            // Wait for dispatches and local streams to complete. The local streams are an approximation for
+            // invocations.
             await Task.WhenAll(_dispatchesCompleted.Task, _localStreamsCompleted.Task).WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
 
