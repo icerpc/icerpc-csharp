@@ -164,7 +164,7 @@ where
     fn namespace(&self) -> String {
         let module_scope = &self.raw_scope().module_scope;
 
-        // List of all recursive (it and its parents) cs::namespace attributes for this entity
+        // List of all recursive (it and its parents) cs::namespace attributes for this entity.
         let mut attribute_list = self.get_attribute_list(cs_attributes::NAMESPACE);
         assert!(attribute_list.len() >= module_scope.len());
 
