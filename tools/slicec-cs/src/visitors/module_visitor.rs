@@ -32,18 +32,18 @@ impl ModuleVisitor<'_> {
     fn module_code_block(&mut self, module: &Module, module_prefix: Option<String>) -> CodeBlock {
         let code_blocks = self.generated_code.remove_scoped(module);
 
+        let identifier = match module.get_attribute(cs_attributes::NAMESPACE, false) {
+            Some(attribute) => attribute.first().unwrap().to_owned(),
+            _ => module.identifier().to_owned(),
+        };
+
         let module_identifier = match &module_prefix {
             Some(prefix) => {
                 // If there is a prefix the previous module was empty and we keep the prefix in the
                 // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
-                format!("{}.{}", prefix, module.identifier())
+                format!("{}.{}", prefix, identifier)
             }
-            None => match module.get_attribute(cs_attributes::NAMESPACE, false) {
-                // If a top-level module has a 'cs::namespace' attribute, use its argument as module
-                // identifier otherwise use the module identifier.
-                Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
-                _ => module.identifier().to_owned(),
-            },
+            None => identifier,
         };
 
         // If this module has any code blocks the submodules are mapped to namespaces inside the

@@ -3,11 +3,15 @@
 [cs::namespace("IceRpc.Tests.Slice.NamespaceAttribute.WithNamespace")]
 module WithNamespace
 {
-    module N1::N2
+    module N1
     {
-        struct S1
+        [cs::namespace("O2")]
+        module N2
         {
-            i: string,
+            struct S1
+            {
+                i: string,
+            }
         }
     }
 }
