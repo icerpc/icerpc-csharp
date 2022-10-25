@@ -77,8 +77,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await payload.ReadAsync());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await payload.ReadAsync());
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionDisposed));
 
         payload.Complete();
 
