@@ -1068,7 +1068,7 @@ public sealed class ProtocolConnectionTests
         }
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task invokeTask = sut.Client.InvokeAsync(request);
@@ -1079,17 +1079,20 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
-        if (closeClientSide)
+        Assert.That(invokeTask.IsCompleted, Is.False);
+
+        // TODO: not AAA
+        dispatcher.ReleaseDispatch();
+        Assert.That(async () => await invokeTask, Throws.Nothing);
+
+        if (protocol == Protocol.IceRpc && !closeClientSide)
         {
-            await sut.Client.DisposeAsync();
-            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
-        }
-        else
-        {
+            // TODO: this is an icerpc bug
+            // When a server connection shutdown times out, we need to dispose the server connection first otherwise
+            // DisposeAsync on the client connection (which is shutting down with the default timeout) will hang because
+            // the server does not close its control stream.
+            // (ClientServerProtocolConnection disposes the client and then the server, in this order)
             await sut.Server.DisposeAsync();
-            ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
-            Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
         }
     }
 
