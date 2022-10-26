@@ -64,6 +64,8 @@ public sealed class IceRpcProtocolConnectionTests
         var payload = incomingRequest.DetachPayload();
         dispatcher.ReleaseDispatch();
         await invokeTask;
+        ReadResult readResult = await payload.ReadAtLeastAsync(10); // Read everything
+        payload.AdvanceTo(readResult.Buffer.End);
 
         try
         {
