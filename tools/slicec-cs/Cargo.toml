@@ -7,7 +7,7 @@ The slicec-cs compiler, for compiling Slice files into C# code.
 """
 keywords = ["slice", "ice", "icerpc"]
 license = "Apache-2.0"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 # Uses the github repo when built locally, and Crates.io when published.

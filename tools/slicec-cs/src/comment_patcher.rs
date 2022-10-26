@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::TryInto;
 
 use crate::slicec_ext::*;
 
