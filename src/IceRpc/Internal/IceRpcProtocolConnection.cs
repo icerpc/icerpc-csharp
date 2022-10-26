@@ -24,7 +24,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
-
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
     // Whether or not the inner exception details should be included in dispatch exceptions
@@ -32,17 +31,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private bool _isReadOnly;
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
+    private readonly HashSet<IMultiplexedStream> _localStreams = new();
+    private readonly TaskCompletionSource _localStreamsCompleted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
     private readonly IMultiplexedConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
-
-    private readonly HashSet<IMultiplexedStream> _streams = new();
-    private readonly TaskCompletionSource _streamsCompleted =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
+    private int _streamCount;
     private readonly CancellationTokenSource _tasksCts = new();
 
     internal IceRpcProtocolConnection(
@@ -73,10 +72,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             lock (_mutex)
             {
                 _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
-
-                if (_streams.Count == 0)
+                if (_localStreams.Count == 0)
                 {
-                    _streamsCompleted.TrySetResult();
+                    _localStreamsCompleted.TrySetResult();
                 }
                 if (_dispatchCount == 0)
                 {
@@ -91,7 +89,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
-            if (_streams.Count == 0)
+            if (!_isReadOnly && _streamCount == 0)
             {
                 _isReadOnly = true;
                 ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
@@ -275,21 +273,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
 
-        // Abort streams.
-        var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
-        foreach (IMultiplexedStream stream in _streams)
-        {
-            stream.Abort(exception);
-        }
-
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations();
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
-        // Next, wait for dispatches and invocations to complete.
-        await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
+        // Next, wait for dispatches to complete. We're not waiting for local streams - they are irrelevant here.
+        await _dispatchesCompleted.Task.ConfigureAwait(false);
 
         _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
@@ -329,13 +320,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 else
                 {
-                    if (_streams.Count == 0)
+                    if (_streamCount++ == 0)
                     {
                         DisableIdleCheck();
                     }
-                    _streams.Add(stream);
+                    _localStreams.Add(stream);
 
-                    _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
+                    _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
                 }
             }
 
@@ -466,8 +457,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (_readGoAwayTask is null)
         {
-            // No streams or dispatches if the connection is not connected.
-            Debug.Assert(_streams.Count == 0 && _dispatchCount == 0);
+            // No invocation or dispatch if the connection is not connected.
+            Debug.Assert(_localStreams.Count == 0 && _dispatchCount == 0);
 
             // Calling shutdown before connect indicates that the connection establishment is refused.
             await _transportConnection.CloseAsync(
@@ -482,9 +473,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             lock (_mutex)
             {
                 _isReadOnly = true;
-                if (_streams.Count == 0)
+                if (_localStreams.Count == 0)
                 {
-                    _streamsCompleted.TrySetResult();
+                    _localStreamsCompleted.TrySetResult();
                 }
                 if (_dispatchCount == 0)
                 {
@@ -502,29 +493,29 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // been initiated by the peer.
             IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            // Abort streams for requests that were not dispatched by the peer. The invocations will throw
+            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
             // ConnectionClosedException which can be retried.
-            IEnumerable<IMultiplexedStream> invocations;
+            IEnumerable<IMultiplexedStream> streamsToAbort;
             lock (_mutex)
             {
-                invocations = _streams.Where(stream =>
-                    !stream.IsRemote &&
-                    (!stream.IsStarted || (stream.IsBidirectional ?
+                streamsToAbort = _localStreams.Where(stream =>
+                    !stream.IsStarted ||
+                    (stream.IsBidirectional ?
                         peerGoAwayFrame.LastBidirectionalStreamId is null ||
                         stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
-                        peerGoAwayFrame.LastUnidirectionalStreamId is null ||
-                        stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId))).ToArray();
+                            peerGoAwayFrame.LastUnidirectionalStreamId is null ||
+                            stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)).ToArray();
             }
 
-            foreach (IMultiplexedStream stream in invocations)
+            foreach (IMultiplexedStream stream in streamsToAbort)
             {
                 stream.Abort(ConnectionClosedException);
             }
 
-            // Wait for dispatches and streams to complete and shutdown the connection.
-            await Task.WhenAll(
-                _dispatchesCompleted.Task,
-                _streamsCompleted.Task).WaitAsync(cancellationToken).ConfigureAwait(false);
+            // Wait for dispatches and local streams to complete. The local streams are an approximation for
+            // invocations.
+            await Task.WhenAll(_dispatchesCompleted.Task, _localStreamsCompleted.Task).WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             // Close the control stream to notify the peer that on our side, all the streams completed.
             _controlStream!.Output.Complete();
@@ -703,7 +694,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             // If the peer is no longer reading the payload, call Cancel on readCts.
-            Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
+            Task cancelOnOutputClosedTask = CancelOnOutputClosedAsync(readCts);
 
             FlushResult flushResult;
 
@@ -718,7 +709,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch (OperationCanceledException) when (stream.OutputClosed.IsCompleted)
                     {
-                        // This either throws the WritesClosed exception or returns a completed FlushResult.
+                        // This either throws the OutputClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                     }
 
@@ -753,12 +744,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             finally
             {
                 readCts.Cancel();
-                await cancelOnWritesClosedTask.ConfigureAwait(false);
+                await cancelOnOutputClosedTask.ConfigureAwait(false);
             }
 
             return flushResult;
 
-            async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
+            async Task CancelOnOutputClosedAsync(CancellationTokenSource readCts)
             {
                 try
                 {
@@ -811,14 +802,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _lastRemoteUnidirectionalStreamId = stream.Id;
                     }
 
-                    if (_streams.Count == 0)
+                    if (_streamCount++ == 0)
                     {
                         DisableIdleCheck();
                     }
-
-                    _streams.Add(stream);
-
-                    _ = RemoveStreamOnWritesAndReadsClosedAsync(stream);
+                    _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
                 }
             }
 
@@ -869,7 +857,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (!request.IsOneway)
             {
                 // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
-                _ = CancelDispatchOnWritesClosedAsync();
+                _ = CancelDispatchOnOutputClosedAsync();
             }
 
             // Cancel the dispatch cancellation token source if dispatches and invocations are canceled.
@@ -1043,7 +1031,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
 
-            async Task CancelDispatchOnWritesClosedAsync()
+            async Task CancelDispatchOnOutputClosedAsync()
             {
                 try
                 {
@@ -1194,7 +1182,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async Task RemoveStreamOnWritesAndReadsClosedAsync(IMultiplexedStream stream)
+    private async Task RemoveStreamOnInputAndOutputClosedAsync(IMultiplexedStream stream)
     {
         try
         {
@@ -1202,25 +1190,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            // Ignore the reason of the reads/writes close.
+            // Ignore the reason of the Input/Output closure
         }
 
         lock (_mutex)
         {
-            _streams.Remove(stream);
-
-            if (_streams.Count == 0)
+            if (!stream.IsRemote)
             {
-                if (_isReadOnly)
+                _ = _localStreams.Remove(stream);
+                if (_localStreams.Count == 0 && _isReadOnly)
                 {
-                    // If shutting down, we can set the _streamsCompleted task completion source
-                    // as completed to allow shutdown to progress.
-                    _streamsCompleted.TrySetResult();
+                    _localStreamsCompleted.TrySetResult();
                 }
-                else
-                {
-                    EnableIdleCheck();
-                }
+            }
+
+            if (--_streamCount == 0 && !_isReadOnly)
+            {
+                EnableIdleCheck();
             }
         }
     }
