@@ -44,7 +44,23 @@ public static class ProtocolServiceCollectionExtensions
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+            options =>
+            {
+                options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter;
+
+                // TODO: this affects the client and the server connection, which is not good since we only check the
+                // serverConnectionOptions.
+                if (serverConnectionOptions.Dispatcher is null)
+                {
+                    options.MaxBidirectionalStreams = 0;
+                    options.MaxUnidirectionalStreams = 1;
+                }
+                else
+                {
+                    options.MaxBidirectionalStreams = serverConnectionOptions.MaxIceRpcBidirectionalStreams;
+                    options.MaxUnidirectionalStreams = serverConnectionOptions.MaxIceRpcUnidirectionalStreams + 1;
+                }
+            });
 
         return services;
     }
