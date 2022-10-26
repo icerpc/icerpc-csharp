@@ -925,14 +925,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
             {
-                // This prevents us from receiving any new frames if we're already dispatching
-                // the maximum number of requests.
+                // This prevents us from receiving any new frames if we're already dispatching the maximum number of
+                // requests. We need to do this in the "accept from network loop" to apply back pressure to the caller.
                 try
                 {
                     await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
                         .ConfigureAwait(false);
                 }
-                catch
+                catch (OperationCanceledException)
                 {
                     Debug.Assert(_isReadOnly);
                 }

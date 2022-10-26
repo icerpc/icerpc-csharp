@@ -176,23 +176,9 @@ public sealed class ProtocolConnectionTests
         [Values("ice", "icerpc")] string protocolString)
     {
         // Arrange
-        using var dispatchSemaphore = new SemaphoreSlim(0);
-        var protocol = Protocol.Parse(protocolString);
-        var dispatcher = new InlineDispatcher(
-            async (request, cancellationToken) =>
-            {
-                dispatchSemaphore.Release();
-                try
-                {
-                    // Wait for the dispatch to be canceled by DisposeAsync
-                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-                }
-                catch
-                {
-                }
-                return new OutgoingResponse(request);
-            });
 
+        var protocol = Protocol.Parse(protocolString);
+        using var dispatcher = new TestDispatcher();
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
@@ -208,15 +194,16 @@ public sealed class ProtocolConnectionTests
 
         // Perform two invocations. The first blocks so the second won't be dispatched.
         // It will block on the protocol connection's internal dispatch semaphore which is canceled on dispose.
-        using var request1 = new OutgoingRequest(new ServiceAddress(protocol));
-        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request1);
-        using var request2 = new OutgoingRequest(new ServiceAddress(protocol));
-        _ = sut.Client.InvokeAsync(request2);
 
-        // Make sure the first request is dispatched.
-        await dispatchSemaphore.WaitAsync();
+        // Wait for the first invocation to be dispatched.
+        using var request1 = new OutgoingRequest(new ServiceAddress(protocol));
+        _ = sut.Client.InvokeAsync(request1);
+        await dispatcher.DispatchStart;
+
         // Wait to make sure the second request is received and blocked on the
         // protocol connection's internal dispatch semaphore.
+        using var request2 = new OutgoingRequest(new ServiceAddress(protocol));
+        _ = sut.Client.InvokeAsync(request2);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         // Act / Assert
