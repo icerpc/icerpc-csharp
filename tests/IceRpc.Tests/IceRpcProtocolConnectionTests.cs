@@ -437,11 +437,12 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Ensures that the request payload stream is completed on valid request.</summary>
     [Test]
-    public async Task PayloadStream_completed_on_valid_request([Values(true, false)] bool isOneway)
+    public async Task PayloadStream_completed_on_valid_request()
     {
         // Arrange
+        var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -450,7 +451,6 @@ public sealed class IceRpcProtocolConnectionTests
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
-            IsOneway = isOneway,
             PayloadStream = payloadStreamDecorator
         };
 
