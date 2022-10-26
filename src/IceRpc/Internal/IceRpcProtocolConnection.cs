@@ -193,30 +193,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     while (true)
                     {
-                        if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                        {
-                            await dispatchSemaphore.WaitAsync(_tasksCts.Token).ConfigureAwait(false);
-                        }
-
-                        IMultiplexedStream stream;
-
-                        try
-                        {
-                            // If _dispatcher is null, this call will be block indefinitely until the connection is
-                            // closed because the multiplexed connection MaxUnidirectionalStreams and
-                            // MaxBidirectionalStreams options don't allow the peer to open streams.
-                            stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
-                                .ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            _dispatchSemaphore?.Release();
-                            throw;
-                        }
+                        // If _dispatcher is null, this call will be block indefinitely until the connection is
+                        // closed because the multiplexed connection MaxUnidirectionalStreams and
+                        // MaxBidirectionalStreams options don't allow the peer to open streams.
+                        IMultiplexedStream stream =
+                            await _transportConnection.AcceptStreamAsync(_tasksCts.Token).ConfigureAwait(false);
 
                         try
                         {
-                            // AcceptRequestAsync is responsible to release the dispatch semaphore.
                             await AcceptRequestAsync(stream, _tasksCts.Token).ConfigureAwait(false);
                         }
                         catch (IceRpcProtocolStreamException)
@@ -293,6 +277,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
+        _dispatchSemaphore?.Dispose();
     }
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
@@ -854,8 +839,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 
-            _dispatchSemaphore?.Release();
-
             throw;
         }
 
@@ -879,9 +862,22 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     dispatchCts);
 
             OutgoingResponse response;
+
             try
             {
-                response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
+                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                {
+                    await dispatchSemaphore.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
+                }
+
+                try
+                {
+                    response = await _dispatcher.DispatchAsync(request, dispatchCts.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _dispatchSemaphore?.Release();
+                }
 
                 if (response != request.Response)
                 {
@@ -999,8 +995,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _dispatchesCompleted.TrySetResult();
                     }
                 }
-
-                _dispatchSemaphore?.Release();
             }
 
             if (request.IsOneway)

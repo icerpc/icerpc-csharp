@@ -325,6 +325,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
+        _dispatchSemaphore?.Dispose();
     }
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
@@ -924,7 +925,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
             {
-                // This prevents us from receiving any frame until EnterAsync returns.
+                // This prevents us from receiving any new frames if we're already dispatching
+                // the maximum number of requests.
                 try
                 {
                     await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
@@ -933,8 +935,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch
                 {
                     Debug.Assert(_isReadOnly);
-
-                    // continue to cleanup the request below.
                 }
             }
 
@@ -993,9 +993,16 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     // The dispatcher can complete the incoming request payload to release its memory as soon as
                     // possible.
-                    response = await _dispatcher.DispatchAsync(
-                        request,
-                        _dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                    try
+                    {
+                        response = await _dispatcher.DispatchAsync(
+                            request,
+                            _dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _dispatchSemaphore?.Release();
+                    }
 
                     if (response != request.Response)
                     {
@@ -1146,8 +1153,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     lock (_mutex)
                     {
-                        _dispatchSemaphore?.Release();
-
                         // Dispatch is done.
                         --_dispatchCount;
                         if (_invocations.Count == 0 && _dispatchCount == 0)

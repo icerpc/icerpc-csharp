@@ -176,12 +176,12 @@ public sealed class ProtocolConnectionTests
         [Values("ice", "icerpc")] string protocolString)
     {
         // Arrange
+        using var dispatchSemaphore = new SemaphoreSlim(0);
         var protocol = Protocol.Parse(protocolString);
-        int dispatchCount = 0;
         var dispatcher = new InlineDispatcher(
             async (request, cancellationToken) =>
             {
-                ++dispatchCount;
+                dispatchSemaphore.Release();
                 try
                 {
                     // Wait for the dispatch to be canceled by DisposeAsync
@@ -213,14 +213,14 @@ public sealed class ProtocolConnectionTests
         using var request2 = new OutgoingRequest(new ServiceAddress(protocol));
         _ = sut.Client.InvokeAsync(request2);
 
-        // Make sure the second request is received and blocked on the dispatch semaphore.
-        await Task.Delay(200);
+        // Make sure the first request is dispatched.
+        await dispatchSemaphore.WaitAsync();
+        // Wait to make sure the second request is received and blocked on the internal dispatch semaphore.
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
 
-        // Act
+        // Act / Assert
+        // If the dispatch semaphore wasn't canceled, the DisposeAsync will hang.
         await sut.Server.DisposeAsync();
-
-        // Assert
-        Assert.That(dispatchCount, Is.EqualTo(1));
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the
