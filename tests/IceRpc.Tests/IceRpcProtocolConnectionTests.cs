@@ -445,8 +445,9 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
@@ -455,6 +456,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
+        await pipe.Writer.FlushAsync(); // should be CompleteAsync
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
