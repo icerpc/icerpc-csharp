@@ -456,10 +456,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        await pipe.Writer.FlushAsync(); // should be CompleteAsync
+        await pipe.Writer.FlushAsync();
 
         // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.Null);
+        Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
+
+        // Cleanup
+        await pipe.Writer.CompleteAsync();
     }
 
     /// <summary>Ensures that the request payload is completed if the payload stream is invalid.</summary>
