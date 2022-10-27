@@ -189,77 +189,101 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    while (true)
+                    bool done = false;
+                    do
                     {
-                        // If _dispatcher is null, this call will block indefinitely until the connection is
-                        // closed because the multiplexed connection MaxUnidirectionalStreams and
-                        // MaxBidirectionalStreams options don't allow the peer to open streams.
-                        IMultiplexedStream stream =
-                            await _transportConnection.AcceptStreamAsync(_tasksCts.Token).ConfigureAwait(false);
+                        // If _dispatcher is null, this call will block indefinitely until the connection is closed
+                        // because the multiplexed connection MaxUnidirectionalStreams and MaxBidirectionalStreams
+                        // options don't allow the peer to open streams.
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
+                            .ConfigureAwait(false);
 
                         lock (_mutex)
                         {
-                            if (_isReadOnly)
+                            if (_dispatchesCompleted.Task.IsCompleted)
                             {
-                                // It could be a stream with a higher or lower stream ID than _lastRemoteXxxStreamId.
-                                // If it's lower, we can't dispatch it because we have no idea how long we'd need to
-                                // wait to get such a stream - maybe forever.
-                                Debug.Assert(ConnectionClosedException is not null);
-                                CompleteStream(ConnectionClosedException);
-                                return;
-
-                                void CompleteStream(Exception exception)
-                                {
-                                    stream.Input.Complete(exception);
-                                    if (stream.IsBidirectional)
-                                    {
-                                        stream.Output.Complete(exception);
-                                    }
-                                }
+                                Debug.Assert(_isReadOnly);
+                                // We can't create a new dispatch:
+                                done = true;
                             }
                             else
                             {
-                                ++_dispatchCount;
                                 if (stream.IsBidirectional)
                                 {
-                                    _lastRemoteBidirectionalStreamId =
-                                        Math.Max(stream.Id, _lastRemoteBidirectionalStreamId ?? 0);
+                                    if (_lastRemoteBidirectionalStreamId is null ||
+                                        _lastRemoteBidirectionalStreamId.Value < stream.Id)
+                                    {
+                                        if (_isReadOnly)
+                                        {
+                                            done = true;
+                                        }
+                                        else
+                                        {
+                                            _lastRemoteBidirectionalStreamId = stream.Id;
+                                        }
+                                    }
+                                    // else we received a smaller bidirectional stream ID that we're going to dispatch.
                                 }
-                                else
+                                else if (_lastRemoteUnidirectionalStreamId is null ||
+                                        _lastRemoteUnidirectionalStreamId.Value < stream.Id)
                                 {
-                                    _lastRemoteUnidirectionalStreamId =
-                                        Math.Max(stream.Id, _lastRemoteUnidirectionalStreamId ?? 0);
+                                    if (_isReadOnly)
+                                    {
+                                        done = true;
+                                    }
+                                    else
+                                    {
+                                        _lastRemoteUnidirectionalStreamId = stream.Id;
+                                    }
                                 }
+                                // else received a smaller unidirectional stream ID that we're going to dispatch.
 
-                                if (_streamCount++ == 0)
+                                if (!done)
                                 {
-                                    // We were idle, we no longer are.
-                                    DisableIdleCheck();
+                                    ++_dispatchCount;
+
+                                    if (++_streamCount == 1)
+                                    {
+                                        // We were idle, we no longer are.
+                                        DisableIdleCheck();
+                                    }
+                                    _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
                                 }
-                                _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
                             }
                         }
 
-                        _ = Task.Run(
-                            async () =>
+                        if (done)
+                        {
+                            await stream.Input.CompleteAsync(ConnectionClosedException).ConfigureAwait(false);
+                            if (stream.IsBidirectional)
                             {
-                                try
+                                await stream.Output.CompleteAsync(ConnectionClosedException).ConfigureAwait(false);
+                            }
+                        }
+                        else
+                        {
+                            _ = Task.Run(
+                                async () =>
                                 {
-                                    await DispatchRequestAsync(stream).ConfigureAwait(false);
-                                }
-                                finally
-                                {
-                                    lock (_mutex)
+                                    try
                                     {
-                                        if (--_dispatchCount == 0 && _isReadOnly)
+                                        await DispatchRequestAsync(stream).ConfigureAwait(false);
+                                    }
+                                    finally
+                                    {
+                                        lock (_mutex)
                                         {
-                                            _dispatchesCompleted.TrySetResult();
+                                            if (--_dispatchCount == 0 && _isReadOnly)
+                                            {
+                                                _dispatchesCompleted.TrySetResult();
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            CancellationToken.None);
+                                },
+                                CancellationToken.None);
+                        }
                     }
+                    while (!done);
                 }
                 catch (OperationCanceledException)
                 {
@@ -297,6 +321,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
+        // Cancel dispatches and invocations. This also set _isReadOnly to true.
+        CancelDispatchesAndInvocations();
+
         // Before disposing the transport connection, cancel pending tasks which are using the transport connection and
         // wait for the tasks to complete.
         _tasksCts.Cancel();
@@ -310,9 +337,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
-
-        // Cancel dispatches and invocations.
-        CancelDispatchesAndInvocations();
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
