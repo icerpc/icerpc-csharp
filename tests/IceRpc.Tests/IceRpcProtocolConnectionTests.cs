@@ -438,7 +438,8 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Ensures that the payload stream of a request is completed when the dispatcher does not read this
     /// PipeReader.</summary>
     [Test]
-    public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher()
+    public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher(
+        [Values(false)] bool isOneway)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));
@@ -452,6 +453,7 @@ public sealed class IceRpcProtocolConnectionTests
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
+            IsOneway = isOneway,
             PayloadStream = payloadStreamDecorator
         };
 
@@ -468,7 +470,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Ensures that the payload stream of a request is completed when it reaches the endStream.</summary>
     [Test]
-    public async Task PayloadStream_of_outgoing_request_completed_on_end_stream()
+    public async Task PayloadStream_of_outgoing_request_completed_on_end_stream([Values(true, false)] bool isOneway)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -480,6 +482,7 @@ public sealed class IceRpcProtocolConnectionTests
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
+            IsOneway = isOneway,
             PayloadStream = payloadStreamDecorator
         };
 
@@ -489,7 +492,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
-        Assert.That(invokeTask.IsCompleted, Is.False);
+        if (!isOneway)
+        {
+            Assert.That(invokeTask.IsCompleted, Is.False);
+        }
+
+        // Cleanup
+        dispatcher.ReleaseDispatch();
     }
 
     /// <summary>Ensures that the request payload is completed if the payload stream is invalid.</summary>
