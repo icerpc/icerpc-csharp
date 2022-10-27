@@ -176,23 +176,9 @@ public sealed class ProtocolConnectionTests
         [Values("ice", "icerpc")] string protocolString)
     {
         // Arrange
-        var protocol = Protocol.Parse(protocolString);
-        int dispatchCount = 0;
-        var dispatcher = new InlineDispatcher(
-            async (request, cancellationToken) =>
-            {
-                ++dispatchCount;
-                try
-                {
-                    // Wait for the dispatch to be canceled by DisposeAsync
-                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-                }
-                catch
-                {
-                }
-                return new OutgoingResponse(request);
-            });
 
+        var protocol = Protocol.Parse(protocolString);
+        using var dispatcher = new TestDispatcher();
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
@@ -206,21 +192,23 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
-        // semaphore which is canceled on dispose.
+        // Perform two invocations. The first blocks so the second won't be dispatched.
+        // It will block on the protocol connection's internal dispatch semaphore which is canceled on dispose.
+
+        // Wait for the first invocation to be dispatched.
         using var request1 = new OutgoingRequest(new ServiceAddress(protocol));
-        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request1);
+        _ = sut.Client.InvokeAsync(request1);
+        await dispatcher.DispatchStart;
+
+        // Wait to make sure the second request is received and blocked on the
+        // protocol connection's internal dispatch semaphore.
         using var request2 = new OutgoingRequest(new ServiceAddress(protocol));
         _ = sut.Client.InvokeAsync(request2);
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
 
-        // Make sure the second request is received and blocked on the dispatch semaphore.
-        await Task.Delay(200);
-
-        // Act
+        // Act / Assert
+        // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync will hang.
         await sut.Server.DisposeAsync();
-
-        // Assert
-        Assert.That(dispatchCount, Is.EqualTo(1));
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the
