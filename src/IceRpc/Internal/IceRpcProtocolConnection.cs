@@ -804,6 +804,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
+    private void CheckRemoteHeaderSize(int headerSize)
+    {
+        if (headerSize > _maxRemoteHeaderSize)
+        {
+            throw new ProtocolException(
+                $"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+        }
+    }
+
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
         using var dispatchCts = new CancellationTokenSource();
@@ -1070,15 +1079,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
             return (header, fields, pipeReader);
-        }
-    }
-
-    private void CheckRemoteHeaderSize(int headerSize)
-    {
-        if (headerSize > _maxRemoteHeaderSize)
-        {
-            throw new ProtocolException(
-                $"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
         }
     }
 
