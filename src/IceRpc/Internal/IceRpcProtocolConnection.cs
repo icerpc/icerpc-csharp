@@ -322,7 +322,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Cancel dispatches and invocations. This also set _isReadOnly to true.
+        // Cancel dispatches and invocations. This also sets _isReadOnly to true.
         CancelDispatchesAndInvocations();
 
         // Before disposing the transport connection, cancel pending tasks which are using the transport connection and
