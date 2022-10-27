@@ -203,7 +203,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             if (_dispatchesCompleted.Task.IsCompleted)
                             {
                                 Debug.Assert(_isReadOnly);
-                                // We can't create a new dispatch:
                                 done = true;
                             }
                             else
@@ -222,7 +221,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                             _lastRemoteBidirectionalStreamId = stream.Id;
                                         }
                                     }
-                                    // else we received a smaller bidirectional stream ID that we're going to dispatch.
+                                    // else we received a smaller bidirectional stream ID that we're going to dispatch
+                                    // even if we're shutting down.
                                 }
                                 else if (_lastRemoteUnidirectionalStreamId is null ||
                                         _lastRemoteUnidirectionalStreamId.Value < stream.Id)
@@ -236,7 +236,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                         _lastRemoteUnidirectionalStreamId = stream.Id;
                                     }
                                 }
-                                // else received a smaller unidirectional stream ID that we're going to dispatch.
+                                // else we received a smaller unidirectional stream ID that we're going to dispatch even
+                                // if we're shutting down.
 
                                 if (!done)
                                 {
