@@ -193,7 +193,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     while (true)
                     {
-                        // If _dispatcher is null, this call will be block indefinitely until the connection is
+                        // If _dispatcher is null, this call will block indefinitely until the connection is
                         // closed because the multiplexed connection MaxUnidirectionalStreams and
                         // MaxBidirectionalStreams options don't allow the peer to open streams.
                         IMultiplexedStream stream =
