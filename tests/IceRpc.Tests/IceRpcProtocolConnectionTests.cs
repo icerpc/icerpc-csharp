@@ -460,6 +460,63 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
     }
 
+    /// <summary>Ensures that the payload stream of a request is completed when the dispatcher does not read this
+    /// PipeReader.</summary>
+    [Test]
+    public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));
+        await using var provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            PayloadStream = payloadStreamDecorator
+        };
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        await pipe.Writer.FlushAsync();
+
+        // Assert
+        Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
+
+        // Cleanup
+        await pipe.Writer.CompleteAsync();
+    }
+
+    /// <summary>Ensures that the payload stream of a request is completed when it reaches the endStream.</summary>
+    [Test]
+    public async Task PayloadStream_of_outgoing_request_completed_on_end_stream()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+        await using var provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            PayloadStream = payloadStreamDecorator
+        };
+
+        // Act
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        await dispatcher.DispatchStart;
+
+        // Assert
+        Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
+        Assert.That(invokeTask.IsCompleted, Is.False);
+    }
+
     /// <summary>Ensures that the request payload is completed if the payload stream is invalid.</summary>
     [Test]
     public async Task PayloadStream_completed_on_invalid_request_payload([Values(true, false)] bool isOneway)

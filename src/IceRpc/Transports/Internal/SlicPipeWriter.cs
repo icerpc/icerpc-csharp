@@ -201,6 +201,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         if (_state.HasFlag(State.Completed))
         {
+            Console.WriteLine("!!!!!!!!!!");
+            Debug.Assert(false);
+
             // If the writer is completed, the caller is bogus, it shouldn't call write operations after completing the
             // pipe writer.
             throw new InvalidOperationException("writing is not allowed once the writer is completed");
