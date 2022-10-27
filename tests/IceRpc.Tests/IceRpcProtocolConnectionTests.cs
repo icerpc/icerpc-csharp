@@ -435,31 +435,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
-    /// <summary>Ensures that the request payload stream is completed on valid request.</summary>
-    [Test]
-    public async Task PayloadStream_completed_on_valid_request([Values(true, false)] bool isOneway)
-    {
-        // Arrange
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
-        {
-            IsOneway = isOneway,
-            PayloadStream = payloadStreamDecorator
-        };
-
-        // Act
-        _ = sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.Null);
-    }
-
     /// <summary>Ensures that the payload stream of a request is completed when the dispatcher does not read this
     /// PipeReader.</summary>
     [Test]
