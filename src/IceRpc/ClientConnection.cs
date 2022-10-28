@@ -400,7 +400,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
             {
-                // only for second or subsequent attempts
+                // only for second and subsequent attempts
 
                 try
                 {
