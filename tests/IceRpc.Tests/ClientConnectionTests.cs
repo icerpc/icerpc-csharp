@@ -139,14 +139,10 @@ public class ClientConnectionTests
         {
             await connection.ConnectAsync();
         }
-        catch (ObjectDisposedException)
-        {
-            throw;
-        }
-        catch (ConnectionException exception) when (!exception.ErrorCode.IsClosedErrorCode())
+        catch (ConnectionException)
         {
             // expected
-            // TODO: which error is ok?
+            // TODO: which error code is ok/expected?
         }
         server.Listen();
 
