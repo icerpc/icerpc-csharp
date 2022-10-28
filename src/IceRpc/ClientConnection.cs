@@ -24,11 +24,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The connection parameter represents the previous connection, if any.
     private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
 
-    // When true, we retry once when _connection is closed, i.e. a call on this connection throws a ConnectionException
+    private readonly object _mutex = new();
+
+    // When true, we retry once when _connection is closed, i.e. a call on _connection throws a ConnectionException
     // with a Closed error code or ObjectDisposedException.
     private bool _retryOnClosed = true;
-
-    private readonly object _mutex = new();
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
