@@ -59,7 +59,7 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException(nameof(buffer), $"{nameof(buffer)} can't be empty");
+            throw new ArgumentException($"{nameof(buffer)} can't be empty", nameof(buffer));
         }
         _initialBuffer = buffer;
         _available = _initialBuffer;
