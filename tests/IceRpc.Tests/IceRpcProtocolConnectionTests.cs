@@ -439,7 +439,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// PipeReader.</summary>
     [Test]
     public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher(
-        [Values(false)] bool isOneway)
+        [Values] bool isOneway)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));
@@ -459,7 +459,6 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        await pipe.Writer.FlushAsync();
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
