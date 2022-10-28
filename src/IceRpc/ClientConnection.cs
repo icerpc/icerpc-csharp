@@ -90,10 +90,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     await connection.ShutdownComplete.ConfigureAwait(false);
                 }
-                catch (ObjectDisposedException)
-                {
-                    // expected, call refresh below
-                }
                 catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
                 {
                     // expected, call refresh below
