@@ -24,9 +24,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The connection parameter represents the previous connection, if any.
     private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
 
-    private bool _isResumable = true;
-
     private readonly object _mutex = new();
+
+    // When true, we retry once when _connection is closed, i.e. a call on _connection throws a ConnectionException
+    // with a Closed error code or ObjectDisposedException.
+    private bool _retryOnClosed = true;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -64,7 +66,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             connection = new ConnectProtocolConnectionDecorator(connection);
-            _ = RefreshOnShutdownAsync(connection);
+            _ = RefreshOnClosedAsync(connection);
 
             return connection;
 
@@ -82,15 +84,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 await connection.DisposeAsync().ConfigureAwait(false);
             }
 
-            async Task RefreshOnShutdownAsync(IProtocolConnection connection)
+            async Task RefreshOnClosedAsync(IProtocolConnection connection)
             {
                 try
                 {
                     await connection.ShutdownComplete.ConfigureAwait(false);
                 }
+                catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+                {
+                    // expected, call refresh below
+                }
                 catch
                 {
+                    return; // don't refresh
                 }
+
                 _ = RefreshConnection(connection);
             }
         };
@@ -190,7 +198,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            _isResumable = false;
+            _retryOnClosed = false;
         }
 
         return _connection.DisposeAsync();
@@ -272,7 +280,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            _isResumable = false;
+            _retryOnClosed = false;
         }
         return _connection.ShutdownAsync(cancellationToken);
     }
@@ -287,7 +295,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             // We only create a new connection and assign it to _connection if it matches the connection we just tried.
             // If it's another connection, another thread has already called RefreshConnection.
-            if (_isResumable)
+            if (_retryOnClosed)
             {
                 if (connection == _connection)
                 {
@@ -392,14 +400,20 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
             {
+                // Only for second and subsequent attempts
                 try
                 {
                     return await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                 {
-                    // OCE from _connectTask
-                    throw new ConnectionException(ConnectionErrorCode.OperationAborted);
+                    throw;
+                }
+                catch
+                {
+                    // ShutdownComplete throws a ConnectionException with a Closed error code
+                    await _decoratee.ShutdownComplete.ConfigureAwait(false);
+                    throw;
                 }
             }
         }

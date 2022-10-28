@@ -555,8 +555,8 @@ public sealed class ProtocolConnectionTests
         Assert.That(() => operation(sut.Client), Throws.InstanceOf<ObjectDisposedException>());
     }
 
-    /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync raise
-    /// ConnectionException(ConnectionErrorCode.Closed) if the connection is closed.</summary>
+    /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync throws
+    /// ConnectionException with ClosedByShutdown if the connection is closed.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
     public async Task Operation_throws_connection_exception_with_closed_error_code(
         Protocol protocol,

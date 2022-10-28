@@ -118,6 +118,42 @@ public class ClientConnectionTests
         await server.DisposeAsync();
     }
 
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Connection_can_connect_after_connection_refused(Protocol protocol)
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverAddress = new ServerAddress(protocol) { Host = "colochost" };
+        await using var server = new Server(
+            ServiceNotFoundDispatcher.Instance,
+            serverAddress,
+            duplexServerTransport: colocTransport.ServerTransport,
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        await using var connection = new ClientConnection(
+            serverAddress,
+            duplexClientTransport: colocTransport.ClientTransport,
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        // Act
+        try
+        {
+            await connection.ConnectAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            throw;
+        }
+        catch (ConnectionException exception) when (!exception.ErrorCode.IsClosedErrorCode())
+        {
+            // expected
+            // TODO: which error is ok?
+        }
+        server.Listen();
+
+        // Assert
+        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
+    }
+
     /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connection_server_address_transport_property_is_set(Protocol protocol)
