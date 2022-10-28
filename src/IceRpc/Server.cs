@@ -351,7 +351,8 @@ public sealed class Server : IAsyncDisposable
             // Schedule removal after addition, outside mutex lock.
             _ = RemoveFromCollectionAsync(connection, shutdownCancellationToken);
 
-            // Connect the connection.
+            // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates one with the
+            // configured connection timeout.
             await connection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
