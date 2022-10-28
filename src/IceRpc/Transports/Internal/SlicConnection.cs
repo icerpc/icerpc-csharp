@@ -1047,6 +1047,11 @@ internal class SlicConnection : IMultiplexedConnection
                             "Slic unidirectional stream released frame too large");
                     }
 
+                    if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
+                    {
+                        stream.ReceivedUnidirectionalStreamReleasedFrame();
+                    }
+
                     // Release the unidirectional stream semaphore for the unidirectional stream.
                     _unidirectionalStreamSemaphore!.Release();
                     break;
