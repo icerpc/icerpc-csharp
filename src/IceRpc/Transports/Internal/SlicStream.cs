@@ -345,6 +345,21 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    internal void ReceivedUnidirectionalStreamReleasedFrame()
+    {
+        if (IsBidirectional && IsRemote)
+        {
+            throw new TransportException(
+                TransportErrorCode.InternalError,
+                "received Slic unidirectional stream releaed on remote bidirectional stream");
+        }
+
+        if (TrySetWritesClosed(null))
+        {
+            _outputPipeWriter?.Abort(null);
+        }
+    }
+
     internal ValueTask<FlushResult> SendStreamFrameAsync(
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,

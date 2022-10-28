@@ -229,6 +229,16 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             {
                 await _stream.WritesClosed.ConfigureAwait(false);
             }
+            catch (QuicException exception) when (
+                exception.QuicError == QuicError.StreamAborted &&
+                exception.ApplicationErrorCode is not null)
+            {
+                if (_errorCodeConverter.FromErrorCode(
+                    (ulong)exception.ApplicationErrorCode) is Exception transportException)
+                {
+                    throw transportException;
+                }
+            }
             catch (QuicException exception)
             {
                 throw exception.ToTransportException();
