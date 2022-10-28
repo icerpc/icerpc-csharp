@@ -32,9 +32,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly HashSet<IMultiplexedStream> _localStreams = new();
-    private readonly TaskCompletionSource _localStreamsCompleted =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
@@ -42,6 +39,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
     private int _streamCount;
+    private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _tasksCts = new();
 
     internal IceRpcProtocolConnection(
@@ -72,9 +70,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             lock (_mutex)
             {
                 _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
-                if (_localStreams.Count == 0)
+                if (_streamCount == 0)
                 {
-                    _localStreamsCompleted.TrySetResult();
+                    _streamsClosed.TrySetResult();
                 }
                 if (_dispatchCount == 0)
                 {
@@ -183,7 +181,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // Start a task to start accepting requests.
+        // Start a task that accepts requests (the "accept requests loop")
         _acceptRequestsTask = Task.Run(
             async () =>
             {
@@ -200,8 +198,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                         lock (_mutex)
                         {
-                            if (_dispatchesCompleted.Task.IsCompleted)
+                            if (_dispatchesCompleted.Task.IsCompleted || _streamsClosed.Task.IsCompleted)
                             {
+                                // We can't accept any new stream or dispatch since the corresponding task is already
+                                // completed. We'll close this stream with an exception (see below).
                                 Debug.Assert(_isReadOnly);
                                 done = true;
                             }
@@ -342,7 +342,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
-        // Next, wait for dispatches to complete. We're not waiting for local streams - they are irrelevant here.
+        // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
+        // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
         await _dispatchesCompleted.Task.ConfigureAwait(false);
 
         _tasksCts.Dispose();
@@ -384,7 +385,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 else
                 {
-                    if (_streamCount++ == 0)
+                    if (++_streamCount == 1)
                     {
                         DisableIdleCheck();
                     }
@@ -521,8 +522,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (_readGoAwayTask is null)
         {
-            // No invocation or dispatch if the connection is not connected.
-            Debug.Assert(_localStreams.Count == 0 && _dispatchCount == 0);
+            // No stream or dispatch if the connection is not connected.
+            Debug.Assert(_streamCount == 0 && _dispatchCount == 0);
 
             // Calling shutdown before connect indicates that the connection establishment is refused.
             await _transportConnection.CloseAsync(
@@ -537,9 +538,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             lock (_mutex)
             {
                 _isReadOnly = true;
-                if (_localStreams.Count == 0)
+                if (_streamCount == 0)
                 {
-                    _localStreamsCompleted.TrySetResult();
+                    _streamsClosed.TrySetResult();
                 }
                 if (_dispatchCount == 0)
                 {
@@ -576,9 +577,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 stream.Abort(ConnectionClosedException);
             }
 
-            // Wait for dispatches and local streams to complete. The local streams are an approximation for
-            // invocations.
-            await Task.WhenAll(_dispatchesCompleted.Task, _localStreamsCompleted.Task).WaitAsync(cancellationToken)
+            // Wait for dispatches to complete and network activity on streams (other than control streams) to cease.
+            await Task.WhenAll(_dispatchesCompleted.Task, _streamsClosed.Task).WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
 
             // Close the control stream to notify the peer that on our side, all the streams completed.
@@ -1231,15 +1231,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (!stream.IsRemote)
             {
                 _ = _localStreams.Remove(stream);
-                if (_localStreams.Count == 0 && _isReadOnly)
-                {
-                    _localStreamsCompleted.TrySetResult();
-                }
             }
 
-            if (--_streamCount == 0 && !_isReadOnly)
+            if (--_streamCount == 0)
             {
-                EnableIdleCheck();
+                if (_isReadOnly)
+                {
+                    _streamsClosed.TrySetResult();
+                }
+                else
+                {
+                    EnableIdleCheck();
+                }
             }
         }
     }
