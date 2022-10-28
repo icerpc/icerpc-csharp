@@ -400,8 +400,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
             {
-                // only for second and subsequent attempts
-
+                // Only for second and subsequent attempts
                 try
                 {
                     return await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -412,7 +411,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch
                 {
-                    // ShutdownComplete should throw a ConnectionException with a Closed error code
+                    // ShutdownComplete throws a ConnectionException with a Closed error code
                     await _decoratee.ShutdownComplete.ConfigureAwait(false);
                     throw;
                 }
