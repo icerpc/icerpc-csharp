@@ -94,7 +94,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             new QuicListenerOptions
             {
                 ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
-                ListenBacklog = quicTransportOptions.ListenerBacklog,
+                ListenBacklog = quicTransportOptions.ListenBacklog,
                 ApplicationProtocols = authenticationOptions.ApplicationProtocols,
                 ConnectionOptionsCallback = GetConnectionOptionsAsync
             },

@@ -48,12 +48,12 @@ public sealed record class TcpServerTransportOptions : TcpTransportOptions
     /// request arrives and the queue is full, the client connection establishment will fail with a <see
     /// cref="TransportException" /> and the <see cref="TransportErrorCode.ConnectionRefused" /> error code.</summary>
     /// <value>The server socket backlog size. The default is 511.</value>
-    public int ListenerBacklog
+    public int ListenBacklog
     {
-        get => _listenerBacklog;
-        set => _listenerBacklog = value > 0 ? value :
-            throw new ArgumentException($"{nameof(ListenerBacklog)} can't be less than 1", nameof(value));
+        get => _listenBacklog;
+        set => _listenBacklog = value > 0 ? value :
+            throw new ArgumentException($"{nameof(ListenBacklog)} can't be less than 1", nameof(value));
     }
 
-    private int _listenerBacklog = 511;
+    private int _listenBacklog = 511;
 }

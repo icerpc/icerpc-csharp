@@ -113,7 +113,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
             _socket.Bind(address);
             address = (IPEndPoint)_socket.LocalEndPoint!;
-            _socket.Listen(tcpOptions.ListenerBacklog);
+            _socket.Listen(tcpOptions.ListenBacklog);
         }
         catch (Exception exception)
         {
