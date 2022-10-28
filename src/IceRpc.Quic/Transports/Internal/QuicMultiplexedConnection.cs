@@ -23,7 +23,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         if (options.StreamErrorCodeConverter is null)
         {
-            throw new ArgumentException(nameof(options), $"{nameof(options.StreamErrorCodeConverter)} is null");
+            throw new ArgumentException($"{nameof(options.StreamErrorCodeConverter)} is null", nameof(options));
         }
 
         ServerAddress = serverAddress;
