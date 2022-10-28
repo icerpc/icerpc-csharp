@@ -31,10 +31,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private bool _isReadOnly;
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
-    private readonly HashSet<IMultiplexedStream> _localStreams = new();
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
+
+    // Represents the streams of invocations where the corresponding request _may_ not been received or dispatched by
+    // the peer yet.
+    private readonly HashSet<IMultiplexedStream> _pendingInvocationStreams = new();
     private readonly IMultiplexedConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
@@ -389,7 +392,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         DisableIdleCheck();
                     }
-                    _localStreams.Add(stream);
+                    _pendingInvocationStreams.Add(stream);
 
                     _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
                 }
@@ -409,6 +412,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
                 invocationCts.Token).ConfigureAwait(false);
+
+            lock (_mutex)
+            {
+                if (!_isReadOnly)
+                {
+                    // We received a response, it's no longer a pending invocation.
+                    _ = _pendingInvocationStreams.Remove(stream);
+                }
+            }
 
             // Nothing cancels the stream input pipe reader.
             Debug.Assert(!readResult.IsCanceled);
@@ -559,20 +571,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-            // ConnectionClosedException which can be retried.
-            IEnumerable<IMultiplexedStream> streamsToAbort;
-            lock (_mutex)
-            {
-                streamsToAbort = _localStreams.Where(stream =>
-                    !stream.IsStarted ||
-                    (stream.IsBidirectional ?
-                        peerGoAwayFrame.LastBidirectionalStreamId is null ||
-                        stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
-                            peerGoAwayFrame.LastUnidirectionalStreamId is null ||
-                            stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)).ToArray();
-            }
-
-            foreach (IMultiplexedStream stream in streamsToAbort)
+            // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationStreams is
+            // read-only at this point.
+            foreach (IMultiplexedStream stream in _pendingInvocationStreams.Where(stream =>
+                !stream.IsStarted ||
+                (stream.IsBidirectional ?
+                    peerGoAwayFrame.LastBidirectionalStreamId is null ||
+                    stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
+                        peerGoAwayFrame.LastUnidirectionalStreamId is null ||
+                        stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)))
             {
                 stream.Abort(ConnectionClosedException);
             }
@@ -1228,9 +1235,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote)
+            if (!stream.IsRemote && !_isReadOnly)
             {
-                _ = _localStreams.Remove(stream);
+                _ = _pendingInvocationStreams.Remove(stream);
             }
 
             if (--_streamCount == 0)
