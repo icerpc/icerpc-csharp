@@ -146,7 +146,7 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that setting the <see cref="TcpServerTransportOptions.ListenerBackLog" /> configures the
+    /// <summary>Verifies that setting the <see cref="TcpServerTransportOptions.ListenerBacklog" /> configures the
     /// socket listen backlog.</summary>
     [Test]
     public async Task Configure_server_connection_listen_backlog()
@@ -155,7 +155,7 @@ public class TcpTransportTests
         await using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
-                ListenerBackLog = 18
+                ListenerBacklog = 18
             });
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());

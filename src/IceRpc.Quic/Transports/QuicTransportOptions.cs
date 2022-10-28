@@ -37,12 +37,12 @@ public sealed record class QuicServerTransportOptions : QuicTransportOptions
     /// request arrives and the queue is full, the client connection establishment will fail with a <see
     /// cref="TransportException"/> and the <see cref="TransportErrorCode.ConnectionRefused"/> error code.</summary>
     /// <value>The server listen backlog size. The default is 511.</value>
-    public int ListenerBackLog
+    public int ListenerBacklog
     {
-        get => _listenerBackLog;
-        set => _listenerBackLog = value > 0 ? value :
-            throw new ArgumentException($"{nameof(ListenerBackLog)} can't be less than 1", nameof(value));
+        get => _listenerBacklog;
+        set => _listenerBacklog = value > 0 ? value :
+            throw new ArgumentException($"{nameof(ListenerBacklog)} can't be less than 1", nameof(value));
     }
 
-    private int _listenerBackLog = 511;
+    private int _listenerBacklog = 511;
 }
