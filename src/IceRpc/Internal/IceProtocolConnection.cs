@@ -174,7 +174,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
-                ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
+                ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
             else
@@ -231,7 +231,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    ConnectionClosedException = new(ConnectionErrorCode.ClosedByPeer);
+                    ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByPeer);
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
@@ -252,6 +252,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
+                    Debug.Assert(ConnectionClosedException is not null);
+                }
+                catch (ConnectionException)
+                {
                     Debug.Assert(ConnectionClosedException is not null);
                 }
                 catch (OperationCanceledException)
@@ -882,7 +886,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // Decode its header.
             int requestId;
             IceRequestHeader requestHeader;
-            PipeReader? contextReader;
+            PipeReader? contextReader = null;
             try
             {
                 if (!requestFrameReader.TryRead(out ReadResult readResult))
@@ -894,70 +898,58 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 (requestId, requestHeader, contextReader, int consumed) = DecodeRequestIdAndHeader(readResult.Buffer);
                 requestFrameReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
-            }
-            catch
-            {
-                await requestFrameReader.CompleteAsync().ConfigureAwait(false);
-                throw;
-            }
 
-            IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
-            if (contextReader is null)
-            {
-                fields = requestHeader.OperationMode == OperationMode.Normal ?
-                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
-            }
-            else
-            {
-                contextReader.TryRead(out ReadResult result);
-                Debug.Assert(result.Buffer.Length > 0 && result.IsCompleted);
-                fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+                IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
+                if (contextReader is null)
                 {
-                    [RequestFieldKey.Context] = result.Buffer
-                };
-
-                if (requestHeader.OperationMode != OperationMode.Normal)
-                {
-                    // OperationMode can be Idempotent or Nonmutating.
-                    fields[RequestFieldKey.Idempotent] = default;
-                }
-            }
-
-            if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-            {
-                // This prevents us from receiving any new frames if we're already dispatching the maximum number of
-                // requests. We need to do this in the "accept from network loop" to apply back pressure to the caller.
-                try
-                {
-                    await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
-                        .ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    Debug.Assert(_isReadOnly);
-                }
-            }
-
-            Exception? connectionClosedException = null;
-            lock (_mutex)
-            {
-                if (_isReadOnly)
-                {
-                    Debug.Assert(ConnectionClosedException is not null);
-                    throw ConnectionClosedException;
+                    fields = requestHeader.OperationMode == OperationMode.Normal ?
+                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
                 }
                 else
                 {
-                    if (_invocations.Count == 0 && _dispatchCount == 0)
+                    contextReader.TryRead(out ReadResult result);
+                    Debug.Assert(result.Buffer.Length > 0 && result.IsCompleted);
+                    fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
                     {
+                        [RequestFieldKey.Context] = result.Buffer
+                    };
+
+                    if (requestHeader.OperationMode != OperationMode.Normal)
+                    {
+                        // OperationMode can be Idempotent or Nonmutating.
+                        fields[RequestFieldKey.Idempotent] = default;
+                    }
+                }
+
+                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                {
+                    // This prevents us from receiving any new frames if we're already dispatching the maximum number
+                    // of requests. We need to do this in the "accept from network loop" to apply back pressure to the
+                    // caller.
+                    try
+                    {
+                        await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Debug.Assert(_isReadOnly);
+                    }
+                }
+
+                lock (_mutex)
+                {
+                    if (_isReadOnly)
+                    {
+                        Debug.Assert(ConnectionClosedException is not null);
+                        throw ConnectionClosedException;
+                    }
+                    else if (_invocations.Count == 0 && ++_dispatchCount == 1)
+                    {
+                        // We were idle, we no longer are.
                         DisableIdleCheck();
                     }
-                    ++_dispatchCount;
                 }
-            }
 
-            if (connectionClosedException is null)
-            {
                 // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
                 // cleanup the dispatch if DisposeAsync is called.
                 _ = Task.Run(
@@ -976,14 +968,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     },
                     CancellationToken.None);
             }
-            else
+            catch (Exception exception)
             {
-                // If shutting down or aborted, ignore the incoming request.
-                await requestFrameReader.CompleteAsync(connectionClosedException).ConfigureAwait(false);
+                await requestFrameReader.CompleteAsync(exception).ConfigureAwait(false);
                 if (contextReader is not null)
                 {
                     await contextReader.CompleteAsync().ConfigureAwait(false);
                 }
+                throw;
             }
 
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
