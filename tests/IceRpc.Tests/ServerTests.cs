@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Net;
-using System.Net.Security;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Security;
 
 namespace IceRpc.Tests;
 
@@ -134,6 +134,9 @@ public class ServerTests
         DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
 
         // Act/Assert
+
+        // Either the connection is refused because the max connection count is reached,
+        // or the transport was closed by the server before the refused message was received.
         Assert.That(() => clientConnection2.ConnectAsync(),
             Throws.InstanceOf<ConnectionException>().With.Property("ErrorCode")
             .EqualTo(ConnectionErrorCode.ConnectRefused)
