@@ -1018,9 +1018,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     response = new OutgoingResponse(request)
                     {
-                        Payload = CreateExceptionPayload(
-                            new DispatchException("dispatch canceled", DispatchErrorCode.Canceled),
-                            request),
+                        Payload = CreateDispatchExceptionPayload(
+                            request,
+                            new DispatchException("dispatch canceled", DispatchErrorCode.Canceled)),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -1044,7 +1044,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = CreateExceptionPayload(dispatchException, request),
+                        Payload = CreateDispatchExceptionPayload(request, dispatchException),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -1161,7 +1161,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                 }
 
-                static PipeReader CreateExceptionPayload(DispatchException dispatchException, IncomingRequest request)
+                static PipeReader CreateDispatchExceptionPayload(
+                    IncomingRequest request,
+                    DispatchException dispatchException)
                 {
                     SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                         SliceEncodeOptions.Default;
