@@ -977,9 +977,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (Exception exception)
             {
-                // If we catch an exception, we return a failure response with a Slice-encoded payload.
+                // If we catch an exception, we return a failure response with a Slice-encoded dispatch exception.
 
-                if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
                     DispatchErrorCode errorCode = exception switch
                     {
@@ -989,57 +989,37 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     };
 
                     // We pass null for message to get the message computed from the exception by DefaultMessage.
-                    remoteException = new DispatchException(
+                    dispatchException = new DispatchException(
                         message: null,
                         errorCode,
                         _includeInnerExceptionDetails ? exception : null);
                 }
 
-                // Attempt to encode this exception. If the encoding fails, we encode a DispatchException.
-                PipeReader responsePayload;
-                try
-                {
-                    responsePayload = CreateExceptionPayload(request, remoteException);
-                }
-                catch (Exception encodeException)
-                {
-                    // This should be extremely rare. For example, a middleware throwing a Slice1-only remote
-                    // exception.
-                    responsePayload = CreateExceptionPayload(
-                        request,
-                        new DispatchException(
-                            message: null,
-                            DispatchErrorCode.UnhandledException,
-                            _includeInnerExceptionDetails ? encodeException : null));
-                }
                 response = new OutgoingResponse(request)
                 {
-                    Payload = responsePayload,
+                    Payload = CreateDispatchExceptionPayload(request, dispatchException),
                     ResultType = ResultType.Failure
                 };
 
                 // Encode the retry policy into the fields of the new response.
-                if (remoteException.RetryPolicy != RetryPolicy.NoRetry)
+                if (dispatchException.RetryPolicy != RetryPolicy.NoRetry)
                 {
-                    RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                    RetryPolicy retryPolicy = dispatchException.RetryPolicy;
                     response.Fields = response.Fields.With(
                         ResponseFieldKey.RetryPolicy,
                         (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                 }
 
-                static PipeReader CreateExceptionPayload(IncomingRequest request, RemoteException exception)
+                static PipeReader CreateDispatchExceptionPayload(IncomingRequest request, DispatchException exception)
                 {
                     SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                         SliceEncodeOptions.Default;
 
                     var pipe = new Pipe(encodeOptions.PipeOptions);
-
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                     int startPos = encoder.EncodedByteCount;
-
-                    // EncodeTrait throws for a Slice1-only exception.
-                    exception.EncodeTrait(ref encoder);
+                    encoder.EncodeDispatchException(exception);
                     SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
                     pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                     return pipe.Reader;

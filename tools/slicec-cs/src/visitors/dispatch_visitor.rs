@@ -487,7 +487,7 @@ try
 }}
 catch (RemoteException remoteException)
 {{
-    if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
+    if (remoteException.ConvertToUnhandled)
     {{
         throw;
     }}

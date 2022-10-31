@@ -1169,7 +1169,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     var pipe = new Pipe(encodeOptions.PipeOptions);
 
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
-                    encoder.EncodeSystemException(
+                    encoder.EncodeDispatchException(
                         dispatchException,
                         request.Path,
                         request.Fragment,

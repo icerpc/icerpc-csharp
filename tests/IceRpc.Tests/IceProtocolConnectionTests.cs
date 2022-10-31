@@ -12,19 +12,6 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
-    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsADispatchExceptionSource
-    {
-        get
-        {
-            // an unexpected OCE
-            yield return new TestCaseData(new OperationCanceledException(), DispatchErrorCode.UnhandledException);
-
-            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
-            yield return new TestCaseData(new MyException(), DispatchErrorCode.UnhandledException);
-            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
-        }
-    }
-
     public static IEnumerable<TestCaseData> DispatchExceptionRetryPolicySource
     {
         get
@@ -75,14 +62,12 @@ public sealed class IceProtocolConnectionTests
         }
         await sut.Server.DisposeAsync();
 
+        IncomingResponse response = await invokeTask;
+
         // Assert
-        var ex = Assert.ThrowsAsync<DispatchException>(
-            async () =>
-            {
-                IncomingResponse response = await invokeTask;
-                throw await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client));
-            });
-        Assert.That(ex!.Message, Is.EqualTo("dispatch canceled"));
+        Assert.That(
+            async () => (await response.DecodeDispatchExceptionAsync(request)).Message,
+            Is.EqualTo("dispatch canceled"));
     }
 
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
@@ -113,33 +98,6 @@ public sealed class IceProtocolConnectionTests
                 ResponseFieldKey.RetryPolicy,
                 (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
         Assert.That(retryPolicy, Is.EqualTo(expectedRetryPolicy));
-    }
-
-    /// <summary>Verifies that with the ice protocol, when a exception other than a DispatchException is thrown
-    /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
-    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
-    public async Task Exception_is_encoded_as_a_dispatch_exception(
-        Exception thrownException,
-        DispatchErrorCode errorCode)
-    {
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw thrownException);
-
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-
-        // Act
-        var response = await sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client)) as DispatchException;
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
     }
 
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support

@@ -403,68 +403,71 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Decodes a Slice1 system exception.</summary>
-    /// <returns>The decoded exception.</returns>
-    public DispatchException DecodeSystemException()
+    /// <summary>Decodes a dispatch exception.</summary>
+    /// <returns>The decoded dispatch exception.</returns>
+    public DispatchException DecodeDispatchException()
     {
-        if (Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException($"{nameof(DecodeSystemException)} is not compatible with {Encoding}");
-        }
-
-        ReplyStatus replyStatus = this.DecodeReplyStatus();
-
-        if (replyStatus <= ReplyStatus.UserException)
-        {
-            throw new InvalidDataException($"invalid system exception with {replyStatus} ReplyStatus");
-        }
-
         string? message = null;
         DispatchErrorCode errorCode;
 
-        switch (replyStatus)
+        if (Encoding == SliceEncoding.Slice1)
         {
-            case ReplyStatus.FacetNotExistException:
-            case ReplyStatus.ObjectNotExistException:
-            case ReplyStatus.OperationNotExistException:
+            ReplyStatus replyStatus = this.DecodeReplyStatus();
 
-                var requestFailed = new RequestFailedExceptionData(ref this);
+            if (replyStatus <= ReplyStatus.UserException)
+            {
+                throw new InvalidDataException($"invalid system exception with {replyStatus} ReplyStatus");
+            }
 
-                errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
-                    DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
+            switch (replyStatus)
+            {
+                case ReplyStatus.FacetNotExistException:
+                case ReplyStatus.ObjectNotExistException:
+                case ReplyStatus.OperationNotExistException:
 
-                if (requestFailed.Operation.Length > 0)
-                {
-                    string target = requestFailed.Fragment.Length > 0 ?
-                        $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+                    var requestFailed = new RequestFailedExceptionData(ref this);
 
-                    message = $"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
-                }
-                // else message remains null
-                break;
+                    errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
+                        DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
 
-            default:
-                message = DecodeString();
-                errorCode = DispatchErrorCode.UnhandledException;
-
-                // Attempt to parse the DispatchErrorCode from the message:
-                if (message.StartsWith('[') &&
-                    message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
-                {
-                    try
+                    if (requestFailed.Operation.Length > 0)
                     {
-                        errorCode = (DispatchErrorCode)byte.Parse(
-                            message[1..pos],
-                            CultureInfo.InvariantCulture);
+                        string target = requestFailed.Fragment.Length > 0 ?
+                            $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                        message = message[(pos + 1)..].TrimStart();
+                        message = $"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
                     }
-                    catch
+                    // else message remains null
+                    break;
+
+                default:
+                    message = DecodeString();
+                    errorCode = DispatchErrorCode.UnhandledException;
+
+                    // Attempt to parse the DispatchErrorCode from the message:
+                    if (message.StartsWith('[') &&
+                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
                     {
-                        // ignored, keep default errorCode
+                        try
+                        {
+                            errorCode = (DispatchErrorCode)byte.Parse(
+                                message[1..pos],
+                                CultureInfo.InvariantCulture);
+
+                            message = message[(pos + 1)..].TrimStart();
+                        }
+                        catch
+                        {
+                            // ignored, keep default errorCode
+                        }
                     }
-                }
-                break;
+                    break;
+            }
+        }
+        else
+        {
+            message = DecodeString();
+            errorCode = this.DecodeDispatchErrorCode();
         }
 
         return new DispatchException(message, errorCode)

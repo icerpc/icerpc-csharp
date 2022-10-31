@@ -180,17 +180,16 @@ public sealed class ProtocolBridgingTests
 
             // Then create an outgoing response from the incoming response.
 
-            // When ResultType == Failure and the protocols are different, we need to transcode the exception
-            // (typically a dispatch exception). Fortunately, we can simply decode it and throw it.
+            // When ResultType == Failure and the protocols are different, we need to transcode the dispatch exception.
+            // Fortunately, we can simply decode it and throw it.
             if (request.Protocol != incomingResponse.Protocol &&
                 incomingResponse.ResultType == ResultType.Failure)
             {
-                RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
+                DispatchException dispatchException = await incomingResponse.DecodeDispatchExceptionAsync(
                     outgoingRequest,
-                    sender: _target,
                     cancellationToken: cancellationToken);
-                remoteException.ConvertToUnhandled = false;
-                throw remoteException;
+                dispatchException.ConvertToUnhandled = false;
+                throw dispatchException;
             }
 
             // Don't forward RetryPolicy

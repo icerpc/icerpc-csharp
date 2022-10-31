@@ -17,30 +17,51 @@ public static class IncomingResponseExtensions
     /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The decoded failure.</returns>
-    public static ValueTask<RemoteException> DecodeFailureAsync(
+    /// <returns>The decoded <see cref="DispatchException" />>.</returns>
+    public static async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         this IncomingResponse response,
         OutgoingRequest request,
-        ServiceProxy sender,
-        IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
     {
-        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
-
-        return response.ResultType == ResultType.Failure ?
-            response.DecodeRemoteExceptionAsync(
-                request,
-                response.Protocol.SliceEncoding,
-                feature,
-                feature.Activator ?? defaultActivator,
-                sender,
-                cancellationToken) :
+        if (response.ResultType != ResultType.Failure)
+        {
             throw new ArgumentException(
-                $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
+                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
                 nameof(response));
+        }
+
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+        SliceEncoding encoding = response.Protocol.SliceEncoding;
+
+        ReadResult readResult = await response.Payload.ReadSegmentAsync(
+            encoding,
+            feature.MaxSegmentSize,
+            cancellationToken).ConfigureAwait(false);
+
+        // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
+        }
+
+        if (readResult.Buffer.IsEmpty)
+        {
+            throw new InvalidDataException("empty dispatch exception");
+        }
+
+        DispatchException exception = Decode(readResult.Buffer);
+        exception.Origin = request;
+        response.Payload.AdvanceTo(readResult.Buffer.End);
+        return exception;
+
+        DispatchException Decode(ReadOnlySequence<byte> buffer)
+        {
+            var decoder = new SliceDecoder(buffer, encoding);
+            exception = decoder.DecodeDispatchException();
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return exception;
+        }
     }
 
     /// <summary>Decodes a response payload.</summary>
@@ -78,13 +99,20 @@ public static class IncomingResponseExtensions
 
         async ValueTask<T> ThrowRemoteExceptionAsync()
         {
-            throw await response.DecodeRemoteExceptionAsync(
-                request,
-                encoding,
-                feature,
-                activator,
-                sender,
-                cancellationToken).ConfigureAwait(false);
+            if (response.ResultType == ResultType.Failure)
+            {
+                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                throw await response.DecodeRemoteExceptionAsync(
+                    request,
+                    encoding,
+                    feature,
+                    activator,
+                    sender,
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -112,13 +140,20 @@ public static class IncomingResponseExtensions
 
         async ValueTask ThrowRemoteExceptionAsync()
         {
-            throw await response.DecodeRemoteExceptionAsync(
-                request,
-                encoding,
-                feature,
-                feature.Activator ?? defaultActivator,
-                sender,
-                cancellationToken).ConfigureAwait(false);
+            if (response.ResultType == ResultType.Failure)
+            {
+                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                throw await response.DecodeRemoteExceptionAsync(
+                    request,
+                    encoding,
+                    feature,
+                    feature.Activator ?? defaultActivator,
+                    sender,
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -131,14 +166,10 @@ public static class IncomingResponseExtensions
         ServiceProxy sender,
         CancellationToken cancellationToken)
     {
-        Debug.Assert(response.ResultType != ResultType.Success);
-        if (response.ResultType == ResultType.Failure)
-        {
-            encoding = response.Protocol.SliceEncoding;
-        }
+        Debug.Assert(response.ResultType > ResultType.Failure);
 
         var resultType = (SliceResultType)response.ResultType;
-        if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
+        if (resultType is SliceResultType.ServiceFailure)
         {
             ReadResult readResult = await response.Payload.ReadSegmentAsync(
                 encoding,
@@ -178,9 +209,7 @@ public static class IncomingResponseExtensions
                 maxDepth: feature.MaxDepth);
 
             RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
-                (resultType == SliceResultType.Failure ?
-                    decoder.DecodeSystemException() :
-                    decoder.DecodeUserException()) :
+                decoder.DecodeUserException() :
                 decoder.DecodeTrait(CreateUnknownException);
 
             if (remoteException is not UnknownException)

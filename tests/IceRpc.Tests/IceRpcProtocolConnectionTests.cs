@@ -176,12 +176,11 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         var response = await sut.Client.InvokeAsync(request);
+        DispatchException dispatchException = await response.DecodeDispatchExceptionAsync(request);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync(request, new ServiceProxy(sut.Client)) as DispatchException;
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(dispatchException.ErrorCode, Is.EqualTo(errorCode));
         Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }
 

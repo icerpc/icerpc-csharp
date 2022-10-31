@@ -20,6 +20,22 @@ public sealed class ProtocolConnectionTests
         Server
     }
 
+    private static IEnumerable<TestCaseData> ExceptionIsEncodedAsADispatchExceptionSource
+    {
+        get
+        {
+            foreach (Protocol protocol in Protocols)
+            {
+                // an unexpected OCE
+                yield return new(protocol, new OperationCanceledException(), DispatchErrorCode.UnhandledException);
+
+                yield return new(protocol, new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+                yield return new(protocol, new MyException(), DispatchErrorCode.UnhandledException);
+                yield return new(protocol, new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+            }
+        }
+    }
+
     private static List<Protocol> Protocols => new() { Protocol.IceRpc, Protocol.Ice };
 
     private static IEnumerable<TestCaseData> Protocols_and_client_or_server
@@ -209,6 +225,34 @@ public sealed class ProtocolConnectionTests
         // Act / Assert
         // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync will hang.
         await sut.Server.DisposeAsync();
+    }
+
+    /// <summary>Verifies that when a exception other than a DispatchException is thrown
+    /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
+        Protocol protocol,
+        Exception thrownException,
+        DispatchErrorCode errorCode)
+    {
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw thrownException);
+
+        await using var provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+
+        // Act
+        var response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        Assert.That(
+            async () => (await response.DecodeDispatchExceptionAsync(request)).ErrorCode,
+            Is.EqualTo(errorCode));
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the
