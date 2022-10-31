@@ -174,7 +174,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
-                ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
+                ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
             else
@@ -231,7 +231,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    ConnectionClosedException = new(ConnectionErrorCode.ClosedByPeer);
+                    ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByPeer);
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
@@ -252,6 +252,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
+                    Debug.Assert(ConnectionClosedException is not null);
+                }
+                catch (ConnectionException)
+                {
                     Debug.Assert(ConnectionClosedException is not null);
                 }
                 catch (OperationCanceledException)
@@ -919,17 +923,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                 {
-                    // This prevents us from receiving any new frames if we're already dispatching the maximum number of
-                    // requests. We need to do this in the "accept from network loop" to apply back pressure to the caller.
-                    try
-                    {
-                        await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token)
-                            .ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        Debug.Assert(_isReadOnly);
-                    }
+                    // This prevents us from receiving any new frames if we're already dispatching the maximum number
+                    // of requests. We need to do this in the "accept from network loop" to apply back pressure to the
+                    // caller.
+                    await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
                 }
 
                 lock (_mutex)
@@ -964,10 +961,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     },
                     CancellationToken.None);
             }
-            catch
+            catch (Exception exception)
             {
-                // If shutting down or aborted, ignore the incoming request.
-                await requestFrameReader.CompleteAsync(ConnectionClosedException).ConfigureAwait(false);
+                await requestFrameReader.CompleteAsync(exception).ConfigureAwait(false);
                 if (contextReader is not null)
                 {
                     await contextReader.CompleteAsync().ConfigureAwait(false);
