@@ -92,7 +92,6 @@ public class ServerTests
     }
 
     [Test]
-    [Ignore("issue #1920")]
     public async Task Connection_accepted_when_max_counter_is_reached_then_decremented()
     {
         // Arrange
@@ -135,13 +134,20 @@ public class ServerTests
         DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
 
         // Act/Assert
-        Assert.ThrowsAsync<ConnectionException>(() => clientConnection2.ConnectAsync());
+
+        // Either the connection is refused because the max connection count is reached,
+        // or the transport was closed by the server before the refused message was received.
+        Assert.That(() => clientConnection2.ConnectAsync(),
+            Throws.InstanceOf<ConnectionException>().With.Property("ErrorCode")
+            .EqualTo(ConnectionErrorCode.ConnectRefused)
+            .Or
+            .InstanceOf<TransportException>().With.Property("ErrorCode")
+            .EqualTo(TransportErrorCode.ConnectionReset));
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
         await clientConnection1.ShutdownAsync();
         await serverConnection1.WaitForDisposeStart();
-
         await clientConnection3.ConnectAsync();
     }
 
