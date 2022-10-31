@@ -404,8 +404,9 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a dispatch exception.</summary>
+    /// <param name="origin">The request that failed with this dispatch exception.</param>
     /// <returns>The decoded dispatch exception.</returns>
-    public DispatchException DecodeDispatchException()
+    public DispatchException DecodeDispatchException(OutgoingRequest origin)
     {
         string? message = null;
         DispatchErrorCode errorCode;
@@ -450,7 +451,7 @@ public ref partial struct SliceDecoder
                     {
                         try
                         {
-                            errorCode = (DispatchErrorCode)byte.Parse(
+                            errorCode = (DispatchErrorCode)ulong.Parse(
                                 message[1..pos],
                                 CultureInfo.InvariantCulture);
 
@@ -473,6 +474,7 @@ public ref partial struct SliceDecoder
         return new DispatchException(message, errorCode)
         {
             ConvertToUnhandled = true,
+            Origin = origin
         };
     }
 

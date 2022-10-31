@@ -386,7 +386,7 @@ public ref partial struct SliceEncoder
             default:
                 this.EncodeReplyStatus(ReplyStatus.UnknownException);
                 // We encode the error code in the message.
-                EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
+                EncodeString($"[{((ulong)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
                 break;
         }
     }

@@ -977,7 +977,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (Exception exception)
             {
-                // If we catch an exception, we return a failure response with a Slice-encoded dispatch exception.
+                // If we catch an exception, we return a failure response.
 
                 if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {

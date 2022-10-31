@@ -1026,7 +1026,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a failure response with a Slice-encoded payload.
+                    // If we catch an exception, we return a failure response with a system exception payload.
+
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
                         DispatchErrorCode errorCode = exception switch
