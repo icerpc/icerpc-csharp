@@ -253,6 +253,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(
             async () => (await response.DecodeDispatchExceptionAsync(request)).ErrorCode,
             Is.EqualTo(errorCode));
+        Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the

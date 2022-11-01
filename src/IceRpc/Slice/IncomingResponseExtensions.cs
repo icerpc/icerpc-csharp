@@ -45,11 +45,6 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
-        if (readResult.Buffer.IsEmpty)
-        {
-            throw new InvalidDataException("empty dispatch exception");
-        }
-
         DispatchException exception = Decode(readResult.Buffer);
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return exception;
@@ -179,11 +174,6 @@ public static class IncomingResponseExtensions
             if (readResult.IsCanceled)
             {
                 throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
-            }
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                throw new InvalidDataException("empty remote exception");
             }
 
             RemoteException result = Decode(readResult.Buffer);

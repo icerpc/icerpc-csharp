@@ -11,8 +11,8 @@ public sealed class DispatchException : Exception
     /// thrown from a dispatcher.</summary>
     public bool ConvertToUnhandled { get; set; }
 
-    /// <summary>Gets or sets the error code that describes the failure.</summary>
-    public DispatchErrorCode ErrorCode { get; set; }
+    /// <summary>Gets the error code that describes the failure.</summary>
+    public DispatchErrorCode ErrorCode { get; }
 
     /// <inheritdoc/>
     public override string Message
@@ -46,7 +46,7 @@ public sealed class DispatchException : Exception
     public OutgoingRequest? Origin { get; internal init; }
 
     /// <summary>Gets the retry policy.</summary>
-    public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
+    public RetryPolicy RetryPolicy { get; }
 
     private readonly bool _hasCustomMessage;
 

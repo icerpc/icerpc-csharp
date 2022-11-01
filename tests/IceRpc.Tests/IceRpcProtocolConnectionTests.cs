@@ -154,36 +154,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.ConnectionShutdown));
     }
 
-    /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the
-    /// expected error code and no retry policy.</summary>
-    /// <param name="thrownException">The exception to throw by the dispatcher.</param>
-    /// <param name="errorCode">The expected <see cref="DispatchErrorCode" />.</param>
-    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
-    public async Task Exception_is_encoded_as_a_dispatch_exception(
-        Exception thrownException,
-        DispatchErrorCode errorCode)
-    {
-        // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw thrownException);
-
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-
-        // Act
-        var response = await sut.Client.InvokeAsync(request);
-        DispatchException dispatchException = await response.DecodeDispatchExceptionAsync(request);
-
-        // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        Assert.That(dispatchException.ErrorCode, Is.EqualTo(errorCode));
-        Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
-    }
-
     [Test]
     public async Task Invocation_cancellation_triggers_dispatch_cancellation()
     {
