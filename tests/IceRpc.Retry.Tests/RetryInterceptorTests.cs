@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Tests;
@@ -108,7 +109,6 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
         var response = await sut.InvokeAsync(request, default);
@@ -189,13 +189,17 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        var stopwatch = Stopwatch.StartNew();
 
         // Act
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(TimeSpan.FromMilliseconds(Environment.TickCount64) - start, Is.GreaterThanOrEqualTo(delay));
+        stopwatch.Stop();
+        Assert.That(
+            // TimeSpan rounded to the nearest millisecond
+            TimeSpan.FromMilliseconds(Math.Round(stopwatch.Elapsed.TotalMilliseconds, 0)),
+            Is.GreaterThanOrEqualTo(delay));
         Assert.That(attempts, Is.EqualTo(2));
     }
 
@@ -380,7 +384,6 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 }, NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
         var response = await sut.InvokeAsync(request, default);
