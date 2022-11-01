@@ -54,7 +54,13 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         Assert.That(
             async () => await serverConnection.ConnectAsync(default),
             Throws.TypeOf<AuthenticationException>());
-        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.Nothing);
+        Assert.That(
+            async () =>
+            {
+                await clientConnection.ConnectAsync(default);
+                await clientConnection.ReadAsync(new byte[1], CancellationToken.None);
+            },
+            Throws.TypeOf<TransportException>());
     }
 
     /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
