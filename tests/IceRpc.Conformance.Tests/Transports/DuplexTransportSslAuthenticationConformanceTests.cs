@@ -54,6 +54,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         Assert.That(
             async () => await serverConnection.ConnectAsync(default),
             Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.Nothing);
     }
 
     /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
@@ -88,6 +89,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await serverConnectTask, Throws.Nothing);
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
