@@ -49,7 +49,6 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // connection establishment.
         var clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
-        byte[] buffer = new byte[1];
 
         // Act/Assert
         Assert.That(
@@ -57,7 +56,14 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
             Throws.TypeOf<AuthenticationException>());
         Assert.That(async () => await clientConnectTask, Throws.Nothing);
         Assert.That(
-            async () => await clientConnection.ReadAsync(buffer, CancellationToken.None),
+            async () =>
+            {
+                await serverConnection.WriteAsync(
+                    new List<ReadOnlyMemory<byte>>() { new byte[1] },
+                    CancellationToken.None);
+                byte[] buffer = new byte[1];
+                await clientConnection.ReadAsync(buffer, CancellationToken.None);
+            },
             Throws.TypeOf<TransportException>());
     }
 
