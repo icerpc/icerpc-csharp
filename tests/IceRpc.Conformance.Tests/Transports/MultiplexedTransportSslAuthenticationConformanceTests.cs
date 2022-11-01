@@ -83,10 +83,11 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         // connection establishment.
         var clientConnectTask = clientConnection.ConnectAsync(default);
         (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
-        _ = serverConnection.ConnectAsync(default);
+        var serverConnectTask = serverConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await serverConnectTask, Throws.Nothing);
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
