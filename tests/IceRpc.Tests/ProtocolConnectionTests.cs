@@ -1117,16 +1117,6 @@ public sealed class ProtocolConnectionTests
         // TODO: not AAA
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
-
-        if (protocol == Protocol.IceRpc && !closeClientSide)
-        {
-            // TODO: this is an icerpc bug
-            // When a server connection shutdown times out, we need to dispose the server connection first otherwise
-            // DisposeAsync on the client connection (which is shutting down with the default timeout) will hang because
-            // the server does not close its control stream.
-            // (ClientServerProtocolConnection disposes the client and then the server, in this order)
-            await sut.Server.DisposeAsync();
-        }
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to finish.</summary>
