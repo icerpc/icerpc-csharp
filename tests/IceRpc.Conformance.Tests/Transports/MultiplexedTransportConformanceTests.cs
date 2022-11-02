@@ -1520,6 +1520,32 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
+    public async Task Close_connection_aborts_the_connection_streams()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(true, default);
+        _ = clientStream.Output.WriteAsync(_oneBytePayload, default).AsTask();
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await clientConnection.CloseAsync(applicationErrorCode: 0ul, default);
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+            async() => await serverStream.Input.ReadAsync(default));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+    }
+
+
+    [Test]
     public async Task Close_connection_on_both_sides()
     {
         await using ServiceProvider provider = CreateServiceCollection()
