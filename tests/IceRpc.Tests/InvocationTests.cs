@@ -39,7 +39,7 @@ public class InvocationTests
         IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
 
         // Assert
-        DispatchException exception = await response.DecodeDispatchExceptionAsync(request);
+        DispatchException exception = await response.Protocol.DecodeDispatchExceptionAsync(response, request);
         Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
 
@@ -104,7 +104,7 @@ public class InvocationTests
 
         // Assert
         var response = await invokeTask;
-        DispatchException dispatchException = await response.DecodeDispatchExceptionAsync(request);
+        DispatchException dispatchException = await response.Protocol.DecodeDispatchExceptionAsync(response, request);
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.StreamError));
         await pipe.Writer.CompleteAsync();
