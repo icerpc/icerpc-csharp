@@ -30,13 +30,12 @@ internal sealed class IceProtocol : Protocol
         if (response.Protocol != this)
         {
             throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a {this} protocol",
+                $"{nameof(DecodeDispatchExceptionAsync)} requires an {this} response",
                 nameof(response));
         }
 
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        // TODO: we probably don't need a segment here.
         ReadResult readResult = await response.Payload.ReadSegmentAsync(
             SliceEncoding.Slice1,
             feature.MaxSegmentSize,
@@ -172,8 +171,7 @@ internal sealed class IceProtocol : Protocol
             defaultPort: 4061,
             hasFields: false,
             hasFragment: true,
-            byteValue: 1,
-            sliceEncoding: SliceEncoding.Slice1)
+            byteValue: 1)
     {
     }
 }

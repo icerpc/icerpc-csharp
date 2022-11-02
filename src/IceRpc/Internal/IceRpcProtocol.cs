@@ -32,7 +32,7 @@ internal sealed class IceRpcProtocol : Protocol
         if (response.Protocol != this)
         {
             throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a {this} protocol",
+                $"{nameof(DecodeDispatchExceptionAsync)} requires an {this} response",
                 nameof(response));
         }
 
@@ -73,8 +73,7 @@ internal sealed class IceRpcProtocol : Protocol
             defaultPort: 4062,
             hasFields: true,
             hasFragment: false,
-            byteValue: 2,
-            sliceEncoding: SliceEncoding.Slice2)
+            byteValue: 2)
     {
     }
 

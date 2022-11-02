@@ -34,10 +34,6 @@ public abstract class Protocol
     /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
     internal byte ByteValue { get; }
 
-    /// <summary>Gets the Slice encoding that this protocol uses for its headers.</summary>
-    /// <returns>The Slice encoding.</returns>
-    internal SliceEncoding SliceEncoding { get; }
-
     /// <summary>Parses a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
     /// <returns>A protocol with the given name in lowercase.</returns>
@@ -101,14 +97,12 @@ public abstract class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
-        byte byteValue,
-        SliceEncoding sliceEncoding)
+        byte byteValue)
     {
         Name = name;
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
         ByteValue = byteValue;
-        SliceEncoding = sliceEncoding;
     }
 }
