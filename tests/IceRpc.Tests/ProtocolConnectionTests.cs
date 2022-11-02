@@ -251,7 +251,7 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         Assert.That(
-            async () => (await response.Protocol.DecodeDispatchExceptionAsync(response, request)).ErrorCode,
+            async () => (await response.DecodeDispatchExceptionAsync(request)).ErrorCode,
             Is.EqualTo(errorCode));
         Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }

@@ -184,8 +184,7 @@ public sealed class ProtocolBridgingTests
             // Fortunately, we can simply decode it and throw it.
             if (request.Protocol != incomingResponse.Protocol && incomingResponse.ResultType == ResultType.Failure)
             {
-                DispatchException dispatchException = await incomingResponse.Protocol.DecodeDispatchExceptionAsync(
-                    incomingResponse,
+                DispatchException dispatchException = await incomingResponse.DecodeDispatchExceptionAsync(
                     outgoingRequest,
                     cancellationToken: cancellationToken);
                 dispatchException.ConvertToUnhandled = false;

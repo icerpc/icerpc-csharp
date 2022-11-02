@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
@@ -17,22 +18,17 @@ internal sealed class IceRpcProtocol : Protocol
     internal IMultiplexedStreamErrorCodeConverter MultiplexedStreamErrorCodeConverter { get; }
         = new ErrorCodeConverter();
 
-    public override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
+    internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
         OutgoingRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
+        Debug.Assert(response.Protocol == this);
+
         if (response.ResultType != ResultType.Failure)
         {
             throw new ArgumentException(
                 $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
-                nameof(response));
-        }
-
-        if (response.Protocol != this)
-        {
-            throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires an {this} response",
                 nameof(response));
         }
 
@@ -43,7 +39,7 @@ internal sealed class IceRpcProtocol : Protocol
             feature.MaxSegmentSize,
             cancellationToken).ConfigureAwait(false);
 
-        // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
+        // We never call CancelPendingRead on a response.Payload; an interceptor can but it's not correct.
         if (readResult.IsCanceled)
         {
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");

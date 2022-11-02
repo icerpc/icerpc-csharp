@@ -53,16 +53,6 @@ public abstract class Protocol
         return protocol is not null;
     }
 
-    /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
-    /// <param name="response">The incoming response.</param>
-    /// <param name="request">The outgoing request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The decoded <see cref="DispatchException" />>.</returns>
-    public abstract ValueTask<DispatchException> DecodeDispatchExceptionAsync(
-        IncomingResponse response,
-        OutgoingRequest request,
-        CancellationToken cancellationToken = default);
-
     /// <summary>Converts this protocol into a string.</summary>
     /// <returns>The name of the protocol.</returns>
     public override string ToString() => Name;
@@ -90,6 +80,16 @@ public abstract class Protocol
     {
         // by default, any dictionary is ok
     }
+
+    /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The decoded <see cref="DispatchException" />.</returns>
+    internal abstract ValueTask<DispatchException> DecodeDispatchExceptionAsync(
+        IncomingResponse response,
+        OutgoingRequest request,
+        CancellationToken cancellationToken);
 
     /// <summary>Constructs a protocol.</summary>
     private protected Protocol(

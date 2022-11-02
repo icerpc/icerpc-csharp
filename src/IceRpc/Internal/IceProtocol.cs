@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipelines;
 
@@ -15,22 +16,64 @@ internal sealed class IceProtocol : Protocol
     /// <summary>Gets the Ice protocol singleton.</summary>
     internal static IceProtocol Instance { get; } = new();
 
-    public override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
+    /// <summary>Checks if this absolute path holds a valid identity.</summary>
+    internal override void CheckPath(string uriPath)
+    {
+        string workingPath = uriPath[1..]; // removes leading /.
+        int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
+
+        string escapedName;
+
+        if (firstSlash == -1)
+        {
+            escapedName = workingPath;
+        }
+        else
+        {
+            if (firstSlash != workingPath.LastIndexOf('/'))
+            {
+                throw new FormatException($"too many slashes in path '{uriPath}'");
+            }
+            escapedName = workingPath[(firstSlash + 1)..];
+        }
+
+        if (escapedName.Length == 0)
+        {
+            throw new FormatException($"invalid empty identity name in path '{uriPath}'");
+        }
+    }
+
+    /// <summary>Checks if the service address parameters are valid. The only valid parameter is adapter-id with a
+    /// non-empty value.</summary>
+    internal override void CheckServiceAddressParams(ImmutableDictionary<string, string> serviceAddressParams)
+    {
+        foreach ((string name, string value) in serviceAddressParams)
+        {
+            if (name == "adapter-id")
+            {
+                if (value.Length == 0)
+                {
+                    throw new FormatException("the value of the adapter-id parameter cannot be empty");
+                }
+            }
+            else
+            {
+                throw new FormatException($"'{name}' is not a valid ice service address parameter");
+            }
+        }
+    }
+
+    internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
         OutgoingRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
+        Debug.Assert(response.Protocol == this);
+
         if (response.ResultType != ResultType.Failure)
         {
             throw new ArgumentException(
                 $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
-                nameof(response));
-        }
-
-        if (response.Protocol != this)
-        {
-            throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires an {this} response",
                 nameof(response));
         }
 
@@ -41,7 +84,7 @@ internal sealed class IceProtocol : Protocol
             feature.MaxSegmentSize,
             cancellationToken).ConfigureAwait(false);
 
-        // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
+        // We never call CancelPendingRead on a response.Payload; an interceptor can but it's not correct.
         if (readResult.IsCanceled)
         {
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
@@ -115,53 +158,6 @@ internal sealed class IceProtocol : Protocol
                 ConvertToUnhandled = true,
                 Origin = request
             };
-        }
-    }
-
-    /// <summary>Checks if this absolute path holds a valid identity.</summary>
-    internal override void CheckPath(string uriPath)
-    {
-        string workingPath = uriPath[1..]; // removes leading /.
-        int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
-
-        string escapedName;
-
-        if (firstSlash == -1)
-        {
-            escapedName = workingPath;
-        }
-        else
-        {
-            if (firstSlash != workingPath.LastIndexOf('/'))
-            {
-                throw new FormatException($"too many slashes in path '{uriPath}'");
-            }
-            escapedName = workingPath[(firstSlash + 1)..];
-        }
-
-        if (escapedName.Length == 0)
-        {
-            throw new FormatException($"invalid empty identity name in path '{uriPath}'");
-        }
-    }
-
-    /// <summary>Checks if the service address parameters are valid. The only valid parameter is adapter-id with a
-    /// non-empty value.</summary>
-    internal override void CheckServiceAddressParams(ImmutableDictionary<string, string> serviceAddressParams)
-    {
-        foreach ((string name, string value) in serviceAddressParams)
-        {
-            if (name == "adapter-id")
-            {
-                if (value.Length == 0)
-                {
-                    throw new FormatException("the value of the adapter-id parameter cannot be empty");
-                }
-            }
-            else
-            {
-                throw new FormatException($"'{name}' is not a valid ice service address parameter");
-            }
         }
     }
 

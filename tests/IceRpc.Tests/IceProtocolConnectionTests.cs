@@ -66,7 +66,7 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(
-            async () => (await response.Protocol.DecodeDispatchExceptionAsync(response, request)).Message,
+            async () => (await response.DecodeDispatchExceptionAsync(request)).Message,
             Is.EqualTo("dispatch canceled"));
     }
 

@@ -48,7 +48,7 @@ public static class IncomingResponseExtensions
         {
             if (response.ResultType == ResultType.Failure)
             {
-                throw await response.Protocol.DecodeDispatchExceptionAsync(response, request, cancellationToken)
+                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken)
                     .ConfigureAwait(false);
             }
             else
@@ -90,8 +90,7 @@ public static class IncomingResponseExtensions
         {
             if (response.ResultType == ResultType.Failure)
             {
-                throw await response.Protocol.DecodeDispatchExceptionAsync(response, request, cancellationToken)
-                    .ConfigureAwait(false);
+                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken).ConfigureAwait(false);
             }
             else
             {
