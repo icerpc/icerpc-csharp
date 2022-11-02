@@ -360,9 +360,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         Exception? completeException = null;
         try
         {
-            if (request.PayloadStream is not null)
+            if (request.PayloadContinuation is not null)
             {
-                throw new NotSupportedException("PayloadStream must be null with the ice protocol");
+                throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
             }
 
             // Read the full payload. This can take some time so this needs to be done before acquiring the write
@@ -1002,9 +1002,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             "the dispatcher did not return the last response created for this request");
 
                         await response.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                        if (response.PayloadStream is PipeReader payloadStream)
+                        if (response.PayloadContinuation is PipeReader payloadContinuation)
                         {
-                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                            await payloadContinuation.CompleteAsync(exception).ConfigureAwait(false);
                         }
                         throw exception;
                     }
@@ -1075,9 +1075,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     Debug.Assert(response is not null);
 
-                    if (response.PayloadStream is not null)
+                    if (response.PayloadContinuation is not null)
                     {
-                        throw new NotSupportedException("PayloadStream must be null with the ice protocol");
+                        throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
                     }
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the

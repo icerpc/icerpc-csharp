@@ -49,7 +49,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
             if (_response is not null)
             {
                 _response.Payload.Complete();
-                _response.PayloadStream?.Complete();
+                _response.PayloadContinuation?.Complete();
             }
             _response = value;
         }
@@ -74,7 +74,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
         if (_response is not null)
         {
             _response.Payload.Complete();
-            _response.PayloadStream?.Complete();
+            _response.PayloadContinuation?.Complete();
         }
     }
 }

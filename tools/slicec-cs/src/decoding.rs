@@ -509,7 +509,7 @@ pub fn decode_operation_stream(
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
             panic!("Must not be called for UInt8 parameters as there is no decoding");
         }
-        _ => FunctionCallBuilder::new(&format!("payloadStream.ToAsyncEnumerable<{}>", param_type_str))
+        _ => FunctionCallBuilder::new(&format!("payloadContinuation.ToAsyncEnumerable<{}>", param_type_str))
             .arguments_on_newline(true)
             .add_argument(cs_encoding)
             .add_argument_unless(param_type.is_fixed_size(), "_defaultActivator")

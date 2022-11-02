@@ -668,23 +668,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         return (fields, pipeReader);
     }
 
-    /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
-    /// if successful. It completes the output only if there's no payload stream. Otherwise, it starts a streaming
-    /// task that is responsible for completing the payload stream and the output.</summary>
+    /// <summary>Sends the payload and payload continuation of an outgoing frame. SendPayloadAsync completes the payload
+    /// if successful. It completes the output only if there's no payload continuation. Otherwise, it starts a streaming
+    /// task that is responsible for completing the payload continuation and the output.</summary>
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         IMultiplexedStream stream,
         CancellationToken cancellationToken)
     {
         PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
-        PipeReader? payloadStream = outgoingFrame.PayloadStream;
+        PipeReader? payloadContinuation = outgoingFrame.PayloadContinuation;
 
         try
         {
             FlushResult flushResult = await CopyReaderToWriterAsync(
                 outgoingFrame.Payload,
                 payloadWriter,
-                endStream: payloadStream is null,
+                endStream: payloadContinuation is null,
                 cancellationToken).ConfigureAwait(false);
 
             if (flushResult.IsCompleted)
@@ -692,12 +692,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // The remote reader gracefully completed the stream input pipe. We're done.
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
 
-                // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
+                // We complete the payload and payload continuation immediately. For example, we've just sent an outgoing
                 // request and we're waiting for the exception to come back.
                 await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-                if (payloadStream is not null)
+                if (payloadContinuation is not null)
                 {
-                    await payloadStream.CompleteAsync().ConfigureAwait(false);
+                    await payloadContinuation.CompleteAsync().ConfigureAwait(false);
                 }
                 return;
             }
@@ -718,14 +718,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
 
-        if (payloadStream is null)
+        if (payloadContinuation is null)
         {
             await payloadWriter.CompleteAsync().ConfigureAwait(false);
         }
         else
         {
-            // Send payloadStream in the background.
-            outgoingFrame.PayloadStream = null; // we're now responsible for payloadStream
+            // Send payloadContinuation in the background.
+            outgoingFrame.PayloadContinuation = null; // we're now responsible for payloadContinuation
 
             _ = Task.Run(
                 async () =>
@@ -733,7 +733,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     try
                     {
                         FlushResult flushResult = await CopyReaderToWriterAsync(
-                            payloadStream,
+                            payloadContinuation,
                             payloadWriter,
                             endStream: true,
                             CancellationToken.None).ConfigureAwait(false);
@@ -744,12 +744,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 "a payload writer interceptor is not allowed to return a canceled flush result");
                         }
 
-                        await payloadStream.CompleteAsync().ConfigureAwait(false);
+                        await payloadContinuation.CompleteAsync().ConfigureAwait(false);
                         await payloadWriter.CompleteAsync().ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
-                        await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                        await payloadContinuation.CompleteAsync(exception).ConfigureAwait(false);
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 },
@@ -957,9 +957,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
 
                     await response.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                    if (response.PayloadStream is PipeReader payloadStream)
+                    if (response.PayloadContinuation is PipeReader payloadContinuation)
                     {
-                        await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                        await payloadContinuation.CompleteAsync(exception).ConfigureAwait(false);
                     }
                     throw exception;
                 }
@@ -1050,7 +1050,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 EncodeHeader();
 
-                // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
+                // SendPayloadAsync takes care of the completion of the response payload, payload continuation and stream
                 // output.
                 await SendPayloadAsync(response, stream, cancellationToken).ConfigureAwait(false);
             }

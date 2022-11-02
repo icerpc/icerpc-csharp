@@ -56,11 +56,11 @@ public sealed class IceRpcProtocolConnectionTests
         using var outgoingRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[10]);
-        outgoingRequest.PayloadStream = pipe.Reader;
+        outgoingRequest.PayloadContinuation = pipe.Reader;
 
         var invokeTask = sut.Client.InvokeAsync(outgoingRequest);
         IncomingRequest incomingRequest = await dispatcher.DispatchStart; // Wait for the dispatch to start
-        // Make sure the payload stream isn't completed by the dispatch termination.
+        // Make sure the payload continuation isn't completed by the dispatch termination.
         var payload = incomingRequest.DetachPayload();
         dispatcher.ReleaseDispatch();
         await invokeTask;
@@ -257,16 +257,16 @@ public sealed class IceRpcProtocolConnectionTests
         // Use initial payload data to ensure the request is sent before the payload reader blocks (Slic sends the
         // request header with the start of the payload so if the first ReadAsync blocks, the request header is not
         // sent).
-        var payloadStream = new HoldPipeReader(new byte[10]);
+        var payloadContinuation = new HoldPipeReader(new byte[10]);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
-            PayloadStream = payloadStream
+            PayloadContinuation = payloadContinuation
         };
         await sut.Client.InvokeAsync(request);
         PipeReader remotePayload = await remotePayloadTcs.Task;
 
         // Act
-        payloadStream.SetReadException(exception);
+        payloadContinuation.SetReadException(exception);
 
         // Assert
         IceRpcProtocolStreamException? streamException = null;
@@ -404,7 +404,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
-    /// <summary>Ensures that the payload stream of a request is completed when the dispatcher does not read this
+    /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
     /// PipeReader.</summary>
     [Test]
     public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher(
@@ -423,7 +423,7 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
-            PayloadStream = payloadStreamDecorator
+            PayloadContinuation = payloadStreamDecorator
         };
 
         // Act
@@ -436,7 +436,7 @@ public sealed class IceRpcProtocolConnectionTests
         await pipe.Writer.CompleteAsync();
     }
 
-    /// <summary>Ensures that the payload stream of a request is completed when it reaches the endStream.</summary>
+    /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
     [Test]
     public async Task PayloadStream_of_outgoing_request_completed_on_end_stream([Values(true, false)] bool isOneway)
     {
@@ -451,7 +451,7 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
-            PayloadStream = payloadStreamDecorator
+            PayloadContinuation = payloadStreamDecorator
         };
 
         // Act
@@ -469,7 +469,7 @@ public sealed class IceRpcProtocolConnectionTests
         dispatcher.ReleaseDispatch();
     }
 
-    /// <summary>Ensures that the request payload is completed if the payload stream is invalid.</summary>
+    /// <summary>Ensures that the request payload is completed if the payload continuation is invalid.</summary>
     [Test]
     public async Task PayloadStream_completed_on_invalid_request_payload([Values(true, false)] bool isOneway)
     {
@@ -484,7 +484,7 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
-            PayloadStream = payloadStreamDecorator
+            PayloadContinuation = payloadStreamDecorator
         };
 
         // Act
@@ -494,7 +494,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>Ensures that the response payload stream is completed on a valid response.</summary>
+    /// <summary>Ensures that the response payload continuation is completed on a valid response.</summary>
     [Test]
     public async Task PayloadStream_completed_on_valid_response()
     {
@@ -503,7 +503,7 @@ public sealed class IceRpcProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
-                    PayloadStream = payloadStreamDecorator
+                    PayloadContinuation = payloadStreamDecorator
                 }));
 
         await using var provider = new ServiceCollection()
@@ -524,7 +524,7 @@ public sealed class IceRpcProtocolConnectionTests
         await responseTask;
     }
 
-    /// <summary>Ensures that the response payload is completed on an invalid response payload stream.</summary>
+    /// <summary>Ensures that the response payload is completed on an invalid response payload continuation.</summary>
     [Test]
     public async Task PayloadStream_completed_on_invalid_response_payload()
     {
@@ -533,7 +533,7 @@ public sealed class IceRpcProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
-                    PayloadStream = payloadStreamDecorator
+                    PayloadContinuation = payloadStreamDecorator
                 }));
 
         await using var provider = new ServiceCollection()

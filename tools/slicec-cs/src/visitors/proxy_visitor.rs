@@ -255,7 +255,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
             }
         }
     } else {
-        invocation_builder.add_argument("payloadStream: null");
+        invocation_builder.add_argument("payloadContinuation: null");
     }
 
     invocation_builder.add_argument_if(void_return && stream_return.is_none(), "_defaultActivator");
@@ -522,7 +522,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
             _ => writeln!(
                 code,
                 "\
-var payloadStream = response.DetachPayload();
+var payloadContinuation = response.DetachPayload();
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                 stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
