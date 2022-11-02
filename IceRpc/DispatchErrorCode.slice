@@ -1,17 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice;
+module IceRpc;
 
-/// A dispatch exception is thrown when a server fails to dispatch a request. Since it's built-in, any client can decode
-/// this exception.
-exception DispatchException
-{
-    /// The error code that describes the failure.
-    errorCode: DispatchErrorCode,
-}
-
-/// The possible error codes carried by a @DispatchException.
-unchecked enum DispatchErrorCode
+/// The possible error codes carried by a dispatch exception.
+unchecked enum DispatchErrorCode : varuint62
 {
     /// The server could not find the target service.
     ServiceNotFound,
