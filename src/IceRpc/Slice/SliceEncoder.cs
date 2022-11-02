@@ -352,45 +352,6 @@ public ref partial struct SliceEncoder
         }
     }
 
-    /// <summary>Encodes a dispatch exception using Slice2.</summary>
-    /// <param name="v">The dispatch exception to encode.</param>
-    public void EncodeDispatchException(DispatchException v)
-    {
-        Debug.Assert(Encoding == SliceEncoding.Slice2);
-
-        EncodeString(v.Message);
-        this.EncodeDispatchErrorCode(v.ErrorCode);
-    }
-
-    /// <summary>Encodes a dispatch exception as a Slice1 system exception.</summary>
-    /// <param name="v">The dispatch exception to encode.</param>
-    /// <param name="path">The path to include in some system exceptions.</param>
-    /// <param name="fragment">The fragment to include in some system exceptions.</param>
-    /// <param name="operation">The operation to include in some system exceptions.</param>
-    public void EncodeDispatchException(DispatchException v, string path, string fragment, string operation)
-    {
-        Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-        DispatchErrorCode errorCode = v.ErrorCode;
-
-        switch (errorCode)
-        {
-            case DispatchErrorCode.ServiceNotFound:
-            case DispatchErrorCode.OperationNotFound:
-                this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
-                    ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
-
-                new RequestFailedExceptionData(path, fragment, operation).Encode(ref this);
-                break;
-
-            default:
-                this.EncodeReplyStatus(ReplyStatus.UnknownException);
-                // We encode the error code in the message.
-                EncodeString($"[{((ulong)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
-                break;
-        }
-    }
-
     // Other methods
 
     /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is

@@ -1019,7 +1019,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                     int startPos = encoder.EncodedByteCount;
-                    encoder.EncodeDispatchException(exception);
+                    encoder.EncodeString(exception.Message);
+                    encoder.EncodeDispatchErrorCode(exception.ErrorCode);
                     SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
                     pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                     return pipe.Reader;
