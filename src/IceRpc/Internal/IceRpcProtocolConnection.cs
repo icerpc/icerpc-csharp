@@ -592,7 +592,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _controlStream!.Output.Complete();
 
             // Wait for the peer notification that on its side all the streams are completed. It's important to wait for
-            // this notification before closing the connection. The peer multiplexed streams would fail otherwise when 
+            // this notification before closing the connection. The peer multiplexed streams would fail otherwise when
             // the connection is closed locally.
             try
             {
