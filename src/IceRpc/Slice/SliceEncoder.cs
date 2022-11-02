@@ -352,13 +352,22 @@ public ref partial struct SliceEncoder
         }
     }
 
+    /// <summary>Encodes a dispatch exception using Slice2.</summary>
+    /// <param name="v">The dispatch exception to encode.</param>
+    public void EncodeDispatchException(DispatchException v)
+    {
+        Debug.Assert(Encoding == SliceEncoding.Slice2);
+
+        EncodeString(v.Message);
+        this.EncodeDispatchErrorCode(v.ErrorCode);
+    }
+
     /// <summary>Encodes a dispatch exception as a Slice1 system exception.</summary>
     /// <param name="v">The dispatch exception to encode.</param>
     /// <param name="path">The path to include in some system exceptions.</param>
     /// <param name="fragment">The fragment to include in some system exceptions.</param>
     /// <param name="operation">The operation to include in some system exceptions.</param>
-    /// <remarks>A dispatch exception cannot be encoded directly with Slice1.</remarks>
-    public void EncodeSystemException(DispatchException v, string path, string fragment, string operation)
+    public void EncodeDispatchException(DispatchException v, string path, string fragment, string operation)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
@@ -377,7 +386,7 @@ public ref partial struct SliceEncoder
             default:
                 this.EncodeReplyStatus(ReplyStatus.UnknownException);
                 // We encode the error code in the message.
-                EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
+                EncodeString($"[{((ulong)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
                 break;
         }
     }

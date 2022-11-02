@@ -1018,15 +1018,16 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     response = new OutgoingResponse(request)
                     {
-                        Payload = CreateExceptionPayload(
-                            new DispatchException("dispatch canceled", DispatchErrorCode.Canceled),
-                            request),
+                        Payload = CreateDispatchExceptionPayload(
+                            request,
+                            new DispatchException("dispatch canceled", DispatchErrorCode.Canceled)),
                         ResultType = ResultType.Failure
                     };
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a failure response with a Slice-encoded payload.
+                    // If we catch an exception, we return a failure response with a system exception payload.
+
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
                         DispatchErrorCode errorCode = exception switch
@@ -1044,7 +1045,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = CreateExceptionPayload(dispatchException, request),
+                        Payload = CreateDispatchExceptionPayload(request, dispatchException),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -1161,7 +1162,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                 }
 
-                static PipeReader CreateExceptionPayload(DispatchException dispatchException, IncomingRequest request)
+                static PipeReader CreateDispatchExceptionPayload(
+                    IncomingRequest request,
+                    DispatchException dispatchException)
                 {
                     SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                         SliceEncodeOptions.Default;
@@ -1169,7 +1172,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     var pipe = new Pipe(encodeOptions.PipeOptions);
 
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
-                    encoder.EncodeSystemException(
+                    encoder.EncodeDispatchException(
                         dispatchException,
                         request.Path,
                         request.Fragment,

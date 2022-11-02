@@ -485,13 +485,8 @@ try
 {{
     {dispatch_and_return}
 }}
-catch (RemoteException remoteException)
+catch (RemoteException remoteException) when (!remoteException.ConvertToUnhandled)
 {{
-    if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
-    {{
-        throw;
-    }}
-
     return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
         check_and_decode = check_and_decode,

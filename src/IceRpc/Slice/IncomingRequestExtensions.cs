@@ -38,7 +38,7 @@ public static class IncomingRequestExtensions
         RemoteException remoteException,
         SliceEncoding encoding)
     {
-        if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
+        if (remoteException.ConvertToUnhandled)
         {
             throw new ArgumentException("invalid remote exception", nameof(remoteException));
         }
