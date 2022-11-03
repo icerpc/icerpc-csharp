@@ -561,35 +561,45 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId);
             }
 
-            await SendControlFrameAsync(
-                IceRpcControlFrameType.GoAway,
-                goAwayFrame.Encode,
-                cancellationToken).ConfigureAwait(false);
-
-            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has
-            // been initiated by the peer.
-            IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-            // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationStreams is
-            // read-only at this point.
-            foreach (IMultiplexedStream stream in _pendingInvocationStreams.Where(stream =>
-                !stream.IsStarted ||
-                (stream.IsBidirectional ?
-                    peerGoAwayFrame.LastBidirectionalStreamId is null ||
-                    stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
-                        peerGoAwayFrame.LastUnidirectionalStreamId is null ||
-                        stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)))
+            try
             {
-                stream.Abort(ConnectionClosedException);
+                await SendControlFrameAsync(
+                    IceRpcControlFrameType.GoAway,
+                    goAwayFrame.Encode,
+                    cancellationToken).ConfigureAwait(false);
+
+                // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown
+                // has been initiated by the remote peer.
+                IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
+                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationStreams
+                // is read-only at this point.
+                foreach (IMultiplexedStream stream in _pendingInvocationStreams.Where(stream =>
+                    !stream.IsStarted ||
+                    (stream.IsBidirectional ?
+                        peerGoAwayFrame.LastBidirectionalStreamId is null ||
+                        stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
+                            peerGoAwayFrame.LastUnidirectionalStreamId is null ||
+                            stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)))
+                {
+                    stream.Abort(ConnectionClosedException);
+                }
+
+                // Wait for network activity on streams (other than control streams) to cease.
+                await _streamsClosed.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-
-            // Wait for dispatches to complete and network activity on streams (other than control streams) to cease.
-            await Task.WhenAll(_dispatchesCompleted.Task, _streamsClosed.Task).WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            // Close the control stream to notify the peer that on our side, all the streams completed.
-            _controlStream!.Output.Complete();
+            finally
+            {
+                // Close the control stream to notify the peer that on our side, all the streams completed and that it
+                // can close the transport connection whenever it likes.
+                // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
+                // abortive closure and from our point of view, it's ok for the remote peer to close the transport
+                // connection. We don't close the transport connection immediately as this would kill the streams in the
+                // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
+                _controlStream!.Output.Complete();
+            }
 
             // Wait for the peer notification that on its side all the streams are completed. It's important to wait for
             // this notification before closing the connection. In particular with Quic where closing the connection
@@ -619,6 +629,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             await _transportConnection.CloseAsync(
                 (ulong)IceRpcConnectionErrorCode.NoError,
                 cancellationToken).ConfigureAwait(false);
+
+            // We wait for the completion of the dispatches that we created.
+            await _dispatchesCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
