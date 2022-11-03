@@ -5,8 +5,9 @@ using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics;
 
-/// <summary>A middleware that publishes dispatch metrics using a <see cref="Meter"/> named "IceRpc.Dispatch".
+/// <summary>A middleware that publishes dispatch metrics using a singleton meter named "IceRpc.Dispatch".
 /// </summary>
+/// <seealso cref="Meter"/>
 public class MetricsMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;

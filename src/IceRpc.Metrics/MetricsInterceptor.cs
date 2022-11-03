@@ -5,8 +5,9 @@ using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics;
 
-/// <summary>An interceptor that publishes invocation metrics using a <see cref="Meter"/> named "IceRpc.Invocation".
+/// <summary>An interceptor that publishes invocation metrics using a singleton meter named "IceRpc.Invocation".
 /// </summary>
+/// <seealso cref="Meter"/>
 public class MetricsInterceptor : IInvoker
 {
     private readonly IInvoker _next;

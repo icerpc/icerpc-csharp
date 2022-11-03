@@ -4,7 +4,7 @@ using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics.Internal;
 
-/// <summary>A helper class used to report invocation <see cref="Metrics"/>.</summary>
+/// <summary>A helper class used to report invocation metrics.</summary>
 internal class InvocationMetrics : IDisposable
 {
     internal static readonly InvocationMetrics Instance = new("IceRpc.Invocation");

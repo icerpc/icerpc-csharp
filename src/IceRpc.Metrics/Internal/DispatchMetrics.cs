@@ -4,7 +4,7 @@ using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics.Internal;
 
-/// <summary>A helper class used to report dispatch <see cref="Metrics"/>.</summary>
+/// <summary>A helper class used to report dispatch metrics.</summary>
 internal class DispatchMetrics : IDisposable
 {
     internal static DispatchMetrics Instance = new("IceRpc.Dispatch");
