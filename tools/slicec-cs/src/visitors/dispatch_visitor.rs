@@ -268,7 +268,7 @@ var {args} = await request.DecodeArgsAsync(
             _ => writeln!(
                 code,
                 "\
-var payloadStream = request.DetachPayload();
+var payloadContinuation = request.DetachPayload();
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                 stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
@@ -470,10 +470,10 @@ await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);
 return new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
-    PayloadStream = {payload_stream}
+    PayloadContinuation = {payload_continuation}
 }};",
                 payload = dispatch_return_payload(operation, encoding),
-                payload_stream = payload_stream(operation, encoding)
+                payload_continuation = payload_continuation(operation, encoding)
             );
         }
     }
@@ -522,7 +522,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     .into()
 }
 
-fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
+fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
     let return_values = operation.return_members();
     match operation.streamed_return_member() {

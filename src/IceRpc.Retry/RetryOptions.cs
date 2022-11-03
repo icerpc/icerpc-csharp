@@ -23,7 +23,7 @@ public sealed record class RetryOptions
     }
 
     /// <summary>Gets or sets the maximum size of the request payload in bytes. Requests with a larger payload or
-    /// a payload stream are not retryable.</summary>
+    /// a payload continuation are not retryable.</summary>
     /// <value>The maximum payload size in bytes. The default value is 1 MB.</value>
     public int MaxPayloadSize
     {

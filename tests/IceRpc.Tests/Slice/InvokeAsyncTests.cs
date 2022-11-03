@@ -31,7 +31,7 @@ public class InvokeAsyncTests
             "",
             SliceEncoding.Slice2,
             payload: requestPayload,
-            payloadStream: null,
+            payloadContinuation: null,
             defaultActivator: null,
             features: null);
 
@@ -42,7 +42,7 @@ public class InvokeAsyncTests
         Assert.That(await responsePayload.Completed, Is.Null);
     }
 
-    /// <summary>Verifies that InvokeAsync completes the request payload and payload stream when an exception is thrown
+    /// <summary>Verifies that InvokeAsync completes the request payload and payload continuation when an exception is thrown
     /// "on the way out".</summary>
     [Test]
     public void InvokeAsync_completes_all_payloads_on_outgoing_exception()
@@ -62,7 +62,7 @@ public class InvokeAsyncTests
                 "",
                 SliceEncoding.Slice2,
                 payload: requestPayload,
-                payloadStream: requestPayloadStream,
+                payloadContinuation: requestPayloadStream,
                 defaultActivator: null,
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
