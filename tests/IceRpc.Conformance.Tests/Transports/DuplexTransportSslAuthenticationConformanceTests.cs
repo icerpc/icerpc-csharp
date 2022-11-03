@@ -9,10 +9,11 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Conformance.Tests;
 
-/// <summary>Conformance tests for the duplex transports SslAuthentication.</summary>
+/// <summary>Conformance tests to ensure the correct use of the SSL authentication options by the duplex transport
+/// implementation. It also checks some basic expected behavior from the SSL implementation.</summary>
 public abstract class DuplexTransportSslAuthenticationConformanceTests
 {
-    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
+    /// <summary>Verifies that the server connection establishment fails with <see cref="AuthenticationException" />
     /// when the client certificate is not trusted.</summary>
     [Test]
     public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
@@ -45,6 +46,8 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
 
+        // The client will typically close the transport connection after receiving AuthenticationException
+
         // TODO the connect call hangs on Linux
         // Assert.That(
         //    async () =>
@@ -55,7 +58,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         //    Throws.TypeOf<TransportException>());
     }
 
-    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
+    /// <summary>Verifies that the server connection establishment fails with <see cref="AuthenticationException" />
     /// when the client certificate is not trusted.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
@@ -106,6 +109,6 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
             Throws.TypeOf<TransportException>());
     }
 
-    /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
+    /// <summary>Creates the service collection used for the multiplexed transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 }

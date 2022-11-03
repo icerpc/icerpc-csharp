@@ -9,11 +9,12 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Conformance.Tests;
 
-/// <summary>Conformance tests for the multiplexed transports SslAuthentication.</summary>
+/// <summary>Conformance tests to ensure the correct use of the SSL authentication options by the multiplexed transport
+/// implementation. It also checks some basic expected behavior from the SSL implementation.</summary>
 public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 {
 
-    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
+    /// <summary>Verifies that the server connection establishment will fails with <see cref="AuthenticationException" />
     /// when the client certificate is not trusted.</summary>
     [Test]
     public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
@@ -89,7 +90,9 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         Assert.That(
             async () =>
             {
-                // The QuicListener doesn't return the connection when the client certificate is rejected.
+                // We accept two behaviors here:
+                // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
+                // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
                 using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
                 (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(cts.Token);
                 await serverConnection.ConnectAsync(default);

@@ -14,6 +14,6 @@ public class SslTransportSslAuthenticationConformanceTests : DuplexTransportSslA
 {
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection()
         .AddDuplexTransportClientServerTest(new Uri("icerpc://127.0.0.1:0/"))
-        .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(new TcpServerTransportOptions()))
+        .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport())
         .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport());
 }
