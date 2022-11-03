@@ -874,7 +874,8 @@ public sealed class ProtocolConnectionTests
 
         Dictionary<string, string> DecodeField()
         {
-            var decoder = new SliceDecoder(field, protocol.SliceEncoding);
+            SliceEncoding encoding = protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2;
+            var decoder = new SliceDecoder(field, encoding);
             return decoder.DecodeDictionary(
                 count => new Dictionary<string, string>(count),
                 (ref SliceDecoder decoder) => decoder.DecodeString(),

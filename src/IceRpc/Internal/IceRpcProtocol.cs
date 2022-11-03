@@ -1,7 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
@@ -14,14 +18,68 @@ internal sealed class IceRpcProtocol : Protocol
     internal IMultiplexedStreamErrorCodeConverter MultiplexedStreamErrorCodeConverter { get; }
         = new ErrorCodeConverter();
 
+    internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
+        IncomingResponse response,
+        OutgoingRequest request,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(response.Protocol == this);
+
+        if (response.ResultType != ResultType.Failure)
+        {
+            throw new ArgumentException(
+                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
+                nameof(response));
+        }
+
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+
+        ReadResult readResult = await response.Payload.ReadSegmentAsync(
+            SliceEncoding.Slice2,
+            feature.MaxSegmentSize,
+            cancellationToken).ConfigureAwait(false);
+
+        // We never call CancelPendingRead on a response.Payload; an interceptor can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
+        }
+
+        DispatchException exception;
+        try
+        {
+            exception = Decode(readResult.Buffer);
+        }
+        catch
+        {
+            response.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+            throw;
+        }
+
+        response.Payload.AdvanceTo(readResult.Buffer.End);
+        return exception;
+
+        DispatchException Decode(ReadOnlySequence<byte> buffer)
+        {
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            string message = decoder.DecodeString();
+            DispatchErrorCode errorCode = decoder.DecodeDispatchErrorCode();
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return new DispatchException(message, errorCode)
+            {
+                ConvertToUnhandled = true,
+                Origin = request
+            };
+        }
+    }
+
     private IceRpcProtocol()
         : base(
             name: "icerpc",
             defaultPort: 4062,
             hasFields: true,
             hasFragment: false,
-            byteValue: 2,
-            sliceEncoding: SliceEncoding.Slice2)
+            byteValue: 2)
     {
     }
 

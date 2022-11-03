@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace IceRpc;
 
 /// <summary>Protocol identifies a RPC protocol supported by IceRPC.</summary>
-public class Protocol
+public abstract class Protocol
 {
     /// <summary>Gets the <c>ice</c> protocol.</summary>
     public static Protocol Ice => IceProtocol.Instance;
@@ -33,10 +33,6 @@ public class Protocol
 
     /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
     internal byte ByteValue { get; }
-
-    /// <summary>Gets the Slice encoding that this protocol uses for its headers.</summary>
-    /// <returns>The Slice encoding.</returns>
-    internal SliceEncoding SliceEncoding { get; }
 
     /// <summary>Parses a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
@@ -85,20 +81,28 @@ public class Protocol
         // by default, any dictionary is ok
     }
 
+    /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The decoded <see cref="DispatchException" />.</returns>
+    internal abstract ValueTask<DispatchException> DecodeDispatchExceptionAsync(
+        IncomingResponse response,
+        OutgoingRequest request,
+        CancellationToken cancellationToken);
+
     /// <summary>Constructs a protocol.</summary>
     private protected Protocol(
         string name,
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
-        byte byteValue,
-        SliceEncoding sliceEncoding)
+        byte byteValue)
     {
         Name = name;
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
         ByteValue = byteValue;
-        SliceEncoding = sliceEncoding;
     }
 }

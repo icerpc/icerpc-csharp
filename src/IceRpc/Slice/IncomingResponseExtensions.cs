@@ -1,12 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Threading;
 
 namespace IceRpc.Slice;
 
@@ -14,50 +11,6 @@ namespace IceRpc.Slice;
 /// Slice encoding.</summary>
 public static class IncomingResponseExtensions
 {
-    /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
-    /// <param name="response">The incoming response.</param>
-    /// <param name="request">The outgoing request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The decoded <see cref="DispatchException" />>.</returns>
-    public static async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
-        this IncomingResponse response,
-        OutgoingRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        if (response.ResultType != ResultType.Failure)
-        {
-            throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
-                nameof(response));
-        }
-
-        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
-        SliceEncoding encoding = response.Protocol.SliceEncoding;
-
-        ReadResult readResult = await response.Payload.ReadSegmentAsync(
-            encoding,
-            feature.MaxSegmentSize,
-            cancellationToken).ConfigureAwait(false);
-
-        // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
-        if (readResult.IsCanceled)
-        {
-            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
-        }
-
-        DispatchException exception = Decode(readResult.Buffer);
-        response.Payload.AdvanceTo(readResult.Buffer.End);
-        return exception;
-
-        DispatchException Decode(ReadOnlySequence<byte> buffer)
-        {
-            var decoder = new SliceDecoder(buffer, encoding);
-            exception = decoder.DecodeDispatchException(request);
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return exception;
-        }
-    }
-
     /// <summary>Decodes a response payload.</summary>
     /// <typeparam name="T">The type of the return value.</typeparam>
     /// <param name="response">The incoming response.</param>
@@ -95,7 +48,8 @@ public static class IncomingResponseExtensions
         {
             if (response.ResultType == ResultType.Failure)
             {
-                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken).ConfigureAwait(false);
+                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
             }
             else
             {

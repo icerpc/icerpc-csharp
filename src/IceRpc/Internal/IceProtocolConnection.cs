@@ -7,6 +7,7 @@ using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
@@ -1170,13 +1171,28 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         SliceEncodeOptions.Default;
 
                     var pipe = new Pipe(encodeOptions.PipeOptions);
-
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
-                    encoder.EncodeDispatchException(
-                        dispatchException,
-                        request.Path,
-                        request.Fragment,
-                        request.Operation);
+
+                    DispatchErrorCode errorCode = dispatchException.ErrorCode;
+                    switch (errorCode)
+                    {
+                        case DispatchErrorCode.ServiceNotFound:
+                        case DispatchErrorCode.OperationNotFound:
+                            encoder.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                                ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+
+                            new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
+                                .Encode(ref encoder);
+                            break;
+
+                        default:
+                            encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+                            // We encode the error code in the message.
+                            encoder.EncodeString(
+                                $"[{((ulong)errorCode).ToString(CultureInfo.InvariantCulture)}] {dispatchException.Message}");
+                            break;
+                    }
+
                     pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                     return pipe.Reader;
                 }

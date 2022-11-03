@@ -1,7 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
+using System.Buffers;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
@@ -58,14 +63,121 @@ internal sealed class IceProtocol : Protocol
         }
     }
 
+    internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
+        IncomingResponse response,
+        OutgoingRequest request,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(response.Protocol == this);
+
+        if (response.ResultType != ResultType.Failure)
+        {
+            throw new ArgumentException(
+                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
+                nameof(response));
+        }
+
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+
+        ReadResult readResult = await response.Payload.ReadSegmentAsync(
+            SliceEncoding.Slice1,
+            feature.MaxSegmentSize,
+            cancellationToken).ConfigureAwait(false);
+
+        // We never call CancelPendingRead on a response.Payload; an interceptor can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
+        }
+
+        DispatchException exception;
+        try
+        {
+            exception = Decode(readResult.Buffer);
+        }
+        catch
+        {
+            response.Payload.AdvanceTo(readResult.Buffer.Start);
+            throw;
+        }
+
+        response.Payload.AdvanceTo(readResult.Buffer.End);
+        return exception;
+
+        DispatchException Decode(ReadOnlySequence<byte> buffer)
+        {
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+            ReplyStatus replyStatus = decoder.DecodeReplyStatus();
+
+            if (replyStatus <= ReplyStatus.UserException)
+            {
+                throw new InvalidDataException($"invalid system exception with {replyStatus} ReplyStatus");
+            }
+
+            string? message = null;
+            DispatchErrorCode errorCode;
+
+            switch (replyStatus)
+            {
+                case ReplyStatus.FacetNotExistException:
+                case ReplyStatus.ObjectNotExistException:
+                case ReplyStatus.OperationNotExistException:
+
+                    var requestFailed = new RequestFailedExceptionData(ref decoder);
+
+                    errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
+                        DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
+
+                    if (requestFailed.Operation.Length > 0)
+                    {
+                        string target = requestFailed.Fragment.Length > 0 ?
+                            $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+
+                        message = $"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                    }
+                    // else message remains null
+                    break;
+
+                default:
+                    message = decoder.DecodeString();
+                    errorCode = DispatchErrorCode.UnhandledException;
+
+                    // Attempt to parse the DispatchErrorCode from the message:
+                    if (message.StartsWith('[') &&
+                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+                    {
+                        try
+                        {
+                            errorCode = (DispatchErrorCode)ulong.Parse(
+                                message[1..pos],
+                                CultureInfo.InvariantCulture);
+
+                            message = message[(pos + 1)..].TrimStart();
+                        }
+                        catch
+                        {
+                            // ignored, keep default errorCode
+                        }
+                    }
+                    break;
+            }
+
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return new DispatchException(message, errorCode)
+            {
+                ConvertToUnhandled = true,
+                Origin = request
+            };
+        }
+    }
+
     private IceProtocol()
         : base(
             name: "ice",
             defaultPort: 4061,
             hasFields: false,
             hasFragment: true,
-            byteValue: 1,
-            sliceEncoding: SliceEncoding.Slice1)
+            byteValue: 1)
     {
     }
 }

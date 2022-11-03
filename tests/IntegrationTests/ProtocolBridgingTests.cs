@@ -182,8 +182,7 @@ public sealed class ProtocolBridgingTests
 
             // When ResultType == Failure and the protocols are different, we need to transcode the dispatch exception.
             // Fortunately, we can simply decode it and throw it.
-            if (request.Protocol != incomingResponse.Protocol &&
-                incomingResponse.ResultType == ResultType.Failure)
+            if (request.Protocol != incomingResponse.Protocol && incomingResponse.ResultType == ResultType.Failure)
             {
                 DispatchException dispatchException = await incomingResponse.DecodeDispatchExceptionAsync(
                     outgoingRequest,
