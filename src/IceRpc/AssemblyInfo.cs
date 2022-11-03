@@ -14,4 +14,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Deflate.Tests")] // For GetPayloadWriter
 [assembly: InternalsVisibleTo("IceRpc.Retry.Tests")] // For EmptyPipeReader and MemoryBufferWriter
 [assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")] // For MemoryBufferWriter
-[assembly: InternalsVisibleTo("IceRpc.Quic.Tests")] // For IceRpcProtocol MultiplexedStreamErrorCodeConverter
+[assembly: InternalsVisibleTo("IceRpc.Quic.Tests")] // For IceRpcProtocol's PayloadErrorCodeConverter
