@@ -13,7 +13,7 @@ public class StreamTests
     /// <summary>Verifies that we correctly encode an async enumerable of fixed size elements.</summary>
     /// <param name="size">The size of the async enumerable.</param>
     /// <param name="yieldThreshold">The yield threshold ensures that we test both synchronous and asynchronous
-    /// iteration code paths in the payload stream pipe reader.</param>
+    /// iteration code paths in the payload continuation pipe reader.</param>
     [TestCase(0, 0)]
     [TestCase(100, 7)]
     [TestCase(64 * 1024, 0)]
@@ -71,11 +71,11 @@ public class StreamTests
         }
     }
 
-    /// <summary>Verifies that we can create a payload stream over an async enumerable of variable size elements.
+    /// <summary>Verifies that we can create a payload continuation over an async enumerable of variable size elements.
     /// </summary>
     /// <param name="size">The size of the async enumerable.</param>
     /// <param name="yieldThreshold">The yield threshold ensures that we test both synchronous and asynchronous
-    /// iteration code paths in the payload stream pipe reader.</param>
+    /// iteration code paths in the payload continuation pipe reader.</param>
     [TestCase(0, 0)]
     [TestCase(100, 7)]
     [TestCase(64 * 1024, 0)]

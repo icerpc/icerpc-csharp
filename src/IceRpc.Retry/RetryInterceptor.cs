@@ -32,9 +32,9 @@ public class RetryInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.PayloadStream is not null)
+        if (request.PayloadContinuation is not null)
         {
-            // This interceptor does not support retrying requests with a payload stream.
+            // This interceptor does not support retrying requests with a payload continuation.
             return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
         else

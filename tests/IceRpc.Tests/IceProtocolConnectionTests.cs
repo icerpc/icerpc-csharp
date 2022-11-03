@@ -100,7 +100,7 @@ public sealed class IceProtocolConnectionTests
         Assert.That(retryPolicy, Is.EqualTo(expectedRetryPolicy));
     }
 
-    /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support
+    /// <summary>Ensures that the response payload continuation is completed even if the Ice protocol doesn't support
     /// it.</summary>
     [Test]
     public async Task PayloadStream_completed_on_response()
@@ -110,7 +110,7 @@ public sealed class IceProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
-                    PayloadStream = payloadStreamDecorator
+                    PayloadContinuation = payloadStreamDecorator
                 }));
 
         await using var provider = new ServiceCollection()
