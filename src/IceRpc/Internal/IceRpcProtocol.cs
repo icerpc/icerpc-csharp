@@ -45,7 +45,17 @@ internal sealed class IceRpcProtocol : Protocol
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
-        DispatchException exception = Decode(readResult.Buffer);
+        DispatchException exception;
+        try
+        {
+            exception = Decode(readResult.Buffer);
+        }
+        catch
+        {
+            response.Payload.AdvanceTo(readResult.Buffer.Start);
+            throw;
+        }
+
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return exception;
 
