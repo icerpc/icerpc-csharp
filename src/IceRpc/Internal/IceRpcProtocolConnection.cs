@@ -538,8 +538,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // When this peer is the server endpoint, the first accepted stream ID is 0. When this peer is the
                 // client endpoint, the first accepted stream ID is 1.
                 goAwayFrame = new(
-                    _lastRemoteBidirectionalStreamId is ulong bidirId ? bidirId + 4 : (IsServer ? 0ul : 1ul),
-                    _lastRemoteUnidirectionalStreamId is ulong unidirId ? unidirId + 4 : _remoteControlStream!.Id + 4);
+                    _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
+                    (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
             }
 
             try
