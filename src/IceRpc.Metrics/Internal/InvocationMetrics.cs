@@ -4,7 +4,7 @@ using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics.Internal;
 
-/// <summary>A helper class used to report invocation related <see cref="Metrics"/>.</summary>
+/// <summary>A helper class used to report invocation <see cref="Metrics"/>.</summary>
 internal class InvocationMetrics : IDisposable
 {
     internal static readonly InvocationMetrics Instance = new("IceRpc.Invocation");
@@ -19,7 +19,7 @@ internal class InvocationMetrics : IDisposable
 
     internal InvocationMetrics(string name)
     {
-        _meter = new Meter(name, typeof(InvocationMetrics).Assembly.GetName().Version?.ToString());
+        _meter = new Meter(name);
         _canceledRequests = _meter.CreateCounter<long>("canceled-requests", "Requests", "Canceled Requests");
         _currentRequests = _meter.CreateUpDownCounter<long>("current-requests", "Requests", "Current Requests");
         _failedRequests = _meter.CreateCounter<long>("failed-requests", "Requests", "Failed Requests");

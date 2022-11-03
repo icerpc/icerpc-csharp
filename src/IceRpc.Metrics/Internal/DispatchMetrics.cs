@@ -4,12 +4,12 @@ using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics.Internal;
 
-/// <summary>A helper class used to report dispatch related <see cref="Metrics"/>.</summary>
+/// <summary>A helper class used to report dispatch <see cref="Metrics"/>.</summary>
 internal class DispatchMetrics : IDisposable
 {
     internal static DispatchMetrics Instance = new("IceRpc.Dispatch");
 
-    private readonly Meter _meter = new("IceRpc.Dispatch");
+    private readonly Meter _meter;
     private readonly Counter<long> _canceledRequests;
     private readonly UpDownCounter<long> _currentRequests;
     private readonly Counter<long> _failedRequests;
@@ -19,7 +19,7 @@ internal class DispatchMetrics : IDisposable
 
     internal DispatchMetrics(string name)
     {
-        _meter = new Meter(name, typeof(DispatchMetrics).Assembly.GetName().Version?.ToString());
+        _meter = new Meter(name);
         _canceledRequests = _meter.CreateCounter<long>("canceled-requests", "Requests", "Canceled Requests");
         _currentRequests = _meter.CreateUpDownCounter<long>("current-requests", "Requests", "Current Requests");
         _failedRequests = _meter.CreateCounter<long>("failed-requests", "Requests", "Failed Requests");

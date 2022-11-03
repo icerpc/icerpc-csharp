@@ -20,7 +20,9 @@ public class MetricsMiddleware : IDispatcher
     }
 
     /// <inheritdoc/>
-    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
+    public async ValueTask<OutgoingResponse> DispatchAsync(
+        IncomingRequest request,
+        CancellationToken cancellationToken)
     {
         _dispatchMetrics.RequestStart();
         try
