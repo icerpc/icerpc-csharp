@@ -5,39 +5,36 @@ using System.Diagnostics.Metrics;
 namespace IceRpc.Metrics.Internal;
 
 /// <summary>A helper class used to report dispatch related <see cref="Metrics"/>.</summary>
-internal static class DispatchMetrics
+internal class DispatchMetrics : IDisposable
 {
-    private static readonly Meter _meter = new("IceRpc.Dispatch");
+    internal static DispatchMetrics Instance = new("IceRpc.Dispatch");
 
-    private static readonly Counter<long> _canceledRequests = _meter.CreateCounter<long>(
-        "canceled-requests",
-        "Requests",
-        "Canceled Requests");
+    private readonly Meter _meter = new("IceRpc.Dispatch");
+    private readonly Counter<long> _canceledRequests;
+    private readonly UpDownCounter<long> _currentRequests;
+    private readonly Counter<long> _failedRequests;
+    private readonly Counter<long> _totalRequests;
 
-    private static readonly UpDownCounter<long> _currentRequests = _meter.CreateUpDownCounter<long>(
-        "current-requests",
-        "Requests",
-        "Current Requests");
+    public void Dispose() => _meter.Dispose();
 
-    private static readonly Counter<long> _failedRequests = _meter.CreateCounter<long>(
-        "failed-requests",
-        "Requests",
-        "Failed Requests");
+    internal DispatchMetrics(string name)
+    {
+        _meter = new Meter(name);
+        _canceledRequests = _meter.CreateCounter<long>("canceled-requests", "Requests", "Canceled Requests");
+        _currentRequests = _meter.CreateUpDownCounter<long>("current-requests", "Requests", "Current Requests");
+        _failedRequests = _meter.CreateCounter<long>("failed-requests", "Requests", "Failed Requests");
+        _totalRequests = _meter.CreateCounter<long>("total-requests", "Requests", "Total Requests");
+    }
 
-    private static readonly Counter<long> _totalRequests = _meter.CreateCounter<long>(
-        "total-requests",
-        "Requests",
-        "Total Requests");
+    internal void RequestCancel() => _canceledRequests.Add(1);
 
-    internal static void RequestCancel() => _canceledRequests.Add(1);
+    internal void RequestFailure() => _failedRequests.Add(1);
 
-    internal static void RequestFailure() => _failedRequests.Add(1);
-
-    internal static void RequestStart()
+    internal void RequestStart()
     {
         _currentRequests.Add(1);
         _totalRequests.Add(1);
     }
 
-    internal static void RequestStop() => _currentRequests.Add(-1);
+    internal void RequestStop() => _currentRequests.Add(-1);
 }

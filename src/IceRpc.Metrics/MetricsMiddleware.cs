@@ -10,32 +10,42 @@ namespace IceRpc.Metrics;
 public class MetricsMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
+    private readonly DispatchMetrics _dispatchMetrics;
 
     /// <summary>Constructs a metrics middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    public MetricsMiddleware(IDispatcher next) => _next = next;
+    public MetricsMiddleware(IDispatcher next)
+        : this(next, DispatchMetrics.Instance)
+    {
+    }
 
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        DispatchMetrics.RequestStart();
+        _dispatchMetrics.RequestStart();
         try
         {
             return await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            DispatchMetrics.RequestCancel();
+            _dispatchMetrics.RequestCancel();
             throw;
         }
         catch
         {
-            DispatchMetrics.RequestFailure();
+            _dispatchMetrics.RequestFailure();
             throw;
         }
         finally
         {
-            DispatchMetrics.RequestStop();
+            _dispatchMetrics.RequestStop();
         }
+    }
+
+    internal MetricsMiddleware(IDispatcher next, DispatchMetrics dispatchMetrics)
+    {
+        _next = next;
+        _dispatchMetrics = dispatchMetrics;
     }
 }

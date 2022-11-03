@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Metrics.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 
@@ -11,16 +12,17 @@ public sealed class MetricsMiddlewareTests
     [Test]
     public async Task Canceled_dispatch_publishes_total_current_and_canceled_measurements()
     {
+        const string meterName = "Test.Canceled.IceRpc.Dispatch";
         var canceled = new List<long>();
         var current = new List<long>();
         var total = new List<long>();
         using var meterListener = new TestMeterListener<long>(
-            "IceRpc.Dispatch",
+            meterName,
             (instrument, measurement, tags, state) =>
             {
                 switch (instrument.Name)
                 {
-                    case "failed-requests":
+                    case "canceled-requests":
                     {
                         canceled.Add(measurement);
                         break;
@@ -38,13 +40,14 @@ public sealed class MetricsMiddlewareTests
                 }
             });
 
-        var invoker = new InlineInvoker((request, cancellationToken) => throw new OperationCanceledException());
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
-        var sut = new MetricsInterceptor(invoker);
+        using var dispatchMetrics = new DispatchMetrics(meterName);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new OperationCanceledException());
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         try
         {
-            await sut.InvokeAsync(request, default);
+            await sut.DispatchAsync(request, default);
         }
         catch (OperationCanceledException)
         {
@@ -58,11 +61,12 @@ public sealed class MetricsMiddlewareTests
     [Test]
     public async Task Failed_dispatch_publishes_total_current_and_failed_measurements()
     {
+        const string meterName = "Test.Failed.IceRpc.Dispatch";
         var current = new List<long>();
         var failed = new List<long>();
         var total = new List<long>();
         using var meterListener = new TestMeterListener<long>(
-            "IceRpc.Dispatch",
+            meterName,
             (instrument, measurement, tags, state) =>
             {
                 switch (instrument.Name)
@@ -85,13 +89,14 @@ public sealed class MetricsMiddlewareTests
                 }
             });
 
-        var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
-        var sut = new MetricsInterceptor(invoker);
+        using var dispatchMetrics = new DispatchMetrics(meterName);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         try
         {
-            await sut.InvokeAsync(request, default);
+            await sut.DispatchAsync(request, default);
         }
         catch (InvalidOperationException)
         {
@@ -105,10 +110,11 @@ public sealed class MetricsMiddlewareTests
     [Test]
     public async Task Successful_dispatch_publishes_total_and_current_measurements()
     {
+        const string meterName = "Test.Successful.IceRpc.Dispatch";
         var current = new List<long>();
         var total = new List<long>();
         using var meterListener = new TestMeterListener<long>(
-            "IceRpc.Dispatch",
+            meterName,
             (instrument, measurement, tags, state) =>
             {
                 switch (instrument.Name)
@@ -126,18 +132,12 @@ public sealed class MetricsMiddlewareTests
                 }
             });
 
-        var invoker = new InlineInvoker(
-            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
-        var sut = new MetricsInterceptor(invoker);
+        using var dispatchMetrics = new DispatchMetrics(meterName);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
-        try
-        {
-            await sut.InvokeAsync(request, default);
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        await sut.DispatchAsync(request, default);
 
         Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
         Assert.That(total, Is.EqualTo(new long[] { 1 }));

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Metrics.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 
@@ -11,16 +12,18 @@ public sealed class MetricsInterceptorTests
     [Test]
     public async Task Canceled_invocation_publishes_total_current_and_canceled_measurements()
     {
+        const string meterName = "Test.Canceled.IceRpc.Invocation";
+
         var canceled = new List<long>();
         var current = new List<long>();
         var total = new List<long>();
         using var meterListener = new TestMeterListener<long>(
-            "IceRpc.Invocation",
+            meterName,
             (instrument, measurement, tags, state) =>
             {
                 switch (instrument.Name)
                 {
-                    case "failed-requests":
+                    case "canceled-requests":
                     {
                         canceled.Add(measurement);
                         break;
@@ -38,9 +41,10 @@ public sealed class MetricsInterceptorTests
                 }
             });
 
+        using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker((request, cancellationToken) => throw new OperationCanceledException());
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
-        var sut = new MetricsInterceptor(invoker);
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         try
         {
@@ -58,11 +62,12 @@ public sealed class MetricsInterceptorTests
     [Test]
     public async Task Failed_invocation_publishes_total_current_and_failed_measurements()
     {
+        const string meterName = "Test.Failed.IceRpc.Invocation";
         var current = new List<long>();
         var failed = new List<long>();
         var total = new List<long>();
         using var meterListener = new TestMeterListener<long>(
-            "IceRpc.Invocation",
+            meterName,
             (instrument, measurement, tags, state) =>
             {
                 switch (instrument.Name)
@@ -85,9 +90,10 @@ public sealed class MetricsInterceptorTests
                 }
             });
 
+        using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
-        var sut = new MetricsInterceptor(invoker);
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         try
         {
@@ -105,10 +111,11 @@ public sealed class MetricsInterceptorTests
     [Test]
     public async Task Successful_invocation_publishes_total_and_current_measurements()
     {
+        const string meterName = "Test.Successful.IceRpc.Invocation";
         var current = new List<long>();
         var total = new List<long>();
         using var meterListener = new TestMeterListener<long>(
-            "IceRpc.Invocation",
+            meterName,
             (instrument, measurement, tags, state) =>
             {
                 switch (instrument.Name)
@@ -126,18 +133,13 @@ public sealed class MetricsInterceptorTests
                 }
             });
 
+        using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker(
             (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
-        var sut = new MetricsInterceptor(invoker);
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
-        try
-        {
-            await sut.InvokeAsync(request, default);
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        await sut.InvokeAsync(request, default);
 
         Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
         Assert.That(total, Is.EqualTo(new long[] { 1 }));
