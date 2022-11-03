@@ -19,7 +19,7 @@ internal class DispatchMetrics : IDisposable
 
     internal DispatchMetrics(string name)
     {
-        _meter = new Meter(name);
+        _meter = new Meter(name, typeof(DispatchMetrics).Assembly.GetName().Version?.ToString());
         _canceledRequests = _meter.CreateCounter<long>("canceled-requests", "Requests", "Canceled Requests");
         _currentRequests = _meter.CreateUpDownCounter<long>("current-requests", "Requests", "Current Requests");
         _failedRequests = _meter.CreateCounter<long>("failed-requests", "Requests", "Failed Requests");

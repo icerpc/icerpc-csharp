@@ -19,7 +19,7 @@ internal class InvocationMetrics : IDisposable
 
     internal InvocationMetrics(string name)
     {
-        _meter = new Meter(name);
+        _meter = new Meter(name, typeof(InvocationMetrics).Assembly.GetName().Version?.ToString());
         _canceledRequests = _meter.CreateCounter<long>("canceled-requests", "Requests", "Canceled Requests");
         _currentRequests = _meter.CreateUpDownCounter<long>("current-requests", "Requests", "Current Requests");
         _failedRequests = _meter.CreateCounter<long>("failed-requests", "Requests", "Failed Requests");
