@@ -568,13 +568,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     goAwayFrame.Encode,
                     cancellationToken).ConfigureAwait(false);
 
-                // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has
-                // been initiated by the remote peer.
-                IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken).ConfigureAwait(false);
+                // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown
+                // has been initiated by the remote peer.
+                IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
 
                 // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationStreams is
-                // read-only at this point.
+                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationStreams
+                // is read-only at this point.
                 foreach (IMultiplexedStream stream in _pendingInvocationStreams.Where(stream =>
                     !stream.IsStarted ||
                     (stream.IsBidirectional ?
@@ -591,10 +592,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             finally
             {
-                // Close the control stream to notify the peer that on our side, all the streams completed.
+                // Close the control stream to notify the peer that on our side, all the streams completed and that it
+                // can close the transport connection whenever it likes.
                 // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
                 // abortive closure and from our point of view, it's ok for the remote peer to close the transport
-                // connection.
+                // connection. We don't close the transport connection immediately as this would kill the streams in the
+                // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
                 _controlStream!.Output.Complete();
             }
 
