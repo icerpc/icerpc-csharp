@@ -534,7 +534,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     _dispatchesCompleted.TrySetResult();
                 }
-                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId);
+
+                // When this peer is the server endpoint, the first accepted stream ID is 0. When this peer is the
+                // client endpoint, the first accepted stream ID is 1.
+                goAwayFrame = new(
+                    _lastRemoteBidirectionalStreamId is ulong bidirId ? bidirId + 4 : (IsServer ? 0ul : 1ul),
+                    _lastRemoteUnidirectionalStreamId is ulong unidirId ? unidirId + 4 : _remoteControlStream!.Id + 4);
             }
 
             try
@@ -554,11 +559,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // is read-only at this point.
                 foreach (IMultiplexedStream stream in _pendingInvocationStreams.Where(stream =>
                     !stream.IsStarted ||
-                    (stream.IsBidirectional ?
-                        peerGoAwayFrame.LastBidirectionalStreamId is null ||
-                        stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
-                            peerGoAwayFrame.LastUnidirectionalStreamId is null ||
-                            stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)))
+                    stream.Id >= (stream.IsBidirectional ?
+                        peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId)))
                 {
                     stream.Abort(ConnectionClosedException);
                 }
