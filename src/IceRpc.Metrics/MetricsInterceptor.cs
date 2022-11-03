@@ -1,55 +1,52 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Metrics.Internal;
+using System.Diagnostics.Metrics;
 
 namespace IceRpc.Metrics;
 
-/// <summary>An interceptor that publishes invocation metrics.</summary>
+/// <summary>An interceptor that publishes invocation metrics using a singleton meter named "IceRpc.Invocation".
+/// </summary>
+/// <seealso cref="Meter"/>
 public class MetricsInterceptor : IInvoker
 {
-    private readonly InvocationEventSource _eventSource;
     private readonly IInvoker _next;
+    private readonly InvocationMetrics _invocationMetrics;
 
     /// <summary>Constructs a metrics interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     public MetricsInterceptor(IInvoker next)
-        : this(next, InvocationEventSource.Log)
+        : this(next, InvocationMetrics.Instance)
     {
     }
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        long startTime = _eventSource.RequestStart(request);
-        var resultType = ResultType.Failure;
+        _invocationMetrics.RequestStart();
         try
         {
-            IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-            resultType = response.ResultType;
-            return response;
+            return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            _eventSource.RequestCancel(request);
+            _invocationMetrics.RequestCancel();
             throw;
         }
-        catch (Exception ex)
+        catch
         {
-            _eventSource.RequestFailure(request, ex);
+            _invocationMetrics.RequestFailure();
             throw;
         }
         finally
         {
-            _eventSource.RequestStop(request, resultType, startTime);
+            _invocationMetrics.RequestStop();
         }
     }
 
-    /// <summary>Constructs a metrics interceptor.</summary>
-    /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="eventSource">The invocation event source used to publish the metrics events.</param>
-    internal MetricsInterceptor(IInvoker next, InvocationEventSource eventSource)
+    internal MetricsInterceptor(IInvoker next, InvocationMetrics invocationMetrics)
     {
         _next = next;
-        _eventSource = eventSource;
+        _invocationMetrics = invocationMetrics;
     }
 }

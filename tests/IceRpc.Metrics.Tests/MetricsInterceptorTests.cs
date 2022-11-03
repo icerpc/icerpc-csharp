@@ -9,21 +9,42 @@ namespace IceRpc.Metrics.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class MetricsInterceptorTests
 {
-    /// <summary>Verifies that a canceled invocation published the expected events (request started, request canceled,
-    /// and request stopped), using the provided invocation event source.</summary>
     [Test]
-    public async Task Canceled_invocation_publishes_start_cancel_and_stop_events()
+    public async Task Canceled_invocation_publishes_total_current_and_canceled_measurements()
     {
-        const string name = "Test.Canceled.Invocation.EventSource";
+        const string meterName = "Test.Canceled.IceRpc.Invocation";
+
+        var canceled = new List<long>();
+        var current = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "canceled-requests":
+                    {
+                        canceled.Add(measurement);
+                        break;
+                    }
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker((request, cancellationToken) => throw new OperationCanceledException());
-        using var eventListener = new TestEventListener(
-            name,
-            ("total-requests", "1"),
-            ("canceled-requests", "1"),
-            ("current-requests", "0"));
-        using var eventSource = new InvocationEventSource(name);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" });
-        var sut = new MetricsInterceptor(invoker, eventSource);
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         try
         {
@@ -33,25 +54,46 @@ public sealed class MetricsInterceptorTests
         {
         }
 
-        await eventListener.WaitForCounterEventsAsync();
-        Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
+        Assert.That(canceled, Is.EqualTo(new long[] { 1 }));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1}));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 
-    /// <summary>Verifies that a failed invocation published the expected events (request started, request failed,
-    /// and request stopped), using the provided invocation event source.</summary>
     [Test]
-    public async Task Failed_invocation_publishes_start_fail_and_stop_events()
+    public async Task Failed_invocation_publishes_total_current_and_failed_measurements()
     {
-        const string name = "Test.Failed.Invocation.EventSource";
+        const string meterName = "Test.Failed.IceRpc.Invocation";
+        var current = new List<long>();
+        var failed = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "failed-requests":
+                    {
+                        failed.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidOperationException());
-        using var eventListener = new TestEventListener(
-            name,
-            ("total-requests", "1"),
-            ("failed-requests", "1"),
-            ("current-requests", "0"));
-        using var eventSource = new InvocationEventSource(name);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
-        var sut = new MetricsInterceptor(invoker, eventSource);
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         try
         {
@@ -61,29 +103,45 @@ public sealed class MetricsInterceptorTests
         {
         }
 
-        await eventListener.WaitForCounterEventsAsync();
-        Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
+        Assert.That(failed, Is.EqualTo(new long[] { 1 }));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 
-    /// <summary>Verifies that a successful invocation published the expected events (request started, and request
-    /// stopped), using the provided invocation event source.</summary>
     [Test]
-    public async Task Successful_invocation_publishes_start_and_stop_events()
+    public async Task Successful_invocation_publishes_total_and_current_measurements()
     {
-        const string name = "Test.Successful.Invocation.EventSource";
+        const string meterName = "Test.Successful.IceRpc.Invocation";
+        var current = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker(
             (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
-        using var eventListener = new TestEventListener(
-            name,
-            ("total-requests", "1"),
-            ("current-requests", "0"));
-        using var eventSource = new InvocationEventSource(name);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
-        var sut = new MetricsInterceptor(invoker, eventSource);
+        var sut = new MetricsInterceptor(invoker, invocationMetrics);
 
         await sut.InvokeAsync(request, default);
 
-        await eventListener.WaitForCounterEventsAsync();
-        Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 }

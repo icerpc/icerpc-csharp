@@ -6,23 +6,44 @@ using NUnit.Framework;
 
 namespace IceRpc.Metrics.Tests;
 
+[Parallelizable(ParallelScope.All)]
 public sealed class MetricsMiddlewareTests
 {
-    /// <summary>Verifies that a canceled dispatch published the expected events (request started, request canceled,
-    /// and request stopped), using the provided dispatch event source.</summary>
     [Test]
-    public async Task Canceled_dispatch_publishes_start_cancel_and_stop_events()
+    public async Task Canceled_dispatch_publishes_total_current_and_canceled_measurements()
     {
-        const string name = "Test.Canceled.Dispatch.EventSource";
+        const string meterName = "Test.Canceled.IceRpc.Dispatch";
+        var canceled = new List<long>();
+        var current = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "canceled-requests":
+                    {
+                        canceled.Add(measurement);
+                        break;
+                    }
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var dispatchMetrics = new DispatchMetrics(meterName);
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new OperationCanceledException());
-        using var eventListener = new TestEventListener(
-            name,
-            ("total-requests", "1"),
-            ("canceled-requests", "1"),
-            ("current-requests", "0"));
-        using var eventSource = new DispatchEventSource(name);
         using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
-        var sut = new MetricsMiddleware(dispatcher, eventSource);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         try
         {
@@ -32,26 +53,46 @@ public sealed class MetricsMiddlewareTests
         {
         }
 
-        await eventListener.WaitForCounterEventsAsync();
-        Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
+        Assert.That(canceled, Is.EqualTo(new long[] { 1 }));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1}));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 
-    /// <summary>Verifies that a failed dispatch published the expected events (request started, request failed,
-    /// and request stopped), using the provided dispatch event source.</summary>
     [Test]
-    public async Task Failed_dispatch_publishes_start_fail_and_stop_events()
+    public async Task Failed_dispatch_publishes_total_current_and_failed_measurements()
     {
-        // Arrange
-        const string name = "Test.Failed.Dispatch.EventSource";
+        const string meterName = "Test.Failed.IceRpc.Dispatch";
+        var current = new List<long>();
+        var failed = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "failed-requests":
+                    {
+                        failed.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var dispatchMetrics = new DispatchMetrics(meterName);
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
-        using var eventListener = new TestEventListener(
-            name,
-            ("total-requests", "1"),
-            ("failed-requests", "1"),
-            ("current-requests", "0"));
-        using var eventSource = new DispatchEventSource(name);
         using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
-        var sut = new MetricsMiddleware(dispatcher, eventSource);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         try
         {
@@ -61,28 +102,44 @@ public sealed class MetricsMiddlewareTests
         {
         }
 
-        await eventListener.WaitForCounterEventsAsync();
-        Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
+        Assert.That(failed, Is.EqualTo(new long[] { 1 }));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 
-    /// <summary>Verifies that a successful dispatch published the expected events (request started, and request
-    /// stopped), using the provided dispatch event source.</summary>
     [Test]
-    public async Task Successful_dispatch_publishes_start_and_stop_events()
+    public async Task Successful_dispatch_publishes_total_and_current_measurements()
     {
-        const string name = "Test.Successful.Dispatch.EventSource";
+        const string meterName = "Test.Successful.IceRpc.Dispatch";
+        var current = new List<long>();
+        var total = new List<long>();
+        using var meterListener = new TestMeterListener<long>(
+            meterName,
+            (instrument, measurement, tags, state) =>
+            {
+                switch (instrument.Name)
+                {
+                    case "current-requests":
+                    {
+                        current.Add(measurement);
+                        break;
+                    }
+                    case "total-requests":
+                    {
+                        total.Add(measurement);
+                        break;
+                    }
+                }
+            });
+
+        using var dispatchMetrics = new DispatchMetrics(meterName);
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
-        using var eventListener = new TestEventListener(
-            name,
-            ("total-requests", "1"),
-            ("current-requests", "0"));
-        using var eventSource = new DispatchEventSource(name);
         using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
-        var sut = new MetricsMiddleware(dispatcher, eventSource);
+        var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         await sut.DispatchAsync(request, default);
 
-        await eventListener.WaitForCounterEventsAsync();
-        Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
+        Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 }
