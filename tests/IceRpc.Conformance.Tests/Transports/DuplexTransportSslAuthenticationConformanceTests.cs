@@ -47,15 +47,14 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
 
         // The client will typically close the transport connection after receiving AuthenticationException
-
-        // TODO the connect call hangs on Linux
-        // Assert.That(
-        //    async () =>
-        //    {
-        //        await serverConnectTask;
-        //        await serverConnection.ReadAsync(new byte[1], CancellationToken.None);
-        //    },
-        //    Throws.TypeOf<TransportException>());
+        var ex = Assert.ThrowsAsync<TransportException>(
+            async () =>
+            {
+                clientConnection.Dispose();
+                await serverConnectTask;
+                await serverConnection.ReadAsync(new byte[1], CancellationToken.None);
+            });
+        Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
     /// <summary>Verifies that the server connection establishment fails with <see cref="AuthenticationException" />

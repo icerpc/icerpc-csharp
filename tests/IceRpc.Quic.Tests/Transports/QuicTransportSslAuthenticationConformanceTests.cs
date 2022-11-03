@@ -6,6 +6,8 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NUnit.Framework;
+using System.Net.Quic;
 
 namespace IceRpc.Tests.Transports;
 
@@ -14,6 +16,15 @@ namespace IceRpc.Tests.Transports;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportSslAuthenticationConformanceTests : MultiplexedTransportSslAuthenticationConformanceTests
 {
+    [OneTimeSetUp]
+    public void FixtureSetUp()
+    {
+        if (!QuicConnection.IsSupported)
+        {
+            Assert.Ignore("Quic is not supported on this platform");
+        }
+    }
+
     protected override IServiceCollection CreateServiceCollection()
     {
         var services = new ServiceCollection()
