@@ -52,7 +52,7 @@ internal sealed class IceRpcProtocol : Protocol
         }
         catch
         {
-            response.Payload.AdvanceTo(readResult.Buffer.Start);
+            response.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
             throw;
         }
 
