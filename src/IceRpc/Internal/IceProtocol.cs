@@ -135,22 +135,7 @@ internal sealed class IceProtocol : Protocol
                     break;
 
                 case ReplyStatus.UnknownException:
-                    message = decoder.DecodeString();
-
-                    // If the status code is encoded in the message, remove it from the message.
-                    if (message.StartsWith('[') &&
-                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
-                    {
-                        try
-                        {
-                            _ = ulong.Parse(message[1..pos], CultureInfo.InvariantCulture);
-                            message = message[(pos + 1)..].TrimStart();
-                        }
-                        catch
-                        {
-                            // ignored
-                        }
-                    }
+                    message = IceProtocolConnection.ParseUnknownExceptionMessage(decoder.DecodeString()).Message;
                     break;
 
                 default:

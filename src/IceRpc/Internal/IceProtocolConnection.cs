@@ -59,6 +59,28 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCts = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
+    /// <summary>Parses the message carried by a system exception with reply status UnknownException.</summary>
+    internal static (StatusCode StatusCode, string Message) ParseUnknownExceptionMessage(string message)
+    {
+        StatusCode statusCode = StatusCode.UnhandledException;
+
+        // If the status code is encoded in the message, remove it from the message.
+        if (message.StartsWith('[') &&
+            message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+        {
+            try
+            {
+                statusCode = (StatusCode)ulong.Parse(message[1..pos], CultureInfo.InvariantCulture);
+                message = message[(pos + 1)..].TrimStart();
+            }
+            catch
+            {
+                // ignored, keep default
+            }
+        }
+        return (statusCode, message);
+    }
+
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
         bool isServer,
@@ -511,23 +533,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
                     decoder.Skip(1); // skip reply status
-                    string message = decoder.DecodeString();
-
-                    StatusCode statusCode = StatusCode.UnhandledException;
-
-                    if (message.StartsWith('[') &&
-                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
-                    {
-                        try
-                        {
-                            statusCode = (StatusCode)ulong.Parse(message[1..pos], CultureInfo.InvariantCulture);
-                        }
-                        catch
-                        {
-                            // ignored, keep default status code
-                        }
-                    }
-                    return statusCode;
+                    return ParseUnknownExceptionMessage(decoder.DecodeString()).StatusCode;
                 }
             }
 
