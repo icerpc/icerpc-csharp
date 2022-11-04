@@ -162,8 +162,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionException">Thrown if the connection is closed.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         // Keep a reference to the connection we're trying to connect to.
@@ -273,9 +271,24 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down the connection.</summary>
+    /// <summary>Gracefully shuts down the connection. The shutdown waits for pending invocations and dispatches to
+    /// complete. For a speedier graceful shutdown, call <see cref="IAsyncDisposable.DisposeAsync" /> instead. It will
+    /// cancel pending invocations and dispatches.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes once the shutdown is complete.</returns>
+    /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
+    /// following exceptions:
+    /// <list type="bullet">
+    /// <item><description><see cref="ConnectionException" />if the connection shutdown failed.</description></item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// cancellation token.</description></item>
+    /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded <see
+    /// cref="ConnectionOptions.ShutdownTimeout" />.</description></item>
+    /// </list>
+    /// </returns>
+    /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <remarks>If shutdown is canceled, the protocol connection state should be considered invalid and the disposal of
+    /// the connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
