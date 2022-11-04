@@ -228,7 +228,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that when a exception other than a DispatchException is thrown
-    /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
+    /// during the dispatch, we encode a DispatchException with the expected status code.</summary>
     [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
     public async Task Exception_is_encoded_as_a_dispatch_exception(
         Protocol protocol,
