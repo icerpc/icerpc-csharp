@@ -87,6 +87,9 @@ public sealed class ProtocolConnectionTests
         }
     }
 
+    [OneTimeSetUp]
+    public void OneTimeSetup() => AssertTraceListener.Setup();
+
     /// <summary>Verifies that concurrent dispatches on a given connection are limited to MaxDispatches.
     /// </summary>
     [Test]

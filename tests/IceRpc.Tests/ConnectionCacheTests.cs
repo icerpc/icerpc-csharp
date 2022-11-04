@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Net.Security;
@@ -10,6 +11,9 @@ namespace IceRpc.Tests;
 
 public sealed class ConnectionCacheTests
 {
+    [OneTimeSetUp]
+    public void OneTimeSetup() => AssertTraceListener.Setup();
+
     /// <summary>Verifies that the connection cache does not prefer existing connections when
     /// <c>preferExistingConnection</c> is <see langword="false" />.</summary>
     [Test]

@@ -13,6 +13,9 @@ public class ClientConnectionTests
 {
     private static List<Protocol> Protocols => new() { Protocol.IceRpc, Protocol.Ice };
 
+    [OneTimeSetUp]
+    public void OneTimeSetup() => AssertTraceListener.Setup();
+
     /// <summary>Verifies that <see cref="ClientConnection.ConnectAsync" /> returns a valid <see
     /// cref="TransportConnectionInformation" /></summary>
     [Test, TestCaseSource(nameof(Protocols))]

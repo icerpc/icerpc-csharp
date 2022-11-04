@@ -17,6 +17,9 @@ public abstract class MultiplexedTransportConformanceTests
 {
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
+    [OneTimeSetUp]
+    public void OneTimeSetup() => AssertTraceListener.Setup();
+
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>
     /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
     [Test]
