@@ -13,8 +13,6 @@ namespace IceRpc.Conformance.Tests;
 /// implementation. It also checks some basic expected behavior from the SSL implementation.</summary>
 public abstract class DuplexTransportSslAuthenticationConformanceTests
 {
-    /// <summary>Verifies that the server connection establishment fails with <see cref="AuthenticationException" />
-    /// when the client certificate is not trusted.</summary>
     [Test]
     public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
     {
@@ -57,12 +55,6 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
     }
 
-    /// <summary>Verifies that the server connection establishment fails with <see cref="AuthenticationException" />
-    /// when the client certificate is not trusted.</summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Security",
-        "CA5359:Do Not Disable Certificate Validation",
-        Justification = "Certificate validation is not required for this test")]
     [Test]
     public async Task Ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
     {
@@ -94,20 +86,19 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // connection establishment.
         var clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+        var serverConnectTask = serverConnection.ConnectAsync(default);
+        await clientConnectTask;
 
         // Act/Assert
+        Assert.That(async () => await serverConnectTask, Throws.TypeOf<AuthenticationException>());
+
+        // The client hanshake terminates before the server, the client doesn't get an error until it reads
+        // from the connection.
         Assert.That(
-            async () => await serverConnection.ConnectAsync(default),
-            Throws.TypeOf<AuthenticationException>());
-        Assert.That(
-            async () =>
-            {
-                await clientConnection.ConnectAsync(default);
-                await clientConnection.ReadAsync(new byte[1], CancellationToken.None);
-            },
+            async () => await clientConnection.ReadAsync(new byte[1], CancellationToken.None),
             Throws.TypeOf<TransportException>());
     }
 
-    /// <summary>Creates the service collection used for the multiplexed transport conformance tests.</summary>
+    /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 }

@@ -13,9 +13,6 @@ namespace IceRpc.Conformance.Tests;
 /// implementation. It also checks some basic expected behavior from the SSL implementation.</summary>
 public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 {
-
-    /// <summary>Verifies that the server connection establishment will fails with <see cref="AuthenticationException" />
-    /// when the client certificate is not trusted.</summary>
     [Test]
     public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
     {
@@ -38,15 +35,14 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
 
         // Start the TLS handshake.
+        Task clientConnectTask = clientConnection.ConnectAsync(default);
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
-        Task clientConnectTask = Task.CompletedTask;
         Task? serverConnectTask = null;
         try
         {
             // We accept two behaviors here:
             // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
             // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
-            clientConnectTask = clientConnection.ConnectAsync(default);
             (var serverConnection, _) = await listener.AcceptAsync(cts.Token);
             serverConnectTask = serverConnection.ConnectAsync(default);
         }
@@ -67,8 +63,6 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         }
     }
 
-    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
-    /// when the client certificate is not trusted.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
@@ -116,6 +110,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 await serverConnection.ConnectAsync(default);
             },
             Throws.TypeOf<AuthenticationException>().Or.TypeOf<OperationCanceledException>());
+
         Assert.That(
             async () =>
             {
