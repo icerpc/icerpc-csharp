@@ -53,7 +53,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    /// <remarks>If shutdown is canceled, the protocol connection state should be considered invalid and the disposal of
-    /// the connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
+    /// <remarks>If shutdown is canceled, the protocol connection transitions to a faulted state and the disposal of the
+    /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     Task ShutdownAsync(CancellationToken cancellationToken = default);
 }
