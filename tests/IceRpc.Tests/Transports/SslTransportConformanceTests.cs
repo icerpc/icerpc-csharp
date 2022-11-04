@@ -7,9 +7,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
 
-/// <summary>Conformance tests for the tls duplex transport.</summary>
+/// <summary>Conformance tests for the Ssl duplex transport.</summary>
 [Parallelizable(ParallelScope.All)]
-public class TlsTransportConformanceTests : TcpTransportConformanceTests
+public class SslTransportConformanceTests : TcpTransportConformanceTests
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",

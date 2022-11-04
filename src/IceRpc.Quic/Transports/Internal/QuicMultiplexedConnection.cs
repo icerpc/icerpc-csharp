@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Net.Quic;
+using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -155,6 +156,10 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
         catch (QuicException exception)
         {
             throw exception.ToTransportException();
+        }
+        catch (AuthenticationException)
+        {
+            throw;
         }
         catch (OperationCanceledException)
         {
