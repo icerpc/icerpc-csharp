@@ -46,7 +46,7 @@ public class DeflateInterceptor : IInvoker
 
         IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-        if (request.Protocol.HasFields && response.ResultType == ResultType.Success)
+        if (request.Protocol.HasFields && response.StatusCode == StatusCode.Success)
         {
             CompressionFormat compressionFormat = response.Fields.DecodeValue(
                ResponseFieldKey.CompressionFormat,

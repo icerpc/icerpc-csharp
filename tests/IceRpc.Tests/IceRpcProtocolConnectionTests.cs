@@ -22,10 +22,10 @@ public sealed class IceRpcProtocolConnectionTests
     {
         get
         {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
             // Slice1 only exception will get encoded as unhandled exception with Slice2
-            yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
-            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }
 

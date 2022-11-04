@@ -61,7 +61,7 @@ public class RetryInterceptor : IInvoker
 
                         response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-                        if (response.ResultType == ResultType.Success)
+                        if (response.StatusCode == StatusCode.Success)
                         {
                             return response;
                         }
@@ -130,7 +130,7 @@ public class RetryInterceptor : IInvoker
                 while (tryAgain);
 
                 Debug.Assert(response is not null || exception is not null);
-                Debug.Assert(response is null || response.ResultType != ResultType.Success);
+                Debug.Assert(response is null || response.StatusCode != StatusCode.Success);
                 return response ?? throw RethrowException(exception!);
             }
             finally

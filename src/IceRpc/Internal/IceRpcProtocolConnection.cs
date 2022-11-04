@@ -417,7 +417,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             return new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
             {
                 Payload = stream.Input,
-                ResultType = header.ResultType
+                StatusCode = header.StatusCode
             };
         }
         catch (OperationCanceledException exception)
@@ -972,28 +972,27 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (Exception exception)
             {
-                // If we catch an exception, we return a failure response with a dispatch exception payload.
-
+                // We convert any exception into a dispatch exception if it's not already one.
                 if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
-                    DispatchErrorCode errorCode = exception switch
+                    StatusCode statusCode = exception switch
                     {
-                        InvalidDataException _ => DispatchErrorCode.InvalidData,
-                        IceRpcProtocolStreamException => DispatchErrorCode.StreamError,
-                        _ => DispatchErrorCode.UnhandledException
+                        InvalidDataException => StatusCode.InvalidData,
+                        IceRpcProtocolStreamException => StatusCode.StreamError,
+                        _ => StatusCode.UnhandledException
                     };
 
                     // We pass null for message to get the message computed from the exception by DefaultMessage.
                     dispatchException = new DispatchException(
                         message: null,
-                        errorCode,
+                        statusCode,
                         _includeInnerExceptionDetails ? exception : null);
                 }
 
                 response = new OutgoingResponse(request)
                 {
-                    Payload = CreateDispatchExceptionPayload(request, dispatchException),
-                    ResultType = ResultType.Failure
+                    Payload = CreateDispatchExceptionPayload(request, dispatchException.Message),
+                    StatusCode = dispatchException.StatusCode
                 };
 
                 // Encode the retry policy into the fields of the new response.
@@ -1005,19 +1004,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                 }
 
-                static PipeReader CreateDispatchExceptionPayload(IncomingRequest request, DispatchException exception)
+                static PipeReader CreateDispatchExceptionPayload(IncomingRequest request, string message)
                 {
                     SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                         SliceEncodeOptions.Default;
 
                     var pipe = new Pipe(encodeOptions.PipeOptions);
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-                    int startPos = encoder.EncodedByteCount;
-                    encoder.EncodeString(exception.Message);
-                    encoder.EncodeDispatchErrorCode(exception.ErrorCode);
-                    SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-                    pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+                    encoder.EncodeString(message);
+                    pipe.Writer.Complete();
                     return pipe.Reader;
                 }
             }
@@ -1063,7 +1058,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                 int headerStartPos = encoder.EncodedByteCount;
 
-                new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
+                new IceRpcResponseHeader(response.StatusCode).Encode(ref encoder);
 
                 encoder.EncodeDictionary(
                     response.Fields,

@@ -28,7 +28,7 @@ public sealed class LoggerMiddlewareTests
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
         Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
         Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
-        Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
+        Assert.That(entries[0].State["StatusCode"], Is.EqualTo(StatusCode.Success));
         Assert.That(
             entries[0].State["LocalNetworkAddress"],
             Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));

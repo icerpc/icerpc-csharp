@@ -38,7 +38,7 @@ public class LoggerMiddleware : IDispatcher
                     request.Operation,
                     request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
                     request.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress,
-                    response.ResultType);
+                    response.StatusCode);
                 return response;
             }
             catch (Exception ex)
@@ -61,14 +61,14 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
         Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and " +
-            "received {ResultType} response")]
+            "received {StatusCode} response")]
     internal static partial void LogDispatch(
         this ILogger logger,
         string path,
         string operation,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress,
-        ResultType resultType);
+        StatusCode statusCode);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventId.InvokeException,

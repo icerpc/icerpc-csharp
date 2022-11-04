@@ -25,7 +25,7 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with a <see cref="SliceResultType.ServiceFailure" /> result type.
+    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.Failure" />.
     /// </summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="remoteException">The remote exception to encode in the payload.</param>
@@ -33,7 +33,7 @@ public static class IncomingRequestExtensions
     /// <returns>The new outgoing response.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException" /> is a dispatch exception or
     /// its <see cref="RemoteException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
-    public static OutgoingResponse CreateServiceFailureResponse(
+    public static OutgoingResponse CreateFailureResponse(
         this IncomingRequest request,
         RemoteException remoteException,
         SliceEncoding encoding)
@@ -45,8 +45,8 @@ public static class IncomingRequestExtensions
 
         var response = new OutgoingResponse(request)
         {
-            ResultType = (ResultType)SliceResultType.ServiceFailure,
-            Payload = CreateExceptionPayload()
+            Payload = CreateExceptionPayload(),
+            StatusCode = StatusCode.Failure
         };
 
         if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)

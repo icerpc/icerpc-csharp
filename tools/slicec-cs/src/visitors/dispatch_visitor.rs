@@ -487,7 +487,7 @@ try
 }}
 catch (RemoteException remoteException) when (!remoteException.ConvertToUnhandled)
 {{
-    return request.CreateServiceFailureResponse(remoteException, {encoding});
+    return request.CreateFailureResponse(remoteException, {encoding});
 }}",
         check_and_decode = check_and_decode,
         dispatch_and_return = dispatch_and_return.indent(),

@@ -138,7 +138,7 @@ public sealed class Router : IDispatcher
                         if (path.Length == AbsolutePrefix.Length)
                         {
                             // We consumed everything so there is nothing left to match.
-                            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
+                            throw new DispatchException(StatusCode.ServiceNotFound, RetryPolicy.OtherReplica);
                         }
                         else
                         {
@@ -174,7 +174,7 @@ public sealed class Router : IDispatcher
 
                         if (prefix == "/")
                         {
-                            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
+                            throw new DispatchException(StatusCode.ServiceNotFound, RetryPolicy.OtherReplica);
                         }
 
                         // Cut last segment
@@ -189,7 +189,7 @@ public sealed class Router : IDispatcher
                         }
                         // and try again with the new shorter prefix
                     }
-                    throw new DispatchException("too many segments in path", DispatchErrorCode.InvalidData);
+                    throw new DispatchException("too many segments in path", StatusCode.InvalidData);
                 }
             });
 

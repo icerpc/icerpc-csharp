@@ -35,7 +35,7 @@ compact struct IceRpcRequestHeader
 [cs::readonly]
 compact struct IceRpcResponseHeader
 {
-    resultType: ResultType,
+    statusCode: StatusCode,
     // fields: dictionary<ResponseFieldKey, sequence<uint8>>, (encoded/decoded manually)
 }
 

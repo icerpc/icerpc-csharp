@@ -183,9 +183,13 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a Slice string into a string.</summary>
     /// <returns>The string decoded by this decoder.</returns>
-    public string DecodeString()
+    public string DecodeString() => DecodeString(DecodeSize());
+
+    /// <summary>Decodes a Slice string into a string; the encoded string does not include a size.</summary>
+    /// <param name="size">The number of UTF-8 bytes in the encoded Slice string.</param>
+    /// <returns>The string decoded by this decoder.</returns>
+    public string DecodeString(int size)
     {
-        int size = DecodeSize();
         if (size == 0)
         {
             return "";
@@ -199,12 +203,12 @@ public ref partial struct SliceDecoder
                 {
                     result = _utf8.GetString(_reader.UnreadSpan[0..size]);
                 }
-                catch (Exception ex) when (ex is ArgumentException || ex is DecoderFallbackException)
+                catch (Exception exception) when (exception is ArgumentException or DecoderFallbackException)
                 {
                     // The two exceptions that can be thrown by GetString are ArgumentException and
                     // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
                     // throw an InvalidDataException.
-                    throw new InvalidDataException("invalid UTF-8 string", ex);
+                    throw new InvalidDataException("invalid UTF-8 string", exception);
                 }
             }
             else
@@ -218,12 +222,12 @@ public ref partial struct SliceDecoder
                 {
                     result = _utf8.GetString(bytes.Slice(0, size));
                 }
-                catch (Exception ex) when (ex is ArgumentException || ex is DecoderFallbackException)
+                catch (Exception exception) when (exception is ArgumentException or DecoderFallbackException)
                 {
                     // The two exceptions that can be thrown by GetString are ArgumentException and
                     // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
                     // throw an InvalidDataException.
-                    throw new InvalidDataException("invalid UTF-8 string", ex);
+                    throw new InvalidDataException("invalid UTF-8 string", exception);
                 }
             }
 

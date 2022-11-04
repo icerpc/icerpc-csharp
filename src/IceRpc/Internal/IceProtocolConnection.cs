@@ -463,6 +463,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
 
+            StatusCode statusCode;
             if (replyStatus <= ReplyStatus.UserException)
             {
                 const int headerSize = 7; // reply status byte + encapsulation header
@@ -488,13 +489,46 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 // Consume header.
                 frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
+                statusCode = replyStatus == ReplyStatus.Ok ? StatusCode.Success : StatusCode.Failure;
             }
             else
             {
                 // An ice system exception. The reply status is part of the payload.
 
+                statusCode = replyStatus switch
+                {
+                    ReplyStatus.ObjectNotExistException => StatusCode.ServiceNotFound,
+                    ReplyStatus.FacetNotExistException => StatusCode.ServiceNotFound,
+                    ReplyStatus.OperationNotExistException => StatusCode.OperationNotFound,
+                    ReplyStatus.UnknownException => DecodeStatusCode(readResult.Buffer),
+                    _ => StatusCode.UnhandledException
+                };
+
                 // Don't consume anything. The examined is irrelevant since readResult.IsCompleted is true.
                 frameReader.AdvanceTo(readResult.Buffer.Start);
+
+                static StatusCode DecodeStatusCode(ReadOnlySequence<byte> buffer)
+                {
+                    var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                    decoder.Skip(1); // skip reply status
+                    string message = decoder.DecodeString();
+
+                    StatusCode statusCode = StatusCode.UnhandledException;
+
+                    if (message.StartsWith('[') &&
+                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+                    {
+                        try
+                        {
+                            statusCode = (StatusCode)ulong.Parse(message[1..pos], CultureInfo.InvariantCulture);
+                        }
+                        catch
+                        {
+                            // ignored, keep default status code
+                        }
+                    }
+                    return statusCode;
+                }
             }
 
             // For compatibility with ZeroC Ice "indirect" proxies
@@ -506,12 +540,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             return new IncomingResponse(request, _connectionContext!, fields)
             {
                 Payload = frameReader,
-                ResultType = replyStatus switch
-                {
-                    ReplyStatus.Ok => ResultType.Success,
-                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                    _ => ResultType.Failure
-                }
+                StatusCode = statusCode
             };
         }
         catch (OperationCanceledException exception)
@@ -1021,33 +1050,33 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         Payload = CreateDispatchExceptionPayload(
                             request,
-                            new DispatchException("dispatch canceled", DispatchErrorCode.Canceled)),
-                        ResultType = ResultType.Failure
+                            new DispatchException("dispatch canceled", StatusCode.Canceled)),
+                        StatusCode = StatusCode.Canceled
                     };
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a failure response with a system exception payload.
+                    // If we catch an exception, we return a system exception.
 
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
-                        DispatchErrorCode errorCode = exception switch
+                        StatusCode statusCode = exception switch
                         {
-                            InvalidDataException _ => DispatchErrorCode.InvalidData,
-                            _ => DispatchErrorCode.UnhandledException
+                            InvalidDataException _ => StatusCode.InvalidData,
+                            _ => StatusCode.UnhandledException
                         };
 
                         // We pass null for message to get the message computed by DispatchException.DefaultMessage.
                         dispatchException = new DispatchException(
                             message: null,
-                            errorCode,
+                            statusCode,
                             _includeInnerExceptionDetails ? exception : null);
                     }
 
                     response = new OutgoingResponse(request)
                     {
                         Payload = CreateDispatchExceptionPayload(request, dispatchException),
-                        ResultType = ResultType.Failure
+                        StatusCode = dispatchException.StatusCode
                     };
                 }
                 finally
@@ -1093,25 +1122,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
                     acquiredSemaphore = true;
 
-                    ReplyStatus replyStatus = ReplyStatus.Ok;
-
-                    if (response.ResultType != ResultType.Success)
+                    ReplyStatus replyStatus = response.StatusCode switch
                     {
-                        if (response.ResultType == ResultType.Failure)
-                        {
-                            replyStatus = ((int)payload.FirstSpan[0]).AsReplyStatus();
-
-                            if (replyStatus <= ReplyStatus.UserException)
-                            {
-                                throw new InvalidDataException(
-                                    $"unexpected reply status value '{replyStatus}' in payload");
-                            }
-                        }
-                        else
-                        {
-                            replyStatus = ReplyStatus.UserException;
-                        }
-                    }
+                        StatusCode.Success => ReplyStatus.Ok,
+                        StatusCode.Failure => ReplyStatus.UserException,
+                        _ => ((int)payload.FirstSpan[0]).AsReplyStatus()
+                    };
 
                     EncodeResponseHeader(_duplexConnectionWriter, requestId, payloadSize, replyStatus);
 
@@ -1173,12 +1189,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     var pipe = new Pipe(encodeOptions.PipeOptions);
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
 
-                    DispatchErrorCode errorCode = dispatchException.ErrorCode;
-                    switch (errorCode)
+                    StatusCode statusCode = dispatchException.StatusCode;
+                    switch (statusCode)
                     {
-                        case DispatchErrorCode.ServiceNotFound:
-                        case DispatchErrorCode.OperationNotFound:
-                            encoder.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                        case StatusCode.ServiceNotFound:
+                        case StatusCode.OperationNotFound:
+                            encoder.EncodeReplyStatus(statusCode == StatusCode.ServiceNotFound ?
                                 ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
                             new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
@@ -1187,9 +1203,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                         default:
                             encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
-                            // We encode the error code in the message.
+                            // We encode the status code in the message.
                             encoder.EncodeString(
-                                $"[{((ulong)errorCode).ToString(CultureInfo.InvariantCulture)}] {dispatchException.Message}");
+                                $"[{((ulong)statusCode).ToString(CultureInfo.InvariantCulture)}] {dispatchException.Message}");
                             break;
                     }
 

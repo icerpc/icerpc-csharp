@@ -14,8 +14,8 @@ namespace IceRpc.Deadline;
 /// <see cref="DeadlineMiddleware"/>.</remarks>
 /// <remarks>If the server installs a <see cref="DeadlineMiddleware"/>, this deadline middleware decodes the deadline
 /// and enforces it. In the unlikely event the middleware detects the expiration of the deadline before this
-/// interceptor, the invocation will fail with a <see cref="DispatchException"/> carrying the
-/// <see cref="DispatchErrorCode.DeadlineExpired"/> error code.</remarks>
+/// interceptor, the invocation will fail with a <see cref="DispatchException"/> carrying the status code
+/// <see cref="StatusCode.DeadlineExpired"/>.</remarks>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;

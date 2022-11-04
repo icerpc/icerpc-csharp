@@ -2,9 +2,16 @@
 
 module IceRpc;
 
-/// The possible error codes carried by a dispatch exception.
-unchecked enum DispatchErrorCode : varuint62
+/// The status code indicates whether a request has completed successfully, and, if not, which error occurred. It's
+/// carried by responses.
+unchecked enum StatusCode : varuint62
 {
+    /// The request completed successfully. This is the only status code that indicates a successful completion.
+    Success = 0,
+
+    /// The request failed.
+    Failure,
+
     /// The server could not find the target service.
     ServiceNotFound,
 

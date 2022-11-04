@@ -105,7 +105,7 @@ public sealed class ProtocolBridgingTests
             var dispatchException = Assert.ThrowsAsync<DispatchException>(
                 () => proxy.OpServiceNotFoundExceptionAsync());
 
-            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+            Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
             Assert.That(dispatchException!.Origin, Is.Not.Null);
 
             ProtocolBridgingTestProxy newProxy = await proxy.OpNewProxyAsync();
@@ -149,7 +149,7 @@ public sealed class ProtocolBridgingTests
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) => default;
 
         public ValueTask OpServiceNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
-            throw new DispatchException(DispatchErrorCode.ServiceNotFound);
+            throw new DispatchException(StatusCode.ServiceNotFound);
 
         public ValueTask OpVoidAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
@@ -180,9 +180,9 @@ public sealed class ProtocolBridgingTests
 
             // Then create an outgoing response from the incoming response.
 
-            // When ResultType == Failure and the protocols are different, we need to transcode the dispatch exception.
+            // When StatusCode > Failure and the protocols are different, we need to transcode the dispatch exception.
             // Fortunately, we can simply decode it and throw it.
-            if (request.Protocol != incomingResponse.Protocol && incomingResponse.ResultType == ResultType.Failure)
+            if (request.Protocol != incomingResponse.Protocol && incomingResponse.StatusCode > StatusCode.Failure)
             {
                 DispatchException dispatchException = await incomingResponse.DecodeDispatchExceptionAsync(
                     outgoingRequest,
@@ -204,7 +204,7 @@ public sealed class ProtocolBridgingTests
             {
                 Fields = fields,
                 Payload = incomingResponse.DetachPayload(),
-                ResultType = incomingResponse.ResultType
+                StatusCode = incomingResponse.StatusCode
             };
         }
 

@@ -96,7 +96,7 @@ public class Service : IService, IDispatcher
         }
         else
         {
-            throw new DispatchException(DispatchErrorCode.OperationNotFound);
+            throw new DispatchException(StatusCode.OperationNotFound);
         }
     }
 }

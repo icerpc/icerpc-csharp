@@ -32,7 +32,7 @@ public class LoggerInterceptor : IInvoker
             _logger.LogInvoke(
                 request.ServiceAddress,
                 request.Operation,
-                response.ResultType,
+                response.StatusCode,
                 response.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
                 response.ConnectionContext.TransportConnectionInformation.RemoteNetworkAddress);
             return response;
@@ -53,12 +53,12 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
         Message = "Sent {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and "
-            + "received {ResultType} response")]
+            + "received {StatusCode} response")]
     internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
-        ResultType resultType,
+        StatusCode statusCode,
         EndPoint? localNetworkAddress,
         EndPoint? remoteNetworkAddress);
 
