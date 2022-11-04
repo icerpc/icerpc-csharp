@@ -9,6 +9,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -289,7 +290,12 @@ public abstract class MultiplexedTransportConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<TransportException>());
+
+        // If using Quic and the listener is disposed during the ssl handshake this can fail
+        // with AuthenticationException otherwise it fails with TransportException.
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<TransportException>().Or.TypeOf<AuthenticationException>());
 
         async Task ConnectAsync(IMultiplexedClientTransport clientTransport)
         {

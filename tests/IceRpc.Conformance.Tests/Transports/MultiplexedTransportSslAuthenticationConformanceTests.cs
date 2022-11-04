@@ -37,16 +37,34 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
 
-        // Start the TLS handshake by calling connect on the client and server connections and wait for the
-        // connection establishment.
-        var clientConnectTask = clientConnection.ConnectAsync(default);
-        (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
-        var serverConnectTask = serverConnection.ConnectAsync(default);
+        // Start the TLS handshake.
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
+        Task clientConnectTask = Task.CompletedTask;
+        Task? serverConnectTask = null;
+        try
+        {
+            // We accept two behaviors here:
+            // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
+            // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
+            clientConnectTask = clientConnection.ConnectAsync(default);
+            (var serverConnection, _) = await listener.AcceptAsync(cts.Token);
+            serverConnectTask = serverConnection.ConnectAsync(default);
+        }
+        catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
+        {
+            // Expected with Quic
+            serverConnectTask = null;
+        }
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
-        // TODO the server connect call hangs on linux
-        // Assert.That(async () => await serverConnectTask, Throws.TypeOf<TransportException>());
+        if (serverConnectTask is not null)
+        {
+            // The client will typically close the transport connection after receiving AuthenticationException
+            await clientConnection.DisposeAsync();
+            var ex = Assert.ThrowsAsync<TransportException>(async () => await serverConnectTask);
+            Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        }
     }
 
     /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException" />
@@ -98,7 +116,14 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 await serverConnection.ConnectAsync(default);
             },
             Throws.TypeOf<AuthenticationException>().Or.TypeOf<OperationCanceledException>());
-        Assert.That(async () => await clientConnectTask, Throws.TypeOf<TransportException>());
+        Assert.That(
+            async () =>
+            {
+                await clientConnectTask;
+                var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
+                await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
+            },
+            Throws.TypeOf<TransportException>());
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
