@@ -30,11 +30,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
 
-    // The ID of the last bidir stream accepted by this connection. It's null as long as no bidir stream was accepted.
+    // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
+    // was accepted.
     private ulong? _lastRemoteBidirectionalStreamId;
 
-    // The ID of the last unidir stream (other than a control stream) accepted by this connection. It's null as long
-    // as no unidir stream was accepted.
+    // The ID of the last unidirectional stream accepted by this connection. It's null as long as no unidirectional
+    // stream (other than _remoteControlStream) was accepted.
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
@@ -203,21 +204,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
                             .ConfigureAwait(false);
 
+                        bool done = false;
                         lock (_mutex)
                         {
                             if (_isReadOnly)
                             {
-                                DiscardStream();
-                                return;
-
-                                void DiscardStream()
-                                {
-                                    stream.Input.Complete(ConnectionClosedException);
-                                    if (stream.IsBidirectional)
-                                    {
-                                        stream.Output.Complete(ConnectionClosedException);
-                                    }
-                                }
+                                done = true;
                             }
                             else
                             {
@@ -244,25 +236,37 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             }
                         }
 
-                        _ = Task.Run(
-                            async () =>
+                        if (done)
+                        {
+                            stream.Input.Complete(ConnectionClosedException);
+                            if (stream.IsBidirectional)
                             {
-                                try
+                                stream.Output.Complete(ConnectionClosedException);
+                            }
+                            return;
+                        }
+                        else
+                        {
+                            _ = Task.Run(
+                                async () =>
                                 {
-                                    await DispatchRequestAsync(stream).ConfigureAwait(false);
-                                }
-                                finally
-                                {
-                                    lock (_mutex)
+                                    try
                                     {
-                                        if (--_dispatchCount == 0 && _isReadOnly)
+                                        await DispatchRequestAsync(stream).ConfigureAwait(false);
+                                    }
+                                    finally
+                                    {
+                                        lock (_mutex)
                                         {
-                                            _ = _dispatchesCompleted.TrySetResult();
+                                            if (--_dispatchCount == 0 && _isReadOnly)
+                                            {
+                                                _ = _dispatchesCompleted.TrySetResult();
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            CancellationToken.None);
+                                },
+                                CancellationToken.None);
+                        }
                     }
                 }
                 catch (OperationCanceledException)
@@ -535,8 +539,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _dispatchesCompleted.TrySetResult();
                 }
 
-                // When this peer is the server endpoint, the first accepted stream ID is 0. When this peer is the
-                // client endpoint, the first accepted stream ID is 1.
+                // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
+                // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
                 goAwayFrame = new(
                     _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
                     (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
