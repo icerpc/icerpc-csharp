@@ -6,7 +6,7 @@ module IceRpc;
 /// carried by responses.
 unchecked enum StatusCode : varuint62
 {
-    /// The request completed successfully. This is the only status code that indicates a successful completion.
+    /// The request completed successfully.
     Success = 0,
 
     /// The request failed.

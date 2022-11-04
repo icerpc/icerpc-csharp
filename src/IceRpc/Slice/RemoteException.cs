@@ -10,7 +10,7 @@ public abstract class RemoteException : Exception, ITrait
 
     /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see
     /// cref="DispatchException" /> with status code <see cref="StatusCode.UnhandledException" /> when thrown from a
-    /// dispatcher.</summary>
+    /// dispatch.</summary>
     public bool ConvertToUnhandled { get; set; }
 
     /// <summary>Gets the remote exception origin.</summary>

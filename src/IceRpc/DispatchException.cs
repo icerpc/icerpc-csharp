@@ -6,13 +6,10 @@ namespace IceRpc;
 /// status code greater than <see cref="StatusCode.Failure" />.</summary>
 public sealed class DispatchException : Exception
 {
-    /// <summary>Gets or sets a value indicating whether this exception should be converted to a <see
-    /// cref="DispatchException" /> with the <see cref="StatusCode.UnhandledException" /> status code when
-    /// thrown from a dispatcher.</summary>
+    /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see
+    /// cref="DispatchException" /> with status code <see cref="StatusCode.UnhandledException" /> when thrown from a
+    /// dispatch.</summary>
     public bool ConvertToUnhandled { get; set; }
-
-    /// <summary>Gets the status code of the corresponding response.</summary>
-    public StatusCode StatusCode { get; }
 
     /// <inheritdoc/>
     public override string Message
@@ -48,10 +45,14 @@ public sealed class DispatchException : Exception
     /// <summary>Gets the retry policy.</summary>
     public RetryPolicy RetryPolicy { get; }
 
+    /// <summary>Gets the status code.</summary>
+    public StatusCode StatusCode { get; }
+
     private readonly bool _hasCustomMessage;
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
-    /// <param name="statusCode">The status code that describes the failure.</param>
+    /// <param name="statusCode">The status code that describes the failure. It must be greater than
+    /// <see cref="StatusCode.Failure" />.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(StatusCode statusCode, RetryPolicy? retryPolicy = null)
         : this(message: null, statusCode, innerException: null, retryPolicy)
@@ -60,7 +61,8 @@ public sealed class DispatchException : Exception
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
     /// <param name="message">Message that describes the exception.</param>
-    /// <param name="statusCode">The status code that describes the failure.</param>
+    /// <param name="statusCode">The status code that describes the failure. It must be greater than
+    /// <see cref="StatusCode.Failure" />.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(
