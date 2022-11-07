@@ -9,17 +9,17 @@ public class AssertTraceListener : DefaultTraceListener
 {
     private static readonly AssertTraceListener _instance = new();
 
-    public override void Fail(string? message) => Assert.Fail($"Debug.Assert({message}) failure");
+    public override void Fail(string? message) => Assert.Fail(message);
 
     public override void Fail(string? message, string? detailMessage)
     {
         if (detailMessage is null || detailMessage.Length == 0)
         {
-            Assert.Fail($"Debug.Assert({message}) failure");
+            Assert.Fail(message);
         }
         else
         {
-            Assert.Fail($"Debug.Assert({message}, {detailMessage}) failure");
+            Assert.Fail(message, detailMessage);
         }
     }
 
