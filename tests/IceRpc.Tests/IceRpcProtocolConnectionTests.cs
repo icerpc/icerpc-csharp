@@ -856,12 +856,6 @@ public sealed class IceRpcProtocolConnectionTests
         private readonly IMultiplexedStream _decoratee;
         private readonly HoldPipeWriter? _output;
 
-        public void Abort(Exception exception)
-        {
-            _output?.Abort(exception);
-            _decoratee.Abort(exception);
-        }
-
         internal HoldMultiplexedStream(HoldMultiplexedConnection connection, IMultiplexedStream decoratee)
         {
             _connection = connection;
@@ -875,9 +869,6 @@ public sealed class IceRpcProtocolConnectionTests
 
     private class HoldPipeWriter : PipeWriter
     {
-        private readonly TaskCompletionSource _abortTaskCompletionSource =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-
         private readonly HoldMultiplexedStream _stream;
         private readonly PipeWriter _decoratee;
 
@@ -891,7 +882,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
             {
-                await _abortTaskCompletionSource.Task.WaitAsync(cancellationToken);
+                await Task.Delay(-1, cancellationToken);
             }
             return await _decoratee.FlushAsync(cancellationToken);
         }
@@ -900,11 +891,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
+        public override async ValueTask<FlushResult> WriteAsync(
+            ReadOnlyMemory<byte> source,
+            CancellationToken cancellationToken)
         {
             if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
             {
-                await _abortTaskCompletionSource.Task.WaitAsync(cancellationToken);
+                await Task.Delay(-1, cancellationToken);
             }
             return await _decoratee.WriteAsync(source, cancellationToken);
         }
@@ -914,8 +907,6 @@ public sealed class IceRpcProtocolConnectionTests
             _stream = stream;
             _decoratee = decoratee;
         }
-
-        internal void Abort(Exception exception) => _abortTaskCompletionSource.SetException(exception);
     }
 
     private class HoldPipeReader : PipeReader
