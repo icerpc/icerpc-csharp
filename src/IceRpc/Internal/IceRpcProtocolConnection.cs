@@ -41,8 +41,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
 
-    // Represents the streams of invocations where the corresponding request _may_ not been received or dispatched by
-    // the peer yet.
+    // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
+    // by the peer yet.
     private readonly Dictionary<IMultiplexedStream, CancellationTokenSource> _pendingInvocationCts = new();
     private readonly IMultiplexedConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
@@ -383,6 +383,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
 
+            // We unregister this cancellationToken once we receive a response (for twoway) or the request Payload is
+            // sent (oneway).
             using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
                 invocationCts);
