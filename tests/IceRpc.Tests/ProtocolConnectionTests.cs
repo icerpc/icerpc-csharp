@@ -27,11 +27,11 @@ public sealed class ProtocolConnectionTests
             foreach (Protocol protocol in Protocols)
             {
                 // an unexpected OCE
-                yield return new(protocol, new OperationCanceledException(), DispatchErrorCode.UnhandledException);
+                yield return new(protocol, new OperationCanceledException(), StatusCode.UnhandledException);
 
-                yield return new(protocol, new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
-                yield return new(protocol, new MyException(), DispatchErrorCode.UnhandledException);
-                yield return new(protocol, new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+                yield return new(protocol, new InvalidDataException("invalid data"), StatusCode.InvalidData);
+                yield return new(protocol, new MyException(), StatusCode.UnhandledException);
+                yield return new(protocol, new InvalidOperationException(), StatusCode.UnhandledException);
             }
         }
     }
@@ -228,12 +228,12 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that when a exception other than a DispatchException is thrown
-    /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
+    /// during the dispatch, we encode a DispatchException with the expected status code.</summary>
     [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
     public async Task Exception_is_encoded_as_a_dispatch_exception(
         Protocol protocol,
         Exception thrownException,
-        DispatchErrorCode errorCode)
+        StatusCode statusCode)
     {
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw thrownException);
 
@@ -249,10 +249,9 @@ public sealed class ProtocolConnectionTests
         var response = await sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         Assert.That(
-            async () => (await response.DecodeDispatchExceptionAsync(request)).ErrorCode,
-            Is.EqualTo(errorCode));
+            async () => (await response.DecodeDispatchExceptionAsync(request)).StatusCode,
+            Is.EqualTo(statusCode));
         Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }
 

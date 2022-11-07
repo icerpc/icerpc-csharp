@@ -5,7 +5,7 @@ namespace IceRpc;
 /// <summary>Provides an extension method to decode dispatch exceptions.</summary>
 public static class IncomingResponseExtensions
 {
-    /// <summary>Decodes a response with a <see cref="ResultType.Failure" /> result type.</summary>
+    /// <summary>Decodes a response with a status code greater than <see cref="StatusCode.Failure" />.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

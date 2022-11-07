@@ -12,9 +12,9 @@ public sealed class IncomingResponse : IncomingFrame
     /// <summary>Gets the fields of this incoming response.</summary>
     public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; private set; }
 
-    /// <summary>Gets or initializes the <see cref="IceRpc.ResultType" /> of this response.</summary>
-    /// <value>The result type of the response. The default value is <see cref="ResultType.Success" />.</value>
-    public ResultType ResultType { get; init; } = ResultType.Success;
+    /// <summary>Gets or initializes the <see cref="StatusCode" /> of this response.</summary>
+    /// <value>The status code of the response. The default value is <see cref="StatusCode.Success" />.</value>
+    public StatusCode StatusCode { get; init; } = StatusCode.Success;
 
     private readonly PipeReader? _fieldsPipeReader;
 

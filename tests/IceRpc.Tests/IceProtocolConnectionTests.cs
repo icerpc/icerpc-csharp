@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
-    public static IEnumerable<TestCaseData> DispatchExceptionRetryPolicySource
+    public static IEnumerable<TestCaseData> ResponseRetryPolicySource
     {
         get
         {
@@ -20,20 +20,20 @@ public sealed class IceProtocolConnectionTests
             // policy response field.
             yield return new TestCaseData(
                 new ServiceAddress(Protocol.Ice),
-                DispatchErrorCode.ServiceNotFound,
+                StatusCode.ServiceNotFound,
                 RetryPolicy.OtherReplica);
 
             // Service not found failure with a service address that has server addresses does not get a retry policy
             // response field
             yield return new TestCaseData(
                 new ServiceAddress(new Uri("ice://localhost/service")),
-                DispatchErrorCode.ServiceNotFound,
+                StatusCode.ServiceNotFound,
                 null);
 
             // No retry policy field with other dispatch errors
             yield return new TestCaseData(
                 new ServiceAddress(Protocol.Ice),
-                DispatchErrorCode.UnhandledException,
+                StatusCode.UnhandledException,
                 null);
         }
     }
@@ -70,16 +70,16 @@ public sealed class IceProtocolConnectionTests
             Is.EqualTo("dispatch canceled"));
     }
 
-    /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
-    [Test, TestCaseSource(nameof(DispatchExceptionRetryPolicySource))]
-    public async Task Dispatch_failure_response_contain_the_expected_retry_policy_field(
+    /// <summary>Verifies that a non-success response contains the expected retry policy field.</summary>
+    [Test, TestCaseSource(nameof(ResponseRetryPolicySource))]
+    public async Task Response_contains_the_expected_retry_policy_field(
         ServiceAddress serviceAddress,
-        DispatchErrorCode errorCode,
+        StatusCode statusCode,
         RetryPolicy? expectedRetryPolicy)
     {
         // Arrange
         var dispatcher = new InlineDispatcher(
-            (request, cancellationToken) => throw new DispatchException(errorCode: errorCode));
+            (request, cancellationToken) => throw new DispatchException(statusCode: statusCode));
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -93,7 +93,7 @@ public sealed class IceProtocolConnectionTests
         var response = await sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        Assert.That(response.StatusCode, Is.EqualTo(statusCode));
         var retryPolicy = response.Fields.DecodeValue(
                 ResponseFieldKey.RetryPolicy,
                 (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));

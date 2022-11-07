@@ -27,7 +27,7 @@ public sealed class LoggerInterceptorTests
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.Invoke));
         Assert.That(entries[0].State["ServiceAddress"], Is.EqualTo(serviceAddress));
         Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-        Assert.That(entries[0].State["ResultType"], Is.EqualTo(ResultType.Success));
+        Assert.That(entries[0].State["StatusCode"], Is.EqualTo(StatusCode.Success));
         Assert.That(
             entries[0].State["LocalNetworkAddress"],
             Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));

@@ -70,11 +70,11 @@ internal sealed class IceProtocol : Protocol
     {
         Debug.Assert(response.Protocol == this);
 
-        if (response.ResultType != ResultType.Failure)
+        if (response.StatusCode <= StatusCode.Failure)
         {
-            throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
-                nameof(response));
+            throw new ArgumentOutOfRangeException(
+                nameof(response.StatusCode),
+                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a status code greater than {nameof(StatusCode.Failure)}");
         }
 
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
@@ -93,7 +93,7 @@ internal sealed class IceProtocol : Protocol
         DispatchException exception;
         try
         {
-            exception = Decode(readResult.Buffer);
+            exception = Decode(readResult.Buffer, response.StatusCode);
         }
         catch
         {
@@ -104,7 +104,7 @@ internal sealed class IceProtocol : Protocol
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return exception;
 
-        DispatchException Decode(ReadOnlySequence<byte> buffer)
+        DispatchException Decode(ReadOnlySequence<byte> buffer, StatusCode statusCode)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
             ReplyStatus replyStatus = decoder.DecodeReplyStatus();
@@ -115,7 +115,6 @@ internal sealed class IceProtocol : Protocol
             }
 
             string? message = null;
-            DispatchErrorCode errorCode;
 
             switch (replyStatus)
             {
@@ -125,45 +124,27 @@ internal sealed class IceProtocol : Protocol
 
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
-                    errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
-                        DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
-
                     if (requestFailed.Operation.Length > 0)
                     {
                         string target = requestFailed.Fragment.Length > 0 ?
                             $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                        message = $"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                        message = $"{nameof(DispatchException)} {{ StatusCode = {statusCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
                     }
                     // else message remains null
                     break;
 
+                case ReplyStatus.UnknownException:
+                    message = IceProtocolConnection.ParseUnknownExceptionMessage(decoder.DecodeString()).Message;
+                    break;
+
                 default:
                     message = decoder.DecodeString();
-                    errorCode = DispatchErrorCode.UnhandledException;
-
-                    // Attempt to parse the DispatchErrorCode from the message:
-                    if (message.StartsWith('[') &&
-                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
-                    {
-                        try
-                        {
-                            errorCode = (DispatchErrorCode)ulong.Parse(
-                                message[1..pos],
-                                CultureInfo.InvariantCulture);
-
-                            message = message[(pos + 1)..].TrimStart();
-                        }
-                        catch
-                        {
-                            // ignored, keep default errorCode
-                        }
-                    }
                     break;
             }
 
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return new DispatchException(message, errorCode)
+            return new DispatchException(message, statusCode)
             {
                 ConvertToUnhandled = true,
                 Origin = request

@@ -15,9 +15,9 @@ public sealed class ExceptionTests
     {
         get
         {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
-            yield return new TestCaseData(new MyExceptionWithOptionalMembers(), DispatchErrorCode.UnhandledException);
-            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
+            yield return new TestCaseData(new MyExceptionWithOptionalMembers(), StatusCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }
 
@@ -25,9 +25,9 @@ public sealed class ExceptionTests
     {
         get
         {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
-            yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
-            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
+            yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }
 
@@ -425,9 +425,7 @@ public sealed class ExceptionTests
     }
 
     [Test, TestCaseSource(nameof(Slice2OperationThrowsSource))]
-    public async Task Slice2_operation_throws_slice1_exception_fails(
-        Exception throwException,
-        DispatchErrorCode errorCode)
+    public async Task Slice2_operation_throws_slice1_exception_fails(Exception throwException, StatusCode statusCode)
     {
         var coloc = new ColocTransport();
         await using var server = new Server(
@@ -453,13 +451,13 @@ public sealed class ExceptionTests
         DispatchException? exception = Assert.CatchAsync<DispatchException>(() => proxy.OpThrowsAsync());
 
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(exception!.StatusCode, Is.EqualTo(statusCode));
     }
 
     [Test, TestCaseSource(nameof(Slice1OperationThrowsSource))]
     public async Task Slice1_operation_throws_slice1_exception_fails(
         Exception throwException,
-        DispatchErrorCode errorCode)
+        StatusCode statusCode)
     {
         var coloc = new ColocTransport();
         await using var server = new Server(
@@ -482,10 +480,10 @@ public sealed class ExceptionTests
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
         var proxy = new Slice1ExceptionOperationsProxy(connection);
 
-        DispatchException? catchException = Assert.CatchAsync<DispatchException>(() => proxy.OpThrowsAsync());
+        DispatchException? caughtException = Assert.CatchAsync<DispatchException>(() => proxy.OpThrowsAsync());
 
-        Assert.That(catchException, Is.Not.Null);
-        Assert.That(catchException.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(caughtException, Is.Not.Null);
+        Assert.That(caughtException!.StatusCode, Is.EqualTo(statusCode));
     }
 
     class Slice2ExceptionOperations : Service, ISlice2ExceptionOperations
