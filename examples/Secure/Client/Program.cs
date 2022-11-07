@@ -22,7 +22,9 @@ var authenticationOptions = new SslClientAuthenticationOptions()
     }
 };
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"), authenticationOptions);
+await using var connection = new ClientConnection(
+    new Uri("icerpc://127.0.0.1"),
+    clientAuthenticationOptions: authenticationOptions);
 
 var hello = new HelloProxy(connection);
 

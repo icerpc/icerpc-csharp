@@ -5,6 +5,7 @@ using IceRpc.Builder;
 using IceRpc.Builder.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,7 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
+                    provider.GetService<ILogger<ClientConnection>>(),
                     provider.GetRequiredService<IDuplexClientTransport>(),
                     provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
@@ -36,6 +38,7 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ConnectionCache(
                     provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
+                    provider.GetService<ILogger<ClientConnection>>(),
                     provider.GetRequiredService<IDuplexClientTransport>(),
                     provider.GetRequiredService<IMultiplexedClientTransport>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
@@ -80,6 +83,7 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton<Server>(provider =>
                 new Server(
                     provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName),
+                    provider.GetService<ILogger<Server>>(),
                     provider.GetRequiredService<IDuplexServerTransport>(),
                     provider.GetRequiredService<IMultiplexedServerTransport>()));
 
@@ -134,6 +138,7 @@ public static class IceRpcServiceCollectionExtensions
 
                 return new Server(
                     options,
+                    provider.GetService<ILogger<Server>>(),
                     provider.GetRequiredService<IDuplexServerTransport>(),
                     provider.GetRequiredService<IMultiplexedServerTransport>());
             });

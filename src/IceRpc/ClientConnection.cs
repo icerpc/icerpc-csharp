@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Net.Security;
 
@@ -32,10 +33,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
+    /// <param name="logger">The logger.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
     public ClientConnection(
         ClientConnectionOptions options,
+        ILogger? logger = null,
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null)
     {
@@ -44,18 +47,24 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        IClientProtocolConnectionFactory clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
+        IClientProtocolConnectionFactory protocolConnectionFactory = new ClientProtocolConnectionFactory(
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport);
 
-        clientProtocolConnectionFactory =
-            new MetricsClientProtocolConnectionFactoryDecorator(clientProtocolConnectionFactory);
+        protocolConnectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(protocolConnectionFactory);
+
+        if (logger is not null)
+        {
+            protocolConnectionFactory = new LogClientProtocolConnectionFactoryDecorator(
+                protocolConnectionFactory,
+                logger);
+        }
 
         _connectionFactory = previousConnection =>
         {
-            IProtocolConnection connection = clientProtocolConnectionFactory.CreateConnection(serverAddress);
+            IProtocolConnection connection = protocolConnectionFactory.CreateConnection(serverAddress);
 
             if (previousConnection is not null &&
                 CleanupAsync(previousConnection) is Task cleanupTask &&
@@ -109,11 +118,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <summary>Constructs a resumable client connection with the specified server address and client authentication
     /// options. All other <see cref="ClientConnectionOptions" /> properties have their default values.</summary>
     /// <param name="serverAddress">The connection's server address.</param>
+    /// <param name="logger">The logger.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
     public ClientConnection(
         ServerAddress serverAddress,
+        ILogger? logger = null,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null)
@@ -123,6 +134,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 ClientAuthenticationOptions = clientAuthenticationOptions,
                 ServerAddress = serverAddress
             },
+            logger,
             duplexClientTransport,
             multiplexedClientTransport)
     {
@@ -132,16 +144,19 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// authentication options. All other <see cref="ClientConnectionOptions" /> properties have their default values.
     /// </summary>
     /// <param name="serverAddressUri">The connection's server address URI.</param>
+    /// <param name="logger">The logger.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
     public ClientConnection(
         Uri serverAddressUri,
+        ILogger? logger = null,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null)
         : this(
             new ServerAddress(serverAddressUri),
+            logger,
             clientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport)

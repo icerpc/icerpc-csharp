@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Security;
 
@@ -53,12 +54,14 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
+    /// <param name="logger">The server logger.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
     /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     public Server(
         ServerOptions options,
+        ILogger? logger = null,
         IDuplexServerTransport? duplexServerTransport = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null)
     {
@@ -66,7 +69,6 @@ public sealed class Server : IAsyncDisposable
         {
             throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
-
         _serverAddress = options.ServerAddress;
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
@@ -114,13 +116,19 @@ public sealed class Server : IAsyncDisposable
                     options.ServerAuthenticationOptions);
                 listener = new IceRpcProtocolListener(options.ConnectionOptions, transportListener);
             }
-            return new MetricsListenerDecorator(listener);
+            listener = new MetricsListenerDecorator(listener);
+            if (logger is not null)
+            {
+                listener = new LogListenerDecorator(listener, logger);
+            }
+            return listener;
         };
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
     /// have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
+    /// <param name="logger">The server logger.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
@@ -128,6 +136,7 @@ public sealed class Server : IAsyncDisposable
     /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     public Server(
         IDispatcher dispatcher,
+        ILogger? logger = null,
         SslServerAuthenticationOptions? authenticationOptions = null,
         IDuplexServerTransport? duplexServerTransport = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null)
@@ -140,6 +149,7 @@ public sealed class Server : IAsyncDisposable
                     Dispatcher = dispatcher,
                 }
             },
+            logger,
             duplexServerTransport,
             multiplexedServerTransport)
     {
@@ -149,6 +159,7 @@ public sealed class Server : IAsyncDisposable
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
+    /// <param name="logger">The server logger.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
@@ -157,6 +168,7 @@ public sealed class Server : IAsyncDisposable
     public Server(
         IDispatcher dispatcher,
         ServerAddress serverAddress,
+        ILogger? logger = null,
         SslServerAuthenticationOptions? authenticationOptions = null,
         IDuplexServerTransport? duplexServerTransport = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null)
@@ -170,6 +182,7 @@ public sealed class Server : IAsyncDisposable
                 },
                 ServerAddress = serverAddress
             },
+            logger,
             duplexServerTransport,
             multiplexedServerTransport)
     {
@@ -178,6 +191,7 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
     /// other properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
+    /// <param name="logger">The server logger.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="authenticationOptions">The server authentication options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
@@ -187,12 +201,14 @@ public sealed class Server : IAsyncDisposable
     public Server(
         IDispatcher dispatcher,
         Uri serverAddressUri,
+        ILogger? logger = null,
         SslServerAuthenticationOptions? authenticationOptions = null,
         IDuplexServerTransport? duplexServerTransport = null,
         IMultiplexedServerTransport? multiplexedServerTransport = null)
         : this(
             dispatcher,
             new ServerAddress(serverAddressUri),
+            logger,
             authenticationOptions,
             duplexServerTransport,
             multiplexedServerTransport)
@@ -287,8 +303,8 @@ public sealed class Server : IAsyncDisposable
             {
                 while (true)
                 {
-                    (IProtocolConnection connection, _) =
-                        await listener.AcceptAsync(shutdownCancellationToken).ConfigureAwait(false);
+                    (IProtocolConnection connection, _) = await listener.AcceptAsync(shutdownCancellationToken)
+                        .ConfigureAwait(false);
 
                     Func<IProtocolConnection, CancellationToken, Task>? connectFunc;
                     lock (_mutex)
@@ -341,7 +357,6 @@ public sealed class Server : IAsyncDisposable
             }
             catch (Exception exception)
             {
-                // TODO log this exception
                 _shutdownCompleteSource.TrySetException(exception);
             }
         });
@@ -482,6 +497,112 @@ public sealed class Server : IAsyncDisposable
 
     /// <inheritdoc/>
     public override string ToString() => ServerAddress.ToString();
+
+    /// <summary>Provides a decorator that adds logging to a <see cref="IListener{T}" /> of
+    /// <see cref="IProtocolConnection" />.</summary>
+    private class LogListenerDecorator : IListener<IProtocolConnection>
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IListener<IProtocolConnection> _decoratee;
+        private readonly ILogger _logger;
+
+        public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
+                    await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
+                _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
+                return (
+                    new LogProtocolConnectionDecorator(connection, remoteNetworkAddress, _logger),
+                    remoteNetworkAddress);
+            }
+            catch (Exception exception)
+            {
+                _logger.ConnectionAcceptFailure(ServerAddress, exception);
+                throw;
+            }
+        }
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal LogListenerDecorator(IListener<IProtocolConnection> decoratee, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
+            _logger.StartAcceptingConnections(ServerAddress);
+        }
+    }
+
+    /// <summary>Provides a decorator that adds logging to the <see cref="IProtocolConnection" />.</summary>
+    private class LogProtocolConnectionDecorator : IProtocolConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+
+        private readonly IProtocolConnection _decoratee;
+        private readonly ILogger _logger;
+        private readonly Task _logShutdownTask;
+        private readonly EndPoint _remoteNetworkAddress;
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                _logger.ServerConnectSucceed(ServerAddress, _remoteNetworkAddress);
+                return result;
+            }
+            catch (Exception exception)
+            {
+                _logger.ServerConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                throw;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _logger.StopAcceptingConnections(ServerAddress);
+            await _logShutdownTask.ConfigureAwait(false);
+        }
+
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
+            _decoratee.InvokeAsync(request, cancellationToken);
+
+        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ShutdownAsync(cancellationToken);
+
+        internal LogProtocolConnectionDecorator(
+            IProtocolConnection decoratee,
+            EndPoint remoteNetworkAddress,
+            ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
+            _remoteNetworkAddress = remoteNetworkAddress;
+
+            _logShutdownTask = LogShutdownAsync();
+
+            // This task executes once per decorated connection.
+            async Task LogShutdownAsync()
+            {
+                try
+                {
+                    await ShutdownComplete.ConfigureAwait(false);
+                    _logger.ConnectionShutdown(ServerAddress, remoteNetworkAddress);
+                }
+                catch (Exception exception)
+                {
+                    _logger.ConnectionFailure(ServerAddress, remoteNetworkAddress, exception);
+                }
+            }
+        }
+    }
 
     /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{T}" /> of
     /// <see cref="IProtocolConnection" />.</summary>
