@@ -614,6 +614,7 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 [[package]]
 name = "slicec"
 version = "0.1.0"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#ced85482ddd258b44b647861ce5dfaf7d67e5c93"
 dependencies = [
  "clap",
  "console",
