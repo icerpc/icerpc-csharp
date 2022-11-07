@@ -29,8 +29,8 @@ unchecked enum StatusCode : varuint62
     /// The dispatch was canceled; it can be because the server is exiting.
     Canceled,
 
-    /// The dispatch failed because a read or write on the underlying transport stream failed.
-    StreamError,
+    /// The dispatch failed due to a payload error, such as a failure to read the incoming request payload.
+    PayloadError,
 
     /// The request's deadline has expired.
     DeadlineExpired,

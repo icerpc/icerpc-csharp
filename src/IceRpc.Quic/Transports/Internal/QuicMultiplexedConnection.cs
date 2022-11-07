@@ -16,20 +16,20 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
     private protected QuicConnection? _connection;
 
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
 
     private protected QuicMultiplexedConnection(ServerAddress serverAddress, MultiplexedConnectionOptions options)
     {
-        if (options.StreamErrorCodeConverter is null)
+        if (options.PayloadErrorConverter is null)
         {
-            throw new ArgumentException($"{nameof(options.StreamErrorCodeConverter)} is null", nameof(options));
+            throw new ArgumentException($"{nameof(options.PayloadErrorConverter)} is null", nameof(options));
         }
 
         ServerAddress = serverAddress;
 
-        _errorCodeConverter = options.StreamErrorCodeConverter;
+        _errorCodeConverter = options.PayloadErrorConverter;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
     }

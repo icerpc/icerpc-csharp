@@ -44,7 +44,7 @@ public static class ProtocolServiceCollectionExtensions
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+            options => options.PayloadErrorConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }

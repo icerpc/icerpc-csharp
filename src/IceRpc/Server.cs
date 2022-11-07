@@ -109,12 +109,12 @@ public sealed class Server : IAsyncDisposable
                         MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
-                        StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+                        PayloadErrorConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
                     },
                     options.ServerAuthenticationOptions);
                 listener = new IceRpcProtocolListener(options.ConnectionOptions, transportListener);
             }
-            return new LogListenerDecorator(listener);
+            return new MetricsListenerDecorator(listener);
         };
     }
 
@@ -341,7 +341,7 @@ public sealed class Server : IAsyncDisposable
             }
             catch (Exception exception)
             {
-                ServerEventSource.Log.ConnectionAcceptFailure(ServerAddress, exception);
+                // TODO log this exception
                 _shutdownCompleteSource.TrySetException(exception);
             }
         });
@@ -483,9 +483,9 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public override string ToString() => ServerAddress.ToString();
 
-    /// <summary>Provides a decorator that adds logging to a <see cref="IListener{T}" /> of
+    /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{T}" /> of
     /// <see cref="IProtocolConnection" />.</summary>
-    private class LogListenerDecorator : IListener<IProtocolConnection>
+    private class MetricsListenerDecorator : IListener<IProtocolConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -496,54 +496,46 @@ public sealed class Server : IAsyncDisposable
         {
             (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-
-            // We don't log AcceptAsync exceptions; they usually occur when the server is shutting down.
-            ServerEventSource.Log.ConnectionStart(ServerAddress, remoteNetworkAddress);
-            return (new LogProtocolConnectionDecorator(connection, remoteNetworkAddress), remoteNetworkAddress);
+            ServerMetrics.Instance.ConnectionStart();
+            return (new MetricsProtocolConnectionDecorator(connection), remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal LogListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
+        internal MetricsListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
     }
 
-    /// <summary>Provides a decorator that adds EventSource-based logging to the <see cref="IProtocolConnection" />.
+    /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.
     /// </summary>
-    private class LogProtocolConnectionDecorator : IProtocolConnection
+    private class MetricsProtocolConnectionDecorator : IProtocolConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
         public Task ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly IProtocolConnection _decoratee;
-        private readonly Task _logShutdownTask;
-        private readonly EndPoint _remoteNetworkAddress;
+        private readonly Task _shutdownTask;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
-            ServerEventSource.Log.ConnectStart(ServerAddress, _remoteNetworkAddress);
+            ServerMetrics.Instance.ConnectStart();
             try
             {
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
-                ServerEventSource.Log.ConnectSuccess(ServerAddress, _remoteNetworkAddress);
+                ServerMetrics.Instance.ConnectSuccess();
                 return result;
-            }
-            catch (Exception exception)
-            {
-                ServerEventSource.Log.ConnectFailure(ServerAddress, _remoteNetworkAddress, exception);
-                throw;
             }
             finally
             {
-                ServerEventSource.Log.ConnectStop(ServerAddress, _remoteNetworkAddress);
+                ServerMetrics.Instance.ConnectStop();
             }
         }
 
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            await _logShutdownTask.ConfigureAwait(false);
+            await _shutdownTask.ConfigureAwait(false);
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -552,29 +544,24 @@ public sealed class Server : IAsyncDisposable
         public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(cancellationToken);
 
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, EndPoint remoteNetworkAddress)
+        internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
         {
             _decoratee = decoratee;
-            _remoteNetworkAddress = remoteNetworkAddress;
 
-            _logShutdownTask = LogShutdownAsync();
+            _shutdownTask = ShutdownAsync();
 
             // This task executes once per decorated connection.
-            async Task LogShutdownAsync()
+            async Task ShutdownAsync()
             {
                 try
                 {
                     await ShutdownComplete.ConfigureAwait(false);
-                    ServerEventSource.Log.ConnectionShutdown(ServerAddress, remoteNetworkAddress);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    ServerEventSource.Log.ConnectionFailure(
-                        ServerAddress,
-                        remoteNetworkAddress,
-                        exception);
+                    ServerMetrics.Instance.ConnectionFailure();
                 }
-                ServerEventSource.Log.ConnectionStop(ServerAddress, _remoteNetworkAddress);
+                ServerMetrics.Instance.ConnectionStop();
             }
         }
     }

@@ -15,8 +15,7 @@ internal sealed class IceRpcProtocol : Protocol
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
 
-    internal IMultiplexedStreamErrorCodeConverter MultiplexedStreamErrorCodeConverter { get; }
-        = new ErrorCodeConverter();
+    internal IPayloadErrorCodeConverter PayloadErrorCodeConverter { get; } = new IceRpcPayloadErrorCodeConverter();
 
     internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
@@ -83,35 +82,38 @@ internal sealed class IceRpcProtocol : Protocol
     {
     }
 
-    private class ErrorCodeConverter : IMultiplexedStreamErrorCodeConverter
+    private class IceRpcPayloadErrorCodeConverter : IPayloadErrorCodeConverter
     {
-        // We don't map error codes received from the peer to exceptions such as OperationCanceledException,
-        // ConnectionException or InvalidData as it would be confusing: OperationCanceledException etc. are local
-        // exceptions that don't report remote events.
-        public Exception? FromErrorCode(ulong errorCode) =>
-            (IceRpcStreamErrorCode)errorCode switch
+        public PayloadException? FromErrorCode(ulong errorCode)
+        {
+            // For icerpc, the conversion from the error code transmitted over the multiplexed stream and
+            // PayloadErrorCode is a simple cast.
+            var payloadErrorCode = (PayloadErrorCode)errorCode;
+
+            return payloadErrorCode switch
             {
-                IceRpcStreamErrorCode.NoError => null,
-                _ => new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode)
+                PayloadErrorCode.ReadComplete => null,
+                _ => new PayloadException(payloadErrorCode)
             };
+        }
 
         public ulong ToErrorCode(Exception? exception) =>
             exception switch
             {
-                null => (ulong)IceRpcStreamErrorCode.NoError,
+                null => (ulong)PayloadErrorCode.ReadComplete,
 
-                OperationCanceledException => (ulong)IceRpcStreamErrorCode.Canceled,
+                OperationCanceledException => (ulong)PayloadErrorCode.Canceled,
 
                 ConnectionException connectionException =>
                     connectionException.ErrorCode.IsClosedErrorCode() ?
-                        (ulong)IceRpcStreamErrorCode.ConnectionShutdown :
-                        (ulong)IceRpcStreamErrorCode.Unspecified,
+                        (ulong)PayloadErrorCode.ConnectionShutdown :
+                        (ulong)PayloadErrorCode.Unspecified,
 
-                IceRpcProtocolStreamException streamException => (ulong)streamException.ErrorCode,
+                InvalidDataException => (ulong)PayloadErrorCode.InvalidData,
 
-                InvalidDataException => (ulong)IceRpcStreamErrorCode.InvalidData,
+                PayloadException payloadException => (ulong)payloadException.ErrorCode,
 
-                _ => (ulong)IceRpcStreamErrorCode.Unspecified
+                _ => (ulong)PayloadErrorCode.Unspecified
             };
     }
 }

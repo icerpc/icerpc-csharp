@@ -433,7 +433,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw;
             }
         }
-        catch (IceRpcProtocolStreamException exception)
+        catch (PayloadException exception)
         {
             completeException = exception;
             throw;
@@ -445,7 +445,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (ProtocolException exception)
         {
-            // TODO: should we throw IceRpcProtocolStreamException(IceRpcStreamErrorCode.ProtocolError) instead?
+            // TODO: should we throw PayloadException(PayloadErrorCode.ProtocolError) instead?
             completeException = exception;
             throw;
         }
@@ -785,7 +785,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
                         // We complete without throwing/catching any exception.
-                        await writer.CompleteAsync(new IceRpcProtocolStreamException(IceRpcStreamErrorCode.Canceled))
+                        await writer.CompleteAsync(new PayloadException(PayloadErrorCode.Canceled))
                             .ConfigureAwait(false);
 
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
@@ -977,8 +977,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     StatusCode statusCode = exception switch
                     {
-                        InvalidDataException => StatusCode.InvalidData,
-                        IceRpcProtocolStreamException => StatusCode.StreamError,
+                        InvalidDataException _ => StatusCode.InvalidData,
+                        PayloadException => StatusCode.PayloadError,
                         _ => StatusCode.UnhandledException
                     };
 
