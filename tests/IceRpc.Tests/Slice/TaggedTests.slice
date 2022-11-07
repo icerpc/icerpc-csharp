@@ -9,5 +9,4 @@ struct MyStructWithTaggedMembers
     c: tag(3) MyEnum?,
     d: tag(4) sequence<uint8>?,
     e: tag(5) string?,
-    f: tag(6) MyTraitA?
 }
