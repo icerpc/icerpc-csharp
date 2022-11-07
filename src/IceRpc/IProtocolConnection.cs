@@ -4,10 +4,9 @@ using IceRpc.Transports;
 
 namespace IceRpc;
 
-/// <summary>Represents a connection for a <see cref="Protocol" />. It is the building block for
-/// <see cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by
-/// <see cref="Server" />. Applications can use this interface to build their own custom client connection and
-/// connection cache classes.
+/// <summary>Represents a connection for a <see cref="Protocol" />. It is the building block for <see
+/// cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by <see cref="Server" />.
+/// Applications can use this interface to build their own custom client connection and connection cache classes.
 /// </summary>
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
@@ -23,9 +22,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes once the connection is established  provides the <see
-    /// cref="TransportConnectionInformation" /> for this connection. This task can also complete with one of the
-    /// following exceptions:
+    /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
+    /// once this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionException" />if the connection establishment failed.</description>
     /// </item>
@@ -39,7 +37,9 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Gracefully shuts down the connection.</summary>
+    /// <summary>Gracefully shuts down the connection. The shutdown waits for pending invocations and dispatches to
+    /// complete. For a speedier graceful shutdown, call <see cref="IAsyncDisposable.DisposeAsync" /> instead. It will
+    /// cancel pending invocations and dispatches.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
@@ -47,11 +47,13 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <item><description><see cref="ConnectionException" />if the connection shutdown failed.</description></item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded
-    /// <see cref="ConnectionOptions.ShutdownTimeout" />.</description></item>
+    /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded <see
+    /// cref="ConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <remarks>If shutdown is canceled, the protocol connection transitions to a faulted state and the disposal of the
+    /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     Task ShutdownAsync(CancellationToken cancellationToken = default);
 }

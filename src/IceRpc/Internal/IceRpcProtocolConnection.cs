@@ -29,7 +29,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     // Whether or not the inner exception details should be included in dispatch exceptions
     private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
+
+    // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
+    // was accepted.
     private ulong? _lastRemoteBidirectionalStreamId;
+
+    // The ID of the last unidirectional stream accepted by this connection. It's null as long as no unidirectional
+    // stream (other than _remoteControlStream) was accepted.
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
@@ -190,79 +196,54 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    bool done = false;
-                    do
+                    while (true)
                     {
                         // If _dispatcher is null, this call will block indefinitely until the connection is closed
                         // because the multiplexed connection MaxUnidirectionalStreams and MaxBidirectionalStreams
-                        // options don't allow the peer to open streams.
+                        // options don't allow this peer to accept streams.
                         IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
                             .ConfigureAwait(false);
 
+                        bool done = false;
                         lock (_mutex)
                         {
-                            if (_dispatchesCompleted.Task.IsCompleted || _streamsClosed.Task.IsCompleted)
+                            if (_isReadOnly)
                             {
-                                // We can't accept any new stream or dispatch since the corresponding task is already
-                                // completed. We'll close this stream with an exception (see below).
-                                Debug.Assert(_isReadOnly);
                                 done = true;
                             }
                             else
                             {
+                                // The multiplexed connection guarantees that the IDs of accepted streams of a given
+                                // type have ever increasing values.
+
                                 if (stream.IsBidirectional)
                                 {
-                                    if (_lastRemoteBidirectionalStreamId is null ||
-                                        _lastRemoteBidirectionalStreamId.Value < stream.Id)
-                                    {
-                                        if (_isReadOnly)
-                                        {
-                                            done = true;
-                                        }
-                                        else
-                                        {
-                                            _lastRemoteBidirectionalStreamId = stream.Id;
-                                        }
-                                    }
-                                    // else we received a smaller bidirectional stream ID that we're going to dispatch
-                                    // even if we're shutting down.
+                                    _lastRemoteBidirectionalStreamId = stream.Id;
                                 }
-                                else if (_lastRemoteUnidirectionalStreamId is null ||
-                                        _lastRemoteUnidirectionalStreamId.Value < stream.Id)
+                                else
                                 {
-                                    if (_isReadOnly)
-                                    {
-                                        done = true;
-                                    }
-                                    else
-                                    {
-                                        _lastRemoteUnidirectionalStreamId = stream.Id;
-                                    }
+                                    _lastRemoteUnidirectionalStreamId = stream.Id;
                                 }
-                                // else we received a smaller unidirectional stream ID that we're going to dispatch even
-                                // if we're shutting down.
 
-                                if (!done)
+                                ++_dispatchCount;
+
+                                if (++_streamCount == 1)
                                 {
-                                    ++_dispatchCount;
-
-                                    if (++_streamCount == 1)
-                                    {
-                                        // We were idle, we no longer are.
-                                        DisableIdleCheck();
-                                    }
-                                    _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
+                                    // We were idle, we no longer are.
+                                    DisableIdleCheck();
                                 }
+                                _ = RemoveStreamOnInputAndOutputClosedAsync(stream);
                             }
                         }
 
                         if (done)
                         {
-                            await stream.Input.CompleteAsync(ConnectionClosedException).ConfigureAwait(false);
+                            stream.Input.Complete(ConnectionClosedException);
                             if (stream.IsBidirectional)
                             {
-                                await stream.Output.CompleteAsync(ConnectionClosedException).ConfigureAwait(false);
+                                stream.Output.Complete(ConnectionClosedException);
                             }
+                            return;
                         }
                         else
                         {
@@ -279,7 +260,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                         {
                                             if (--_dispatchCount == 0 && _isReadOnly)
                                             {
-                                                _dispatchesCompleted.TrySetResult();
+                                                _ = _dispatchesCompleted.TrySetResult();
                                             }
                                         }
                                     }
@@ -287,7 +268,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 CancellationToken.None);
                         }
                     }
-                    while (!done);
                 }
                 catch (OperationCanceledException)
                 {
@@ -453,7 +433,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw;
             }
         }
-        catch (IceRpcProtocolStreamException exception)
+        catch (PayloadException exception)
         {
             completeException = exception;
             throw;
@@ -465,7 +445,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (ProtocolException exception)
         {
-            // TODO: should we throw IceRpcProtocolStreamException(IceRpcStreamErrorCode.ProtocolError) instead?
+            // TODO: should we throw PayloadException(PayloadErrorCode.ProtocolError) instead?
             completeException = exception;
             throw;
         }
@@ -558,7 +538,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     _dispatchesCompleted.TrySetResult();
                 }
-                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId);
+
+                // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
+                // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
+                goAwayFrame = new(
+                    _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
+                    (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
             }
 
             try
@@ -578,11 +563,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // is read-only at this point.
                 foreach (IMultiplexedStream stream in _pendingInvocationStreams.Where(stream =>
                     !stream.IsStarted ||
-                    (stream.IsBidirectional ?
-                        peerGoAwayFrame.LastBidirectionalStreamId is null ||
-                        stream.Id > peerGoAwayFrame.LastBidirectionalStreamId :
-                            peerGoAwayFrame.LastUnidirectionalStreamId is null ||
-                            stream.Id > peerGoAwayFrame.LastUnidirectionalStreamId)))
+                    stream.Id >= (stream.IsBidirectional ?
+                        peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId)))
                 {
                     stream.Abort(ConnectionClosedException);
                 }
@@ -803,7 +785,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
                         // We complete without throwing/catching any exception.
-                        await writer.CompleteAsync(new IceRpcProtocolStreamException(IceRpcStreamErrorCode.Canceled))
+                        await writer.CompleteAsync(new PayloadException(PayloadErrorCode.Canceled))
                             .ConfigureAwait(false);
 
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
@@ -997,7 +979,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     DispatchErrorCode errorCode = exception switch
                     {
                         InvalidDataException _ => DispatchErrorCode.InvalidData,
-                        IceRpcProtocolStreamException => DispatchErrorCode.StreamError,
+                        PayloadException => DispatchErrorCode.PayloadError,
                         _ => DispatchErrorCode.UnhandledException
                     };
 

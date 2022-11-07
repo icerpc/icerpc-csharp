@@ -53,14 +53,13 @@ unchecked enum IceRpcSettingKey : varuint62
 }
 
 /// The GoAway frame is sent on connection shutdown to notify the remote peer that it shouldn't send additional requests
-/// and to provide the stream IDs of the requests already dispatched or that are still being dispatched by the local
-/// peer. Requests carried by streams with IDs superior to these stream IDs can safely be retried since the local peer
-/// did not process them at all. A null stream ID value indicates that no request was dispatched by the local peer.
+/// and to provide two stream IDs. Requests carried by streams with IDs greater or equal to these stream IDs were not
+/// accepted or otherwise processed, and as a result can be safely retried.
 [cs::readonly]
 compact struct IceRpcGoAway
 {
-    lastBidirectionalStreamId: varuint62?,
-    lastUnidirectionalStreamId: varuint62?,
+    bidirectionalStreamId: varuint62,
+    unidirectionalStreamId: varuint62,
 }
 
 /// The icerpc-specific error codes carried by multiplexed connections. These values are shared and carried blindly by
@@ -72,25 +71,4 @@ unchecked enum IceRpcConnectionErrorCode : varuint62
 
     /// The connection was refused by the server.
     Refused
-}
-
-/// The icerpc-specific error codes carried by multiplexed streams. These values are shared and carried blindly by
-/// all multiplexed transports. Multiplexed transports don't interpret these error codes or generate these codes.
-unchecked enum IceRpcStreamErrorCode : varuint62
-{
-    /// The stream (or one side of the stream) completed without error.
-    NoError = 0,
-
-    /// The stream (or one side of the stream) completed with an exception that could not be converted into a more
-    /// specific error code.
-    Unspecified,
-
-    /// The stream completed because the associated invocation or dispatch was canceled.
-    Canceled,
-
-    /// The connection was shut down.
-    ConnectionShutdown,
-
-    /// The data carried by the stream could not be decoded.
-    InvalidData
 }

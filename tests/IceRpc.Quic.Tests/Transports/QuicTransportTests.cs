@@ -8,6 +8,7 @@ using NUnit.Framework;
 using System.Diagnostics;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc.Tests.Transports;
 
@@ -49,7 +50,7 @@ public class QuicTransportTests
         var acceptTask = listener.AcceptAsync(default);
 
         // Assert
-        Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<TransportException>());
+        Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<AuthenticationException>());
         Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
         Assert.That(async () => await acceptTask, Throws.Nothing);
 

@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Net.Quic;
+using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -15,20 +16,20 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
     private protected QuicConnection? _connection;
 
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
 
     private protected QuicMultiplexedConnection(ServerAddress serverAddress, MultiplexedConnectionOptions options)
     {
-        if (options.StreamErrorCodeConverter is null)
+        if (options.PayloadErrorCodeConverter is null)
         {
-            throw new ArgumentException($"{nameof(options.StreamErrorCodeConverter)} is null", nameof(options));
+            throw new ArgumentException($"{nameof(options.PayloadErrorCodeConverter)} is null", nameof(options));
         }
 
         ServerAddress = serverAddress;
 
-        _errorCodeConverter = options.StreamErrorCodeConverter;
+        _errorCodeConverter = options.PayloadErrorCodeConverter;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
     }
@@ -155,6 +156,10 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
         catch (QuicException exception)
         {
             throw exception.ToTransportException();
+        }
+        catch (AuthenticationException)
+        {
+            throw;
         }
         catch (OperationCanceledException)
         {
