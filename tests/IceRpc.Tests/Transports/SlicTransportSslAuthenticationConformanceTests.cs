@@ -25,7 +25,7 @@ public class SlicTransportSslAuthenticationConformanceTests : MultiplexedTranspo
                 provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+            options => options.PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }

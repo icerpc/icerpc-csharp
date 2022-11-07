@@ -27,7 +27,7 @@ public record class MultiplexedConnectionOptions
 
     /// <summary>Gets or sets the <see cref="IPayloadErrorCodeConverter" />.</summary>
     /// <value>The <see cref="IPayloadErrorCodeConverter" />.</value>
-    public IPayloadErrorCodeConverter? PayloadErrorConverter { get; set; }
+    public IPayloadErrorCodeConverter? PayloadErrorCodeConverter { get; set; }
 
     internal const int DefaultMaxBidirectionalStreams = 100;
     internal const int DefaultMaxUnidirectionalStreams = 100;

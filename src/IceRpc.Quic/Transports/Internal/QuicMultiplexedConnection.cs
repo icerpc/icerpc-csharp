@@ -22,14 +22,14 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
     private protected QuicMultiplexedConnection(ServerAddress serverAddress, MultiplexedConnectionOptions options)
     {
-        if (options.PayloadErrorConverter is null)
+        if (options.PayloadErrorCodeConverter is null)
         {
-            throw new ArgumentException($"{nameof(options.PayloadErrorConverter)} is null", nameof(options));
+            throw new ArgumentException($"{nameof(options.PayloadErrorCodeConverter)} is null", nameof(options));
         }
 
         ServerAddress = serverAddress;
 
-        _errorCodeConverter = options.PayloadErrorConverter;
+        _errorCodeConverter = options.PayloadErrorCodeConverter;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
     }

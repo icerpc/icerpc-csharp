@@ -411,13 +411,13 @@ internal class SlicConnection : IMultiplexedConnection
         SlicTransportOptions slicOptions,
         bool isServer)
     {
-        if (options.PayloadErrorConverter is null)
+        if (options.PayloadErrorCodeConverter is null)
         {
-            throw new ArgumentException($"{nameof(options.PayloadErrorConverter)} is null", nameof(options));
+            throw new ArgumentException($"{nameof(options.PayloadErrorCodeConverter)} is null", nameof(options));
         }
 
         IsServer = isServer;
-        ErrorCodeConverter = options.PayloadErrorConverter;
+        ErrorCodeConverter = options.PayloadErrorCodeConverter;
 
         Pool = options.Pool;
         MinSegmentSize = options.MinSegmentSize;

@@ -8,7 +8,7 @@ namespace IceRpc.Transports;
 /// <see cref="PipeReader.Complete(Exception?)" /> and <see cref="PipeWriter.Complete(Exception?)" /> into error codes,
 /// and to convert error codes received from the remote peer into payload exceptions. Each converter implementation is
 /// protocol-specific.</summary>
-/// <seealso cref="MultiplexedConnectionOptions.PayloadErrorConverter" />
+/// <seealso cref="MultiplexedConnectionOptions.PayloadErrorCodeConverter" />
 public interface IPayloadErrorCodeConverter
 {
     /// <summary>Converts an error code carried by a multiplexed stream into a payload exception.</summary>
