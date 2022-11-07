@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_attributes;
+use slice::compilation_result::{CompilationData, CompilationResult};
 use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note, Warning, WarningKind};
 use slice::grammar::*;
-use slice::parse_result::{ParsedData, ParserResult};
 use slice::visitor::Visitor;
 
-pub(crate) fn validate_cs_attributes(mut parsed_data: ParsedData) -> ParserResult {
+pub(crate) fn validate_cs_attributes(mut parsed_data: CompilationData) -> CompilationResult {
     let mut visitor = CsValidator {
         diagnostic_reporter: &mut parsed_data.diagnostic_reporter,
     };

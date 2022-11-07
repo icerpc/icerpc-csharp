@@ -19,8 +19,8 @@ use comment_patcher::patch_comments;
 use cs_options::CsOptions;
 use generated_code::GeneratedCode;
 use slice::clap::Parser;
+use slice::compilation_result::CompilationResult;
 use slice::diagnostics::{Error, ErrorKind};
-use slice::parse_result::ParserResult;
 use slice::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
@@ -42,7 +42,7 @@ pub fn main() {
     std::process::exit(parsed_data.into_exit_code());
 }
 
-fn try_main() -> ParserResult {
+fn try_main() -> CompilationResult {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
     let mut parsed_data = slice::parse_from_options(slice_options)

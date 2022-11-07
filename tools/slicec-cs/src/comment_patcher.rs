@@ -6,14 +6,14 @@ use crate::slicec_ext::*;
 
 use slice::ast::node::Node;
 use slice::ast::Ast;
+use slice::compilation_result::{CompilationData, CompilationResult};
 use slice::grammar::{DocComment, Entity};
-use slice::parse_result::{ParsedData, ParserResult};
 
 struct CommentPatcher {
     patched_comments: HashMap<usize, Option<DocComment>>,
 }
 
-pub fn patch_comments(mut parsed_data: ParsedData) -> ParserResult {
+pub fn patch_comments(mut parsed_data: CompilationData) -> CompilationResult {
     let mut patcher = CommentPatcher {
         patched_comments: HashMap::new(),
     };
