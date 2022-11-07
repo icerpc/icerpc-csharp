@@ -9,11 +9,11 @@ internal sealed class ClientMetrics : IDisposable
 {
     internal static readonly ClientMetrics Instance = new("IceRpc.Client");
 
-    // The number of connections that were created and are being connected
-    private long _currentQueue;
-
     // The number of active connections
     private long _currentConnections;
+
+    // The number of connections that were created and are being connected
+    private long _currentQueue;
 
     private readonly Meter _meter;
 
@@ -26,24 +26,21 @@ internal sealed class ClientMetrics : IDisposable
     /// <inheritdoc/>
     public void Dispose() => _meter.Dispose();
 
-    /// <summary>Creates a new instance of the <see cref="ClientMetrics" /> class with the specified name.
-    /// </summary>
-    /// <param name="meterName">The name to apply to the meter.</param>
     internal ClientMetrics(string meterName)
     {
         _meter = new Meter(meterName);
-
-        _meter.CreateObservableUpDownCounter(
-            "current-queue",
-            () => Volatile.Read(ref _currentQueue),
-            "Connections",
-            "Current Queue");
 
         _meter.CreateObservableUpDownCounter(
             "current-connections",
             () => Volatile.Read(ref _currentConnections),
             "Connections",
             "Current Connections");
+
+        _meter.CreateObservableUpDownCounter(
+            "current-queue",
+            () => Volatile.Read(ref _currentQueue),
+            "Connections",
+            "Current Queue");
 
         _meter.CreateObservableCounter(
             "total-connections",

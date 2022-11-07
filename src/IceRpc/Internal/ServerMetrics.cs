@@ -26,9 +26,6 @@ internal sealed class ServerMetrics : IDisposable
     /// <inheritdoc/>
     public void Dispose() => _meter.Dispose();
 
-    /// <summary>Creates a new instance of the <see cref="ServerMetrics" /> class with the specified name.
-    /// </summary>
-    /// <param name="meterName">The name to apply to the meter.</param>
     internal ServerMetrics(string meterName)
     {
         _meter = new Meter(meterName);
