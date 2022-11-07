@@ -14,7 +14,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
     internal Task Closed { get; }
 
-    private Exception? _abortException;
     private readonly Action _completedCallback;
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
@@ -51,7 +50,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                Abort(exception);
+                _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
             }
 
             _pipe.Writer.Complete();
@@ -145,10 +144,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 await WriteSequenceAsync(source, completeWrites: endStream, cancellationToken).ConfigureAwait(false);
                 return new FlushResult(isCanceled: false, isCompleted: endStream);
             }
-        }
-        catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
-        {
-            throw abortException;
         }
         catch (QuicException exception) when (
             exception.QuicError == QuicError.StreamAborted &&
@@ -244,18 +239,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 throw exception.ToTransportException();
             }
             // we don't wrap other exceptions
-        }
-    }
-
-    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception
-    // exception from the current or next WriteAsync or FlushAsync.
-    internal void Abort(Exception exception)
-    {
-        // If WritesClosed is already completed or this is not the first call to Abort, there is nothing to abort.
-        if (!_stream.WritesClosed.IsCompleted &&
-            Interlocked.CompareExchange(ref _abortException, exception, null) is null)
-        {
-            _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
         }
     }
 }
