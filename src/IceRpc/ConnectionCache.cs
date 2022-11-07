@@ -43,7 +43,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null)
     {
-        _connectionFactory = new LogClientProtocolConnectionFactoryDecorator(
+        _connectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(
             new ClientProtocolConnectionFactory(
                 options.ConnectionOptions,
                 options.ClientAuthenticationOptions,

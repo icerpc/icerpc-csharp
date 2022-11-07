@@ -15,7 +15,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
 
@@ -197,7 +197,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     internal QuicPipeWriter(
         QuicStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize,
         Action completedCallback)
