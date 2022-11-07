@@ -63,7 +63,7 @@ internal sealed class IceRpcProtocol : Protocol
         DispatchException Decode(ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            string message = decoder.DecodeString((int)buffer.Length);
+            string message = decoder.DecodeStringBody((int)buffer.Length);
             return new DispatchException(message, response.StatusCode)
             {
                 ConvertToUnhandled = true,
