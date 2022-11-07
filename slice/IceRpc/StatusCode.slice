@@ -2,20 +2,20 @@
 
 module IceRpc;
 
-/// The status code indicates whether a request has completed successfully, and, if not, which error occurred. It's
-/// carried by responses.
+/// The status code indicates whether the dispatch of a request has completed successfully, and, if not, which error
+/// occurred. It's carried by responses.
 unchecked enum StatusCode : varuint62
 {
-    /// The request completed successfully.
+    /// The dispatch completed successfully.
     Success = 0,
 
-    /// The request failed.
+    /// The dispatch failed.
     Failure,
 
-    /// The server could not find the target service.
+    /// The dispatch could not find the target service.
     ServiceNotFound,
 
-    /// The server found the target service but this target service does not have the requested operation.
+    /// The dispatch found the target service but this target service does not have the requested operation.
     OperationNotFound,
 
     /// The dispatch failed with an unhandled exception.
@@ -23,15 +23,15 @@ unchecked enum StatusCode : varuint62
 
     /// The dispatch failed because the request payload could not be decoded or because a middleware could not decode
     /// a request field. It is typically due to a mismatch of the Slice definitions (or more generally IDL definitions)
-    /// used by the client and the server.
+    /// used by the invoker and the dispatcher.
     InvalidData,
 
-    /// The dispatch was canceled; it can be because the server is exiting.
+    /// The dispatch was canceled; it can be because the remote peer is exiting.
     Canceled,
 
     /// The dispatch failed due to a payload error, such as a failure to read the incoming request payload.
     PayloadError,
 
-    /// The request's deadline has expired.
+    /// The dispatch detected the expiration of the request's deadline.
     DeadlineExpired,
 }
