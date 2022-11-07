@@ -48,7 +48,7 @@ public interface IMultiplexedStream : IDuplexPipe
     Task OutputClosed { get; }
 
     /// <summary>Aborts the stream. The implementation converts <paramref name="exception"/> into an error code using
-    /// the configured <see cref="IMultiplexedStreamErrorCodeConverter" /> and transmits this error code to the remote
+    /// the configured <see cref="IPayloadErrorCodeConverter" /> and transmits this error code to the remote
     /// peer. Outstanding and subsequent calls to <see cref="PipeReader.ReadAsync(CancellationToken)" />,
     /// <see cref="PipeWriter.WriteAsync" /> and <see cref="PipeWriter.FlushAsync(CancellationToken)" /> on
     /// <see cref="IDuplexPipe.Input" /> and <see cref="IDuplexPipe.Output" /> throw this exception as well.</summary>

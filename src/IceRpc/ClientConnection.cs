@@ -51,7 +51,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             multiplexedClientTransport);
 
         clientProtocolConnectionFactory =
-            new LogClientProtocolConnectionFactoryDecorator(clientProtocolConnectionFactory);
+            new MetricsClientProtocolConnectionFactoryDecorator(clientProtocolConnectionFactory);
 
         _connectionFactory = previousConnection =>
         {

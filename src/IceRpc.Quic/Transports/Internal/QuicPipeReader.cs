@@ -16,7 +16,7 @@ internal class QuicPipeReader : PipeReader
 
     private Exception? _abortException;
     private readonly Action _completedCallback;
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
@@ -88,7 +88,7 @@ internal class QuicPipeReader : PipeReader
 
     internal QuicPipeReader(
         QuicStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action completedCallback)
