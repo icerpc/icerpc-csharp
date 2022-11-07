@@ -380,7 +380,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         PipeReader? frameReader = null;
         int requestId = 0;
-        Exception? completeException = null;
         try
         {
             if (request.PayloadContinuation is not null)
@@ -451,8 +450,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             finally
             {
-                await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
-
+                payloadWriter.Complete();
                 _writeSemaphore.Release();
             }
 
@@ -543,49 +541,39 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            return new IncomingResponse(request, _connectionContext!, fields)
+            var response = new IncomingResponse(request, _connectionContext!, fields)
             {
                 Payload = frameReader,
                 StatusCode = statusCode
             };
+
+            frameReader = null; // response now owns frameReader
+            return response;
         }
-        catch (OperationCanceledException exception)
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            if (_dispatchesAndInvocationsCts.IsCancellationRequested)
+            if (ConnectionClosedException is ConnectionException connectionException &&
+                connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
             {
-                if (ConnectionClosedException is ConnectionException connectionException &&
-                    connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
-                {
-                    // If the connection was lost, report a transport error.
-                    throw new ConnectionException(
-                        ConnectionErrorCode.TransportError,
-                        connectionException.InnerException);
-                }
-                else
-                {
-                    // Otherwise, the invocation was canceled because of a speedy-shutdown.
-                    throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-                }
+                // If the connection was lost, report a transport error.
+                throw new ConnectionException(ConnectionErrorCode.TransportError, connectionException.InnerException);
             }
             else
             {
-                completeException = exception;
-                throw;
+                // Otherwise, the invocation was canceled because of a speedy-shutdown.
+                throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
         }
-        catch (ConnectionException exception)
+        catch (OperationCanceledException)
         {
-            completeException = exception;
             throw;
         }
         catch (TransportException exception)
         {
-            completeException = exception;
             throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
         }
         catch (Exception exception)
         {
-            completeException = exception;
             throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
         }
         finally
@@ -612,12 +600,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            cts?.Dispose();
-
-            if (completeException is not null && frameReader is not null)
-            {
-                await frameReader.CompleteAsync(completeException).ConfigureAwait(false);
-            }
+            frameReader?.Complete();
+            cts.Dispose();
         }
 
         static void EncodeRequestHeader(
@@ -747,12 +731,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch
         {
-            await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+            pipe.Reader.Complete();
             throw;
         }
         finally
         {
-            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            pipe.Writer.Complete();
         }
 
         return pipe.Reader;
@@ -833,7 +817,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         _memoryPool,
                         _minSegmentSize,
                         cancellationToken).ConfigureAwait(false);
-                    await batchRequestReader.CompleteAsync().ConfigureAwait(false);
+                    batchRequestReader.Complete();
                     break;
 
                 case IceFrameType.Reply:
@@ -868,7 +852,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _minSegmentSize,
                 cancellationToken).ConfigureAwait(false);
 
-            bool cleanupFrameReader = true;
+            bool completeFrameReader = true;
 
             try
             {
@@ -891,8 +875,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         out TaskCompletionSource<PipeReader>? responseCompletionSource))
                     {
                         responseCompletionSource.SetResult(replyFrameReader);
-
-                        cleanupFrameReader = false;
+                        completeFrameReader = false;
                     }
                     else if (!_isReadOnly)
                     {
@@ -902,9 +885,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             finally
             {
-                if (cleanupFrameReader)
+                if (completeFrameReader)
                 {
-                    await replyFrameReader.CompleteAsync().ConfigureAwait(false);
+                    replyFrameReader.Complete();
                 }
             }
         }
@@ -1004,13 +987,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     },
                     CancellationToken.None);
             }
-            catch (Exception exception)
+            catch
             {
-                await requestFrameReader.CompleteAsync(exception).ConfigureAwait(false);
-                if (contextReader is not null)
-                {
-                    await contextReader.CompleteAsync().ConfigureAwait(false);
-                }
+                requestFrameReader.Complete();
+                contextReader?.Complete();
                 throw;
             }
 
@@ -1087,20 +1067,16 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 finally
                 {
-                    await request.Payload.CompleteAsync().ConfigureAwait(false);
-                    if (contextReader is not null)
-                    {
-                        await contextReader.CompleteAsync().ConfigureAwait(false);
+                    request.Payload.Complete();
+                    contextReader?.Complete();
 
-                        // The field values are now invalid - they point to potentially recycled and reused memory. We
-                        // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
-                        request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
-                    }
+                    // The field values are now invalid - they point to potentially recycled and reused memory. We
+                    // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
+                    request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                 }
 
                 PipeWriter payloadWriter = _payloadWriter;
                 bool acquiredSemaphore = false;
-                Exception? completeException = null;
 
                 try
                 {
@@ -1154,13 +1130,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             "payload writer cancellation or completion is not supported with the ice protocol");
                     }
                 }
-                catch (Exception exception)
-                {
-                    completeException = exception;
-                }
                 finally
                 {
-                    await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
+                    payloadWriter.Complete();
 
                     if (acquiredSemaphore)
                     {
