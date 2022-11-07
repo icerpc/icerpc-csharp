@@ -58,7 +58,7 @@ public class QuicTransportConformanceTests : MultiplexedTransportConformanceTest
         services.AddOptions<QuicServerTransportOptions>();
         services.AddOptions<QuicClientTransportOptions>();
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+            options => options.PayloadErrorConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }

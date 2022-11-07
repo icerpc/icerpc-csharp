@@ -64,9 +64,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             new SslApplicationProtocol(serverAddress.Protocol.Name)
         };
 
-        if (options.StreamErrorCodeConverter is null)
+        if (options.PayloadErrorConverter is null)
         {
-            throw new ArgumentException("options.StreamErrorConverter is null", nameof(options));
+            throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
 
         // We use the "operation canceled" error code as default error code because that's the error code transmitted
@@ -75,7 +75,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         _quicServerOptions = new QuicServerConnectionOptions
         {
             DefaultStreamErrorCode =
-                (long)options.StreamErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadErrorConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             ServerAuthenticationOptions = authenticationOptions,

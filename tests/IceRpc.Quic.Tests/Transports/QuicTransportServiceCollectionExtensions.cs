@@ -39,7 +39,7 @@ public static class QuicTransportServiceCollectionExtensions
         services.AddOptions<QuicServerTransportOptions>("client");
         services.AddOptions<QuicClientTransportOptions>("server");
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+            options => options.PayloadErrorConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }

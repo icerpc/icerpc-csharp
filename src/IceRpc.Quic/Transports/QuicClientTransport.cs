@@ -60,9 +60,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
             new IPEndPoint(ipAddress, serverAddress.Port) :
             new DnsEndPoint(serverAddress.Host, serverAddress.Port);
 
-        if (options.StreamErrorCodeConverter is null)
+        if (options.PayloadErrorConverter is null)
         {
-            throw new ArgumentException("options.StreamErrorConverter is null", nameof(options));
+            throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
 
         // We use the "operation canceled" error code as default error code because that's the error code transmitted
@@ -72,7 +72,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
             DefaultStreamErrorCode =
-                (long)options.StreamErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadErrorConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,

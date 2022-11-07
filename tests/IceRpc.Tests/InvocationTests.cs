@@ -106,7 +106,7 @@ public class InvocationTests
         var response = await invokeTask;
         DispatchException dispatchException = await response.DecodeDispatchExceptionAsync(request);
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.StreamError));
+        Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.PayloadError));
         await pipe.Writer.CompleteAsync();
     }
 }
