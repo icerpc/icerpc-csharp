@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -13,9 +12,6 @@ namespace IceRpc.Conformance.Tests;
 /// <summary>Conformance tests for the duplex transports.</summary>
 public abstract class DuplexTransportConformanceTests
 {
-    [OneTimeSetUp]
-    public void OneTimeSetup() => AssertTraceListener.Setup();
-
     /// <summary>Verifies that the transport can accept connections.</summary>
     [Test]
     public async Task Accept_transport_connection()
