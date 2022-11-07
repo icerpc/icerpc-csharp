@@ -24,15 +24,17 @@ internal sealed class IceRpcProtocol : Protocol
     {
         Debug.Assert(response.Protocol == this);
 
-        if (response.ResultType != ResultType.Failure)
+        if (response.StatusCode <= StatusCode.Failure)
         {
-            throw new ArgumentException(
-                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a Failure result type",
-                nameof(response));
+            throw new ArgumentOutOfRangeException(
+                nameof(response.StatusCode),
+                $"{nameof(DecodeDispatchExceptionAsync)} requires a response with a status code greater than {nameof(StatusCode.Failure)}");
         }
 
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
+        // We're actually not reading a segment here but a Slice2-encoded string. It looks like a segment:
+        // <size><utf8 bytes>.
         ReadResult readResult = await response.Payload.ReadSegmentAsync(
             SliceEncoding.Slice2,
             feature.MaxSegmentSize,
@@ -61,10 +63,8 @@ internal sealed class IceRpcProtocol : Protocol
         DispatchException Decode(ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            string message = decoder.DecodeString();
-            DispatchErrorCode errorCode = decoder.DecodeDispatchErrorCode();
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return new DispatchException(message, errorCode)
+            string message = decoder.DecodeStringBody((int)buffer.Length);
+            return new DispatchException(message, response.StatusCode)
             {
                 ConvertToUnhandled = true,
                 Origin = request

@@ -34,7 +34,7 @@ public static class IncomingResponseExtensions
 
         IActivator? activator = feature.Activator ?? defaultActivator;
 
-        return response.ResultType == ResultType.Success ?
+        return response.StatusCode == StatusCode.Success ?
             response.DecodeValueAsync(
                 encoding,
                 feature,
@@ -42,11 +42,11 @@ public static class IncomingResponseExtensions
                 sender,
                 decodeFunc,
                 cancellationToken) :
-            ThrowRemoteExceptionAsync();
+            ThrowExceptionAsync();
 
-        async ValueTask<T> ThrowRemoteExceptionAsync()
+        async ValueTask<T> ThrowExceptionAsync()
         {
-            if (response.ResultType == ResultType.Failure)
+            if (response.StatusCode > StatusCode.Failure)
             {
                 throw await response.DecodeDispatchExceptionAsync(request, cancellationToken)
                     .ConfigureAwait(false);
@@ -82,13 +82,12 @@ public static class IncomingResponseExtensions
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return response.ResultType == ResultType.Success ?
-            response.DecodeVoidAsync(encoding, feature, cancellationToken) :
-            ThrowRemoteExceptionAsync();
+        return response.StatusCode == StatusCode.Success ?
+            response.DecodeVoidAsync(encoding, feature, cancellationToken) : ThrowExceptionAsync();
 
-        async ValueTask ThrowRemoteExceptionAsync()
+        async ValueTask ThrowExceptionAsync()
         {
-            if (response.ResultType == ResultType.Failure)
+            if (response.StatusCode > StatusCode.Failure)
             {
                 throw await response.DecodeDispatchExceptionAsync(request, cancellationToken).ConfigureAwait(false);
             }
@@ -114,31 +113,23 @@ public static class IncomingResponseExtensions
         ServiceProxy sender,
         CancellationToken cancellationToken)
     {
-        Debug.Assert(response.ResultType > ResultType.Failure);
+        Debug.Assert(response.StatusCode == StatusCode.Failure);
 
-        var resultType = (SliceResultType)response.ResultType;
-        if (resultType is SliceResultType.ServiceFailure)
+        ReadResult readResult = await response.Payload.ReadSegmentAsync(
+            encoding,
+            feature.MaxSegmentSize,
+            cancellationToken).ConfigureAwait(false);
+
+        // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
+        if (readResult.IsCanceled)
         {
-            ReadResult readResult = await response.Payload.ReadSegmentAsync(
-                encoding,
-                feature.MaxSegmentSize,
-                cancellationToken).ConfigureAwait(false);
-
-            // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
-            if (readResult.IsCanceled)
-            {
-                throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
-            }
-
-            RemoteException result = Decode(readResult.Buffer);
-            result.Origin = request;
-            response.Payload.AdvanceTo(readResult.Buffer.End);
-            return result;
+            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
-        else
-        {
-            throw new InvalidDataException($"received response with invalid result type value '{resultType}'");
-        }
+
+        RemoteException result = Decode(readResult.Buffer);
+        result.Origin = request;
+        response.Payload.AdvanceTo(readResult.Buffer.End);
+        return result;
 
         RemoteException Decode(ReadOnlySequence<byte> buffer)
         {

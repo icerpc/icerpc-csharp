@@ -46,7 +46,7 @@ public sealed class DeadlineMiddlewareTests
             Assert.ThrowsAsync<DispatchException>(async () => await sut.DispatchAsync(request, CancellationToken.None));
 
         // Assert
-        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.DeadlineExpired));
+        Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.DeadlineExpired));
         Assert.That(hasDeadline, Is.True);
         Assert.That(token, Is.Not.Null);
         Assert.That(token.Value.CanBeCanceled, Is.True);

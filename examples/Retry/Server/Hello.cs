@@ -23,7 +23,7 @@ public class Hello : Service, IHello
         {
             // Randomly set the retry policy to RetryPolicy.Immediately or RetryPolicy.OtherReplica
             throw new DispatchException(
-                DispatchErrorCode.UnhandledException,
+                StatusCode.UnhandledException,
                 RandomNumberGenerator.GetInt32(10) < 5 ? RetryPolicy.Immediately : RetryPolicy.OtherReplica);
         }
         else

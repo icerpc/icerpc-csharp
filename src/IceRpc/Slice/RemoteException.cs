@@ -8,9 +8,14 @@ public abstract class RemoteException : Exception, ITrait
     /// <inheritdoc/>
     public override string Message => _hasCustomMessage || DefaultMessage is null ? base.Message : DefaultMessage;
 
-    /// <summary>Gets or sets a value indicating whether the exception should be converted to a <see
-    /// cref="DispatchException" /> with the <see cref="DispatchErrorCode.UnhandledException" /> error code when
-    /// thrown from a dispatcher.</summary>
+    /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see
+    /// cref="DispatchException" /> with status code <see cref="StatusCode.UnhandledException" /> when thrown from a
+    /// dispatch.</summary>
+    /// <value>When <see langword="true" />, this exception is converted into dispatch exception with status code
+    /// <see cref="StatusCode.UnhandledException" /> just before it's encoded. The default value is
+    /// <see langword="true" /> for an exception decoded from <see cref="IncomingResponse" />, and
+    /// <see langword="false" /> for an exception created by the application using a constructor of this exception.
+    /// </value>
     public bool ConvertToUnhandled { get; set; }
 
     /// <summary>Gets the remote exception origin.</summary>
