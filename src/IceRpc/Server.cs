@@ -594,11 +594,11 @@ public sealed class Server : IAsyncDisposable
                 try
                 {
                     await ShutdownComplete.ConfigureAwait(false);
-                    _logger.ConnectionShutdown(ServerAddress, remoteNetworkAddress);
+                    _logger.ServerConnectionShutdown(ServerAddress, remoteNetworkAddress);
                 }
                 catch (Exception exception)
                 {
-                    _logger.ConnectionFailure(ServerAddress, remoteNetworkAddress, exception);
+                    _logger.ServerConnectionFailure(ServerAddress, remoteNetworkAddress, exception);
                 }
             }
         }

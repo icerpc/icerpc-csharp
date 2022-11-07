@@ -14,17 +14,23 @@ public enum ProtocolEventIds
     /// <summary>A client connection has been created.</summary>
     ConnectionCreated,
 
-    /// <summary>A connection has been terminated because a failure.</summary>
-    ConnectionFailure,
+    /// <summary>A client connection has been terminated because a failure.</summary>
+    ClientConnectionFailure,
 
-    /// <summary>A connection has been shutdown.</summary>
-    ConnectionShutdown,
+    /// <summary>A client connection has been shutdown.</summary>
+    ClientConnectionShutdown,
 
     /// <summary>The client connection connect attempt failed.</summary>
     ClientConnectFailed,
 
     /// <summary>The client connection connect attempt succeed.</summary>
     ClientConnectSucceed,
+
+    /// <summary>A server connection has been terminated because a failure.</summary>
+    ServerConnectionFailure,
+
+    /// <summary>A server connection has been shutdown.</summary>
+    ServerConnectionShutdown,
 
     /// <summary>The server connection connect attempt failed.</summary>
     ServerConnectFailed,

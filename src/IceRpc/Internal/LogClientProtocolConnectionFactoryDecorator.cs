@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Net;
 
 namespace IceRpc.Internal;
@@ -83,16 +84,13 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                     if (_localNetworkAddress is not null)
                     {
                         // We only log Shutdown when the ConnectAsync completed successfully.
-                        _logger.ConnectionShutdown(ServerAddress, _localNetworkAddress);
+                        _logger.ClientConnectionShutdown(ServerAddress, _localNetworkAddress);
                     }
                 }
                 catch (Exception exception)
                 {
-                    if (_localNetworkAddress is not null)
-                    {
-                        // We only log Shutdown when the ConnectAsync completed successfully.
-                        _logger.ConnectionFailure(ServerAddress, _localNetworkAddress, exception);
-                    }
+                    Debug.Assert(_localNetworkAddress is not null);
+                    _logger.ClientConnectionFailure(ServerAddress, _localNetworkAddress, exception);
                 }
             }
         }
