@@ -680,7 +680,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var multiplexOptions = new MultiplexedConnectionOptions
         {
-            PayloadErrorConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
+            PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
         };
 
         IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(

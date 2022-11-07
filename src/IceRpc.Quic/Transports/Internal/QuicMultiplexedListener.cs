@@ -64,7 +64,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             new SslApplicationProtocol(serverAddress.Protocol.Name)
         };
 
-        if (options.PayloadErrorConverter is null)
+        if (options.PayloadErrorCodeConverter is null)
         {
             throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
@@ -75,7 +75,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         _quicServerOptions = new QuicServerConnectionOptions
         {
             DefaultStreamErrorCode =
-                (long)options.PayloadErrorConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             ServerAuthenticationOptions = authenticationOptions,

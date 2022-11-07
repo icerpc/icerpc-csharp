@@ -60,7 +60,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             new IPEndPoint(ipAddress, serverAddress.Port) :
             new DnsEndPoint(serverAddress.Host, serverAddress.Port);
 
-        if (options.PayloadErrorConverter is null)
+        if (options.PayloadErrorCodeConverter is null)
         {
             throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
@@ -72,7 +72,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
             DefaultStreamErrorCode =
-                (long)options.PayloadErrorConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
