@@ -630,7 +630,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, ServiceNotFoundDispatcher.Instance)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -739,7 +739,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, ServiceNotFoundDispatcher.Instance)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
