@@ -567,15 +567,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     .ConfigureAwait(false);
 
                 // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationStreams
+                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationCts
                 // is read-only at this point.
-                foreach (KeyValuePair<IMultiplexedStream, CancellationTokenSource> e in _pendingInvocationCts)
+                foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocationCts)
                 {
-                    if (!e.Key.IsStarted ||
-                        e.Key.Id >= (e.Key.IsBidirectional ?
+                    if (!stream.IsStarted ||
+                        stream.Id >= (stream.IsBidirectional ?
                             peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
                     {
-                        e.Value.Cancel();
+                        cts.Cancel();
                     }
                 }
 
