@@ -22,5 +22,5 @@ public static class LoggerPipelineExtensions
     /// <see cref="LoggerInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseLogger(this Pipeline pipeline, ILoggerFactory loggerFactory) =>
-        pipeline.UseLogger(loggerFactory.CreateLogger<Server>());
+        pipeline.UseLogger(loggerFactory.CreateLogger<LoggerInterceptor>());
 }
