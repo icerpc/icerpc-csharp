@@ -674,7 +674,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(await payloadDecorator.Completed, Is.Null);
 
         // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        _ = await responseTask;
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -757,7 +757,9 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
-        Assert.That(async () => await responseTask, Throws.Nothing);
+
+        // Cleanup
+        await responseTask;
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid response.</summary>
@@ -793,7 +795,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
 
         // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        await responseTask;
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
