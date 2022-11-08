@@ -266,7 +266,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 }
 
                                 _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
-                                cancellationToken = dispatchCts.Token;
+
+                                try
+                                {
+                                    cancellationToken = dispatchCts.Token;
+                                }
+                                catch (ObjectDisposedException)
+                                {
+                                    // Expected if disposed.
+                                }
                             }
                         }
 
@@ -287,6 +295,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     try
                                     {
                                         await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
+                                    }
+                                    catch (Exception exception)
+                                    {
+                                        Debug.Assert(false, "unexpected exception", exception.ToString());
                                     }
                                     finally
                                     {
@@ -511,6 +523,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
+            // TODO: is it correct to throw a local PayloadException here? Do we want this exception to be the result
+            // of a peer failure only?
             completeException = exception;
             throw new PayloadException(PayloadErrorCode.Unspecified);
         }
@@ -947,8 +961,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
-
-            throw;
         }
 
         async Task PerformDispatchRequestAsync(IncomingRequest request)
@@ -1250,6 +1262,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             }
 
+            // Make sure the invocation or dispatch cancellation token is canceled before disposing the source. This
+            // could otherwise lead to hangs if the invocation or dispatch waits on something else than the stream
+            // (e.g.: the dispatch semaphore).
+            cts.Cancel();
             cts.Dispose();
         }
     }

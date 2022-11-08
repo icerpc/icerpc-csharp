@@ -496,7 +496,14 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
 
         // Cleanup
-        await responseTask;
+        try
+        {
+            await responseTask;
+        }
+        catch (PayloadException)
+        {
+            // Depending on the timing, the payload stream send failure might abort the invocation is sent.
+        }
     }
 
     /// <summary>Ensures that the response payload continuation is completed on a valid response.</summary>
@@ -556,7 +563,15 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
 
         // Cleanup
-        await responseTask;
+        try
+        {
+            await responseTask;
+        }
+        catch (PayloadException)
+        {
+            // Depending on the timing, the payload stream send failure might abort the stream before the response is
+            // sent.
+        }
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
