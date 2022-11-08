@@ -114,8 +114,7 @@ internal sealed class IceProtocol : Protocol
                 throw new InvalidDataException($"invalid system exception with {replyStatus} ReplyStatus");
             }
 
-            string? message = null;
-
+            string message;
             switch (replyStatus)
             {
                 case ReplyStatus.FacetNotExistException:
@@ -124,14 +123,10 @@ internal sealed class IceProtocol : Protocol
 
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
-                    if (requestFailed.Operation.Length > 0)
-                    {
-                        string target = requestFailed.Fragment.Length > 0 ?
-                            $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+                    string target = requestFailed.Fragment.Length > 0 ?
+                        $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                        message = $"{nameof(DispatchException)} {{ StatusCode = {statusCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
-                    }
-                    // else message remains null
+                    message = $"{nameof(DispatchException)} {{ StatusCode = {statusCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
                     break;
 
                 case ReplyStatus.UnknownException:
