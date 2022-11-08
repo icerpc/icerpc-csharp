@@ -236,6 +236,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                                 var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(
                                     _dispatchesAndInvocationsCts.Token);
+                                cancellationToken = dispatchCts.Token;
 
                                 if (stream.IsBidirectional)
                                 {
@@ -266,15 +267,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 }
 
                                 _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
-
-                                try
-                                {
-                                    cancellationToken = dispatchCts.Token;
-                                }
-                                catch (ObjectDisposedException)
-                                {
-                                    // Expected if disposed.
-                                }
                             }
                         }
 
@@ -296,9 +288,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     {
                                         await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
                                     }
-                                    catch (Exception exception)
+                                    catch
                                     {
-                                        Debug.Assert(false, "unexpected exception", exception.ToString());
+                                        // Ignore
                                     }
                                     finally
                                     {
@@ -961,6 +953,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
+
+            throw;
         }
 
         async Task PerformDispatchRequestAsync(IncomingRequest request)
@@ -978,7 +972,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 try
                 {
-                    response = await _dispatcher!.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+                    response = await _dispatcher.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -1240,12 +1234,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            if (stream.IsRemote)
-            {
-                // Make sure the dispatch cancellation token source is canceled. The wait of the one dispatch semaphore
-                // could hang otherwise.
-                cts.Cancel();
-            }
+            // Ignore the reason of the Input/Output closure.
         }
 
         lock (_mutex)

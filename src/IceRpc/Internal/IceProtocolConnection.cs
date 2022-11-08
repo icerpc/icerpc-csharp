@@ -1044,7 +1044,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         }
                         throw exception;
                     }
-                    else if (response.PayloadContinuation is not null)
+
+                    if (response.PayloadContinuation is not null)
                     {
                         throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
                     }
