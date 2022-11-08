@@ -469,6 +469,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Cleanup
         dispatcher.ReleaseDispatch();
+        await invokeTask;
     }
 
     /// <summary>Ensures that the request payload is completed if the payload continuation is invalid.</summary>

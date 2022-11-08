@@ -978,7 +978,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 try
                 {
-                    response = await _dispatcher.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
+                    response = await _dispatcher!.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -1240,7 +1240,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            // Ignore the reason of the Input/Output closure
+            if (stream.IsRemote)
+            {
+                // Make sure the dispatch cancellation token source is canceled. The wait of the one dispatch semaphore
+                // could hang otherwise.
+                cts.Cancel();
+            }
         }
 
         lock (_mutex)
@@ -1262,10 +1267,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             }
 
-            // Make sure the invocation or dispatch cancellation token is canceled before disposing the source. This
-            // could otherwise lead to hangs if the invocation or dispatch waits on something else than the stream
-            // (e.g.: the dispatch semaphore).
-            cts.Cancel();
             cts.Dispose();
         }
     }
