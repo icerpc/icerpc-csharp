@@ -164,7 +164,6 @@ public sealed class RetryInterceptorTests
         // Arrange
         int attempts = 0;
         var delay = TimeSpan.FromMilliseconds(200);
-        var tolerance = TimeSpan.FromMilliseconds(10);
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
@@ -190,14 +189,13 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        var stopwatch = Stopwatch.StartNew();
+        long startTime = Environment.TickCount64;
 
         // Act
         await sut.InvokeAsync(request, default);
 
         // Assert
-        stopwatch.Stop();
-        Assert.That(stopwatch.Elapsed, Is.GreaterThanOrEqualTo(delay - tolerance));
+        Assert.That(startTime - Environment.TickCount64, Is.GreaterThanOrEqualTo(190));
         Assert.That(attempts, Is.EqualTo(2));
     }
 
