@@ -622,7 +622,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         stream.Id >= (stream.IsBidirectional ?
                             peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
                     {
-                        cts.Cancel();
+                        try
+                        {
+                            cts.Cancel();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Expected if already disposed.
+                        }
                     }
                 }
 
@@ -805,7 +812,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 },
-                cancellationToken);
+                CancellationToken.None);
         }
 
         async Task<FlushResult> CopyReaderToWriterAsync(
@@ -1061,8 +1068,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 EncodeHeader();
 
-                // SendPayloadAsync takes care of the completion of the response payload, payload continuation and stream
-                // output.
+                // SendPayloadAsync takes care of the completion of the response payload, payload continuation and
+                // stream output.
                 await SendPayloadAsync(response, stream, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception exception)
