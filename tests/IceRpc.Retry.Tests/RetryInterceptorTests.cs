@@ -195,7 +195,7 @@ public sealed class RetryInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(startTime - Environment.TickCount64, Is.GreaterThanOrEqualTo(190));
+        Assert.That(Environment.TickCount64 - startTime, Is.GreaterThanOrEqualTo(190));
         Assert.That(attempts, Is.EqualTo(2));
     }
 
