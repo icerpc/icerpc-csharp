@@ -753,10 +753,11 @@ public sealed class ProtocolConnectionTests
             });
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+        Assert.That(async () => await responseTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid response.</summary>

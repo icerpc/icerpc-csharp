@@ -402,9 +402,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
@@ -434,10 +432,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
+        Assert.That(async () => await responseTask, Throws.Nothing);
 
         // Cleanup
         await pipe.Writer.CompleteAsync();
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
@@ -496,9 +494,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload continuation is completed on a valid response.</summary>
@@ -526,9 +522,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload continuation.</summary>
@@ -556,9 +550,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
@@ -591,9 +583,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -631,9 +621,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     [Test]

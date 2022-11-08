@@ -126,9 +126,7 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Throws.Nothing);
-
-        // Cleanup
-        await responseTask; // Ensure the response payload is completed by the disposal of the request
+        Assert.That(async () => await responseTask, Throws.Nothing);
     }
 
     /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.

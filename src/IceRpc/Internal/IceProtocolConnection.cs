@@ -1044,6 +1044,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         }
                         throw exception;
                     }
+                    else if (response.PayloadContinuation is not null)
+                    {
+                        throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
+                    }
                 }
                 catch when (request.IsOneway)
                 {
@@ -1110,11 +1114,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
 
                     Debug.Assert(response is not null);
-
-                    if (response.PayloadContinuation is not null)
-                    {
-                        throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
-                    }
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the
                     // write semaphore.

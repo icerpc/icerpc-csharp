@@ -512,7 +512,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (Exception exception)
         {
             completeException = exception;
-            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
+            throw new PayloadException(PayloadErrorCode.Unspecified);
         }
         finally
         {
