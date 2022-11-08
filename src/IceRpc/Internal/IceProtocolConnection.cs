@@ -906,6 +906,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             int requestId;
             IceRequestHeader requestHeader;
             PipeReader? contextReader = null;
+            IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
+
             try
             {
                 if (!requestFrameReader.TryRead(out ReadResult readResult))
@@ -918,7 +920,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 (requestId, requestHeader, contextReader, int consumed) = DecodeRequestIdAndHeader(readResult.Buffer);
                 requestFrameReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
 
-                IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
                 if (contextReader is null)
                 {
                     fields = requestHeader.OperationMode == OperationMode.Normal ?
@@ -968,24 +969,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         DisableIdleCheck();
                     }
                 }
-
-                // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
-                // cleanup the dispatch if DisposeAsync is called.
-                _ = Task.Run(
-                    async () =>
-                    {
-                        using var request = new IncomingRequest(_connectionContext!)
-                        {
-                            Fields = fields,
-                            Fragment = requestHeader.Fragment,
-                            IsOneway = requestId == 0,
-                            Operation = requestHeader.Operation,
-                            Path = requestHeader.Path,
-                            Payload = requestFrameReader,
-                        };
-                        await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
-                    },
-                    CancellationToken.None);
             }
             catch
             {
@@ -993,6 +976,24 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 contextReader?.Complete();
                 throw;
             }
+
+            // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
+            // cleanup the dispatch if DisposeAsync is called.
+            _ = Task.Run(
+                async () =>
+                {
+                    using var request = new IncomingRequest(_connectionContext!)
+                    {
+                        Fields = fields,
+                        Fragment = requestHeader.Fragment,
+                        IsOneway = requestId == 0,
+                        Operation = requestHeader.Operation,
+                        Path = requestHeader.Path,
+                        Payload = requestFrameReader,
+                    };
+                    await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
+                },
+                CancellationToken.None);
 
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
