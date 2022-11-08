@@ -189,17 +189,13 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        var stopwatch = Stopwatch.StartNew();
+        long startTime = Environment.TickCount64;
 
         // Act
         await sut.InvokeAsync(request, default);
 
         // Assert
-        stopwatch.Stop();
-        Assert.That(
-            // TimeSpan rounded to the nearest millisecond
-            TimeSpan.FromMilliseconds(Math.Round(stopwatch.Elapsed.TotalMilliseconds, 0)),
-            Is.GreaterThanOrEqualTo(delay));
+        Assert.That(startTime - Environment.TickCount64, Is.GreaterThanOrEqualTo(190));
         Assert.That(attempts, Is.EqualTo(2));
     }
 
