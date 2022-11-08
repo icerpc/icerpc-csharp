@@ -446,7 +446,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.Payload.CompleteAsync().ConfigureAwait(false);
+                request.Payload.Complete();
             }
             finally
             {
@@ -1014,15 +1014,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     if (response != request.Response)
                     {
-                        var exception = new InvalidOperationException(
+                        throw new InvalidOperationException(
                             "the dispatcher did not return the last response created for this request");
-
-                        await response.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                        if (response.PayloadContinuation is PipeReader payloadContinuation)
-                        {
-                            await payloadContinuation.CompleteAsync(exception).ConfigureAwait(false);
-                        }
-                        throw exception;
                     }
                 }
                 catch when (request.IsOneway)
