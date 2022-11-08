@@ -6,7 +6,7 @@ namespace IceRpc.Transports;
 public enum ProtocolEventIds
 {
     /// <summary>The protocol listener accepted a new connection.</summary>
-    AcceptConnection = 1,
+    AcceptConnectionSucceed,
 
     /// <summary>The protocol listener failed to accept a new connection.</summary>
     AcceptConnectionFailed,
@@ -14,29 +14,17 @@ public enum ProtocolEventIds
     /// <summary>A client connection has been created.</summary>
     ConnectionCreated,
 
-    /// <summary>A client connection has been terminated because a failure.</summary>
-    ClientConnectionFailure,
-
-    /// <summary>A client connection has been shutdown.</summary>
-    ClientConnectionShutdown,
-
-    /// <summary>The client connection connect attempt failed.</summary>
-    ClientConnectFailed,
-
-    /// <summary>The client connection connect attempt succeed.</summary>
-    ClientConnectSucceed,
-
     /// <summary>A server connection has been terminated because a failure.</summary>
-    ServerConnectionFailure,
+    ConnectionFailure,
 
     /// <summary>A server connection has been shutdown.</summary>
-    ServerConnectionShutdown,
+    ConnectionShutdown,
 
     /// <summary>The server connection connect attempt failed.</summary>
-    ServerConnectFailed,
+    ConnectFailed,
 
     /// <summary>The server connection connect attempt succeed.</summary>
-    ServerConnectSucceed,
+    ConnectSucceed,
 
     /// <summary>The listener starts accepting connections.</summary>
     StartAcceptingConnections,

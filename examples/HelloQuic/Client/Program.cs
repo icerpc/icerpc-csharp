@@ -30,7 +30,7 @@ public static class Program
 
         await using var connection = new ClientConnection(
             new Uri("icerpc://127.0.0.1"),
-            clientAuthenticationOptions: clientAuthenticationOptions,
+            clientAuthenticationOptions,
             multiplexedClientTransport: new QuicClientTransport());
 
         var helloProxy = new HelloProxy(connection);

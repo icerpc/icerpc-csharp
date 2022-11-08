@@ -36,15 +36,15 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
-    /// <param name="logger">The logger.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
+    /// <param name="logger">The logger.</param>
     public ConnectionCache(
         ConnectionCacheOptions options,
-        ILogger? logger = null,
         IDuplexClientTransport? duplexClientTransport = null,
-        IMultiplexedClientTransport? multiplexedClientTransport = null)
+        IMultiplexedClientTransport? multiplexedClientTransport = null,
+        ILogger? logger = null)
     {
         _connectionFactory = new ClientProtocolConnectionFactory(
                 options.ConnectionOptions,

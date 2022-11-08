@@ -54,16 +54,16 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="logger">The server logger.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
     /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="logger">The server logger.</param>
     public Server(
         ServerOptions options,
-        ILogger? logger = null,
         IDuplexServerTransport? duplexServerTransport = null,
-        IMultiplexedServerTransport? multiplexedServerTransport = null)
+        IMultiplexedServerTransport? multiplexedServerTransport = null,
+        ILogger? logger = null)
     {
         if (options.ConnectionOptions.Dispatcher is null)
         {
@@ -128,30 +128,30 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
     /// have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="logger">The server logger.</param>
-    /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="serverAuthenticationOptions">The server authentication options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
     /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="logger">The server logger.</param>
     public Server(
         IDispatcher dispatcher,
-        ILogger? logger = null,
-        SslServerAuthenticationOptions? authenticationOptions = null,
+        SslServerAuthenticationOptions? serverAuthenticationOptions = null,
         IDuplexServerTransport? duplexServerTransport = null,
-        IMultiplexedServerTransport? multiplexedServerTransport = null)
+        IMultiplexedServerTransport? multiplexedServerTransport = null,
+        ILogger? logger = null)
         : this(
             new ServerOptions
             {
-                ServerAuthenticationOptions = authenticationOptions,
+                ServerAuthenticationOptions = serverAuthenticationOptions,
                 ConnectionOptions = new()
                 {
                     Dispatcher = dispatcher,
                 }
             },
-            logger,
             duplexServerTransport,
-            multiplexedServerTransport)
+            multiplexedServerTransport,
+            logger)
     {
     }
 
@@ -159,59 +159,59 @@ public sealed class Server : IAsyncDisposable
     /// properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
-    /// <param name="logger">The server logger.</param>
-    /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="serverAuthenticationOptions">The server authentication options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
     /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="logger">The server logger.</param>
     public Server(
         IDispatcher dispatcher,
         ServerAddress serverAddress,
-        ILogger? logger = null,
-        SslServerAuthenticationOptions? authenticationOptions = null,
+        SslServerAuthenticationOptions? serverAuthenticationOptions = null,
         IDuplexServerTransport? duplexServerTransport = null,
-        IMultiplexedServerTransport? multiplexedServerTransport = null)
+        IMultiplexedServerTransport? multiplexedServerTransport = null,
+        ILogger? logger = null)
         : this(
             new ServerOptions
             {
-                ServerAuthenticationOptions = authenticationOptions,
+                ServerAuthenticationOptions = serverAuthenticationOptions,
                 ConnectionOptions = new()
                 {
                     Dispatcher = dispatcher,
                 },
                 ServerAddress = serverAddress
             },
-            logger,
             duplexServerTransport,
-            multiplexedServerTransport)
+            multiplexedServerTransport,
+            logger)
     {
     }
 
     /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
     /// other properties have their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="logger">The server logger.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
-    /// <param name="authenticationOptions">The server authentication options.</param>
+    /// <param name="serverAuthenticationOptions">The server authentication options.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
     /// to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
     /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="logger">The server logger.</param>
     public Server(
         IDispatcher dispatcher,
         Uri serverAddressUri,
-        ILogger? logger = null,
-        SslServerAuthenticationOptions? authenticationOptions = null,
+        SslServerAuthenticationOptions? serverAuthenticationOptions = null,
         IDuplexServerTransport? duplexServerTransport = null,
-        IMultiplexedServerTransport? multiplexedServerTransport = null)
+        IMultiplexedServerTransport? multiplexedServerTransport = null,
+        ILogger? logger = null)
         : this(
             dispatcher,
             new ServerAddress(serverAddressUri),
-            logger,
-            authenticationOptions,
+            serverAuthenticationOptions,
             duplexServerTransport,
-            multiplexedServerTransport)
+            multiplexedServerTransport,
+            logger)
     {
     }
 
@@ -514,7 +514,7 @@ public sealed class Server : IAsyncDisposable
             {
                 (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
                     await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
+                _logger.AcceptConnectionSucceed(ServerAddress, remoteNetworkAddress);
                 return (
                     new LogProtocolConnectionDecorator(connection, remoteNetworkAddress, _logger),
                     remoteNetworkAddress);
@@ -546,6 +546,7 @@ public sealed class Server : IAsyncDisposable
         private readonly IProtocolConnection _decoratee;
         private readonly ILogger _logger;
         private readonly Task _logShutdownTask;
+        private EndPoint? _localNetworkAddress;
         private readonly EndPoint _remoteNetworkAddress;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -554,12 +555,13 @@ public sealed class Server : IAsyncDisposable
             {
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
-                _logger.ServerConnectSucceed(ServerAddress, _remoteNetworkAddress);
+                _localNetworkAddress = result.LocalNetworkAddress;
+                _logger.ConnectSucceeded(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
                 return result;
             }
             catch (Exception exception)
             {
-                _logger.ServerConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                _logger.ConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
                 throw;
             }
         }
@@ -594,11 +596,21 @@ public sealed class Server : IAsyncDisposable
                 try
                 {
                     await ShutdownComplete.ConfigureAwait(false);
-                    _logger.ServerConnectionShutdown(ServerAddress, remoteNetworkAddress);
+                    if (_localNetworkAddress is not null)
+                    {
+                        _logger.ConnectionShutdown(isServer: true, _localNetworkAddress, remoteNetworkAddress);
+                    }
                 }
                 catch (Exception exception)
                 {
-                    _logger.ServerConnectionFailure(ServerAddress, remoteNetworkAddress, exception);
+                    if (_localNetworkAddress is not null)
+                    {
+                        _logger.ConnectionFailure(
+                            isServer: true,
+                            _localNetworkAddress,
+                            remoteNetworkAddress,
+                            exception);
+                    }
                 }
             }
         }

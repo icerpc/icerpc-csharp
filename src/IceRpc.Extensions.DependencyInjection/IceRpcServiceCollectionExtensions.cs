@@ -23,9 +23,9 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    provider.GetService<ILogger<ClientConnection>>(),
                     provider.GetRequiredService<IDuplexClientTransport>(),
-                    provider.GetRequiredService<IMultiplexedClientTransport>()))
+                    provider.GetRequiredService<IMultiplexedClientTransport>(),
+                    provider.GetService<ILogger<ClientConnection>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
     /// <summary>Adds a <see cref="ConnectionCache" /> and <see cref="IInvoker" /> singleton to this service collection.
@@ -38,9 +38,9 @@ public static class IceRpcServiceCollectionExtensions
             .AddSingleton(provider =>
                 new ConnectionCache(
                     provider.GetRequiredService<IOptions<ConnectionCacheOptions>>().Value,
-                    provider.GetService<ILogger<ClientConnection>>(),
                     provider.GetRequiredService<IDuplexClientTransport>(),
-                    provider.GetRequiredService<IMultiplexedClientTransport>()))
+                    provider.GetRequiredService<IMultiplexedClientTransport>(),
+                    provider.GetService<ILogger<ConnectionCache>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionCache>());
 
     /// <summary>Adds an <see cref="IDispatcher" /> singleton to this service collection using a builder.</summary>
@@ -50,8 +50,7 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcDispatcher(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services
-            .AddSingleton<IDispatcher>(provider =>
+        services.AddSingleton(provider =>
             {
                 var builder = new DispatcherBuilder(provider);
                 configure(builder);
@@ -65,8 +64,7 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcInvoker(
         this IServiceCollection services,
         Action<IInvokerBuilder> configure) =>
-        services
-            .AddSingleton<IInvoker>(provider =>
+        services.AddSingleton(provider =>
             {
                 var builder = new InvokerBuilder(provider);
                 configure(builder);
@@ -80,12 +78,12 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, string optionsName) =>
         services
             .TryAddIceRpcServerTransport()
-            .AddSingleton<Server>(provider =>
+            .AddSingleton(provider =>
                 new Server(
                     provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName),
-                    provider.GetService<ILogger<Server>>(),
                     provider.GetRequiredService<IDuplexServerTransport>(),
-                    provider.GetRequiredService<IMultiplexedServerTransport>()));
+                    provider.GetRequiredService<IMultiplexedServerTransport>(),
+                    provider.GetService<ILogger<Server>>()));
 
     /// <summary>Adds a <see cref="Server" /> to this service collection. This method uses the default name ("") for the
     /// ServerOptions instance.</summary>
@@ -128,7 +126,7 @@ public static class IceRpcServiceCollectionExtensions
         Action<IDispatcherBuilder> configure) =>
         services
             .TryAddIceRpcServerTransport()
-            .AddSingleton<Server>(provider =>
+            .AddSingleton(provider =>
             {
                 var dispatcherBuilder = new DispatcherBuilder(provider);
                 configure(dispatcherBuilder);
@@ -138,9 +136,9 @@ public static class IceRpcServiceCollectionExtensions
 
                 return new Server(
                     options,
-                    provider.GetService<ILogger<Server>>(),
                     provider.GetRequiredService<IDuplexServerTransport>(),
-                    provider.GetRequiredService<IMultiplexedServerTransport>());
+                    provider.GetRequiredService<IMultiplexedServerTransport>(),
+                    provider.GetService<ILogger<Server>>());
             });
 
     /// <summary>Adds a <see cref="Server" /> to this service collection. This method uses the default name ("") for the

@@ -35,24 +35,26 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
         public Task ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly IProtocolConnection _decoratee;
-        private EndPoint? _localNetworkAddress;
         private readonly ILogger _logger;
         private readonly Task _logShutdownAsync;
+        private TransportConnectionInformation? _connectionInformation;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
             try
             {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
+                _connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                _localNetworkAddress = result.LocalNetworkAddress;
-                _logger.ClientConnectSucceed(ServerAddress, _localNetworkAddress, result.RemoteNetworkAddress);
-                return result;
+                _logger.ConnectSucceeded(
+                    isServer: false,
+                    _connectionInformation.LocalNetworkAddress,
+                    _connectionInformation.RemoteNetworkAddress);
+                return _connectionInformation;
             }
             catch (Exception exception)
             {
-                _logger.ClientConnectFailed(ServerAddress, exception);
+                _logger.ConnectFailed(ServerAddress, exception);
                 throw;
             }
         }
@@ -81,16 +83,23 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 try
                 {
                     await ShutdownComplete.ConfigureAwait(false);
-                    if (_localNetworkAddress is not null)
+                    if (_connectionInformation is not null)
                     {
                         // We only log Shutdown when the ConnectAsync completed successfully.
-                        _logger.ClientConnectionShutdown(ServerAddress, _localNetworkAddress);
+                        _logger.ConnectionShutdown(
+                            isServer: false,
+                            _connectionInformation.LocalNetworkAddress,
+                            _connectionInformation.RemoteNetworkAddress);
                     }
                 }
                 catch (Exception exception)
                 {
-                    Debug.Assert(_localNetworkAddress is not null);
-                    _logger.ClientConnectionFailure(ServerAddress, _localNetworkAddress, exception);
+                    Debug.Assert(_connectionInformation is not null);
+                    _logger.ConnectionFailure(
+                        isServer: false,
+                        _connectionInformation.LocalNetworkAddress,
+                        _connectionInformation.RemoteNetworkAddress,
+                        exception);
                 }
             }
         }

@@ -6,12 +6,12 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 // Create the authentication options with our server certificate.
-var authenticationOptions = new SslServerAuthenticationOptions()
+var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 {
     ServerCertificate = new X509Certificate2("../../certs/server.p12", "password")
 };
 
-await using var server = new Server(new Hello(), authenticationOptions: authenticationOptions);
+await using var server = new Server(new Hello(), serverAuthenticationOptions);
 
 // Shuts down the server on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
