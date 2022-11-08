@@ -164,6 +164,7 @@ public sealed class RetryInterceptorTests
         // Arrange
         int attempts = 0;
         var delay = TimeSpan.FromMilliseconds(200);
+        var tolerance = TimeSpan.FromMilliseconds(10);
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
@@ -196,10 +197,7 @@ public sealed class RetryInterceptorTests
 
         // Assert
         stopwatch.Stop();
-        Assert.That(
-            // TimeSpan rounded to the nearest millisecond
-            TimeSpan.FromMilliseconds(Math.Round(stopwatch.Elapsed.TotalMilliseconds, 0)),
-            Is.GreaterThanOrEqualTo(delay));
+        Assert.That(stopwatch.Elapsed, Is.GreaterThanOrEqualTo(delay - tolerance));
         Assert.That(attempts, Is.EqualTo(2));
     }
 
