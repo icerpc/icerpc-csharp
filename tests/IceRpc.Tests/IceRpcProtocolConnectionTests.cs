@@ -503,7 +503,8 @@ public sealed class IceRpcProtocolConnectionTests
         }
         catch (PayloadException)
         {
-            // Depending on the timing, the payload stream send failure might abort the invocation is sent.
+            // Depending on the timing, the payload stream send failure might abort the invocation before the response
+            // is sent.
         }
     }
 
@@ -570,8 +571,8 @@ public sealed class IceRpcProtocolConnectionTests
         }
         catch (PayloadException)
         {
-            // Depending on the timing, the payload stream send failure might abort the stream before the response is
-            // sent.
+            // Depending on the timing, the payload stream send failure might abort the invocation before the response
+            // is sent.
         }
     }
 
