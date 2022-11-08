@@ -27,24 +27,21 @@ public sealed class DispatchException : Exception
             }
             else
             {
-                string message = $"{nameof(DispatchException)} {{ StatusCode = {StatusCode} }}";
+                // We always give a custom message to dispatch exceptions we decode so this code is only used for
+                // non-decoded dispatch exceptions.
 
-                if (Origin is OutgoingRequest request)
-                {
-                    message += $" thrown by operation '{request.Operation}' on '{request.ServiceAddress}'";
-                }
+                string message = $"{nameof(DispatchException)} {{ StatusCode = {StatusCode} }}";
 
                 if (InnerException is not null)
                 {
                     message += $":\n{InnerException}\n---";
                 }
-
                 return message;
             }
         }
     }
 
-    /// <summary>Gets the exception origin.</summary>
+    /// <summary>Gets the exception's origin.</summary>
     public OutgoingRequest? Origin { get; internal init; }
 
     /// <summary>Gets the retry policy.</summary>
