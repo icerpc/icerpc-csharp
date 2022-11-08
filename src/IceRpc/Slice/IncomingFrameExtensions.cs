@@ -154,31 +154,26 @@ public static class IncomingFrameExtensions
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
                 // Canceling the cancellation token is a normal way to complete an iteration.
-                payload.Complete();
+                await payload.CompleteAsync().ConfigureAwait(false);
                 yield break;
-            }
-            catch (InvalidDataException exception)
-            {
-                payload.Complete(exception);
-                throw;
             }
             catch
             {
-                payload.Complete();
+                await payload.CompleteAsync().ConfigureAwait(false);
                 throw;
             }
 
             if (readResult.IsCanceled)
             {
-                payload.Complete(); // the error is irrelevant to the sender
-
                 // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+                Exception exception = new InvalidOperationException("unexpected call to CancelPendingRead");
+                await payload.CompleteAsync(exception).ConfigureAwait(false);
+                throw exception;
             }
             if (readResult.Buffer.IsEmpty)
             {
                 Debug.Assert(readResult.IsCompleted);
-                payload.Complete();
+                await payload.CompleteAsync().ConfigureAwait(false);
                 yield break;
             }
 
@@ -189,27 +184,22 @@ public static class IncomingFrameExtensions
                 items = decodeBufferFunc(readResult.Buffer);
                 payload.AdvanceTo(readResult.Buffer.End);
             }
-            catch (InvalidDataException exception)
+            catch (Exception exception)
             {
-                payload.Complete(exception);
-                throw;
-            }
-            catch
-            {
-                payload.Complete();
+                await payload.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
             if (readResult.IsCompleted)
             {
-                payload.Complete();
+                await payload.CompleteAsync().ConfigureAwait(false);
             }
 
             foreach (T item in items)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    payload.Complete();
+                    await payload.CompleteAsync().ConfigureAwait(false);
                     yield break;
                 }
                 yield return item;
