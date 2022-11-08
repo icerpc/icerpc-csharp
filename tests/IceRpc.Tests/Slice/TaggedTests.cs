@@ -285,7 +285,7 @@ public class TaggedTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
+            activator: SliceDecoder.GetActivator(typeof(MyStructWithTaggedMembers).Assembly));
 
         var decoded = new MyStructWithTaggedMembers(ref decoder);
         Assert.That(decoded.A, Is.EqualTo(expected.A));
@@ -430,7 +430,7 @@ public class TaggedTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
+            activator: SliceDecoder.GetActivator(typeof(MyStructWithTaggedMembers).Assembly));
         Assert.That(
             decoder.DecodeTagged(
                 1,
