@@ -431,7 +431,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             EncodeHeader(stream.Output);
 
-            // SendPayloadAsync takes care of the completion of the stream output.
+            // SendPayloadAsync takes care of the completion of payloads and stream output, whether it succeeds or
+            // fails.
             await SendPayloadAsync(request, stream, invocationCts.Token).ConfigureAwait(false);
 
             if (request.IsOneway)
@@ -491,27 +492,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 completeException = ConnectionClosedException;
                 throw ConnectionClosedException;
             }
-        }
-        catch (PayloadCompleteException exception)
-        {
-            completeException = exception;
-            throw;
-        }
-        catch (PayloadReadException exception)
-        {
-            completeException = exception;
-            throw;
-        }
-        catch (ConnectionException exception)
-        {
-            completeException = exception;
-            throw;
-        }
-        catch (ProtocolException exception)
-        {
-            // TODO: should we throw a payload exception instead?
-            completeException = exception;
-            throw;
         }
         catch (TransportException exception)
         {
