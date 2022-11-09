@@ -376,36 +376,35 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         OutgoingRequest request,
         CancellationToken cancellationToken)
     {
-        Exception? completeException = null;
-        IMultiplexedStream? stream = null;
+        if (request.ServiceAddress.Fragment.Length > 0)
+        {
+            throw new NotSupportedException("the icerpc protocol does not support fragments");
+        }
+
+        var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
+
+        // We unregister this cancellationToken once we receive a response (for twoway) or the request Payload is
+        // sent (oneway).
+        using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
+            cts => ((CancellationTokenSource)cts!).Cancel(),
+            invocationCts);
+
+        IMultiplexedStream? stream;
         try
         {
-            if (request.ServiceAddress.Fragment.Length > 0)
-            {
-                throw new NotSupportedException("the icerpc protocol does not support fragments");
-            }
+            // Create the stream.
+            stream = await _transportConnection.CreateStreamAsync(
+                bidirectional: !request.IsOneway,
+                invocationCts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            invocationCts.Dispose();
+            throw;
+        }
 
-            var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
-
-            // We unregister this cancellationToken once we receive a response (for twoway) or the request Payload is
-            // sent (oneway).
-            using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                invocationCts);
-
-            try
-            {
-                // Create the stream.
-                stream = await _transportConnection.CreateStreamAsync(
-                    bidirectional: !request.IsOneway,
-                    invocationCts.Token).ConfigureAwait(false);
-            }
-            catch
-            {
-                invocationCts.Dispose();
-                throw;
-            }
-
+        try
+        {
             // Keep track of the invocation cancellation token source for the shutdown logic.
             lock (_mutex)
             {
@@ -415,6 +414,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     // already closed.
                     Debug.Assert(ConnectionClosedException is not null);
                     invocationCts.Dispose();
+                    stream.Output.Complete(new PayloadReadException(PayloadReadErrorCode.ConnectionShutdown));
                     throw ConnectionClosedException;
                 }
                 else
@@ -430,17 +430,35 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
 
             EncodeHeader(stream.Output);
+        }
+        catch
+        {
+            // failed to send the request
+            stream.Output.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
+            if (!request.IsOneway)
+            {
+                stream.Input.Complete();
+            }
+            throw;
+        }
 
-            // SendPayloadAsync takes care of the completion of payloads and stream output, whether it succeeds or
-            // fails.
+        bool sent = false;
+        PipeReader? streamInput = stream.IsBidirectional ? stream.Input : null;
+        try
+        {
+            // SendPayloadAsync takes care of the completion of payload, payload completion and stream output, whether
+            // it succeeds or fails.
             await SendPayloadAsync(request, stream, invocationCts.Token).ConfigureAwait(false);
+            sent = true;
 
             if (request.IsOneway)
             {
                 return new IncomingResponse(request, _connectionContext!);
             }
 
-            ReadResult readResult = await stream.Input.ReadSegmentAsync(
+            Debug.Assert(streamInput is not null);
+
+            ReadResult readResult = await streamInput.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
                 invocationCts.Token).ConfigureAwait(false);
@@ -466,53 +484,44 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            return new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
+            var response = new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
             {
-                Payload = stream.Input,
+                Payload = streamInput,
                 StatusCode = header.StatusCode
             };
+
+            streamInput = null; // response now owns the stream input
+            return response;
         }
         catch (OperationCanceledException exception)
         {
+            if (sent)
+            {
+                streamInput?.Complete(exception); // we were waiting for the response
+            }
+
             if (_dispatchesAndInvocationsCts.IsCancellationRequested)
             {
-                completeException = exception;
                 throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
             else if (cancellationToken.IsCancellationRequested)
             {
-                completeException = exception;
                 throw;
             }
             else
             {
                 // If the invocation isn't canceled by CancelDispatchesAndInvocations or the given cancellation token,
                 // it's canceled by ShutdownAsync because it wasn't dispatched by the peer.
-                Debug.Assert(ConnectionClosedException is not null);
-                completeException = ConnectionClosedException;
-                throw ConnectionClosedException;
+                throw ConnectionClosedException!;
             }
         }
         catch (TransportException exception)
         {
-            completeException = exception;
             throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
-        }
-        catch (Exception exception)
-        {
-            completeException = exception;
-            throw;
         }
         finally
         {
-            if (stream is not null && completeException is not null)
-            {
-                await stream.Output.CompleteAsync(completeException).ConfigureAwait(false);
-                if (stream.IsBidirectional)
-                {
-                    await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
-                }
-            }
+            streamInput?.Complete();
         }
 
         void EncodeHeader(PipeWriter writer)

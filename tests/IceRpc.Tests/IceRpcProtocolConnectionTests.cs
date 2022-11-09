@@ -409,7 +409,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
     /// PipeReader.</summary>
     [Test]
-    public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher(
+    public async Task PayloadContinuation_of_outgoing_request_completed_when_not_read_by_dispatcher(
         [Values] bool isOneway)
     {
         // Arrange
@@ -441,7 +441,8 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
     [Test]
-    public async Task PayloadStream_of_outgoing_request_completed_on_end_stream([Values(true, false)] bool isOneway)
+    public async Task PayloadContinuation_of_outgoing_request_completed_on_end_stream(
+        [Values(false, true)] bool isOneway)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
