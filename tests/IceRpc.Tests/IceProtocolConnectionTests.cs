@@ -122,10 +122,13 @@ public sealed class IceProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Throws.Nothing);
+
+        // Cleanup
+        await responseTask;
     }
 
     /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.

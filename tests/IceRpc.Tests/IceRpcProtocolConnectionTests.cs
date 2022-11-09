@@ -399,10 +399,11 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
@@ -428,13 +429,14 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
 
         // Cleanup
         await pipe.Writer.CompleteAsync();
+        await responseTask;
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
@@ -468,6 +470,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Cleanup
         dispatcher.ReleaseDispatch();
+        await invokeTask;
     }
 
     /// <summary>Ensures that the request payload is completed if the payload continuation is invalid.</summary>
@@ -489,10 +492,21 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+
+        // Cleanup
+        try
+        {
+            await responseTask;
+        }
+        catch (PayloadException)
+        {
+            // Depending on the timing, the payload stream send failure might abort the invocation before the response
+            // is sent.
+        }
     }
 
     /// <summary>Ensures that the response payload continuation is completed on a valid response.</summary>
@@ -546,10 +560,21 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+
+        // Cleanup
+        try
+        {
+            await responseTask;
+        }
+        catch (PayloadException)
+        {
+            // Depending on the timing, the payload stream send failure might abort the invocation before the response
+            // is sent.
+        }
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
@@ -578,10 +603,11 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -615,10 +641,11 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     [Test]
