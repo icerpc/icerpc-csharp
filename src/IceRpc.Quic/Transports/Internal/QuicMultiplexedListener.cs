@@ -31,8 +31,14 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
             {
-                // Listener was disposed while accept was in progress
+                // Listener was disposed while accept was in progress.
                 throw;
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+            {
+                // WORKAROUND QuicListener TLS handshake internal timeout.
+                // TODO rework depending on the resolution of:
+                // - https://github.com/dotnet/runtime/issues/78096
             }
             catch (QuicException)
             {
