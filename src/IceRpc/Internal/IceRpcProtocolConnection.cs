@@ -908,10 +908,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private async Task DispatchRequestAsync(IMultiplexedStream stream, CancellationToken cancellationToken)
     {
         PipeReader? fieldsPipeReader = null;
+        PipeReader? streamInput = stream.Input;
+        PipeWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
 
         try
         {
-            ReadResult readResult = await stream.Input.ReadSegmentAsync(
+            ReadResult readResult = await streamInput.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
                 cancellationToken).ConfigureAwait(false);
@@ -923,7 +925,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
                 DecodeHeader(readResult.Buffer);
-            stream.Input.AdvanceTo(readResult.Buffer.End);
+            streamInput.AdvanceTo(readResult.Buffer.End);
 
             using var request = new IncomingRequest(_connectionContext!)
             {
@@ -931,24 +933,20 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 IsOneway = !stream.IsBidirectional,
                 Operation = header.Operation,
                 Path = header.Path,
-                Payload = stream.Input
+                Payload = streamInput
             };
+
+            streamInput = null; // the request now owns streamInput
 
             await PerformDispatchRequestAsync(request).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            if (fieldsPipeReader is not null)
-            {
-                await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
-            }
+            // TODO: complete exceptions
 
-            await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-            if (stream.IsBidirectional)
-            {
-                await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-            }
-
+            fieldsPipeReader?.Complete(exception);
+            streamInput?.Complete(exception);
+            streamOutput?.Complete(exception);
             throw;
         }
 
@@ -976,15 +974,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 if (response != request.Response)
                 {
-                    var exception = new InvalidOperationException(
+                    throw new InvalidOperationException(
                         "the dispatcher did not return the last response created for this request");
-
-                    await response.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                    if (response.PayloadContinuation is PipeReader payloadContinuation)
-                    {
-                        await payloadContinuation.CompleteAsync(exception).ConfigureAwait(false);
-                    }
-                    throw exception;
                 }
             }
             catch when (request.IsOneway || _tasksCts.IsCancellationRequested)
@@ -994,8 +985,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (cancellationToken == exception.CancellationToken)
             {
-                await stream.Output.CompleteAsync((Exception?)ConnectionClosedException ?? exception)
-                    .ConfigureAwait(false);
+                streamOutput?.Complete((Exception?)ConnectionClosedException ?? exception);
                 return;
             }
             catch (Exception exception)
@@ -1047,18 +1037,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             finally
             {
-                if (fieldsPipeReader is not null)
-                {
-                    await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
-
-                    // The field values are now invalid - they point to potentially recycled and reused memory. We
-                    // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
-                    request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
-                }
+                fieldsPipeReader?.Complete();
+                // The field values are now invalid - they point to potentially recycled and reused memory. We
+                // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
+                request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
                 // Even when the code above throws an exception, we catch it and send a response. So we never want
-                // to give an exception to CompleteAsync when completing the incoming payload.
-                await request.Payload.CompleteAsync().ConfigureAwait(false);
+                // to give an exception to Complete when completing the incoming payload.
+                request.Payload.Complete();
             }
 
             if (request.IsOneway)
@@ -1066,18 +1052,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 return;
             }
 
+            Debug.Assert(streamOutput is not null);
+
             try
             {
                 EncodeHeader();
-
-                // SendPayloadAsync takes care of the completion of the response payload, payload continuation and
-                // stream output.
-                await SendPayloadAsync(response, stream, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch
             {
-                await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                streamOutput.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
+                throw;
             }
+
+            // SendPayloadAsync takes care of the completion of the response payload, payload continuation and
+            // stream output.
+            await SendPayloadAsync(response, stream, cancellationToken).ConfigureAwait(false);
 
             void EncodeHeader()
             {
