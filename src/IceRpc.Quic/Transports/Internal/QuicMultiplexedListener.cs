@@ -36,7 +36,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
-                // Expected if the QuicListener TLS handshake timeout kicks in.
+                // WORKAROUND QuicListener TLS handshake internal timeout.
+                // TODO rework depending on the resolution of:
+                // - https://github.com/dotnet/runtime/issues/78096
             }
             catch (QuicException)
             {
