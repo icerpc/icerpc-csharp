@@ -91,7 +91,7 @@ internal sealed class IceRpcProtocol : Protocol
                 PayloadCompleteException payloadCompleteException => (ulong)payloadCompleteException.ErrorCode,
                 OperationCanceledException => (ulong)PayloadCompleteErrorCode.Canceled,
                 InvalidDataException => (ulong)PayloadCompleteErrorCode.InvalidData,
-                _ => (ulong)PayloadCompleteErrorCode.Done // null and other exceptions are encoded as Done
+                _ => (ulong)PayloadCompleteErrorCode.Done, // null and other exceptions are encoded as Done
             };
 
         public ulong FromOutputCompleteException(Exception exception) =>
@@ -99,8 +99,6 @@ internal sealed class IceRpcProtocol : Protocol
             {
                 PayloadReadException payloadReadException => (ulong)payloadReadException.ErrorCode,
                 OperationCanceledException => (ulong)PayloadReadErrorCode.Canceled,
-                ConnectionException connectionException => (ulong)(connectionException.ErrorCode.IsClosedErrorCode() ?
-                    PayloadReadErrorCode.ConnectionShutdown : PayloadReadErrorCode.Failed),
                 _ => (ulong)PayloadReadErrorCode.Failed
             };
 

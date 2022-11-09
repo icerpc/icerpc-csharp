@@ -275,7 +275,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             stream.Input.Complete();
                             if (stream.IsBidirectional)
                             {
-                                stream.Output.Complete(ConnectionClosedException);
+                                stream.Output.Complete(
+                                    new PayloadReadException(PayloadReadErrorCode.ConnectionShutdown));
                             }
                             return;
                         }
@@ -725,7 +726,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     /// <summary>Sends the payload and payload continuation of an outgoing frame. SendPayloadAsync always completes the
     /// outgoing frame payload. It completes the output only if there's no payload continuation. Otherwise, it starts a
-    /// streaming task that is responsible for completing the payload continuation and the output.</summary>
+    /// background task that is responsible for completing the payload continuation and the output.</summary>
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         PipeWriter streamOutput,
@@ -995,11 +996,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // We convert any exception into a dispatch exception if it's not already one.
                 if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
+                    // We don't expect a PayloadCompleteException since 'exception' is caught _before_ we
+                    // write the response, and the application should not throw a PayloadCompleteException.
                     StatusCode statusCode = exception switch
                     {
-                        InvalidDataException _ => StatusCode.InvalidData,
-                        PayloadReadException => StatusCode.PayloadError, // TODO: revisit
-                        PayloadCompleteException => StatusCode.PayloadError,
+                        InvalidDataException => StatusCode.InvalidData,
+                        PayloadReadException => StatusCode.PayloadReadError,
                         _ => StatusCode.UnhandledException
                     };
 

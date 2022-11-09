@@ -646,7 +646,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadReadException>());
+        Assert.That(
+            async () => await responseTask,
+            Throws.InstanceOf<PayloadReadException>().With.Property("ErrorCode").EqualTo(PayloadReadErrorCode.Failed));
     }
 
     [Test]
