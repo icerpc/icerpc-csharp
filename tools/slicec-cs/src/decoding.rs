@@ -104,9 +104,6 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 name = enum_ref.cs_identifier(Some(Case::Pascal))
             );
         }
-        TypeRefs::Trait(_) => {
-            write!(code, "decoder.DecodeTrait<{}>()", type_string);
-        }
         TypeRefs::CustomType(custom_type_ref) => {
             write!(
                 code,
@@ -399,9 +396,6 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         }
         TypeRefs::Exception(_) => {
             format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name)
-        }
-        TypeRefs::Trait(_) => {
-            format!("(ref SliceDecoder decoder) => decoder.DecodeTrait<{}>()", type_name)
         }
         TypeRefs::CustomType(custom_type_ref) => {
             format!(

@@ -51,7 +51,6 @@ impl CommentPatcher {
                         Node::Parameter(parameter_ptr) => parameter_ptr.borrow_mut().comment = patch,
                         Node::Enum(enum_ptr) => enum_ptr.borrow_mut().comment = patch,
                         Node::Enumerator(enumerator_ptr) => enumerator_ptr.borrow_mut().comment = patch,
-                        Node::Trait(trait_ptr) => trait_ptr.borrow_mut().comment = patch,
                         Node::CustomType(custom_type_ptr) => custom_type_ptr.borrow_mut().comment = patch,
                         Node::TypeAlias(type_alias_ptr) => type_alias_ptr.borrow_mut().comment = patch,
                         _ => {

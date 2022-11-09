@@ -102,15 +102,13 @@ public class TaggedTests
                                       new MyStruct(20, 20),
                                       MyEnum.Enum1,
                                       new byte[] { 1, 2, 3},
-                                      "hello world!",
-                                      new TraitStructA("hello world!")),
+                                      "hello world!"),
         new MyStructWithTaggedMembers(),
         new MyStructWithTaggedMembers(10,
                                       null,
                                       MyEnum.Enum1,
                                       null,
-                                      "hello world!",
-                                      null),
+                                      "hello world!"),
     };
 
     [Test, TestCaseSource(nameof(DecodeSlice1TagggedMembersSource))]
@@ -283,15 +281,11 @@ public class TaggedTests
         {
             encoder.EncodeTagged(5, e, (ref SliceEncoder encoder, string value) => encoder.EncodeString(e));
         }
-        if (expected.F is IMyTraitA f)
-        {
-            encoder.EncodeTagged(6, f, (ref SliceEncoder encoder, IMyTraitA value) => f.EncodeTrait(ref encoder));
-        }
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
+            activator: SliceDecoder.GetActivator(typeof(MyStructWithTaggedMembers).Assembly));
 
         var decoded = new MyStructWithTaggedMembers(ref decoder);
         Assert.That(decoded.A, Is.EqualTo(expected.A));
@@ -299,7 +293,6 @@ public class TaggedTests
         Assert.That(decoded.C, Is.EqualTo(expected.C));
         Assert.That(decoded.D, Is.EqualTo(expected.D));
         Assert.That(decoded.E, Is.EqualTo(expected.E));
-        Assert.That(decoded.F, Is.EqualTo(expected.F));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -437,7 +430,7 @@ public class TaggedTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
+            activator: SliceDecoder.GetActivator(typeof(MyStructWithTaggedMembers).Assembly));
         Assert.That(
             decoder.DecodeTagged(
                 1,
@@ -473,12 +466,6 @@ public class TaggedTests
                 useTagEndMarker: true),
             Is.EqualTo(expected.E));
 
-        Assert.That(
-            decoder.DecodeTagged(
-                6,
-                (ref SliceDecoder decoder) => decoder.DecodeTrait<IMyTraitA?>(),
-                useTagEndMarker: true),
-            Is.EqualTo(expected.F));
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }

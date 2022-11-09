@@ -35,7 +35,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_implementation_name(namespace),
-            TypeRefs::Trait(trait_ref) => trait_ref.scoped_interface_name(namespace),
             TypeRefs::CustomType(custom_type_ref) => custom_type_ref
                 .definition()
                 .get_attribute(cs_attributes::TYPE, false)

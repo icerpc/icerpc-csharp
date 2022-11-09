@@ -243,15 +243,6 @@ impl Visitor for CsValidator<'_> {
         }
     }
 
-    fn visit_trait(&mut self, trait_def: &Trait) {
-        for attribute in &cs_attributes(trait_def.attributes()) {
-            match attribute.directive.as_str() {
-                cs_attributes::INTERNAL => validate_cs_internal(attribute, self.diagnostic_reporter),
-                _ => validate_common_attributes(attribute, self.diagnostic_reporter),
-            }
-        }
-    }
-
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
         // We require 'cs::type' on custom types to know how to encode/decode it.
         if !custom_type.has_attribute(cs_attributes::TYPE, false) {

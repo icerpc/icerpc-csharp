@@ -29,7 +29,6 @@ use std::path::Path;
 use validators::cs_validator::validate_cs_attributes;
 use visitors::{
     ClassVisitor, DispatchVisitor, EnumVisitor, ExceptionVisitor, ModuleVisitor, ProxyVisitor, StructVisitor,
-    TraitVisitor,
 };
 
 use slice::code_block::CodeBlock;
@@ -84,11 +83,6 @@ fn try_main() -> CompilationResult {
                 generated_code: &mut generated_code,
             };
             slice_file.visit_with(&mut class_visitor);
-
-            let mut trait_visitor = TraitVisitor {
-                generated_code: &mut generated_code,
-            };
-            slice_file.visit_with(&mut trait_visitor);
 
             let mut module_visitor = ModuleVisitor {
                 generated_code: &mut generated_code,
