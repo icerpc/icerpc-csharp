@@ -736,9 +736,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         return (fields, pipeReader);
     }
 
-    /// <summary>Sends the payload and payload continuation of an outgoing frame. SendPayloadAsync completes the payload
-    /// if successful. It completes the output only if there's no payload continuation. Otherwise, it starts a streaming
-    /// task that is responsible for completing the payload continuation and the output.</summary>
+    /// <summary>Sends the payload and payload continuation of an outgoing frame. SendPayloadAsync always completes the
+    /// outgoing frame payload. It completes the output only if there's no payload continuation. Otherwise, it starts a
+    /// streaming task that is responsible for completing the payload continuation and the output.</summary>
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         IMultiplexedStream stream,
@@ -758,15 +758,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (flushResult.IsCompleted)
             {
                 // The remote reader gracefully completed the stream input pipe. We're done.
-                await payloadWriter.CompleteAsync().ConfigureAwait(false);
+                payloadWriter.Complete();
 
-                // We complete the payload and payload continuation immediately. For example, we've just sent an outgoing
-                // request and we're waiting for the exception to come back.
-                await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-                if (payloadContinuation is not null)
-                {
-                    await payloadContinuation.CompleteAsync().ConfigureAwait(false);
-                }
+                // We complete the payload and payload continuation immediately. For example, we've just sent an
+                // outgoing request and we're waiting for the exception to come back.
+                outgoingFrame.Payload.Complete();
+                outgoingFrame.PayloadContinuation?.Complete();
                 return;
             }
             else if (flushResult.IsCanceled)
@@ -777,18 +774,20 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
-            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+            // Passed through to remote peer if from ReadAsync failure; otherwise no-op since already failed.
+            payloadWriter.Complete(exception);
 
-            // An exception will trigger the immediate completion of the request and indirectly of the
-            // outgoingFrame payloads.
+            // Passed through to remote peer if from FlushAsync failure; otherwise no-op since already failed.
+            outgoingFrame.Payload.Complete(exception);
+            outgoingFrame.PayloadContinuation?.Complete(); // don't want to read it
             throw;
         }
 
-        await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+        outgoingFrame.Payload.Complete();
 
         if (payloadContinuation is null)
         {
-            await payloadWriter.CompleteAsync().ConfigureAwait(false);
+            payloadWriter.Complete();
         }
         else
         {
@@ -812,13 +811,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 "a payload writer interceptor is not allowed to return a canceled flush result");
                         }
 
-                        await payloadContinuation.CompleteAsync().ConfigureAwait(false);
-                        await payloadWriter.CompleteAsync().ConfigureAwait(false);
+                        payloadContinuation.Complete();
+                        payloadWriter.Complete();
                     }
                     catch (Exception exception)
                     {
-                        await payloadContinuation.CompleteAsync(exception).ConfigureAwait(false);
-                        await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+                        // Passed through to remote peer if from ReadAsync failure; otherwise no-op since already
+                        // failed.
+                        payloadWriter.Complete(exception);
+
+                        // Passed through to remote peer if from FlushAsync failure; otherwise no-op since already
+                        // failed.
+                        payloadContinuation.Complete(exception);
                     }
                 },
                 CancellationToken.None);
