@@ -9,7 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 // that uses our Root CA certificate.
 
 using var rootCA = new X509Certificate2("../../certs/cacert.der");
-var authenticationOptions = new SslClientAuthenticationOptions()
+var clientAuthenticationOptions = new SslClientAuthenticationOptions()
 {
     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
     {
@@ -22,7 +22,7 @@ var authenticationOptions = new SslClientAuthenticationOptions()
     }
 };
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"), authenticationOptions);
+await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"), clientAuthenticationOptions);
 
 var hello = new HelloProxy(connection);
 

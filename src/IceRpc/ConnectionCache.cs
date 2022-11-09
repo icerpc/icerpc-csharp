@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc;
@@ -38,18 +39,25 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
+    /// <param name="logger">The logger.</param>
     public ConnectionCache(
         ConnectionCacheOptions options,
         IDuplexClientTransport? duplexClientTransport = null,
-        IMultiplexedClientTransport? multiplexedClientTransport = null)
+        IMultiplexedClientTransport? multiplexedClientTransport = null,
+        ILogger? logger = null)
     {
-        _connectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(
-            new ClientProtocolConnectionFactory(
+        _connectionFactory = new ClientProtocolConnectionFactory(
                 options.ConnectionOptions,
                 options.ClientAuthenticationOptions,
                 duplexClientTransport,
-                multiplexedClientTransport));
+                multiplexedClientTransport);
 
+        _connectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(_connectionFactory);
+
+        if (logger is not null)
+        {
+            _connectionFactory = new LogClientProtocolConnectionFactoryDecorator(_connectionFactory, logger);
+        }
         _preferExistingConnection = options.PreferExistingConnection;
     }
 
