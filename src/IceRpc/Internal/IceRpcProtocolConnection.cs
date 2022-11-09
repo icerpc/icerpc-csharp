@@ -272,7 +272,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                         if (done)
                         {
-                            stream.Input.Complete(ConnectionClosedException);
+                            stream.Input.Complete();
                             if (stream.IsBidirectional)
                             {
                                 stream.Output.Complete(ConnectionClosedException);
@@ -403,6 +403,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             throw;
         }
 
+        PipeReader? streamInput = stream.IsBidirectional ? stream.Input : null;
         try
         {
             // Keep track of the invocation cancellation token source for the shutdown logic.
@@ -435,20 +436,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             // failed to send the request
             stream.Output.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
-            if (!request.IsOneway)
-            {
-                stream.Input.Complete();
-            }
+            streamInput?.Complete();
             throw;
         }
 
         bool sent = false;
-        PipeReader? streamInput = stream.IsBidirectional ? stream.Input : null;
         try
         {
             // SendPayloadAsync takes care of the completion of payload, payload completion and stream output, whether
             // it succeeds or fails.
-            await SendPayloadAsync(request, stream, invocationCts.Token).ConfigureAwait(false);
+            await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCts.Token)
+                .ConfigureAwait(false);
             sent = true;
 
             if (request.IsOneway)
@@ -497,7 +495,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             if (sent)
             {
-                streamInput?.Complete(exception); // we were waiting for the response
+                streamInput?.Complete(exception); // we were waiting for the response and got canceled
             }
 
             if (_dispatchesAndInvocationsCts.IsCancellationRequested)
@@ -730,10 +728,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     /// streaming task that is responsible for completing the payload continuation and the output.</summary>
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
-        IMultiplexedStream stream,
+        PipeWriter streamOutput,
+        Task streamOutputClosed,
         CancellationToken cancellationToken)
     {
-        PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
+        PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(streamOutput);
         PipeReader? payloadContinuation = outgoingFrame.PayloadContinuation;
 
         try
@@ -839,7 +838,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException) when (stream.OutputClosed.IsCompleted)
+                    catch (OperationCanceledException) when (streamOutputClosed.IsCompleted)
                     {
                         // This either throws the OutputClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
@@ -850,9 +849,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // The application (or an interceptor/middleware) called CancelPendingRead on reader.
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
-                        await writer.CompleteAsync(new PayloadReadException(PayloadReadErrorCode.Canceled))
-                            .ConfigureAwait(false);
-
+                        writer.Complete(new OperationCanceledException()); // copy completed as Canceled
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
                     }
                     else
@@ -884,7 +881,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 try
                 {
-                    await stream.OutputClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
+                    await streamOutputClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -942,11 +939,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
-            // TODO: complete exceptions
+            fieldsPipeReader?.Complete();
 
-            fieldsPipeReader?.Complete(exception);
+            // We always need to complete streamOutput with an error when an exception is thrown. For example, we
+            // received an invalid request header that we could not decode.
+            streamOutput?.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
+
+            // When streamInput is not null, the exception was thrown early--when reading or decoding the header. It
+            // could be for example that we could not decode the header.
             streamInput?.Complete(exception);
-            streamOutput?.Complete(exception);
             throw;
         }
 
@@ -1064,9 +1065,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw;
             }
 
-            // SendPayloadAsync takes care of the completion of the response payload, payload continuation and
-            // stream output.
-            await SendPayloadAsync(response, stream, cancellationToken).ConfigureAwait(false);
+            // SendPayloadAsync takes care of the completion of the response payload, response payload continuation
+            // and stream output.
+            await SendPayloadAsync(response, streamOutput, stream.OutputClosed, cancellationToken)
+                .ConfigureAwait(false);
 
             void EncodeHeader()
             {
