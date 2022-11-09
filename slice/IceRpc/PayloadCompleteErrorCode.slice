@@ -14,7 +14,4 @@ unchecked enum PayloadCompleteErrorCode : varuint62
 
     /// The reader read data that it cannot decode.
     InvalidData,
-
-    /// The reader completed due to an unknown error.
-    Unspecified,
 }

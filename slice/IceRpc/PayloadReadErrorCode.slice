@@ -12,9 +12,6 @@ unchecked enum PayloadReadErrorCode : varuint62
     /// A write or flush operation on the writer was canceled, for example because it timed out.
     Canceled,
 
-    /// An internal error prevents the writer from writing any data or more data if it already started writing.
-    InternalFailure,
-
-    /// The writer completed due to an unknown error.
-    Unspecified,
+    /// The writer cannot write more data.
+    Failed,
 }
