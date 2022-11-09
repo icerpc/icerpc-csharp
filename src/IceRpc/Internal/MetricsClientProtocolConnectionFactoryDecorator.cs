@@ -5,28 +5,28 @@ using IceRpc.Transports;
 namespace IceRpc.Internal;
 
 /// <summary>Provides a metrics decorator for client protocol connection factory.</summary>
-internal class MetricsClientProtocolConnectionFactoryDecorator : IClientConnectionFactory
+internal class MetricsClientProtocolConnectionFactoryDecorator : ICoreClientConnectionFactory
 {
-    private readonly IClientConnectionFactory _decoratee;
+    private readonly ICoreClientConnectionFactory _decoratee;
 
-    public IClientConnection CreateConnection(ServerAddress serverAddress)
+    public IProtocolConnection CreateConnection(ServerAddress serverAddress)
     {
-        IClientConnection connection = _decoratee.CreateConnection(serverAddress);
+        IProtocolConnection connection = _decoratee.CreateConnection(serverAddress);
         ClientMetrics.Instance.ConnectionStart();
         return new MetricsProtocolConnectionDecorator(connection);
     }
 
-    internal MetricsClientProtocolConnectionFactoryDecorator(IClientConnectionFactory decoratee) =>
+    internal MetricsClientProtocolConnectionFactoryDecorator(ICoreClientConnectionFactory decoratee) =>
         _decoratee = decoratee;
 
     /// <summary>Provides a log decorator for client protocol connections.</summary>
-    private class MetricsProtocolConnectionDecorator : IClientConnection
+    private class MetricsProtocolConnectionDecorator : IProtocolConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
         public Task ShutdownComplete => _decoratee.ShutdownComplete;
 
-        private readonly IClientConnection _decoratee;
+        private readonly IProtocolConnection _decoratee;
         private readonly Task _shutdownAsync;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -57,7 +57,7 @@ internal class MetricsClientProtocolConnectionFactoryDecorator : IClientConnecti
         public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(cancellationToken);
 
-        internal MetricsProtocolConnectionDecorator(IClientConnection decoratee)
+        internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
         {
             _decoratee = decoratee;
             _shutdownAsync = ShutdownAsync();

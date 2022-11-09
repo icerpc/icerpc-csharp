@@ -552,118 +552,103 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         Debug.Assert(ConnectionClosedException is not null);
 
-        if (_readGoAwayTask is null)
+        IceRpcGoAway goAwayFrame;
+        lock (_mutex)
         {
-            // No stream or dispatch if the connection is not connected.
-            Debug.Assert(_streamCount == 0 && _dispatchCount == 0);
-
-            // Calling shutdown before connect indicates that the connection establishment is refused.
-            await _transportConnection.CloseAsync(
-                (ulong)IceRpcConnectionErrorCode.Refused,
-                cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // If the connection is connected, exchange go away frames with the peer.
-
-            IceRpcGoAway goAwayFrame;
-            lock (_mutex)
+            _isReadOnly = true;
+            if (_streamCount == 0)
             {
-                _isReadOnly = true;
-                if (_streamCount == 0)
-                {
-                    _streamsClosed.TrySetResult();
-                }
-                if (_dispatchCount == 0)
-                {
-                    _dispatchesCompleted.TrySetResult();
-                }
-
-                // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
-                // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
-                goAwayFrame = new(
-                    _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
-                    (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
+                _streamsClosed.TrySetResult();
+            }
+            if (_dispatchCount == 0)
+            {
+                _dispatchesCompleted.TrySetResult();
             }
 
-            try
+            // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
+            // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
+            goAwayFrame = new(
+                _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
+                (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
+        }
+
+        try
+        {
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.GoAway,
+                goAwayFrame.Encode,
+                cancellationToken).ConfigureAwait(false);
+
+            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown
+            // has been initiated by the remote peer.
+            IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
+            // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationCts
+            // is read-only at this point.
+            foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocationCts)
             {
-                await SendControlFrameAsync(
-                    IceRpcControlFrameType.GoAway,
-                    goAwayFrame.Encode,
-                    cancellationToken).ConfigureAwait(false);
-
-                // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown
-                // has been initiated by the remote peer.
-                IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
-                    .ConfigureAwait(false);
-
-                // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationCts
-                // is read-only at this point.
-                foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocationCts)
+                if (!stream.IsStarted ||
+                    stream.Id >= (stream.IsBidirectional ?
+                        peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
                 {
-                    if (!stream.IsStarted ||
-                        stream.Id >= (stream.IsBidirectional ?
-                            peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
+                    try
                     {
-                        try
-                        {
-                            cts.Cancel();
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            // Expected if already disposed.
-                        }
+                        cts.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Expected if already disposed.
                     }
                 }
-
-                // Wait for network activity on streams (other than control streams) to cease.
-                await _streamsClosed.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                // Close the control stream to notify the peer that on our side, all the streams completed and that it
-                // can close the transport connection whenever it likes.
-                // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
-                // abortive closure and from our point of view, it's ok for the remote peer to close the transport
-                // connection. We don't close the transport connection immediately as this would kill the streams in the
-                // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
-                _controlStream!.Output.Complete();
             }
 
-            // Wait for the peer notification that on its side all the streams are completed. It's important to wait for
-            // this notification before closing the connection. In particular with Quic where closing the connection
-            // before all the streams are processed could lead to a stream failure.
-            try
-            {
-                // Wait for the _remoteControlStream Input completion.
-                ReadResult readResult = await _remoteControlStream!.Input.ReadAsync(cancellationToken)
-                    .ConfigureAwait(false);
-
-                Debug.Assert(!readResult.IsCanceled);
-
-                if (!readResult.IsCompleted || !readResult.Buffer.IsEmpty)
-                {
-                    throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
-                }
-            }
-            catch (TransportException exception) when (
-                exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
-                exception.ApplicationErrorCode is ulong errorCode &&
-                (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
-            {
-                // Expected if the peer closed the connection first.
-            }
-
-            // We can now safely close the connection.
-            await _transportConnection.CloseAsync(
-                (ulong)IceRpcConnectionErrorCode.NoError,
-                cancellationToken).ConfigureAwait(false);
-
-            // We wait for the completion of the dispatches that we created.
-            await _dispatchesCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // Wait for network activity on streams (other than control streams) to cease.
+            await _streamsClosed.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
+        finally
+        {
+            // Close the control stream to notify the peer that on our side, all the streams completed and that it
+            // can close the transport connection whenever it likes.
+            // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
+            // abortive closure and from our point of view, it's ok for the remote peer to close the transport
+            // connection. We don't close the transport connection immediately as this would kill the streams in the
+            // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
+            _controlStream!.Output.Complete();
+        }
+
+        // Wait for the peer notification that on its side all the streams are completed. It's important to wait for
+        // this notification before closing the connection. In particular with Quic where closing the connection
+        // before all the streams are processed could lead to a stream failure.
+        try
+        {
+            // Wait for the _remoteControlStream Input completion.
+            ReadResult readResult = await _remoteControlStream!.Input.ReadAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            Debug.Assert(!readResult.IsCanceled);
+
+            if (!readResult.IsCompleted || !readResult.Buffer.IsEmpty)
+            {
+                throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
+            }
+        }
+        catch (TransportException exception) when (
+            exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
+            exception.ApplicationErrorCode is ulong errorCode &&
+            (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
+        {
+            // Expected if the peer closed the connection first.
+        }
+
+        // We can now safely close the connection.
+        await _transportConnection.CloseAsync(
+            (ulong)IceRpcConnectionErrorCode.NoError,
+            cancellationToken).ConfigureAwait(false);
+
+        // We wait for the completion of the dispatches that we created.
+        await _dispatchesCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
