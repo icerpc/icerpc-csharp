@@ -514,14 +514,14 @@ public sealed class Server : IAsyncDisposable
             {
                 (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
                     await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                _logger.AcceptConnectionSucceed(ServerAddress, remoteNetworkAddress);
+                _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
                 return (
                     new LogProtocolConnectionDecorator(connection, remoteNetworkAddress, _logger),
                     remoteNetworkAddress);
             }
             catch (Exception exception)
             {
-                _logger.ConnectionAcceptFailure(ServerAddress, exception);
+                _logger.ConnectionAcceptFailed(ServerAddress, exception);
                 throw;
             }
         }
@@ -556,12 +556,12 @@ public sealed class Server : IAsyncDisposable
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
                 _localNetworkAddress = result.LocalNetworkAddress;
-                _logger.ConnectSucceeded(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
+                _logger.ConnectionConnected(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
                 return result;
             }
             catch (Exception exception)
             {
-                _logger.ConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                _logger.ConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
                 throw;
             }
         }
@@ -605,7 +605,7 @@ public sealed class Server : IAsyncDisposable
                 {
                     if (_localNetworkAddress is not null)
                     {
-                        _logger.ConnectionFailure(
+                        _logger.ConnectionFailed(
                             isServer: true,
                             _localNetworkAddress,
                             remoteNetworkAddress,
