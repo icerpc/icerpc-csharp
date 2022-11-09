@@ -1018,6 +1018,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw new InvalidOperationException(
                             "the dispatcher did not return the last response created for this request");
                     }
+
+                    if (response.PayloadContinuation is not null)
+                    {
+                        throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
+                    }
                 }
                 catch when (request.IsOneway)
                 {
@@ -1080,11 +1085,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
 
                     Debug.Assert(response is not null);
-
-                    if (response.PayloadContinuation is not null)
-                    {
-                        throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
-                    }
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the
                     // write semaphore.

@@ -236,6 +236,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                                 var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(
                                     _dispatchesAndInvocationsCts.Token);
+                                cancellationToken = dispatchCts.Token;
 
                                 if (stream.IsBidirectional)
                                 {
@@ -266,7 +267,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 }
 
                                 _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
-                                cancellationToken = dispatchCts.Token;
                             }
                         }
 
@@ -287,6 +287,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     try
                                     {
                                         await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
+                                    }
+                                    catch
+                                    {
+                                        // Ignore
                                     }
                                     finally
                                     {
@@ -511,8 +515,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
+            // TODO: is it correct to throw a local PayloadException here? Do we want this exception to be the result
+            // of a peer failure only?
             completeException = exception;
-            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
+            throw new PayloadException(PayloadErrorCode.Unspecified);
         }
         finally
         {
@@ -622,7 +628,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         stream.Id >= (stream.IsBidirectional ?
                             peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
                     {
-                        cts.Cancel();
+                        try
+                        {
+                            cts.Cancel();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Expected if already disposed.
+                        }
                     }
                 }
 
@@ -805,7 +818,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 },
-                cancellationToken);
+                CancellationToken.None);
         }
 
         async Task<FlushResult> CopyReaderToWriterAsync(
@@ -1061,8 +1074,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 EncodeHeader();
 
-                // SendPayloadAsync takes care of the completion of the response payload, payload continuation and stream
-                // output.
+                // SendPayloadAsync takes care of the completion of the response payload, payload continuation and
+                // stream output.
                 await SendPayloadAsync(response, stream, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -1221,7 +1234,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            // Ignore the reason of the Input/Output closure
+            // Ignore the reason of the Input/Output closure.
         }
 
         lock (_mutex)
