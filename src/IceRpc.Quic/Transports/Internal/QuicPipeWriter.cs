@@ -15,7 +15,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IPayloadExceptionConverter _errorCodeConverter;
+    private readonly IMultiplexedStreamExceptionConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
 
@@ -151,7 +151,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
         {
-            if (_errorCodeConverter.ToPayloadCompleteException(
+            if (_errorCodeConverter.ToFlushException(
                     (ulong)exception.ApplicationErrorCode) is Exception payloadCompleteException)
             {
                 throw payloadCompleteException;
@@ -200,7 +200,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     internal QuicPipeWriter(
         QuicStream stream,
-        IPayloadExceptionConverter errorCodeConverter,
+        IMultiplexedStreamExceptionConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize,
         Action completedCallback)
@@ -231,7 +231,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 exception.QuicError == QuicError.StreamAborted &&
                 exception.ApplicationErrorCode is not null)
             {
-                if (_errorCodeConverter.ToPayloadCompleteException(
+                if (_errorCodeConverter.ToFlushException(
                     (ulong)exception.ApplicationErrorCode) is Exception payloadCompleteException)
                 {
                     throw payloadCompleteException;

@@ -15,7 +15,8 @@ internal sealed class IceRpcProtocol : Protocol
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
 
-    internal IPayloadExceptionConverter PayloadErrorCodeConverter { get; } = new IceRpcPayloadExceptionConverter();
+    internal IMultiplexedStreamExceptionConverter MultiplexedStreamExceptionConverter { get; } =
+        new IceRpcMultiplexedStreamExceptionConverter();
 
     internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
@@ -82,7 +83,7 @@ internal sealed class IceRpcProtocol : Protocol
     {
     }
 
-    private class IceRpcPayloadExceptionConverter : IPayloadExceptionConverter
+    private class IceRpcMultiplexedStreamExceptionConverter : IMultiplexedStreamExceptionConverter
     {
         public ulong FromInputCompleteException(Exception? exception) =>
             exception switch
@@ -104,12 +105,12 @@ internal sealed class IceRpcProtocol : Protocol
                 _ => (ulong)PayloadReadErrorCode.Unspecified
             };
 
-        public PayloadCompleteException? ToPayloadCompleteException(ulong errorCode)
+        public PayloadCompleteException? ToFlushException(ulong errorCode)
         {
             var payloadCompleteErrorCode = (PayloadCompleteErrorCode)errorCode;
             return payloadCompleteErrorCode == PayloadCompleteErrorCode.Done ? null : new(payloadCompleteErrorCode);
         }
 
-        public PayloadReadException ToPayloadReadException(ulong errorCode) => new((PayloadReadErrorCode)errorCode);
+        public PayloadReadException ToReadException(ulong errorCode) => new((PayloadReadErrorCode)errorCode);
     }
 }

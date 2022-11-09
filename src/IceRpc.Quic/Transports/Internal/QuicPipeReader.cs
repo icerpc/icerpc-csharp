@@ -15,7 +15,7 @@ internal class QuicPipeReader : PipeReader
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IPayloadExceptionConverter _errorCodeConverter;
+    private readonly IMultiplexedStreamExceptionConverter _errorCodeConverter;
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
@@ -58,7 +58,7 @@ internal class QuicPipeReader : PipeReader
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
         {
-            throw _errorCodeConverter.ToPayloadReadException((ulong)exception.ApplicationErrorCode);
+            throw _errorCodeConverter.ToReadException((ulong)exception.ApplicationErrorCode);
         }
         catch (QuicException exception)
         {
@@ -74,7 +74,7 @@ internal class QuicPipeReader : PipeReader
 
     internal QuicPipeReader(
         QuicStream stream,
-        IPayloadExceptionConverter errorCodeConverter,
+        IMultiplexedStreamExceptionConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action completedCallback)
@@ -103,7 +103,7 @@ internal class QuicPipeReader : PipeReader
                 exception.QuicError == QuicError.StreamAborted &&
                 exception.ApplicationErrorCode is not null)
             {
-                throw _errorCodeConverter.ToPayloadReadException((ulong)exception.ApplicationErrorCode);
+                throw _errorCodeConverter.ToReadException((ulong)exception.ApplicationErrorCode);
             }
             catch (QuicException exception)
             {

@@ -109,7 +109,7 @@ public sealed class Server : IAsyncDisposable
                         MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
-                        PayloadExceptionConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
+                        MultiplexedStreamExceptionConverter = IceRpcProtocol.Instance.MultiplexedStreamExceptionConverter
                     },
                     options.ServerAuthenticationOptions);
                 listener = new IceRpcProtocolListener(options.ConnectionOptions, transportListener);

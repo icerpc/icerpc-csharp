@@ -324,7 +324,7 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic reset frame on local unidirectional stream");
         }
 
-        var exception = _connection.PayloadExceptionConverter.ToPayloadReadException(errorCode);
+        var exception = _connection.PayloadExceptionConverter.ToReadException(errorCode);
         if (TrySetReadsClosed(exception))
         {
             _inputPipeReader?.Abort(exception);
@@ -340,7 +340,7 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic stop sending on remote unidirectional stream");
         }
 
-        var exception = _connection.PayloadExceptionConverter.ToPayloadCompleteException(errorCode);
+        var exception = _connection.PayloadExceptionConverter.ToFlushException(errorCode);
         if (TrySetWritesClosed(exception))
         {
             _outputPipeWriter?.Abort(exception);

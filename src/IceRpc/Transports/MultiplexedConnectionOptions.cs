@@ -21,13 +21,13 @@ public record class MultiplexedConnectionOptions
     /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
     public int MinSegmentSize { get; set; } = 4096;
 
+    /// <summary>Gets or sets the <see cref="IMultiplexedStreamExceptionConverter" />.</summary>
+    /// <value>The <see cref="IMultiplexedStreamExceptionConverter" />.</value>
+    public IMultiplexedStreamExceptionConverter? MultiplexedStreamExceptionConverter { get; set; }
+
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
     /// <value>A pool of memory blocks used for buffer management.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
-
-    /// <summary>Gets or sets the <see cref="IPayloadExceptionConverter" />.</summary>
-    /// <value>The <see cref="IPayloadExceptionConverter" />.</value>
-    public IPayloadExceptionConverter? PayloadExceptionConverter { get; set; }
 
     internal const int DefaultMaxBidirectionalStreams = 100;
     internal const int DefaultMaxUnidirectionalStreams = 100;

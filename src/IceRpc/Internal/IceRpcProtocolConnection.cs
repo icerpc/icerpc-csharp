@@ -505,7 +505,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (ProtocolException exception)
         {
-            // TODO: should we throw PayloadException(PayloadErrorCode.ProtocolError) instead?
+            // TODO: should we throw a payload exception instead?
             completeException = exception;
             throw;
         }

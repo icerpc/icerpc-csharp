@@ -20,7 +20,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal int MinSegmentSize { get; }
 
-    internal IPayloadExceptionConverter PayloadExceptionConverter { get; }
+    internal IMultiplexedStreamExceptionConverter PayloadExceptionConverter { get; }
 
     internal int PauseWriterThreshold { get; }
 
@@ -411,13 +411,13 @@ internal class SlicConnection : IMultiplexedConnection
         SlicTransportOptions slicOptions,
         bool isServer)
     {
-        if (options.PayloadExceptionConverter is null)
+        if (options.MultiplexedStreamExceptionConverter is null)
         {
-            throw new ArgumentException($"{nameof(options.PayloadExceptionConverter)} is null", nameof(options));
+            throw new ArgumentException($"{nameof(options.MultiplexedStreamExceptionConverter)} is null", nameof(options));
         }
 
         IsServer = isServer;
-        PayloadExceptionConverter = options.PayloadExceptionConverter;
+        PayloadExceptionConverter = options.MultiplexedStreamExceptionConverter;
 
         Pool = options.Pool;
         MinSegmentSize = options.MinSegmentSize;
