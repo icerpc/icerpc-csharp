@@ -13,7 +13,7 @@ namespace IceRpc;
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
-    private readonly Dictionary<ServerAddress, IProtocolConnection> _activeConnections =
+    private readonly Dictionary<ServerAddress, IClientConnection> _activeConnections =
         new(ServerAddressComparer.OptionalTransport);
 
     private int _backgroundConnectionDisposeCount;
@@ -21,12 +21,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly IClientProtocolConnectionFactory _connectionFactory;
+    private readonly IClientConnectionFactory _connectionFactory;
 
     private readonly object _mutex = new();
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
-    private readonly Dictionary<ServerAddress, (IProtocolConnection Connection, Task Task)> _pendingConnections =
+    private readonly Dictionary<ServerAddress, (IClientConnection Connection, Task Task)> _pendingConnections =
         new(ServerAddressComparer.OptionalTransport);
 
     private readonly bool _preferExistingConnection;
@@ -44,7 +44,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IMultiplexedClientTransport? multiplexedClientTransport = null)
     {
         _connectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(
-            new ClientProtocolConnectionFactory(
+            new ClientConnectionFactory(
                 options.ConnectionOptions,
                 options.ClientAuthenticationOptions,
                 duplexClientTransport,
@@ -84,7 +84,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Dispose all connections managed by this cache.
-        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
+        IEnumerable<IClientConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
             .Concat(_activeConnections.Values);
 
         await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask())
@@ -121,7 +121,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             throw new NoServerAddressException(request.ServiceAddress);
         }
 
-        IProtocolConnection? connection = null;
+        IClientConnection? connection = null;
         ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
 
         if (_preferExistingConnection)
@@ -150,8 +150,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
             }
 
-            IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
-                _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ? connection : null;
+            IClientConnection? GetActiveConnection(ServerAddress serverAddress) =>
+                _activeConnections.TryGetValue(serverAddress, out IClientConnection? connection) ? connection : null;
         }
 
         if (connection is not null)
@@ -256,7 +256,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         // Shut down all connections managed by this cache.
-        IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
+        IEnumerable<IClientConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
             .Concat(_activeConnections.Values);
 
         return Task.WhenAll(
@@ -268,11 +268,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <param name="serverAddress">The server address.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A connected connection.</returns>
-    private async ValueTask<IProtocolConnection> ConnectAsync(
+    private async ValueTask<IClientConnection> ConnectAsync(
         ServerAddress serverAddress,
         CancellationToken cancellationToken)
     {
-        (IProtocolConnection Connection, Task Task) pendingConnectionValue;
+        (IClientConnection Connection, Task Task) pendingConnectionValue;
 
         CancellationToken shutdownCancellationToken;
 
@@ -292,7 +292,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 throw new InvalidOperationException("connection cache is shut down or shutting down");
             }
 
-            if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
+            if (_activeConnections.TryGetValue(serverAddress, out IClientConnection? connection))
             {
                 return connection;
             }
@@ -311,7 +311,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         await pendingConnectionValue.Task.ConfigureAwait(false);
         return pendingConnectionValue.Connection;
 
-        async Task PerformConnectAsync(IProtocolConnection connection)
+        async Task PerformConnectAsync(IClientConnection connection)
         {
             await Task.Yield(); // exit mutex lock
 
@@ -365,7 +365,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             _ = RemoveFromActiveAsync(connection, shutdownCancellationToken);
         }
 
-        async Task RemoveFromActiveAsync(IProtocolConnection connection, CancellationToken shutdownCancellationToken)
+        async Task RemoveFromActiveAsync(IClientConnection connection, CancellationToken shutdownCancellationToken)
         {
             try
             {

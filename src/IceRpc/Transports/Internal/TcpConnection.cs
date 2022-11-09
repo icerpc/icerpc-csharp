@@ -30,11 +30,11 @@ internal abstract class TcpConnection : IDuplexConnection
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
         if (_isDisposed)
         {
-            return;
+            return new ValueTask();
         }
         _isDisposed = true;
 
@@ -53,6 +53,8 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             Socket.Close(0);
         }
+
+        return new ValueTask();
     }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)

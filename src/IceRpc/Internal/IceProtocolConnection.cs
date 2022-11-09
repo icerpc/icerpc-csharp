@@ -31,7 +31,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
-    private IConnectionContext? _connectionContext; // non-null once the connection is established
+    private readonly IConnectionContext _connectionContext;
     private readonly IDispatcher _dispatcher;
 
     private int _dispatchCount;
@@ -83,6 +83,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
+        TransportConnectionInformation transportConnectionInformation,
         bool isServer,
         ConnectionOptions options)
         : base(isServer, options)
@@ -100,6 +101,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 maxCount: options.MaxDispatches);
         }
         _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
+
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
@@ -207,15 +210,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
-        CancellationToken cancellationToken)
+    private protected override async Task ConnectAsyncCore(CancellationToken cancellationToken)
     {
-        TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(
-            cancellationToken).ConfigureAwait(false);
-
-        // This needs to be set before starting the read frames task below.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
-
         // Wait for the transport connection establishment to enable the idle timeout check.
         _duplexConnectionReader.EnableIdleCheck();
 
@@ -264,7 +260,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the transport connection and notify the
                     // callback that the connection has been shutdown by the peer.
-                    _duplexConnection.Dispose();
+                    await _duplexConnection.DisposeAsync().ConfigureAwait(false);
 
                     // Initiate the shutdown.
                     InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
@@ -309,8 +305,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return transportConnectionInformation;
-
         static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
         {
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
@@ -338,7 +332,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
-        _duplexConnection.Dispose();
+        await _duplexConnection.DisposeAsync().ConfigureAwait(false);
 
         // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations();
@@ -457,7 +451,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request, _connectionContext!);
+                return new IncomingResponse(request, _connectionContext);
             }
 
             // Wait to receive the response.
@@ -541,7 +535,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            var response = new IncomingResponse(request, _connectionContext!, fields)
+            var response = new IncomingResponse(request, _connectionContext, fields)
             {
                 Payload = frameReader,
                 StatusCode = statusCode
@@ -703,7 +697,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             // We're shutting down an un-connected connection. We just close the underlying transport.
             Debug.Assert(_dispatchCount == 0 && _invocations.Count == 0);
-            _duplexConnection.Dispose();
+            await _duplexConnection.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -982,7 +976,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             _ = Task.Run(
                 async () =>
                 {
-                    using var request = new IncomingRequest(_connectionContext!)
+                    using var request = new IncomingRequest(_connectionContext)
                     {
                         Fields = fields,
                         Fragment = requestHeader.Fragment,

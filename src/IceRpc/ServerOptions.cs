@@ -15,6 +15,11 @@ public sealed record class ServerOptions
     /// </summary>
     public int MaxConnections { get; set; }
 
+    /// <summary>Gets or sets the maximum number of pending connections. Once the maximum number pending connections has
+    /// been reached, the server will stop accepting new connections. The default value <c>0</c> means unlimited.
+    /// </summary>
+    public int MaxPendingConnections { get; set; }
+
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>
     public ServerAddress ServerAddress { get; set; } = new(Protocol.IceRpc);

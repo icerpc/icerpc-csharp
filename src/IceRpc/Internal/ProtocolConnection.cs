@@ -28,7 +28,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private ConnectionException? _connectionClosedException;
     private readonly CancellationTokenSource _connectCts = new();
-    private Task<TransportConnectionInformation>? _connectTask;
+    private Task? _connectTask;
     private readonly TimeSpan _connectTimeout;
     private Task? _disposeTask;
     private readonly TimeSpan _idleTimeout;
@@ -42,7 +42,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    public Task ConnectAsync(CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -66,7 +66,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
         return _connectTask;
 
-        async Task<TransportConnectionInformation> PerformConnectAsync()
+        async Task PerformConnectAsync()
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
@@ -78,10 +78,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 try
                 {
-                    TransportConnectionInformation information = await ConnectAsyncCore(cts.Token)
-                        .ConfigureAwait(false);
+                    await ConnectAsyncCore(cts.Token).ConfigureAwait(false);
                     EnableIdleCheck();
-                    return information;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -171,7 +169,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     // Wait for the connection establishment to complete. DisposeAsync performs a graceful shutdown of
                     // the connection so we don't cancel it. Cancelling connection establishment could end up aborting
                     // the connection on the peer if its ConnectAsync completed successfully.
-                    _ = await _connectTask.ConfigureAwait(false);
+                    await _connectTask.ConfigureAwait(false);
 
                     if (_shutdownTask is null)
                     {
@@ -243,7 +241,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             // It's possible to dispatch a request and expose its connection (invoker) before ConnectAsync completes;
             // in this rare case, we wait for _connectTask to complete before calling InvokeAsyncCore.
-            _ = await _connectTask.ConfigureAwait(false);
+            await _connectTask.ConfigureAwait(false);
             return await InvokeAsyncCore(request, cancellationToken).ConfigureAwait(false);
         }
     }
@@ -325,8 +323,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     /// invocations and dispatches and return <see langword="true" /> and <see langword="false" /> otherwise.</summary>
     private protected abstract bool CheckIfIdle();
 
-    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
-        CancellationToken cancellationToken);
+    private protected abstract Task ConnectAsyncCore(CancellationToken cancellationToken);
 
     private protected void ConnectionLost(Exception exception) =>
         _ = _shutdownCompleteSource.TrySetException(new ConnectionException(
@@ -378,7 +375,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 try
                 {
-                    _ = await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
+                    await _connectTask.WaitAsync(cts.Token).ConfigureAwait(false);
                 }
                 catch (TimeoutException)
                 {

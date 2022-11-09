@@ -18,10 +18,33 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    public void Dispose()
+    public virtual ValueTask DisposeAsync()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        if (_state.TrySetFlag(State.Disposed))
+        {
+            // _reader can be null if connection establishment failed or didn't run.
+            if (_reader is not null)
+            {
+                if (_state.HasFlag(State.Reading))
+                {
+                    _reader.CancelPendingRead();
+                }
+                else
+                {
+                    _reader.Complete(new TransportException(TransportErrorCode.ConnectionReset));
+                }
+            }
+
+            if (_state.HasFlag(State.Writing))
+            {
+                _writer.CancelPendingFlush();
+            }
+            else
+            {
+                _writer.Complete(new TransportException(TransportErrorCode.ConnectionReset));
+            }
+        }
+        return new ValueTask();
     }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
@@ -183,34 +206,6 @@ internal abstract class ColocConnection : IDuplexConnection
         _writer = writer;
     }
 
-    private protected virtual void Dispose(bool disposing)
-    {
-        if (_state.TrySetFlag(State.Disposed))
-        {
-            // _reader can be null if connection establishment failed or didn't run.
-            if (_reader is not null)
-            {
-                if (_state.HasFlag(State.Reading))
-                {
-                    _reader.CancelPendingRead();
-                }
-                else
-                {
-                    _reader.Complete(new TransportException(TransportErrorCode.ConnectionReset));
-                }
-            }
-
-            if (_state.HasFlag(State.Writing))
-            {
-                _writer.CancelPendingFlush();
-            }
-            else
-            {
-                _writer.Complete(new TransportException(TransportErrorCode.ConnectionReset));
-            }
-        }
-    }
-
     private protected TransportConnectionInformation FinishConnect()
     {
         Debug.Assert(_reader is not null);
@@ -264,6 +259,12 @@ internal class ClientColocConnection : ColocConnection
         return FinishConnect();
     }
 
+    public override ValueTask DisposeAsync()
+    {
+        _localPipeReader?.Complete();
+        return base.DisposeAsync();
+    }
+
     internal ClientColocConnection(
         ServerAddress serverAddress,
         Pipe localPipe,
@@ -272,12 +273,6 @@ internal class ClientColocConnection : ColocConnection
     {
         _connectAsync = connectAsync;
         _localPipeReader = localPipe.Reader;
-    }
-
-    private protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        _localPipeReader?.Complete();
     }
 }
 

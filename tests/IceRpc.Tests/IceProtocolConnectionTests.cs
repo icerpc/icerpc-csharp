@@ -142,7 +142,7 @@ public sealed class IceProtocolConnectionTests
             new DuplexConnectionOptions(),
             null);
 
-        await using IListener<IProtocolConnection> listener =
+        await using IListener<IClientConnection> listener =
             new IceProtocolListener(new ConnectionOptions(), transportListener);
 
         IDuplexConnection clientTransport = IDuplexClientTransport.Default.CreateConnection(
@@ -154,7 +154,7 @@ public sealed class IceProtocolConnectionTests
 
         _ = Task.Run(async () =>
         {
-            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
+            (IClientConnection connection, _) = await listener.AcceptAsync(default);
             _ = connection.ShutdownAsync();
         });
 

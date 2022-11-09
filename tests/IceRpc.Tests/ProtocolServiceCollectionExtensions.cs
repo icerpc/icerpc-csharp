@@ -84,17 +84,17 @@ public static class ProtocolServiceCollectionExtensions
 /// the connections are correctly disposed.</summary>
 internal class ClientServerProtocolConnection : IAsyncDisposable
 {
-    public IProtocolConnection Client { get; }
+    public IClientConnection Client { get; }
 
-    public IProtocolConnection Server
+    public IClientConnection Server
     {
         get => _server ?? throw new InvalidOperationException("server connection not initialized");
         private protected set => _server = value;
     }
 
-    private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
+    private readonly Func<Task<IClientConnection>> _acceptServerConnectionAsync;
     private readonly IAsyncDisposable _listener;
-    private IProtocolConnection? _server;
+    private IClientConnection? _server;
 
     public async Task ConnectAsync()
     {
@@ -121,8 +121,8 @@ internal class ClientServerProtocolConnection : IAsyncDisposable
     public ValueTask DisposeListenerAsync() => _listener.DisposeAsync();
 
     internal ClientServerProtocolConnection(
-        IProtocolConnection clientProtocolConnection,
-        Func<Task<IProtocolConnection>> acceptServerConnectionAsync,
+        IClientConnection clientProtocolConnection,
+        Func<Task<IClientConnection>> acceptServerConnectionAsync,
         IAsyncDisposable listener)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;

@@ -15,7 +15,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
     private Task? _acceptRequestsTask;
-    private IConnectionContext? _connectionContext; // non-null once the connection is established
+    private readonly IConnectionContext _connectionContext;
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher? _dispatcher;
@@ -53,6 +53,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
+        TransportConnectionInformation transportConnectionInformation,
         bool isServer,
         ConnectionOptions options)
         : base(isServer, options)
@@ -68,6 +69,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 maxCount: options.MaxDispatches);
         }
         _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
+
+        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
     }
 
     private protected override void CancelDispatchesAndInvocations()
@@ -109,30 +112,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
-        CancellationToken cancellationToken)
+    private protected override async Task ConnectAsyncCore(CancellationToken cancellationToken)
     {
-        // Connect the transport connection
-        TransportConnectionInformation transportConnectionInformation;
-        try
-        {
-            transportConnectionInformation = await _transportConnection.ConnectAsync(
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch (TransportException exception) when (
-            exception.ApplicationErrorCode is ulong errorCode &&
-            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
-        {
-            ConnectionClosedException = new(
-                ConnectionErrorCode.ClosedByPeer,
-                "the connection establishment was refused");
-
-            throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
-        }
-
-        // This needs to be set before starting the accept requests task bellow.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
-
         _controlStream = await _transportConnection.CreateStreamAsync(false, cancellationToken).ConfigureAwait(false);
 
         var settings = new IceRpcSettings(
@@ -337,8 +318,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             },
             CancellationToken.None);
-
-        return transportConnectionInformation;
     }
 
     private protected override async ValueTask DisposeAsyncCore()
@@ -436,7 +415,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (request.IsOneway)
             {
-                return new IncomingResponse(request, _connectionContext!);
+                return new IncomingResponse(request, _connectionContext);
             }
 
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -465,7 +444,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            return new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
+            return new IncomingResponse(request, _connectionContext, fields, fieldsPipeReader)
             {
                 Payload = stream.Input,
                 StatusCode = header.StatusCode
@@ -930,7 +909,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            using var request = new IncomingRequest(_connectionContext!)
+            using var request = new IncomingRequest(_connectionContext)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,

@@ -13,7 +13,7 @@ public interface IListener : IAsyncDisposable
 
 /// <summary>A listener listens for connection requests from clients.</summary>
 /// <typeparam name="T">The connection type.</typeparam>
-public interface IListener<T> : IListener
+public interface IListener<T> : IListener where T : ITransportConnection
 {
     /// <summary>Accepts a new connection.</summary>
     /// <returns>The accepted connection and the network address of the client.</returns>

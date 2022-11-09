@@ -4,11 +4,11 @@ using IceRpc.Transports;
 
 namespace IceRpc;
 
-/// <summary>Represents a connection for a <see cref="Protocol" />. It is the building block for <see
-/// cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by <see cref="Server" />.
-/// Applications can use this interface to build their own custom client connection and connection cache classes.
+/// <summary>Represents a client connection. It is the building block for <see cref="ClientConnection" />, <see
+/// cref="ConnectionCache" />. Applications can use this interface to build their own custom client connection and
+/// connection cache classes.
 /// </summary>
-public interface IProtocolConnection : IInvoker, IAsyncDisposable
+public interface IClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
     /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport" /> property is always
@@ -22,8 +22,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
-    /// once this connection is established. This task can also complete with one of the following exceptions:
+    /// <returns>A task that completes once this connection is established. This task can also complete with one of the
+    /// following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionException" />if the connection establishment failed.</description>
     /// </item>
@@ -53,7 +53,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    /// <remarks>If shutdown is canceled, the protocol connection transitions to a faulted state and the disposal of the
+    /// <remarks>If shutdown is canceled, the connection transitions to a faulted state and the disposal of the
     /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     Task ShutdownAsync(CancellationToken cancellationToken = default);
 }

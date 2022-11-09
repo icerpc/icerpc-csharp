@@ -19,10 +19,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
     // The underlying protocol connection
-    private IProtocolConnection _connection;
+    private IClientConnection _connection;
 
     // The connection parameter represents the previous connection, if any.
-    private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
+    private readonly Func<IClientConnection?, IClientConnection> _connectionFactory;
 
     private readonly object _mutex = new();
 
@@ -44,18 +44,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        IClientProtocolConnectionFactory clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
+        IClientConnectionFactory clientConnectionFactory = new ClientConnectionFactory(
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport);
 
-        clientProtocolConnectionFactory =
-            new MetricsClientProtocolConnectionFactoryDecorator(clientProtocolConnectionFactory);
+        clientConnectionFactory =
+            new MetricsClientProtocolConnectionFactoryDecorator(clientConnectionFactory);
 
         _connectionFactory = previousConnection =>
         {
-            IProtocolConnection connection = clientProtocolConnectionFactory.CreateConnection(serverAddress);
+            IClientConnection connection = clientConnectionFactory.CreateConnection(serverAddress);
 
             if (previousConnection is not null &&
                 CleanupAsync(previousConnection) is Task cleanupTask &&
@@ -70,7 +70,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             return connection;
 
-            static async Task CleanupAsync(IProtocolConnection connection)
+            static async Task CleanupAsync(IClientConnection connection)
             {
                 try
                 {
@@ -84,7 +84,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 await connection.DisposeAsync().ConfigureAwait(false);
             }
 
-            async Task RefreshOnClosedAsync(IProtocolConnection connection)
+            async Task RefreshOnClosedAsync(IClientConnection connection)
             {
                 try
                 {
@@ -165,7 +165,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         // Keep a reference to the connection we're trying to connect to.
-        IProtocolConnection connection = _connection;
+        IClientConnection connection = _connection;
 
         try
         {
@@ -173,7 +173,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         catch (ObjectDisposedException)
         {
-            if (RefreshConnection(connection) is IProtocolConnection newConnection)
+            if (RefreshConnection(connection) is IClientConnection newConnection)
             {
                 // Try again once with the new connection
                 return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
@@ -182,7 +182,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
         {
-            if (RefreshConnection(connection) is IProtocolConnection newConnection)
+            if (RefreshConnection(connection) is IClientConnection newConnection)
             {
                 // Try again once with the new connection
                 return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
@@ -244,7 +244,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            IProtocolConnection connection = _connection;
+            IClientConnection connection = _connection;
 
             try
             {
@@ -252,7 +252,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             catch (ObjectDisposedException)
             {
-                if (RefreshConnection(connection) is IProtocolConnection newConnection)
+                if (RefreshConnection(connection) is IClientConnection newConnection)
                 {
                     // try again once with the new connection
                     return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
@@ -261,7 +261,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
             {
-                if (RefreshConnection(connection) is IProtocolConnection newConnection)
+                if (RefreshConnection(connection) is IClientConnection newConnection)
                 {
                     // try again once with the new connection
                     return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
@@ -300,9 +300,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
     /// resumable.</summary>
-    private IProtocolConnection? RefreshConnection(IProtocolConnection connection)
+    private IClientConnection? RefreshConnection(IClientConnection connection)
     {
-        IProtocolConnection? newConnection = null;
+        IClientConnection? newConnection = null;
 
         lock (_mutex)
         {
@@ -322,7 +322,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     // A decorator that awaits a cleanup task (= previous connection cleanup) in ConnectAsync and DisposeAsync.
-    private class CleanupProtocolConnectionDecorator : IProtocolConnection
+    private class CleanupProtocolConnectionDecorator : IClientConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -330,7 +330,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         private readonly Task _cleanupTask;
 
-        private readonly IProtocolConnection _decoratee;
+        private readonly IClientConnection _decoratee;
 
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
@@ -360,19 +360,19 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(cancellationToken);
 
-        internal CleanupProtocolConnectionDecorator(IProtocolConnection decoratee, Task cleanupTask)
+        internal CleanupProtocolConnectionDecorator(IClientConnection decoratee, Task cleanupTask)
         {
             _cleanupTask = cleanupTask;
             _decoratee = decoratee;
         }
     }
 
-    /// <summary>Provides a decorator for <see cref="IProtocolConnection" /> that ensures
-    /// <see cref="IInvoker.InvokeAsync" /> calls <see cref="IProtocolConnection.ConnectAsync" /> when the connection is
+    /// <summary>Provides a decorator for <see cref="IClientConnection" /> that ensures
+    /// <see cref="IInvoker.InvokeAsync" /> calls <see cref="IClientConnection.ConnectAsync" /> when the connection is
     /// not connected yet. This decorator also allows multiple and concurrent calls to
-    /// <see cref="IProtocolConnection.ConnectAsync" />.</summary>
-    /// <seealso cref="ClientProtocolConnectionFactory.CreateConnection" />
-    private class ConnectProtocolConnectionDecorator : IProtocolConnection
+    /// <see cref="IClientConnection.ConnectAsync" />.</summary>
+    /// <seealso cref="ClientConnectionFactory.CreateConnection" />
+    private class ConnectProtocolConnectionDecorator : IClientConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -380,7 +380,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         private Task<TransportConnectionInformation>? _connectTask;
 
-        private readonly IProtocolConnection _decoratee;
+        private readonly IClientConnection _decoratee;
 
         // Set to true once the connection is successfully connected. It's not volatile or protected by mutex: in the
         // unlikely event the caller sees false after the connection is connected, it will call ConnectAsync and succeed
@@ -449,6 +449,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
             _decoratee.ShutdownAsync(cancellationToken);
 
-        internal ConnectProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
+        internal ConnectProtocolConnectionDecorator(IClientConnection decoratee) => _decoratee = decoratee;
     }
 }

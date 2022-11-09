@@ -70,18 +70,18 @@ public sealed class ProtocolConnectionTests
             {
                 yield return new TestCaseData(
                     protocol,
-                    (IProtocolConnection connection) => connection.ConnectAsync(default),
+                    (IClientConnection connection) => connection.ConnectAsync(default),
                     false).SetName($"ConnectAsync {protocol} {{m}}");
 
                 yield return new TestCaseData(
                     protocol,
-                    (IProtocolConnection connection) =>
+                    (IClientConnection connection) =>
                         connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
                     true).SetName($"InvokeAsync {protocol} {{m}}");
 
                 yield return new TestCaseData(
                     protocol,
-                    (IProtocolConnection connection) => connection.ShutdownAsync(),
+                    (IClientConnection connection) => connection.ShutdownAsync(),
                     true).SetName($"ShutdownAsync {protocol} {{m}}");
             }
         }
@@ -590,7 +590,7 @@ public sealed class ProtocolConnectionTests
     [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
     public async Task Operation_throws_object_disposed_exception(
         Protocol protocol,
-        Func<IProtocolConnection, Task> operation,
+        Func<IClientConnection, Task> operation,
         bool connect)
     {
         // Arrange
@@ -613,7 +613,7 @@ public sealed class ProtocolConnectionTests
     [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
     public async Task Operation_throws_connection_exception_with_closed_error_code(
         Protocol protocol,
-        Func<IProtocolConnection, Task> operation,
+        Func<IClientConnection, Task> operation,
         bool connect)
     {
         // Arrange

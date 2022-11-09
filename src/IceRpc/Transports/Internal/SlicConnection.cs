@@ -397,7 +397,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             // Dispose the transport connection and the reader/writer.
-            _duplexConnection.Dispose();
+            await _duplexConnection.DisposeAsync().ConfigureAwait(false);
             _duplexConnectionReader.Dispose();
             _duplexConnectionWriter.Dispose();
 

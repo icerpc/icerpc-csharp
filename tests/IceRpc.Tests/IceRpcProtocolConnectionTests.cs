@@ -715,7 +715,7 @@ public sealed class IceRpcProtocolConnectionTests
             multiplexOptions,
             null);
 
-        await using IListener<IProtocolConnection> listener =
+        await using IListener<IClientConnection> listener =
             new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
 
         IMultiplexedConnection clientTransport =
@@ -728,7 +728,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         _ = Task.Run(async () =>
         {
-            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
+            (IClientConnection connection, _) = await listener.AcceptAsync(default);
             _ = connection.ShutdownAsync();
         });
 
