@@ -13,26 +13,11 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionAccepted,
         EventName = nameof(ProtocolEventIds.ConnectionAccepted),
         Level = LogLevel.Trace,
-        Message = "Listener {ServerAddress} accepted connection from {RemoteNetworkAddress}",
-        SkipEnabledCheck = true)]
+        Message = "Listener {ServerAddress} accepted connection from {RemoteNetworkAddress}")]
     internal static partial void ConnectionAccepted(
         this ILogger logger,
-        string serverAddress,
-        string remoteNetworkAddress);
-
-    internal static void ConnectionAccepted(
-        this ILogger logger,
         ServerAddress serverAddress,
-        EndPoint remoteNetworkAddress)
-    {
-        if (logger.IsEnabled(LogLevel.Trace))
-        {
-            ConnectionAccepted(
-                logger,
-                serverAddress.ToString(),
-                remoteNetworkAddress.ToString() ?? "<unavailable>");
-        }
-    }
+        EndPoint remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionAcceptFailed,
@@ -48,29 +33,23 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionConnected,
         EventName = nameof(ProtocolEventIds.ConnectionConnected),
         Level = LogLevel.Trace,
-        Message = "{Kind} connection from {LocalNetworkAddress} to {RemoteNetworkAddress} connected",
-        SkipEnabledCheck = true)]
+        Message = "{Kind} connection from {LocalNetworkAddress} to {RemoteNetworkAddress} connected")]
     internal static partial void ConnectionConnected(
         this ILogger logger,
         string kind,
-        string localNetworkAddress,
-        string remoteNetworkAddress);
+        EndPoint localNetworkAddress,
+        EndPoint remoteNetworkAddress);
 
     internal static void ConnectionConnected(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
-        EndPoint remoteNetworkAddress)
-    {
-        if (logger.IsEnabled(LogLevel.Trace))
-        {
-            ConnectionConnected(
-                logger,
-                isServer ? "Server|Client" : "Client|Server",
-                localNetworkAddress.ToString() ?? "<not-available>",
-                remoteNetworkAddress.ToString() ?? "<not-available>");
-        }
-    }
+        EndPoint remoteNetworkAddress) =>
+        ConnectionConnected(
+            logger,
+            isServer ? "Server|Client" : "Client|Server",
+            localNetworkAddress,
+            remoteNetworkAddress);
 
     // Multiple logging methods are using same event id, we have two ConnectFailed overloads
 #pragma warning disable SYSLIB1006
@@ -88,89 +67,60 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
         Level = LogLevel.Trace,
-        Message = "Server|Client connection connect from {ServerAddress} to {RemoteNetworkAdress} failed",
-        SkipEnabledCheck = true)]
+        Message = "Server|Client connection connect from {ServerAddress} to {RemoteNetworkAdress} failed")]
     internal static partial void ConnectionConnectFailed(
         this ILogger logger,
-        string serverAddress,
-        string remoteNetworkAdress,
+        ServerAddress serverAddress,
+        EndPoint remoteNetworkAdress,
         Exception exception);
 #pragma warning restore SYSLIB1006
-
-    internal static void ConnectionConnectFailed(
-        this ILogger logger,
-        ServerAddress serverAddress,
-        EndPoint remoteNetworkAddress,
-        Exception exception)
-    {
-        if (logger.IsEnabled(LogLevel.Trace))
-        {
-            ConnectionConnectFailed(
-                logger,
-                serverAddress.ToString(),
-                remoteNetworkAddress.ToString() ?? "<not-available>",
-                exception);
-        }
-    }
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionFailed,
         EventName = nameof(ProtocolEventIds.ConnectionFailed),
         Level = LogLevel.Trace,
-        Message = "{Kind} connection from {LocalNetworkAddress} to {RemoteNetworkAddress} failed",
-        SkipEnabledCheck = true)]
+        Message = "{Kind} connection from {LocalNetworkAddress} to {RemoteNetworkAddress} failed")]
     internal static partial void ConnectionFailed(
-    this ILogger logger,
-    string kind,
-    string localNetworkAddress,
-    string remoteNetworkAddress,
-    Exception exception);
+        this ILogger logger,
+        string kind,
+        EndPoint localNetworkAddress,
+        EndPoint remoteNetworkAddress,
+        Exception exception);
 
     internal static void ConnectionFailed(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress,
-        Exception exception)
-    {
-        if (logger.IsEnabled(LogLevel.Trace))
-        {
-            ConnectionFailed(
-                logger,
-                isServer ? "Server|Client" : "Client|Server",
-                localNetworkAddress.ToString() ?? "<not-available>",
-                remoteNetworkAddress.ToString() ?? "<not-available>",
-                exception);
-        }
-    }
+        Exception exception) =>
+        ConnectionFailed(
+            logger,
+            isServer ? "Server|Client" : "Client|Server",
+            localNetworkAddress,
+            remoteNetworkAddress,
+            exception);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionShutdown,
         EventName = nameof(ProtocolEventIds.ConnectionShutdown),
         Level = LogLevel.Trace,
-        Message = "{Kind} connection from {LocalNetworkAddress} to {RemoteNetworkAddress} shutdown",
-        SkipEnabledCheck = true)]
+        Message = "{Kind} connection from {LocalNetworkAddress} to {RemoteNetworkAddress} shutdown")]
     internal static partial void ConnectionShutdown(
         this ILogger logger,
         string kind,
-        string localNetworkAddress,
-        string remoteNetworkAddress);
+        EndPoint localNetworkAddress,
+        EndPoint remoteNetworkAddress);
 
     internal static void ConnectionShutdown(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
-        EndPoint remoteNetworkAddress)
-    {
-        if (logger.IsEnabled(LogLevel.Trace))
-        {
-            ConnectionShutdown(
-                logger,
-                isServer ? "Server|Client" : "Client|Server",
-                localNetworkAddress.ToString() ?? "<not-available>",
-                remoteNetworkAddress.ToString() ?? "<not-available>");
-        }
-    }
+        EndPoint remoteNetworkAddress) =>
+        ConnectionShutdown(
+            logger,
+            isServer ? "Server|Client" : "Client|Server",
+            localNetworkAddress,
+            remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
