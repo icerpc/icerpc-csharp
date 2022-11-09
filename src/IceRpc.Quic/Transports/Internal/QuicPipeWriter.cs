@@ -180,7 +180,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
             async ValueTask PerformWriteSequenceAsync()
             {
-                var enumerator = new ReadOnlySequence<byte>.Enumerator(sequence);
+                var enumerator = sequence.GetEnumerator();
                 bool hasMore = enumerator.MoveNext();
                 Debug.Assert(hasMore);
                 do
