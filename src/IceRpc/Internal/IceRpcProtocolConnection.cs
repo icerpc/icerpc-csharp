@@ -520,10 +520,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
-            // TODO: is it correct to throw a local PayloadException here? Do we want this exception to be the result
-            // of a peer failure only?
             completeException = exception;
-            throw new PayloadException(PayloadErrorCode.Unspecified);
+            throw;
         }
         finally
         {

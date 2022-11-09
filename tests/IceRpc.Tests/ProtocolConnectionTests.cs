@@ -492,7 +492,7 @@ public sealed class ProtocolConnectionTests
             IncomingResponse response = await responseTask;
             Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Canceled));
         }
-        catch (PayloadException)
+        catch (PayloadReadException)
         {
         }
     }
@@ -714,7 +714,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadReadException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -745,7 +745,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadReadException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid request.</summary>

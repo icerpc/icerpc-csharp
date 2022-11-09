@@ -403,7 +403,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadReadException>());
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
@@ -502,7 +502,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             await responseTask;
         }
-        catch (PayloadException)
+        catch (PayloadReadException)
         {
             // Depending on the timing, the payload stream send failure might abort the invocation before the response
             // is sent.
@@ -570,7 +570,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             await responseTask;
         }
-        catch (PayloadException)
+        catch (PayloadReadException)
         {
             // Depending on the timing, the payload stream send failure might abort the invocation before the response
             // is sent.
@@ -607,7 +607,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -645,7 +645,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadReadException>());
     }
 
     [Test]
