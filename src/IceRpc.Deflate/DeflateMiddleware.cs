@@ -53,7 +53,7 @@ public class DeflateMiddleware : IDispatcher
         // The CompressPayload feature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
-            response.ResultType == ResultType.Success &&
+            response.StatusCode == StatusCode.Success &&
             request.Features.Get<ICompressFeature>() is ICompressFeature compress &&
             compress.Value &&
             !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))

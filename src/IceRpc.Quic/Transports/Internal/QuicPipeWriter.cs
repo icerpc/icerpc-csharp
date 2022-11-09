@@ -14,9 +14,8 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
     internal Task Closed { get; }
 
-    private Exception? _abortException;
     private readonly Action _completedCallback;
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
 
@@ -51,7 +50,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                Abort(exception);
+                _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
             }
 
             _pipe.Writer.Complete();
@@ -146,10 +145,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 return new FlushResult(isCanceled: false, isCompleted: endStream);
             }
         }
-        catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
-        {
-            throw abortException;
-        }
         catch (QuicException exception) when (
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
@@ -202,7 +197,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     internal QuicPipeWriter(
         QuicStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize,
         Action completedCallback)
@@ -244,18 +239,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 throw exception.ToTransportException();
             }
             // we don't wrap other exceptions
-        }
-    }
-
-    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception
-    // exception from the current or next WriteAsync or FlushAsync.
-    internal void Abort(Exception exception)
-    {
-        // If WritesClosed is already completed or this is not the first call to Abort, there is nothing to abort.
-        if (!_stream.WritesClosed.IsCompleted &&
-            Interlocked.CompareExchange(ref _abortException, exception, null) is null)
-        {
-            _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
         }
     }
 }

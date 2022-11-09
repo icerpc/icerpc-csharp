@@ -829,10 +829,10 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.RemoteStream.Input.CompleteAsync(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode));
+        await sut.RemoteStream.Input.CompleteAsync(new PayloadException((PayloadErrorCode)errorCode));
 
         // Assert
-        IceRpcProtocolStreamException? ex = Assert.CatchAsync<IceRpcProtocolStreamException>(
+        PayloadException? ex = Assert.CatchAsync<PayloadException>(
             async () =>
             {
                 while (true)
@@ -846,7 +846,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
             });
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadErrorCode)errorCode));
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
@@ -868,15 +868,15 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.LocalStream.Output.CompleteAsync(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode));
+        await sut.LocalStream.Output.CompleteAsync(new PayloadException((PayloadErrorCode)errorCode));
 
         // Assert
         // Wait for the peer to receive the StreamStopSending/StreamReset frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
-        IceRpcProtocolStreamException? ex = Assert.CatchAsync<IceRpcProtocolStreamException>(
+        PayloadException? ex = Assert.CatchAsync<PayloadException>(
             async () => await sut.RemoteStream.Input.ReadAsync());
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadErrorCode)errorCode));
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
@@ -1249,7 +1249,7 @@ public abstract class MultiplexedTransportConformanceTests
             await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
             // successful completion is an acceptable behavior
         }
-        catch (IceRpcProtocolStreamException exception) when (exception.ErrorCode == IceRpcStreamErrorCode.Canceled)
+        catch (PayloadException exception) when (exception.ErrorCode == PayloadErrorCode.Canceled)
         {
             // acceptable behavior (and that's what Quic does)
         }
@@ -1309,31 +1309,6 @@ public abstract class MultiplexedTransportConformanceTests
         CompleteStreams(sut);
     }
 
-    /// <summary>Verifies that aborting the stream cancels a pending read.</summary>
-    [Test]
-    public async Task Stream_abort_cancels_read()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
-            bidirectional: true,
-            default).ConfigureAwait(false);
-        ValueTask<ReadResult> task = clientStream.Input.ReadAsync(CancellationToken.None);
-
-        // Act
-        clientStream.Abort(new InvalidOperationException());
-
-        // Act/Assert
-        Assert.CatchAsync<InvalidOperationException>(async () => await task);
-    }
-
     /// <summary>Verifies that calling write with a canceled cancellation token fails with
     /// <see cref="OperationCanceledException" />.</summary>
     [Test]
@@ -1359,39 +1334,6 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         Assert.CatchAsync<OperationCanceledException>(async () => await task);
-    }
-
-    /// <summary>Verifies that aborting writes correctly raises the abort exception.</summary>
-    [Test]
-    public async Task Stream_abort_cancels_write()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
-            bidirectional: true,
-            default).ConfigureAwait(false);
-
-        // Fill the stream send buffer until WriteAsync blocks.
-        var writeTask = new ValueTask<FlushResult>();
-        byte[] payload = new byte[128 * 1024];
-        while (writeTask.IsCompleted)
-        {
-            writeTask = clientStream.Output.WriteAsync(payload, CancellationToken.None);
-            await Task.Delay(100); // Delay to ensure the write is really blocking.
-        }
-
-        // Act
-        clientStream.Abort(new InvalidOperationException());
-
-        // Act/Assert
-        Assert.CatchAsync<InvalidOperationException>(async () => await writeTask);
     }
 
     [Test]

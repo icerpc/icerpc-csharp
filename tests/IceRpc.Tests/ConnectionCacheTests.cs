@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Net.Security;

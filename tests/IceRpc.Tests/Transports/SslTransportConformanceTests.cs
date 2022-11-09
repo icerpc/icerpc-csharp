@@ -22,16 +22,11 @@ public class SslTransportConformanceTests : TcpTransportConformanceTests
         services.AddSingleton(provider =>
             new SslClientAuthenticationOptions
             {
-                ClientCertificates = new X509CertificateCollection()
-                    {
-                        new X509Certificate2("../../../certs/client.p12", "password")
-                    },
                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
             });
 
         services.AddSingleton(provider => new SslServerAuthenticationOptions
         {
-            ClientCertificateRequired = false,
             ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         });
 

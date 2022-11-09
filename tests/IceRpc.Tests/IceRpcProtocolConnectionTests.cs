@@ -22,10 +22,10 @@ public sealed class IceRpcProtocolConnectionTests
     {
         get
         {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
             // Slice1 only exception will get encoded as unhandled exception with Slice2
-            yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
-            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }
 
@@ -33,9 +33,9 @@ public sealed class IceRpcProtocolConnectionTests
     {
         get
         {
-            yield return new TestCaseData(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)99), 99ul);
-            yield return new TestCaseData(new InvalidDataException("invalid data"), IceRpcStreamErrorCode.InvalidData);
-            yield return new TestCaseData(new OperationCanceledException(), IceRpcStreamErrorCode.Canceled);
+            yield return new TestCaseData(new PayloadException((PayloadErrorCode)99), 99ul);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), PayloadErrorCode.InvalidData);
+            yield return new TestCaseData(new OperationCanceledException(), PayloadErrorCode.Canceled);
         }
     }
 
@@ -124,7 +124,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="IceRpcProtocolStreamException" /> with the <see cref="IceRpcStreamErrorCode.ConnectionShutdown" />
+    /// cref="PayloadException" /> with the <see cref="PayloadErrorCode.ConnectionShutdown" />
     /// error code.</summary>
     [Test]
     public async Task Disposing_server_connection_triggers_stream_exception_with_ConnectionShutdown(
@@ -150,8 +150,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.ConnectionShutdown));
+        var exception = Assert.ThrowsAsync<PayloadException>(async () => await invokeTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadErrorCode.ConnectionShutdown));
     }
 
     [Test]
@@ -230,8 +230,8 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        var exception = Assert.ThrowsAsync<IceRpcProtocolStreamException>(async () => await dispatchCompleteTcs.Task);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(IceRpcStreamErrorCode.Canceled));
+        var exception = Assert.ThrowsAsync<PayloadException>(async () => await dispatchCompleteTcs.Task);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadErrorCode.Canceled));
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
@@ -269,7 +269,7 @@ public sealed class IceRpcProtocolConnectionTests
         payloadContinuation.SetReadException(exception);
 
         // Assert
-        IceRpcProtocolStreamException? streamException = null;
+        PayloadException? streamException = null;
         try
         {
             // The failure to read the remote payload is timing dependent. ReadAsync might return with the 10 bytes
@@ -282,13 +282,13 @@ public sealed class IceRpcProtocolConnectionTests
             remotePayload.AdvanceTo(result.Buffer.End);
             await remotePayload.ReadAsync();
         }
-        catch (IceRpcProtocolStreamException ex)
+        catch (PayloadException ex)
         {
             streamException = ex;
         }
 
         Assert.That(streamException, Is.Not.Null);
-        Assert.That(streamException!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)expectedErrorCode));
+        Assert.That(streamException!.ErrorCode, Is.EqualTo((PayloadErrorCode)expectedErrorCode));
     }
 
     [Test]
@@ -398,10 +398,11 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
@@ -427,13 +428,14 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
 
         // Cleanup
         await pipe.Writer.CompleteAsync();
+        await responseTask;
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
@@ -467,6 +469,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Cleanup
         dispatcher.ReleaseDispatch();
+        await invokeTask;
     }
 
     /// <summary>Ensures that the request payload is completed if the payload continuation is invalid.</summary>
@@ -488,10 +491,21 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+
+        // Cleanup
+        try
+        {
+            await responseTask;
+        }
+        catch (PayloadException)
+        {
+            // Depending on the timing, the payload stream send failure might abort the invocation before the response
+            // is sent.
+        }
     }
 
     /// <summary>Ensures that the response payload continuation is completed on a valid response.</summary>
@@ -545,10 +559,21 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+
+        // Cleanup
+        try
+        {
+            await responseTask;
+        }
+        catch (PayloadException)
+        {
+            // Depending on the timing, the payload stream send failure might abort the invocation before the response
+            // is sent.
+        }
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
@@ -577,10 +602,11 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -614,10 +640,11 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
     }
 
     [Test]
@@ -680,7 +707,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var multiplexOptions = new MultiplexedConnectionOptions
         {
-            StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter
+            PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
         };
 
         IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
@@ -856,12 +883,6 @@ public sealed class IceRpcProtocolConnectionTests
         private readonly IMultiplexedStream _decoratee;
         private readonly HoldPipeWriter? _output;
 
-        public void Abort(Exception exception)
-        {
-            _output?.Abort(exception);
-            _decoratee.Abort(exception);
-        }
-
         internal HoldMultiplexedStream(HoldMultiplexedConnection connection, IMultiplexedStream decoratee)
         {
             _connection = connection;
@@ -875,9 +896,6 @@ public sealed class IceRpcProtocolConnectionTests
 
     private class HoldPipeWriter : PipeWriter
     {
-        private readonly TaskCompletionSource _abortTaskCompletionSource =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-
         private readonly HoldMultiplexedStream _stream;
         private readonly PipeWriter _decoratee;
 
@@ -891,7 +909,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
             {
-                await _abortTaskCompletionSource.Task.WaitAsync(cancellationToken);
+                await Task.Delay(-1, cancellationToken);
             }
             return await _decoratee.FlushAsync(cancellationToken);
         }
@@ -900,11 +918,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
+        public override async ValueTask<FlushResult> WriteAsync(
+            ReadOnlyMemory<byte> source,
+            CancellationToken cancellationToken)
         {
             if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
             {
-                await _abortTaskCompletionSource.Task.WaitAsync(cancellationToken);
+                await Task.Delay(-1, cancellationToken);
             }
             return await _decoratee.WriteAsync(source, cancellationToken);
         }
@@ -914,8 +934,6 @@ public sealed class IceRpcProtocolConnectionTests
             _stream = stream;
             _decoratee = decoratee;
         }
-
-        internal void Abort(Exception exception) => _abortTaskCompletionSource.SetException(exception);
     }
 
     private class HoldPipeReader : PipeReader

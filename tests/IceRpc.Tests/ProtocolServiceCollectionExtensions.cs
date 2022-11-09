@@ -44,7 +44,7 @@ public static class ProtocolServiceCollectionExtensions
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.StreamErrorCodeConverter = IceRpcProtocol.Instance.MultiplexedStreamErrorCodeConverter);
+            options => options.PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }
@@ -57,8 +57,9 @@ public static class ProtocolServiceCollectionExtensions
         ConnectionOptions? serverConnectionOptions = null)
     {
         clientConnectionOptions ??= new();
+        clientConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
         serverConnectionOptions ??= new();
-        serverConnectionOptions.Dispatcher ??= dispatcher;
+        serverConnectionOptions.Dispatcher ??= dispatcher ?? ServiceNotFoundDispatcher.Instance;
 
         if (protocol == Protocol.Ice)
         {

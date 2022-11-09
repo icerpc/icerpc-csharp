@@ -35,16 +35,10 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     private readonly QuicPipeReader? _inputPipeReader;
     private readonly QuicPipeWriter? _outputPipeWriter;
 
-    public void Abort(Exception completeException)
-    {
-        _inputPipeReader?.Abort(completeException);
-        _outputPipeWriter?.Abort(completeException);
-    }
-
     internal QuicMultiplexedStream(
         QuicStream stream,
         bool isRemote,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize)
     {

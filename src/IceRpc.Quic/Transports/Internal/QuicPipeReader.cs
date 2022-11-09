@@ -14,9 +14,8 @@ internal class QuicPipeReader : PipeReader
 {
     internal Task Closed { get; }
 
-    private Exception? _abortException;
     private readonly Action _completedCallback;
-    private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
@@ -41,16 +40,8 @@ internal class QuicPipeReader : PipeReader
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
 
-            if (exception is null)
-            {
-                // Tell the remote writer we're done reading, with the error code of a null exception. This also
-                // completes _stream.ReadsClosed.
-                _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(null));
-            }
-            else
-            {
-                Abort(exception);
-            }
+            // Tell the remote writer we're done reading, with the error code matching the exception.
+            _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
 
             // Notify the stream of the reader completion, which can trigger the stream disposal.
             _completedCallback();
@@ -62,10 +53,6 @@ internal class QuicPipeReader : PipeReader
         try
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
-        {
-            throw abortException;
         }
         catch (QuicException exception) when (
             exception.QuicError == QuicError.StreamAborted &&
@@ -88,7 +75,7 @@ internal class QuicPipeReader : PipeReader
 
     internal QuicPipeReader(
         QuicStream stream,
-        IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action completedCallback)
@@ -108,10 +95,6 @@ internal class QuicPipeReader : PipeReader
             try
             {
                 await _stream.ReadsClosed.ConfigureAwait(false);
-            }
-            catch (QuicException) when (Volatile.Read(ref _abortException) is Exception abortException)
-            {
-                throw abortException;
             }
             catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted && _isCompleted)
             {
@@ -136,18 +119,6 @@ internal class QuicPipeReader : PipeReader
                 throw exception.ToTransportException();
             }
             // we don't wrap other exceptions
-        }
-    }
-
-    // The exception has 2 separate purposes: transmit an error code to the remote reader and throw this exception from
-    // the current or next ReadAsync.
-    internal void Abort(Exception exception)
-    {
-        // If ReadsClosed is already completed or this is not the first call to Abort, there is nothing to abort.
-        if (!_stream.ReadsClosed.IsCompleted &&
-            Interlocked.CompareExchange(ref _abortException, exception, null) is null)
-        {
-            _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
         }
     }
 }

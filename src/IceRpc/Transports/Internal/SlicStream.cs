@@ -69,18 +69,6 @@ internal class SlicStream : IMultiplexedStream
     private readonly TaskCompletionSource _writesClosedCompletionSource = new();
     private int _state;
 
-    public void Abort(Exception completeException)
-    {
-        if (TrySetReadsClosed(completeException))
-        {
-            _inputPipeReader?.Abort(completeException);
-        }
-        if (TrySetWritesClosed(completeException))
-        {
-            _outputPipeWriter?.Abort(completeException);
-        }
-    }
-
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
         _connection = connection;
@@ -116,6 +104,18 @@ internal class SlicStream : IMultiplexedStream
         if (!IsRemote || IsBidirectional)
         {
             _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinSegmentSize);
+        }
+    }
+
+    internal void Abort(Exception completeException)
+    {
+        if (TrySetReadsClosed(completeException))
+        {
+            _inputPipeReader?.Abort(completeException);
+        }
+        if (TrySetWritesClosed(completeException))
+        {
+            _outputPipeWriter?.Abort(completeException);
         }
     }
 
@@ -351,7 +351,7 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new TransportException(
                 TransportErrorCode.InternalError,
-                "received Slic unidirectional stream releaed on remote bidirectional stream");
+                "received Slic unidirectional stream released on remote bidirectional stream");
         }
 
         if (TrySetWritesClosed(null))

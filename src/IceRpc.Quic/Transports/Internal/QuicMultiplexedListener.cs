@@ -31,8 +31,14 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
             {
-                // Listener was disposed while accept was in progress
+                // Listener was disposed while accept was in progress.
                 throw;
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+            {
+                // WORKAROUND QuicListener TLS handshake internal timeout.
+                // TODO rework depending on the resolution of:
+                // - https://github.com/dotnet/runtime/issues/78096
             }
             catch (QuicException)
             {
@@ -64,9 +70,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             new SslApplicationProtocol(serverAddress.Protocol.Name)
         };
 
-        if (options.StreamErrorCodeConverter is null)
+        if (options.PayloadErrorCodeConverter is null)
         {
-            throw new ArgumentException("options.StreamErrorConverter is null", nameof(options));
+            throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
 
         // We use the "operation canceled" error code as default error code because that's the error code transmitted
@@ -75,7 +81,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         _quicServerOptions = new QuicServerConnectionOptions
         {
             DefaultStreamErrorCode =
-                (long)options.StreamErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             ServerAuthenticationOptions = authenticationOptions,

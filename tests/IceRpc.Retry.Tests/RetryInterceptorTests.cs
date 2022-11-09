@@ -101,7 +101,7 @@ public sealed class RetryInterceptorTests
             attempts++;
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)
             {
-                ResultType = ResultType.Failure
+                StatusCode = StatusCode.Failure
             });
         });
 
@@ -114,7 +114,7 @@ public sealed class RetryInterceptorTests
         var response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Failure));
         Assert.That(attempts, Is.EqualTo(1));
     }
 
@@ -136,7 +136,7 @@ public sealed class RetryInterceptorTests
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
                     })
                 {
-                    ResultType = ResultType.Failure,
+                    StatusCode = StatusCode.Failure,
                     Payload = payloadDecorator
                 });
             }
@@ -176,7 +176,7 @@ public sealed class RetryInterceptorTests
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
                     })
                 {
-                    ResultType = ResultType.Failure
+                    StatusCode = StatusCode.Failure
                 });
             }
             else
@@ -189,17 +189,13 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
 
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        var stopwatch = Stopwatch.StartNew();
+        long startTime = Environment.TickCount64;
 
         // Act
         await sut.InvokeAsync(request, default);
 
         // Assert
-        stopwatch.Stop();
-        Assert.That(
-            // TimeSpan rounded to the nearest millisecond
-            TimeSpan.FromMilliseconds(Math.Round(stopwatch.Elapsed.TotalMilliseconds, 0)),
-            Is.GreaterThanOrEqualTo(delay));
+        Assert.That(Environment.TickCount64 - startTime, Is.GreaterThanOrEqualTo(190));
         Assert.That(attempts, Is.EqualTo(2));
     }
 
@@ -366,7 +362,7 @@ public sealed class RetryInterceptorTests
                     [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)
                 })
             {
-                ResultType = ResultType.Failure
+                StatusCode = StatusCode.Failure
             });
         });
 
@@ -389,7 +385,7 @@ public sealed class RetryInterceptorTests
         var response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Failure));
         Assert.That(serverAddresses.Count, Is.EqualTo(3));
         Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
         Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));

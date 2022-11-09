@@ -11,9 +11,9 @@ public sealed class OutgoingResponse : OutgoingFrame
     public IDictionary<ResponseFieldKey, OutgoingFieldValue> Fields { get; set; } =
         ImmutableDictionary<ResponseFieldKey, OutgoingFieldValue>.Empty;
 
-    /// <summary>Gets or initializes the <see cref="IceRpc.ResultType" /> of this response.</summary>
-    /// <value>The result type of this response. The default is <see cref="ResultType.Success" />.</value>
-    public ResultType ResultType { get; init; } = ResultType.Success;
+    /// <summary>Gets or initializes the <see cref="StatusCode" /> of this response.</summary>
+    /// <value>The status code of this response. The default is <see cref="StatusCode.Success" />.</value>
+    public StatusCode StatusCode { get; init; } = StatusCode.Success;
 
     /// <summary>Constructs an outgoing response.</summary>
     /// <param name="request">The incoming request.</param>

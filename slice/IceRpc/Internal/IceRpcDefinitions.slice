@@ -35,7 +35,7 @@ compact struct IceRpcRequestHeader
 [cs::readonly]
 compact struct IceRpcResponseHeader
 {
-    resultType: ResultType,
+    statusCode: StatusCode,
     // fields: dictionary<ResponseFieldKey, sequence<uint8>>, (encoded/decoded manually)
 }
 
@@ -71,25 +71,4 @@ unchecked enum IceRpcConnectionErrorCode : varuint62
 
     /// The connection was refused by the server.
     Refused
-}
-
-/// The icerpc-specific error codes carried by multiplexed streams. These values are shared and carried blindly by
-/// all multiplexed transports. Multiplexed transports don't interpret these error codes or generate these codes.
-unchecked enum IceRpcStreamErrorCode : varuint62
-{
-    /// The stream (or one side of the stream) completed without error.
-    NoError = 0,
-
-    /// The stream (or one side of the stream) completed with an exception that could not be converted into a more
-    /// specific error code.
-    Unspecified,
-
-    /// The stream completed because the associated invocation or dispatch was canceled.
-    Canceled,
-
-    /// The connection was shut down.
-    ConnectionShutdown,
-
-    /// The data carried by the stream could not be decoded.
-    InvalidData
 }

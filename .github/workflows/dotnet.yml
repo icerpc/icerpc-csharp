@@ -34,7 +34,6 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: "7.0.x"
-        dotnet-quality: "preview"
     - name: 🔗 Setup MsQuic
       run: |
         curl -sSL https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/microsoft-prod.list
