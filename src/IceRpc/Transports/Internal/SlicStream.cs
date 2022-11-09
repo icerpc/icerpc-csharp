@@ -145,7 +145,8 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamStopSending,
-                    new StreamStopSendingBody(_connection.ErrorCodeConverter.ToErrorCode(exception)).Encode,
+                    new StreamStopSendingBody(
+                        _connection.PayloadExceptionConverter.FromInputCompleteException(exception)).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -162,7 +163,7 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void AbortWrite(Exception? exception)
+    internal void AbortWrite(Exception exception)
     {
         if (!IsStarted)
         {
@@ -188,7 +189,8 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamReset,
-                    new StreamResetBody(_connection.ErrorCodeConverter.ToErrorCode(exception)).Encode,
+                    new StreamResetBody(
+                        _connection.PayloadExceptionConverter.FromOutputCompleteException(exception)).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -322,7 +324,7 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic reset frame on local unidirectional stream");
         }
 
-        Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
+        var exception = _connection.PayloadExceptionConverter.ToPayloadReadException(errorCode);
         if (TrySetReadsClosed(exception))
         {
             _inputPipeReader?.Abort(exception);
@@ -338,7 +340,7 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic stop sending on remote unidirectional stream");
         }
 
-        Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
+        var exception = _connection.PayloadExceptionConverter.ToPayloadCompleteException(errorCode);
         if (TrySetWritesClosed(exception))
         {
             _outputPipeWriter?.Abort(exception);

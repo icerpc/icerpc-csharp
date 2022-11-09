@@ -64,7 +64,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             new SslApplicationProtocol(serverAddress.Protocol.Name)
         };
 
-        if (options.PayloadErrorCodeConverter is null)
+        if (options.PayloadExceptionConverter is null)
         {
             throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
@@ -74,8 +74,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         // See https://github.com/dotnet/runtime/issues/72607.
         _quicServerOptions = new QuicServerConnectionOptions
         {
+            // This works only because PayloadCompleteErrorCode.Canceled and PayloadReadErrorCode.Canceled have the same
+            // value.
             DefaultStreamErrorCode =
-                (long)options.PayloadErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadExceptionConverter.FromInputCompleteException(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             ServerAuthenticationOptions = authenticationOptions,

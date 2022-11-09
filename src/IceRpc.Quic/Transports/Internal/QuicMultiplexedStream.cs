@@ -38,7 +38,7 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     internal QuicMultiplexedStream(
         QuicStream stream,
         bool isRemote,
-        IPayloadErrorCodeConverter errorCodeConverter,
+        IPayloadExceptionConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize)
     {

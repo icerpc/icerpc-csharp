@@ -1,0 +1,20 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc;
+
+/// When the application reads a request payload or a response payload, it can get one of the following errors from
+/// the writer of this payload in the remote peer.
+unchecked enum PayloadReadErrorCode : varuint62
+{
+    /// The writer may have more data to write but cannot continue writing because the connection is shutting down.
+    ConnectionShutdown,
+
+    /// A write or flush operation on the writer was canceled, for example because it timed out.
+    Canceled,
+
+    /// An internal error prevents the writer from writing any data or more data if it already started writing.
+    InternalFailure,
+
+    /// The writer completed due to an unknown error.
+    Unspecified,
+}

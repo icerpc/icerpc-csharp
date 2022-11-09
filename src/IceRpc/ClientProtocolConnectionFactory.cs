@@ -54,7 +54,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
 
             Pool = connectionOptions.Pool,
             MinSegmentSize = connectionOptions.MinSegmentSize,
-            PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
+            PayloadExceptionConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
         };
     }
 

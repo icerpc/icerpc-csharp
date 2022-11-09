@@ -15,7 +15,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
+    private readonly IPayloadExceptionConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
 
@@ -50,7 +50,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
+                _stream.Abort(
+                    QuicAbortDirection.Write,
+                    (long)_errorCodeConverter.FromOutputCompleteException(exception));
             }
 
             _pipe.Writer.Complete();
@@ -149,9 +151,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
         {
-            if (_errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode) is Exception ex)
+            if (_errorCodeConverter.ToPayloadCompleteException(
+                    (ulong)exception.ApplicationErrorCode) is Exception payloadCompleteException)
             {
-                throw ex;
+                throw payloadCompleteException;
             }
             else
             {
@@ -197,7 +200,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     internal QuicPipeWriter(
         QuicStream stream,
-        IPayloadErrorCodeConverter errorCodeConverter,
+        IPayloadExceptionConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize,
         Action completedCallback)
@@ -228,10 +231,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 exception.QuicError == QuicError.StreamAborted &&
                 exception.ApplicationErrorCode is not null)
             {
-                if (_errorCodeConverter.FromErrorCode(
-                    (ulong)exception.ApplicationErrorCode) is Exception transportException)
+                if (_errorCodeConverter.ToPayloadCompleteException(
+                    (ulong)exception.ApplicationErrorCode) is Exception payloadCompleteException)
                 {
-                    throw transportException;
+                    throw payloadCompleteException;
                 }
             }
             catch (QuicException exception)

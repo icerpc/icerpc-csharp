@@ -29,13 +29,14 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    public static IEnumerable<TestCaseData> PayloadStreamReadExceptions
+    public static IEnumerable<TestCaseData> PayloadReadExceptionSource
     {
         get
         {
-            yield return new TestCaseData(new PayloadException((PayloadErrorCode)99), 99ul);
-            yield return new TestCaseData(new InvalidDataException("invalid data"), PayloadErrorCode.InvalidData);
-            yield return new TestCaseData(new OperationCanceledException(), PayloadErrorCode.Canceled);
+            yield return new TestCaseData(
+                new PayloadReadException((PayloadReadErrorCode)99),
+                (PayloadReadErrorCode)99u);
+            yield return new TestCaseData(new OperationCanceledException(), PayloadReadErrorCode.Canceled);
         }
     }
 
@@ -124,10 +125,10 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="PayloadException" /> with the <see cref="PayloadErrorCode.ConnectionShutdown" />
+    /// cref="PayloadReadException" /> with the <see cref="PayloadReadErrorCode.ConnectionShutdown" />
     /// error code.</summary>
     [Test]
-    public async Task Disposing_server_connection_triggers_stream_exception_with_ConnectionShutdown(
+    public async Task Disposing_server_connection_triggers_payload_read_exception_with_ConnectionShutdown(
         [Values(false, true)] bool shutdown)
     {
         // Arrange
@@ -150,8 +151,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        var exception = Assert.ThrowsAsync<PayloadException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadErrorCode.ConnectionShutdown));
+        var exception = Assert.ThrowsAsync<PayloadReadException>(async () => await invokeTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadReadErrorCode.ConnectionShutdown));
     }
 
     [Test]
@@ -230,15 +231,15 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        var exception = Assert.ThrowsAsync<PayloadException>(async () => await dispatchCompleteTcs.Task);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadErrorCode.Canceled));
+        var exception = Assert.ThrowsAsync<PayloadReadException>(async () => await dispatchCompleteTcs.Task);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadReadErrorCode.Canceled));
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    [Test, TestCaseSource(nameof(PayloadStreamReadExceptions))]
-    public async Task Invocation_PayloadStream_failure_triggers_incoming_request_payload_stream_read_exception(
+    [Test, TestCaseSource(nameof(PayloadReadExceptionSource))]
+    public async Task Invocation_stream_failure_triggers_incoming_request_payload_read_exception(
         Exception exception,
-        ulong expectedErrorCode)
+        PayloadReadErrorCode expectedErrorCode)
     {
         // Arrange
         var remotePayloadTcs = new TaskCompletionSource<PipeReader>();
@@ -269,7 +270,7 @@ public sealed class IceRpcProtocolConnectionTests
         payloadContinuation.SetReadException(exception);
 
         // Assert
-        PayloadException? streamException = null;
+        PayloadReadException? payloadReadException = null;
         try
         {
             // The failure to read the remote payload is timing dependent. ReadAsync might return with the 10 bytes
@@ -282,13 +283,13 @@ public sealed class IceRpcProtocolConnectionTests
             remotePayload.AdvanceTo(result.Buffer.End);
             await remotePayload.ReadAsync();
         }
-        catch (PayloadException ex)
+        catch (PayloadReadException ex)
         {
-            streamException = ex;
+            payloadReadException = ex;
         }
 
-        Assert.That(streamException, Is.Not.Null);
-        Assert.That(streamException!.ErrorCode, Is.EqualTo((PayloadErrorCode)expectedErrorCode));
+        Assert.That(payloadReadException, Is.Not.Null);
+        Assert.That(payloadReadException!.ErrorCode, Is.EqualTo(expectedErrorCode));
     }
 
     [Test]
@@ -680,7 +681,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var multiplexOptions = new MultiplexedConnectionOptions
         {
-            PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
+            PayloadExceptionConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
         };
 
         IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(

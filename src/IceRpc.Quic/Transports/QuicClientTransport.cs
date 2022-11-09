@@ -60,7 +60,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             new IPEndPoint(ipAddress, serverAddress.Port) :
             new DnsEndPoint(serverAddress.Host, serverAddress.Port);
 
-        if (options.PayloadErrorCodeConverter is null)
+        if (options.PayloadExceptionConverter is null)
         {
             throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
         }
@@ -71,8 +71,10 @@ public class QuicClientTransport : IMultiplexedClientTransport
         var quicClientOptions = new QuicClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
+            // this works only because the value of PayloadCompleteErrorCode.Canceled is the same as the value of
+            // PayloadReadErrorCode.Canceled.
             DefaultStreamErrorCode =
-                (long)options.PayloadErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
+                (long)options.PayloadExceptionConverter.FromInputCompleteException(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,

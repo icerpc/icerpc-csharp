@@ -15,7 +15,7 @@ internal sealed class IceRpcProtocol : Protocol
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
 
-    internal IPayloadErrorCodeConverter PayloadErrorCodeConverter { get; } = new IceRpcPayloadErrorCodeConverter();
+    internal IPayloadExceptionConverter PayloadErrorCodeConverter { get; } = new IceRpcPayloadExceptionConverter();
 
     internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
@@ -82,38 +82,34 @@ internal sealed class IceRpcProtocol : Protocol
     {
     }
 
-    private class IceRpcPayloadErrorCodeConverter : IPayloadErrorCodeConverter
+    private class IceRpcPayloadExceptionConverter : IPayloadExceptionConverter
     {
-        public PayloadException? FromErrorCode(ulong errorCode)
-        {
-            // For icerpc, the conversion from the error code transmitted over the multiplexed stream and
-            // PayloadErrorCode is a simple cast.
-            var payloadErrorCode = (PayloadErrorCode)errorCode;
-
-            return payloadErrorCode switch
-            {
-                PayloadErrorCode.ReadComplete => null,
-                _ => new PayloadException(payloadErrorCode)
-            };
-        }
-
-        public ulong ToErrorCode(Exception? exception) =>
+        public ulong FromInputCompleteException(Exception? exception) =>
             exception switch
             {
-                null => (ulong)PayloadErrorCode.ReadComplete,
-
-                OperationCanceledException => (ulong)PayloadErrorCode.Canceled,
-
-                ConnectionException connectionException =>
-                    connectionException.ErrorCode.IsClosedErrorCode() ?
-                        (ulong)PayloadErrorCode.ConnectionShutdown :
-                        (ulong)PayloadErrorCode.Unspecified,
-
-                InvalidDataException => (ulong)PayloadErrorCode.InvalidData,
-
-                PayloadException payloadException => (ulong)payloadException.ErrorCode,
-
-                _ => (ulong)PayloadErrorCode.Unspecified
+                null => (ulong)PayloadCompleteErrorCode.Done,
+                PayloadCompleteException payloadCompleteException => (ulong)payloadCompleteException.ErrorCode,
+                OperationCanceledException => (ulong)PayloadCompleteErrorCode.Canceled,
+                InvalidDataException => (ulong)PayloadCompleteErrorCode.InvalidData,
+                _ => (ulong)PayloadCompleteErrorCode.Unspecified
             };
+
+        public ulong FromOutputCompleteException(Exception exception) =>
+            exception switch
+            {
+                PayloadReadException payloadReadException => (ulong)payloadReadException.ErrorCode,
+                OperationCanceledException => (ulong)PayloadReadErrorCode.Canceled,
+                ConnectionException connectionException => (ulong)(connectionException.ErrorCode.IsClosedErrorCode() ?
+                    PayloadReadErrorCode.ConnectionShutdown : PayloadReadErrorCode.Unspecified),
+                _ => (ulong)PayloadReadErrorCode.Unspecified
+            };
+
+        public PayloadCompleteException? ToPayloadCompleteException(ulong errorCode)
+        {
+            var payloadCompleteErrorCode = (PayloadCompleteErrorCode)errorCode;
+            return payloadCompleteErrorCode == PayloadCompleteErrorCode.Done ? null : new(payloadCompleteErrorCode);
+        }
+
+        public PayloadReadException ToPayloadReadException(ulong errorCode) => new((PayloadReadErrorCode)errorCode);
     }
 }

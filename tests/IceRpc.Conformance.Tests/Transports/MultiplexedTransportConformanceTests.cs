@@ -829,10 +829,10 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.RemoteStream.Input.CompleteAsync(new PayloadException((PayloadErrorCode)errorCode));
+        await sut.RemoteStream.Input.CompleteAsync(new PayloadCompleteException((PayloadCompleteErrorCode)errorCode));
 
         // Assert
-        PayloadException? ex = Assert.CatchAsync<PayloadException>(
+        PayloadCompleteException? ex = Assert.CatchAsync<PayloadCompleteException>(
             async () =>
             {
                 while (true)
@@ -846,7 +846,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
             });
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadErrorCode)errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadCompleteErrorCode)errorCode));
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
@@ -868,15 +868,15 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.LocalStream.Output.CompleteAsync(new PayloadException((PayloadErrorCode)errorCode));
+        await sut.LocalStream.Output.CompleteAsync(new PayloadReadException((PayloadReadErrorCode)errorCode));
 
         // Assert
         // Wait for the peer to receive the StreamStopSending/StreamReset frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
-        PayloadException? ex = Assert.CatchAsync<PayloadException>(
+        PayloadReadException? ex = Assert.CatchAsync<PayloadReadException>(
             async () => await sut.RemoteStream.Input.ReadAsync());
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadErrorCode)errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadReadErrorCode)errorCode));
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
@@ -1249,7 +1249,7 @@ public abstract class MultiplexedTransportConformanceTests
             await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
             // successful completion is an acceptable behavior
         }
-        catch (PayloadException exception) when (exception.ErrorCode == PayloadErrorCode.Canceled)
+        catch (PayloadCompleteException exception) when (exception.ErrorCode == PayloadCompleteErrorCode.Canceled)
         {
             // acceptable behavior (and that's what Quic does)
         }

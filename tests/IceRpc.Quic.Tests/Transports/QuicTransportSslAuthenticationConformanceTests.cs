@@ -35,7 +35,7 @@ public class QuicTransportSslAuthenticationConformanceTests : MultiplexedTranspo
             .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport());
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
+            options => options.PayloadExceptionConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }

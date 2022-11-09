@@ -488,7 +488,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw ConnectionClosedException;
             }
         }
-        catch (PayloadException exception)
+        catch (PayloadCompleteException exception)
+        {
+            completeException = exception;
+            throw;
+        }
+        catch (PayloadReadException exception)
         {
             completeException = exception;
             throw;
@@ -841,8 +846,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // The application (or an interceptor/middleware) called CancelPendingRead on reader.
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
-                        // We complete without throwing/catching any exception.
-                        await writer.CompleteAsync(new PayloadException(PayloadErrorCode.Canceled))
+                        await writer.CompleteAsync(new PayloadReadException(PayloadReadErrorCode.Canceled))
                             .ConfigureAwait(false);
 
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
@@ -998,7 +1002,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException _ => StatusCode.InvalidData,
-                        PayloadException => StatusCode.PayloadError,
+                        PayloadReadException => StatusCode.PayloadError, // TODO: revisit
+                        PayloadCompleteException => StatusCode.PayloadError,
                         _ => StatusCode.UnhandledException
                     };
 
