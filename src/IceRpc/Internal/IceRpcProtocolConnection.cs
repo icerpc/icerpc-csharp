@@ -762,10 +762,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (Exception exception)
         {
-            // Passed through to remote peer if from ReadAsync failure; otherwise no-op since already failed.
+            // Passed through to remote peer when from ReadAsync failure; otherwise no-op since already failed.
             payloadWriter.Complete(exception);
 
-            // Passed through to remote peer if from FlushAsync failure; otherwise no-op since already failed.
+            // Passed through to remote peer when from FlushAsync failure; otherwise no-op since already failed.
             outgoingFrame.Payload.Complete(exception);
             outgoingFrame.PayloadContinuation?.Complete(); // don't want to read it
             throw;
@@ -804,11 +804,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        // Passed through to remote peer if from ReadAsync failure; otherwise no-op since already
+                        // Passed through to remote peer when from ReadAsync failure; otherwise no-op since already
                         // failed.
                         payloadWriter.Complete(exception);
 
-                        // Passed through to remote peer if from FlushAsync failure; otherwise no-op since already
+                        // Passed through to remote peer when from FlushAsync failure; otherwise no-op since already
                         // failed.
                         payloadContinuation.Complete(exception);
                     }
@@ -849,7 +849,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // The application (or an interceptor/middleware) called CancelPendingRead on reader.
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
-                        writer.Complete(new OperationCanceledException()); // copy completed as Canceled
+                        writer.Complete(new OperationCanceledException()); // copy completed with Canceled error code
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
                     }
                     else
@@ -945,7 +945,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // received an invalid request header that we could not decode.
             streamOutput?.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
 
-            // When streamInput is not null, the exception was thrown early--when reading or decoding the header. It
+            // When streamInput is not null, the exception was thrown when reading or decoding the header. It
             // could be for example that we could not decode the header.
             streamInput?.Complete(exception);
             throw;
@@ -986,7 +986,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (cancellationToken == exception.CancellationToken)
             {
-                streamOutput?.Complete((Exception?)ConnectionClosedException ?? exception);
+                streamOutput?.Complete(ConnectionClosedException is null ?
+                    exception : new PayloadReadException(PayloadReadErrorCode.ConnectionShutdown));
                 return;
             }
             catch (Exception exception)

@@ -490,10 +490,11 @@ public sealed class ProtocolConnectionTests
         try
         {
             IncomingResponse response = await responseTask;
-            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Canceled));
+            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
         }
-        catch (PayloadReadException)
+        catch (PayloadReadException exception)
         {
+            Assert.That(exception.ErrorCode, Is.EqualTo(PayloadReadErrorCode.ConnectionShutdown));
         }
     }
 
