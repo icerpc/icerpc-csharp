@@ -352,7 +352,6 @@ public sealed class Server : IAsyncDisposable
                 // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // TODO: Why don't we use BackgroundConnectionDisposeAsync here?
                     executeFunc = () => protocolConnection.DisposeAsync().AsTask();
                 }
                 else if (_maxConnections > 0 && _connections.Count == _maxConnections)
@@ -431,7 +430,7 @@ public sealed class Server : IAsyncDisposable
         }
 
         async Task BackgroundConnectionDisposeAsync(
-            IAsyncDisposable connection,
+            IProtocolConnection connection,
             CancellationToken shutdownCancellationToken)
         {
             try
