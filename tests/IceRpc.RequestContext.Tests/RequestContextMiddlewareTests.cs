@@ -40,7 +40,7 @@ public sealed class RequestContextMiddlewareTests
 
         await sut.DispatchAsync(request, default);
 
-        await pipeReader.CompleteAsync();
+        pipeReader.Complete();
         Assert.That(decoded, Is.Not.Null);
         Assert.That(decoded, Is.EqualTo(context));
 

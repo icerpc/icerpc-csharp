@@ -413,7 +413,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await payloadContinuationDecorator.Completed, Is.Null);
 
         // Cleanup
-        await pipe.Writer.CompleteAsync();
+        pipe.Writer.Complete();
         await responseTask;
     }
 

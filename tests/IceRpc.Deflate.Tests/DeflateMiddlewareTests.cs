@@ -50,7 +50,7 @@ public class CompressorMiddlewareTests
         byte[] decompressedPayload = new byte[4096];
         await deflateStream.ReadAsync(decompressedPayload);
         Assert.That(decompressedPayload, Is.EqualTo(_payload));
-        await payloadWriter.CompleteAsync();
+        payloadWriter.Complete();
     }
 
     /// <summary>Verifies that the deflate middleware does not install a payload writer interceptor if the request does
@@ -66,8 +66,8 @@ public class CompressorMiddlewareTests
 
         var pipe = new Pipe();
         Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
-        await pipe.Reader.CompleteAsync();
-        await pipe.Writer.CompleteAsync();
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     /// <summary>Verifies that the deflate middleware does not install a payload writer interceptor if the response is
@@ -91,8 +91,8 @@ public class CompressorMiddlewareTests
 
         var pipe = new Pipe();
         Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
-        await pipe.Reader.CompleteAsync();
-        await pipe.Writer.CompleteAsync();
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     /// <summary>Verifies that the deflate middleware does not update the request payload when the compression
