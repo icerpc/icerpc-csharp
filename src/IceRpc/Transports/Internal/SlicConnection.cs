@@ -908,10 +908,10 @@ internal class SlicConnection : IMultiplexedConnection
                         }
                         catch
                         {
-                            await stream.Input.CompleteAsync().ConfigureAwait(false);
+                            stream.Input.Complete();
                             if (isBidirectional)
                             {
-                                await stream.Output.CompleteAsync().ConfigureAwait(false);
+                                stream.Output.Complete();
                             }
                             Debug.Assert(stream.IsShutdown);
                             throw;
@@ -945,8 +945,8 @@ internal class SlicConnection : IMultiplexedConnection
                                 dataSize - readSize,
                                 cancellationToken).ConfigureAwait(false);
 
-                        await pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                        await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+                        pipe.Writer.Complete();
+                        pipe.Reader.Complete();
                     }
 
                     break;

@@ -205,7 +205,7 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
-                await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                _pipe.Writer.Complete();
             }
             else
             {
@@ -220,7 +220,7 @@ internal class SlicPipeReader : PipeReader
             {
                 // If the pipe writer has been completed while we were reading the data from the stream, we make sure to
                 // complete the writer now since Complete or CompleteWriter didn't do it.
-                await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
+                _pipe.Writer.Complete(_exception);
             }
             _state.ClearFlag(State.PipeWriterInUse);
         }
