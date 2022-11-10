@@ -17,12 +17,22 @@ public static class ProtocolServiceCollectionExtensions
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceProtocolConnection(
                     provider.GetRequiredService<IDuplexConnection>(),
-                    isServer: false,
+                    transportConnectionInformation: null,
                     clientConnectionOptions),
-                acceptServerConnectionAsync: async () => new IceProtocolConnection(
-                    (await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(default)).Connection,
-                    isServer: true,
-                    serverConnectionOptions),
+                acceptServerConnectionAsync:
+                    async () =>
+                    {
+                        (IDuplexConnection transportConnection, _) =
+                            await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(default);
+
+                        TransportConnectionInformation transportConnectionInformation =
+                            await transportConnection.ConnectAsync(default);
+
+                        return new IceProtocolConnection(
+                            transportConnection,
+                            transportConnectionInformation,
+                            serverConnectionOptions);
+                    },
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
     public static IServiceCollection AddIceRpcProtocolTest(
@@ -34,13 +44,22 @@ public static class ProtocolServiceCollectionExtensions
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceRpcProtocolConnection(
                     provider.GetRequiredService<IMultiplexedConnection>(),
-                    isServer: false,
+                    transportConnectionInformation: null,
                     clientConnectionOptions),
-                acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
-                    (await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
-                        default)).Connection,
-                    isServer: true,
-                    serverConnectionOptions),
+                acceptServerConnectionAsync:
+                    async () =>
+                    {
+                        (IMultiplexedConnection transportConnection, _) =
+                            await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(default);
+
+                        TransportConnectionInformation transportConnectionInformation =
+                            await transportConnection.ConnectAsync(default);
+
+                        return new IceRpcProtocolConnection(
+                            transportConnection,
+                            transportConnectionInformation,
+                            serverConnectionOptions);
+                    },
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<MultiplexedConnectionOptions>().Configure(

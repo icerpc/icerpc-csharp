@@ -346,9 +346,9 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (_readFramesTask is not null && !IsServer)
             {
-                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
-                // For TCP, it's important to always shutdown the connection on the client-side first to avoid
-                // TIME_WAIT states on the server-side.
+                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection. For
+                // TCP, it's important to always shutdown the connection on the client-side first to avoid TIME_WAIT
+                // states on the server-side.
                 await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
         }

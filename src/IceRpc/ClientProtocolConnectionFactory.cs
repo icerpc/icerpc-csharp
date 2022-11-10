@@ -71,13 +71,13 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                     serverAddress,
                     _duplexConnectionOptions,
                     _clientAuthenticationOptions),
-                isServer: false,
+                transportConnectionInformation: null,
                 _connectionOptions) :
             new IceRpcProtocolConnection(
                 _multiplexedClientTransport.CreateConnection(
                     serverAddress,
                     _multiplexedConnectionOptions,
                     _clientAuthenticationOptions),
-                isServer: false,
+                transportConnectionInformation: null,
                 _connectionOptions);
 }

@@ -12,7 +12,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private protected bool IsServer { get; }
+    private protected bool IsServer => _transportConnectionInformation is not null;
 
     // Derived classes need to be able to set the connection closed exception with their mutex locked. We use an atomic
     // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
@@ -41,6 +41,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
+    // Only set for server connections.
+    private TransportConnectionInformation? _transportConnectionInformation;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -78,8 +80,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 try
                 {
-                    TransportConnectionInformation information = await ConnectAsyncCore(cts.Token)
-                        .ConfigureAwait(false);
+                    TransportConnectionInformation information = await ConnectAsyncCore(
+                        _transportConnectionInformation,
+                        cts.Token).ConfigureAwait(false);
                     EnableIdleCheck();
                     return information;
                 }
@@ -113,6 +116,16 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 catch (ConnectionException)
                 {
                     throw;
+                }
+                catch (TransportException exception) when (
+                    exception.ApplicationErrorCode is ulong errorCode &&
+                    errorCode == (ulong)ConnectionErrorCode.ConnectRefused)
+                {
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByPeer,
+                        "the connection establishment was refused");
+
+                    throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
                 }
                 catch (TransportException exception)
                 {
@@ -261,6 +274,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 throw ConnectionClosedException;
             }
+            else if (_connectTask is null)
+            {
+                throw new InvalidOperationException("cannot call ShutdownAsync before calling ConnectAsync");
+            }
 
             ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown);
 
@@ -303,10 +320,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(bool isServer, ConnectionOptions options)
+    internal ProtocolConnection(
+        TransportConnectionInformation? transportConnectionInformation,
+        ConnectionOptions options)
     {
-        IsServer = isServer;
-
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
         _idleTimeout = options.IdleTimeout;
@@ -317,6 +334,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown(ConnectionErrorCode.ClosedByIdle);
                 }
             });
+        _transportConnectionInformation = transportConnectionInformation;
     }
 
     private protected abstract void CancelDispatchesAndInvocations();
@@ -326,6 +344,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected abstract bool CheckIfIdle();
 
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
+        TransportConnectionInformation? transportConnectionInformation,
         CancellationToken cancellationToken);
 
     private protected void ConnectionLost(Exception exception) =>

@@ -83,9 +83,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
-        bool isServer,
+        TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
-        : base(isServer, options)
+        : base(transportConnectionInformation, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
@@ -208,10 +208,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     }
 
     private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
+        TransportConnectionInformation? transportConnectionInformation,
         CancellationToken cancellationToken)
     {
-        TransportConnectionInformation transportConnectionInformation = await _duplexConnection.ConnectAsync(
-            cancellationToken).ConfigureAwait(false);
+        if (transportConnectionInformation is null)
+        {
+            transportConnectionInformation = await _duplexConnection.ConnectAsync(
+                cancellationToken).ConfigureAwait(false);
+        }
 
         // This needs to be set before starting the read frames task below.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
@@ -664,46 +668,37 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
         }
 
-        if (_readFramesTask is not null)
-        {
-            // Wait for dispatches and invocations to complete.
-            await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Wait for dispatches and invocations to complete.
+        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            // Encode and write the CloseConnection frame once all the dispatches are done.
+        // Encode and write the CloseConnection frame once all the dispatches are done.
+        try
+        {
+            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    EncodeCloseConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _writeSemaphore.Release();
-                }
+                EncodeCloseConnectionFrame(_duplexConnectionWriter);
+                await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ClosedByPeer)
+            finally
             {
-                // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
-            }
-
-            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
-            // connection closure here. We can't just return and close the underlying transport since this could abort
-            // the receive of the dispatch responses and close connection frame by the peer.
-            await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-            static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
+                _writeSemaphore.Release();
             }
         }
-        else
+        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ClosedByPeer)
         {
-            // We're shutting down an un-connected connection. We just close the underlying transport.
-            Debug.Assert(_dispatchCount == 0 && _invocations.Count == 0);
-            _duplexConnection.Dispose();
+            // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
+        }
+
+        // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+        // connection closure here. We can't just return and close the underlying transport since this could abort
+        // the receive of the dispatch responses and close connection frame by the peer.
+        await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+            IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
         }
     }
 

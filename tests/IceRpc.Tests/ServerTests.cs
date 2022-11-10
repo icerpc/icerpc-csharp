@@ -134,15 +134,9 @@ public class ServerTests
         DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
 
         // Act/Assert
-
-        // Either the connection is refused because the max connection count is reached,
-        // or the transport was closed by the server before the refused message was received.
         Assert.That(() => clientConnection2.ConnectAsync(),
             Throws.InstanceOf<ConnectionException>().With.Property("ErrorCode")
-            .EqualTo(ConnectionErrorCode.ConnectRefused)
-            .Or
-            .InstanceOf<TransportException>().With.Property("ErrorCode")
-            .EqualTo(TransportErrorCode.ConnectionReset));
+            .EqualTo(ConnectionErrorCode.ConnectRefused));
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
