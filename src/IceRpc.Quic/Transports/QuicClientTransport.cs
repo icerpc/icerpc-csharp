@@ -64,6 +64,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
             DefaultCloseErrorCode = 0,
+            DefaultStreamErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
             RemoteEndPoint = endpoint,
