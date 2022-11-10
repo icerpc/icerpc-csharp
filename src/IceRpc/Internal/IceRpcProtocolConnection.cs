@@ -14,7 +14,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
-    // The exception we give to stream.Output.Complete upon failure.
+    // The exception we give to stream.Output.Complete upon failure. While any exception will do, the call to ReadAsync
+    // on the remote stream.Input always throw a TruncatedDataException.
     private static readonly TruncatedDataException _truncatedDataException = new();
 
     private Task? _acceptRequestsTask;
