@@ -38,8 +38,6 @@ public static class QuicTransportServiceCollectionExtensions
 
         services.AddOptions<QuicServerTransportOptions>("client");
         services.AddOptions<QuicClientTransportOptions>("server");
-        services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.MultiplexedStreamExceptionConverter = IceRpcProtocol.Instance.MultiplexedStreamExceptionConverter);
 
         return services;
     }

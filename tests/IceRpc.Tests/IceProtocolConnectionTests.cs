@@ -103,14 +103,14 @@ public sealed class IceProtocolConnectionTests
     /// <summary>Ensures that the response payload continuation is completed even if the Ice protocol doesn't support
     /// it.</summary>
     [Test]
-    public async Task PayloadStream_completed_on_response()
+    public async Task PayloadContinuation_completed_on_response()
     {
         // Arrange
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
-                    PayloadContinuation = payloadStreamDecorator
+                    PayloadContinuation = payloadContinuationDecorator
                 }));
 
         await using var provider = new ServiceCollection()
@@ -125,7 +125,7 @@ public sealed class IceProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(async () => await payloadStreamDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadContinuationDecorator.Completed, Throws.Nothing);
 
         // Cleanup
         await responseTask;

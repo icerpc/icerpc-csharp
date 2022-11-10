@@ -14,6 +14,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
+    // The exception we give to stream.Output.Complete upon failure.
+    private static readonly TruncatedDataException _truncatedDataException = new();
+
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -275,8 +278,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             stream.Input.Complete();
                             if (stream.IsBidirectional)
                             {
-                                stream.Output.Complete(
-                                    new PayloadReadException(PayloadReadErrorCode.ConnectionShutdown));
+                                stream.Output.Complete(_truncatedDataException);
                             }
                             return;
                         }
@@ -416,7 +418,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     // already closed.
                     Debug.Assert(ConnectionClosedException is not null);
                     invocationCts.Dispose();
-                    stream.Output.Complete(new PayloadReadException(PayloadReadErrorCode.ConnectionShutdown));
+                    stream.Output.Complete(_truncatedDataException);
                     throw ConnectionClosedException;
                 }
                 else
@@ -436,7 +438,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch
         {
             // failed to send the request
-            stream.Output.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
+            stream.Output.Complete(_truncatedDataException);
             streamInput?.Complete();
             throw;
         }
@@ -492,11 +494,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             streamInput = null; // response now owns the stream input
             return response;
         }
-        catch (OperationCanceledException exception)
+        catch (OperationCanceledException)
         {
             if (sent)
             {
-                streamInput?.Complete(exception); // we were waiting for the response and got canceled
+                streamInput?.Complete(); // we were waiting for the response and got canceled
             }
 
             if (_dispatchesAndInvocationsCts.IsCancellationRequested)
@@ -761,18 +763,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     "a payload writer is not allowed to return a canceled flush result");
             }
         }
-        catch (Exception exception)
+        catch
         {
-            // Passed through to remote peer when from ReadAsync failure; otherwise no-op since already failed.
-            payloadWriter.Complete(exception);
-
-            // Passed through to remote peer when from FlushAsync failure; otherwise no-op since already failed.
-            outgoingFrame.Payload.Complete(exception);
-            outgoingFrame.PayloadContinuation?.Complete(); // don't want to read it
+            payloadWriter.Complete(_truncatedDataException);
+            outgoingFrame.PayloadContinuation?.Complete();
             throw;
         }
-
-        outgoingFrame.Payload.Complete();
+        finally
+        {
+            outgoingFrame.Payload.Complete();
+        }
 
         if (payloadContinuation is null)
         {
@@ -799,19 +799,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             throw new InvalidOperationException(
                                 "a payload writer interceptor is not allowed to return a canceled flush result");
                         }
-
-                        payloadContinuation.Complete();
                         payloadWriter.Complete();
                     }
-                    catch (Exception exception)
+                    catch
                     {
-                        // Passed through to remote peer when from ReadAsync failure; otherwise no-op since already
-                        // failed.
-                        payloadWriter.Complete(exception);
-
-                        // Passed through to remote peer when from FlushAsync failure; otherwise no-op since already
-                        // failed.
-                        payloadContinuation.Complete(exception);
+                        payloadWriter.Complete(_truncatedDataException);
+                    }
+                    finally
+                    {
+                        payloadContinuation.Complete();
                     }
                 },
                 CancellationToken.None);
@@ -850,7 +846,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // The application (or an interceptor/middleware) called CancelPendingRead on reader.
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
-                        writer.Complete(new OperationCanceledException()); // copy completed with Canceled error code
+                        writer.Complete(_truncatedDataException);
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
                     }
                     else
@@ -938,17 +934,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await PerformDispatchRequestAsync(request).ConfigureAwait(false);
         }
-        catch (Exception exception)
+        catch
         {
             fieldsPipeReader?.Complete();
 
             // We always need to complete streamOutput with an error when an exception is thrown. For example, we
             // received an invalid request header that we could not decode.
-            streamOutput?.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
+            streamOutput?.Complete(_truncatedDataException);
 
-            // When streamInput is not null, the exception was thrown when reading or decoding the header. It
-            // could be for example that we could not decode the header.
-            streamInput?.Complete(exception);
+            streamInput?.Complete();
             throw;
         }
 
@@ -987,8 +981,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (cancellationToken == exception.CancellationToken)
             {
-                streamOutput?.Complete(ConnectionClosedException is null ?
-                    exception : new PayloadReadException(PayloadReadErrorCode.ConnectionShutdown));
+                streamOutput?.Complete(_truncatedDataException);
                 return;
             }
             catch (Exception exception)
@@ -1001,7 +994,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException => StatusCode.InvalidData,
-                        PayloadReadException => StatusCode.PayloadReadError,
+                        TruncatedDataException => StatusCode.TruncatedPayload,
                         _ => StatusCode.UnhandledException
                     };
 
@@ -1046,8 +1039,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
                 request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
-                // Even when the code above throws an exception, we catch it and send a response. So we never want
-                // to give an exception to Complete when completing the incoming payload.
                 request.Payload.Complete();
             }
 
@@ -1064,7 +1055,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch
             {
-                streamOutput.Complete(new PayloadReadException(PayloadReadErrorCode.Failed));
+                streamOutput.Complete(_truncatedDataException);
                 throw;
             }
 

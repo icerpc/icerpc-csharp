@@ -813,9 +813,8 @@ public abstract class MultiplexedTransportConformanceTests
         }
     }
 
-    [TestCase(100)]
-    [TestCase(15)]
-    public async Task Stream_abort_read(int errorCode)
+    [Test]
+    public async Task Stream_abort_read()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -829,10 +828,10 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.RemoteStream.Input.CompleteAsync(new PayloadCompleteException((PayloadCompleteErrorCode)errorCode));
+        sut.RemoteStream.Input.Complete(new TruncatedDataException()); // can be any exception
 
         // Assert
-        PayloadCompleteException? ex = Assert.CatchAsync<PayloadCompleteException>(
+        Assert.That(
             async () =>
             {
                 while (true)
@@ -844,17 +843,15 @@ public abstract class MultiplexedTransportConformanceTests
                     }
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
-            });
-        Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadCompleteErrorCode)errorCode));
+            },
+            Throws.Nothing);
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
     }
 
-    [TestCase(100)]
-    [TestCase(15)]
-    public async Task Stream_abort_write(int errorCode)
+    [Test]
+    public async Task Stream_abort_write()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -868,15 +865,12 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.LocalStream.Output.CompleteAsync(new PayloadReadException((PayloadReadErrorCode)errorCode));
+        sut.LocalStream.Output.Complete(new OperationCanceledException()); // can be any exception
+        // Wait for the peer to receive the Reset frame.
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        // Wait for the peer to receive the StreamStopSending/StreamReset frame.
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
-        PayloadReadException? ex = Assert.CatchAsync<PayloadReadException>(
-            async () => await sut.RemoteStream.Input.ReadAsync());
-        Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadReadErrorCode)errorCode));
+        Assert.That(async () => await sut.RemoteStream.Input.ReadAsync(), Throws.InstanceOf<TruncatedDataException>());
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
@@ -1244,15 +1238,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         ReadResult readResult1 = await readTask;
 
-        try
-        {
-            await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
-            // successful completion is an acceptable behavior
-        }
-        catch (PayloadCompleteException exception) when (exception.ErrorCode == PayloadCompleteErrorCode.Canceled)
-        {
-            // acceptable behavior (and that's what Quic does)
-        }
+        Assert.That(async () => await sut.RemoteStream.Output.WriteAsync(_oneBytePayload), Throws.Nothing);
 
         ReadResult? readResult2 = null;
         try

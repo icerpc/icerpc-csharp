@@ -13,9 +13,8 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportSslAuthenticationConformanceTests : MultiplexedTransportSslAuthenticationConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection()
-    {
-        var services = new ServiceCollection()
+    protected override IServiceCollection CreateServiceCollection() =>
+        new ServiceCollection()
             .AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0/"))
             .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport())
             .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport())
@@ -23,10 +22,4 @@ public class SlicTransportSslAuthenticationConformanceTests : MultiplexedTranspo
                 provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
             .AddSingleton<IMultiplexedClientTransport>(
                 provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
-
-        services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.MultiplexedStreamExceptionConverter = IceRpcProtocol.Instance.MultiplexedStreamExceptionConverter);
-
-        return services;
-    }
 }

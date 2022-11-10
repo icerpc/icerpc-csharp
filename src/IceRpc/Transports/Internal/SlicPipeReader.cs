@@ -73,7 +73,7 @@ internal class SlicPipeReader : PipeReader
             {
                 // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
                 // frame to the peer to notify it shouldn't send additional data.
-                _stream.AbortRead(exception);
+                _stream.AbortRead();
             }
 
             _pipe.Reader.Complete(exception);

@@ -70,22 +70,8 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             new SslApplicationProtocol(serverAddress.Protocol.Name)
         };
 
-        if (options.MultiplexedStreamExceptionConverter is null)
-        {
-            throw new ArgumentException(
-                $"{nameof(options.MultiplexedStreamExceptionConverter)} is null",
-                nameof(options));
-        }
-
-        // We use the "operation canceled" error code as default error code because that's the error code transmitted
-        // when an operation such as stream.ReadAsync or stream.WriteAsync is canceled.
-        // See https://github.com/dotnet/runtime/issues/72607.
         _quicServerOptions = new QuicServerConnectionOptions
         {
-            // This works only because PayloadCompleteErrorCode.Canceled and PayloadReadErrorCode.Canceled have the same
-            // value.
-            DefaultStreamErrorCode =
-                (long)options.MultiplexedStreamExceptionConverter.FromInputCompleteException(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             ServerAuthenticationOptions = authenticationOptions,

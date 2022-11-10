@@ -20,8 +20,6 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal int MinSegmentSize { get; }
 
-    internal IMultiplexedStreamExceptionConverter PayloadExceptionConverter { get; }
-
     internal int PauseWriterThreshold { get; }
 
     internal int PeerPacketMaxSize { get; private set; }
@@ -411,13 +409,7 @@ internal class SlicConnection : IMultiplexedConnection
         SlicTransportOptions slicOptions,
         bool isServer)
     {
-        if (options.MultiplexedStreamExceptionConverter is null)
-        {
-            throw new ArgumentException($"{nameof(options.MultiplexedStreamExceptionConverter)} is null", nameof(options));
-        }
-
         IsServer = isServer;
-        PayloadExceptionConverter = options.MultiplexedStreamExceptionConverter;
 
         Pool = options.Pool;
         MinSegmentSize = options.MinSegmentSize;
@@ -1007,7 +999,7 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedResetFrame(streamReset.ApplicationProtocolErrorCode);
+                        stream.ReceivedResetFrame();
                     }
                     break;
                 }
@@ -1033,7 +1025,7 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedStopSendingFrame(streamStopSending.ApplicationProtocolErrorCode);
+                        stream.ReceivedStopSendingFrame();
                     }
                     break;
                 }

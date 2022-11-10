@@ -15,7 +15,6 @@ internal class QuicPipeReader : PipeReader
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IMultiplexedStreamExceptionConverter _errorCodeConverter;
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
@@ -40,8 +39,8 @@ internal class QuicPipeReader : PipeReader
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
 
-            // Tell the remote writer we're done reading, with the error code matching the exception.
-            _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.FromInputCompleteException(exception));
+            // Tell the remote writer we're done reading. The error code is irrelevant.
+            _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
 
             // Notify the stream of the reader completion, which can trigger the stream disposal.
             _completedCallback();
@@ -58,7 +57,7 @@ internal class QuicPipeReader : PipeReader
             exception.QuicError == QuicError.StreamAborted &&
             exception.ApplicationErrorCode is not null)
         {
-            throw _errorCodeConverter.ToReadException((ulong)exception.ApplicationErrorCode);
+            throw new TruncatedDataException(exception);
         }
         catch (QuicException exception)
         {
@@ -74,13 +73,11 @@ internal class QuicPipeReader : PipeReader
 
     internal QuicPipeReader(
         QuicStream stream,
-        IMultiplexedStreamExceptionConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action completedCallback)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
         _completedCallback = completedCallback;
 
         _pipeReader = Create(
@@ -103,7 +100,7 @@ internal class QuicPipeReader : PipeReader
                 exception.QuicError == QuicError.StreamAborted &&
                 exception.ApplicationErrorCode is not null)
             {
-                throw _errorCodeConverter.ToReadException((ulong)exception.ApplicationErrorCode);
+                throw new TruncatedDataException(exception);
             }
             catch (QuicException exception)
             {

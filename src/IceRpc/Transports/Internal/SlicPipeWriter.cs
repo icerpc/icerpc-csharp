@@ -47,7 +47,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 }
                 else
                 {
-                    _stream.AbortWrite(exception);
+                    _stream.AbortWrite();
                 }
             }
 

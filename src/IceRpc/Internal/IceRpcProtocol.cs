@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -14,9 +13,6 @@ internal sealed class IceRpcProtocol : Protocol
 {
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
-
-    internal IMultiplexedStreamExceptionConverter MultiplexedStreamExceptionConverter { get; } =
-        new IceRpcMultiplexedStreamExceptionConverter();
 
     internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
@@ -81,33 +77,5 @@ internal sealed class IceRpcProtocol : Protocol
             hasFragment: false,
             byteValue: 2)
     {
-    }
-
-    private class IceRpcMultiplexedStreamExceptionConverter : IMultiplexedStreamExceptionConverter
-    {
-        public ulong FromInputCompleteException(Exception? exception) =>
-            exception switch
-            {
-                PayloadCompleteException payloadCompleteException => (ulong)payloadCompleteException.ErrorCode,
-                OperationCanceledException => (ulong)PayloadCompleteErrorCode.Canceled,
-                InvalidDataException => (ulong)PayloadCompleteErrorCode.InvalidData,
-                _ => (ulong)PayloadCompleteErrorCode.Done, // null and other exceptions are encoded as Done
-            };
-
-        public ulong FromOutputCompleteException(Exception exception) =>
-            exception switch
-            {
-                PayloadReadException payloadReadException => (ulong)payloadReadException.ErrorCode,
-                OperationCanceledException => (ulong)PayloadReadErrorCode.Canceled,
-                _ => (ulong)PayloadReadErrorCode.Failed
-            };
-
-        public PayloadCompleteException? ToFlushException(ulong errorCode)
-        {
-            var payloadCompleteErrorCode = (PayloadCompleteErrorCode)errorCode;
-            return payloadCompleteErrorCode == PayloadCompleteErrorCode.Done ? null : new(payloadCompleteErrorCode);
-        }
-
-        public PayloadReadException ToReadException(ulong errorCode) => new((PayloadReadErrorCode)errorCode);
     }
 }
