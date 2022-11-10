@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice;
@@ -68,7 +69,7 @@ public static class SliceEncoderExtensions
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The sequence of numeric values.</param>
     public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v)
-        where T : struct
+        where T : struct, INumber<T>
     {
         switch (v)
         {

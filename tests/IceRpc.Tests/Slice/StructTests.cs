@@ -44,27 +44,6 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_trait()
-    {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        encoder.EncodeString(MyStruct.SliceTypeId);
-        encoder.EncodeInt32(10);
-        encoder.EncodeInt32(20);
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(
-            buffer.WrittenMemory,
-            SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(MyStruct).Assembly));
-
-        MyStruct decoded = decoder.DecodeTrait<MyStruct>();
-
-        Assert.That(decoded.I, Is.EqualTo(10));
-        Assert.That(decoded.J, Is.EqualTo(20));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-    }
-
-    [Test]
     public void Decode_struct_with_optional_members(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)

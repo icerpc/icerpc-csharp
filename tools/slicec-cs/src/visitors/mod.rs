@@ -7,7 +7,6 @@ mod exception_visitor;
 mod module_visitor;
 mod proxy_visitor;
 mod struct_visitor;
-mod trait_visitor;
 
 pub use class_visitor::ClassVisitor;
 pub use dispatch_visitor::DispatchVisitor;
@@ -16,4 +15,3 @@ pub use exception_visitor::ExceptionVisitor;
 pub use module_visitor::ModuleVisitor;
 pub use proxy_visitor::ProxyVisitor;
 pub use struct_visitor::StructVisitor;
-pub use trait_visitor::TraitVisitor;

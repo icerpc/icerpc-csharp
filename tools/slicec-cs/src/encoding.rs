@@ -121,11 +121,6 @@ fn encode_type(
                     param = param,
                     encoder_param = encoder_param
                 ),
-                TypeRefs::Trait(_) => format!(
-                    "{param}.EncodeTrait(ref {encoder_param});",
-                    param = param,
-                    encoder_param = encoder_param
-                ),
                 TypeRefs::CustomType(custom_type_ref) => {
                     format!(
                         "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
@@ -501,13 +496,6 @@ pub fn encode_action(
                 "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
                 value_type = value_type,
                 value = value
-            )
-        }
-        TypeRefs::Trait(_) => {
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => value.EncodeTrait(ref encoder)",
-                value_type = value_type,
             )
         }
         TypeRefs::CustomType(custom_type_ref) => {
