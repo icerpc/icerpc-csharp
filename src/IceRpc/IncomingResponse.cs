@@ -68,13 +68,13 @@ public sealed class IncomingResponse : IncomingFrame
     }
 
     /// <summary>Completes the payload and releases the fields memory.</summary>
-    /// <remarks>Complete is internal because application code (including the Slice engine) must complete the
-    /// outgoing request that owns this incoming response or create a different incoming response that completes the
+    /// <remarks>Dispose is internal because application code (including the Slice engine) must dispose the
+    /// outgoing request that owns this incoming response or create a different incoming response that disposes the
     /// previous response held by this outgoing request.</remarks>
-    internal void Complete(Exception? exception = null)
+    internal void Dispose()
     {
-        Payload.Complete(exception);
-        _fieldsPipeReader?.Complete(exception);
+        Payload.Complete();
+        _fieldsPipeReader?.Complete();
         Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
     }
 }
