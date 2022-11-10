@@ -566,17 +566,8 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        public async Task RefuseTransportConnectionAsync(CancellationToken cancel)
-        {
-            try
-            {
-                await _decoratee.RefuseTransportConnectionAsync(cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                // TODO: XXXX
-            }
-        }
+        public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
+            _decoratee.RefuseTransportConnectionAsync(cancel).ConfigureAwait(false);
 
         internal LogConnectionConnectorDecorator(
             IConnectionConnector decoratee,
