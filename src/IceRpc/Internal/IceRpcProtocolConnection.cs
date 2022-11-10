@@ -409,7 +409,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         PipeReader? streamInput = stream.IsBidirectional ? stream.Input : null;
         try
         {
-            // Keep track of the invocation cancellation token source for the shutdown logic.
             lock (_mutex)
             {
                 if (_isReadOnly)
@@ -427,6 +426,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         DisableIdleCheck();
                     }
+
+                    // Keep track of the invocation cancellation token source for the shutdown logic.
                     _pendingInvocationCts.Add(stream, invocationCts);
 
                     _ = UnregisterOnInputAndOutputClosedAsync(stream, invocationCts);
@@ -443,14 +444,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             throw;
         }
 
-        bool sent = false;
         try
         {
-            // SendPayloadAsync takes care of the completion of payload, payload completion and stream output, whether
-            // it succeeds or fails.
             await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCts.Token)
                 .ConfigureAwait(false);
-            sent = true;
 
             if (request.IsOneway)
             {
@@ -496,11 +493,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (OperationCanceledException)
         {
-            if (sent)
-            {
-                streamInput?.Complete(); // we were waiting for the response and got canceled
-            }
-
             if (_dispatchesAndInvocationsCts.IsCancellationRequested)
             {
                 throw new ConnectionException(ConnectionErrorCode.OperationAborted);
@@ -726,9 +718,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         return (fields, pipeReader);
     }
 
-    /// <summary>Sends the payload and payload continuation of an outgoing frame. SendPayloadAsync always completes the
-    /// outgoing frame payload. It completes the output only if there's no payload continuation. Otherwise, it starts a
-    /// background task that is responsible for completing the payload continuation and the output.</summary>
+    /// <summary>Sends the payload and payload continuation of an outgoing frame.</summary>
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         PipeWriter streamOutput,
@@ -736,25 +726,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         CancellationToken cancellationToken)
     {
         PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(streamOutput);
-        PipeReader? payloadContinuation = outgoingFrame.PayloadContinuation;
 
         try
         {
             FlushResult flushResult = await CopyReaderToWriterAsync(
                 outgoingFrame.Payload,
                 payloadWriter,
-                endStream: payloadContinuation is null,
+                endStream: outgoingFrame.PayloadContinuation is null,
                 cancellationToken).ConfigureAwait(false);
 
             if (flushResult.IsCompleted)
             {
                 // The remote reader gracefully completed the stream input pipe. We're done.
                 payloadWriter.Complete();
-
-                // We complete the payload and payload continuation immediately. For example, we've just sent an
-                // outgoing request and we're waiting for the exception to come back.
-                outgoingFrame.Payload.Complete();
-                outgoingFrame.PayloadContinuation?.Complete();
                 return;
             }
             else if (flushResult.IsCanceled)
@@ -766,21 +750,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch
         {
             payloadWriter.Complete(_truncatedDataException);
-            outgoingFrame.PayloadContinuation?.Complete();
             throw;
         }
-        finally
-        {
-            outgoingFrame.Payload.Complete();
-        }
 
-        if (payloadContinuation is null)
+        outgoingFrame.Payload.Complete();
+
+        if (outgoingFrame.PayloadContinuation is null)
         {
             payloadWriter.Complete();
         }
         else
         {
             // Send payloadContinuation in the background.
+            PipeReader payloadContinuation = outgoingFrame.PayloadContinuation;
             outgoingFrame.PayloadContinuation = null; // we're now responsible for payloadContinuation
 
             _ = Task.Run(
@@ -1059,8 +1041,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw;
             }
 
-            // SendPayloadAsync takes care of the completion of the response payload, response payload continuation
-            // and stream output.
             await SendPayloadAsync(response, streamOutput, stream.OutputClosed, cancellationToken)
                 .ConfigureAwait(false);
 
