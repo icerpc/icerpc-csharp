@@ -16,7 +16,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     // The exception we give to stream.Output.Complete upon failure. While any exception will do, the call to ReadAsync
     // on the remote stream.Input always throw a TruncatedDataException.
-    private static readonly TruncatedDataException _truncatedDataException = new();
+    private static readonly Exception _outputFailure = new();
 
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
@@ -279,7 +279,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             stream.Input.Complete();
                             if (stream.IsBidirectional)
                             {
-                                stream.Output.Complete(_truncatedDataException);
+                                stream.Output.Complete(_outputFailure);
                             }
                             return;
                         }
@@ -436,7 +436,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            stream.Output.Complete(_truncatedDataException);
+            stream.Output.Complete(_outputFailure);
             streamInput?.Complete();
             throw;
         }
@@ -449,7 +449,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch
             {
-                stream.Output.Complete(_truncatedDataException);
+                stream.Output.Complete(_outputFailure);
                 throw;
             }
 
@@ -755,7 +755,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            streamOutput.Complete(_truncatedDataException);
+            streamOutput.Complete(_outputFailure);
             throw;
         }
 
@@ -791,7 +791,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch
                     {
-                        streamOutput.Complete(_truncatedDataException);
+                        streamOutput.Complete(_outputFailure);
                     }
                     finally
                     {
@@ -834,7 +834,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // The application (or an interceptor/middleware) called CancelPendingRead on reader.
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
-                        writer.Complete(_truncatedDataException);
+                        writer.Complete(_outputFailure); // we didn't copy everything
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
                     }
                     else
@@ -926,7 +926,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             // We always need to complete streamOutput with an error when an exception is thrown. For example, we
             // received an invalid request header that we could not decode.
-            streamOutput?.Complete(_truncatedDataException);
+            streamOutput?.Complete(_outputFailure);
             streamInput?.Complete();
             throw;
         }
