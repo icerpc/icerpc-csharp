@@ -11,7 +11,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Nullable>enable</Nullable>
         <TargetFramework>net7.0</TargetFramework>
-        <LangVersion>10.0</LangVersion>
+        <LangVersion>11.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
         <ImplicitUsings>true</ImplicitUsings>
