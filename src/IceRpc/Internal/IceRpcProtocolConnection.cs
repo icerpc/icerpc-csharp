@@ -417,7 +417,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     // already closed.
                     Debug.Assert(ConnectionClosedException is not null);
                     invocationCts.Dispose();
-                    stream.Output.Complete(_truncatedDataException);
                     throw ConnectionClosedException;
                 }
                 else
@@ -446,6 +445,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         try
         {
+            // Takes ownership of stream.Output
             await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCts.Token)
                 .ConfigureAwait(false);
 
@@ -718,27 +718,30 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         return (fields, pipeReader);
     }
 
-    /// <summary>Sends the payload and payload continuation of an outgoing frame.</summary>
+    /// <summary>Sends the payload and payload continuation of an outgoing frame, and takes ownership of streamOutput.
+    /// </summary>
     private static async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         PipeWriter streamOutput,
         Task streamOutputClosed,
         CancellationToken cancellationToken)
     {
-        PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(streamOutput);
-
         try
         {
+            streamOutput = outgoingFrame.GetPayloadWriter(streamOutput);
+
             FlushResult flushResult = await CopyReaderToWriterAsync(
                 outgoingFrame.Payload,
-                payloadWriter,
+                streamOutput,
                 endStream: outgoingFrame.PayloadContinuation is null,
                 cancellationToken).ConfigureAwait(false);
 
             if (flushResult.IsCompleted)
             {
-                // The remote reader gracefully completed the stream input pipe. We're done.
-                payloadWriter.Complete();
+                // The remote reader doesn't want more data, we're done.
+                streamOutput.Complete();
+                outgoingFrame.Payload.Complete();
+                outgoingFrame.PayloadContinuation?.Complete();
                 return;
             }
             else if (flushResult.IsCanceled)
@@ -749,15 +752,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            payloadWriter.Complete(_truncatedDataException);
+            streamOutput.Complete(_truncatedDataException);
             throw;
         }
 
-        outgoingFrame.Payload.Complete();
+        outgoingFrame.Payload.Complete(); // the payload was sent successfully
 
         if (outgoingFrame.PayloadContinuation is null)
         {
-            payloadWriter.Complete();
+            streamOutput.Complete();
         }
         else
         {
@@ -772,7 +775,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         FlushResult flushResult = await CopyReaderToWriterAsync(
                             payloadContinuation,
-                            payloadWriter,
+                            streamOutput,
                             endStream: true,
                             cancellationToken).ConfigureAwait(false);
 
@@ -781,11 +784,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             throw new InvalidOperationException(
                                 "a payload writer interceptor is not allowed to return a canceled flush result");
                         }
-                        payloadWriter.Complete();
+                        streamOutput.Complete();
                     }
                     catch
                     {
-                        payloadWriter.Complete(_truncatedDataException);
+                        streamOutput.Complete(_truncatedDataException);
                     }
                     finally
                     {
@@ -918,14 +921,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            fieldsPipeReader?.Complete();
-
             // We always need to complete streamOutput with an error when an exception is thrown. For example, we
             // received an invalid request header that we could not decode.
             streamOutput?.Complete(_truncatedDataException);
-
             streamInput?.Complete();
             throw;
+        }
+        finally
+        {
+            fieldsPipeReader?.Complete();
         }
 
         async Task PerformDispatchRequestAsync(IncomingRequest request)
@@ -963,8 +967,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException exception) when (cancellationToken == exception.CancellationToken)
             {
-                streamOutput?.Complete(_truncatedDataException);
-                return;
+                throw;
             }
             catch (Exception exception)
             {
@@ -1014,15 +1017,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     return pipe.Reader;
                 }
             }
-            finally
-            {
-                fieldsPipeReader?.Complete();
-                // The field values are now invalid - they point to potentially recycled and reused memory. We
-                // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
-                request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
-
-                request.Payload.Complete();
-            }
 
             if (request.IsOneway)
             {
@@ -1031,16 +1025,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             Debug.Assert(streamOutput is not null);
 
-            try
-            {
-                EncodeHeader();
-            }
-            catch
-            {
-                streamOutput.Complete(_truncatedDataException);
-                throw;
-            }
+            EncodeHeader();
 
+            // SendPayloadAsync takes ownership of streamOutput
             await SendPayloadAsync(response, streamOutput, stream.OutputClosed, cancellationToken)
                 .ConfigureAwait(false);
 
