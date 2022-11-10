@@ -432,12 +432,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _ = UnregisterOnInputAndOutputClosedAsync(stream, invocationCts);
                 }
             }
-
-            EncodeHeader(stream.Output);
         }
         catch
         {
-            // failed to send the request
             stream.Output.Complete(_truncatedDataException);
             streamInput?.Complete();
             throw;
@@ -445,7 +442,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         try
         {
-            // Takes ownership of stream.Output
+            try
+            {
+                EncodeHeader(stream.Output);
+            }
+            catch
+            {
+                stream.Output.Complete(_truncatedDataException);
+                throw;
+            }
+
+            // SendPayloadAsync takes ownership of stream.Output
             await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCts.Token)
                 .ConfigureAwait(false);
 
@@ -491,22 +498,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             streamInput = null; // response now owns the stream input
             return response;
         }
-        catch (OperationCanceledException)
+        catch when (
+            invocationCts.IsCancellationRequested &&
+            !_dispatchesAndInvocationsCts.IsCancellationRequested &&
+            !cancellationToken.IsCancellationRequested)
         {
-            if (_dispatchesAndInvocationsCts.IsCancellationRequested)
-            {
-                throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-            }
-            else if (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            else
-            {
-                // If the invocation isn't canceled by CancelDispatchesAndInvocations or the given cancellation token,
-                // it's canceled by ShutdownAsync because it wasn't dispatched by the peer.
-                throw ConnectionClosedException!;
-            }
+            // Canceled by shutdown
+            throw ConnectionClosedException!;
+        }
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
+        {
+            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
         }
         catch (TransportException exception)
         {
