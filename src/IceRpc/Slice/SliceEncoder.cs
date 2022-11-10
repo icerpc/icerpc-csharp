@@ -5,7 +5,6 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO.Pipelines;
 using System.Numerics;
 using System.Runtime.CompilerServices;
