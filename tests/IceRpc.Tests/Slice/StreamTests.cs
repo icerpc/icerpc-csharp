@@ -220,10 +220,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException" />
-    /// after the async enumerable decoding action throws <see cref="InvalidDataException" />.</summary>
+    /// <summary>Test that the payload of an incoming request is completed successfully after the async enumerable
+    /// decoding action throws <see cref="InvalidDataException" />.</summary>
     [Test]
-    public async Task Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    public async Task Decode_stream_of_variable_size_elements_containing_invalid_data_completes_payload()
     {
         // Arrange
         var pipe = new Pipe();
@@ -243,7 +243,7 @@ public class StreamTests
 
         // The call to ToAsyncEnumerable does not decode any element synchronously, so we must await Completed _after_
         // the iteration above.
-        Assert.That(() => payload.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await payload.Completed, Throws.Nothing);
         await pipe.Writer.CompleteAsync();
 
         static void EncodeSegment(PipeWriter writer)
@@ -254,10 +254,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that the payload of an incoming request is completed with <see cref="InvalidDataException" />
-    /// after  the async enumerable decoding action throws <see cref="InvalidDataException" />.</summary>
+    /// <summary>Test that the payload of an incoming request is completed successfully after the async enumerable
+    /// decoding action throws <see cref="InvalidDataException" />.</summary>
     [Test]
-    public async Task Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload_with_an_exception()
+    public async Task Decode_stream_of_fixed_size_elements_containing_invalid_data_completes_payload()
     {
         // Arrange
         var pipe = new Pipe();
@@ -275,7 +275,7 @@ public class StreamTests
 
         // Assert
         Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
-        Assert.That(() => payload.Completed, Throws.TypeOf<InvalidDataException>());
+        Assert.That(async () => await payload.Completed, Throws.Nothing);
         await pipe.Writer.CompleteAsync();
 
         static void EncodeData(PipeWriter writer)
