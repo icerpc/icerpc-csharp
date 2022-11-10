@@ -124,30 +124,45 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // This needs to be set before starting the accept requests task bellow.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        _controlStream = await _transportConnection.CreateStreamAsync(false, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _controlStream = await _transportConnection.CreateStreamAsync(
+                false,
+                cancellationToken).ConfigureAwait(false);
 
-        var settings = new IceRpcSettings(
-            _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
-                ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
-                new Dictionary<IceRpcSettingKey, ulong>
-                {
-                    [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
-                });
+            var settings = new IceRpcSettings(
+                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                    new Dictionary<IceRpcSettingKey, ulong>
+                    {
+                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                    });
 
-        await SendControlFrameAsync(
-            IceRpcControlFrameType.Settings,
-            settings.Encode,
-            cancellationToken).ConfigureAwait(false);
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.Settings,
+                settings.Encode,
+                cancellationToken).ConfigureAwait(false);
 
-        // Wait for the remote control stream to be accepted and read the protocol Settings frame
-        _remoteControlStream = await _transportConnection.AcceptStreamAsync(
-            cancellationToken).ConfigureAwait(false);
+            // Wait for the remote control stream to be accepted and read the protocol Settings frame
+            _remoteControlStream = await _transportConnection.AcceptStreamAsync(
+                cancellationToken).ConfigureAwait(false);
 
-        await ReceiveControlFrameHeaderAsync(
-            IceRpcControlFrameType.Settings,
-            cancellationToken).ConfigureAwait(false);
+            await ReceiveControlFrameHeaderAsync(
+                IceRpcControlFrameType.Settings,
+                cancellationToken).ConfigureAwait(false);
 
-        await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
+            await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
+        }
+        catch (TransportException exception) when (
+            exception.ApplicationErrorCode is ulong errorCode &&
+            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
+        {
+            ConnectionClosedException = new(
+                ConnectionErrorCode.ClosedByPeer,
+                "the connection establishment was refused");
+
+            throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
+        }
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.
         _readGoAwayTask = Task.Run(

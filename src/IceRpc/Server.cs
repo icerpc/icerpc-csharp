@@ -567,7 +567,7 @@ public sealed class Server : IAsyncDisposable
         }
 
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
-            _decoratee.RefuseTransportConnectionAsync(cancel).ConfigureAwait(false);
+            _decoratee.RefuseTransportConnectionAsync(cancel);
 
         internal LogConnectionConnectorDecorator(
             IConnectionConnector decoratee,
@@ -896,7 +896,7 @@ public sealed class Server : IAsyncDisposable
         public ValueTask DisposeAsync() => _transportConnection?.DisposeAsync() ?? new();
 
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
-            _transportConnection.CloseAsync((ulong)ConnectionErrorCode.ConnectRefused, cancel);
+            _transportConnection.CloseAsync((ulong)IceRpcConnectionErrorCode.Refused, cancel);
 
         internal IceRpcConnectionConnector(IMultiplexedConnection transportConnection, ConnectionOptions options)
         {

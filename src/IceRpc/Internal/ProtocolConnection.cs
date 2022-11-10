@@ -117,16 +117,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 {
                     throw;
                 }
-                catch (TransportException exception) when (
-                    exception.ApplicationErrorCode is ulong errorCode &&
-                    errorCode == (ulong)ConnectionErrorCode.ConnectRefused)
-                {
-                    ConnectionClosedException = new(
-                        ConnectionErrorCode.ClosedByPeer,
-                        "the connection establishment was refused");
-
-                    throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
-                }
                 catch (TransportException exception)
                 {
                     ConnectionClosedException = new(
