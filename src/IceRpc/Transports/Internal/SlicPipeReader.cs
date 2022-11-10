@@ -232,7 +232,7 @@ internal class SlicPipeReader : PipeReader
         {
             // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing the
             // pipe reader.
-            throw new InvalidOperationException($"reading is not allowed once the reader is completed");
+            throw new InvalidOperationException("reading is not allowed once the reader is completed");
         }
     }
 
