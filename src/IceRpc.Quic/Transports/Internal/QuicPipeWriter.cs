@@ -144,9 +144,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 return new FlushResult(isCanceled: false, isCompleted: endStream);
             }
         }
-        catch (QuicException exception) when (
-            exception.QuicError == QuicError.StreamAborted &&
-            exception.ApplicationErrorCode is not null)
+        catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
         {
             return new FlushResult(isCanceled: false, isCompleted: true);
         }
@@ -214,9 +212,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             {
                 await _stream.WritesClosed.ConfigureAwait(false);
             }
-            catch (QuicException exception) when (
-                exception.QuicError == QuicError.StreamAborted &&
-                exception.ApplicationErrorCode is not null)
+            catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
             {
                 // successful completion
             }

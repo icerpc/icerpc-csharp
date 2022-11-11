@@ -14,10 +14,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
-    // The exception we give to stream.Output.Complete upon failure. While any exception will do, the call to ReadAsync
-    // on the remote stream.Input always throw a TruncatedDataException.
-    private static readonly Exception _outputFailure = new();
-
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -279,7 +275,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             stream.Input.Complete();
                             if (stream.IsBidirectional)
                             {
-                                stream.Output.Complete(_outputFailure);
+                                stream.Output.CompleteOutput(success: false);
                             }
                             return;
                         }
@@ -436,7 +432,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            stream.Output.Complete(_outputFailure);
+            stream.Output.CompleteOutput(success: false);
             streamInput?.Complete();
             throw;
         }
@@ -449,7 +445,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
             catch
             {
-                stream.Output.Complete(_outputFailure);
+                stream.Output.CompleteOutput(success: false);
                 throw;
             }
 
@@ -638,7 +634,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // abortive closure and from our point of view, it's ok for the remote peer to close the transport
                 // connection. We don't close the transport connection immediately as this would kill the streams in the
                 // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
-                _controlStream!.Output.Complete();
+                _controlStream!.Output.CompleteOutput(success: true);
             }
 
             // Wait for the peer notification that on its side all the streams are completed. It's important to wait for
@@ -742,7 +738,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (flushResult.IsCompleted)
             {
                 // The remote reader doesn't want more data, we're done.
-                streamOutput.Complete();
+                streamOutput.CompleteOutput(success: true);
                 outgoingFrame.Payload.Complete();
                 outgoingFrame.PayloadContinuation?.Complete();
                 return;
@@ -755,7 +751,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            streamOutput.Complete(_outputFailure);
+            streamOutput.CompleteOutput(success: false);
             throw;
         }
 
@@ -763,7 +759,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (outgoingFrame.PayloadContinuation is null)
         {
-            streamOutput.Complete();
+            streamOutput.CompleteOutput(success: true);
         }
         else
         {
@@ -787,11 +783,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             throw new InvalidOperationException(
                                 "a payload writer interceptor is not allowed to return a canceled flush result");
                         }
-                        streamOutput.Complete();
+                        streamOutput.CompleteOutput(success: true);
                     }
                     catch
                     {
-                        streamOutput.Complete(_outputFailure);
+                        streamOutput.CompleteOutput(success: false);
                     }
                     finally
                     {
@@ -834,7 +830,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // The application (or an interceptor/middleware) called CancelPendingRead on reader.
                         reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
 
-                        writer.Complete(_outputFailure); // we didn't copy everything
+                        writer.CompleteOutput(success: false); // we didn't copy everything
                         flushResult = new FlushResult(isCanceled: false, isCompleted: true);
                     }
                     else
@@ -926,7 +922,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             // We always need to complete streamOutput with an error when an exception is thrown. For example, we
             // received an invalid request header that we could not decode.
-            streamOutput?.Complete(_outputFailure);
+            streamOutput?.CompleteOutput(success: false);
             streamInput?.Complete();
             throw;
         }
