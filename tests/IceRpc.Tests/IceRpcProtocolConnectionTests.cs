@@ -375,7 +375,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -405,7 +405,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
