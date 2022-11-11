@@ -1035,8 +1035,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         Payload = CreateDispatchExceptionPayload(
                             request,
-                            new DispatchException("dispatch canceled", StatusCode.Canceled)),
-                        StatusCode = StatusCode.Canceled
+                            new DispatchException("dispatch canceled", StatusCode.UnhandledException)),
+                        StatusCode = StatusCode.UnhandledException
                     };
                 }
                 catch (Exception exception)

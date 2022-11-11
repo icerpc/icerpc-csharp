@@ -15,21 +15,12 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     public ServerAddress ServerAddress { get; }
 
     private protected QuicConnection? _connection;
-
-    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
 
     private protected QuicMultiplexedConnection(ServerAddress serverAddress, MultiplexedConnectionOptions options)
     {
-        if (options.PayloadErrorCodeConverter is null)
-        {
-            throw new ArgumentException($"{nameof(options.PayloadErrorCodeConverter)} is null", nameof(options));
-        }
-
         ServerAddress = serverAddress;
-
-        _errorCodeConverter = options.PayloadErrorCodeConverter;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
     }
@@ -44,7 +35,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         try
         {
             QuicStream stream = await _connection.AcceptInboundStreamAsync(cancellationToken).ConfigureAwait(false);
-            return new QuicMultiplexedStream(stream, isRemote: true, _errorCodeConverter, _pool, _minSegmentSize);
+            return new QuicMultiplexedStream(stream, isRemote: true, _pool, _minSegmentSize);
         }
         catch (QuicException exception)
         {
@@ -129,7 +120,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         return new QuicMultiplexedStream(
             stream,
             isRemote: false,
-            _errorCodeConverter,
             _pool,
             _minSegmentSize);
     }

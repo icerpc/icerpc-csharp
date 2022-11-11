@@ -29,12 +29,10 @@ public static class AsyncEnumerableExtensions
             encoding,
             encodeOptions);
 
-#pragma warning disable CA1001 // Type owns disposable field(s) '_cts' but is not disposable
-    private class AsyncEnumerablePipeReader<T> : PipeReader
-#pragma warning restore CA1001
+    private class AsyncEnumerablePipeReader<T> : PipeReader, IDisposable
     {
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
-        private readonly CancellationTokenSource _cts = new(); // Disposed by Complete
+        private readonly CancellationTokenSource _cts = new();
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
         private readonly bool _useSegments;
@@ -50,16 +48,26 @@ public static class AsyncEnumerableExtensions
         public override void CancelPendingRead()
         {
             _pipe.Reader.CancelPendingRead();
-            _cts.Cancel();
+
+            try
+            {
+                _cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // ok, ignored
+            }
         }
 
         public override void Complete(Exception? exception = null)
         {
+            _pipe.Reader.Complete();
+            _pipe.Writer.Complete();
             _cts.Dispose();
-            _pipe.Reader.Complete(exception);
-            _pipe.Writer.Complete(exception);
             _ = _asyncEnumerator.DisposeAsync().AsTask();
         }
+
+        public void Dispose() => Complete();
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
@@ -90,7 +98,7 @@ public static class AsyncEnumerableExtensions
                 }
                 else
                 {
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                    _pipe.Writer.Complete();
                 }
             }
 

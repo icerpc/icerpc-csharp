@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -14,8 +13,6 @@ internal sealed class IceRpcProtocol : Protocol
 {
     /// <summary>Gets the IceRpc protocol singleton.</summary>
     internal static IceRpcProtocol Instance { get; } = new();
-
-    internal IPayloadErrorCodeConverter PayloadErrorCodeConverter { get; } = new IceRpcPayloadErrorCodeConverter();
 
     internal override async ValueTask<DispatchException> DecodeDispatchExceptionAsync(
         IncomingResponse response,
@@ -80,40 +77,5 @@ internal sealed class IceRpcProtocol : Protocol
             hasFragment: false,
             byteValue: 2)
     {
-    }
-
-    private class IceRpcPayloadErrorCodeConverter : IPayloadErrorCodeConverter
-    {
-        public PayloadException? FromErrorCode(ulong errorCode)
-        {
-            // For icerpc, the conversion from the error code transmitted over the multiplexed stream and
-            // PayloadErrorCode is a simple cast.
-            var payloadErrorCode = (PayloadErrorCode)errorCode;
-
-            return payloadErrorCode switch
-            {
-                PayloadErrorCode.ReadComplete => null,
-                _ => new PayloadException(payloadErrorCode)
-            };
-        }
-
-        public ulong ToErrorCode(Exception? exception) =>
-            exception switch
-            {
-                null => (ulong)PayloadErrorCode.ReadComplete,
-
-                OperationCanceledException => (ulong)PayloadErrorCode.Canceled,
-
-                ConnectionException connectionException =>
-                    connectionException.ErrorCode.IsClosedErrorCode() ?
-                        (ulong)PayloadErrorCode.ConnectionShutdown :
-                        (ulong)PayloadErrorCode.Unspecified,
-
-                InvalidDataException => (ulong)PayloadErrorCode.InvalidData,
-
-                PayloadException payloadException => (ulong)payloadException.ErrorCode,
-
-                _ => (ulong)PayloadErrorCode.Unspecified
-            };
     }
 }

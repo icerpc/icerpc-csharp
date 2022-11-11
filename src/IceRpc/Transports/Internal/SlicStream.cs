@@ -119,7 +119,7 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void AbortRead(Exception? exception)
+    internal void AbortRead()
     {
         if (!IsStarted)
         {
@@ -145,7 +145,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamStopSending,
-                    new StreamStopSendingBody(_connection.ErrorCodeConverter.ToErrorCode(exception)).Encode,
+                    new StreamStopSendingBody(applicationProtocolErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -162,7 +162,7 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void AbortWrite(Exception? exception)
+    internal void AbortWrite()
     {
         if (!IsStarted)
         {
@@ -188,7 +188,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamReset,
-                    new StreamResetBody(_connection.ErrorCodeConverter.ToErrorCode(exception)).Encode,
+                    new StreamResetBody(applicationProtocolErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -313,7 +313,7 @@ internal class SlicStream : IMultiplexedStream
         return ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
     }
 
-    internal void ReceivedResetFrame(ulong errorCode)
+    internal void ReceivedResetFrame()
     {
         if (!IsBidirectional && !IsRemote)
         {
@@ -322,14 +322,14 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic reset frame on local unidirectional stream");
         }
 
-        Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
+        var exception = new TruncatedDataException();
         if (TrySetReadsClosed(exception))
         {
             _inputPipeReader?.Abort(exception);
         }
     }
 
-    internal void ReceivedStopSendingFrame(ulong errorCode)
+    internal void ReceivedStopSendingFrame()
     {
         if (!IsBidirectional && IsRemote)
         {
@@ -338,10 +338,9 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic stop sending on remote unidirectional stream");
         }
 
-        Exception? exception = _connection.ErrorCodeConverter.FromErrorCode(errorCode);
-        if (TrySetWritesClosed(exception))
+        if (TrySetWritesClosed(exception: null))
         {
-            _outputPipeWriter?.Abort(exception);
+            _outputPipeWriter?.Abort(exception: null);
         }
     }
 

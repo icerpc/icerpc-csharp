@@ -15,7 +15,6 @@ internal class QuicPipeReader : PipeReader
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
@@ -40,8 +39,8 @@ internal class QuicPipeReader : PipeReader
             // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
             _pipeReader.Complete(exception);
 
-            // Tell the remote writer we're done reading, with the error code matching the exception.
-            _stream.Abort(QuicAbortDirection.Read, (long)_errorCodeConverter.ToErrorCode(exception));
+            // Tell the remote writer we're done reading. The error code is irrelevant.
+            _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
 
             // Notify the stream of the reader completion, which can trigger the stream disposal.
             _completedCallback();
@@ -54,12 +53,9 @@ internal class QuicPipeReader : PipeReader
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (QuicException exception) when (
-            exception.QuicError == QuicError.StreamAborted &&
-            exception.ApplicationErrorCode is not null)
+        catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
         {
-            // TODO: the "!" is not quite correct. We could receive a incorrect "no error" from the remote peer.
-            throw _errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode)!;
+            throw new TruncatedDataException(exception);
         }
         catch (QuicException exception)
         {
@@ -75,13 +71,11 @@ internal class QuicPipeReader : PipeReader
 
     internal QuicPipeReader(
         QuicStream stream,
-        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action completedCallback)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
         _completedCallback = completedCallback;
 
         _pipeReader = Create(
@@ -100,19 +94,9 @@ internal class QuicPipeReader : PipeReader
             {
                 // Ignore exception: this occurs when we call Complete(null) on this pipe reader.
             }
-            catch (QuicException exception) when (
-                exception.QuicError == QuicError.StreamAborted &&
-                exception.ApplicationErrorCode is not null)
+            catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
             {
-                if (_errorCodeConverter.FromErrorCode(
-                    (ulong)exception.ApplicationErrorCode) is Exception actualException)
-                {
-                    throw actualException;
-                }
-
-                // Unexpected stream aborted with ApplicationErrorCode = "no error" received from remote peer (the
-                // peer should send endStream/completeWrites instead).
-                throw exception.ToTransportException();
+                throw new TruncatedDataException(exception);
             }
             catch (QuicException exception)
             {

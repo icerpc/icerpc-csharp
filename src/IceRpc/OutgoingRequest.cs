@@ -34,7 +34,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         get => _response;
         set
         {
-            _response?.Complete();
+            _response?.Dispose();
             _response = value;
         }
     }
@@ -56,6 +56,6 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     {
         Payload.Complete();
         PayloadContinuation?.Complete();
-        _response?.Complete();
+        _response?.Dispose();
     }
 }

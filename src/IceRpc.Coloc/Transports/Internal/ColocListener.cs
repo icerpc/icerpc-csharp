@@ -33,8 +33,8 @@ internal class ColocListener : IListener<IDuplexConnection>
                 if (clientPipeReader is null)
                 {
                     // The client connection establishment was canceled.
-                    await serverPipe.Reader.CompleteAsync().ConfigureAwait(false);
-                    await serverPipe.Writer.CompleteAsync().ConfigureAwait(false);
+                    serverPipe.Reader.Complete();
+                    serverPipe.Writer.Complete();
                 }
                 else
                 {
