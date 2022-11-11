@@ -21,7 +21,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
-        await sut.CompleteAsync();
+        sut.Complete();
 
         // Act
         sut.Reset();
@@ -64,13 +64,13 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(3), readResult.Buffer.GetPosition(4));
-        await sut.CompleteAsync();
+        sut.Complete();
         sut.Reset();
 
         // Act
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(1), readResult.Buffer.GetPosition(2));
-        await sut.CompleteAsync();
+        sut.Complete();
 
         Assert.That(sut.IsResettable, Is.True);
         Assert.That(mock.CompleteCalled, Is.False);
@@ -95,7 +95,7 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         // Act
         ReadResult slicedResult = await sut.ReadAsync();
-        await sut.CompleteAsync();
+        sut.Complete();
 
         Assert.That(slicedResult.Buffer.Length, Is.EqualTo(2));
         Assert.That(slicedResult.Buffer.FirstSpan[0], Is.EqualTo(4));
@@ -123,7 +123,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         // Act
         ReadResult slicedResult = await sut.ReadAsync();
         sut.AdvanceTo(slicedResult.Buffer.GetPosition(2)); // 2 + 2 >= 3
-        await sut.CompleteAsync();
+        sut.Complete();
 
         Assert.That(slicedResult.Buffer.Length, Is.EqualTo(3));
         Assert.That(slicedResult.Buffer.FirstSpan[0], Is.EqualTo(3));
@@ -148,7 +148,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         // Act
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
-        await sut.CompleteAsync();
+        sut.Complete();
 
         Assert.That(sut.IsResettable, Is.False);
         Assert.That(mock.CompleteCalled, Is.True);
@@ -173,7 +173,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         // Act
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
-        await sut.CompleteAsync();
+        sut.Complete();
 
         Assert.That(mock.CompleteCalled, Is.True);
         Assert.That(mock.CompleteException, Is.Null);

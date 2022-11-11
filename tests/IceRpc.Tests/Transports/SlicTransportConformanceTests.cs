@@ -35,8 +35,6 @@ public class SlicTransportConformanceTests : MultiplexedTransportConformanceTest
 
         services.AddOptions<SlicTransportOptions>("client");
         services.AddOptions<SlicTransportOptions>("server");
-        services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
 
         return services;
     }

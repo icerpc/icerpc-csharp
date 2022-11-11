@@ -13,7 +13,7 @@ public sealed class DeadlineMiddlewareTests
     /// <summary>Verifies that the dispatch throws DispatchException when the deadline expires.</summary>
     [Test]
     [NonParallelizable]
-    public async Task Dispatch_fails_after_the_deadline_expires()
+    public void Dispatch_fails_after_the_deadline_expires()
     {
         // Arrange
         CancellationToken? token = null;
@@ -53,7 +53,7 @@ public sealed class DeadlineMiddlewareTests
         Assert.That(token.Value.IsCancellationRequested, Is.True);
 
         // Cleanup
-        await pipeReader.CompleteAsync();
+        pipeReader.Complete();
     }
 
     /// <summary>Verifies that the deadline decoded by the middleware has the expected value.</summary>
@@ -89,7 +89,7 @@ public sealed class DeadlineMiddlewareTests
         Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(1));
 
         // Cleanup
-        await pipeReader.CompleteAsync();
+        pipeReader.Complete();
     }
 
     private static PipeReader WriteDeadline(DateTime deadline)

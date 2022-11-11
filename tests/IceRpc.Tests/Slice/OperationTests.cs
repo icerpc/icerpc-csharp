@@ -92,7 +92,7 @@ public class OperationTests
         // Act
         var invokeTask = proxy.OpWithByteStreamArgumentAndReturnAsync(pipe.Reader);
         var flushResult = await pipe.Writer.WriteAsync(data);
-        await pipe.Writer.CompleteAsync();
+        pipe.Writer.Complete();
         var reader = await invokeTask;
         var readResult = await reader.ReadAtLeastAsync(data.Length);
 
@@ -100,7 +100,7 @@ public class OperationTests
         Assert.That(readResult.Buffer.Length, Is.EqualTo(data.Length));
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
         reader.AdvanceTo(readResult.Buffer.End);
-        await reader.CompleteAsync();
+        reader.Complete();
     }
 
     [Test]

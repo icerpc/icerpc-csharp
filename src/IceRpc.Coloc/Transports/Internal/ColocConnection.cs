@@ -82,8 +82,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                await _reader.CompleteAsync(new TransportException(
-                    TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
+                _reader.Complete(new TransportException(TransportErrorCode.ConnectionDisposed));
             }
             _state.ClearFlag(State.Reading);
         }
@@ -103,7 +102,7 @@ internal abstract class ColocConnection : IDuplexConnection
         }
     }
 
-    public async Task ShutdownAsync(CancellationToken cancellationToken)
+    public Task ShutdownAsync(CancellationToken cancellationToken)
     {
         if (_state.HasFlag(State.Disposed))
         {
@@ -114,7 +113,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.TrySetFlag(State.Writing))
             {
-                await _writer.CompleteAsync().ConfigureAwait(false);
+                _writer.Complete();
                 _state.ClearFlag(State.Writing);
             }
             else
@@ -122,6 +121,7 @@ internal abstract class ColocConnection : IDuplexConnection
                 // WriteAsync will take care of completing the writer once it's done writing.
             }
         }
+        return Task.CompletedTask;
     }
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
@@ -166,12 +166,11 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                await _writer.CompleteAsync(new TransportException(
-                    TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
+                _writer.Complete(new TransportException(TransportErrorCode.ConnectionDisposed));
             }
             else if (_state.HasFlag(State.ShuttingDown))
             {
-                await _writer.CompleteAsync().ConfigureAwait(false);
+                _writer.Complete();
             }
             _state.ClearFlag(State.Writing);
         }

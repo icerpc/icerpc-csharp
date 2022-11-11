@@ -54,7 +54,7 @@ public class InvokeAsyncTests
         };
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var requestPayloadStream = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var requestPayloadContinuation = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
         // Act/Assert
         Assert.That(
@@ -62,12 +62,12 @@ public class InvokeAsyncTests
                 "",
                 SliceEncoding.Slice2,
                 payload: requestPayload,
-                payloadContinuation: requestPayloadStream,
+                payloadContinuation: requestPayloadContinuation,
                 defaultActivator: null,
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
 
         Assert.That(requestPayload.Completed.IsCompletedSuccessfully, Is.True);
-        Assert.That(requestPayloadStream.Completed.IsCompletedSuccessfully, Is.True);
+        Assert.That(requestPayloadContinuation.Completed.IsCompletedSuccessfully, Is.True);
     }
 }

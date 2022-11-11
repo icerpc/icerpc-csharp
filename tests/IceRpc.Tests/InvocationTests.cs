@@ -105,7 +105,7 @@ public class InvocationTests
         // Assert
         var response = await invokeTask;
         DispatchException dispatchException = await response.DecodeDispatchExceptionAsync(request);
-        Assert.That(dispatchException.StatusCode, Is.EqualTo(StatusCode.PayloadError));
-        await pipe.Writer.CompleteAsync();
+        Assert.That(dispatchException.StatusCode, Is.EqualTo(StatusCode.TruncatedPayload));
+        pipe.Writer.Complete();
     }
 }

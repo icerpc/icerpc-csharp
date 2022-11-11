@@ -29,16 +29,6 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    public static IEnumerable<TestCaseData> PayloadStreamReadExceptions
-    {
-        get
-        {
-            yield return new TestCaseData(new PayloadException((PayloadErrorCode)99), 99ul);
-            yield return new TestCaseData(new InvalidDataException("invalid data"), PayloadErrorCode.InvalidData);
-            yield return new TestCaseData(new OperationCanceledException(), PayloadErrorCode.Canceled);
-        }
-    }
-
     /// <summary>This test ensures that disposing the connection correctly aborts the incoming request underlying
     /// stream.</summary>
     [Test]
@@ -124,10 +114,9 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="PayloadException" /> with the <see cref="PayloadErrorCode.ConnectionShutdown" />
-    /// error code.</summary>
+    /// cref="TruncatedDataException" />.</summary>
     [Test]
-    public async Task Disposing_server_connection_triggers_stream_exception_with_ConnectionShutdown(
+    public async Task Disposing_server_connection_triggers_payload_read_with_truncated_data(
         [Values(false, true)] bool shutdown)
     {
         // Arrange
@@ -150,8 +139,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        var exception = Assert.ThrowsAsync<PayloadException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadErrorCode.ConnectionShutdown));
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     [Test]
@@ -179,7 +167,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invocation_cancellation_triggers_incoming_request_payload_read_exception()
+    public async Task Invocation_cancellation_triggers_incoming_request_truncated_data_exception()
     {
         // Arrange
         var dispatchTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -230,15 +218,12 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        var exception = Assert.ThrowsAsync<PayloadException>(async () => await dispatchCompleteTcs.Task);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(PayloadErrorCode.Canceled));
+        Assert.That(async () => await dispatchCompleteTcs.Task, Throws.InstanceOf<TruncatedDataException>());
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    [Test, TestCaseSource(nameof(PayloadStreamReadExceptions))]
-    public async Task Invocation_PayloadStream_failure_triggers_incoming_request_payload_stream_read_exception(
-        Exception exception,
-        ulong expectedErrorCode)
+    [Test]
+    public async Task Invocation_stream_failure_triggers_incoming_request_truncated_data_exception()
     {
         // Arrange
         var remotePayloadTcs = new TaskCompletionSource<PipeReader>();
@@ -266,29 +251,23 @@ public sealed class IceRpcProtocolConnectionTests
         PipeReader remotePayload = await remotePayloadTcs.Task;
 
         // Act
-        payloadContinuation.SetReadException(exception);
+        payloadContinuation.SetReadException(new OperationCanceledException()); // can be any exception
 
         // Assert
-        PayloadException? streamException = null;
-        try
-        {
-            // The failure to read the remote payload is timing dependent. ReadAsync might return with the 10 bytes
-            // initial payload and then fail or directly fail.
+        Assert.That(
+            async () =>
+            {
+                // The failure to read the remote payload is timing dependent. ReadAsync might return with the 10 bytes
+                // initial payload and then fail or directly fail.
 
-            ReadResult result = await remotePayload.ReadAsync();
-            Assert.That(result.IsCompleted, Is.False);
-            Assert.That(result.Buffer, Has.Length.EqualTo(10));
+                ReadResult result = await remotePayload.ReadAsync();
+                Assert.That(result.IsCompleted, Is.False);
+                Assert.That(result.Buffer, Has.Length.EqualTo(10));
 
-            remotePayload.AdvanceTo(result.Buffer.End);
-            await remotePayload.ReadAsync();
-        }
-        catch (PayloadException ex)
-        {
-            streamException = ex;
-        }
-
-        Assert.That(streamException, Is.Not.Null);
-        Assert.That(streamException!.ErrorCode, Is.EqualTo((PayloadErrorCode)expectedErrorCode));
+                remotePayload.AdvanceTo(result.Buffer.End);
+                await remotePayload.ReadAsync();
+            },
+            Throws.InstanceOf<TruncatedDataException>());
     }
 
     [Test]
@@ -402,13 +381,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
     /// PipeReader.</summary>
     [Test]
-    public async Task PayloadStream_of_outgoing_request_completed_when_not_read_by_dispatcher(
+    public async Task PayloadContinuation_of_outgoing_request_completed_when_not_read_by_dispatcher(
         [Values] bool isOneway)
     {
         // Arrange
@@ -420,27 +399,28 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[10]);
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
-            PayloadContinuation = payloadStreamDecorator
+            PayloadContinuation = payloadContinuationDecorator
         };
 
         // Act
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
+        Assert.That(async () => await payloadContinuationDecorator.Completed, Is.Null);
 
         // Cleanup
-        await pipe.Writer.CompleteAsync();
+        pipe.Writer.Complete();
         await responseTask;
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
     [Test]
-    public async Task PayloadStream_of_outgoing_request_completed_on_end_stream([Values(true, false)] bool isOneway)
+    public async Task PayloadContinuation_of_outgoing_request_completed_on_end_stream(
+        [Values(false, true)] bool isOneway)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -449,11 +429,11 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
-            PayloadContinuation = payloadStreamDecorator
+            PayloadContinuation = payloadContinuationDecorator
         };
 
         // Act
@@ -461,7 +441,7 @@ public sealed class IceRpcProtocolConnectionTests
         await dispatcher.DispatchStart;
 
         // Assert
-        Assert.That(async () => await payloadStreamDecorator.Completed, Is.Null);
+        Assert.That(async () => await payloadContinuationDecorator.Completed, Is.Null);
         if (!isOneway)
         {
             Assert.That(invokeTask.IsCompleted, Is.False);
@@ -472,9 +452,10 @@ public sealed class IceRpcProtocolConnectionTests
         await invokeTask;
     }
 
-    /// <summary>Ensures that the request payload is completed if the payload continuation is invalid.</summary>
+    /// <summary>Ensures that the request payload continuation is completed if the payload continuation is invalid.
+    /// </summary>
     [Test]
-    public async Task PayloadStream_completed_on_invalid_request_payload([Values(true, false)] bool isOneway)
+    public async Task Payload_completed_on_invalid_request_payload_continuation([Values(true, false)] bool isOneway)
     {
         // Arrange
         await using var provider = new ServiceCollection()
@@ -483,25 +464,25 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
-            PayloadContinuation = payloadStreamDecorator
+            PayloadContinuation = payloadContinuationDecorator
         };
 
         // Act
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
 
         // Cleanup
         try
         {
             await responseTask;
         }
-        catch (PayloadException)
+        catch (TruncatedDataException)
         {
             // Depending on the timing, the payload stream send failure might abort the invocation before the response
             // is sent.
@@ -510,14 +491,14 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Ensures that the response payload continuation is completed on a valid response.</summary>
     [Test]
-    public async Task PayloadStream_completed_on_valid_response()
+    public async Task PayloadContinuation_completed_on_valid_response()
     {
         // Arrange
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
-                    PayloadContinuation = payloadStreamDecorator
+                    PayloadContinuation = payloadContinuationDecorator
                 }));
 
         await using var provider = new ServiceCollection()
@@ -532,22 +513,23 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.Null);
+        Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
 
         // Cleanup
         await responseTask;
     }
 
-    /// <summary>Ensures that the response payload is completed on an invalid response payload continuation.</summary>
+    /// <summary>Ensures that the response payload continuation is completed on an invalid response payload
+    /// continuation.</summary>
     [Test]
-    public async Task PayloadStream_completed_on_invalid_response_payload()
+    public async Task PayloadContinuation_completed_on_invalid_response_payload_continuation()
     {
         // Arrange
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
                 new(new OutgoingResponse(request)
                 {
-                    PayloadContinuation = payloadStreamDecorator
+                    PayloadContinuation = payloadContinuationDecorator
                 }));
 
         await using var provider = new ServiceCollection()
@@ -562,14 +544,14 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+        Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
 
         // Cleanup
         try
         {
             await responseTask;
         }
-        catch (PayloadException)
+        catch (TruncatedDataException)
         {
             // Depending on the timing, the payload stream send failure might abort the invocation before the response
             // is sent.
@@ -605,8 +587,8 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null); // actual exception does not matter
+        Assert.That(async () => await responseTask, Throws.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -643,8 +625,8 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null);
+        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     [Test]
@@ -705,21 +687,18 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Shutdown_of_non_connected_connection_sends_connection_refused()
     {
         // Arrange
-        var multiplexOptions = new MultiplexedConnectionOptions
-        {
-            PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
-        };
+        var multiplexedOptions = new MultiplexedConnectionOptions();
 
         IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
             new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-            multiplexOptions,
+            multiplexedOptions,
             null);
 
         await using IListener<IProtocolConnection> listener =
             new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
 
         IMultiplexedConnection clientTransport =
-            IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexOptions, null);
+            IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexedOptions, null);
 
         await using var clientConnection = new IceRpcProtocolConnection(
             clientTransport,

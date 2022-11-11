@@ -464,6 +464,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing the server connection cancels dispatches.</summary>
+    // TODO: split this test in ice and icerpc versions since the exception is different.
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_cancels_dispatches(Protocol protocol)
     {
@@ -490,10 +491,11 @@ public sealed class ProtocolConnectionTests
         try
         {
             IncomingResponse response = await responseTask;
-            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Canceled));
+            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
         }
-        catch (PayloadException)
+        catch (TruncatedDataException)
         {
+            // expected
         }
     }
 
@@ -714,7 +716,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -745,7 +747,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid request.</summary>

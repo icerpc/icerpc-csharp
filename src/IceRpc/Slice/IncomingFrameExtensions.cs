@@ -150,31 +150,29 @@ public static class IncomingFrameExtensions
             try
             {
                 readResult = await readFunc(payload, cancellationToken).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+                    throw new InvalidOperationException("unexpected call to CancelPendingRead");
+                }
+                if (readResult.Buffer.IsEmpty)
+                {
+                    Debug.Assert(readResult.IsCompleted);
+                    payload.Complete();
+                    yield break;
+                }
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
                 // Canceling the cancellation token is a normal way to complete an iteration.
-                await payload.CompleteAsync().ConfigureAwait(false);
+                payload.Complete();
                 yield break;
             }
             catch
             {
-                await payload.CompleteAsync().ConfigureAwait(false);
+                payload.Complete();
                 throw;
-            }
-
-            if (readResult.IsCanceled)
-            {
-                // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                Exception exception = new InvalidOperationException("unexpected call to CancelPendingRead");
-                await payload.CompleteAsync(exception).ConfigureAwait(false);
-                throw exception;
-            }
-            if (readResult.Buffer.IsEmpty)
-            {
-                Debug.Assert(readResult.IsCompleted);
-                await payload.CompleteAsync().ConfigureAwait(false);
-                yield break;
             }
 
             IEnumerable<T> items;
@@ -184,22 +182,22 @@ public static class IncomingFrameExtensions
                 items = decodeBufferFunc(readResult.Buffer);
                 payload.AdvanceTo(readResult.Buffer.End);
             }
-            catch (Exception exception)
+            catch
             {
-                await payload.CompleteAsync(exception).ConfigureAwait(false);
+                payload.Complete();
                 throw;
             }
 
             if (readResult.IsCompleted)
             {
-                await payload.CompleteAsync().ConfigureAwait(false);
+                payload.Complete();
             }
 
             foreach (T item in items)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    await payload.CompleteAsync().ConfigureAwait(false);
+                    payload.Complete();
                     yield break;
                 }
                 yield return item;
@@ -207,6 +205,7 @@ public static class IncomingFrameExtensions
 
             if (readResult.IsCompleted)
             {
+                // The corresponding payload.Complete is just before the foreach
                 yield break;
             }
         }

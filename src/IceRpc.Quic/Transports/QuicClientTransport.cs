@@ -60,20 +60,11 @@ public class QuicClientTransport : IMultiplexedClientTransport
             new IPEndPoint(ipAddress, serverAddress.Port) :
             new DnsEndPoint(serverAddress.Host, serverAddress.Port);
 
-        if (options.PayloadErrorCodeConverter is null)
-        {
-            throw new ArgumentException("options.PayloadErrorConverter is null", nameof(options));
-        }
-
-        // We use the "operation canceled" error code as default error code because that's the error code transmitted
-        // when an operation such as stream.ReadAsync or stream.WriteAsync is canceled.
-        // See https://github.com/dotnet/runtime/issues/72607.
         var quicClientOptions = new QuicClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            DefaultStreamErrorCode =
-                (long)options.PayloadErrorCodeConverter.ToErrorCode(new OperationCanceledException()),
             DefaultCloseErrorCode = 0,
+            DefaultStreamErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
             RemoteEndPoint = endpoint,

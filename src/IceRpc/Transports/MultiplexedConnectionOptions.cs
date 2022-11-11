@@ -25,10 +25,6 @@ public record class MultiplexedConnectionOptions
     /// <value>A pool of memory blocks used for buffer management.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
-    /// <summary>Gets or sets the <see cref="IPayloadErrorCodeConverter" />.</summary>
-    /// <value>The <see cref="IPayloadErrorCodeConverter" />.</value>
-    public IPayloadErrorCodeConverter? PayloadErrorCodeConverter { get; set; }
-
     internal const int DefaultMaxBidirectionalStreams = 100;
     internal const int DefaultMaxUnidirectionalStreams = 100;
 }

@@ -25,18 +25,11 @@ public class QuicTransportSslAuthenticationConformanceTests : MultiplexedTranspo
         }
     }
 
-    protected override IServiceCollection CreateServiceCollection()
-    {
-        var services = new ServiceCollection()
+    protected override IServiceCollection CreateServiceCollection() =>
+        new ServiceCollection()
             .AddMultiplexedTransportClientServerTest(new Uri("icerpc://127.0.0.1:0/"))
             .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(new TcpServerTransportOptions()))
             .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport())
             .AddSingleton<IMultiplexedServerTransport>(provider => new QuicServerTransport())
             .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport());
-
-        services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
-
-        return services;
-    }
 }
