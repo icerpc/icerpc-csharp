@@ -18,27 +18,6 @@ public class NoServerAddressException : Exception
     }
 }
 
-/// <summary>This exception reports that data (bytes) received are not in an expected format.</summary>
-public class InvalidDataException : Exception
-{
-    /// <summary>Constructs a new instance of the <see cref="InvalidDataException" /> class with a specified error
-    /// message.</summary>
-    /// <param name="message">The message that describes the error.</param>
-    public InvalidDataException(string message)
-        : base(message)
-    {
-    }
-
-    /// <summary>Constructs a new instance of the <see cref="InvalidDataException" /> class with a specified error
-    /// message and a reference to the inner exception that is the cause of this exception.</summary>
-    /// <param name="message">The message that describes the error.</param>
-    /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public InvalidDataException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
-}
-
 /// <summary>This exception reports an error in the ice or icerpc protocol, such as an attempt to send a request
 /// or response with a header size greater than the remote peer's max header size.</summary>
 public class ProtocolException : Exception

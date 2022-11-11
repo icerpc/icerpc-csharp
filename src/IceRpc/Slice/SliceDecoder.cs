@@ -25,6 +25,8 @@ public ref partial struct SliceDecoder
     /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
     public long Consumed => _reader.Consumed;
 
+    private const string EndOfBufferMessage = "attempting to decode past the end of the Slice decoder buffer";
+
     private static readonly IActivator _defaultActivator =
         ActivatorFactory.Instance.Get(typeof(SliceDecoder).Assembly);
 
@@ -146,17 +148,20 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a slice bool into a bool.</summary>
     /// <returns>The bool decoded by this decoder.</returns>
-    public bool DecodeBool() => _reader.TryRead(out byte value) ? value != 0 : throw new EndOfBufferException();
+    public bool DecodeBool() =>
+        _reader.TryRead(out byte value) ? value != 0 : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice float32 into a float.</summary>
     /// <returns>The float decoded by this decoder.</returns>
     public float DecodeFloat32() =>
-        SequenceMarshal.TryRead(ref _reader, out float value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out float value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice float64 into a double.</summary>
     /// <returns>The double decoded by this decoder.</returns>
     public double DecodeFloat64() =>
-        SequenceMarshal.TryRead(ref _reader, out double value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out double value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice int8 into an sbyte.</summary>
     /// <returns>The sbyte decoded by this decoder.</returns>
@@ -165,21 +170,25 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a Slice int16 into a short.</summary>
     /// <returns>The short decoded by this decoder.</returns>
     public short DecodeInt16() =>
-        SequenceMarshal.TryRead(ref _reader, out short value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out short value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice int32 into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
     public int DecodeInt32() =>
-        SequenceMarshal.TryRead(ref _reader, out int value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out int value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice int64 into a long.</summary>
     /// <returns>The long decoded by this decoder.</returns>
     public long DecodeInt64() =>
-        SequenceMarshal.TryRead(ref _reader, out long value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out long value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
     /// <returns>The size decoded by this decoder.</returns>
-    public int DecodeSize() => TryDecodeSize(out int value) ? value : throw new EndOfBufferException();
+    public int DecodeSize() =>
+        TryDecodeSize(out int value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice string into a string.</summary>
     /// <returns>The string decoded by this decoder.</returns>
@@ -216,7 +225,7 @@ public ref partial struct SliceDecoder
                 ReadOnlySequence<byte> bytes = _reader.UnreadSequence;
                 if (size > bytes.Length)
                 {
-                    throw new EndOfBufferException();
+                    throw new InvalidDataException(EndOfBufferMessage);
                 }
                 try
                 {
@@ -242,22 +251,26 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a Slice uint8 into a byte.</summary>
     /// <returns>The byte decoded by this decoder.</returns>
-    public byte DecodeUInt8() => _reader.TryRead(out byte value) ? value : throw new EndOfBufferException();
+    public byte DecodeUInt8() =>
+        _reader.TryRead(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice uint16 into a ushort.</summary>
     /// <returns>The ushort decoded by this decoder.</returns>
     public ushort DecodeUInt16() =>
-        SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out ushort value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice uint32 into a uint.</summary>
     /// <returns>The uint decoded by this decoder.</returns>
     public uint DecodeUInt32() =>
-        SequenceMarshal.TryRead(ref _reader, out uint value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out uint value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice uint64 into a ulong.</summary>
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeUInt64() =>
-        SequenceMarshal.TryRead(ref _reader, out ulong value) ? value : throw new EndOfBufferException();
+        SequenceMarshal.TryRead(ref _reader, out ulong value) ?
+            value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Decodes a Slice varint32 into an int.</summary>
     /// <returns>The int decoded by this decoder.</returns>
@@ -301,7 +314,7 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a Slice varuint62 into a ulong.</summary>
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeVarUInt62() =>
-        TryDecodeVarUInt62(out ulong value) ? value : throw new EndOfBufferException();
+        TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     // Decode methods for constructed types
 
@@ -403,7 +416,7 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            throw new EndOfBufferException();
+            throw new InvalidDataException(EndOfBufferMessage);
         }
     }
 
@@ -522,7 +535,7 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            throw new EndOfBufferException();
+            throw new InvalidDataException(EndOfBufferMessage);
         }
     }
 
@@ -1033,7 +1046,8 @@ public ref partial struct SliceDecoder
         }
     }
 
-    private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
+    private byte PeekByte() =>
+        _reader.TryPeek(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     /// <summary>Helper method to decode a service address encoded with Slice1.</summary>
     /// <param name="path">The decoded path.</param>
@@ -1084,8 +1098,8 @@ public ref partial struct SliceDecoder
             serverAddress = DecodeServerAddress(protocol);
             if (count >= 2)
             {
-                // A slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6 bytes
-                // for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
+                // A slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
+                // bytes for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
                 IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
 
                 var serverAddressArray = new ServerAddress[count - 1];
@@ -1157,15 +1171,6 @@ public ref partial struct SliceDecoder
             default:
                 throw new InvalidDataException(
                     $"cannot skip tagged parameter or data member with tag format '{format}'");
-        }
-    }
-
-    /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
-    private class EndOfBufferException : InvalidDataException
-    {
-        internal EndOfBufferException()
-            : base("attempting to decode past the end of the decoder buffer")
-        {
         }
     }
 }
