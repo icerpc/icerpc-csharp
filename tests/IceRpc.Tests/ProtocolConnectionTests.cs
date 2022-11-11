@@ -495,6 +495,7 @@ public sealed class ProtocolConnectionTests
         }
         catch (TruncatedDataException)
         {
+            // expected
         }
     }
 
