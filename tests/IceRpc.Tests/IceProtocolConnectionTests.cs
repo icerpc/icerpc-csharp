@@ -131,6 +131,73 @@ public sealed class IceProtocolConnectionTests
         await responseTask;
     }
 
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        DispatchException exception = Assert.ThrowsAsync<DispatchException>(
+            async () =>
+            {
+                var response = await responseTask;
+                var exception = await response.DecodeDispatchExceptionAsync(request, CancellationToken.None);
+                throw exception;
+            });
+        Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload_writer()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            var response = new OutgoingResponse(request)
+            {
+                Payload = payloadDecorator
+            };
+            response.Use(writer => InvalidPipeWriter.Instance);
+            return new(response);
+        });
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request, cts.Token);
+
+        // Assert
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        // If the response payload writer the ice connection cannot write any response, the request will be
+        // canceled by the timeout.
+        Assert.That(async () => await responseTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
     /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.
     /// </summary>
     [Test]

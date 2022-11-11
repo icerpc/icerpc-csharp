@@ -372,6 +372,63 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await invokeTask, Throws.Nothing);
     }
 
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        // Act
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload_writer()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            var response = new OutgoingResponse(request)
+            {
+                Payload = payloadDecorator
+            };
+            response.Use(writer => InvalidPipeWriter.Instance);
+            return new(response);
+        });
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        // Act
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await responseTask, Throws.InstanceOf<PayloadException>());
+    }
+
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
     [Test]
     public async Task Payload_completed_on_invalid_response_fields()
