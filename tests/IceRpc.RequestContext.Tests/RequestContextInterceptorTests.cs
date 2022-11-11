@@ -34,9 +34,7 @@ public sealed class RequestContextInterceptorTests
                    var pipe = new Pipe();
                    var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                    value.EncodeAction(ref encoder);
-#pragma warning disable CA1849 // Call async methods when in an async method
                    pipe.Writer.Complete();
-#pragma warning restore CA1849 // Call async methods when in an async method
 
                    if (pipe.Reader.TryRead(out ReadResult readResult))
                    {
