@@ -33,11 +33,6 @@ public record class ConnectionOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
     }
 
-    /// <summary>Gets or sets a value indicating whether the inner exception details should be included in dispatch
-    /// exceptions thrown by the connection.</summary>
-    /// <value>The default value is <see langword="false" />.</value>
-    public bool IncludeInnerExceptionDetails { get; set; }
-
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
     /// limit is reached, the connection stops reading new requests off its underlying transport connection.</summary>
     /// <value>The maximum number of requests that a connection can dispatch concurrently. 0 means no maximum. The
