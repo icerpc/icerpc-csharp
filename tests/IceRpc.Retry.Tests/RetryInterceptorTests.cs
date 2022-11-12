@@ -23,7 +23,6 @@ public sealed class RetryInterceptorTests
         get
         {
             yield return new OperationCanceledException();
-            yield return new NoServerAddressException();
         }
     }
 

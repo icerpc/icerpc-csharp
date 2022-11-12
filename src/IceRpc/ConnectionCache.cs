@@ -118,19 +118,27 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
+        ServerAddress mainServerAddress;
+
+        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
+            mainServerAddress = serverAddressFeature.ServerAddress ??
+                throw new ArgumentException(
+                    "the server address of the server address feature must be non-null",
+                    nameof(request));
+        }
+        else
+        {
+            mainServerAddress = request.ServiceAddress.ServerAddress ??
+                throw new ArgumentException(
+                    $"the server address of {nameof(request.ServiceAddress)} must be non-null",
+                    nameof(request));
+
             serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
             request.Features = request.Features.With(serverAddressFeature);
         }
 
-        if (serverAddressFeature.ServerAddress is null)
-        {
-            throw new NoServerAddressException(request.ServiceAddress);
-        }
-
         IProtocolConnection? connection = null;
-        ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
 
         if (_preferExistingConnection)
         {
