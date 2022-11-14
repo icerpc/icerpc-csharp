@@ -6,14 +6,14 @@ use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note, Warning, Wa
 use slice::grammar::*;
 use slice::visitor::Visitor;
 
-pub(crate) fn validate_cs_attributes(mut parsed_data: CompilationData) -> CompilationResult {
+pub(crate) fn validate_cs_attributes(mut compilation_data: CompilationData) -> CompilationResult {
     let mut visitor = CsValidator {
-        diagnostic_reporter: &mut parsed_data.diagnostic_reporter,
+        diagnostic_reporter: &mut compilation_data.diagnostic_reporter,
     };
-    for slice_file in parsed_data.files.values() {
+    for slice_file in compilation_data.files.values() {
         slice_file.visit_with(&mut visitor);
     }
-    parsed_data.into()
+    compilation_data.into()
 }
 
 /// CsValidator visits all the elements in a slice file to check for errors and warnings specific to

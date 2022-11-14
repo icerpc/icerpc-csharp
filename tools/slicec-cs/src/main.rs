@@ -34,22 +34,22 @@ use visitors::{
 use slice::code_block::CodeBlock;
 
 pub fn main() {
-    let parsed_data = match try_main() {
+    let compilation_data = match try_main() {
         Ok(data) => data,
         Err(data) => data,
     };
-    std::process::exit(parsed_data.into_exit_code());
+    std::process::exit(compilation_data.into_exit_code());
 }
 
 fn try_main() -> CompilationResult {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
-    let mut parsed_data = slice::parse_from_options(slice_options)
+    let mut compilation_data = slice::parse_from_options(slice_options)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)?;
 
     if !slice_options.validate {
-        for slice_file in parsed_data.files.values().filter(|file| file.is_source) {
+        for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
             let mut generated_code = GeneratedCode::new();
 
             generated_code.preamble.push(preamble(slice_file));
@@ -114,7 +114,7 @@ fn try_main() -> CompilationResult {
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
                     Err(err) => {
-                        parsed_data
+                        compilation_data
                             .diagnostic_reporter
                             .report_error(Error::new(ErrorKind::IO(err), None));
 
@@ -125,7 +125,7 @@ fn try_main() -> CompilationResult {
         }
     }
 
-    parsed_data.into()
+    compilation_data.into()
 }
 
 fn preamble(slice_file: &SliceFile) -> CodeBlock {
