@@ -96,33 +96,17 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize frame");
             }
 
-            ulong version;
-            InitializeBody? initializeBody;
-
-            switch (header.Value.FrameType)
+            if (header.Value.FrameType != FrameType.Initialize)
             {
-                case FrameType.Close:
-                    CloseBody closeBody = await ReadFrameAsync(
-                        header.Value.FrameSize,
-                        (ref SliceDecoder decoder) => new CloseBody(ref decoder),
-                        cancellationToken).ConfigureAwait(false);
-
-                    throw new TransportException(
-                        TransportErrorCode.ConnectionClosed,
-                        closeBody.ApplicationProtocolErrorCode);
-
-                case FrameType.Initialize:
-                    (version, initializeBody) = await ReadFrameAsync(
-                        header.Value.FrameSize,
-                        DecodeInitialize,
-                        cancellationToken).ConfigureAwait(false);
-                    break;
-
-                default:
-                    throw new TransportException(
-                        TransportErrorCode.InternalError,
-                        $"unexpected Slic frame '{header.Value.FrameType}'");
+                throw new TransportException(
+                    TransportErrorCode.InternalError,
+                    $"unexpected Slic frame '{header.Value.FrameType}'");
             }
+
+            (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
+                header.Value.FrameSize,
+                DecodeInitialize,
+                cancellationToken).ConfigureAwait(false);
 
             if (version != 1)
             {
@@ -192,16 +176,6 @@ internal class SlicConnection : IMultiplexedConnection
 
             switch (header.Value.FrameType)
             {
-                case FrameType.Close:
-                    CloseBody closeBody = await ReadFrameAsync(
-                        header.Value.FrameSize,
-                        (ref SliceDecoder decoder) => new CloseBody(ref decoder),
-                        cancellationToken).ConfigureAwait(false);
-
-                    throw new TransportException(
-                        TransportErrorCode.ConnectionClosed,
-                        closeBody.ApplicationProtocolErrorCode);
-
                 case FrameType.InitializeAck:
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
                         header.Value.FrameSize,
@@ -267,6 +241,8 @@ internal class SlicConnection : IMultiplexedConnection
                         Debug.Assert(_exception is not null);
                     }
 
+                    _duplexConnection.Dispose();
+
                     // Time for AcceptStreamAsync to return.
                     _acceptStreamQueue.TryComplete(_exception);
                 }
@@ -297,6 +273,10 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
+            else if (_readFramesTask is null)
+            {
+                throw new InvalidOperationException("ConnectAsync must be called first");
+            }
             else if (_exception is not null)
             {
                 if (_exception.ErrorCode == TransportErrorCode.ConnectionClosed)
@@ -317,10 +297,7 @@ internal class SlicConnection : IMultiplexedConnection
         await _closeTask.ConfigureAwait(false);
 
         // Wait for the termination of the read frames task. The task is null if ConnectAsync wasn't called.
-        if (_readFramesTask is not null)
-        {
-            await _readFramesTask.ConfigureAwait(false);
-        }
+        await _readFramesTask.ConfigureAwait(false);
 
         async Task PerformCloseAsync()
         {
@@ -328,14 +305,8 @@ internal class SlicConnection : IMultiplexedConnection
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
-            if (await CloseAsyncCore(exception).ConfigureAwait(false) && (_readFramesTask is not null || IsServer))
+            if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
-                if (_readFramesTask is null)
-                {
-                    // Complete the duplex server connection establishment if ConnectAsync was not called.
-                    _ = await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                }
-
                 // Send the close frame.
                 await WriteFrameAsync(
                     FrameType.Close,
@@ -344,7 +315,7 @@ internal class SlicConnection : IMultiplexedConnection
                     cancellationToken).ConfigureAwait(false);
             }
 
-            if (_readFramesTask is not null && !IsServer)
+            if (!IsServer)
             {
                 // The sending of the client-side Close frame is followed by the shutdown of the duplex connection. For
                 // TCP, it's important to always shutdown the connection on the client-side first to avoid TIME_WAIT
@@ -913,6 +884,18 @@ internal class SlicConnection : IMultiplexedConnection
                         try
                         {
                             AddStream(streamId.Value, stream);
+
+                            // Let the stream receive the data.
+                            readSize = await stream.ReceivedStreamFrameAsync(
+                                dataSize,
+                                endStream,
+                                cancellationToken).ConfigureAwait(false);
+
+                            // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
+                            if (readSize == dataSize)
+                            {
+                                _acceptStreamQueue.Enqueue(stream);
+                            }
                         }
                         catch
                         {
@@ -922,19 +905,6 @@ internal class SlicConnection : IMultiplexedConnection
                                 await stream.Output.CompleteAsync().ConfigureAwait(false);
                             }
                             Debug.Assert(stream.IsShutdown);
-                            throw;
-                        }
-
-                        // Let the stream receive the data.
-                        readSize = await stream.ReceivedStreamFrameAsync(
-                            dataSize,
-                            endStream,
-                            cancellationToken).ConfigureAwait(false);
-
-                        // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
-                        if (readSize == dataSize)
-                        {
-                            _acceptStreamQueue.Enqueue(stream);
                         }
                     }
 

@@ -57,6 +57,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
     private readonly CancellationTokenSource _tasksCts = new();
+    // Only set for server connections.
+    private readonly TransportConnectionInformation? _transportConnectionInformation;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
     /// <summary>Parses the message carried by a system exception with reply status UnknownException.</summary>
@@ -85,13 +87,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         IDuplexConnection duplexConnection,
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
-        : base(transportConnectionInformation, options)
+        : base(isServer: transportConnectionInformation is null, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
         _maxFrameSize = options.MaxIceFrameSize;
+        _transportConnectionInformation = transportConnectionInformation;
 
         if (options.MaxDispatches > 0)
         {
@@ -208,14 +211,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     }
 
     private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
-        TransportConnectionInformation? transportConnectionInformation,
         CancellationToken cancellationToken)
     {
-        if (transportConnectionInformation is null)
-        {
-            transportConnectionInformation = await _duplexConnection.ConnectAsync(
-                cancellationToken).ConfigureAwait(false);
-        }
+        // If the transport connection information is null, we need to connect the transport connection. It's null for
+        // client connections. The transport connection of a server connection is established by Server.
+        TransportConnectionInformation transportConnectionInformation =
+            _transportConnectionInformation ??
+            await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
         // This needs to be set before starting the read frames task below.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);

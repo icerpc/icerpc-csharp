@@ -12,7 +12,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private protected bool IsServer => _transportConnectionInformation is not null;
+    private protected bool IsServer { get; }
 
     // Derived classes need to be able to set the connection closed exception with their mutex locked. We use an atomic
     // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
@@ -41,8 +41,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
-    // Only set for server connections.
-    private TransportConnectionInformation? _transportConnectionInformation;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -81,7 +79,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 try
                 {
                     TransportConnectionInformation information = await ConnectAsyncCore(
-                        _transportConnectionInformation,
                         cts.Token).ConfigureAwait(false);
                     EnableIdleCheck();
                     return information;
@@ -310,9 +307,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
-    internal ProtocolConnection(
-        TransportConnectionInformation? transportConnectionInformation,
-        ConnectionOptions options)
+    internal ProtocolConnection(bool isServer, ConnectionOptions options)
     {
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
@@ -324,7 +319,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown(ConnectionErrorCode.ClosedByIdle);
                 }
             });
-        _transportConnectionInformation = transportConnectionInformation;
+        IsServer = isServer;
     }
 
     private protected abstract void CancelDispatchesAndInvocations();
@@ -334,7 +329,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected abstract bool CheckIfIdle();
 
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
-        TransportConnectionInformation? transportConnectionInformation,
         CancellationToken cancellationToken);
 
     private protected void ConnectionLost(Exception exception) =>

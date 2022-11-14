@@ -50,16 +50,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private int _streamCount;
     private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _tasksCts = new();
+    // Only set for server connections.
+    private readonly TransportConnectionInformation? _transportConnectionInformation;
 
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
-        : base(transportConnectionInformation, options)
+        : base(isServer: transportConnectionInformation is null, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+        _transportConnectionInformation = transportConnectionInformation;
 
         if (options.MaxDispatches > 0)
         {
@@ -110,16 +113,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     }
 
     private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
-        TransportConnectionInformation? transportConnectionInformation,
         CancellationToken cancellationToken)
     {
         // If the transport connection information is null, we need to connect the transport connection. It's null for
         // client connections. The transport connection of a server connection is established by Server.
-        if (transportConnectionInformation is null)
-        {
-            transportConnectionInformation = await _transportConnection.ConnectAsync(
-                cancellationToken).ConfigureAwait(false);
-        }
+        TransportConnectionInformation transportConnectionInformation =
+            _transportConnectionInformation ??
+            await _transportConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
         // This needs to be set before starting the accept requests task bellow.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
@@ -371,7 +371,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
         // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
-        await _dispatchesCompleted.Task.ConfigureAwait(false);
+        if (_acceptRequestsTask is not null)
+        {
+            await _dispatchesCompleted.Task.ConfigureAwait(false);
+        }
 
         _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
