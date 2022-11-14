@@ -99,6 +99,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         var clientConnectTask = clientConnection.ConnectAsync(default);
 
         // Act/Assert
+        IMultiplexedConnection? serverConnection = null;
         Assert.That(
             async () =>
             {
@@ -106,7 +107,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
                 // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
                 using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
-                (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(cts.Token);
+                (serverConnection, _) = await listener.AcceptAsync(cts.Token);
                 await serverConnection.ConnectAsync(default);
             },
             Throws.TypeOf<AuthenticationException>().Or.TypeOf<OperationCanceledException>());
@@ -114,6 +115,10 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         Assert.That(
             async () =>
             {
+                if (serverConnection is not null)
+                {
+                    await serverConnection.DisposeAsync();
+                }
                 await clientConnectTask;
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
                 await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
