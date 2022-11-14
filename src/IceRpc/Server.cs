@@ -109,8 +109,7 @@ public sealed class Server : IAsyncDisposable
                         // Add an additional stream for the icerpc protocol control stream.
                         MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
-                        Pool = options.ConnectionOptions.Pool,
-                        PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter
+                        Pool = options.ConnectionOptions.Pool
                     },
                     options.ServerAuthenticationOptions);
                 listener = new IceRpcProtocolConnectionListener(transportListener, options.ConnectionOptions);

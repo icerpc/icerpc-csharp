@@ -47,7 +47,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 }
                 else
                 {
-                    _stream.AbortWrite(exception);
+                    _stream.AbortWrite();
                 }
             }
 
@@ -159,7 +159,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             {
                 // If the pipe reader has been completed while we were writing the stream data, we make sure to
                 // complete the reader now since Complete or Abort didn't do it.
-                await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
+                _pipe.Reader.Complete(_exception);
             }
             _state.ClearFlag(State.PipeReaderInUse);
         }

@@ -139,7 +139,7 @@ enumerator."#,
                 r#"
 {check_enum} ?
     ({escaped_identifier})value :
-    throw new IceRpc.InvalidDataException($"invalid enumerator value '{{value}}' for {scoped}")"#,
+    throw new global::System.IO.InvalidDataException($"invalid enumerator value '{{value}}' for {scoped}")"#,
                 check_enum = match use_set {
                     true => "_enumeratorValues.Contains(value)".to_owned(),
                     false => format!(
@@ -158,7 +158,7 @@ enumerator."#,
         as_enum_block.add_comment_with_attribute(
             "exception",
             "cref",
-            "IceRpc.InvalidDataException",
+            "global::System.IO.InvalidDataException",
             "Thrown when the value does not correspond to one of the enumerators.",
         );
     }

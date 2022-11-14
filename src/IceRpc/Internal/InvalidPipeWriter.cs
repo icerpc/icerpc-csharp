@@ -4,8 +4,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
-/// <summary>A PipeWriter that does nothing and always throws NotSupportedException except for
-/// Complete/CompleteAsync.</summary>
+/// <summary>A PipeWriter that does nothing and always throws NotSupportedException except for Complete.</summary>
 internal sealed class InvalidPipeWriter : PipeWriter
 {
     public override bool CanGetUnflushedBytes => false;

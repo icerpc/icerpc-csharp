@@ -15,7 +15,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     internal Task Closed { get; }
 
     private readonly Action _completedCallback;
-    private readonly IPayloadErrorCodeConverter _errorCodeConverter;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
 
@@ -43,14 +42,14 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
             if (exception is null)
             {
-                // Unlike Slic, it's important to complete the writes and not abort the stream with the NoError error
-                // code. Data might still be buffered for send on the Quic stream and aborting the stream would discard
-                // this data.
+                // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
+                // buffered for send on the Quic stream and aborting the stream would discard this data.
                 _stream.CompleteWrites();
             }
             else
             {
-                _stream.Abort(QuicAbortDirection.Write, (long)_errorCodeConverter.ToErrorCode(exception));
+                // The error code is irrelevant.
+                _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
             }
 
             _pipe.Writer.Complete();
@@ -145,18 +144,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
                 return new FlushResult(isCanceled: false, isCompleted: endStream);
             }
         }
-        catch (QuicException exception) when (
-            exception.QuicError == QuicError.StreamAborted &&
-            exception.ApplicationErrorCode is not null)
+        catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
         {
-            if (_errorCodeConverter.FromErrorCode((ulong)exception.ApplicationErrorCode) is Exception ex)
-            {
-                throw ex;
-            }
-            else
-            {
-                return new FlushResult(isCanceled: false, isCompleted: true);
-            }
+            return new FlushResult(isCanceled: false, isCompleted: true);
         }
         catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
         {
@@ -197,13 +187,11 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     internal QuicPipeWriter(
         QuicStream stream,
-        IPayloadErrorCodeConverter errorCodeConverter,
         MemoryPool<byte> pool,
         int minSegmentSize,
         Action completedCallback)
     {
         _stream = stream;
-        _errorCodeConverter = errorCodeConverter;
         _minSegmentSize = minSegmentSize;
         _completedCallback = completedCallback;
 
@@ -224,15 +212,9 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             {
                 await _stream.WritesClosed.ConfigureAwait(false);
             }
-            catch (QuicException exception) when (
-                exception.QuicError == QuicError.StreamAborted &&
-                exception.ApplicationErrorCode is not null)
+            catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
             {
-                if (_errorCodeConverter.FromErrorCode(
-                    (ulong)exception.ApplicationErrorCode) is Exception transportException)
-                {
-                    throw transportException;
-                }
+                // successful completion
             }
             catch (QuicException exception)
             {

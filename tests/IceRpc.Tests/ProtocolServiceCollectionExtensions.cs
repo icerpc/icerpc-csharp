@@ -62,9 +62,6 @@ public static class ProtocolServiceCollectionExtensions
                     },
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
-        services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.PayloadErrorCodeConverter = IceRpcProtocol.Instance.PayloadErrorCodeConverter);
-
         return services;
     }
 

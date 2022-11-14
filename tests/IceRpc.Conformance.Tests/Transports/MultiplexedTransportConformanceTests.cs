@@ -125,12 +125,12 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
         if (bidirectional)
         {
-            await serverStream.Output.CompleteAsync(new OperationCanceledException());
+            serverStream.Output.Complete(new OperationCanceledException()); // exception does not matter
         }
         bool isCompleted = lastStreamTask.IsCompleted;
 
         // Act
-        await serverStream.Input.CompleteAsync();
+        serverStream.Input.Complete();
 
         // Assert
         Assert.That(isCompleted, Is.False);
@@ -342,9 +342,9 @@ public abstract class MultiplexedTransportConformanceTests
         Memory<byte> buffer = stream.Output.GetMemory();
         stream.Output.Advance(buffer.Length);
 
-        Assert.That(async () => await stream.Output.CompleteAsync(), Throws.TypeOf<NotSupportedException>());
+        Assert.That(() => stream.Output.Complete(), Throws.TypeOf<NotSupportedException>());
 
-        await stream.Input.CompleteAsync();
+        stream.Input.Complete();
     }
 
     /// <summary>Ensures that completing the stream output after writing data doesn't discard the data. A successful
@@ -593,8 +593,8 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
-        await sut.LocalStream.Input.CompleteAsync();
-        await sut.RemoteStream.Output.CompleteAsync();
+        sut.LocalStream.Input.Complete();
+        sut.RemoteStream.Output.Complete();
 
         Task<FlushResult> writeTask;
         while (true)
@@ -616,7 +616,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
-        await sut.LocalStream.Output.CompleteAsync();
+        sut.LocalStream.Output.Complete();
         Assert.That(async () => await readTask, Throws.Nothing);
 
         static async Task ReadAsync(IMultiplexedStream stream)
@@ -627,7 +627,7 @@ public abstract class MultiplexedTransportConformanceTests
                 readResult = await stream.Input.ReadAsync();
                 stream.Input.AdvanceTo(readResult.Buffer.End);
             }
-            await stream.Input.CompleteAsync();
+            stream.Input.Complete();
         }
     }
 
@@ -687,7 +687,7 @@ public abstract class MultiplexedTransportConformanceTests
                 streamCount++;
                 streamCountMax = Math.Max(streamCount, streamCountMax);
             }
-            await stream.Output.CompleteAsync();
+            stream.Output.Complete();
 
             while (true)
             {
@@ -699,7 +699,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
                 stream.Input.AdvanceTo(readResult.Buffer.End);
             }
-            await stream.Input.CompleteAsync();
+            stream.Input.Complete();
         }
 
         async Task ServerReadWriteAsync(IMultiplexedStream stream)
@@ -714,7 +714,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
                 stream.Input.AdvanceTo(readResult.Buffer.End);
             }
-            await stream.Input.CompleteAsync();
+            stream.Input.Complete();
 
             lock (mutex)
             {
@@ -722,7 +722,7 @@ public abstract class MultiplexedTransportConformanceTests
             }
 
             await stream.Output.WriteAsync(payload);
-            await stream.Output.CompleteAsync();
+            stream.Output.Complete();
         }
     }
 
@@ -789,7 +789,7 @@ public abstract class MultiplexedTransportConformanceTests
             await stream.Output.WriteAsync(payload);
             await stream.Output.WriteAsync(payload);
 
-            await stream.Output.CompleteAsync();
+            stream.Output.Complete();
         }
 
         async Task ServerReadAsync(IMultiplexedStream stream)
@@ -809,13 +809,12 @@ public abstract class MultiplexedTransportConformanceTests
             }
             while (!readResult.IsCompleted);
 
-            await stream.Input.CompleteAsync();
+            stream.Input.Complete();
         }
     }
 
-    [TestCase(100)]
-    [TestCase(15)]
-    public async Task Stream_abort_read(int errorCode)
+    [Test]
+    public async Task Stream_abort_read()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -829,10 +828,10 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.RemoteStream.Input.CompleteAsync(new PayloadException((PayloadErrorCode)errorCode));
+        sut.RemoteStream.Input.Complete(new TruncatedDataException()); // can be any exception
 
         // Assert
-        PayloadException? ex = Assert.CatchAsync<PayloadException>(
+        Assert.That(
             async () =>
             {
                 while (true)
@@ -844,17 +843,15 @@ public abstract class MultiplexedTransportConformanceTests
                     }
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
-            });
-        Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadErrorCode)errorCode));
+            },
+            Throws.Nothing);
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
     }
 
-    [TestCase(100)]
-    [TestCase(15)]
-    public async Task Stream_abort_write(int errorCode)
+    [Test]
+    public async Task Stream_abort_write()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -868,15 +865,12 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.LocalStream.Output.CompleteAsync(new PayloadException((PayloadErrorCode)errorCode));
+        sut.LocalStream.Output.Complete(new OperationCanceledException()); // can be any exception
+        // Wait for the peer to receive the Reset frame.
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        // Wait for the peer to receive the StreamStopSending/StreamReset frame.
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
-        PayloadException? ex = Assert.CatchAsync<PayloadException>(
-            async () => await sut.RemoteStream.Input.ReadAsync());
-        Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((PayloadErrorCode)errorCode));
+        Assert.That(async () => await sut.RemoteStream.Input.ReadAsync(), Throws.InstanceOf<TruncatedDataException>());
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);
@@ -977,7 +971,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
                 await stream.Output.WriteAsync(payload, default);
             }
-            await stream.Output.CompleteAsync();
+            stream.Output.Complete();
         }
     }
 
@@ -1000,7 +994,7 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
-        await sut.RemoteStream.Output.CompleteAsync();
+        sut.RemoteStream.Output.Complete();
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
         var payload = new ReadOnlyMemory<byte>(payloadData);
@@ -1035,7 +1029,7 @@ public abstract class MultiplexedTransportConformanceTests
                     buffer = readResult.Buffer.ToArray();
                 }
             }
-            await stream.Input.CompleteAsync();
+            stream.Input.Complete();
             return buffer;
         }
 
@@ -1046,7 +1040,7 @@ public abstract class MultiplexedTransportConformanceTests
                 await stream.Output.WriteAsync(payload, default);
                 await Task.Yield();
             }
-            await stream.Output.CompleteAsync();
+            stream.Output.Complete();
         }
     }
 
@@ -1244,15 +1238,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         ReadResult readResult1 = await readTask;
 
-        try
-        {
-            await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
-            // successful completion is an acceptable behavior
-        }
-        catch (PayloadException exception) when (exception.ErrorCode == PayloadErrorCode.Canceled)
-        {
-            // acceptable behavior (and that's what Quic does)
-        }
+        Assert.That(async () => await sut.RemoteStream.Output.WriteAsync(_oneBytePayload), Throws.Nothing);
 
         ReadResult? readResult2 = null;
         try

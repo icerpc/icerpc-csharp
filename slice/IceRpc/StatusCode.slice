@@ -26,11 +26,9 @@ unchecked enum StatusCode : varuint62
     /// used by the invoker and the dispatcher.
     InvalidData,
 
-    /// The dispatch was canceled; it can be because the remote peer is exiting.
-    Canceled,
-
-    /// The dispatch failed due to a payload error, such as a failure to read the incoming request payload.
-    PayloadError,
+    /// The dispatch failed because it received a truncated payload. This is usually caused by a failure of the invoker
+    /// while it was sending the payload.
+    TruncatedPayload,
 
     /// The dispatch detected the expiration of the request's deadline.
     DeadlineExpired,

@@ -5,8 +5,8 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO.Pipelines;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -573,11 +573,15 @@ public ref partial struct SliceEncoder
 
     internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
 
-    internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+    internal static void EncodeInt32(int v, Span<byte> into)
+    {
+        Debug.Assert(into.Length == 4);
+        MemoryMarshal.Write(into, ref v);
+    }
 
     /// <summary>Encodes a fixed-size numeric value.</summary>
     /// <param name="v">The numeric value to encode.</param>
-    internal void EncodeFixedSizeNumeric<T>(T v) where T : struct
+    internal void EncodeFixedSizeNumeric<T>(T v) where T : struct, INumber<T>
     {
         int elementSize = Unsafe.SizeOf<T>();
         Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];

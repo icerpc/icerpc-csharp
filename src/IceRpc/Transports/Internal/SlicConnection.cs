@@ -20,8 +20,6 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal int MinSegmentSize { get; }
 
-    internal IPayloadErrorCodeConverter ErrorCodeConverter { get; }
-
     internal int PauseWriterThreshold { get; }
 
     internal int PeerPacketMaxSize { get; private set; }
@@ -382,13 +380,7 @@ internal class SlicConnection : IMultiplexedConnection
         SlicTransportOptions slicOptions,
         bool isServer)
     {
-        if (options.PayloadErrorCodeConverter is null)
-        {
-            throw new ArgumentException($"{nameof(options.PayloadErrorCodeConverter)} is null", nameof(options));
-        }
-
         IsServer = isServer;
-        ErrorCodeConverter = options.PayloadErrorCodeConverter;
 
         Pool = options.Pool;
         MinSegmentSize = options.MinSegmentSize;
@@ -899,10 +891,10 @@ internal class SlicConnection : IMultiplexedConnection
                         }
                         catch
                         {
-                            await stream.Input.CompleteAsync().ConfigureAwait(false);
+                            stream.Input.Complete();
                             if (isBidirectional)
                             {
-                                await stream.Output.CompleteAsync().ConfigureAwait(false);
+                                stream.Output.Complete();
                             }
                             Debug.Assert(stream.IsShutdown);
                         }
@@ -923,8 +915,8 @@ internal class SlicConnection : IMultiplexedConnection
                                 dataSize - readSize,
                                 cancellationToken).ConfigureAwait(false);
 
-                        await pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                        await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+                        pipe.Writer.Complete();
+                        pipe.Reader.Complete();
                     }
 
                     break;
@@ -977,7 +969,7 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedResetFrame(streamReset.ApplicationProtocolErrorCode);
+                        stream.ReceivedResetFrame();
                     }
                     break;
                 }
@@ -1003,7 +995,7 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedStopSendingFrame(streamStopSending.ApplicationProtocolErrorCode);
+                        stream.ReceivedStopSendingFrame();
                     }
                     break;
                 }

@@ -21,8 +21,8 @@ public class PipeReaderTests
         pipe.Reader.AdvanceTo(readResult.Buffer.End);
 
         Assert.That(readResult.IsCompleted, Is.False);
-        await pipe.Writer.CompleteAsync();
-        await pipe.Reader.CompleteAsync();
+        pipe.Writer.Complete();
+        pipe.Reader.Complete();
     }
 
     [Test]
@@ -34,13 +34,13 @@ public class PipeReaderTests
         await pipe.Writer.WriteAsync(new byte[] { 0, 1, 2, 3 }); // remaining byte of size + 3 bytes of payload
         await Task.Yield(); // give a chance to task to run
         await pipe.Writer.WriteAsync(new byte[] { 4, 5, 123 }); // remaining bytes of payload + one extra byte
-        await pipe.Writer.CompleteAsync();
+        pipe.Writer.Complete();
 
         ReadResult readResult = await task;
 
         Assert.That(readResult.IsCompleted, Is.False);
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
-        await pipe.Reader.CompleteAsync();
+        pipe.Reader.Complete();
     }
 
     [Test]
@@ -74,8 +74,8 @@ public class PipeReaderTests
         bool success = pipe.Reader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult _);
 
         Assert.That(success, Is.False);
-        await pipe.Reader.CompleteAsync();
-        await pipe.Writer.CompleteAsync();
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     [Test]
@@ -89,8 +89,8 @@ public class PipeReaderTests
         Assert.That(success, Is.True);
         Assert.That(readResult.IsCompleted, Is.False);
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
-        await pipe.Reader.CompleteAsync();
-        await pipe.Writer.CompleteAsync();
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     [Test]
