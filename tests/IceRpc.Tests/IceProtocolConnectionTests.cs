@@ -151,18 +151,10 @@ public sealed class IceProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
-
-        // Assert
+        Assert.That(
+            async () => (await sut.Client.InvokeAsync(request)).StatusCode,
+            Is.EqualTo(StatusCode.UnhandledException));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        DispatchException exception = Assert.ThrowsAsync<DispatchException>(
-            async () =>
-            {
-                var response = await responseTask;
-                var exception = await response.DecodeDispatchExceptionAsync(request, CancellationToken.None);
-                throw exception;
-            });
-        Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -188,14 +180,14 @@ public sealed class IceProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request, cts.Token);
 
-        // Assert
+        // If the response payload writer is bogus the ice connection cannot write any response, the request
+        // will be canceled by the timeout.
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        // If the response payload writer the ice connection cannot write any response, the request will be
-        // canceled by the timeout.
-        Assert.That(async () => await responseTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.

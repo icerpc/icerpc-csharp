@@ -370,12 +370,11 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
-
-        // Assert
+        // Act/Assert
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<TruncatedDataException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -400,12 +399,11 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
-
-        // Assert
+        // Act/Assert
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<TruncatedDataException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
