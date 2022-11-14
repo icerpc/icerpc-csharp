@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
@@ -93,7 +94,8 @@ public sealed class IceRpcProtocolConnectionTests
                 options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>()),
             isServer: false,
-            options: new());
+            options: new(),
+            NullLogger.Instance);
 
         IMultiplexedConnection? serverConnection = null;
         Task acceptTask = AcceptAndShutdownAsync();
@@ -695,7 +697,7 @@ public sealed class IceRpcProtocolConnectionTests
             null);
 
         await using IListener<IProtocolConnection> listener =
-            new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
+            new IceRpcProtocolListener(new ConnectionOptions(), transportListener, NullLogger.Instance);
 
         IMultiplexedConnection clientTransport =
             IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexedOptions, null);
@@ -703,7 +705,8 @@ public sealed class IceRpcProtocolConnectionTests
         await using var clientConnection = new IceRpcProtocolConnection(
             clientTransport,
             false,
-            new ClientConnectionOptions());
+            new ClientConnectionOptions(),
+            NullLogger.Instance);
 
         _ = Task.Run(async () =>
         {

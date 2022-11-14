@@ -122,6 +122,38 @@ internal static partial class ProtocolLoggerExtensions
             localNetworkAddress,
             remoteNetworkAddress);
 
+#pragma warning disable SYSLIB1006
+    [LoggerMessage(
+        EventId = (int)ProtocolEventIds.UnhandledException,
+        EventName = nameof(ProtocolEventIds.UnhandledException),
+        Level = LogLevel.Error,
+        Message = "Request dispatch failed with unhandled exception")]
+    internal static partial void DispatchUnhandledException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)ProtocolEventIds.UnhandledException,
+        EventName = nameof(ProtocolEventIds.UnhandledException),
+        Level = LogLevel.Error,
+        Message = "Request dispatch '{Path}/{Operation}' failed with unhandled exception")]
+    internal static partial void DispatchUnhandledException(
+        this ILogger logger,
+        string path,
+        string operation,
+        Exception exception);
+#pragma warning restore SYSLIB1006
+
+    internal static void DispatchUnhandledException(this ILogger logger, IncomingRequest? request, Exception exception)
+    {
+        if (request is not null)
+        {
+            logger.DispatchUnhandledException(request.Path, request.Operation, exception);
+        }
+        else
+        {
+            logger.DispatchUnhandledException(exception);
+        }
+    }
+
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),

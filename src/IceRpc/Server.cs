@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Security;
 
@@ -98,7 +99,10 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool,
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceProtocolListener(options.ConnectionOptions, transportListener);
+                listener = new IceProtocolListener(
+                    options.ConnectionOptions,
+                    transportListener,
+                    logger ?? NullLogger.Instance);
             }
             else
             {
@@ -113,7 +117,10 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceRpcProtocolListener(options.ConnectionOptions, transportListener);
+                listener = new IceRpcProtocolListener(
+                    options.ConnectionOptions,
+                    transportListener,
+                    logger ?? NullLogger.Instance);
             }
             listener = new MetricsListenerDecorator(listener);
             if (logger is not null)

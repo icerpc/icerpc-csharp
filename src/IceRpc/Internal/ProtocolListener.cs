@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Net;
 
 namespace IceRpc.Internal;
@@ -31,26 +32,38 @@ internal abstract class ProtocolListener<T> : IListener<IProtocolConnection>
 internal sealed class IceProtocolListener : ProtocolListener<IDuplexConnection>
 {
     private readonly ConnectionOptions _connectionOptions;
+    private readonly ILogger _logger;
 
     internal IceProtocolListener(
         ConnectionOptions connectionOptions,
-        IListener<IDuplexConnection> listener)
-        : base(listener) => _connectionOptions = connectionOptions;
+        IListener<IDuplexConnection> listener,
+        ILogger logger)
+        : base(listener)
+    {
+        _connectionOptions = connectionOptions;
+        _logger = logger;
+    }
 
     private protected override IProtocolConnection CreateProtocolConnection(IDuplexConnection duplexConnection) =>
-        new IceProtocolConnection(duplexConnection, isServer: true, _connectionOptions);
+        new IceProtocolConnection(duplexConnection, isServer: true, _connectionOptions, _logger);
 }
 
 internal sealed class IceRpcProtocolListener : ProtocolListener<IMultiplexedConnection>
 {
     private readonly ConnectionOptions _connectionOptions;
+    private readonly ILogger _logger;
 
     internal IceRpcProtocolListener(
         ConnectionOptions connectionOptions,
-        IListener<IMultiplexedConnection> listener)
-        : base(listener) => _connectionOptions = connectionOptions;
+        IListener<IMultiplexedConnection> listener,
+        ILogger logger)
+        : base(listener)
+    {
+        _connectionOptions = connectionOptions;
+        _logger = logger;
+    }
 
     private protected override IProtocolConnection CreateProtocolConnection(
         IMultiplexedConnection multiplexedConnection) =>
-        new IceRpcProtocolConnection(multiplexedConnection, isServer: true, _connectionOptions);
+        new IceRpcProtocolConnection(multiplexedConnection, isServer: true, _connectionOptions, _logger);
 }

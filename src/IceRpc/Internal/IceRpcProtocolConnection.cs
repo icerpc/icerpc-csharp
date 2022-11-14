@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -37,6 +38,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     // The ID of the last unidirectional stream accepted by this connection. It's null as long as no unidirectional
     // stream (other than _remoteControlStream) was accepted.
     private ulong? _lastRemoteUnidirectionalStreamId;
+    private readonly ILogger _logger;
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
@@ -54,12 +56,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
         bool isServer,
-        ConnectionOptions options)
+        ConnectionOptions options,
+        ILogger logger)
         : base(isServer, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+        _logger = logger;
 
         if (options.MaxDispatches > 0)
         {
@@ -287,10 +291,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     try
                                     {
                                         await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
-                                    }
-                                    catch
-                                    {
-                                        // Ignore
                                     }
                                     finally
                                     {
@@ -888,6 +888,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         PipeReader? fieldsPipeReader = null;
         PipeReader? streamInput = stream.Input;
         PipeWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
+        IncomingRequest? request = null;
 
         try
         {
@@ -905,7 +906,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             streamInput.AdvanceTo(readResult.Buffer.End);
 
-            using var request = new IncomingRequest(_connectionContext!)
+            request = new IncomingRequest(_connectionContext!)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,
@@ -918,17 +919,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await PerformDispatchRequestAsync(request).ConfigureAwait(false);
         }
-        catch
+        catch (Exception exception)
         {
             // We always need to complete streamOutput with an error when an exception is thrown. For example, we
             // received an invalid request header that we could not decode.
             streamOutput?.CompleteOutput(success: false);
             streamInput?.Complete();
-            throw;
+            _logger.DispatchUnhandledException(request, exception);
         }
         finally
         {
             fieldsPipeReader?.Complete();
+            request?.Dispose();
         }
 
         async Task PerformDispatchRequestAsync(IncomingRequest request)
@@ -1001,7 +1003,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     RetryPolicy retryPolicy = dispatchException.RetryPolicy;
                     response.Fields = response.Fields.With(
                         ResponseFieldKey.RetryPolicy,
-                        (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+                        retryPolicy.Encode);
                 }
 
                 static PipeReader CreateDispatchExceptionPayload(IncomingRequest request, string message)

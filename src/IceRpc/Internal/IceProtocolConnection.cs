@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -47,6 +48,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     // Whether or not the inner exception details should be included in dispatch exceptions
     private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
+    private readonly ILogger _logger;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
@@ -84,13 +86,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
         bool isServer,
-        ConnectionOptions options)
+        ConnectionOptions options,
+        ILogger logger)
         : base(isServer, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
+        _logger = logger;
         _maxFrameSize = options.MaxIceFrameSize;
 
         if (options.MaxDispatches > 0)
@@ -289,7 +293,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(
+                    ConnectionClosedException = new ConnectionException(
                         ConnectionErrorCode.ClosedByAbort,
                         "the connection was lost",
                         exception);
@@ -991,7 +995,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         Path = requestHeader.Path,
                         Payload = requestFrameReader,
                     };
-                    await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
+                    try
+                    {
+                        await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.DispatchUnhandledException(request, exception);
+                    }
                 },
                 CancellationToken.None);
 

@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -143,14 +144,14 @@ public sealed class IceProtocolConnectionTests
             null);
 
         await using IListener<IProtocolConnection> listener =
-            new IceProtocolListener(new ConnectionOptions(), transportListener);
+            new IceProtocolListener(new ConnectionOptions(), transportListener, NullLogger.Instance);
 
         IDuplexConnection clientTransport = IDuplexClientTransport.Default.CreateConnection(
             transportListener.ServerAddress,
             new DuplexConnectionOptions(), null);
 
         await using var clientConnection =
-            new IceProtocolConnection(clientTransport, false, new ClientConnectionOptions());
+            new IceProtocolConnection(clientTransport, false, new ClientConnectionOptions(), NullLogger.Instance);
 
         _ = Task.Run(async () =>
         {

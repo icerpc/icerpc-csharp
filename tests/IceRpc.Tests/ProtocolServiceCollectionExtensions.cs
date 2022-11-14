@@ -4,6 +4,8 @@ using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Tests;
 
@@ -18,11 +20,13 @@ public static class ProtocolServiceCollectionExtensions
                 clientProtocolConnection: new IceProtocolConnection(
                     provider.GetRequiredService<IDuplexConnection>(),
                     isServer: false,
-                    clientConnectionOptions),
+                    clientConnectionOptions,
+                    provider.GetService<ILogger>() ?? NullLogger.Instance),
                 acceptServerConnectionAsync: async () => new IceProtocolConnection(
                     (await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(default)).Connection,
                     isServer: true,
-                    serverConnectionOptions),
+                    serverConnectionOptions,
+                    provider.GetService<ILogger>() ?? NullLogger.Instance),
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
     public static IServiceCollection AddIceRpcProtocolTest(
@@ -35,12 +39,14 @@ public static class ProtocolServiceCollectionExtensions
                 clientProtocolConnection: new IceRpcProtocolConnection(
                     provider.GetRequiredService<IMultiplexedConnection>(),
                     isServer: false,
-                    clientConnectionOptions),
+                    clientConnectionOptions,
+                    provider.GetService<ILogger>() ?? NullLogger.Instance),
                 acceptServerConnectionAsync: async () => new IceRpcProtocolConnection(
                     (await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
                         default)).Connection,
                     isServer: true,
-                    serverConnectionOptions),
+                    serverConnectionOptions,
+                    provider.GetService<ILogger>() ?? NullLogger.Instance),
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         return services;
