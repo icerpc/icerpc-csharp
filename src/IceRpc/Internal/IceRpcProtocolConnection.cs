@@ -979,8 +979,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _ => StatusCode.UnhandledException
                     };
 
-                    // We pass null for message to get the message computed from the exception by DefaultMessage.
-                    dispatchException = new DispatchException(message: null, statusCode);
+                    // We pass null for message to get the message computed from the exception by Message.
+                    dispatchException = new DispatchException(message: null, statusCode, exception);
                 }
 
                 response = new OutgoingResponse(request)

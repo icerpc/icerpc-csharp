@@ -1048,8 +1048,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             _ => StatusCode.UnhandledException
                         };
 
-                        // We pass null for message to get the message computed by DispatchException.DefaultMessage.
-                        dispatchException = new DispatchException(message: null, statusCode);
+                        // We pass null for message to get the message computed by DispatchException.Message.
+                        dispatchException = new DispatchException(message: null, statusCode, exception);
                     }
 
                     response = new OutgoingResponse(request)
