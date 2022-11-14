@@ -18,14 +18,6 @@ namespace IceRpc.Retry.Tests;
 
 public sealed class RetryInterceptorTests
 {
-    public static IEnumerable<Exception> NotRetryableExceptionSource
-    {
-        get
-        {
-            yield return new OperationCanceledException();
-        }
-    }
-
     [Test]
     public async Task Log_retry()
     {
@@ -69,15 +61,15 @@ public sealed class RetryInterceptorTests
         Assert.That(entry.State["Operation"], Is.EqualTo("Op"));
     }
 
-    [Test, TestCaseSource(nameof(NotRetryableExceptionSource))]
-    public void Not_retryable_exception(Exception exception)
+    [Test]
+    public void Not_retryable_exception()
     {
         // Arrange
         int attempts = 0;
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
-            throw exception;
+            throw new OperationCanceledException();
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
@@ -86,7 +78,9 @@ public sealed class RetryInterceptorTests
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act/Assert
-        Assert.That(async () => await sut.InvokeAsync(request, default), Throws.TypeOf(exception.GetType()));
+        Assert.That(
+            async () => await sut.InvokeAsync(request, default),
+            Throws.InstanceOf<OperationCanceledException>());
         Assert.That(attempts, Is.EqualTo(1));
     }
 
