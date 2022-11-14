@@ -12,6 +12,12 @@ public interface IServerAddressFeature
     /// </summary>
     ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
+    /// <summary>Gets or sets a value indicating whether this server address feature was retrieved from a cache.
+    /// </summary>
+    /// <value>When <see langword="true" />, this feature was retrieved from a cache and corresponds to a cached
+    /// resolution. Otherwise, <see langword="false" />.</value>
+    bool IsFromCache { get; set; }
+
     /// <summary>Gets or sets the list of <see cref="ServerAddress" /> that have been removed and will not be used for
     /// the invocation.</summary>
     ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }

@@ -11,6 +11,9 @@ public sealed class ServerAddressFeature : IServerAddressFeature
     public ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
     /// <inheritdoc/>
+    public bool IsFromCache { get; set; }
+
+    /// <inheritdoc/>
     public ImmutableList<ServerAddress> RemovedServerAddresses { get; set; }
 
     /// <inheritdoc/>

@@ -33,54 +33,27 @@ public class LocatorInterceptor : IInvoker
     {
         if (request.Protocol == Protocol.Ice && request.ServiceAddress.ServerAddress is null)
         {
-            Location location = default;
-            bool refreshCache = false;
-
             if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
             {
                 serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
                 request.Features = request.Features.With(serverAddressFeature);
             }
 
-            // We detect retries and don't use cached values for retries by setting refreshCache to true.
-
-            if (request.Features.Get<ICachedResolutionFeature>() is ICachedResolutionFeature cachedResolution)
+            if (serverAddressFeature.IsFromCache || serverAddressFeature.ServerAddress is null)
             {
-                // This is the second (or greater) attempt, and we provided a cached resolution with the
-                // first attempt and all subsequent attempts.
-
-                location = cachedResolution.Location;
-                refreshCache = true;
-            }
-            else if (serverAddressFeature.ServerAddress is null)
-            {
-                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ?
+                Location location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ?
                     new Location { IsAdapterId = true, Value = adapterId } :
                     new Location { Value = request.ServiceAddress.Path };
-            }
-            // else it could be a retry where the first attempt provided non-cached server address(es)
 
-            if (location != default)
-            {
+                // We refresh the cache when the previous attempt (if any) used a cached value
+                bool refreshCache = serverAddressFeature.IsFromCache;
+
                 (ServiceAddress? serviceAddress, bool fromCache) = await _locationResolver.ResolveAsync(
                     location,
                     refreshCache,
                     cancellationToken).ConfigureAwait(false);
 
-                if (refreshCache)
-                {
-                    if (!fromCache && !request.Features.IsReadOnly)
-                    {
-                        // No need to resolve this location again since we are not returning a cached value.
-                        request.Features.Set<ICachedResolutionFeature>(null);
-                    }
-                }
-                else if (fromCache)
-                {
-                    // Make sure the next attempt re-resolves location and sets refreshCache to true.
-                    request.Features = request.Features.With<ICachedResolutionFeature>(
-                        new CachedResolutionFeature(location));
-                }
+                serverAddressFeature.IsFromCache = fromCache;
 
                 if (serviceAddress is not null)
                 {
@@ -96,7 +69,8 @@ public class LocatorInterceptor : IInvoker
                     serverAddressFeature.ServerAddress = serverAddress;
                     serverAddressFeature.AltServerAddresses = altServerAddresses;
                 }
-                // else, resolution failed and we don't update anything
+
+                // TODO: throw an exception rather than continue with a null serverAddressFeature.ServerAddress
             }
         }
         return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
@@ -120,18 +94,6 @@ public class LocatorInterceptor : IInvoker
             }
             return result;
         }
-    }
-
-    private interface ICachedResolutionFeature
-    {
-        Location Location { get; }
-    }
-
-    private class CachedResolutionFeature : ICachedResolutionFeature
-    {
-        public Location Location { get; }
-
-        internal CachedResolutionFeature(Location location) => Location = location;
     }
 }
 

@@ -96,7 +96,8 @@ public class RetryInterceptor : IInvoker
                     // Check if we can retry
                     if (attempt < _options.MaxAttempts && retryPolicy != RetryPolicy.NoRetry && decorator.IsResettable)
                     {
-                        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
+                        if (request.Features.Get<IServerAddressFeature>()
+                            is IServerAddressFeature serverAddressFeature && !serverAddressFeature.IsFromCache)
                         {
                             if (serverAddressFeature.ServerAddress is ServerAddress mainServerAddress &&
                                 retryPolicy == RetryPolicy.OtherReplica)
@@ -109,8 +110,9 @@ public class RetryInterceptor : IInvoker
                         }
                         else
                         {
-                            // If there is no server address feature, server address(es) appear to be irrelevant, so
-                            // we retry even if request.ServiceAddress.ServerAddress is null.
+                            // If the server address feature was cached, the next attempt will refresh it.
+                            // If there is no server address feature at all, server address(es) appear to be irrelevant,
+                            // so we can retry even if request.ServiceAddress.ServerAddress is null.
                             tryAgain = true;
                         }
                     }
