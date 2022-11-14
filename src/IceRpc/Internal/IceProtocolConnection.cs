@@ -1093,7 +1093,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         var dispatchException = new DispatchException(
                             message: null,
                             StatusCode.UnhandledException,
-                            _includeInnerExceptionDetails ? exception : null);
+                            exception);
                         response = new OutgoingResponse(request)
                         {
                             Payload = CreateDispatchExceptionPayload(request, dispatchException),
