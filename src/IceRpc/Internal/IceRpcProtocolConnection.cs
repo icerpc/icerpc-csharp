@@ -57,7 +57,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         IMultiplexedConnection transportConnection,
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
-        : base(isServer: transportConnectionInformation is null, options)
+        : base(isServer: transportConnectionInformation is not null, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
@@ -371,10 +371,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
         // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
-        if (_acceptRequestsTask is not null)
-        {
-            await _dispatchesCompleted.Task.ConfigureAwait(false);
-        }
+        await _dispatchesCompleted.Task.ConfigureAwait(false);
 
         _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
