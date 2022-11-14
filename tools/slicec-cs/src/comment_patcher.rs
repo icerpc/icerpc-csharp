@@ -13,17 +13,17 @@ struct CommentPatcher {
     patched_comments: HashMap<usize, Option<DocComment>>,
 }
 
-pub fn patch_comments(mut parsed_data: CompilationData) -> CompilationResult {
+pub fn patch_comments(mut compilation_data: CompilationData) -> CompilationResult {
     let mut patcher = CommentPatcher {
         patched_comments: HashMap::new(),
     };
 
-    patcher.compute_patched_comments(&parsed_data.ast);
-    patcher.apply_patched_comments(&mut parsed_data.ast);
+    patcher.compute_patched_comments(&compilation_data.ast);
+    patcher.apply_patched_comments(&mut compilation_data.ast);
 
     debug_assert!(patcher.patched_comments.is_empty());
 
-    parsed_data.into()
+    compilation_data.into()
 }
 
 impl CommentPatcher {
