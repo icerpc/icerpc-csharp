@@ -26,8 +26,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly SemaphoreSlim? _dispatchSemaphore;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
-    // Whether or not the inner exception details should be included in dispatch exceptions
-    private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
@@ -67,7 +65,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 initialCount: options.MaxDispatches,
                 maxCount: options.MaxDispatches);
         }
-        _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
     }
 
     private protected override void CancelDispatchesAndInvocations()
@@ -982,11 +979,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _ => StatusCode.UnhandledException
                     };
 
-                    // We pass null for message to get the message computed from the exception by DefaultMessage.
-                    dispatchException = new DispatchException(
-                        message: null,
-                        statusCode,
-                        _includeInnerExceptionDetails ? exception : null);
+                    // We pass null for message to get the message computed from the exception by Message.
+                    dispatchException = new DispatchException(message: null, statusCode, exception);
                 }
 
                 response = new OutgoingResponse(request)

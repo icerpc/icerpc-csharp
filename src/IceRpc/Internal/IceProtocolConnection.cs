@@ -44,8 +44,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-    // Whether or not the inner exception details should be included in dispatch exceptions
-    private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -99,7 +97,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 initialCount: options.MaxDispatches,
                 maxCount: options.MaxDispatches);
         }
-        _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
 
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
@@ -1051,11 +1048,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             _ => StatusCode.UnhandledException
                         };
 
-                        // We pass null for message to get the message computed by DispatchException.DefaultMessage.
-                        dispatchException = new DispatchException(
-                            message: null,
-                            statusCode,
-                            _includeInnerExceptionDetails ? exception : null);
+                        // We pass null for message to get the message computed by DispatchException.Message.
+                        dispatchException = new DispatchException(message: null, statusCode, exception);
                     }
 
                     response = new OutgoingResponse(request)
