@@ -43,7 +43,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
     // by the peer yet.
-    private readonly Dictionary<IMultiplexedStream, CancellationTokenSource> _pendingInvocationCts = new();
+    private readonly Dictionary<IMultiplexedStream, CancellationTokenSource> _pendingInvocations = new();
     private readonly IMultiplexedConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
@@ -424,7 +424,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
 
                     // Keep track of the invocation cancellation token source for the shutdown logic.
-                    _pendingInvocationCts.Add(stream, invocationCts);
+                    _pendingInvocations.Add(stream, invocationCts);
 
                     _ = UnregisterOnInputAndOutputClosedAsync(stream, invocationCts);
                 }
@@ -470,7 +470,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 if (!_isReadOnly)
                 {
                     // We received a response, it's no longer a pending invocation.
-                    _ = _pendingInvocationCts.Remove(stream);
+                    _ = _pendingInvocations.Remove(stream);
                 }
             }
 
@@ -604,9 +604,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     .ConfigureAwait(false);
 
                 // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationCts
+                // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocations
                 // is read-only at this point.
-                foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocationCts)
+                foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocations)
                 {
                     if (!stream.IsStarted ||
                         stream.Id >= (stream.IsBidirectional ?
@@ -1188,7 +1188,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             if (!stream.IsRemote && !_isReadOnly)
             {
-                _ = _pendingInvocationCts.Remove(stream);
+                _ = _pendingInvocations.Remove(stream);
             }
 
             if (--_streamCount == 0)
