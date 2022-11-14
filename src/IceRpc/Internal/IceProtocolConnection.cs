@@ -1096,7 +1096,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        response.Payload.Complete();
                         var dispatchException = new DispatchException(
                             message: null,
                             StatusCode.UnhandledException,
@@ -1106,8 +1105,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             Payload = CreateDispatchExceptionPayload(request, dispatchException),
                             StatusCode = dispatchException.StatusCode
                         };
-                        payload = await ReadFullPayloadAsync(response.Payload, cancellationToken)
-                            .ConfigureAwait(false);
+                        _ = response.Payload.TryRead(out ReadResult readResult);
+                        payload = readResult.Buffer;
                     }
                     int payloadSize = checked((int)payload.Length);
 
