@@ -1082,9 +1082,26 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the
                     // write semaphore.
-                    ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                        response.Payload,
-                        cancellationToken).ConfigureAwait(false);
+                    ReadOnlySequence<byte> payload;
+                    try
+                    {
+                        payload = await ReadFullPayloadAsync(response.Payload, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception exception)
+                    {
+                        var dispatchException = new DispatchException(
+                            message: null,
+                            StatusCode.UnhandledException,
+                            exception);
+                        response = new OutgoingResponse(request)
+                        {
+                            Payload = CreateDispatchExceptionPayload(request, dispatchException),
+                            StatusCode = dispatchException.StatusCode
+                        };
+                        _ = response.Payload.TryRead(out ReadResult readResult);
+                        payload = readResult.Buffer;
+                    }
                     int payloadSize = checked((int)payload.Length);
 
                     // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue
