@@ -890,10 +890,12 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_request_with_compact_format()
+    public void Operation_request_with_compact_format([Values(true, false)]bool anyClass)
     {
         // Act
-        var payload = CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+        var payload = anyClass ?
+            CompactFormatOperationsProxy.Request.OpAnyClass(new MyClassB()) :
+            CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;
@@ -918,10 +920,12 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_request_with_sliced_format()
+    public void Operation_request_with_sliced_format([Values(true, false)]bool anyClass)
     {
         // Act
-        var payload = SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+        var payload = anyClass ?
+            SlicedFormatOperationsProxy.Request.OpAnyClass(new MyClassB()) :
+            SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;
@@ -954,10 +958,12 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_response_with_compact_format()
+    public void Operation_response_with_compact_format([Values(true, false)] bool anyClass)
     {
         // Act
-        var payload = ICompactFormatOperations.Response.OpMyClass(new MyClassB());
+        var payload = anyClass ?
+            ICompactFormatOperations.Response.OpAnyClass(new MyClassB()) :
+            ICompactFormatOperations.Response.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;
@@ -982,10 +988,12 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_response_with_sliced_format()
+    public void Operation_response_with_sliced_format([Values(true, false)]bool anyClass)
     {
         // Act
-        var payload = ISlicedFormatOperations.Response.OpMyClass(new MyClassB());
+        var payload = anyClass ?
+            ISlicedFormatOperations.Response.OpAnyClass(new MyClassB()) :
+            ISlicedFormatOperations.Response.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;
