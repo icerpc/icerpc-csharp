@@ -209,6 +209,7 @@ public class ServerTests
     }
 
     [Test]
+    [Ignore("see #2105")]
     public async Task Dispose_waits_for_refused_connection_disposal()
     {
         // Arrange

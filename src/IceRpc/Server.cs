@@ -275,15 +275,14 @@ public sealed class Server : IAsyncDisposable
                 },
                 _options.ServerAuthenticationOptions);
 
-            // TODO: add support for metrics decorator
-            // listener = new MetricsListenerDecorator(listener);
+            listener = new MetricsDuplexListenerDecorator(listener);
             if (_logger is not null)
             {
                 listener = new LogDuplexListenerDecorator(listener, _logger);
             }
             _listener = listener;
 
-            await Task.Yield();
+            await Task.Yield(); // Ensures that the code below is called outside the server mutex lock.
 
             try
             {
@@ -316,9 +315,8 @@ public sealed class Server : IAsyncDisposable
                             }
                             if (_options.MaxConnections > 0 && _connections.Count == _options.MaxConnections)
                             {
-                                // We have too many connections and can't accept any more.
-                                // Reject the underlying transport connection by disposing the protocol connection.
-                                _backgroundConnectionDisposeCount++;
+                                // We have too many connections and can't accept any more. The connection will be
+                                // refused bellow.
                             }
                             else
                             {
@@ -327,7 +325,7 @@ public sealed class Server : IAsyncDisposable
                                     transportConnectionInformation,
                                     _options.ConnectionOptions);
 
-                                // TODO: add metrics
+                                protocolConnection = new MetricsProtocolConnectionDecorator(protocolConnection);
                                 if (_logger is not null)
                                 {
                                     protocolConnection = new LogProtocolConnectionDecorator(
@@ -355,21 +353,7 @@ public sealed class Server : IAsyncDisposable
                                 // ignore and continue
                             }
 
-                            try
-                            {
-                                duplexConnection.Dispose();
-                            }
-                            finally
-                            {
-                                lock (_mutex)
-                                {
-                                    if (--_backgroundConnectionDisposeCount == 0 &&
-                                        shutdownCancellationToken.IsCancellationRequested)
-                                    {
-                                        _backgroundConnectionDisposeTcs.SetResult();
-                                    }
-                                }
-                            }
+                            duplexConnection.Dispose();
                         }
                         else
                         {
@@ -410,15 +394,14 @@ public sealed class Server : IAsyncDisposable
                 },
                 _options.ServerAuthenticationOptions);
 
-            // TODO: add support for metrics decorator
-            // listener = new MetricsListenerDecorator(listener);
+            listener = new MetricsMultiplexedListenerDecorator(listener);
             if (_logger is not null)
             {
                 listener = new LogMultiplexedListenerDecorator(listener, _logger);
             }
             _listener = listener;
 
-            await Task.Yield();
+            await Task.Yield(); // Ensures that the code below is called outside the server mutex lock.
 
             try
             {
@@ -450,9 +433,8 @@ public sealed class Server : IAsyncDisposable
                             }
                             else if (_options.MaxConnections > 0 && _connections.Count == _options.MaxConnections)
                             {
-                                // We have too many connections and can't accept any more.
-                                // Reject the underlying transport connection by disposing the protocol connection.
-                                _backgroundConnectionDisposeCount++;
+                                // We have too many connections and can't accept any more. The connection will be
+                                // refused bellow.
                             }
                             else
                             {
@@ -461,7 +443,7 @@ public sealed class Server : IAsyncDisposable
                                     transportConnectionInformation,
                                     _options.ConnectionOptions);
 
-                                // TODO: add support for metrics
+                                protocolConnection = new MetricsProtocolConnectionDecorator(protocolConnection);
                                 if (_logger is not null)
                                 {
                                     protocolConnection = new LogProtocolConnectionDecorator(
@@ -491,21 +473,7 @@ public sealed class Server : IAsyncDisposable
                                 // ignore and continue
                             }
 
-                            try
-                            {
-                                await multiplexedConnection.DisposeAsync().ConfigureAwait(false);
-                            }
-                            finally
-                            {
-                                lock (_mutex)
-                                {
-                                    if (--_backgroundConnectionDisposeCount == 0 &&
-                                        shutdownCancellationToken.IsCancellationRequested)
-                                    {
-                                        _backgroundConnectionDisposeTcs.SetResult();
-                                    }
-                                }
-                            }
+                            await multiplexedConnection.DisposeAsync().ConfigureAwait(false);
                         }
                         else
                         {
@@ -577,13 +545,6 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            _ = BackgroundConnectionDisposeAsync(connection, shutdownCancellationToken);
-        }
-
-        async Task BackgroundConnectionDisposeAsync(
-            IProtocolConnection connection,
-            CancellationToken shutdownCancellationToken)
-        {
             try
             {
                 await connection.DisposeAsync().ConfigureAwait(false);
@@ -904,26 +865,117 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{IProtocolConnection}" />.</summary>
-    // TODO: split this class if MetricsDuplexListener and MetricsMultiplexedListener
-    private class MetricListenerDecorator : IListener<IProtocolConnection>
+    /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{IDuplexConnection}" />.</summary>
+    private class MetricsDuplexListenerDecorator : IListener<IDuplexConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        private readonly IListener<IProtocolConnection> _decoratee;
+        private readonly IListener<IDuplexConnection> _decoratee;
 
-        public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+        public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
-            (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
             ServerMetrics.Instance.ConnectionStart();
-            return (new MetricsProtocolConnectionDecorator(connection), remoteNetworkAddress);
+            return (new MetricsDuplexConnectionDecorator(connection), remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal MetricListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
+        internal MetricsDuplexListenerDecorator(IListener<IDuplexConnection> decoratee) => _decoratee = decoratee;
+    }
+
+    /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{IMultiplexedConnection}" />.</summary>
+    private class MetricsMultiplexedListenerDecorator : IListener<IMultiplexedConnection>
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IListener<IMultiplexedConnection> _decoratee;
+
+        public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
+        {
+            (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
+                await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
+            ServerMetrics.Instance.ConnectionStart();
+            return (new MetricsMultiplexedConnectionDecorator(connection), remoteNetworkAddress);
+        }
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal MetricsMultiplexedListenerDecorator(IListener<IMultiplexedConnection> decoratee) => _decoratee = decoratee;
+    }
+
+    /// <summary>Provides a decorator that adds logging to the <see cref="IDuplexConnection" />.</summary>
+    private class MetricsDuplexConnectionDecorator : IDuplexConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IDuplexConnection _decoratee;
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            ServerMetrics.Instance.ConnectStart();
+            try
+            {
+                return await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                ServerMetrics.Instance.ConnectStop();
+                throw;
+            }
+        }
+
+        public void Dispose() => _decoratee.Dispose();
+
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+            _decoratee.ReadAsync(buffer, cancellationToken);
+
+        public Task ShutdownAsync(CancellationToken cancellationToken) =>
+            _decoratee.ShutdownAsync(cancellationToken);
+
+        public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken) =>
+            _decoratee.WriteAsync(buffers, cancellationToken);
+
+        internal MetricsDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
+    }
+
+    /// <summary>Provides a decorator that adds logging to the <see cref="IMultiplexedConnection" />.</summary>
+    private class MetricsMultiplexedConnectionDecorator : IMultiplexedConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IMultiplexedConnection _decoratee;
+
+        public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
+            _decoratee.AcceptStreamAsync(cancellationToken);
+
+        public Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
+            _decoratee.CloseAsync(applicationErrorCode, cancellationToken);
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            ServerMetrics.Instance.ConnectStart();
+            try
+            {
+                return await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                ServerMetrics.Instance.ConnectStop();
+                throw;
+            }
+        }
+
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(
+            bool bidirectional,
+            CancellationToken cancellationToken) => _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal MetricsMultiplexedConnectionDecorator(IMultiplexedConnection decoratee) => _decoratee = decoratee;
     }
 
     /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.
@@ -939,7 +991,6 @@ public sealed class Server : IAsyncDisposable
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
-            ServerMetrics.Instance.ConnectStart();
             try
             {
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
