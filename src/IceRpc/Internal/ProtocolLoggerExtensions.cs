@@ -129,7 +129,7 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionInternalDispatchFailure),
         Level = LogLevel.Error,
         Message = "Request dispatch failed with an internal error")]
-    internal static partial void LogInternalDispatchFailure(
+    internal static partial void LogConnectionInternalDispatchFailure(
         this ILogger logger,
         Exception exception);
 
@@ -138,25 +138,25 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionInternalDispatchFailure),
         Level = LogLevel.Error,
         Message = "Request dispatch '{Path}/{Operation}' failed with an internal error")]
-    internal static partial void LogInternalDispatchFailure(
+    internal static partial void LogConnectionInternalDispatchFailure(
         this ILogger logger,
         string path,
         string operation,
         Exception exception);
 #pragma warning restore SYSLIB1006
 
-    internal static void LogInternalDispatchFailure(
+    internal static void LogConnectionInternalDispatchFailure(
         this ILogger logger,
         IncomingRequest? request,
         Exception exception)
     {
         if (request is not null)
         {
-            LogInternalDispatchFailure(logger, request.Path, request.Operation, exception);
+            LogConnectionInternalDispatchFailure(logger, request.Path, request.Operation, exception);
         }
         else
         {
-            LogInternalDispatchFailure(logger, exception);
+            LogConnectionInternalDispatchFailure(logger, exception);
         }
     }
 
@@ -165,7 +165,7 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionReceivedInvalidRequest),
         Level = LogLevel.Debug,
         Message = "Received invalid request")]
-    internal static partial void LogReceivedInvalidRequest(this ILogger logger, Exception exception);
+    internal static partial void LogConnectionReceivedInvalidRequest(this ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,

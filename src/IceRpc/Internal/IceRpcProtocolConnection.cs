@@ -915,7 +915,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             catch (InvalidDataException invalidDataException)
             {
                 exception = invalidDataException;
-                _logger.LogReceivedInvalidRequest(invalidDataException);
+                _logger.LogConnectionReceivedInvalidRequest(invalidDataException);
                 return;
             }
 
@@ -940,7 +940,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (Exception newException)
         {
             exception = newException;
-            _logger.LogInternalDispatchFailure(request, newException);
+            _logger.LogConnectionInternalDispatchFailure(request, newException);
         }
         finally
         {
