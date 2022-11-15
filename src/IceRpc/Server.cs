@@ -39,6 +39,8 @@ public sealed class Server : IAsyncDisposable
     // ShutdownAsync and/or DisposeAsync.
     private Task? _listenerDisposeTask;
 
+    private readonly ILogger? _logger;
+
     private Task? _listenTask;
 
     private readonly IMultiplexedServerTransport _multiplexedServerTransport;
@@ -46,9 +48,9 @@ public sealed class Server : IAsyncDisposable
     // protects _listener and _connections
     private readonly object _mutex = new();
 
-    private readonly ServerAddress _serverAddress;
-
     private readonly ServerOptions _options;
+
+    private readonly ServerAddress _serverAddress;
 
     private readonly TaskCompletionSource _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -75,8 +77,8 @@ public sealed class Server : IAsyncDisposable
         _serverAddress = options.ServerAddress;
         _duplexServerTransport = duplexServerTransport ?? IDuplexServerTransport.Default;
         _multiplexedServerTransport ??= multiplexedServerTransport ?? IMultiplexedServerTransport.Default;
+        _logger = logger;
         _options = options;
-        // TODO: see how to deal with the logger/metrics.
 
         if (_serverAddress.Transport is null)
         {
@@ -273,12 +275,12 @@ public sealed class Server : IAsyncDisposable
                 },
                 _options.ServerAuthenticationOptions);
 
-            // TODO: see how to deal with the logger/metrics.
+            // TODO: add support for metrics decorator
             // listener = new MetricsListenerDecorator(listener);
-            // if (logger is not null)
-            // {
-            //     listener = new LogListenerDecorator(listener, logger);
-            // }
+            if (_logger is not null)
+            {
+                listener = new LogDuplexListenerDecorator(listener, _logger);
+            }
             _listener = listener;
 
             await Task.Yield();
@@ -324,6 +326,16 @@ public sealed class Server : IAsyncDisposable
                                     duplexConnection,
                                     transportConnectionInformation,
                                     _options.ConnectionOptions);
+
+                                // TODO: add metrics
+                                if (_logger is not null)
+                                {
+                                    protocolConnection = new LogProtocolConnectionDecorator(
+                                        protocolConnection,
+                                        transportConnectionInformation.LocalNetworkAddress,
+                                        _logger);
+                                }
+
                                 _connections.Add(protocolConnection);
                             }
                         }
@@ -398,12 +410,12 @@ public sealed class Server : IAsyncDisposable
                 },
                 _options.ServerAuthenticationOptions);
 
-            // TODO: see how to deal with the logger/metrics.
+            // TODO: add support for metrics decorator
             // listener = new MetricsListenerDecorator(listener);
-            // if (logger is not null)
-            // {
-            //     listener = new LogListenerDecorator(listener, logger);
-            // }
+            if (_logger is not null)
+            {
+                listener = new LogMultiplexedListenerDecorator(listener, _logger);
+            }
             _listener = listener;
 
             await Task.Yield();
@@ -448,6 +460,16 @@ public sealed class Server : IAsyncDisposable
                                     multiplexedConnection,
                                     transportConnectionInformation,
                                     _options.ConnectionOptions);
+
+                                // TODO: add support for metrics
+                                if (_logger is not null)
+                                {
+                                    protocolConnection = new LogProtocolConnectionDecorator(
+                                        protocolConnection,
+                                        transportConnectionInformation.RemoteNetworkAddress,
+                                        _logger);
+                                }
+
                                 _connections.Add(protocolConnection);
                             }
                         }
@@ -631,25 +653,25 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public override string ToString() => ServerAddress.ToString();
 
-    /// <summary>Provides a decorator that adds logging to a <see cref="IListener{T}" /> of
-    /// <see cref="IProtocolConnection" />.</summary>
-    private class LogListenerDecorator : IListener<IProtocolConnection>
+    private class LogDuplexListenerDecorator : IListener<IDuplexConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        private readonly IListener<IProtocolConnection> _decoratee;
+        private readonly IListener<IDuplexConnection> _decoratee;
         private readonly ILogger _logger;
 
-        public async Task<(IProtocolConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+        public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
             try
             {
-                (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
+                (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
                     await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
+
                 _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
+
                 return (
-                    new LogProtocolConnectionDecorator(connection, remoteNetworkAddress, _logger),
+                    new LogDuplexConnectionDecorator(connection, remoteNetworkAddress, _logger),
                     remoteNetworkAddress);
             }
             catch (Exception exception)
@@ -661,11 +683,145 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal LogListenerDecorator(IListener<IProtocolConnection> decoratee, ILogger logger)
+        internal LogDuplexListenerDecorator(IListener<IDuplexConnection> decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;
             _logger.StartAcceptingConnections(ServerAddress);
+        }
+    }
+
+    private class LogMultiplexedListenerDecorator : IListener<IMultiplexedConnection>
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IListener<IMultiplexedConnection> _decoratee;
+        private readonly ILogger _logger;
+
+        public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
+                    await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
+
+                _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
+
+                return (
+                    new LogMultiplexedConnectionDecorator(connection, remoteNetworkAddress, _logger),
+                    remoteNetworkAddress);
+            }
+            catch (Exception exception)
+            {
+                _logger.ConnectionAcceptFailed(ServerAddress, exception);
+                throw;
+            }
+        }
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal LogMultiplexedListenerDecorator(IListener<IMultiplexedConnection> decoratee, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
+            _logger.StartAcceptingConnections(ServerAddress);
+        }
+    }
+
+    /// <summary>Provides a decorator that adds logging to the <see cref="IDuplexConnection" />.</summary>
+    private class LogDuplexConnectionDecorator : IDuplexConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IDuplexConnection _decoratee;
+        private readonly ILogger _logger;
+        private readonly EndPoint _remoteNetworkAddress;
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(
+                    cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+            catch (Exception exception)
+            {
+                _logger.ConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                throw;
+            }
+        }
+
+        public void Dispose() => _decoratee.Dispose();
+
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+            _decoratee.ReadAsync(buffer, cancellationToken);
+
+        public Task ShutdownAsync(CancellationToken cancellationToken) =>
+            // TODO: log connection refuse. How?
+            _decoratee.ShutdownAsync(cancellationToken);
+
+        public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken) =>
+            _decoratee.WriteAsync(buffers, cancellationToken);
+
+        internal LogDuplexConnectionDecorator(
+            IDuplexConnection decoratee,
+            EndPoint remoteNetworkAddress,
+            ILogger logger)
+        {
+            _decoratee = decoratee;
+            _remoteNetworkAddress = remoteNetworkAddress;
+            _logger = logger;
+        }
+    }
+
+    /// <summary>Provides a decorator that adds logging to the <see cref="IMultiplexedConnection" />.</summary>
+    private class LogMultiplexedConnectionDecorator : IMultiplexedConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IMultiplexedConnection _decoratee;
+        private readonly ILogger _logger;
+        private readonly EndPoint _remoteNetworkAddress;
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TransportConnectionInformation result = await _decoratee.ConnectAsync(
+                    cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+            catch (Exception exception)
+            {
+                _logger.ConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                throw;
+            }
+        }
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
+            _decoratee.AcceptStreamAsync(cancellationToken);
+
+        public Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
+            // TODO: log connection refuse. How?
+            _decoratee.CloseAsync(applicationErrorCode, cancellationToken);
+
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(
+            bool bidirectional,
+            CancellationToken cancellationToken) =>
+            _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
+
+        internal LogMultiplexedConnectionDecorator(
+            IMultiplexedConnection decoratee,
+            EndPoint remoteNetworkAddress,
+            ILogger logger)
+        {
+            _decoratee = decoratee;
+            _remoteNetworkAddress = remoteNetworkAddress;
+            _logger = logger;
         }
     }
 
@@ -702,7 +858,6 @@ public sealed class Server : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.StopAcceptingConnections(ServerAddress);
             await _logShutdownTask.ConfigureAwait(false);
         }
 
@@ -731,7 +886,7 @@ public sealed class Server : IAsyncDisposable
                     await ShutdownComplete.ConfigureAwait(false);
                     if (_localNetworkAddress is not null)
                     {
-                        _logger.ConnectionShutdown(isServer: true, _localNetworkAddress, remoteNetworkAddress);
+                        _logger.ConnectionShutdown(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
                     }
                 }
                 catch (Exception exception)
@@ -749,9 +904,9 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{T}" /> of
-    /// <see cref="IProtocolConnection" />.</summary>
-    private class MetricsListenerDecorator : IListener<IProtocolConnection>
+    /// <summary>Provides a decorator that adds metrics to a <see cref="IListener{IProtocolConnection}" />.</summary>
+    // TODO: split this class if MetricsDuplexListener and MetricsMultiplexedListener
+    private class MetricListenerDecorator : IListener<IProtocolConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -768,7 +923,7 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal MetricsListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
+        internal MetricListenerDecorator(IListener<IProtocolConnection> decoratee) => _decoratee = decoratee;
     }
 
     /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.
