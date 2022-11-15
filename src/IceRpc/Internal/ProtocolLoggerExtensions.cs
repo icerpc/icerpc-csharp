@@ -14,7 +14,7 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionAccepted),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' accepted connection from '{RemoteNetworkAddress}'")]
-    internal static partial void ConnectionAccepted(
+    internal static partial void LogConnectionAccepted(
         this ILogger logger,
         ServerAddress serverAddress,
         EndPoint remoteNetworkAddress);
@@ -24,7 +24,7 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionAcceptFailed),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' failed to accept a new connection")]
-    internal static partial void ConnectionAcceptFailed(
+    internal static partial void LogConnectionAcceptFailed(
         this ILogger logger,
         ServerAddress serverAddress,
         Exception exception);
@@ -34,31 +34,31 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionConnected),
         Level = LogLevel.Trace,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' connected")]
-    internal static partial void ConnectionConnected(
+    internal static partial void LogConnectionConnected(
         this ILogger logger,
         string kind,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress);
 
-    internal static void ConnectionConnected(
+    internal static void LogConnectionConnected(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress) =>
-        ConnectionConnected(
+        LogConnectionConnected(
             logger,
             isServer ? "Server|Client" : "Client|Server",
             localNetworkAddress,
             remoteNetworkAddress);
 
-    // Multiple logging methods are using same event id, we have two ConnectFailed overloads
+    // Multiple logging methods are using same event id.
 #pragma warning disable SYSLIB1006
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
         Level = LogLevel.Trace,
         Message = "Client|Server connection connect to '{ServerAddress}' failed")]
-    internal static partial void ConnectionConnectFailed(
+    internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
         ServerAddress serverAddress,
         Exception exception);
@@ -68,7 +68,7 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
         Level = LogLevel.Trace,
         Message = "Server|Client connection connect from '{ServerAddress}' to '{RemoteNetworkAdress}' failed")]
-    internal static partial void ConnectionConnectFailed(
+    internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
         ServerAddress serverAddress,
         EndPoint remoteNetworkAdress,
@@ -80,20 +80,20 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionFailed),
         Level = LogLevel.Trace,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed")]
-    internal static partial void ConnectionFailed(
+    internal static partial void LogConnectionFailed(
         this ILogger logger,
         string kind,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress,
         Exception exception);
 
-    internal static void ConnectionFailed(
+    internal static void LogConnectionFailed(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress,
         Exception exception) =>
-        ConnectionFailed(
+        LogConnectionFailed(
             logger,
             isServer ? "Server|Client" : "Client|Server",
             localNetworkAddress,
@@ -105,66 +105,79 @@ internal static partial class ProtocolLoggerExtensions
         EventName = nameof(ProtocolEventIds.ConnectionShutdown),
         Level = LogLevel.Trace,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' shutdown")]
-    internal static partial void ConnectionShutdown(
+    internal static partial void LogConnectionShutdown(
         this ILogger logger,
         string kind,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress);
 
-    internal static void ConnectionShutdown(
+    internal static void LogConnectionShutdown(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
         EndPoint remoteNetworkAddress) =>
-        ConnectionShutdown(
+        LogConnectionShutdown(
             logger,
             isServer ? "Server|Client" : "Client|Server",
             localNetworkAddress,
             remoteNetworkAddress);
 
+    // Multiple logging methods are using same event id.
 #pragma warning disable SYSLIB1006
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.UnhandledException,
-        EventName = nameof(ProtocolEventIds.UnhandledException),
+        EventId = (int)ProtocolEventIds.ConnectionInternalDispatchFailure,
+        EventName = nameof(ProtocolEventIds.ConnectionInternalDispatchFailure),
         Level = LogLevel.Error,
-        Message = "Request dispatch failed with unhandled exception")]
-    internal static partial void DispatchUnhandledException(this ILogger logger, Exception exception);
+        Message = "Request dispatch failed with an internal error")]
+    internal static partial void LogInternalDispatchFailure(
+        this ILogger logger,
+        Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.UnhandledException,
-        EventName = nameof(ProtocolEventIds.UnhandledException),
+        EventId = (int)ProtocolEventIds.ConnectionInternalDispatchFailure,
+        EventName = nameof(ProtocolEventIds.ConnectionInternalDispatchFailure),
         Level = LogLevel.Error,
-        Message = "Request dispatch '{Path}/{Operation}' failed with unhandled exception")]
-    internal static partial void DispatchUnhandledException(
+        Message = "Request dispatch '{Path}/{Operation}' failed with an internal error")]
+    internal static partial void LogInternalDispatchFailure(
         this ILogger logger,
         string path,
         string operation,
         Exception exception);
 #pragma warning restore SYSLIB1006
 
-    internal static void DispatchUnhandledException(this ILogger logger, IncomingRequest? request, Exception exception)
+    internal static void LogInternalDispatchFailure(
+        this ILogger logger,
+        IncomingRequest? request,
+        Exception exception)
     {
         if (request is not null)
         {
-            logger.DispatchUnhandledException(request.Path, request.Operation, exception);
+            LogInternalDispatchFailure(logger, request.Path, request.Operation, exception);
         }
         else
         {
-            logger.DispatchUnhandledException(exception);
+            LogInternalDispatchFailure(logger, exception);
         }
     }
+
+    [LoggerMessage(
+        EventId = (int)ProtocolEventIds.ConnectionReceivedInvalidRequest,
+        EventName = nameof(ProtocolEventIds.ConnectionReceivedInvalidRequest),
+        Level = LogLevel.Debug,
+        Message = "Received invalid request")]
+    internal static partial void LogReceivedInvalidRequest(this ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' start accepting connections")]
-    internal static partial void StartAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
+    internal static partial void LogStartAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StopAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StopAcceptingConnections),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' stop accepting connections")]
-    internal static partial void StopAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
+    internal static partial void LogStopAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 }

@@ -46,7 +46,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 _connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                _logger.ConnectionConnected(
+                _logger.LogConnectionConnected(
                     isServer: false,
                     _connectionInformation.LocalNetworkAddress,
                     _connectionInformation.RemoteNetworkAddress);
@@ -54,7 +54,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
             }
             catch (Exception exception)
             {
-                _logger.ConnectionConnectFailed(ServerAddress, exception);
+                _logger.LogConnectionConnectFailed(ServerAddress, exception);
                 throw;
             }
         }
@@ -86,7 +86,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                     if (_connectionInformation is not null)
                     {
                         // We only log Shutdown when the ConnectAsync completed successfully.
-                        _logger.ConnectionShutdown(
+                        _logger.LogConnectionShutdown(
                             isServer: false,
                             _connectionInformation.LocalNetworkAddress,
                             _connectionInformation.RemoteNetworkAddress);
@@ -95,7 +95,7 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                 catch (Exception exception)
                 {
                     Debug.Assert(_connectionInformation is not null);
-                    _logger.ConnectionFailed(
+                    _logger.LogConnectionFailed(
                         isServer: false,
                         _connectionInformation.LocalNetworkAddress,
                         _connectionInformation.RemoteNetworkAddress,

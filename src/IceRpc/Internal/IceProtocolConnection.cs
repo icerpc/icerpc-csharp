@@ -1001,7 +1001,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        _logger.DispatchUnhandledException(request, exception);
+                        _logger.LogInternalDispatchFailure(request, exception);
                     }
                 },
                 CancellationToken.None);

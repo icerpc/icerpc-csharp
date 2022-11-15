@@ -23,11 +23,14 @@ public enum ProtocolEventIds
     /// <summary>A connection has been terminated because a failure.</summary>
     ConnectionFailed,
 
+    /// <summary>A request dispatch failed due to an internal error.</summary>
+    ConnectionInternalDispatchFailure,
+
+    /// <summary>Received an invalid request that we cannot decode at it will be ignored.</summary>
+    ConnectionReceivedInvalidRequest,
+
     /// <summary>A connection has been shutdown.</summary>
     ConnectionShutdown,
-
-    /// <summary>A request dispatch failed with an unhandled exception.</summary>
-    UnhandledException,
 
     /// <summary>The listener starts accepting connections.</summary>
     StartAcceptingConnections,

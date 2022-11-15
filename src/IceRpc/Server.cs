@@ -520,14 +520,14 @@ public sealed class Server : IAsyncDisposable
             {
                 (IProtocolConnection connection, EndPoint remoteNetworkAddress) =
                     await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
+                _logger.LogConnectionAccepted(ServerAddress, remoteNetworkAddress);
                 return (
                     new LogProtocolConnectionDecorator(connection, remoteNetworkAddress, _logger),
                     remoteNetworkAddress);
             }
             catch (Exception exception)
             {
-                _logger.ConnectionAcceptFailed(ServerAddress, exception);
+                _logger.LogConnectionAcceptFailed(ServerAddress, exception);
                 throw;
             }
         }
@@ -538,7 +538,7 @@ public sealed class Server : IAsyncDisposable
         {
             _decoratee = decoratee;
             _logger = logger;
-            _logger.StartAcceptingConnections(ServerAddress);
+            _logger.LogStartAcceptingConnections(ServerAddress);
         }
     }
 
@@ -562,12 +562,12 @@ public sealed class Server : IAsyncDisposable
                 TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
                 _localNetworkAddress = result.LocalNetworkAddress;
-                _logger.ConnectionConnected(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
+                _logger.LogConnectionConnected(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
                 return result;
             }
             catch (Exception exception)
             {
-                _logger.ConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                _logger.LogConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
                 throw;
             }
         }
@@ -575,7 +575,7 @@ public sealed class Server : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.StopAcceptingConnections(ServerAddress);
+            _logger.LogStopAcceptingConnections(ServerAddress);
             await _logShutdownTask.ConfigureAwait(false);
         }
 
@@ -604,14 +604,14 @@ public sealed class Server : IAsyncDisposable
                     await ShutdownComplete.ConfigureAwait(false);
                     if (_localNetworkAddress is not null)
                     {
-                        _logger.ConnectionShutdown(isServer: true, _localNetworkAddress, remoteNetworkAddress);
+                        _logger.LogConnectionShutdown(isServer: true, _localNetworkAddress, remoteNetworkAddress);
                     }
                 }
                 catch (Exception exception)
                 {
                     if (_localNetworkAddress is not null)
                     {
-                        _logger.ConnectionFailed(
+                        _logger.LogConnectionFailed(
                             isServer: true,
                             _localNetworkAddress,
                             remoteNetworkAddress,
