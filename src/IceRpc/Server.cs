@@ -308,17 +308,10 @@ public sealed class Server : IAsyncDisposable
                         IProtocolConnection? protocolConnection = null;
                         lock (_mutex)
                         {
-                            // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
-                            if (shutdownCancellationToken.IsCancellationRequested)
-                            {
-                                // Nothing to do, the transport connection will be disposed outside the _mutex lock.
-                            }
-                            if (_options.MaxConnections > 0 && _connections.Count == _options.MaxConnections)
-                            {
-                                // We have too many connections and can't accept any more. The connection will be
-                                // refused bellow.
-                            }
-                            else
+                            // If server is not shutdown and the max connection count is not reached, create the
+                            // protocol connection.
+                            if (!shutdownCancellationToken.IsCancellationRequested &&
+                                (_options.MaxConnections == 0 || _connections.Count < _options.MaxConnections))
                             {
                                 protocolConnection = new IceProtocolConnection(
                                     duplexConnection,
@@ -340,10 +333,12 @@ public sealed class Server : IAsyncDisposable
 
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
+                            // Server is shutdown, dispose the transport connection.
                             duplexConnection.Dispose();
                         }
                         else if (protocolConnection is null)
                         {
+                            // The max connection count is reached, refuse the connection.
                             try
                             {
                                 await duplexConnection.ShutdownAsync(shutdownCancellationToken).ConfigureAwait(false);
@@ -426,17 +421,10 @@ public sealed class Server : IAsyncDisposable
                         IProtocolConnection? protocolConnection = null;
                         lock (_mutex)
                         {
-                            // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
-                            if (shutdownCancellationToken.IsCancellationRequested)
-                            {
-                                // Nothing to do, the transport connection will be disposed outside the _mutex lock.
-                            }
-                            else if (_options.MaxConnections > 0 && _connections.Count == _options.MaxConnections)
-                            {
-                                // We have too many connections and can't accept any more. The connection will be
-                                // refused bellow.
-                            }
-                            else
+                            // If server is not shutdown and the max connection count is not reached, create the
+                            // protocol connection.
+                            if (!shutdownCancellationToken.IsCancellationRequested &&
+                                (_options.MaxConnections == 0 || _connections.Count < _options.MaxConnections))
                             {
                                 protocolConnection = new IceRpcProtocolConnection(
                                     multiplexedConnection,
@@ -458,10 +446,12 @@ public sealed class Server : IAsyncDisposable
 
                         if (shutdownCancellationToken.IsCancellationRequested)
                         {
+                            // Server is shutdown, dispose the transport connection.
                             await multiplexedConnection.DisposeAsync().ConfigureAwait(false);
                         }
                         else if (protocolConnection is null)
                         {
+                            // The max connection count is reached, refuse the connection.
                             try
                             {
                                 await multiplexedConnection.CloseAsync(
