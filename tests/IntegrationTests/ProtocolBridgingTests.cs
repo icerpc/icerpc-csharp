@@ -106,7 +106,6 @@ public sealed class ProtocolBridgingTests
                 () => proxy.OpServiceNotFoundExceptionAsync());
 
             Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
-            Assert.That(dispatchException!.Origin, Is.Not.Null);
 
             ProtocolBridgingTestProxy newProxy = await proxy.OpNewProxyAsync();
             return newProxy;

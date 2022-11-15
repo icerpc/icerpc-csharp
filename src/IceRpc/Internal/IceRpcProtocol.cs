@@ -64,7 +64,6 @@ internal sealed class IceRpcProtocol : Protocol
             return new DispatchException(message, response.StatusCode)
             {
                 ConvertToUnhandled = true,
-                Origin = request
             };
         }
     }
