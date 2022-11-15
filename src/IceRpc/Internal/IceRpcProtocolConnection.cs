@@ -937,10 +937,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             exception = transportException;
             // TODO log transport failures
         }
-        catch (Exception newException)
+        catch (ProtocolException protocolException)
         {
-            exception = newException;
-            _logger.LogConnectionInternalDispatchFailure(request, newException);
+            exception = protocolException;
+            _logger.LogProtocolException(protocolException);
+        }
+        catch (Exception internalException)
+        {
+            exception = internalException;
+            _logger.LogConnectionInternalDispatchFailure(request, internalException);
         }
         finally
         {

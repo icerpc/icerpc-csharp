@@ -26,6 +26,9 @@ public enum ProtocolEventIds
     /// <summary>A request dispatch failed due to an internal error.</summary>
     ConnectionInternalDispatchFailure,
 
+    /// <summary>A request dispatch failed due to an protocol error.</summary>
+    ConnectionProtocolDispatchFailure,
+
     /// <summary>Received an invalid request that we cannot decode at it will be ignored.</summary>
     ConnectionReceivedInvalidRequest,
 
