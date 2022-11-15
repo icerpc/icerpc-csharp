@@ -23,9 +23,9 @@ public sealed class Server : IAsyncDisposable
     /// </summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private int _backgroundDisposeCount;
+    private int _backgroundConnectionDisposeCount;
 
-    private readonly TaskCompletionSource _backgroundDisposeTcs =
+    private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly HashSet<IProtocolConnection> _connections = new();
@@ -230,10 +230,10 @@ public sealed class Server : IAsyncDisposable
                 // already disposed by a previous or concurrent call.
             }
 
-            if (_backgroundDisposeCount == 0)
+            if (_backgroundConnectionDisposeCount == 0)
             {
                 // There is no outstanding background dispose.
-                _ = _backgroundDisposeTcs.TrySetResult();
+                _ = _backgroundConnectionDisposeTcs.TrySetResult();
             }
 
             if (_listener is not null)
@@ -256,7 +256,7 @@ public sealed class Server : IAsyncDisposable
         }
 
         await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())
-            .Append(_backgroundDisposeTcs.Task)).ConfigureAwait(false);
+            .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
         _ = _shutdownCompleteSource.TrySetResult();
         _shutdownCts.Dispose();
     }
@@ -342,26 +342,18 @@ public sealed class Server : IAsyncDisposable
 
         async Task ConnectAsync(IProtocolConnectionConnector connector)
         {
+            // Connect the transport connection first.
             TransportConnectionInformation transportConnectionInformation =
                 await connector.ConnectTransportConnectionAsync(shutdownCancellationToken).ConfigureAwait(false);
 
+            // Create the protocol connection if the server is not being shutdown and if the max connection count is not
+            // reached.
             IProtocolConnection? protocolConnection = null;
             lock (_mutex)
             {
-                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
-                if (shutdownCancellationToken.IsCancellationRequested)
+                if (!shutdownCancellationToken.IsCancellationRequested &&
+                    (_maxConnections == 0 || _connections.Count < _maxConnections))
                 {
-                    // Nothing to do, the transport will be disposed when the connector is disposed.
-                }
-                else if (_maxConnections > 0 && _connections.Count == _maxConnections)
-                {
-                    // We have too many connections and can't accept any more. Reject the underlying transport
-                    // connection.
-                    _backgroundDisposeCount++;
-                }
-                else
-                {
-                    // At this point the protocol connection now owns the transport connection.
                     protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
                     _connections.Add(protocolConnection);
                 }
@@ -369,11 +361,12 @@ public sealed class Server : IAsyncDisposable
 
             if (shutdownCancellationToken.IsCancellationRequested)
             {
-                // Dispose of the connector and underlying transport connection.
+                // Dispose of the connector and underlying transport connection if the server is being shutdown.
                 await connector.DisposeAsync().ConfigureAwait(false);
             }
             else if (protocolConnection is null)
             {
+                // If the max connection count is reached, we refuse the transport connection.
                 try
                 {
                     await connector.RefuseTransportConnectionAsync(
@@ -384,16 +377,16 @@ public sealed class Server : IAsyncDisposable
                     // ignore and continue
                 }
 
-                // Dispose of the connector in the background.
-                _ = BackgroundDisposeAsync(connector, shutdownCancellationToken);
+                // Dispose the connector to dispose of the underlying transport.
+                await connector.DisposeAsync().ConfigureAwait(false);
             }
             else
             {
                 // Schedule removal after addition, outside mutex lock.
                 _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
 
-                // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates
-                // one with the configured connection timeout.
+                // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates one with
+                // the configured connection timeout.
                 await protocolConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
@@ -429,28 +422,21 @@ public sealed class Server : IAsyncDisposable
                 else
                 {
                     _ = _connections.Remove(connection);
-                    _backgroundDisposeCount++;
+                    _backgroundConnectionDisposeCount++;
                 }
             }
 
-            _ = BackgroundDisposeAsync(connection, shutdownCancellationToken);
-        }
-
-        async Task BackgroundDisposeAsync(
-            IAsyncDisposable disable,
-            CancellationToken shutdownCancellationToken)
-        {
             try
             {
-                await disable.DisposeAsync().ConfigureAwait(false);
+                await connection.DisposeAsync().ConfigureAwait(false);
             }
             finally
             {
                 lock (_mutex)
                 {
-                    if (--_backgroundDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
+                    if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
                     {
-                        _backgroundDisposeTcs.SetResult();
+                        _backgroundConnectionDisposeTcs.SetResult();
                     }
                 }
             }
@@ -525,7 +511,11 @@ public sealed class Server : IAsyncDisposable
                     await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
                 _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
                 return (
-                    new LogProtocolConnectionConnectorDecorator(connector, ServerAddress, remoteNetworkAddress, _logger),
+                    new LogProtocolConnectionConnectorDecorator(
+                        connector,
+                        ServerAddress,
+                        remoteNetworkAddress,
+                        _logger),
                     remoteNetworkAddress);
             }
             catch (Exception exception)
