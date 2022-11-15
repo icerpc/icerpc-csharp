@@ -41,9 +41,6 @@ public sealed class DispatchException : Exception
         }
     }
 
-    /// <summary>Gets the exception's origin.</summary>
-    public OutgoingRequest? Origin { get; internal init; }
-
     /// <summary>Gets the retry policy.</summary>
     public RetryPolicy RetryPolicy { get; }
 
