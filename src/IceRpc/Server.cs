@@ -39,9 +39,9 @@ public sealed class Server : IAsyncDisposable
     // ShutdownAsync and/or DisposeAsync.
     private Task? _listenerDisposeTask;
 
-    private readonly ILogger? _logger;
-
     private Task? _listenTask;
+
+    private readonly ILogger? _logger;
 
     private readonly IMultiplexedServerTransport _multiplexedServerTransport;
 
