@@ -163,38 +163,38 @@ internal static partial class ProtocolLoggerExtensions
     // Multiple logging methods are using same event id.
 #pragma warning disable SYSLIB1006
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionProtocolDispatchFailure,
-        EventName = nameof(ProtocolEventIds.ConnectionProtocolDispatchFailure),
-        Level = LogLevel.Error,
+        EventId = (int)ProtocolEventIds.ConnectionDispatchFailure,
+        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailure),
+        Level = LogLevel.Debug,
         Message = "Request dispatch failed with a protocol error")]
-    internal static partial void LogConnectionProtocolDispatchFailure(
+    internal static partial void LogConnectionDispatchFailure(
         this ILogger logger,
         Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionProtocolDispatchFailure,
-        EventName = nameof(ProtocolEventIds.ConnectionProtocolDispatchFailure),
-        Level = LogLevel.Error,
+        EventId = (int)ProtocolEventIds.ConnectionDispatchFailure,
+        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailure),
+        Level = LogLevel.Debug,
         Message = "Request dispatch '{Path}/{Operation}' failed with a protocol error")]
-    internal static partial void LogConnectionProtocolDispatchFailure(
+    internal static partial void LogConnectionDispatchFailure(
         this ILogger logger,
         string path,
         string operation,
         Exception exception);
 #pragma warning restore SYSLIB1006
 
-    internal static void LogConnectionProtocolDispatchFailure(
+    internal static void LogConnectionDispatchFailure(
         this ILogger logger,
         IncomingRequest? request,
         Exception exception)
     {
         if (request is not null)
         {
-            LogConnectionProtocolDispatchFailure(logger, request.Path, request.Operation, exception);
+            LogConnectionDispatchFailure(logger, request.Path, request.Operation, exception);
         }
         else
         {
-            LogConnectionProtocolDispatchFailure(logger, exception);
+            LogConnectionDispatchFailure(logger, exception);
         }
     }
 
