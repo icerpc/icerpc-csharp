@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Tests;
@@ -195,7 +194,7 @@ public sealed class RetryInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(Environment.TickCount64 - startTime, Is.GreaterThanOrEqualTo(190));
+        Assert.That(Environment.TickCount64 - startTime, Is.GreaterThanOrEqualTo(185));
         Assert.That(attempts, Is.EqualTo(2));
     }
 

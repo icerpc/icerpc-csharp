@@ -94,7 +94,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 {
                     lock (_mutex)
                     {
-                        Debug.Assert(_disposeTask is null); // DisposeAsync doesn't cancel ConnectAsync.
                         if (_connectCts.IsCancellationRequested)
                         {
                             ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort);
