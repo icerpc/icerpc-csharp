@@ -44,8 +44,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-    // Whether or not the inner exception details should be included in dispatch exceptions
-    private readonly bool _includeInnerExceptionDetails;
     private bool _isReadOnly;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -102,7 +100,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 initialCount: options.MaxDispatches,
                 maxCount: options.MaxDispatches);
         }
-        _includeInnerExceptionDetails = options.IncludeInnerExceptionDetails;
 
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
@@ -1048,11 +1045,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             _ => StatusCode.UnhandledException
                         };
 
-                        // We pass null for message to get the message computed by DispatchException.DefaultMessage.
-                        dispatchException = new DispatchException(
-                            message: null,
-                            statusCode,
-                            _includeInnerExceptionDetails ? exception : null);
+                        // We pass null for message to get the message computed by DispatchException.Message.
+                        dispatchException = new DispatchException(message: null, statusCode, exception);
                     }
 
                     response = new OutgoingResponse(request)
@@ -1085,9 +1079,26 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the
                     // write semaphore.
-                    ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                        response.Payload,
-                        cancellationToken).ConfigureAwait(false);
+                    ReadOnlySequence<byte> payload;
+                    try
+                    {
+                        payload = await ReadFullPayloadAsync(response.Payload, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception exception)
+                    {
+                        var dispatchException = new DispatchException(
+                            message: null,
+                            StatusCode.UnhandledException,
+                            exception);
+                        response = new OutgoingResponse(request)
+                        {
+                            Payload = CreateDispatchExceptionPayload(request, dispatchException),
+                            StatusCode = dispatchException.StatusCode
+                        };
+                        _ = response.Payload.TryRead(out ReadResult readResult);
+                        payload = readResult.Buffer;
+                    }
                     int payloadSize = checked((int)payload.Length);
 
                     // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue

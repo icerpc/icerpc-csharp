@@ -121,15 +121,7 @@ internal struct AsyncQueueCore<T>
         _tokenRegistration = default;
 
         // Get the result.
-        T? result;
-        try
-        {
-            result = _source.GetResult(token);
-        }
-        catch (Exception ex)
-        {
-            throw ExceptionUtil.Throw(ex);
-        }
+        T result = _source.GetResult(token);
 
         bool lockTaken = false;
         try
