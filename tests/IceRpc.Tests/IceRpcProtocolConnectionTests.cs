@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
@@ -93,7 +94,8 @@ public sealed class IceRpcProtocolConnectionTests
                 options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>()),
             transportConnectionInformation: null,
-            options: new());
+            options: new(),
+            NullLogger.Instance);
 
         IMultiplexedConnection? serverConnection = null;
         Task acceptTask = AcceptAndShutdownAsync();

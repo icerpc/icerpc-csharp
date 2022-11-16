@@ -20,6 +20,9 @@ public enum ProtocolEventIds
     /// <summary>A client connection has been created.</summary>
     ConnectionCreated,
 
+    /// <summary>A request dispatch failed with an exception that prevents sending a response.</summary>
+    ConnectionDispatchFailed,
+
     /// <summary>A connection has been terminated because a failure.</summary>
     ConnectionFailed,
 
