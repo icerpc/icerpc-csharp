@@ -142,7 +142,6 @@ internal sealed class IceProtocol : Protocol
             return new DispatchException(message, statusCode)
             {
                 ConvertToUnhandled = true,
-                Origin = request
             };
         }
     }

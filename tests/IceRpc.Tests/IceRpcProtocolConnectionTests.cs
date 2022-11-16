@@ -93,7 +93,7 @@ public sealed class IceRpcProtocolConnectionTests
                 listener.ServerAddress,
                 options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>()),
-            isServer: false,
+            transportConnectionInformation: null,
             options: new(),
             NullLogger.Instance);
 
@@ -351,6 +351,61 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByPeer));
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<TruncatedDataException>());
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload_writer()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            var response = new OutgoingResponse(request)
+            {
+                Payload = payloadDecorator
+            };
+            response.Use(writer => InvalidPipeWriter.Instance);
+            return new(response);
+        });
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<TruncatedDataException>());
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
@@ -682,42 +737,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
-    }
-
-    /// <summary>Shutting down a non-connected server connection sends connection refused.</summary>
-    [Test]
-    public async Task Shutdown_of_non_connected_connection_sends_connection_refused()
-    {
-        // Arrange
-        var multiplexedOptions = new MultiplexedConnectionOptions();
-
-        IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
-            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-            multiplexedOptions,
-            null);
-
-        await using IListener<IProtocolConnection> listener =
-            new IceRpcProtocolListener(new ConnectionOptions(), transportListener, NullLogger.Instance);
-
-        IMultiplexedConnection clientTransport =
-            IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexedOptions, null);
-
-        await using var clientConnection = new IceRpcProtocolConnection(
-            clientTransport,
-            false,
-            new ClientConnectionOptions(),
-            NullLogger.Instance);
-
-        _ = Task.Run(async () =>
-        {
-            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
-            _ = connection.ShutdownAsync();
-        });
-
-        // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
-            () => clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
     }
 
     [Flags]

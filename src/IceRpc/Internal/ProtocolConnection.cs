@@ -78,8 +78,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 try
                 {
-                    TransportConnectionInformation information = await ConnectAsyncCore(cts.Token)
-                        .ConfigureAwait(false);
+                    TransportConnectionInformation information = await ConnectAsyncCore(
+                        cts.Token).ConfigureAwait(false);
                     EnableIdleCheck();
                     return information;
                 }
@@ -260,6 +260,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 throw ConnectionClosedException;
             }
+            else if (_connectTask is null)
+            {
+                throw new InvalidOperationException("cannot call ShutdownAsync before calling ConnectAsync");
+            }
 
             ConnectionClosedException = new(ConnectionErrorCode.ClosedByShutdown);
 
@@ -304,8 +308,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     internal ProtocolConnection(bool isServer, ConnectionOptions options)
     {
-        IsServer = isServer;
-
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
         _idleTimeout = options.IdleTimeout;
@@ -316,6 +318,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     InitiateShutdown(ConnectionErrorCode.ClosedByIdle);
                 }
             });
+        IsServer = isServer;
     }
 
     private protected abstract void CancelDispatchesAndInvocations();

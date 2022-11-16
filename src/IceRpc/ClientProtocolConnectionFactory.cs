@@ -76,7 +76,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                     serverAddress,
                     _duplexConnectionOptions,
                     _clientAuthenticationOptions),
-                isServer: false,
+                transportConnectionInformation: null,
                 _connectionOptions,
                 _logger) :
             new IceRpcProtocolConnection(
@@ -84,7 +84,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                     serverAddress,
                     _multiplexedConnectionOptions,
                     _clientAuthenticationOptions),
-                isServer: false,
+                transportConnectionInformation: null,
                 _connectionOptions,
                 _logger);
 }

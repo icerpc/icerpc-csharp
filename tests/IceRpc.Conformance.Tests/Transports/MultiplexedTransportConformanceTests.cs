@@ -1534,37 +1534,6 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(4ul));
     }
 
-    [Test]
-    [Ignore("See #1859")]
-    public async Task Close_server_connection_before_connect_fails_with_transport_connection_closed_error()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        IMultiplexedConnection? serverConnection = null;
-        Task acceptTask = AcceptAndCloseAsync();
-
-        // Act/Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(
-            async () => await clientConnection.ConnectAsync(default));
-
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
-        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(2ul));
-
-        // Cleanup
-        await serverConnection!.DisposeAsync();
-
-        async Task AcceptAndCloseAsync()
-        {
-            serverConnection = (await listener.AcceptAsync(default)).Connection;
-            await serverConnection.CloseAsync(applicationErrorCode: 2ul, default);
-        }
-    }
-
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 

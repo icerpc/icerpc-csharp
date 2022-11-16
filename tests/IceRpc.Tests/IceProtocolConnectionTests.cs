@@ -132,38 +132,62 @@ public sealed class IceProtocolConnectionTests
         await responseTask;
     }
 
-    /// <summary>Shutting down a non-connected server connection disposes the underlying transport connection.
-    /// </summary>
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
     [Test]
-    public async Task Shutdown_non_connected_connection_disposes_underlying_transport_connection()
+    public async Task Payload_completed_on_invalid_response_payload()
     {
         // Arrange
-        IListener<IDuplexConnection> transportListener = IDuplexServerTransport.Default.Listen(
-            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-            new DuplexConnectionOptions(),
-            null);
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
 
-        await using IListener<IProtocolConnection> listener =
-            new IceProtocolListener(new ConnectionOptions(), transportListener, NullLogger.Instance);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
-        IDuplexConnection clientTransport = IDuplexClientTransport.Default.CreateConnection(
-            transportListener.ServerAddress,
-            new DuplexConnectionOptions(), null);
+        // Act
+        Assert.That(
+            async () => (await sut.Client.InvokeAsync(request)).StatusCode,
+            Is.EqualTo(StatusCode.UnhandledException));
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+    }
 
-        await using var clientConnection =
-            new IceProtocolConnection(clientTransport, false, new ClientConnectionOptions(), NullLogger.Instance);
-
-        _ = Task.Run(async () =>
+    /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
+    [Test]
+    public async Task Payload_completed_on_invalid_response_payload_writer()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
-            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
-            _ = connection.ShutdownAsync();
+            var response = new OutgoingResponse(request)
+            {
+                Payload = payloadDecorator
+            };
+            response.Use(writer => InvalidPipeWriter.Instance);
+            return new(response);
         });
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
-        // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
-            () => clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
-        var transportException = exception.InnerException as TransportException;
-        Assert.That(transportException!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        // Act
+
+        // If the response payload writer is bogus the ice connection cannot write any response, the request
+        // will be canceled by the timeout.
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 }
