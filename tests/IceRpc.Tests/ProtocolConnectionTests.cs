@@ -610,30 +610,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(() => operation(sut.Client), Throws.InstanceOf<ObjectDisposedException>());
     }
 
-    /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync throws
-    /// ConnectionException with ClosedByShutdown if the connection is closed.</summary>
-    [Test, TestCaseSource(nameof(Protocols_and_Protocol_connection_operations))]
-    public async Task Operation_throws_connection_exception_with_closed_error_code(
-        Protocol protocol,
-        Func<IProtocolConnection, Task> operation,
-        bool connect)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        if (connect)
-        {
-            await sut.ConnectAsync();
-        }
-        await sut.Client.ShutdownAsync();
-
-        // Act/Assert
-        ConnectionException? exception = Assert.Throws<ConnectionException>(() => operation(sut.Client));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
-    }
-
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task Payload_completed_on_valid_request(Protocol protocol, bool isOneway)
@@ -895,7 +871,7 @@ public sealed class ProtocolConnectionTests
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connect_throws_connection_exception_after_shutdown(Protocol protocol)
+    public async Task Shutdown_throws_if_not_connected(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -905,12 +881,8 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
-        await sut.Client.ShutdownAsync();
-
         // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
-            () => sut.Client.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InstanceOf<InvalidOperationException>());
     }
 
     [Test, TestCaseSource(nameof(Protocols))]

@@ -92,7 +92,7 @@ public sealed class IceRpcProtocolConnectionTests
                 listener.ServerAddress,
                 options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>()),
-            isServer: false,
+            transportConnectionInformation: null,
             options: new());
 
         IMultiplexedConnection? serverConnection = null;
@@ -735,41 +735,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
-    }
-
-    /// <summary>Shutting down a non-connected server connection sends connection refused.</summary>
-    [Test]
-    public async Task Shutdown_of_non_connected_connection_sends_connection_refused()
-    {
-        // Arrange
-        var multiplexedOptions = new MultiplexedConnectionOptions();
-
-        IListener<IMultiplexedConnection> transportListener = IMultiplexedServerTransport.Default.Listen(
-            new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-            multiplexedOptions,
-            null);
-
-        await using IListener<IProtocolConnection> listener =
-            new IceRpcProtocolListener(new ConnectionOptions(), transportListener);
-
-        IMultiplexedConnection clientTransport =
-            IMultiplexedClientTransport.Default.CreateConnection(transportListener.ServerAddress, multiplexedOptions, null);
-
-        await using var clientConnection = new IceRpcProtocolConnection(
-            clientTransport,
-            false,
-            new ClientConnectionOptions());
-
-        _ = Task.Run(async () =>
-        {
-            (IProtocolConnection connection, _) = await listener.AcceptAsync(default);
-            _ = connection.ShutdownAsync();
-        });
-
-        // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
-            () => clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
     }
 
     [Flags]

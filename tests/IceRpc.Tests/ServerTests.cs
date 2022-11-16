@@ -131,18 +131,12 @@ public class ServerTests
         serverListener.DelayDisposeNewConnections = false;
 
         await clientConnection1.ConnectAsync();
-        DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
+        DelayDisposeMultiplexedConnection serverConnection1 = serverListener.LastConnection!;
 
         // Act/Assert
-
-        // Either the connection is refused because the max connection count is reached,
-        // or the transport was closed by the server before the refused message was received.
         Assert.That(() => clientConnection2.ConnectAsync(),
             Throws.InstanceOf<ConnectionException>().With.Property("ErrorCode")
-            .EqualTo(ConnectionErrorCode.ConnectRefused)
-            .Or
-            .InstanceOf<TransportException>().With.Property("ErrorCode")
-            .EqualTo(TransportErrorCode.ConnectionReset));
+            .EqualTo(ConnectionErrorCode.ConnectRefused));
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
@@ -215,6 +209,7 @@ public class ServerTests
     }
 
     [Test]
+    [Ignore("see #2105")]
     public async Task Dispose_waits_for_refused_connection_disposal()
     {
         // Arrange
@@ -250,7 +245,7 @@ public class ServerTests
         serverListener.DelayDisposeNewConnections = false;
         await clientConnection1.ConnectAsync();
 
-        DelayDisposeMultiplexedConneciton serverConnection1 = serverListener.LastConnection!;
+        DelayDisposeMultiplexedConnection serverConnection1 = serverListener.LastConnection!;
         try
         {
             // Delay dispose of the second server connection
@@ -263,7 +258,7 @@ public class ServerTests
             // Connection refused
         }
 
-        DelayDisposeMultiplexedConneciton serverConnection2 = serverListener.LastConnection!;
+        DelayDisposeMultiplexedConnection serverConnection2 = serverListener.LastConnection!;
 
         // Wait for the connection to began disposal.
         await serverConnection2.WaitForDisposeStart();
@@ -271,7 +266,6 @@ public class ServerTests
         // Shutdown the first client connection and wait for the corresponding server connection to be disposed.
         await clientConnection1.ShutdownAsync();
         await serverConnection1.WaitForDisposeStart();
-
         // Act
 
         // Dispose the server. This will wait for the background connection dispose to complete.
@@ -311,7 +305,7 @@ public class ServerTests
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
         // Gets the last connection created by this listener
-        public DelayDisposeMultiplexedConneciton? LastConnection { get; private set; }
+        public DelayDisposeMultiplexedConnection? LastConnection { get; private set; }
 
         // Sets whether to delay dispose of the next connection created by this listener
         public bool DelayDisposeNewConnections { private get; set; } = true;
@@ -324,14 +318,14 @@ public class ServerTests
         AcceptAsync(CancellationToken cancellationToken)
         {
             (IMultiplexedConnection connection, EndPoint endpoint) = await _listener.AcceptAsync(cancellationToken);
-            LastConnection = new DelayDisposeMultiplexedConneciton(connection, DelayDisposeNewConnections);
+            LastConnection = new DelayDisposeMultiplexedConnection(connection, DelayDisposeNewConnections);
             return (LastConnection, endpoint);
         }
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
     }
 
-    private class DelayDisposeMultiplexedConneciton : IMultiplexedConnection
+    private class DelayDisposeMultiplexedConnection : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _connection.ServerAddress;
 
@@ -342,7 +336,7 @@ public class ServerTests
         private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
         private readonly SemaphoreSlim _delayDisposeSemaphore = new(0);
 
-        public DelayDisposeMultiplexedConneciton(IMultiplexedConnection connection, bool delayDispose)
+        public DelayDisposeMultiplexedConnection(IMultiplexedConnection connection, bool delayDispose)
         {
             _connection = connection;
             _delayDispose = delayDispose;
