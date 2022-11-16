@@ -125,76 +125,38 @@ internal static partial class ProtocolLoggerExtensions
     // Multiple logging methods are using same event id.
 #pragma warning disable SYSLIB1006
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionInternalDispatchFailure,
-        EventName = nameof(ProtocolEventIds.ConnectionInternalDispatchFailure),
+        EventId = (int)ProtocolEventIds.ConnectionDispatchFailed,
+        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailed),
         Level = LogLevel.Error,
-        Message = "Request dispatch failed with an internal error")]
-    internal static partial void LogConnectionInternalDispatchFailure(
+        Message = "Request dispatch failed")]
+    internal static partial void LogConnectionDispatchFailed(
         this ILogger logger,
         Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionInternalDispatchFailure,
-        EventName = nameof(ProtocolEventIds.ConnectionInternalDispatchFailure),
+        EventId = (int)ProtocolEventIds.ConnectionDispatchFailed,
+        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailed),
         Level = LogLevel.Error,
-        Message = "Request dispatch '{Path}/{Operation}' failed with an internal error")]
-    internal static partial void LogConnectionInternalDispatchFailure(
+        Message = "Request dispatch '{Path}/{Operation}' failed")]
+    internal static partial void LogConnectionDispatchFailed(
         this ILogger logger,
         string path,
         string operation,
         Exception exception);
 #pragma warning restore SYSLIB1006
 
-    internal static void LogConnectionInternalDispatchFailure(
+    internal static void LogConnectionDispatchFailed(
         this ILogger logger,
         IncomingRequest? request,
         Exception exception)
     {
         if (request is not null)
         {
-            LogConnectionInternalDispatchFailure(logger, request.Path, request.Operation, exception);
+            LogConnectionDispatchFailed(logger, request.Path, request.Operation, exception);
         }
         else
         {
-            LogConnectionInternalDispatchFailure(logger, exception);
-        }
-    }
-
-    // Multiple logging methods are using same event id.
-#pragma warning disable SYSLIB1006
-    [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionDispatchFailure,
-        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailure),
-        Level = LogLevel.Debug,
-        Message = "Request dispatch failed with a protocol error")]
-    internal static partial void LogConnectionDispatchFailure(
-        this ILogger logger,
-        Exception exception);
-
-    [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionDispatchFailure,
-        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailure),
-        Level = LogLevel.Debug,
-        Message = "Request dispatch '{Path}/{Operation}' failed with a protocol error")]
-    internal static partial void LogConnectionDispatchFailure(
-        this ILogger logger,
-        string path,
-        string operation,
-        Exception exception);
-#pragma warning restore SYSLIB1006
-
-    internal static void LogConnectionDispatchFailure(
-        this ILogger logger,
-        IncomingRequest? request,
-        Exception exception)
-    {
-        if (request is not null)
-        {
-            LogConnectionDispatchFailure(logger, request.Path, request.Operation, exception);
-        }
-        else
-        {
-            LogConnectionDispatchFailure(logger, exception);
+            LogConnectionDispatchFailed(logger, exception);
         }
     }
 

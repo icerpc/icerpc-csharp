@@ -20,15 +20,11 @@ public enum ProtocolEventIds
     /// <summary>A client connection has been created.</summary>
     ConnectionCreated,
 
-    /// <summary>A request dispatch failed due to a protocol or transport error.</summary>
-    ConnectionDispatchFailure,
+    /// <summary>A request dispatch failed with an exception that prevents sending a response.</summary>
+    ConnectionDispatchFailed,
 
     /// <summary>A connection has been terminated because a failure.</summary>
     ConnectionFailed,
-
-    /// <summary>A request dispatch failed due to an internal error, this indicate a bug in the connection
-    /// dispatch code.</summary>
-    ConnectionInternalDispatchFailure,
 
     /// <summary>A connection has been shutdown.</summary>
     ConnectionShutdown,

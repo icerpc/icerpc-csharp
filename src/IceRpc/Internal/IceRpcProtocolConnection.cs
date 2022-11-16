@@ -879,8 +879,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         PipeReader? streamInput = stream.Input;
         PipeWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
         IncomingRequest? request = null;
-        bool success;
-
         try
         {
             ReadResult readResult = await streamInput.ReadSegmentAsync(
@@ -909,29 +907,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             streamInput = null; // the request now owns streamInput
 
             await PerformDispatchRequestAsync(request).ConfigureAwait(false);
-            success = true;
         }
-        catch (TransportException transportException)
+        catch (Exception exception)
         {
-            _logger.LogConnectionDispatchFailure(transportException);
-        }
-        catch (ProtocolException protocolException)
-        {
-            _logger.LogConnectionDispatchFailure(protocolException);
-        }
-        catch (Exception internalException)
-        {
-            _logger.LogConnectionInternalDispatchFailure(request, internalException);
+            // We always need to complete streamOutput when an exception is thrown. For example, we
+            // received an invalid request header that we could not decode.
+            streamOutput?.CompleteOutput(success: false);
+            streamInput?.Complete();
+            _logger.LogConnectionDispatchFailed(request, exception);
         }
         finally
         {
-            if (!success)
-            {
-                // We always need to complete streamOutput when an exception is thrown. For example, we
-                // received an invalid request header that we could not decode.
-                streamOutput?.CompleteOutput(success: false);
-                streamInput?.Complete();
-            }
             fieldsPipeReader?.Complete();
             request?.Dispose();
         }
