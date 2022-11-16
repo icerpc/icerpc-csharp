@@ -30,13 +30,13 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
-    private IProtocolConnectionListener? _listener;
+    private IConnectorListener? _listener;
 
     // We keep this task to await the completion of listener's DisposeAsync when making concurrent calls to
     // ShutdownAsync and/or DisposeAsync.
     private Task? _listenerDisposeTask;
 
-    private readonly Func<IProtocolConnectionListener> _listenerFactory;
+    private readonly Func<IConnectorListener> _listenerFactory;
 
     private Task? _listenTask;
 
@@ -86,7 +86,7 @@ public sealed class Server : IAsyncDisposable
         _listenerFactory = () =>
         {
             // This is the composition root for the protocol and transport listeners.
-            IProtocolConnectionListener listener;
+            IConnectorListener listener;
             if (_serverAddress.Protocol == Protocol.Ice)
             {
                 IListener<IDuplexConnection> transportListener = duplexServerTransport.Listen(
@@ -97,7 +97,7 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool,
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceProtocolConnectionListener(transportListener, options.ConnectionOptions);
+                listener = new IceConnectorListener(transportListener, options.ConnectionOptions);
             }
             else
             {
@@ -112,13 +112,13 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceRpcProtocolConnectionListener(transportListener, options.ConnectionOptions);
+                listener = new IceRpcConnectorListener(transportListener, options.ConnectionOptions);
             }
 
-            listener = new MetricsProtocolConnectionListenerDecorator(listener);
+            listener = new MetricsConnectorListenerDecorator(listener);
             if (logger is not null)
             {
-                listener = new LogProtocolConnectionListenerDecorator(listener, logger);
+                listener = new LogConnectorListenerDecorator(listener, logger);
             }
             return listener;
         };
@@ -269,7 +269,7 @@ public sealed class Server : IAsyncDisposable
     public void Listen()
     {
         CancellationToken shutdownCancellationToken;
-        IProtocolConnectionListener listener;
+        IConnectorListener listener;
 
         // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
@@ -302,7 +302,7 @@ public sealed class Server : IAsyncDisposable
             {
                 while (true)
                 {
-                    (IProtocolConnectionConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
+                    (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
                         .ConfigureAwait(false);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
@@ -340,7 +340,7 @@ public sealed class Server : IAsyncDisposable
             }
         });
 
-        async Task ConnectAsync(IProtocolConnectionConnector connector)
+        async Task ConnectAsync(IConnector connector)
         {
             // Connect the transport connection first.
             TransportConnectionInformation transportConnectionInformation =
@@ -495,23 +495,23 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public override string ToString() => ServerAddress.ToString();
 
-    /// <summary>Provides a decorator that adds logging to a <see cref="IProtocolConnectionListener" />.</summary>
-    private class LogProtocolConnectionListenerDecorator : IProtocolConnectionListener
+    /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" />.</summary>
+    private class LogConnectorListenerDecorator : IConnectorListener
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        private readonly IProtocolConnectionListener _decoratee;
+        private readonly IConnectorListener _decoratee;
         private readonly ILogger _logger;
 
-        public async Task<(IProtocolConnectionConnector, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
+        public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
         {
             try
             {
-                (IProtocolConnectionConnector connector, EndPoint remoteNetworkAddress) =
+                (IConnector connector, EndPoint remoteNetworkAddress) =
                     await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
                 _logger.ConnectionAccepted(ServerAddress, remoteNetworkAddress);
                 return (
-                    new LogProtocolConnectionConnectorDecorator(
+                    new LogConnectorDecorator(
                         connector,
                         ServerAddress,
                         remoteNetworkAddress,
@@ -531,7 +531,7 @@ public sealed class Server : IAsyncDisposable
             return _decoratee.DisposeAsync();
         }
 
-        internal LogProtocolConnectionListenerDecorator(IProtocolConnectionListener decoratee, ILogger logger)
+        internal LogConnectorListenerDecorator(IConnectorListener decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;
@@ -539,9 +539,9 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    private class LogProtocolConnectionConnectorDecorator : IProtocolConnectionConnector
+    private class LogConnectorDecorator : IConnector
     {
-        private readonly IProtocolConnectionConnector _decoratee;
+        private readonly IConnector _decoratee;
         private readonly ILogger _logger;
         private readonly EndPoint _remoteNetworkAddress;
         private readonly ServerAddress _serverAddress;
@@ -572,8 +572,8 @@ public sealed class Server : IAsyncDisposable
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
             _decoratee.RefuseTransportConnectionAsync(cancel);
 
-        internal LogProtocolConnectionConnectorDecorator(
-            IProtocolConnectionConnector decoratee,
+        internal LogConnectorDecorator(
+            IConnector decoratee,
             ServerAddress serverAddress,
             EndPoint remoteNetworkAddress,
             ILogger logger)
@@ -664,31 +664,31 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>Provides a decorator that adds metrics to a <see cref="IProtocolConnectionListener" />.</summary>
-    private class MetricsProtocolConnectionListenerDecorator : IProtocolConnectionListener
+    /// <summary>Provides a decorator that adds metrics to a <see cref="IConnectorListener" />.</summary>
+    private class MetricsConnectorListenerDecorator : IConnectorListener
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        private readonly IProtocolConnectionListener _decoratee;
+        private readonly IConnectorListener _decoratee;
 
-        public async Task<(IProtocolConnectionConnector, EndPoint)> AcceptAsync(
+        public async Task<(IConnector, EndPoint)> AcceptAsync(
             CancellationToken cancellationToken)
         {
-            (IProtocolConnectionConnector connector, EndPoint remoteNetworkAddress) =
+            (IConnector connector, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
             ServerMetrics.Instance.ConnectionStart();
-            return (new MetricsProtocolConnectorDecorator(connector), remoteNetworkAddress);
+            return (new MetricsConnectorDecorator(connector), remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal MetricsProtocolConnectionListenerDecorator(IProtocolConnectionListener decoratee) =>
+        internal MetricsConnectorListenerDecorator(IConnectorListener decoratee) =>
             _decoratee = decoratee;
     }
 
-    private class MetricsProtocolConnectorDecorator : IProtocolConnectionConnector
+    private class MetricsConnectorDecorator : IConnector
     {
-        private readonly IProtocolConnectionConnector _decoratee;
+        private readonly IConnector _decoratee;
 
         public async Task<TransportConnectionInformation> ConnectTransportConnectionAsync(
             CancellationToken cancellationToken)
@@ -726,7 +726,7 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        internal MetricsProtocolConnectorDecorator(IProtocolConnectionConnector decoratee) => _decoratee = decoratee;
+        internal MetricsConnectorDecorator(IConnector decoratee) => _decoratee = decoratee;
     }
 
     /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.</summary>
@@ -795,19 +795,20 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>A protocol connection listener accepts transport connections and returns a protocol connection
-    /// connector.</summary>
-    private interface IProtocolConnectionListener : IAsyncDisposable
+    /// <summary>A connector listener accepts a transport connection and returns a <see cref="IConnector" />. The
+    /// connector is used to refuse the transport connection or obtain a protocol connection once the transport
+    /// connection is connected.</summary>
+    private interface IConnectorListener : IAsyncDisposable
     {
         ServerAddress ServerAddress { get; }
 
-        Task<(IProtocolConnectionConnector, EndPoint)> AcceptAsync(CancellationToken cancel);
+        Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancel);
     }
 
-    /// <summary>An protocol connection connector is created with an accepted transport connection returned by the
-    /// transport listener. It's a helper to either create the protocol connection once the transport connection is
-    /// connected or refuse the transport connection if server can't accept more protocol connections.</summary>
-    private interface IProtocolConnectionConnector : IAsyncDisposable
+    /// <summary>A connector is returned by <see cref="IConnectorListener" />. The connector allows to connect the
+    /// transport connection. If successful, the transport connection can either be refused or accepted by creating the
+    /// protocol connection out of it.</summary>
+    private interface IConnector : IAsyncDisposable
     {
         Task<TransportConnectionInformation> ConnectTransportConnectionAsync(CancellationToken cancellationToken);
 
@@ -816,7 +817,7 @@ public sealed class Server : IAsyncDisposable
         Task RefuseTransportConnectionAsync(CancellationToken cancel);
     }
 
-    private class IceProtocolConnectionListener : IProtocolConnectionListener
+    private class IceConnectorListener : IConnectorListener
     {
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
@@ -825,21 +826,21 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
 
-        public async Task<(IProtocolConnectionConnector, EndPoint)> AcceptAsync(CancellationToken cancel)
+        public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancel)
         {
             (IDuplexConnection transportConnection, EndPoint remoteNetworkAddress) = await _listener.AcceptAsync(
                 cancel).ConfigureAwait(false);
-            return (new IceProtocolConnectionConnector(transportConnection, _options), remoteNetworkAddress);
+            return (new IceConnector(transportConnection, _options), remoteNetworkAddress);
         }
 
-        internal IceProtocolConnectionListener(IListener<IDuplexConnection> listener, ConnectionOptions options)
+        internal IceConnectorListener(IListener<IDuplexConnection> listener, ConnectionOptions options)
         {
             _listener = listener;
             _options = options;
         }
     }
 
-    private class IceProtocolConnectionConnector : IProtocolConnectionConnector
+    private class IceConnector : IConnector
     {
         private readonly ConnectionOptions _options;
         private IDuplexConnection? _transportConnection;
@@ -869,37 +870,37 @@ public sealed class Server : IAsyncDisposable
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
             _transportConnection!.ShutdownAsync(cancel);
 
-        internal IceProtocolConnectionConnector(IDuplexConnection transportConnection, ConnectionOptions options)
+        internal IceConnector(IDuplexConnection transportConnection, ConnectionOptions options)
         {
             _transportConnection = transportConnection;
             _options = options;
         }
     }
 
-    private class IceRpcProtocolConnectionListener : IProtocolConnectionListener
+    private class IceRpcConnectorListener : IConnectorListener
     {
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
         private readonly IListener<IMultiplexedConnection> _listener;
         private readonly ConnectionOptions _options;
 
-        public async Task<(IProtocolConnectionConnector, EndPoint)> AcceptAsync(CancellationToken cancel)
+        public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancel)
         {
             (IMultiplexedConnection transportConnection, EndPoint remoteNetworkAddress) = await _listener.AcceptAsync(
                 cancel).ConfigureAwait(false);
-            return (new IceRpcProtocolConnectionConnector(transportConnection, _options), remoteNetworkAddress);
+            return (new IceRpcConnector(transportConnection, _options), remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
 
-        internal IceRpcProtocolConnectionListener(IListener<IMultiplexedConnection> listener, ConnectionOptions options)
+        internal IceRpcConnectorListener(IListener<IMultiplexedConnection> listener, ConnectionOptions options)
         {
             _listener = listener;
             _options = options;
         }
     }
 
-    private class IceRpcProtocolConnectionConnector : IProtocolConnectionConnector
+    private class IceRpcConnector : IConnector
     {
         private readonly ConnectionOptions _options;
         private IMultiplexedConnection? _transportConnection;
@@ -925,7 +926,7 @@ public sealed class Server : IAsyncDisposable
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
             _transportConnection!.CloseAsync((ulong)IceRpcConnectionErrorCode.Refused, cancel);
 
-        internal IceRpcProtocolConnectionConnector(
+        internal IceRpcConnector(
             IMultiplexedConnection transportConnection,
             ConnectionOptions options)
         {
