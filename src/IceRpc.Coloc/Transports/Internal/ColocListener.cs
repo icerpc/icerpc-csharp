@@ -13,7 +13,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
-    private readonly AsyncQueue<Func<PipeReader?, PipeReader?>> _queue = new();
+    private readonly AsyncQueue<Func<PipeReader?, PipeReader?>> _queue;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
@@ -84,10 +84,11 @@ internal class ColocListener : IListener<IDuplexConnection>
         return default;
     }
 
-    internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
+    internal ColocListener(ServerAddress serverAddress, int listenBacklog, DuplexConnectionOptions options)
     {
         ServerAddress = serverAddress;
 
+        _queue = new(listenBacklog);
         _networkAddress = new ColocEndPoint(serverAddress);
         _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
     }
@@ -95,8 +96,13 @@ internal class ColocListener : IListener<IDuplexConnection>
     /// <summary>Queue the connection establishment request from the client.</summary>
     internal void QueueConnectAsync(Func<PipeReader?, PipeReader?> connect)
     {
-        if (!_queue.Enqueue(connect) || _disposeCts.IsCancellationRequested)
+        if (_disposeCts.IsCancellationRequested)
         {
+            throw new TransportException(TransportErrorCode.ConnectionDisposed);
+        }
+        else if (!_queue.Enqueue(connect))
+        {
+            // BackLog reached.
             throw new TransportException(TransportErrorCode.ConnectionRefused);
         }
     }

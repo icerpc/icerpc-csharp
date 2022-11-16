@@ -59,7 +59,7 @@ public class ServerTests
     }
 
     [Test]
-    public async Task Connection_refused_after_max_is_reached()
+    public async Task Connection_refused_after_max_connections_is_reached()
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
@@ -92,7 +92,53 @@ public class ServerTests
     }
 
     [Test]
-    public async Task Connection_accepted_when_max_counter_is_reached_then_decremented()
+    public async Task Connection_refused_after_max_pending_connections_is_reached()
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var colocTransport = new ColocTransport(listenBacklog: 1);
+
+        var serverTransport = new SlicServerTransport(new HoldServerTransport());
+
+        await using var server = new Server(
+           new ServerOptions
+           {
+               ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+               MaxPendingConnections = 1,
+               ServerAddress = new ServerAddress(new Uri("icerpc://server"))
+           },
+           multiplexedServerTransport: serverTransport);
+
+        server.Listen();
+
+        // The first connection fills the server pending connection queue.
+        await using var clientConnection1 = new ClientConnection(
+           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
+           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        // The second connection fills the transport listener pending connection queue.
+        await using var clientConnection2 = new ClientConnection(
+           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
+           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        // The third connection should be rejected since the listener no longer accepts connections.
+        await using var clientConnection3 = new ClientConnection(
+           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
+           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        _ = clientConnection1.ConnectAsync(default);
+        _ = clientConnection2.ConnectAsync(default);
+
+        // Act
+        Task connectTask = clientConnection3.ConnectAsync();
+
+        // Assert
+        var exception = Assert.ThrowsAsync<ConnectionException>(async () => await connectTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+    }
+
+    [Test]
+    public async Task Connection_accepted_when_max_connections_is_reached_then_decremented()
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
@@ -208,74 +254,65 @@ public class ServerTests
         await disposeTask;
     }
 
-    [Test]
-    [Ignore("see #2105")]
-    public async Task Dispose_waits_for_refused_connection_disposal()
+    private class HoldServerTransport : IDuplexServerTransport
     {
-        // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
-        var colocTransport = new ColocTransport();
+        public string Name => "hold";
 
-        var serverTransport = new DelayDisposeMultiplexServerTransport(
-            new SlicServerTransport(colocTransport.ServerTransport));
+        public IListener<IDuplexConnection>? Listener { get; set; }
 
-        await using var server = new Server(
-           new ServerOptions
-           {
-               ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-               MaxConnections = 1,
-               ServerAddress = new ServerAddress(new Uri("icerpc://server"))
-           },
-           multiplexedServerTransport: serverTransport);
-
-        server.Listen();
-
-        // The listener is now available
-        DelayDisposeConnectionListener serverListener = serverTransport.Listener!;
-
-        await using var clientConnection1 = new ClientConnection(
-           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
-           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
-
-        await using var clientConnection2 = new ClientConnection(
-           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
-           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
-
-        // Don't delay dispose of the first server connection
-        serverListener.DelayDisposeNewConnections = false;
-        await clientConnection1.ConnectAsync();
-
-        DelayDisposeMultiplexedConnection serverConnection1 = serverListener.LastConnection!;
-        try
+        public HoldServerTransport()
         {
-            // Delay dispose of the second server connection
-            serverListener.DelayDisposeNewConnections = true;
-            await clientConnection2.ConnectAsync();
-            // This should always throw
-        }
-        catch (ConnectionException)
-        {
-            // Connection refused
         }
 
-        DelayDisposeMultiplexedConnection serverConnection2 = serverListener.LastConnection!;
+        public IListener<IDuplexConnection> Listen(
+            ServerAddress serverAddress,
+            DuplexConnectionOptions options,
+            SslServerAuthenticationOptions? serverAuthenticationOptions)
+        {
+            Listener = new HoldListener(serverAddress);
+            return Listener;
+        }
+    }
 
-        // Wait for the connection to began disposal.
-        await serverConnection2.WaitForDisposeStart();
+    private class HoldListener : IListener<IDuplexConnection>
+    {
+        public ServerAddress ServerAddress { get; }
 
-        // Shutdown the first client connection and wait for the corresponding server connection to be disposed.
-        await clientConnection1.ShutdownAsync();
-        await serverConnection1.WaitForDisposeStart();
-        // Act
+        internal HoldListener(ServerAddress serverAddress) => ServerAddress = serverAddress;
 
-        // Dispose the server. This will wait for the background connection dispose to complete.
-        ValueTask disposeTask = server.DisposeAsync();
+        public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken) =>
+            Task.FromResult(
+                ((IDuplexConnection)new HoldConnection(ServerAddress),
+                (EndPoint)new IPEndPoint(0, 0)));
 
-        // Assert
-        await Task.Delay(TimeSpan.FromSeconds(1));
-        Assert.That(disposeTask.IsCompleted, Is.False);
-        serverConnection2.ReleaseDispose();
-        await disposeTask;
+        public ValueTask DisposeAsync() => new();
+    }
+
+    private class HoldConnection : IDuplexConnection
+    {
+        public ServerAddress ServerAddress { get; }
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            await Task.Delay(-1, cancellationToken);
+            return new(new IPEndPoint(0, 0), new IPEndPoint(0, 0), remoteCertificate: null);
+        }
+
+        public void Dispose()
+        {
+        }
+
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task ShutdownAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        internal HoldConnection(ServerAddress serverAddress) => ServerAddress = serverAddress;
     }
 
     private class DelayDisposeMultiplexServerTransport : IMultiplexedServerTransport

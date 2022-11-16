@@ -113,6 +113,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 {
                     throw;
                 }
+                catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.ConnectionRefused)
+                {
+                    ConnectionClosedException = new(
+                        ConnectionErrorCode.ClosedByAbort,
+                        "the connection establishment failed",
+                        exception);
+                    throw new ConnectionException(ConnectionErrorCode.ConnectRefused, exception);
+                }
                 catch (TransportException exception)
                 {
                     ConnectionClosedException = new(

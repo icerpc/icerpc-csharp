@@ -45,6 +45,8 @@ public sealed class Server : IAsyncDisposable
     // protects _listener and _connections
     private readonly object _mutex = new();
 
+    private readonly SemaphoreSlim _pendingConnectionSemaphore;
+
     private readonly ServerAddress _serverAddress;
 
     private readonly TaskCompletionSource _shutdownCompleteSource =
@@ -73,6 +75,7 @@ public sealed class Server : IAsyncDisposable
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
         _maxConnections = options.MaxConnections;
+        _pendingConnectionSemaphore = new SemaphoreSlim(options.MaxPendingConnections, options.MaxPendingConnections);
 
         if (_serverAddress.Transport is null)
         {
@@ -302,8 +305,10 @@ public sealed class Server : IAsyncDisposable
             {
                 while (true)
                 {
-                    (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
-                        .ConfigureAwait(false);
+                    await _pendingConnectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+
+                    (IConnector connector, _) = await listener.AcceptAsync(
+                        shutdownCancellationToken).ConfigureAwait(false);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
                     // transports such as TLS based transports where the handshake requires few round trips between the
@@ -320,6 +325,10 @@ public sealed class Server : IAsyncDisposable
                             catch
                             {
                                 // Ignore connection establishment failure.
+                            }
+                            finally
+                            {
+                                _pendingConnectionSemaphore.Release();
                             }
                         });
                 }

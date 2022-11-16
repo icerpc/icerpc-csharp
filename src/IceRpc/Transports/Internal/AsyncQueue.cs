@@ -5,13 +5,12 @@ using System.Threading.Tasks.Sources;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The AsyncQueue provides queuing functionality with a <see cref="ValueTask" /> asynchronous dequeue
-/// function. This class is public even though it's in the internal namespace. It's used by the coloc transport
-/// which is implemented in another assembly.</summary>
+/// function.</summary>
 internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
 {
     // It is necessary to call new() explicitly to execute the parameterless ctor of AsyncQueueCore, which is
     // synthesized from AsyncQueueCore fields defaults.
-    private AsyncQueueCore<T> _queue = new();
+    private AsyncQueueCore<T> _queue;
 
     /// <summary>Cancels the pending DequeueAsync call by completing the queue with OperationCanceledException.
     /// Completing the queue is fine for transports but might not be for general purpose use of an asynchronous
@@ -28,6 +27,13 @@ internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
             short token,
             ValueTaskSourceOnCompletedFlags flags) =>
         _queue.OnCompleted(continuation, state, token, flags);
+
+    internal AsyncQueue()
+        : this(0)
+    {
+    }
+
+    internal AsyncQueue(int maxCount) => _queue = new(maxCount);
 
     /// <summary>Asynchronously dequeues an element.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

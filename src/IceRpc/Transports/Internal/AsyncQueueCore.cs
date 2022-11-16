@@ -26,18 +26,21 @@ internal struct AsyncQueueCore<T>
     // Provide thread safety using a spin lock to avoid having to create another object on the heap. The lock is
     // used to protect the setting of the signal value or exception with the manual reset value task source.
     private SpinLock _lock;
+    private readonly int _maxCount;
 
     // The result queue is only created when Enqueue() is called and if the result can't be set on the source when a
     // result is already set on the source.
     private Queue<T>? _queue;
-    private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
+    private ManualResetValueTaskSourceCore<T> _source;
     private CancellationTokenRegistration _tokenRegistration;
 
-    public AsyncQueueCore()
+    public AsyncQueueCore(int maxCount)
     {
         _exception = null;
         _lock = new();
         _queue = null;
+        _maxCount = maxCount;
+        _source = new() { RunContinuationsAsynchronously = true };
         _tokenRegistration = default;
     }
 
@@ -81,7 +84,11 @@ internal struct AsyncQueueCore<T>
         try
         {
             _lock.Enter(ref lockTaken);
-            if (_exception is null)
+            if (_exception is not null || (_maxCount > 0 && _maxCount == (_queue?.Count ?? 0)))
+            {
+                return false;
+            }
+            else
             {
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
@@ -98,10 +105,6 @@ internal struct AsyncQueueCore<T>
                     _queue.Enqueue(value);
                 }
                 return true;
-            }
-            else
-            {
-                return false;
             }
         }
         finally
