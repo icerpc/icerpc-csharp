@@ -199,13 +199,6 @@ internal static partial class ProtocolLoggerExtensions
     }
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionReceivedInvalidRequest,
-        EventName = nameof(ProtocolEventIds.ConnectionReceivedInvalidRequest),
-        Level = LogLevel.Debug,
-        Message = "Received invalid request")]
-    internal static partial void LogConnectionReceivedInvalidRequest(this ILogger logger, Exception exception);
-
-    [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
         Level = LogLevel.Trace,

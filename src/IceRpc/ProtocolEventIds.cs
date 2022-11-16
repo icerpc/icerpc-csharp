@@ -30,9 +30,6 @@ public enum ProtocolEventIds
     /// dispatch code.</summary>
     ConnectionInternalDispatchFailure,
 
-    /// <summary>Received an invalid request that we cannot decode at it will be ignored.</summary>
-    ConnectionReceivedInvalidRequest,
-
     /// <summary>A connection has been shutdown.</summary>
     ConnectionShutdown,
 

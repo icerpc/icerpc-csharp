@@ -879,35 +879,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         PipeReader? streamInput = stream.Input;
         PipeWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
         IncomingRequest? request = null;
-        Exception? exception = null;
+        bool success;
 
         try
         {
-            ReadResult readResult;
-            IceRpcRequestHeader header;
-            IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
+            ReadResult readResult = await streamInput.ReadSegmentAsync(
+                SliceEncoding.Slice2,
+                _maxLocalHeaderSize,
+                cancellationToken).ConfigureAwait(false);
 
-            try
+            if (readResult.Buffer.IsEmpty)
             {
-                readResult = await streamInput.ReadSegmentAsync(
-                    SliceEncoding.Slice2,
-                    _maxLocalHeaderSize,
-                    cancellationToken).ConfigureAwait(false);
-
-                if (readResult.Buffer.IsEmpty)
-                {
-                    throw new InvalidDataException("received icerpc request with empty header");
-                }
-
-                (header, fields, fieldsPipeReader) = DecodeHeader(readResult.Buffer);
-                streamInput.AdvanceTo(readResult.Buffer.End);
+                throw new InvalidDataException("received icerpc request with empty header");
             }
-            catch (InvalidDataException invalidDataException)
-            {
-                exception = invalidDataException;
-                _logger.LogConnectionReceivedInvalidRequest(invalidDataException);
-                return;
-            }
+
+            (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
+                DecodeHeader(readResult.Buffer);
+            streamInput.AdvanceTo(readResult.Buffer.End);
 
             request = new IncomingRequest(_connectionContext!)
             {
@@ -921,27 +909,25 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             streamInput = null; // the request now owns streamInput
 
             await PerformDispatchRequestAsync(request).ConfigureAwait(false);
+            success = true;
         }
         catch (TransportException transportException)
         {
-            exception = transportException;
             _logger.LogConnectionDispatchFailure(transportException);
         }
         catch (ProtocolException protocolException)
         {
-            exception = protocolException;
             _logger.LogConnectionDispatchFailure(protocolException);
         }
         catch (Exception internalException)
         {
-            exception = internalException;
             _logger.LogConnectionInternalDispatchFailure(request, internalException);
         }
         finally
         {
-            if (exception is not null)
+            if (!success)
             {
-                // We always need to complete streamOutput with an error when an exception is thrown. For example, we
+                // We always need to complete streamOutput when an exception is thrown. For example, we
                 // received an invalid request header that we could not decode.
                 streamOutput?.CompleteOutput(success: false);
                 streamInput?.Complete();
