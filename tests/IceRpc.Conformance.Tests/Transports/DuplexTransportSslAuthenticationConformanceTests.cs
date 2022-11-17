@@ -92,7 +92,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         // Act/Assert
         Assert.That(async () => await serverConnectTask, Throws.TypeOf<AuthenticationException>());
 
-        // The client hanshake terminates before the server, the client doesn't get an error until it
+        // The client handshake terminates before the server, the client doesn't get an error until it
         // reads or the peer close the connection.
         Assert.That(
             async () =>
