@@ -169,7 +169,8 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invocation_cancellation_triggers_incoming_request_truncated_data_exception()
+    public async Task Invocation_cancellation_while_sending_payload_triggers_incoming_request_truncated_data_exception(
+        [Values(true,false)]bool cancelSendingPayload)
     {
         // Arrange
         var dispatchTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -179,7 +180,7 @@ public sealed class IceRpcProtocolConnectionTests
             {
                 try
                 {
-                    // Loop until ReadAsync throws IceRpcProtocolStreamException
+                    // Loop until ReadAsync throws
                     while (true)
                     {
                         ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
@@ -210,7 +211,8 @@ public sealed class IceRpcProtocolConnectionTests
         var payload = new HoldPipeReader(new byte[10]);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
-            Payload = payload
+            Payload = cancelSendingPayload ? payload : EmptyPipeReader.Instance,
+            PayloadContinuation = !cancelSendingPayload ? payload : null,
         };
         using var cts = new CancellationTokenSource();
         Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);

@@ -55,7 +55,7 @@ public static class IncomingRequestExtensions
             RetryPolicy retryPolicy = remoteException.RetryPolicy;
             response.Fields = response.Fields.With(
                 ResponseFieldKey.RetryPolicy,
-                (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+                retryPolicy.Encode);
         }
         return response;
 
