@@ -227,6 +227,69 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    public async Task Invocation_cancellation_after_receive_response_doesnt_cancel_the_sending_of_payload_continuation()
+    {
+        // Arrange
+        var dispatchTcs = new TaskCompletionSource<long>();
+        var invocationTcs = new TaskCompletionSource();
+        var dispatcher = new InlineDispatcher(
+            async (request, cancellationToken) =>
+            {
+                long length = 0;
+                ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
+                length += result.Buffer.Length;
+                request.Payload.AdvanceTo(result.Buffer.End);
+                var streamPayload = request.DetachPayload();
+                _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Wait for the invocation to finish before continue reading the payload continuation
+                            await invocationTcs.Task;
+                            do
+                            {
+                                result = await streamPayload.ReadAsync(CancellationToken.None);
+                                length += result.Buffer.Length;
+                                streamPayload.AdvanceTo(result.Buffer.End);
+                            }
+                            while (!result.IsCompleted);
+                            dispatchTcs.TrySetResult(length);
+                        }
+                        catch (Exception exception)
+                        {
+                            dispatchTcs.TrySetException(exception);
+                        }
+                    },
+                    CancellationToken.None);
+                return new OutgoingResponse(request);
+            });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            Payload = EmptyPipeReader.Instance,
+            PayloadContinuation = pipe.Reader,
+        };
+        using var cts = new CancellationTokenSource();
+        _ = await sut.Client.InvokeAsync(request, cts.Token);
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        invocationTcs.TrySetResult();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        await pipe.Writer.CompleteAsync();
+        Assert.That(async () => await dispatchTcs.Task, Is.EqualTo(20));
+    }
+
+    [Test]
     public async Task Invocation_stream_failure_triggers_incoming_request_truncated_data_exception()
     {
         // Arrange
