@@ -88,9 +88,9 @@ internal abstract class TcpConnection : IDuplexConnection
             // Consider IOException from SslStream as a connection reset from the peer.
             throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
-            throw exception.ToTransportException();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
 
         return received;
@@ -211,10 +211,6 @@ internal abstract class TcpConnection : IDuplexConnection
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
@@ -225,9 +221,9 @@ internal abstract class TcpConnection : IDuplexConnection
             // Consider IOException from SslStream as a connection reset from the peer.
             throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
-            throw exception.ToTransportException();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
     }
 
@@ -284,14 +280,6 @@ internal class TcpClientConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (AuthenticationException)
-        {
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
@@ -302,9 +290,9 @@ internal class TcpClientConnection : TcpConnection
             // Consider IOException from SslStream as a connection reset from the peer.
             throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
-            throw exception.ToTransportException();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
 
         try
@@ -343,26 +331,33 @@ internal class TcpClientConnection : TcpConnection
 
         try
         {
-            if (options.LocalNetworkAddress is IPEndPoint localNetworkAddress)
+            try
             {
-                Socket.Bind(localNetworkAddress);
-            }
+                if (options.LocalNetworkAddress is IPEndPoint localNetworkAddress)
+                {
+                    Socket.Bind(localNetworkAddress);
+                }
 
-            if (options.ReceiveBufferSize is int receiveSize)
-            {
-                Socket.ReceiveBufferSize = receiveSize;
-            }
-            if (options.SendBufferSize is int sendSize)
-            {
-                Socket.SendBufferSize = sendSize;
-            }
+                if (options.ReceiveBufferSize is int receiveSize)
+                {
+                    Socket.ReceiveBufferSize = receiveSize;
+                }
+                if (options.SendBufferSize is int sendSize)
+                {
+                    Socket.SendBufferSize = sendSize;
+                }
 
-            Socket.NoDelay = true;
+                Socket.NoDelay = true;
+            }
+            catch (SocketException exception)
+            {
+                throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            }
         }
-        catch (Exception exception)
+        catch
         {
             Socket.Dispose();
-            throw exception.ToTransportException();
+            throw;
         }
     }
 }
@@ -402,14 +397,6 @@ internal class TcpServerConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (AuthenticationException)
-        {
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
         // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
@@ -420,9 +407,9 @@ internal class TcpServerConnection : TcpConnection
             // Consider IOException from SslStream as a connection reset from the peer.
             throw new TransportException(TransportErrorCode.ConnectionReset, exception);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
-            throw exception.ToTransportException();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
 
         try

@@ -36,24 +36,11 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                throw exception.ToTransportException();
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
+                throw new TransportException(TransportErrorCode.OperationAborted, exception);
             }
             catch (SocketException)
             {
                 // If the connection was reset while in the backlog, retry.
-            }
-            catch (ObjectDisposedException)
-            {
-                // Dispose has been called.
-                throw;
-            }
-            catch (Exception exception)
-            {
-                throw exception.ToTransportException();
             }
         }
     }
@@ -100,25 +87,32 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             new Socket(SocketType.Stream, ProtocolType.Tcp);
         try
         {
-            _socket.ExclusiveAddressUse = true;
-
-            if (tcpOptions.ReceiveBufferSize is int receiveSize)
+            try
             {
-                _socket.ReceiveBufferSize = receiveSize;
-            }
-            if (tcpOptions.SendBufferSize is int sendSize)
-            {
-                _socket.SendBufferSize = sendSize;
-            }
+                _socket.ExclusiveAddressUse = true;
 
-            _socket.Bind(address);
-            address = (IPEndPoint)_socket.LocalEndPoint!;
-            _socket.Listen(tcpOptions.ListenBacklog);
+                if (tcpOptions.ReceiveBufferSize is int receiveSize)
+                {
+                    _socket.ReceiveBufferSize = receiveSize;
+                }
+                if (tcpOptions.SendBufferSize is int sendSize)
+                {
+                    _socket.SendBufferSize = sendSize;
+                }
+
+                _socket.Bind(address);
+                address = (IPEndPoint)_socket.LocalEndPoint!;
+                _socket.Listen(tcpOptions.ListenBacklog);
+            }
+            catch (SocketException exception)
+            {
+                throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            }
         }
-        catch (Exception exception)
+        catch
         {
             _socket.Dispose();
-            throw exception.ToTransportException();
+            throw;
         }
 
         ServerAddress = serverAddress with { Port = (ushort)address.Port };
