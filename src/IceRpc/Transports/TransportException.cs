@@ -32,6 +32,9 @@ public enum TransportErrorCode
     /// <summary>An internal error occurred.</summary>
     InternalError,
 
+    /// <summary>The operation has been aborted.</summary>
+    OperationAborted,
+
     /// <summary>An other unspecified error occurred.</summary>
     Unspecified,
 }

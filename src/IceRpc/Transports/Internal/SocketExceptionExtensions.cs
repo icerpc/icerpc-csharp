@@ -15,25 +15,20 @@ internal static class SocketExceptionExtensions
             exception.InnerException as SocketException ??
             throw ExceptionUtil.Throw(exception);
 
-        SocketError error = socketException.SocketErrorCode;
-        if (error == SocketError.ConnectionReset || error == SocketError.Shutdown || error == SocketError.NotConnected)
+        TransportErrorCode transportErrorCode = socketException.SocketErrorCode switch
         {
             // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer closing
             // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty
             // while ECONNRESET is returned if the send buffer is not empty.
-            return new TransportException(TransportErrorCode.ConnectionReset, exception);
-        }
-        else if (error == SocketError.ConnectionRefused)
-        {
-            return new TransportException(TransportErrorCode.ConnectionRefused, exception);
-        }
-        else if (error == SocketError.AddressAlreadyInUse)
-        {
-            return new TransportException(TransportErrorCode.AddressInUse, exception);
-        }
-        else
-        {
-            return new TransportException(TransportErrorCode.Unspecified, exception);
-        }
+            SocketError.ConnectionReset => TransportErrorCode.ConnectionReset,
+            SocketError.Shutdown => TransportErrorCode.ConnectionReset,
+            SocketError.NotConnected => TransportErrorCode.ConnectionReset,
+            SocketError.ConnectionRefused => TransportErrorCode.ConnectionRefused,
+            SocketError.AddressAlreadyInUse => TransportErrorCode.AddressInUse,
+            SocketError.OperationAborted => TransportErrorCode.OperationAborted,
+            _ => TransportErrorCode.Unspecified
+        };
+
+        return new TransportException(transportErrorCode, exception);
     }
 }
