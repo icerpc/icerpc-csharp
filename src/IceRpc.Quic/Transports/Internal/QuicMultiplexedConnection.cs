@@ -41,18 +41,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         {
             throw exception.ToTransportException();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (ObjectDisposedException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
-        }
     }
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -69,18 +57,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         catch (QuicException exception)
         {
             throw exception.ToTransportException();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (ObjectDisposedException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
         }
     }
 
@@ -103,18 +79,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         catch (QuicException exception)
         {
             throw exception.ToTransportException();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (ObjectDisposedException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
         }
 
         return new QuicMultiplexedStream(
@@ -146,22 +110,6 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
         catch (QuicException exception)
         {
             throw exception.ToTransportException();
-        }
-        catch (AuthenticationException)
-        {
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (ObjectDisposedException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
         }
 
         return new TransportConnectionInformation(

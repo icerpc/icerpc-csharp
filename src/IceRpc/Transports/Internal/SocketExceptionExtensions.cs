@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal;
@@ -12,7 +13,7 @@ internal static class SocketExceptionExtensions
         SocketException socketException =
             exception as SocketException ??
             exception.InnerException as SocketException ??
-            throw new TransportException(TransportErrorCode.Unspecified, exception);
+            throw ExceptionUtil.Throw(exception);
 
         SocketError error = socketException.SocketErrorCode;
         if (error == SocketError.ConnectionReset || error == SocketError.Shutdown || error == SocketError.NotConnected)
