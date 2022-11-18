@@ -256,10 +256,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         cts.Cancel();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        pipe.Writer.Complete();
 
         // Assert
-        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
-        await pipe.Writer.CompleteAsync();
         Assert.That(async () => await dispatcher.PayloadReadCompleted, Throws.Nothing);
     }
 
@@ -1061,32 +1061,32 @@ public sealed class IceRpcProtocolConnectionTests
                 await ReadFullPayloadAsync(request.Payload);
             }
             return new OutgoingResponse(request);
-        }
 
-        async Task ReadFullPayloadAsync(PipeReader payload)
-        {
-            await Task.Yield();
-            try
+            async Task ReadFullPayloadAsync(PipeReader payload)
             {
-                ReadResult result = default;
-                do
+                try
                 {
-                    result = await payload.ReadAsync(CancellationToken.None);
-                    payload.AdvanceTo(result.Buffer.End);
+                    ReadResult result = default;
+                    do
+                    {
+                        result = await payload.ReadAsync(CancellationToken.None);
+                        payload.AdvanceTo(result.Buffer.End);
+                    }
+                    while (!result.IsCompleted && !result.IsCanceled);
+                    _completeTaskCompletionSource.TrySetResult();
                 }
-                while (!result.IsCompleted && !result.IsCanceled);
-                _completeTaskCompletionSource.TrySetResult();
-            }
-            catch (Exception exception)
-            {
-                _completeTaskCompletionSource.TrySetException(exception);
-                throw;
-            }
-            finally
-            {
-                if (_returnResponseFirst)
+                catch (Exception exception)
                 {
-                    payload.Complete();
+                    _completeTaskCompletionSource.TrySetException(exception);
+                    throw;
+                }
+                finally
+                {
+                    if (_returnResponseFirst)
+                    {
+                        // We've detached the payload so we need to complete it.
+                        payload.Complete();
+                    }
                 }
             }
         }
