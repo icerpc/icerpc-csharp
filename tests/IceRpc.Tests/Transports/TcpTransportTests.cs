@@ -206,7 +206,7 @@ public class TcpTransportTests
 
         // Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.Unspecified));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
     }
 
     /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see

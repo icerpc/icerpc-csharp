@@ -123,7 +123,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
                 await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
             },
-            Throws.TypeOf<TransportException>());
+            Throws.TypeOf<AuthenticationException>().Or.TypeOf<TransportException>());
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>

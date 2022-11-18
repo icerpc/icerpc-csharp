@@ -36,24 +36,11 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                throw exception.ToTransportException();
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
+                throw new TransportException(TransportErrorCode.OperationAborted, exception);
             }
             catch (SocketException)
             {
                 // If the connection was reset while in the backlog, retry.
-            }
-            catch (ObjectDisposedException)
-            {
-                // Dispose has been called.
-                throw;
-            }
-            catch (Exception exception)
-            {
-                throw exception.ToTransportException();
             }
         }
     }
@@ -115,10 +102,15 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             address = (IPEndPoint)_socket.LocalEndPoint!;
             _socket.Listen(tcpOptions.ListenBacklog);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
             _socket.Dispose();
-            throw exception.ToTransportException();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+        }
+        catch
+        {
+            _socket.Dispose();
+            throw;
         }
 
         ServerAddress = serverAddress with { Port = (ushort)address.Port };
