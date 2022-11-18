@@ -84,11 +84,7 @@ internal struct AsyncQueueCore<T>
         try
         {
             _lock.Enter(ref lockTaken);
-            if (_exception is not null || (_maxCount > 0 && _maxCount == (_queue?.Count ?? 0)))
-            {
-                return false;
-            }
-            else
+            if (_exception is null)
             {
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
@@ -102,9 +98,18 @@ internal struct AsyncQueueCore<T>
                     // Create the queue if needed and queue the result. If will be consumed once the source's result
                     // is consumed.
                     _queue ??= new();
+                    // +1 for the element queued in _source
+                    if (_maxCount > 0 && _maxCount == _queue.Count + 1)
+                    {
+                        return false;
+                    }
                     _queue.Enqueue(value);
                 }
                 return true;
+            }
+            else
+            {
+                return false;
             }
         }
         finally

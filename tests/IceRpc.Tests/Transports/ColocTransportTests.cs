@@ -14,7 +14,10 @@ public class ColocTransportTests
     {
         var colocTransport = new ColocTransport();
         var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
-        var listener = colocTransport.ServerTransport.Listen(serverAddress, new DuplexConnectionOptions(), null);
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -36,5 +39,42 @@ public class ColocTransportTests
 
         Assert.That(remoteNetworkAddress?.ToString(), Is.EqualTo(listener.ServerAddress.ToString()));
         Assert.That(transportConnectionInformation.RemoteCertificate, Is.Null);
+    }
+
+    [TestCase(1)]
+    [TestCase(10)]
+    public async Task Coloc_transport_listener_backlog(int listenBacklog)
+    {
+        var colocTransport = new ColocTransport(listenBacklog);
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        // Fill the pending connection queue.
+        var connections = new List<(IDuplexConnection, Task)>();
+        for (int i = 0; i < listenBacklog; ++i)
+        {
+            IDuplexConnection connection = colocTransport.ClientTransport.CreateConnection(
+                serverAddress,
+                new DuplexConnectionOptions(),
+                null);
+            connections.Add((connection, connection.ConnectAsync(default)));
+        }
+
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        // Act/Assert
+        Assert.That(() => clientConnection.ConnectAsync(default), Throws.InstanceOf<TransportException>());
+        await listener.DisposeAsync();
+        foreach ((IDuplexConnection connection, Task connectTask) in connections)
+        {
+            Assert.That(() => connectTask, Throws.InstanceOf<TransportException>());
+            connection.Dispose();
+        }
     }
 }

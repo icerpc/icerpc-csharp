@@ -96,9 +96,10 @@ public class ServerTests
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
-        var colocTransport = new ColocTransport(listenBacklog: 1);
 
-        var serverTransport = new SlicServerTransport(new HoldServerTransport());
+        var colocTransport = new ColocTransport(listenBacklog: 1);
+        var serverTransport = new SlicServerTransport(new HoldServerTransport(colocTransport.ServerTransport));
+        var clientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
            new ServerOptions
@@ -111,30 +112,32 @@ public class ServerTests
 
         server.Listen();
 
-        // The first connection fills the server pending connection queue.
+        var clientConnectionOptions = new ClientConnectionOptions()
+        {
+            ServerAddress = server.ServerAddress
+        };
+
         await using var clientConnection1 = new ClientConnection(
-           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
-           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
-
-        // The second connection fills the transport listener pending connection queue.
+           clientConnectionOptions,
+           multiplexedClientTransport: clientTransport);
         await using var clientConnection2 = new ClientConnection(
-           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
-           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
-
-        // The third connection should be rejected since the listener no longer accepts connections.
+           clientConnectionOptions,
+           multiplexedClientTransport: clientTransport);
         await using var clientConnection3 = new ClientConnection(
-           new ClientConnectionOptions() { ServerAddress = new ServerAddress(new Uri("icerpc://server")) },
-           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+           clientConnectionOptions,
+           multiplexedClientTransport: clientTransport);
 
-        _ = clientConnection1.ConnectAsync(default);
-        _ = clientConnection2.ConnectAsync(default);
+        Task<TransportConnectionInformation> connectTask1 = clientConnection1.ConnectAsync();
+        Task<TransportConnectionInformation> connectTask2 = clientConnection2.ConnectAsync();
+        Task<TransportConnectionInformation> connectTask3 = clientConnection3.ConnectAsync();
 
         // Act
-        Task connectTask = clientConnection3.ConnectAsync();
+        var completedConnectTask = await Task.WhenAny(connectTask1, connectTask2, connectTask3);
 
         // Assert
-        var exception = Assert.ThrowsAsync<ConnectionException>(async () => await connectTask);
+        var exception = Assert.ThrowsAsync<ConnectionException>(async () => await completedConnectTask);
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+        await server.DisposeAsync();
     }
 
     [Test]
@@ -256,42 +259,51 @@ public class ServerTests
 
     private class HoldServerTransport : IDuplexServerTransport
     {
-        public string Name => "hold";
+        public string Name => _serverTransport.Name;
 
-        public IListener<IDuplexConnection>? Listener { get; set; }
-
-        public HoldServerTransport()
-        {
-        }
+        private readonly IDuplexServerTransport _serverTransport;
 
         public IListener<IDuplexConnection> Listen(
             ServerAddress serverAddress,
             DuplexConnectionOptions options,
-            SslServerAuthenticationOptions? serverAuthenticationOptions)
-        {
-            Listener = new HoldListener(serverAddress);
-            return Listener;
-        }
+            SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+            new HoldListener(_serverTransport.Listen(serverAddress, options, serverAuthenticationOptions));
+
+        internal HoldServerTransport(IDuplexServerTransport serverTransport) => _serverTransport = serverTransport;
     }
 
     private class HoldListener : IListener<IDuplexConnection>
     {
-        public ServerAddress ServerAddress { get; }
+        public ServerAddress ServerAddress => _listener.ServerAddress;
 
-        internal HoldListener(ServerAddress serverAddress) => ServerAddress = serverAddress;
+        private bool _firstConnect = true;
+        private readonly IListener<IDuplexConnection> _listener;
 
-        public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
-            CancellationToken cancellationToken) =>
-            Task.FromResult(
-                ((IDuplexConnection)new HoldConnection(ServerAddress),
-                (EndPoint)new IPEndPoint(0, 0)));
+        internal HoldListener(IListener<IDuplexConnection> listener) => _listener = listener;
 
-        public ValueTask DisposeAsync() => new();
+        public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
+        {
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) = await _listener.AcceptAsync(
+                cancellationToken);
+            if (_firstConnect)
+            {
+                _firstConnect = false;
+#pragma warning disable CA2000
+                connection = new HoldServerConnection(connection);
+#pragma warning restore CA2000
+            }
+            return (connection, remoteNetworkAddress);
+        }
+
+        public ValueTask DisposeAsync() => _listener.DisposeAsync();
     }
 
-    private class HoldConnection : IDuplexConnection
+    private class HoldServerConnection : IDuplexConnection
     {
-        public ServerAddress ServerAddress { get; }
+        public ServerAddress ServerAddress => _connection.ServerAddress;
+
+        private readonly IDuplexConnection _connection;
 
         public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
@@ -299,9 +311,7 @@ public class ServerTests
             return new(new IPEndPoint(0, 0), new IPEndPoint(0, 0), remoteCertificate: null);
         }
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() => _connection.Dispose();
 
         public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
@@ -312,7 +322,7 @@ public class ServerTests
         public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        internal HoldConnection(ServerAddress serverAddress) => ServerAddress = serverAddress;
+        internal HoldServerConnection(IDuplexConnection connection) => _connection = connection;
     }
 
     private class DelayDisposeMultiplexServerTransport : IMultiplexedServerTransport

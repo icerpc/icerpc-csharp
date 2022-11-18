@@ -40,30 +40,13 @@ internal class ColocClientTransport : IDuplexClientTransport
 
         Task<PipeReader> ConnectAsync(PipeReader clientPipeReader, CancellationToken cancellationToken)
         {
-            if (_listeners.TryGetValue(serverAddress, out ColocListener? listener))
+            if (_listeners.TryGetValue(serverAddress, out ColocListener? listener) &&
+                listener.TryQueueConnectAsync(
+                    clientPipeReader,
+                    cancellationToken,
+                    out Task<PipeReader>? serverPipeReaderTask))
             {
-                var tcs = new TaskCompletionSource<PipeReader>();
-                listener.QueueConnectAsync(
-                    serverPipeReader =>
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            // Client-side Connection establishment was canceled.
-                            return null;
-                        }
-                        else if (serverPipeReader is null)
-                        {
-                            // Listener is disposed.
-                            tcs.SetException(new TransportException(TransportErrorCode.ConnectionRefused));
-                            return null;
-                        }
-                        else
-                        {
-                            tcs.SetResult(serverPipeReader);
-                            return clientPipeReader;
-                        }
-                    });
-                return tcs.Task.WaitAsync(cancellationToken);
+                return serverPipeReaderTask;
             }
             else
             {

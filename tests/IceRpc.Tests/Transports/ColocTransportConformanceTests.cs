@@ -2,6 +2,7 @@
 
 using IceRpc.Conformance.Tests;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -12,5 +13,8 @@ namespace IceRpc.Tests.Transports;
 public class ColocTransportConformanceTests : DuplexTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() =>
-        new ServiceCollection().AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/")).AddColocTransport();
+        new ServiceCollection()
+            .AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/"))
+            .AddColocTransport()
+            .AddSingleton(_ => new ColocTransport(1));
 }

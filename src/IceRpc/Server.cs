@@ -42,10 +42,10 @@ public sealed class Server : IAsyncDisposable
 
     private readonly int _maxConnections;
 
+    private readonly int _maxPendingConnections;
+
     // protects _listener and _connections
     private readonly object _mutex = new();
-
-    private readonly SemaphoreSlim _pendingConnectionSemaphore;
 
     private readonly ServerAddress _serverAddress;
 
@@ -75,7 +75,7 @@ public sealed class Server : IAsyncDisposable
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
         _maxConnections = options.MaxConnections;
-        _pendingConnectionSemaphore = new SemaphoreSlim(options.MaxPendingConnections, options.MaxPendingConnections);
+        _maxPendingConnections = options.MaxPendingConnections;
 
         if (_serverAddress.Transport is null)
         {
@@ -303,12 +303,15 @@ public sealed class Server : IAsyncDisposable
         {
             try
             {
+                using var pendingConnectionSemaphore = new SemaphoreSlim(
+                    _maxPendingConnections,
+                    _maxPendingConnections);
+
                 while (true)
                 {
-                    await _pendingConnectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
-
-                    (IConnector connector, _) = await listener.AcceptAsync(
-                        shutdownCancellationToken).ConfigureAwait(false);
+                    await pendingConnectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                    (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
+                        .ConfigureAwait(false);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
                     // transports such as TLS based transports where the handshake requires few round trips between the
@@ -328,7 +331,8 @@ public sealed class Server : IAsyncDisposable
                             }
                             finally
                             {
-                                _pendingConnectionSemaphore.Release();
+                                await connector.DisposeAsync().ConfigureAwait(false);
+                                pendingConnectionSemaphore.Release();
                             }
                         });
                 }
@@ -368,28 +372,7 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            if (shutdownCancellationToken.IsCancellationRequested)
-            {
-                // Dispose of the connector and underlying transport connection if the server is being shutdown.
-                await connector.DisposeAsync().ConfigureAwait(false);
-            }
-            else if (protocolConnection is null)
-            {
-                // If the max connection count is reached, we refuse the transport connection.
-                try
-                {
-                    await connector.RefuseTransportConnectionAsync(
-                        shutdownCancellationToken).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignore and continue
-                }
-
-                // Dispose the connector to dispose of the underlying transport.
-                await connector.DisposeAsync().ConfigureAwait(false);
-            }
-            else
+            if (protocolConnection is not null)
             {
                 // Schedule removal after addition, outside mutex lock.
                 _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
@@ -397,6 +380,18 @@ public sealed class Server : IAsyncDisposable
                 // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates one with
                 // the configured connection timeout.
                 await protocolConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else if (!shutdownCancellationToken.IsCancellationRequested)
+            {
+                // If the max connection count is reached, we refuse the transport connection.
+                try
+                {
+                    await connector.RefuseTransportConnectionAsync(shutdownCancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignore and continue
+                }
             }
         }
 
