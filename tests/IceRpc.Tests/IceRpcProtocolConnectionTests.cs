@@ -189,7 +189,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
         using var invocationCts = new CancellationTokenSource();
         Task invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
-        await dispatcher.DispatchStart;
+        await dispatcher.ReadPayloadStart;
 
         // Act
         invocationCts.Cancel();
@@ -221,7 +221,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
         using var invocationCts = new CancellationTokenSource();
         Task invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
-        await dispatcher.DispatchStart;
+        await dispatcher.ReadPayloadStart;
 
         // Act
         invocationCts.Cancel();
@@ -1025,11 +1025,11 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>A dispatcher that reads the request payload and sets the <see cref="DispatchComplete"/> 
-    /// task after reading the complete payload.</summary>
+    /// task after reading the full payload.</summary>
     public sealed class ConsumePayloadDispatcher : IDispatcher
     {
         public Task DispatchComplete => _completeTaskCompletionSource.Task;
-        public Task<IncomingRequest> DispatchStart => _startTaskCompletionSource.Task;
+        public Task<IncomingRequest> ReadPayloadStart => _startTaskCompletionSource.Task;
 
         private readonly TaskCompletionSource _completeTaskCompletionSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1047,35 +1047,47 @@ public sealed class IceRpcProtocolConnectionTests
             IncomingRequest request,
             CancellationToken cancellationToken)
         {
+            var result = await request.Payload.ReadAsync(CancellationToken.None);
+            request.Payload.AdvanceTo(result.Buffer.End);
             _startTaskCompletionSource.TrySetResult(request);
-            var payload = _returnResponseFirst ? request.DetachPayload() : request.Payload;
-            var consumePayloadTask = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        ReadResult result = default;
-                        do
-                        {
-                            result = await payload.ReadAsync(CancellationToken.None);
-                            payload.AdvanceTo(result.Buffer.End);
-                        }
-                        while (!result.IsCompleted && !result.IsCanceled);
-                        _completeTaskCompletionSource.TrySetResult();
-                    }
-                    catch (Exception exception)
-                    {
-                        _completeTaskCompletionSource.TrySetException(exception);
-                        throw;
-                    }
-                },
-                CancellationToken.None);
-
-            if (!_returnResponseFirst)
+            if (_returnResponseFirst)
             {
-                await consumePayloadTask;
+                PipeReader payload = request.DetachPayload();
+                _ = ReadFullPayloadAsync(payload);
+            }
+            else
+            {
+                await ReadFullPayloadAsync(request.Payload);
             }
             return new OutgoingResponse(request);
+        }
+
+        async Task ReadFullPayloadAsync(PipeReader payload)
+        {
+            await Task.Yield();
+            try
+            {
+                ReadResult result = default;
+                do
+                {
+                    result = await payload.ReadAsync(CancellationToken.None);
+                    payload.AdvanceTo(result.Buffer.End);
+                }
+                while (!result.IsCompleted && !result.IsCanceled);
+                _completeTaskCompletionSource.TrySetResult();
+            }
+            catch (Exception exception)
+            {
+                _completeTaskCompletionSource.TrySetException(exception);
+                throw;
+            }
+            finally
+            {
+                if (_returnResponseFirst)
+                {
+                    payload.Complete();
+                }
+            }
         }
     }
 
