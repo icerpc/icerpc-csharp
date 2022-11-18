@@ -168,60 +168,99 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
     }
 
+    /// <summary>Verifies that canceling the invocation while sending the request payload, completes the incoming
+    /// request payload with a <see cref="TruncatedDataException"/>.</summary>
     [Test]
-    public async Task Invocation_cancellation_triggers_incoming_request_truncated_data_exception()
+    public async Task Invocation_cancellation_while_sending_the_payload_completes_the_input_request_payload()
     {
         // Arrange
-        var dispatchTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var dispatchCompleteTcs = new TaskCompletionSource();
-        var dispatcher = new InlineDispatcher(
-            async (request, cancellationToken) =>
-            {
-                try
-                {
-                    // Loop until ReadAsync throws IceRpcProtocolStreamException
-                    while (true)
-                    {
-                        ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
-                        dispatchTcs.TrySetResult();
-                        if (result.IsCompleted)
-                        {
-                            dispatchCompleteTcs.SetResult();
-                            break;
-                        }
-                        request.Payload.AdvanceTo(result.Buffer.End);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    dispatchCompleteTcs.SetException(ex);
-                }
-                return new OutgoingResponse(request);
-            });
+        var dispatcher = new ConsumePayloadDispatcher(returnResponseFirst: false);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        // Use initial payload data to ensure the request is sent before the payload reader blocks (Slic sends the
-        // request header with the start of the payload so if the first ReadAsync blocks, the request header is not
-        // sent).
-        var payload = new HoldPipeReader(new byte[10]);
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
-            Payload = payload
+            Payload = pipe.Reader
+        };
+        using var invocationCts = new CancellationTokenSource();
+        Task invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+        await dispatcher.PayloadReadStarted;
+
+        // Act
+        invocationCts.Cancel();
+
+        // Assert
+        Assert.That(async () => await dispatcher.PayloadReadCompleted, Throws.TypeOf<TruncatedDataException>());
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that canceling the invocation while sending the request payload continuation, completes the
+    /// incoming request payload with a <see cref="TruncatedDataException"/>.</summary>
+    [Test]
+    public async Task Invocation_cancellation_while_sending_the_payload_continuation_completes_the_input_request_payload()
+    {
+        // Arrange
+        var dispatcher = new ConsumePayloadDispatcher(returnResponseFirst: false);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            Payload = EmptyPipeReader.Instance,
+            PayloadContinuation = pipe.Reader
+        };
+        using var invocationCts = new CancellationTokenSource();
+        Task invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+        await dispatcher.PayloadReadStarted;
+
+        // Act
+        invocationCts.Cancel();
+
+        // Assert
+        Assert.That(async () => await dispatcher.PayloadReadCompleted, Throws.TypeOf<TruncatedDataException>());
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that canceling the invocation after receiving a response doesn't affect the reading of the
+    /// payload.</summary>
+    [Test]
+    public async Task Invocation_cancellation_after_receive_response_doesnt_complete_the_incoming_request_payload()
+    {
+        // Arrange
+        var dispatcher = new ConsumePayloadDispatcher(returnResponseFirst: true);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            Payload = EmptyPipeReader.Instance,
+            PayloadContinuation = pipe.Reader,
         };
         using var cts = new CancellationTokenSource();
-        Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
-        await dispatchTcs.Task;
+        _ = await sut.Client.InvokeAsync(request, cts.Token);
 
         // Act
         cts.Cancel();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        pipe.Writer.Complete();
 
         // Assert
-        Assert.That(async () => await dispatchCompleteTcs.Task, Throws.InstanceOf<TruncatedDataException>());
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await dispatcher.PayloadReadCompleted, Throws.Nothing);
     }
 
     [Test]
@@ -984,4 +1023,73 @@ public sealed class IceRpcProtocolConnectionTests
 
         internal void SetReadException(Exception exception) => _readTcs.SetException(exception);
     }
+
+    /// <summary>A dispatcher that reads the request payload, the <see cref="PayloadReadStarted"/> task is completed
+    /// after start reading the payload, and the <see cref="PayloadReadCompleted"/> task is completed after reading
+    /// the full payload.</summary>
+    public sealed class ConsumePayloadDispatcher : IDispatcher
+    {
+        public Task PayloadReadCompleted => _completeTaskCompletionSource.Task;
+        public Task PayloadReadStarted => _startTaskCompletionSource.Task;
+
+        private readonly TaskCompletionSource _completeTaskCompletionSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private readonly bool _returnResponseFirst;
+
+        private readonly TaskCompletionSource _startTaskCompletionSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Constructs a ConsumePayloadDispatcher dispatcher.</summary>
+        /// <param name="returnResponseFirst">whether to return a response before reading the payload.</param>
+        public ConsumePayloadDispatcher(bool returnResponseFirst) => _returnResponseFirst = returnResponseFirst;
+
+        public async ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
+            CancellationToken cancellationToken)
+        {
+            ReadResult result = await request.Payload.ReadAsync(CancellationToken.None);
+            request.Payload.AdvanceTo(result.Buffer.End);
+            _startTaskCompletionSource.TrySetResult();
+            if (_returnResponseFirst)
+            {
+                PipeReader payload = request.DetachPayload();
+                _ = ReadFullPayloadAsync(payload);
+            }
+            else
+            {
+                await ReadFullPayloadAsync(request.Payload);
+            }
+            return new OutgoingResponse(request);
+
+            async Task ReadFullPayloadAsync(PipeReader payload)
+            {
+                try
+                {
+                    ReadResult result = default;
+                    do
+                    {
+                        result = await payload.ReadAsync(CancellationToken.None);
+                        payload.AdvanceTo(result.Buffer.End);
+                    }
+                    while (!result.IsCompleted && !result.IsCanceled);
+                    _completeTaskCompletionSource.TrySetResult();
+                }
+                catch (Exception exception)
+                {
+                    _completeTaskCompletionSource.TrySetException(exception);
+                    throw;
+                }
+                finally
+                {
+                    if (_returnResponseFirst)
+                    {
+                        // We've detached the payload so we need to complete it.
+                        payload.Complete();
+                    }
+                }
+            }
+        }
+    }
+
 }
