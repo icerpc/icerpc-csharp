@@ -84,7 +84,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     {
         ServerAddress = serverAddress;
 
-        _queue = new(listenBacklog);
+        _queue = new AsyncQueue<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)>(listenBacklog);
         _networkAddress = new ColocEndPoint(serverAddress);
         _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
     }
