@@ -385,6 +385,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
+        CancellationToken invocationCancellationToken = invocationCts.Token;
 
         // We unregister this cancellationToken once we receive a response (for twoway) or the request Payload is
         // sent (oneway).
@@ -398,7 +399,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Create the stream.
             stream = await _transportConnection.CreateStreamAsync(
                 bidirectional: !request.IsOneway,
-                invocationCts.Token).ConfigureAwait(false);
+                invocationCancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -453,7 +454,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
 
             // SendPayloadAsync takes ownership of stream.Output
-            await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCts.Token)
+            await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCancellationToken)
                 .ConfigureAwait(false);
 
             if (request.IsOneway)
@@ -466,7 +467,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ReadResult readResult = await streamInput.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                invocationCts.Token).ConfigureAwait(false);
+                invocationCancellationToken).ConfigureAwait(false);
 
             lock (_mutex)
             {
