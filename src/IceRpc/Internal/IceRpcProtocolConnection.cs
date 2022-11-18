@@ -763,6 +763,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     try
                     {
+                        // When we send an outgoing request, the cancellation token is invocationCts.Token. This way,
+                        // if the token given to InvokeAsync is canceled, the copying of the payload continuation gets
+                        // canceled as well. However, once the source of this token gets disposed, the copying of the
+                        // payload continuation will keep going, just as if the InvokeAsync token was None.
                         FlushResult flushResult = await CopyReaderToWriterAsync(
                             payloadContinuation,
                             streamOutput,
