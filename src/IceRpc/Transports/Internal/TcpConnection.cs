@@ -331,28 +331,26 @@ internal class TcpClientConnection : TcpConnection
 
         try
         {
-            try
+            if (options.LocalNetworkAddress is IPEndPoint localNetworkAddress)
             {
-                if (options.LocalNetworkAddress is IPEndPoint localNetworkAddress)
-                {
-                    Socket.Bind(localNetworkAddress);
-                }
-
-                if (options.ReceiveBufferSize is int receiveSize)
-                {
-                    Socket.ReceiveBufferSize = receiveSize;
-                }
-                if (options.SendBufferSize is int sendSize)
-                {
-                    Socket.SendBufferSize = sendSize;
-                }
-
-                Socket.NoDelay = true;
+                Socket.Bind(localNetworkAddress);
             }
-            catch (SocketException exception)
+
+            if (options.ReceiveBufferSize is int receiveSize)
             {
-                throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+                Socket.ReceiveBufferSize = receiveSize;
             }
+            if (options.SendBufferSize is int sendSize)
+            {
+                Socket.SendBufferSize = sendSize;
+            }
+
+            Socket.NoDelay = true;
+        }
+        catch (SocketException exception)
+        {
+            Socket.Dispose();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
         catch
         {

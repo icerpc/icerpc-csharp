@@ -87,27 +87,25 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             new Socket(SocketType.Stream, ProtocolType.Tcp);
         try
         {
-            try
-            {
-                _socket.ExclusiveAddressUse = true;
+            _socket.ExclusiveAddressUse = true;
 
-                if (tcpOptions.ReceiveBufferSize is int receiveSize)
-                {
-                    _socket.ReceiveBufferSize = receiveSize;
-                }
-                if (tcpOptions.SendBufferSize is int sendSize)
-                {
-                    _socket.SendBufferSize = sendSize;
-                }
-
-                _socket.Bind(address);
-                address = (IPEndPoint)_socket.LocalEndPoint!;
-                _socket.Listen(tcpOptions.ListenBacklog);
-            }
-            catch (SocketException exception)
+            if (tcpOptions.ReceiveBufferSize is int receiveSize)
             {
-                throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+                _socket.ReceiveBufferSize = receiveSize;
             }
+            if (tcpOptions.SendBufferSize is int sendSize)
+            {
+                _socket.SendBufferSize = sendSize;
+            }
+
+            _socket.Bind(address);
+            address = (IPEndPoint)_socket.LocalEndPoint!;
+            _socket.Listen(tcpOptions.ListenBacklog);
+        }
+        catch (SocketException exception)
+        {
+            _socket.Dispose();
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
         catch
         {
