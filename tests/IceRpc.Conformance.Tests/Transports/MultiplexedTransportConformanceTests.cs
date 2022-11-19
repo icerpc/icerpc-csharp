@@ -1245,10 +1245,10 @@ public abstract class MultiplexedTransportConformanceTests
         {
             readResult2 = await sut.LocalStream.Input.ReadAsync();
         }
-        catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.ConnectionReset)
+        catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.OperationAborted)
         {
             // acceptable behavior (and that's what Quic does)
-            // TODO: unexpected error code
+            // we get OperationAborted because we locally "aborted" the stream by calling CancelPendingRead.
         }
 
         Assert.That(readResult1.IsCanceled, Is.True);
