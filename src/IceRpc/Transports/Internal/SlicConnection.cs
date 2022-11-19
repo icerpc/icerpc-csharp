@@ -355,7 +355,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            await CloseAsyncCore(new TransportException(TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
+            await CloseAsyncCore(new TransportException(TransportErrorCode.OperationAborted)).ConfigureAwait(false);
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -583,7 +583,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
-                throw new TransportException(TransportErrorCode.ConnectionDisposed);
+                throw new TransportException(TransportErrorCode.OperationAborted);
             }
             finally
             {

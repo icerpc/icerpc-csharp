@@ -82,7 +82,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                _reader.Complete(new TransportException(TransportErrorCode.ConnectionDisposed));
+                _reader.Complete(new TransportException(TransportErrorCode.OperationAborted));
             }
             _state.ClearFlag(State.Reading);
         }
@@ -137,7 +137,8 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.ShuttingDown))
             {
-                throw new TransportException(TransportErrorCode.ConnectionShutdown);
+                throw new InvalidOperationException(
+                    $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
             }
             else
             {
@@ -151,7 +152,8 @@ internal abstract class ColocConnection : IDuplexConnection
             {
                 if (_state.HasFlag(State.ShuttingDown))
                 {
-                    throw new TransportException(TransportErrorCode.ConnectionShutdown);
+                    throw new InvalidOperationException(
+                        $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
                 }
 
                 FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
@@ -222,7 +224,8 @@ internal abstract class ColocConnection : IDuplexConnection
         else if (_state.HasFlag(State.ShuttingDown))
         {
             // Dispose will complete the reader.
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+            throw new InvalidOperationException(
+                $"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         var colocEndPoint = new ColocEndPoint(ServerAddress);
@@ -252,7 +255,7 @@ internal class ClientColocConnection : ColocConnection
         }
         else if (_state.HasFlag(State.ShuttingDown))
         {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+            throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         if (_localPipeReader is not null)

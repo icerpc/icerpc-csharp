@@ -384,7 +384,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Shutdown_client_connection_before_connect_fails_with_transport_connection_shutdown_error()
+    public async Task Shutdown_client_connection_before_connect_throws_invalid_operation_exception()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -394,9 +394,7 @@ public abstract class DuplexTransportConformanceTests
         await clientConnection.ShutdownAsync(default);
 
         // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(
-            async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionShutdown));
+        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.InvalidOperationException);
     }
 
     [Test]

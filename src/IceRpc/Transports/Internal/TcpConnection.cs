@@ -257,7 +257,7 @@ internal class TcpClientConnection : TcpConnection
         }
         else if (_isShutdown)
         {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+            throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         try
@@ -378,7 +378,7 @@ internal class TcpServerConnection : TcpConnection
         }
         else if (_isShutdown)
         {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+           throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         Debug.Assert(!_isConnected);

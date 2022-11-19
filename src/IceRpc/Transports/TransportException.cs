@@ -26,9 +26,6 @@ public enum TransportErrorCode
     /// <summary>The connection was reset by the peer.</summary>
     ConnectionReset,
 
-    /// <summary>The connection was shutdown.</summary>
-    ConnectionShutdown,
-
     /// <summary>An internal error occurred.</summary>
     InternalError,
 

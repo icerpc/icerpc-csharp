@@ -16,7 +16,7 @@ internal static class QuicExceptionExtensions
         {
             QuicError.ConnectionAborted when exception.ApplicationErrorCode is not null =>
                 ToTransportException(TransportErrorCode.ConnectionClosed, exception),
-            QuicError.OperationAborted => ToTransportException(TransportErrorCode.ConnectionReset, exception),
+            QuicError.OperationAborted => ToTransportException(TransportErrorCode.OperationAborted, exception),
             QuicError.ConnectionTimeout => ToTransportException(TransportErrorCode.ConnectionReset, exception),
             QuicError.ConnectionRefused => ToTransportException(TransportErrorCode.ConnectionRefused, exception),
             QuicError.AddressInUse => ToTransportException(TransportErrorCode.AddressInUse, exception),
