@@ -486,14 +486,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw new InvalidDataException("received icerpc response with empty header");
             }
 
-            (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
+            (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            var response = new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
+            var response = new IncomingResponse(
+                request,
+                _connectionContext!,
+                statusCode,
+                errorMessage,
+                fields,
+                fieldsPipeReader)
             {
-                Payload = streamInput,
-                StatusCode = header.StatusCode
+                Payload = streamInput
             };
 
             streamInput = null; // response now owns the stream input
@@ -544,16 +549,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
         }
 
-        static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
+        static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
             ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            var header = new IceRpcResponseHeader(ref decoder);
+
+            StatusCode statusCode = decoder.DecodeStatusCode();
+            string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
 
             (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
                 DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
-            return (header, fields, pipeReader);
+            return (statusCode, errorMessage, fields, pipeReader);
         }
     }
 
@@ -978,11 +985,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     dispatchException = new DispatchException(message: null, statusCode, exception);
                 }
 
-                response = new OutgoingResponse(request)
-                {
-                    Payload = CreateDispatchExceptionPayload(request, dispatchException.Message),
-                    StatusCode = dispatchException.StatusCode
-                };
+                response = new OutgoingResponse(request, dispatchException);
 
                 // Encode the retry policy into the fields of the new response.
                 if (dispatchException.RetryPolicy != RetryPolicy.NoRetry)
@@ -991,18 +994,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     response.Fields = response.Fields.With(
                         ResponseFieldKey.RetryPolicy,
                         retryPolicy.Encode);
-                }
-
-                static PipeReader CreateDispatchExceptionPayload(IncomingRequest request, string message)
-                {
-                    SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
-                        SliceEncodeOptions.Default;
-
-                    var pipe = new Pipe(encodeOptions.PipeOptions);
-                    var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-                    encoder.EncodeString(message);
-                    pipe.Writer.Complete();
-                    return pipe.Reader;
                 }
             }
 
@@ -1027,7 +1018,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                 int headerStartPos = encoder.EncodedByteCount;
 
-                new IceRpcResponseHeader(response.StatusCode).Encode(ref encoder);
+                encoder.EncodeStatusCode(response.StatusCode);
+                if (response.StatusCode > StatusCode.Success)
+                {
+                    encoder.EncodeString(response.ErrorMessage!);
+                }
 
                 encoder.EncodeDictionary(
                     response.Fields,

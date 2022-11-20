@@ -36,6 +36,7 @@ compact struct IceRpcRequestHeader
 compact struct IceRpcResponseHeader
 {
     statusCode: StatusCode,
+    // errorMessage: string, // only present when StatusCode > Success
     // fields: dictionary<ResponseFieldKey, sequence<uint8>>, (encoded/decoded manually)
 }
 

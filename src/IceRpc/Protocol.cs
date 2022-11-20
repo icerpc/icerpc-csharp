@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace IceRpc;
 
 /// <summary>Protocol identifies a RPC protocol supported by IceRPC.</summary>
-public abstract class Protocol
+public class Protocol
 {
     /// <summary>Gets the <c>ice</c> protocol.</summary>
     public static Protocol Ice => IceProtocol.Instance;
@@ -80,16 +80,6 @@ public abstract class Protocol
     {
         // by default, any dictionary is ok
     }
-
-    /// <summary>Decodes a response with a status code greater than <see cref="StatusCode.Failure" />.</summary>
-    /// <param name="response">The incoming response.</param>
-    /// <param name="request">The outgoing request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The decoded <see cref="DispatchException" />.</returns>
-    internal abstract ValueTask<DispatchException> DecodeDispatchExceptionAsync(
-        IncomingResponse response,
-        OutgoingRequest request,
-        CancellationToken cancellationToken);
 
     /// <summary>Constructs a protocol.</summary>
     private protected Protocol(

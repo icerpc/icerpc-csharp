@@ -39,7 +39,7 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
+    /// <summary>Verifies that disposing a server connection causes the invocation to fail with a <see
     /// cref="DispatchException" />.</summary>
     [Test]
     public async Task Disposing_server_connection_triggers_dispatch_exception([Values(false, true)] bool shutdown)
@@ -66,9 +66,8 @@ public sealed class IceProtocolConnectionTests
         IncomingResponse response = await invokeTask;
 
         // Assert
-        Assert.That(
-            async () => (await response.DecodeDispatchExceptionAsync(request)).Message,
-            Is.EqualTo("dispatch canceled"));
+        Assert.That(response.ErrorMessage, Is.EqualTo("dispatch canceled"));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
     }
 
     /// <summary>Verifies that a non-success response contains the expected retry policy field.</summary>
