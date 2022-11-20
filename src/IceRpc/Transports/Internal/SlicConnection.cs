@@ -277,7 +277,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else if (_exception is not null)
             {
-                if (_exception.ErrorCode == TransportErrorCode.ConnectionClosed)
+                if (_exception.ErrorCode == TransportErrorCode.ConnectionAborted)
                 {
                     // The peer already closed the connection, there's nothing to close so just return.
                     return;
@@ -299,7 +299,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
-            var exception = new TransportException(TransportErrorCode.ConnectionClosed, applicationErrorCode);
+            var exception = new TransportException(TransportErrorCode.ConnectionAborted, applicationErrorCode);
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
@@ -1028,7 +1028,7 @@ internal class SlicConnection : IMultiplexedConnection
         async Task PerformCloseAsync(ulong errorCode)
         {
             // TODO: better exception.
-            var exception = new TransportException(TransportErrorCode.ConnectionClosed, errorCode);
+            var exception = new TransportException(TransportErrorCode.ConnectionAborted, errorCode);
             if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
                 if (IsServer)

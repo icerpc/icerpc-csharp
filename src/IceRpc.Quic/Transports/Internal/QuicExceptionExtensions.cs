@@ -10,22 +10,22 @@ namespace IceRpc.Transports.Internal;
 internal static class QuicExceptionExtensions
 {
     /// <summary>Converts a <see cref="QuicException"/> into a <see cref="TransportException"/>.</summary>
-    internal static Exception ToTransportException(this QuicException exception)
-    {
-        return exception.QuicError switch
+    internal static TransportException ToTransportException(this QuicException exception) =>
+        exception.QuicError switch
         {
-            QuicError.ConnectionAborted when exception.ApplicationErrorCode is not null =>
-                ToTransportException(TransportErrorCode.ConnectionClosed, exception),
-            QuicError.OperationAborted => ToTransportException(TransportErrorCode.OperationAborted, exception),
-            QuicError.ConnectionTimeout => ToTransportException(TransportErrorCode.ConnectionReset, exception),
-            QuicError.ConnectionRefused => ToTransportException(TransportErrorCode.ConnectionRefused, exception),
-            QuicError.AddressInUse => ToTransportException(TransportErrorCode.AddressInUse, exception),
-            _ => ToTransportException(TransportErrorCode.Unspecified, exception)
-        };
+            QuicError.AddressInUse => new TransportException(TransportErrorCode.AddressInUse, exception),
+            QuicError.ConnectionAborted =>
+                exception.ApplicationErrorCode is null ?
+                    new TransportException(TransportErrorCode.ConnectionAborted, exception) :
+                    new TransportException(
+                        TransportErrorCode.ConnectionAborted,
+                        (ulong)exception.ApplicationErrorCode,
+                        exception),
+            QuicError.ConnectionRefused => new TransportException(TransportErrorCode.ConnectionRefused, exception),
+            QuicError.ConnectionTimeout => new TransportException(TransportErrorCode.ConnectionTimeout, exception),
+            QuicError.InternalError => new TransportException(TransportErrorCode.InternalError, exception),
+            QuicError.OperationAborted => new TransportException(TransportErrorCode.OperationAborted, exception),
 
-        static TransportException ToTransportException(TransportErrorCode errorCode, QuicException exception) =>
-            exception.ApplicationErrorCode is null ?
-                new(errorCode, exception) :
-                new(errorCode, (ulong)exception.ApplicationErrorCode, exception);
-    }
+            _ => new TransportException(TransportErrorCode.Unspecified, exception)
+        };
 }

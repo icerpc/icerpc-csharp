@@ -33,9 +33,12 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
                     _minSegmentSize);
                 return (tcpConnection, acceptedSocket.RemoteEndPoint!);
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 throw new TransportException(TransportErrorCode.OperationAborted, exception);
             }
             catch (SocketException)

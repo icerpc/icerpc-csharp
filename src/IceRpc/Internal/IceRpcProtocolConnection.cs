@@ -646,7 +646,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
         }
         catch (TransportException exception) when (
-            exception.ErrorCode == TransportErrorCode.ConnectionClosed &&
+            exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
             exception.ApplicationErrorCode is ulong errorCode &&
             (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
         {

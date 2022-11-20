@@ -277,7 +277,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
                 }
                 catch (TransportException exception) when (
-                    exception.ErrorCode == TransportErrorCode.ConnectionReset &&
+                    exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {

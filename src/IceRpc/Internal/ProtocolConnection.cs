@@ -397,7 +397,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Wait for shutdown to complete.
             await ShutdownAsyncCore(cts.Token).ConfigureAwait(false);
 
-            _shutdownCompleteSource.SetResult();
+            _shutdownCompleteSource.TrySetResult();
         }
         catch (OperationCanceledException operationCanceledException)
         {
