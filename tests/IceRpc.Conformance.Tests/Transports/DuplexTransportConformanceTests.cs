@@ -269,7 +269,7 @@ public abstract class DuplexTransportConformanceTests
     /// <summary>Verifies that calling read on a connection fails with
     /// <see cref="TransportErrorCode.ConnectionAborted" /> if the peer connection is disposed.</summary>
     [Test]
-    public async Task Read_from_disposed_peer_connection_fails_with_connection_aborted_by_peer(
+    public async Task Read_from_disposed_peer_connection_fails_with_connection_aborted(
         [Values(true, false)] bool readFromServer)
     {
         // Arrange
@@ -398,7 +398,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Shutdown_by_peer_before_connect_fails_with_connection_aborted_by_peer()
+    public async Task Shutdown_by_peer_before_connect_fails_with_connection_aborted()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -490,7 +490,7 @@ public abstract class DuplexTransportConformanceTests
     /// <summary>Verifies that calling write fails with <see cref="TransportErrorCode.ConnectionAborted" />
     /// when the peer connection is disposed.</summary>
     [Test]
-    public async Task Write_to_disposed_peer_connection_fails_with_connection_aborted_by_peer()
+    public async Task Write_to_disposed_peer_connection_fails_with_connection_aborted()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
