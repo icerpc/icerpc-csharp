@@ -85,7 +85,7 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // TODO: is it correct to use ConnectionAbortedByPeer as fallback?
+            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
                 new TransportException(TransportErrorCode.ConnectionAborted, exception);
@@ -220,7 +220,7 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // TODO: is it correct to use ConnectionAbortedByPeer as fallback?
+            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
                 new TransportException(TransportErrorCode.ConnectionAborted, exception);
@@ -291,7 +291,7 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // TODO: is it correct to use ConnectionAbortedByPeer as fallback?
+            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
                 new TransportException(TransportErrorCode.ConnectionAborted, exception);
@@ -407,7 +407,7 @@ internal class TcpServerConnection : TcpConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // TODO: is it correct to use ConnectionAbortedByPeer as fallback?
+            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
                 new TransportException(TransportErrorCode.ConnectionAborted, exception);
