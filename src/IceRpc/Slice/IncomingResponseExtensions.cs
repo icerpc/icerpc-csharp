@@ -48,8 +48,10 @@ public static class IncomingResponseExtensions
         {
             if (response.StatusCode > StatusCode.Failure)
             {
-                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken)
-                    .ConfigureAwait(false);
+                throw new DispatchException(response.StatusCode, response.ErrorMessage)
+                {
+                    ConvertToUnhandled = true
+                };
             }
             else
             {
@@ -89,7 +91,10 @@ public static class IncomingResponseExtensions
         {
             if (response.StatusCode > StatusCode.Failure)
             {
-                throw await response.DecodeDispatchExceptionAsync(request, cancellationToken).ConfigureAwait(false);
+                throw new DispatchException(response.StatusCode, response.ErrorMessage)
+                {
+                    ConvertToUnhandled = true
+                };
             }
             else
             {

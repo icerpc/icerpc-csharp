@@ -54,7 +54,7 @@ public sealed class DispatchException : Exception
     /// <see cref="StatusCode.Failure" />.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(StatusCode statusCode, RetryPolicy? retryPolicy = null)
-        : this(message: null, statusCode, innerException: null, retryPolicy)
+        : this(statusCode, message: null, innerException: null, retryPolicy)
     {
     }
 
@@ -65,8 +65,8 @@ public sealed class DispatchException : Exception
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(
-        string? message,
         StatusCode statusCode,
+        string? message,
         Exception? innerException = null,
         RetryPolicy? retryPolicy = null)
         : base(message, innerException)
