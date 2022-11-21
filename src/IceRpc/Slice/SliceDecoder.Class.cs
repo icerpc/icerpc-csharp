@@ -17,7 +17,7 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
     /// <returns>The decoded class instance.</returns>
-    public T DecodeClass<T>() where T : AnyClass =>
+    public T DecodeClass<T>() where T : SliceClass =>
         DecodeNullableClass<T>() ??
            throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
@@ -31,7 +31,7 @@ public ref partial struct SliceDecoder
             throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}");
         }
 
-        AnyClass? obj = DecodeAnyClass();
+        SliceClass? obj = DecodeClass();
 
         if (obj is T result)
         {
@@ -147,7 +147,7 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a class instance.</summary>
     /// <returns>The class instance. Can be null.</returns>
-    private AnyClass? DecodeAnyClass()
+    private SliceClass? DecodeClass()
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
 
@@ -184,15 +184,15 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes an indirection table without updating _current.</summary>
     /// <returns>The indirection table.</returns>
-    private AnyClass[] DecodeIndirectionTable()
+    private SliceClass[] DecodeIndirectionTable()
     {
         int size = DecodeSize();
         if (size == 0)
         {
             throw new InvalidDataException("invalid empty indirection table");
         }
-        IncreaseCollectionAllocation(size * Unsafe.SizeOf<AnyClass>());
-        var indirectionTable = new AnyClass[size];
+        IncreaseCollectionAllocation(size * Unsafe.SizeOf<SliceClass>());
+        var indirectionTable = new SliceClass[size];
         for (int i = 0; i < indirectionTable.Length; ++i)
         {
             int index = DecodeSize();
@@ -229,7 +229,7 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a class instance.</summary>
     /// <param name="index">The index of the class instance. If greater than 1, it's a reference to a previously
     /// seen class; if 1, the class's bytes are next. Cannot be 0 or less.</param>
-    private AnyClass DecodeInstance(int index)
+    private SliceClass DecodeInstance(int index)
     {
         Debug.Assert(index > 0);
 
@@ -252,8 +252,8 @@ public ref partial struct SliceDecoder
         _classContext.Current = default;
         _classContext.Current.InstanceType = InstanceType.Class;
 
-        AnyClass? instance = null;
-        _classContext.InstanceMap ??= new List<AnyClass>();
+        SliceClass? instance = null;
+        _classContext.InstanceMap ??= new List<SliceClass>();
 
         bool decodeIndirectionTable = true;
         do
@@ -265,7 +265,7 @@ public ref partial struct SliceDecoder
             // not created yet.
             if (typeId is not null)
             {
-                instance = _activator?.CreateInstance(typeId, ref this) as AnyClass;
+                instance = _activator?.CreateInstance(typeId, ref this) as SliceClass;
             }
 
             if (instance is null && SkipSlice(typeId))
@@ -545,7 +545,7 @@ public ref partial struct SliceDecoder
             typeId,
             new ReadOnlyMemory<byte>(bytes),
             Array.AsReadOnly(_classContext.Current.IndirectionTable ??
-            Array.Empty<AnyClass>()),
+            Array.Empty<SliceClass>()),
             hasTaggedMembers);
         _classContext.Current.Slices.Add(info);
 
@@ -567,7 +567,7 @@ public ref partial struct SliceDecoder
         //  - Instance ID = 1 means the instance is encoded inline afterwards
         //  - Instance ID > 1 means a reference to a previously decoded instance, found in this map.
         // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
-        internal List<AnyClass>? InstanceMap;
+        internal List<SliceClass>? InstanceMap;
 
         // See DecodeTypeId.
         internal long PosAfterLatestInsertedTypeId;
@@ -590,7 +590,7 @@ public ref partial struct SliceDecoder
         // Slice fields
 
         internal bool FirstSlice;
-        internal AnyClass[]? IndirectionTable; // Indirection table of the current slice
+        internal SliceClass[]? IndirectionTable; // Indirection table of the current slice
         internal long? PosAfterIndirectionTable;
 
         internal SliceFlags SliceFlags;

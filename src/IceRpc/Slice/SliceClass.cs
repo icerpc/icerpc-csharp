@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace IceRpc.Slice;
 
 /// <summary>Base class for classes defined in Slice.</summary>
-public abstract class AnyClass
+public abstract class SliceClass
 {
     /// <summary>Gets the unknown slices if the class has a preserved-slice base class and has been sliced-off
     /// during decoding.</summary>

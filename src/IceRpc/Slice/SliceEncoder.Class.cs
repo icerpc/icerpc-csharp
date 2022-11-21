@@ -15,11 +15,11 @@ public ref partial struct SliceEncoder
 {
     /// <summary>Encodes a class instance.</summary>
     /// <param name="v">The class instance to encode.</param>
-    public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
+    public void EncodeClass(SliceClass v) => EncodeNullableClass(v);
 
     /// <summary>Encodes a class instance, or null.</summary>
     /// <param name="v">The class instance to encode, or null.</param>
-    public void EncodeNullableClass(AnyClass? v)
+    public void EncodeNullableClass(SliceClass? v)
     {
         if (v is null)
         {
@@ -38,8 +38,8 @@ public ref partial struct SliceEncoder
                 }
                 else
                 {
-                    _classContext.Current.IndirectionTable ??= new List<AnyClass>();
-                    _classContext.Current.IndirectionMap ??= new Dictionary<AnyClass, int>();
+                    _classContext.Current.IndirectionTable ??= new List<SliceClass>();
+                    _classContext.Current.IndirectionMap ??= new Dictionary<SliceClass, int>();
                     _classContext.Current.IndirectionTable.Add(v);
                     index = _classContext.Current.IndirectionTable.Count; // Position + 1 (0 is reserved for null)
                     _classContext.Current.IndirectionMap.Add(v, index);
@@ -85,7 +85,7 @@ public ref partial struct SliceEncoder
             _classContext.Current.SliceFlags |= SliceFlags.HasIndirectionTable;
 
             EncodeSize(_classContext.Current.IndirectionTable.Count);
-            foreach (AnyClass v in _classContext.Current.IndirectionTable)
+            foreach (SliceClass v in _classContext.Current.IndirectionTable)
             {
                 EncodeInstance(v);
             }
@@ -186,7 +186,7 @@ public ref partial struct SliceEncoder
             // These instances will be encoded (and assigned instance IDs) in EndSlice.
             if (sliceInfo.Instances.Count > 0)
             {
-                _classContext.Current.IndirectionTable ??= new List<AnyClass>();
+                _classContext.Current.IndirectionTable ??= new List<SliceClass>();
                 Debug.Assert(_classContext.Current.IndirectionTable.Count == 0);
                 _classContext.Current.IndirectionTable.AddRange(sliceInfo.Instances);
             }
@@ -197,7 +197,7 @@ public ref partial struct SliceEncoder
     /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
     /// ID.</summary>
     /// <param name="v">The class instance.</param>
-    private void EncodeInstance(AnyClass v)
+    private void EncodeInstance(SliceClass v)
     {
         // If the instance was already encoded, just encode its instance ID.
         if (_classContext.InstanceMap is not null && _classContext.InstanceMap.TryGetValue(v, out int instanceId))
@@ -206,7 +206,7 @@ public ref partial struct SliceEncoder
         }
         else
         {
-            _classContext.InstanceMap ??= new Dictionary<AnyClass, int>();
+            _classContext.InstanceMap ??= new Dictionary<SliceClass, int>();
 
             // We haven't seen this instance previously, so we create a new instance ID and insert the instance
             // and its ID in the encoded map, before encoding the instance inline.
@@ -307,7 +307,7 @@ public ref partial struct SliceEncoder
         //  - Instance ID = 0 means null.
         //  - Instance ID = 1 means the instance is encoded inline afterwards.
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
-        internal Dictionary<AnyClass, int>? InstanceMap;
+        internal Dictionary<SliceClass, int>? InstanceMap;
 
         // Map of type ID string to type ID index.
         // We assign a type ID index (starting with 1) to each type ID we write, in order.
@@ -328,8 +328,8 @@ public ref partial struct SliceEncoder
         internal bool FirstSlice;
 
         // The indirection map and indirection table are only used for the sliced format.
-        internal Dictionary<AnyClass, int>? IndirectionMap;
-        internal List<AnyClass>? IndirectionTable;
+        internal Dictionary<SliceClass, int>? IndirectionMap;
+        internal List<SliceClass>? IndirectionTable;
 
         internal SliceFlags SliceFlags;
 

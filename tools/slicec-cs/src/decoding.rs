@@ -84,7 +84,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
         }
         TypeRefs::Primitive(primitive_ref) => {
             if primitive_ref.is_class_type() {
-                write!(code, "decoder.DecodeClass<IceRpc.Slice.AnyClass>()");
+                write!(code, "decoder.DecodeClass<SliceClass>()");
             } else {
                 write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
             }
