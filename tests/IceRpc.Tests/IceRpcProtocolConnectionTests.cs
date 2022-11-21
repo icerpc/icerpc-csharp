@@ -79,42 +79,6 @@ public sealed class IceRpcProtocolConnectionTests
         pipe.Writer.Complete();
     }
 
-    [Test]
-    [Ignore("See #1859")]
-    public async Task Close_server_multiplexed_connection_before_connect()
-    {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        await using var clientConnection = new IceRpcProtocolConnection(
-            clientTransport.CreateConnection(
-                listener.ServerAddress,
-                options: provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>()),
-            transportConnectionInformation: null,
-            options: new(),
-            NullLogger.Instance);
-
-        IMultiplexedConnection? serverConnection = null;
-        Task acceptTask = AcceptAndShutdownAsync();
-
-        // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
-            async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
-
-        // Cleanup
-        await serverConnection!.DisposeAsync();
-
-        async Task AcceptAndShutdownAsync()
-        {
-            serverConnection = (await listener.AcceptAsync(default)).Connection;
-            await serverConnection.CloseAsync((ulong)IceRpcConnectionErrorCode.Refused, default).ConfigureAwait(false);
-        }
-    }
-
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
     /// cref="TruncatedDataException" />.</summary>
     [Test]
