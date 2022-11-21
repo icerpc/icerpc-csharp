@@ -46,7 +46,7 @@ public static class IncomingResponseExtensions
 
         async ValueTask<T> ThrowExceptionAsync()
         {
-            if (response.StatusCode > StatusCode.Failure)
+            if (response.StatusCode > StatusCode.ApplicationError)
             {
                 throw new DispatchException(response.StatusCode, response.ErrorMessage)
                 {
@@ -89,7 +89,7 @@ public static class IncomingResponseExtensions
 
         async ValueTask ThrowExceptionAsync()
         {
-            if (response.StatusCode > StatusCode.Failure)
+            if (response.StatusCode > StatusCode.ApplicationError)
             {
                 throw new DispatchException(response.StatusCode, response.ErrorMessage)
                 {
@@ -118,7 +118,7 @@ public static class IncomingResponseExtensions
         ServiceProxy sender,
         CancellationToken cancellationToken)
     {
-        Debug.Assert(response.StatusCode == StatusCode.Failure);
+        Debug.Assert(response.StatusCode == StatusCode.ApplicationError);
 
         ReadResult readResult = await response.Payload.ReadSegmentAsync(
             encoding,

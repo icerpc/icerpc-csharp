@@ -487,7 +487,7 @@ try
 }}
 catch (SliceException sliceException) when (!sliceException.ConvertToUnhandled)
 {{
-    return request.CreateFailureResponse(sliceException, {encoding});
+    return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
         check_and_decode = check_and_decode,
         dispatch_and_return = dispatch_and_return.indent(),

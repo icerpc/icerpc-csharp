@@ -22,7 +22,7 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.Failure" />.
+    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" />.
     /// </summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="sliceException">The Slice exception to encode in the payload.</param>
@@ -30,7 +30,7 @@ public static class IncomingRequestExtensions
     /// <returns>The new outgoing response.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="sliceException" /> is a dispatch exception or
     /// its <see cref="SliceException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
-    public static OutgoingResponse CreateFailureResponse(
+    public static OutgoingResponse CreateSliceExceptionResponse(
         this IncomingRequest request,
         SliceException sliceException,
         SliceEncoding encoding)
@@ -40,7 +40,7 @@ public static class IncomingRequestExtensions
             throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        var response = new OutgoingResponse(request, StatusCode.Failure, sliceException.Message)
+        var response = new OutgoingResponse(request, StatusCode.ApplicationError, sliceException.Message)
         {
             Payload = CreateExceptionPayload()
         };

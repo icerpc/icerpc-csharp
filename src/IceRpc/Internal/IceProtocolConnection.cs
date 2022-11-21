@@ -576,7 +576,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 return replyStatus == ReplyStatus.Ok ?
                     (StatusCode.Success, null, consumed) :
-                    (StatusCode.Failure, "Slice exception", consumed);
+                    (StatusCode.ApplicationError, "Slice exception", consumed);
             }
             else
             {
@@ -1090,7 +1090,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // write semaphore.
                     ReadOnlySequence<byte> payload = ReadOnlySequence<byte>.Empty;
 
-                    if (response.StatusCode <= StatusCode.Failure)
+                    if (response.StatusCode <= StatusCode.ApplicationError)
                     {
                         try
                         {
@@ -1224,7 +1224,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 encoder.EncodeInt32(requestId);
 
-                if (response.StatusCode <= StatusCode.Failure)
+                if (response.StatusCode <= StatusCode.ApplicationError)
                 {
                     encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
 

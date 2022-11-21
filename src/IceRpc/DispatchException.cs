@@ -3,7 +3,7 @@
 namespace IceRpc;
 
 /// <summary>Represents an exception thrown by the peer while dispatching a request. It's decoded from a response with a
-/// status code greater than <see cref="StatusCode.Failure" />.</summary>
+/// status code greater than <see cref="StatusCode.ApplicationError" />.</summary>
 public sealed class DispatchException : Exception
 {
     /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see
@@ -51,7 +51,7 @@ public sealed class DispatchException : Exception
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
     /// <param name="statusCode">The status code of this exception. It must be greater than
-    /// <see cref="StatusCode.Failure" />.</param>
+    /// <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(StatusCode statusCode, RetryPolicy? retryPolicy = null)
         : this(statusCode, message: null, innerException: null, retryPolicy)
@@ -61,7 +61,7 @@ public sealed class DispatchException : Exception
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
     /// <param name="message">Message that describes the exception.</param>
     /// <param name="statusCode">The status code of this exception. It must be greater than
-    /// <see cref="StatusCode.Failure" />.</param>
+    /// <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(
@@ -72,10 +72,10 @@ public sealed class DispatchException : Exception
         : base(message, innerException)
     {
         _hasCustomMessage = message is not null;
-        StatusCode = statusCode > StatusCode.Failure ? statusCode :
+        StatusCode = statusCode > StatusCode.ApplicationError ? statusCode :
             throw new ArgumentOutOfRangeException(
                 nameof(statusCode),
-                $"the status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Failure)}");
+                $"the status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.ApplicationError)}");
         RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
     }
 }

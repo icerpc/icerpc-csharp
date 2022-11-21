@@ -9,8 +9,8 @@ unchecked enum StatusCode : varuint62
     /// The dispatch completed successfully.
     Success = 0,
 
-    /// The dispatch failed.
-    Failure,
+    /// The dispatch failed with an application-specific error.
+    ApplicationError,
 
     /// The dispatch could not find the target service.
     ServiceNotFound,
