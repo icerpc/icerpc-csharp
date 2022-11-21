@@ -26,7 +26,7 @@ public sealed class ExceptionTests
         get
         {
             yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
+           // yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
             yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }
@@ -486,7 +486,7 @@ public sealed class ExceptionTests
         Assert.That(caughtException!.StatusCode, Is.EqualTo(statusCode));
     }
 
-    class Slice2ExceptionOperations : Service, ISlice2ExceptionOperations
+    private class Slice2ExceptionOperations : Service, ISlice2ExceptionOperations
     {
         private readonly Exception _exception;
 
@@ -496,7 +496,7 @@ public sealed class ExceptionTests
             throw _exception;
     }
 
-    class Slice1ExceptionOperations : Service, ISlice1ExceptionOperations
+    private class Slice1ExceptionOperations : Service, ISlice1ExceptionOperations
     {
         private readonly Exception _exception;
 

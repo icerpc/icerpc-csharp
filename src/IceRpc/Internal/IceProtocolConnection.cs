@@ -1049,8 +1049,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     // If we catch an exception, we return a system exception.
-
-                    if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
+                    if (exception is not DispatchException dispatchException ||
+                        dispatchException.ConvertToUnhandled ||
+                        dispatchException.StatusCode == StatusCode.ApplicationError)
                     {
                         StatusCode statusCode = exception switch
                         {

@@ -478,21 +478,38 @@ return new IceRpc.OutgoingResponse(request)
         }
     }
 
-    format!(
-        "
+    if let Throws::None = &operation.throws {
+        format!(
+            "
+{check_and_decode}
+{dispatch_and_return}",
+            check_and_decode = check_and_decode,
+            dispatch_and_return = dispatch_and_return,
+        )
+    } else {
+        let exception_type = match &operation.throws {
+            Throws::Specific(exception) => exception.escape_scoped_identifier(&operation.namespace()),
+            Throws::AnyException => "SliceException".to_owned(),
+            Throws::None => unreachable!(),
+        };
+
+        format!(
+            "
 {check_and_decode}
 try
 {{
     {dispatch_and_return}
 }}
-catch (SliceException sliceException) when (!sliceException.ConvertToUnhandled)
+catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled)
 {{
     return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
-        check_and_decode = check_and_decode,
-        dispatch_and_return = dispatch_and_return.indent(),
-        encoding = encoding
-    )
+            check_and_decode = check_and_decode,
+            dispatch_and_return = dispatch_and_return.indent(),
+            exception_type = exception_type,
+            encoding = encoding
+        )
+    }
     .into()
 }
 
