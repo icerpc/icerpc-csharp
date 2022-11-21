@@ -3,7 +3,7 @@
 namespace IceRpc.Slice;
 
 /// <summary>Base class for exceptions defined in Slice.</summary>
-public abstract class RemoteException : Exception, ITrait
+public abstract class SliceException : Exception, ITrait
 {
     /// <inheritdoc/>
     public override string Message => _hasCustomMessage || DefaultMessage is null ? base.Message : DefaultMessage;
@@ -18,10 +18,10 @@ public abstract class RemoteException : Exception, ITrait
     /// </value>
     public bool ConvertToUnhandled { get; set; }
 
-    /// <summary>Gets the remote exception origin.</summary>
+    /// <summary>Gets the Slice exception origin.</summary>
     public OutgoingRequest? Origin { get; internal set; }
 
-    /// <summary>Gets the remote exception retry policy.</summary>
+    /// <summary>Gets the Slice exception retry policy.</summary>
     public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
 
     /// <summary>Gets the exception default message. When not null and the application does not construct the
@@ -42,15 +42,15 @@ public abstract class RemoteException : Exception, ITrait
 
     internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
 
-    /// <summary>Constructs a remote exception with the default system message.</summary>
+    /// <summary>Constructs a Slice exception with the default system message.</summary>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
-    protected RemoteException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
+    protected SliceException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
 
-    /// <summary>Constructs a remote exception with the provided message and inner exception.</summary>
+    /// <summary>Constructs a Slice exception with the provided message and inner exception.</summary>
     /// <param name="message">Message that describes the exception.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     /// <param name="innerException">The inner exception.</param>
-    protected RemoteException(
+    protected SliceException(
         string? message,
         Exception? innerException = null,
         RetryPolicy? retryPolicy = null)
@@ -60,21 +60,21 @@ public abstract class RemoteException : Exception, ITrait
         _hasCustomMessage = message is not null;
     }
 
-    /// <summary>Constructs a remote exception using a decoder.</summary>
+    /// <summary>Constructs a Slice exception using a decoder.</summary>
     /// <param name="decoder">The decoder.</param>
-    protected RemoteException(ref SliceDecoder decoder)
+    protected SliceException(ref SliceDecoder decoder)
         : base(decoder.Encoding == SliceEncoding.Slice1 ? null : decoder.DecodeString())
     {
         _hasCustomMessage = decoder.Encoding != SliceEncoding.Slice1;
         ConvertToUnhandled = true;
     }
 
-    /// <summary>Decodes a remote exception.</summary>
+    /// <summary>Decodes a Slice exception.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <remarks>Implemented only by Slice1-compatible exceptions.</remarks>
     protected virtual void DecodeCore(ref SliceDecoder decoder) => throw new NotImplementedException();
 
-    /// <summary>Encodes this remote exception.</summary>
+    /// <summary>Encodes this Slice exception.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <remarks>Implemented for all Slice encodings.</remarks>
     protected abstract void EncodeCore(ref SliceEncoder encoder);

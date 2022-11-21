@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace IceRpc;
 
-/// <summary>The retry policy can be specified when constructing a <see cref="RemoteException" />. With the icerpc
+/// <summary>The retry policy can be specified when constructing a <see cref="SliceException" />. With the icerpc
 /// protocol, the retry policy is transmitted as a field with the response and later decoded by the client's.</summary>
 public sealed record class RetryPolicy
 {

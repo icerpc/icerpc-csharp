@@ -485,9 +485,9 @@ try
 {{
     {dispatch_and_return}
 }}
-catch (RemoteException remoteException) when (!remoteException.ConvertToUnhandled)
+catch (SliceException sliceException) when (!sliceException.ConvertToUnhandled)
 {{
-    return request.CreateFailureResponse(remoteException, {encoding});
+    return request.CreateFailureResponse(sliceException, {encoding});
 }}",
         check_and_decode = check_and_decode,
         dispatch_and_return = dispatch_and_return.indent(),

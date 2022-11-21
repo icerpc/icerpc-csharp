@@ -42,7 +42,7 @@ impl Visitor for ExceptionVisitor<'_> {
         if let Some(base) = exception_def.base_exception() {
             exception_class_builder.add_base(base.escape_scoped_identifier(namespace));
         } else {
-            exception_class_builder.add_base("IceRpc.Slice.RemoteException".to_owned());
+            exception_class_builder.add_base("SliceException".to_owned());
         }
 
         exception_class_builder.add_block(

@@ -109,7 +109,7 @@ public static class IncomingResponseExtensions
         }
     }
 
-    private static async ValueTask<RemoteException> DecodeRemoteExceptionAsync(
+    private static async ValueTask<SliceException> DecodeRemoteExceptionAsync(
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
@@ -131,12 +131,12 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
-        RemoteException result = Decode(readResult.Buffer);
+        SliceException result = Decode(readResult.Buffer);
         result.Origin = request;
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return result;
 
-        RemoteException Decode(ReadOnlySequence<byte> buffer)
+        SliceException Decode(ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(
                 buffer,
@@ -147,7 +147,7 @@ public static class IncomingResponseExtensions
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 maxDepth: feature.MaxDepth);
 
-            RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
+            SliceException remoteException = encoding == SliceEncoding.Slice1 ?
                 decoder.DecodeUserException() :
                 decoder.DecodeTrait(CreateUnknownException);
 
@@ -161,7 +161,7 @@ public static class IncomingResponseExtensions
 
             // If we can't decode this exception, we return an UnknownException with the undecodable exception's
             // type identifier and message.
-            static RemoteException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
+            static SliceException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
                 new UnknownException(typeId, decoder.DecodeString());
         }
     }

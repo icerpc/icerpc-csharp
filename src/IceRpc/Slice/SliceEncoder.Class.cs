@@ -103,14 +103,14 @@ public ref partial struct SliceEncoder
         }
     }
 
-    /// <summary>Marks the start of the encoding of a class or remote exception slice.</summary>
+    /// <summary>Marks the start of the encoding of a class or exception slice.</summary>
     /// <param name="typeId">The type ID of this slice.</param>
     /// <param name="compactId ">The compact ID of this slice, if any.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void StartSlice(string typeId, int? compactId = null)
     {
         // This will only be called with an InstanceType of 'None' when we're starting to encode the first slice
-        // of a remote exception.
+        // of an exception.
         if (_classContext.Current.InstanceType == InstanceType.None)
         {
             _classContext.ClassFormat = ClassFormat.Sliced; // always encode exceptions in sliced format

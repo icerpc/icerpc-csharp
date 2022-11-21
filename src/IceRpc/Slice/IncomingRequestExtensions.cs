@@ -1,9 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using System;
-using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
@@ -28,30 +25,30 @@ public static class IncomingRequestExtensions
     /// <summary>Creates an outgoing response with status code <see cref="StatusCode.Failure" />.
     /// </summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="remoteException">The remote exception to encode in the payload.</param>
+    /// <param name="sliceException">The Slice exception to encode in the payload.</param>
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException" /> is a dispatch exception or
-    /// its <see cref="RemoteException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="sliceException" /> is a dispatch exception or
+    /// its <see cref="SliceException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
     public static OutgoingResponse CreateFailureResponse(
         this IncomingRequest request,
-        RemoteException remoteException,
+        SliceException sliceException,
         SliceEncoding encoding)
     {
-        if (remoteException.ConvertToUnhandled)
+        if (sliceException.ConvertToUnhandled)
         {
-            throw new ArgumentException("invalid remote exception", nameof(remoteException));
+            throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        var response = new OutgoingResponse(request, StatusCode.Failure, remoteException.Message)
+        var response = new OutgoingResponse(request, StatusCode.Failure, sliceException.Message)
         {
             Payload = CreateExceptionPayload()
         };
 
-        if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+        if (response.Protocol.HasFields && sliceException.RetryPolicy != RetryPolicy.NoRetry)
         {
             // Encode the retry policy into the fields of the new response.
-            RetryPolicy retryPolicy = remoteException.RetryPolicy;
+            RetryPolicy retryPolicy = sliceException.RetryPolicy;
             response.Fields = response.Fields.With(
                 ResponseFieldKey.RetryPolicy,
                 retryPolicy.Encode);
@@ -70,13 +67,13 @@ public static class IncomingRequestExtensions
             // Encode resp. EncodeTrait can throw if the exception does not support encoding.
             if (encoding == SliceEncoding.Slice1)
             {
-                remoteException.Encode(ref encoder);
+                sliceException.Encode(ref encoder);
             }
             else
             {
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                 int startPos = encoder.EncodedByteCount;
-                remoteException.EncodeTrait(ref encoder);
+                sliceException.EncodeTrait(ref encoder);
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 

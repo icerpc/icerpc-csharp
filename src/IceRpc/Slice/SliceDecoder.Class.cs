@@ -46,8 +46,8 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a Slice1 user exception.</summary>
-    /// <returns>The decoded remote exception.</returns>
-    public RemoteException DecodeUserException()
+    /// <returns>The decoded Slice exception.</returns>
+    public SliceException DecodeUserException()
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -57,7 +57,7 @@ public ref partial struct SliceDecoder
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
         _classContext.Current.InstanceType = InstanceType.Exception;
 
-        RemoteException? remoteException;
+        SliceException? sliceException;
 
         // We can decode the indirection table (if there is one) immediately after decoding each slice header
         // because the indirection table cannot reference the exception itself.
@@ -74,30 +74,30 @@ public ref partial struct SliceDecoder
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-            remoteException = _activator?.CreateInstance(typeId, ref this) as RemoteException;
-            if (remoteException is null && SkipSlice(typeId))
+            sliceException = _activator?.CreateInstance(typeId, ref this) as SliceException;
+            if (sliceException is null && SkipSlice(typeId))
             {
                 // Slice off what we don't understand.
                 break;
             }
         }
-        while (remoteException is null);
+        while (sliceException is null);
 
-        if (remoteException is not null)
+        if (sliceException is not null)
         {
             _classContext.Current.FirstSlice = true;
-            remoteException.Decode(ref this);
+            sliceException.Decode(ref this);
         }
         else
         {
-            remoteException = new UnknownException(mostDerivedTypeId, message: "");
+            sliceException = new UnknownException(mostDerivedTypeId, message: "");
         }
 
         _classContext.Current = default;
-        return remoteException;
+        return sliceException;
     }
 
-    /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
+    /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void EndSlice()
     {
@@ -124,7 +124,7 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Marks the start of the decoding of a class or remote exception slice.</summary>
+    /// <summary>Marks the start of the decoding of a class or exception slice.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void StartSlice()
     {

@@ -13,7 +13,7 @@ namespace IceRpc.Slice;
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">The cancellation token.</param>
-/// <returns>A value task that contains the return value or a <see cref="RemoteException" /> when the response
+/// <returns>A value task that contains the return value or a <see cref="SliceException" /> when the response
 /// carries a failure.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
@@ -54,12 +54,12 @@ public static class ProxyExtensions
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
-    /// <see cref="RemoteException" /> when the response payload contains a failure.</param>
+    /// <see cref="SliceException" /> when the response payload contains a failure.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
+    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when
     /// invocation is not null.</remarks>
     public static Task<T> InvokeAsync<TProxy, T>(
@@ -140,7 +140,7 @@ public static class ProxyExtensions
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
-    /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
+    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is
     /// not null.</remarks>
     public static Task InvokeAsync<TProxy>(
