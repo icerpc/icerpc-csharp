@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Net;
 
@@ -13,7 +14,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
-    private readonly AsyncQueue<Func<PipeReader?, PipeReader?>> _queue = new();
+    private readonly AsyncQueue<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)> _queue;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
@@ -22,25 +23,18 @@ internal class ColocListener : IListener<IDuplexConnection>
         {
             while (true)
             {
-                Func<PipeReader?, PipeReader?> serverConnect = await _queue.DequeueAsync(
-                    cts.Token).ConfigureAwait(false);
-
-                // Create the server-side pipe and provide the reader to the client connection establishment request.
-                // The connection establishment request return the client-side pipe reader or null if the connection
-                // connection establishment request was canceled.
-                var serverPipe = new Pipe(_pipeOptions);
-                PipeReader? clientPipeReader = serverConnect(serverPipe.Reader);
-                if (clientPipeReader is null)
+                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader, CancellationToken clientConnectCancellationToken) =
+                    await _queue.DequeueAsync(cts.Token).ConfigureAwait(false);
+                if (clientConnectCancellationToken.IsCancellationRequested)
                 {
                     // The client connection establishment was canceled.
-                    serverPipe.Reader.Complete();
-                    serverPipe.Writer.Complete();
+                    continue;
                 }
-                else
-                {
-                    return (new ServerColocConnection(ServerAddress, serverPipe.Writer, clientPipeReader),
-                            _networkAddress);
-                }
+
+                var serverPipe = new Pipe(_pipeOptions);
+                var serverConnection = new ServerColocConnection(ServerAddress, serverPipe.Writer, clientPipeReader);
+                tcs.SetResult(serverPipe.Reader);
+                return (serverConnection, _networkAddress);
             }
         }
         catch (OperationCanceledException)
@@ -65,10 +59,12 @@ internal class ColocListener : IListener<IDuplexConnection>
         // establishment request will fail with TransportException(TransportErrorCode.ConnectionRefused)
         while (true)
         {
-            ValueTask<Func<PipeReader?, PipeReader?>> serverConnectTask = _queue.DequeueAsync(default);
+            ValueTask<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)> serverConnectTask =
+                    _queue.DequeueAsync(default);
             if (serverConnectTask.IsCompletedSuccessfully)
             {
-                serverConnectTask.Result.Invoke(null);
+                (TaskCompletionSource<PipeReader> tcs, PipeReader _, CancellationToken _) = serverConnectTask.Result;
+                tcs.SetException(new TransportException(TransportErrorCode.ConnectionReset));
             }
             else
             {
@@ -84,20 +80,35 @@ internal class ColocListener : IListener<IDuplexConnection>
         return default;
     }
 
-    internal ColocListener(ServerAddress serverAddress, DuplexConnectionOptions options)
+    internal ColocListener(ServerAddress serverAddress, int listenBacklog, DuplexConnectionOptions options)
     {
         ServerAddress = serverAddress;
 
+        _queue = new AsyncQueue<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)>(listenBacklog);
         _networkAddress = new ColocEndPoint(serverAddress);
         _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
     }
 
-    /// <summary>Queue the connection establishment request from the client.</summary>
-    internal void QueueConnectAsync(Func<PipeReader?, PipeReader?> connect)
+    internal bool TryQueueConnectAsync(
+        PipeReader clientPipeReader,
+        CancellationToken cancellationToken,
+        [MaybeNullWhen(false)] out Task<PipeReader> serverPipeReaderTask)
     {
-        if (!_queue.Enqueue(connect) || _disposeCts.IsCancellationRequested)
+        if (_disposeCts.IsCancellationRequested)
         {
-            throw new TransportException(TransportErrorCode.ConnectionRefused);
+            throw new TransportException(TransportErrorCode.ConnectionDisposed);
+        }
+
+        var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (_queue.Enqueue((tcs, clientPipeReader, cancellationToken)))
+        {
+            serverPipeReaderTask = tcs.Task;
+            return true;
+        }
+        else
+        {
+            serverPipeReaderTask = null;
+            return false;
         }
     }
 }

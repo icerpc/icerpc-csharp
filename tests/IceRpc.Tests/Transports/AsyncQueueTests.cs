@@ -36,6 +36,18 @@ public class AsyncQueueTests
         }
     }
 
+    [TestCase(1)]
+    [TestCase(10)]
+    public void AsyncQueue_Enqueue_MaxCount(int count)
+    {
+        var queue = new AsyncQueue<bool>(count);
+        for (int i = 0; i < count; ++i)
+        {
+            Assert.That(queue.Enqueue(false), Is.True);
+        }
+        Assert.That(queue.Enqueue(false), Is.False);
+    }
+
     [Test]
     public void AsyncQueue_EnqueueAfterComplete()
     {

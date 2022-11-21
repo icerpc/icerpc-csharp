@@ -11,6 +11,7 @@ internal class ColocServerTransport : IDuplexServerTransport
     /// <inheritdoc/>
     public string Name => ColocTransport.Name;
 
+    private readonly int _listenBacklog;
     private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
 
     /// <inheritdoc/>
@@ -29,7 +30,7 @@ internal class ColocServerTransport : IDuplexServerTransport
             throw new FormatException($"cannot create a Coloc listener for server address '{serverAddress}'");
         }
 
-        var listener = new ColocListener(serverAddress with { Transport = Name }, options);
+        var listener = new ColocListener(serverAddress with { Transport = Name }, _listenBacklog, options);
         if (!_listeners.TryAdd(listener.ServerAddress, listener))
         {
             throw new TransportException(TransportErrorCode.AddressInUse);
@@ -37,6 +38,9 @@ internal class ColocServerTransport : IDuplexServerTransport
         return listener;
     }
 
-    internal ColocServerTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>
+    internal ColocServerTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners, int listenBacklog)
+    {
         _listeners = listeners;
+        _listenBacklog = listenBacklog;
+    }
 }

@@ -20,10 +20,17 @@ public sealed class ColocTransport
 
     /// <summary>Constructs a <see cref="ColocTransport" />.</summary>
     public ColocTransport()
+        : this(512)
+    {
+    }
+
+    /// <summary>Constructs a <see cref="ColocTransport" />.</summary>
+    /// <param name="listenBacklog">The maximum length of the pending connections queue.</param>
+    public ColocTransport(int listenBacklog)
     {
         var listeners = new ConcurrentDictionary<ServerAddress, ColocListener>();
         ClientTransport = new ColocClientTransport(listeners);
-        ServerTransport = new ColocServerTransport(listeners);
+        ServerTransport = new ColocServerTransport(listeners, listenBacklog);
     }
 
     internal static bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;

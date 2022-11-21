@@ -88,7 +88,7 @@ public class AsyncQueueCoreTests
         internal bool IsGetStatusCalled { get; private set; }
         internal bool IsCancelCalled { get; private set; }
 
-        private AsyncQueueCore<bool> _queue = new();
+        private AsyncQueueCore<bool> _queue = new(0);
 
         internal void Enqueue(bool value) => _queue.Enqueue(value);
 

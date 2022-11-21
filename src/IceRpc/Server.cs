@@ -43,6 +43,8 @@ public sealed class Server : IAsyncDisposable
 
     private readonly int _maxConnections;
 
+    private readonly int _maxPendingConnections;
+
     // protects _listener and _connections
     private readonly object _mutex = new();
 
@@ -74,6 +76,7 @@ public sealed class Server : IAsyncDisposable
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
         _maxConnections = options.MaxConnections;
+        _maxPendingConnections = options.MaxPendingConnections;
 
         if (_serverAddress.Transport is null)
         {
@@ -307,8 +310,13 @@ public sealed class Server : IAsyncDisposable
         {
             try
             {
+                using var pendingConnectionSemaphore = new SemaphoreSlim(
+                    _maxPendingConnections,
+                    _maxPendingConnections);
+
                 while (true)
                 {
+                    await pendingConnectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
                     (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
                         .ConfigureAwait(false);
 
@@ -327,6 +335,11 @@ public sealed class Server : IAsyncDisposable
                             catch
                             {
                                 // Ignore connection establishment failure.
+                            }
+                            finally
+                            {
+                                await connector.DisposeAsync().ConfigureAwait(false);
+                                pendingConnectionSemaphore.Release();
                             }
                         });
                 }
@@ -366,28 +379,7 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            if (shutdownCancellationToken.IsCancellationRequested)
-            {
-                // Dispose of the connector and underlying transport connection if the server is being shutdown.
-                await connector.DisposeAsync().ConfigureAwait(false);
-            }
-            else if (protocolConnection is null)
-            {
-                // If the max connection count is reached, we refuse the transport connection.
-                try
-                {
-                    await connector.RefuseTransportConnectionAsync(
-                        shutdownCancellationToken).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignore and continue
-                }
-
-                // Dispose the connector to dispose of the underlying transport.
-                await connector.DisposeAsync().ConfigureAwait(false);
-            }
-            else
+            if (protocolConnection is not null)
             {
                 // Schedule removal after addition, outside mutex lock.
                 _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
@@ -395,6 +387,18 @@ public sealed class Server : IAsyncDisposable
                 // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates one with
                 // the configured connection timeout.
                 await protocolConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else if (!shutdownCancellationToken.IsCancellationRequested)
+            {
+                // If the max connection count is reached, we refuse the transport connection.
+                try
+                {
+                    await connector.RefuseTransportConnectionAsync(shutdownCancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignore and continue
+                }
             }
         }
 
