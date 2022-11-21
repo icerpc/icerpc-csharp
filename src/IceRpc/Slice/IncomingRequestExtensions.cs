@@ -29,7 +29,7 @@ public static class IncomingRequestExtensions
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="sliceException" /> is a dispatch exception or
-    /// its <see cref="SliceException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
+    /// its <see cref="DispatchException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
     public static OutgoingResponse CreateSliceExceptionResponse(
         this IncomingRequest request,
         SliceException sliceException,
