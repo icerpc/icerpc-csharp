@@ -189,7 +189,7 @@ public sealed class Router : IDispatcher
                         }
                         // and try again with the new shorter prefix
                     }
-                    throw new DispatchException("too many segments in path", StatusCode.InvalidData);
+                    throw new DispatchException(StatusCode.InvalidData, "too many segments in path");
                 }
             });
 

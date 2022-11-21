@@ -98,10 +98,7 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
-            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)
-            {
-                StatusCode = StatusCode.Failure
-            });
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc, StatusCode.Failure, ""));
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
@@ -130,12 +127,13 @@ public sealed class RetryInterceptorTests
                 return Task.FromResult(new IncomingResponse(
                     request,
                     FakeConnectionContext.IceRpc,
+                    StatusCode.Failure,
+                    "error message",
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
                     })
                 {
-                    StatusCode = StatusCode.Failure,
                     Payload = payloadDecorator
                 });
             }
@@ -170,13 +168,12 @@ public sealed class RetryInterceptorTests
                 return Task.FromResult(new IncomingResponse(
                     request,
                     FakeConnectionContext.IceRpc,
+                    StatusCode.Failure,
+                    "error message",
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
-                    })
-                {
-                    StatusCode = StatusCode.Failure
-                });
+                    }));
             }
             else
             {
@@ -356,13 +353,12 @@ public sealed class RetryInterceptorTests
             return Task.FromResult(new IncomingResponse(
                 request,
                 FakeConnectionContext.IceRpc,
+                StatusCode.Failure,
+                "error message",
                 new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                 {
                     [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)
-                })
-            {
-                StatusCode = StatusCode.Failure
-            });
+                }));
         });
 
         var serviceAddress = new ServiceAddress(connection1.ServerAddress.Protocol)

@@ -179,17 +179,6 @@ public sealed class ProtocolBridgingTests
 
             // Then create an outgoing response from the incoming response.
 
-            // When StatusCode > Failure and the protocols are different, we need to transcode the dispatch exception.
-            // Fortunately, we can simply decode it and throw it.
-            if (request.Protocol != incomingResponse.Protocol && incomingResponse.StatusCode > StatusCode.Failure)
-            {
-                DispatchException dispatchException = await incomingResponse.DecodeDispatchExceptionAsync(
-                    outgoingRequest,
-                    cancellationToken: cancellationToken);
-                dispatchException.ConvertToUnhandled = false;
-                throw dispatchException;
-            }
-
             // Don't forward RetryPolicy
             // TODO: copy fields memory?
             var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
@@ -199,12 +188,22 @@ public sealed class ProtocolBridgingTests
                             new OutgoingFieldValue(pair.Value))));
             _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
-            return new OutgoingResponse(request)
+            if (incomingResponse.StatusCode == StatusCode.Success)
             {
-                Fields = fields,
-                Payload = incomingResponse.DetachPayload(),
-                StatusCode = incomingResponse.StatusCode
-            };
+                return new OutgoingResponse(request)
+                {
+                    Fields = fields,
+                    Payload = incomingResponse.DetachPayload()
+                };
+            }
+            else
+            {
+                return new OutgoingResponse(request, incomingResponse.StatusCode, incomingResponse.ErrorMessage!)
+                {
+                    Fields = fields,
+                    Payload = incomingResponse.DetachPayload()
+                };
+            }
         }
 
         internal Forwarder(ServiceProxy target) => _target = target;

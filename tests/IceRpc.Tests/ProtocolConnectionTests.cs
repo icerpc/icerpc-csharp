@@ -29,10 +29,12 @@ public sealed class ProtocolConnectionTests
                 // an unexpected OCE
                 yield return new(protocol, new OperationCanceledException(), StatusCode.UnhandledException);
 
-                yield return new(protocol, new InvalidDataException("invalid data"), StatusCode.InvalidData);
                 yield return new(protocol, new MyException(), StatusCode.UnhandledException);
                 yield return new(protocol, new InvalidOperationException(), StatusCode.UnhandledException);
             }
+
+            yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
+            yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.UnhandledException);
         }
     }
 
@@ -249,9 +251,7 @@ public sealed class ProtocolConnectionTests
         var response = await sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(
-            async () => (await response.DecodeDispatchExceptionAsync(request)).StatusCode,
-            Is.EqualTo(statusCode));
+        Assert.That(response.StatusCode, Is.EqualTo(statusCode));
         Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }
 

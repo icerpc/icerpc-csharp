@@ -39,8 +39,7 @@ public class InvocationTests
         IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
 
         // Assert
-        DispatchException exception = await response.DecodeDispatchExceptionAsync(request);
-        Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
     }
 
     /// <summary>Verifies that a callback on a connection without dispatcher does not accept requests with the icerpc
@@ -104,8 +103,8 @@ public class InvocationTests
 
         // Assert
         var response = await invokeTask;
-        DispatchException dispatchException = await response.DecodeDispatchExceptionAsync(request);
-        Assert.That(dispatchException.StatusCode, Is.EqualTo(StatusCode.TruncatedPayload));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.TruncatedPayload));
+
         pipe.Writer.Complete();
     }
 }

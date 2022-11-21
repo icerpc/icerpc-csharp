@@ -43,10 +43,9 @@ public static class IncomingRequestExtensions
             throw new ArgumentException("invalid remote exception", nameof(remoteException));
         }
 
-        var response = new OutgoingResponse(request)
+        var response = new OutgoingResponse(request, StatusCode.Failure, remoteException.Message)
         {
-            Payload = CreateExceptionPayload(),
-            StatusCode = StatusCode.Failure
+            Payload = CreateExceptionPayload()
         };
 
         if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
