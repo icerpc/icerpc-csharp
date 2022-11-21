@@ -64,7 +64,7 @@ internal class ColocListener : IListener<IDuplexConnection>
             if (serverConnectTask.IsCompletedSuccessfully)
             {
                 (TaskCompletionSource<PipeReader> tcs, PipeReader _, CancellationToken _) = serverConnectTask.Result;
-                tcs.SetException(new TransportException(TransportErrorCode.ConnectionReset));
+                tcs.SetException(new TransportException(TransportErrorCode.ConnectionAborted));
             }
             else
             {
@@ -96,7 +96,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     {
         if (_disposeCts.IsCancellationRequested)
         {
-            throw new TransportException(TransportErrorCode.ConnectionDisposed);
+            throw new TransportException(TransportErrorCode.OperationAborted);
         }
 
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
