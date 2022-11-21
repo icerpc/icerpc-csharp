@@ -21,14 +21,14 @@ public class DispatchException : Exception
     {
         get
         {
-            if (_hasCustomMessage)
+            if (_hasCustomMessage || StatusCode == StatusCode.ApplicationError)
             {
                 return base.Message;
             }
             else
             {
-                // We always give a custom message to dispatch exceptions we decode so this code is only used for
-                // non-decoded dispatch exceptions.
+                // We always give a custom message to dispatch exceptions we decode (other than ApplicationError), so
+                // this code is only used for non-decoded dispatch exceptions.
 
                 string message = $"{nameof(DispatchException)} {{ StatusCode = {StatusCode} }}";
 

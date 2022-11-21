@@ -87,14 +87,13 @@ public ref partial struct SliceDecoder
         {
             _classContext.Current.FirstSlice = true;
             sliceException.Decode(ref this);
+            _classContext.Current = default;
+            return sliceException;
         }
         else
         {
-            sliceException = new UnknownException(mostDerivedTypeId, message: "");
+            throw new InvalidDataException($"could not find class to decode Slice exception {mostDerivedTypeId}");
         }
-
-        _classContext.Current = default;
-        return sliceException;
     }
 
     /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
@@ -124,7 +123,7 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Marks the start of the decoding of a class or exception slice.</summary>
+    /// <summary>Marks the start of the decoding of a class or remote exception slice.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void StartSlice()
     {

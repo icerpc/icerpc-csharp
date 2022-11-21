@@ -43,6 +43,13 @@ public abstract class SliceException : DispatchException, ITrait
             message: decoder.Encoding == SliceEncoding.Slice1 ? null : decoder.DecodeString()) =>
         ConvertToUnhandled = true;
 
+    /// <summary>Constructs a Slice exception using a decoder and message.</summary>
+    /// <param name="decoder">The decoder.</param>
+    /// <param name="message">The message.</param>
+    protected SliceException(ref SliceDecoder decoder, string message)
+        : base(StatusCode.ApplicationError, message) =>
+        ConvertToUnhandled = true;
+
     /// <summary>Decodes a Slice exception.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <remarks>Implemented only by Slice1-compatible exceptions.</remarks>
