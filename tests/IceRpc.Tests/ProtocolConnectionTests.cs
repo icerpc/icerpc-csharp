@@ -302,33 +302,13 @@ public sealed class ProtocolConnectionTests
 
         async Task WaitForClientConnectionAsync()
         {
-            try
-            {
-                await sut.Client.ShutdownComplete;
-            }
-            catch (ConnectionException exception) when (
-                protocol == Protocol.Ice &&
-                exception.InnerException is TransportException transportException &&
-                transportException.ErrorCode == TransportErrorCode.ConnectionAborted)
-            {
-                // expected with ice when the peer closes the connection
-            }
+            await sut.Client.ShutdownComplete;
             clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64);
         }
 
         async Task WaitForServerConnectionAsync()
         {
-            try
-            {
-                await sut.Server.ShutdownComplete;
-            }
-            catch (ConnectionException exception) when (
-                protocol == Protocol.Ice &&
-                exception.InnerException is TransportException transportException &&
-                transportException.ErrorCode == TransportErrorCode.ConnectionAborted)
-            {
-                // expected with ice when the peer closes the connection
-            }
+            await sut.Server.ShutdownComplete;
             serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64);
         }
     }

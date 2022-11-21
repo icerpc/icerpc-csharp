@@ -11,6 +11,7 @@ internal static class SocketExceptionExtensions
         socketError switch
         {
             SocketError.AddressAlreadyInUse => TransportErrorCode.AddressInUse,
+            SocketError.ConnectionAborted => TransportErrorCode.ConnectionAborted,
             // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer closing
             // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty
             // while ECONNRESET is returned if the send buffer is not empty.
