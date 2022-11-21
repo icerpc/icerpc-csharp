@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.Deflate\IceRpc.Deflate.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Compressor\IceRpc.Compressor.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
 

@@ -3,27 +3,37 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
-namespace IceRpc.Deflate;
+namespace IceRpc.Compressor;
 
-/// <summary>An interceptor that applies the deflate compression algorithm to the payload of a request depending on
+/// <summary>An interceptor that applies compression to the payload of a request depending on
 /// the <see cref="ICompressFeature" /> feature.</summary>
-public class DeflateInterceptor : IInvoker
+public class CompressorInterceptor : IInvoker
 {
-    private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
-        new(new byte[] { (byte)CompressionFormat.Deflate });
-
     private readonly IInvoker _next;
+    private readonly CompressionFormat _compressionFormat;
     private readonly CompressionLevel _compressionLevel;
 
     /// <summary>Constructs a compressor interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
+    /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>
-    public DeflateInterceptor(IInvoker next, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+    public CompressorInterceptor(
+        IInvoker next,
+        CompressionFormat compressionFormat,
+        CompressionLevel compressionLevel = CompressionLevel.Fastest)
     {
         _next = next;
+        if (compressionFormat != CompressionFormat.Brotli && compressionFormat != CompressionFormat.Deflate)
+        {
+            throw new ArgumentException(
+                $"Compression format '{compressionFormat}' not supported",
+                nameof(compressionFormat));
+        }
+        _compressionFormat = compressionFormat;
         _compressionLevel = compressionLevel;
     }
 
@@ -37,11 +47,19 @@ public class DeflateInterceptor : IInvoker
             compress.Value &&
             !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
-            request.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
+            if (_compressionFormat == CompressionFormat.Brotli)
+            {
+                request.Use(next => PipeWriter.Create(new BrotliStream(next.AsStream(), _compressionLevel)));
+            }
+            else
+            {
+                Debug.Assert(_compressionFormat == CompressionFormat.Deflate);
+                request.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
+            }
 
             request.Fields = request.Fields.With(
                 RequestFieldKey.CompressionFormat,
-                _encodedCompressionFormatValue);
+                new ReadOnlySequence<byte>(new byte[] { (byte)_compressionFormat }));
         }
 
         IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
@@ -52,11 +70,17 @@ public class DeflateInterceptor : IInvoker
                ResponseFieldKey.CompressionFormat,
                (ref SliceDecoder decoder) => decoder.DecodeCompressionFormat());
 
-            if (compressionFormat == CompressionFormat.Deflate)
+            if (compressionFormat == CompressionFormat.Brotli)
+            {
+                response.Payload = PipeReader.Create(
+                    new BrotliStream(response.Payload.AsStream(), CompressionMode.Decompress));
+            }
+            else if (compressionFormat == CompressionFormat.Deflate)
             {
                 response.Payload = PipeReader.Create(
                     new DeflateStream(response.Payload.AsStream(), CompressionMode.Decompress));
             }
+            // else nothing to do
         }
 
         return response;
