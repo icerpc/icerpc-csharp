@@ -9,13 +9,11 @@ public enum TransportErrorCode
     /// <summary>The listener local address is in use.</summary>
     AddressInUse,
 
-    /// <summary>The peer closed the connection. With multiplexed transports, <see
+    /// <summary>The connection was aborted, typically by the peer. The abort can also be caused by a network failure,
+    /// such as an intermediary router going down. With multiplexed transports, <see
     /// cref="TransportException.ApplicationErrorCode" /> is set to the error code provided to <see
     /// cref="IMultiplexedConnection.CloseAsync" />.</summary>
-    ConnectionClosed,
-
-    /// <summary>The connection was disposed.</summary>
-    ConnectionDisposed,
+    ConnectionAborted,
 
     /// <summary>The connection was idle and timed-out.</summary>
     ConnectionIdle,
@@ -23,16 +21,14 @@ public enum TransportErrorCode
     /// <summary>The peer refused the connection.</summary>
     ConnectionRefused,
 
-    /// <summary>The connection was reset by the peer.</summary>
-    ConnectionReset,
-
-    /// <summary>The connection was shutdown.</summary>
-    ConnectionShutdown,
+    /// <summary>The connection timed out while waiting to get data from the peer.</summary>
+    ConnectionTimeout,
 
     /// <summary>An internal error occurred.</summary>
     InternalError,
 
-    /// <summary>The operation has been aborted.</summary>
+    /// <summary>A call that was ongoing when the underlying resource (connection, stream) is disposed is aborted by
+    /// the dispose.</summary>
     OperationAborted,
 
     /// <summary>An other unspecified error occurred.</summary>
@@ -45,7 +41,7 @@ public class TransportException : Exception
 {
     /// <summary>Gets the application protocol error code. It's set when this exception is triggered by the closure of a
     /// multiplexed connection by the remote peer. <see cref = "ErrorCode" /> is <see
-    /// cref="TransportErrorCode.ConnectionClosed" /> in this situation. In all other situations, this property is null.
+    /// cref="TransportErrorCode.ConnectionAborted" /> in this situation. In all other situations, this property is null.
     /// The remote peer specifies the application error code when calling <see cref=
     /// "IMultiplexedConnection.CloseAsync" />.</summary>
     public ulong? ApplicationErrorCode { get; }

@@ -42,14 +42,14 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                throw new TransportException(TransportErrorCode.ConnectionReset);
+                throw new TransportException(TransportErrorCode.OperationAborted);
             }
 
             ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 // Dispose canceled ReadAsync.
-                throw new TransportException(TransportErrorCode.ConnectionReset);
+                throw new TransportException(TransportErrorCode.OperationAborted);
             }
             else if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
             {
@@ -82,7 +82,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                _reader.Complete(new TransportException(TransportErrorCode.ConnectionDisposed));
+                _reader.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
             }
             _state.ClearFlag(State.Reading);
         }
@@ -137,7 +137,8 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.ShuttingDown))
             {
-                throw new TransportException(TransportErrorCode.ConnectionShutdown);
+                throw new InvalidOperationException(
+                    $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
             }
             else
             {
@@ -151,26 +152,27 @@ internal abstract class ColocConnection : IDuplexConnection
             {
                 if (_state.HasFlag(State.ShuttingDown))
                 {
-                    throw new TransportException(TransportErrorCode.ConnectionShutdown);
+                    throw new InvalidOperationException(
+                        $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
                 }
 
                 FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
                 if (flushResult.IsCanceled)
                 {
                     // Dispose canceled ReadAsync.
-                    throw new TransportException(TransportErrorCode.ConnectionReset);
+                    throw new TransportException(TransportErrorCode.OperationAborted);
                 }
             }
         }
         finally
         {
-            if (_state.HasFlag(State.Disposed))
-            {
-                _writer.Complete(new TransportException(TransportErrorCode.ConnectionDisposed));
-            }
-            else if (_state.HasFlag(State.ShuttingDown))
+            if (_state.HasFlag(State.ShuttingDown))
             {
                 _writer.Complete();
+            }
+            else if (_state.HasFlag(State.Disposed))
+            {
+                _writer.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
             }
             _state.ClearFlag(State.Writing);
         }
@@ -195,7 +197,7 @@ internal abstract class ColocConnection : IDuplexConnection
                 }
                 else
                 {
-                    _reader.Complete(new TransportException(TransportErrorCode.ConnectionReset));
+                    _reader.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
                 }
             }
 
@@ -205,7 +207,7 @@ internal abstract class ColocConnection : IDuplexConnection
             }
             else
             {
-                _writer.Complete(new TransportException(TransportErrorCode.ConnectionReset));
+                _writer.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
             }
         }
     }
@@ -222,7 +224,8 @@ internal abstract class ColocConnection : IDuplexConnection
         else if (_state.HasFlag(State.ShuttingDown))
         {
             // Dispose will complete the reader.
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+            throw new InvalidOperationException(
+                $"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         var colocEndPoint = new ColocEndPoint(ServerAddress);
@@ -252,7 +255,7 @@ internal class ClientColocConnection : ColocConnection
         }
         else if (_state.HasFlag(State.ShuttingDown))
         {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
+            throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         if (_localPipeReader is not null)

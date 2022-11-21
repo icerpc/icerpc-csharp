@@ -70,10 +70,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        // TODO: we get ConnectionDisposed with Slic and ConnectionReset with Quic
         Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<TransportException>()
-            .With.Property("ErrorCode").EqualTo(TransportErrorCode.ConnectionDisposed)
-            .Or.With.Property("ErrorCode").EqualTo(TransportErrorCode.ConnectionReset));
+            .With.Property("ErrorCode").EqualTo(TransportErrorCode.OperationAborted));
 
         payload.Complete();
         pipe.Writer.Complete();

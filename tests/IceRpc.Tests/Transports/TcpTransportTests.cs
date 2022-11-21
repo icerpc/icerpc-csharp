@@ -192,7 +192,7 @@ public class TcpTransportTests
     }
 
     [Test]
-    public async Task Call_accept_and_dispose_the_listener_fails_with_socket_operation_aborted()
+    public async Task Call_accept_and_dispose_the_listener_fails_with_operation_aborted()
     {
         // Arrange
         await using IListener<IDuplexConnection> listener = CreateTcpListener();
@@ -306,7 +306,7 @@ public class TcpTransportTests
         // Act/Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             async () => await serverConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails with

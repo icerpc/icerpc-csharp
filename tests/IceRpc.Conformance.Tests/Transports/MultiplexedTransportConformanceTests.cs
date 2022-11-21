@@ -63,7 +63,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         TransportException ex = Assert.ThrowsAsync<TransportException>(async () => await acceptStreams)!;
-        Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
         Assert.That(ex.ApplicationErrorCode, Is.EqualTo(2ul));
 
     }
@@ -201,12 +201,12 @@ public abstract class MultiplexedTransportConformanceTests
         // Act/Assert
         exception = Assert.ThrowsAsync<TransportException>(
             () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
 
         exception = Assert.ThrowsAsync<TransportException>(
             () => peerConnection.CreateStreamAsync(true, default).AsTask());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
     }
 
@@ -253,7 +253,7 @@ public abstract class MultiplexedTransportConformanceTests
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionReset));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
     }
 
     /// <summary>Verifies that ConnectAsync can be canceled.</summary>
@@ -1245,10 +1245,10 @@ public abstract class MultiplexedTransportConformanceTests
         {
             readResult2 = await sut.LocalStream.Input.ReadAsync();
         }
-        catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.ConnectionReset)
+        catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.OperationAborted)
         {
             // acceptable behavior (and that's what Quic does)
-            // TODO: unexpected error code
+            // we get OperationAborted because we locally "aborted" the stream by calling CancelPendingRead.
         }
 
         Assert.That(readResult1.IsCanceled, Is.True);
@@ -1530,7 +1530,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionClosed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(4ul));
     }
 
