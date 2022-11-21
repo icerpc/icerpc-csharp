@@ -982,7 +982,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     };
 
                     // We pass null for message to get the message computed from the exception by Message.
-                    dispatchException = new DispatchException(message: null, statusCode, exception);
+                    dispatchException = new DispatchException(statusCode, message: null, exception);
                 }
 
                 response = new OutgoingResponse(request, dispatchException);

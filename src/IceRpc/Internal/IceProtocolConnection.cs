@@ -465,86 +465,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             Debug.Assert(readResult.IsCompleted);
 
-            ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
+            (StatusCode statusCode, string? errorMessage, SequencePosition consumed) =
+                DecodeResponseHeader(readResult.Buffer, requestId);
 
-            StatusCode statusCode;
-            string? errorMessage;
-
-            if (replyStatus <= ReplyStatus.UserException)
-            {
-                const int headerSize = 7; // reply status byte + encapsulation header
-
-                // read and check encapsulation header (6 bytes long)
-
-                if (readResult.Buffer.Length < headerSize)
-                {
-                    throw new InvalidDataException($"received invalid frame header for request #{requestId}");
-                }
-
-                EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
-                    readResult.Buffer.Slice(1, 6),
-                    (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
-
-                // Sanity check
-                payloadSize = encapsulationHeader.EncapsulationSize - 6;
-                if (payloadSize != readResult.Buffer.Length - headerSize)
-                {
-                    throw new InvalidDataException(
-                        $"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
-                }
-
-                // Consume header.
-                frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
-                statusCode = replyStatus == ReplyStatus.Ok ? StatusCode.Success : StatusCode.Failure;
-                errorMessage = replyStatus == ReplyStatus.Ok ? null : "Slice exception";
-            }
-            else
-            {
-                // An ice system exception.
-
-                statusCode = replyStatus switch
-                {
-                    ReplyStatus.ObjectNotExistException => StatusCode.ServiceNotFound,
-                    ReplyStatus.FacetNotExistException => StatusCode.ServiceNotFound,
-                    ReplyStatus.OperationNotExistException => StatusCode.OperationNotFound,
-                    _ => StatusCode.UnhandledException
-                };
-
-                errorMessage = DecodeErrorMessage();
-
-                string DecodeErrorMessage()
-                {
-                    var decoder = new SliceDecoder(readResult.Buffer.Slice(1), SliceEncoding.Slice1);
-
-                    string message;
-                    switch (replyStatus)
-                    {
-                        case ReplyStatus.FacetNotExistException:
-                        case ReplyStatus.ObjectNotExistException:
-                        case ReplyStatus.OperationNotExistException:
-
-                            var requestFailed = new RequestFailedExceptionData(ref decoder);
-
-                            string target = requestFailed.Fragment.Length > 0 ?
-                                $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
-
-                            message = $"{nameof(DispatchException)} {{ ReplyStatus = {replyStatus} }} while dispatching '{requestFailed.Operation}' on '{target}'";
-                            break;
-
-                        default:
-                            message = decoder.DecodeString();
-                            break;
-                    }
-
-                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                    frameReader.AdvanceTo(readResult.Buffer.End);
-                    return message;
-                }
-            }
+            frameReader.AdvanceTo(consumed);
 
             // For compatibility with ZeroC Ice "indirect" proxies
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.ServerAddress is null ?
+                statusCode == StatusCode.ServiceNotFound && request.ServiceAddress.ServerAddress is null ?
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
@@ -613,6 +541,79 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             frameReader?.Complete();
             cts.Dispose();
+        }
+
+        static (StatusCode StatusCode, string? ErrorMessage, SequencePosition Consumed) DecodeResponseHeader(
+            ReadOnlySequence<byte> buffer,
+            int requestId)
+        {
+            ReplyStatus replyStatus = ((int)buffer.FirstSpan[0]).AsReplyStatus();
+
+            if (replyStatus <= ReplyStatus.UserException)
+            {
+                const int headerSize = 7; // reply status byte + encapsulation header
+
+                // read and check encapsulation header (6 bytes long)
+
+                if (buffer.Length < headerSize)
+                {
+                    throw new InvalidDataException($"received invalid frame header for request #{requestId}");
+                }
+
+                EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
+                    buffer.Slice(1, 6),
+                    (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+
+                // Sanity check
+                int payloadSize = encapsulationHeader.EncapsulationSize - 6;
+                if (payloadSize != buffer.Length - headerSize)
+                {
+                    throw new InvalidDataException(
+                        $"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {buffer.Length - headerSize} bytes left");
+                }
+
+                SequencePosition consumed = buffer.GetPosition(headerSize);
+
+                return replyStatus == ReplyStatus.Ok ?
+                    (StatusCode.Success, null, consumed) :
+                    (StatusCode.Failure, "Slice exception", consumed);
+            }
+            else
+            {
+                // An ice system exception.
+
+                StatusCode statusCode = replyStatus switch
+                {
+                    ReplyStatus.ObjectNotExistException => StatusCode.ServiceNotFound,
+                    ReplyStatus.FacetNotExistException => StatusCode.ServiceNotFound,
+                    ReplyStatus.OperationNotExistException => StatusCode.OperationNotFound,
+                    _ => StatusCode.UnhandledException
+                };
+
+                var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
+
+                string message;
+                switch (replyStatus)
+                {
+                    case ReplyStatus.FacetNotExistException:
+                    case ReplyStatus.ObjectNotExistException:
+                    case ReplyStatus.OperationNotExistException:
+
+                        var requestFailed = new RequestFailedExceptionData(ref decoder);
+
+                        string target = requestFailed.Fragment.Length > 0 ?
+                            $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+
+                        message = $"{nameof(DispatchException)} {{ ReplyStatus = {replyStatus} }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                        break;
+                    default:
+                        message = decoder.DecodeString();
+                        break;
+                }
+
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                return (statusCode, message, buffer.End);
+            }
         }
 
         static void EncodeRequestHeader(
@@ -1040,8 +1041,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (OperationCanceledException exception) when
                     (exception.CancellationToken == _dispatchesAndInvocationsCts.Token)
                 {
-                    var dispatchException = new DispatchException("dispatch canceled", StatusCode.UnhandledException);
-                    response = new OutgoingResponse(request, dispatchException);
+                    response = new OutgoingResponse(
+                        request,
+                        StatusCode.UnhandledException,
+                        "dispatch canceled");
                 }
                 catch (Exception exception)
                 {
@@ -1056,7 +1059,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         };
 
                         // We pass null for message to get the message computed by DispatchException.Message.
-                        dispatchException = new DispatchException(message: null, statusCode, exception);
+                        dispatchException = new DispatchException(statusCode, message: null, exception);
                     }
 
                     response = new OutgoingResponse(request, dispatchException);
@@ -1097,8 +1100,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         catch (Exception exception)
                         {
                             var dispatchException = new DispatchException(
-                                message: null,
                                 StatusCode.UnhandledException,
+                                message: null,
                                 exception);
                             response = new OutgoingResponse(request, dispatchException); // replace response in request
                         }

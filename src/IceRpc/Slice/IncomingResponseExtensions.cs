@@ -48,7 +48,7 @@ public static class IncomingResponseExtensions
         {
             if (response.StatusCode > StatusCode.Failure)
             {
-                throw new DispatchException(response.ErrorMessage, response.StatusCode)
+                throw new DispatchException(response.StatusCode, response.ErrorMessage)
                 {
                     ConvertToUnhandled = true
                 };
@@ -91,7 +91,7 @@ public static class IncomingResponseExtensions
         {
             if (response.StatusCode > StatusCode.Failure)
             {
-                throw new DispatchException(response.ErrorMessage, response.StatusCode)
+                throw new DispatchException(response.StatusCode, response.ErrorMessage)
                 {
                     ConvertToUnhandled = true
                 };

@@ -30,8 +30,7 @@ public sealed class OutgoingResponse : OutgoingFrame
 
     /// <summary>Constructs an outgoing response.</summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="statusCode">The status code of the exception. It must be greater than
-    /// <see cref="StatusCode.Success" />.</param>
+    /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
     /// <param name="errorMessage">The error message.</param>
     public OutgoingResponse(IncomingRequest request, StatusCode statusCode, string errorMessage)
         : base(request.Protocol)
