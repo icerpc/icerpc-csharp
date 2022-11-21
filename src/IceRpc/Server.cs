@@ -338,6 +338,8 @@ public sealed class Server : IAsyncDisposable
                             }
                             finally
                             {
+                                // The connection dispose will dispose the transport connection if it has not been
+                                // adopted by the protocol connection.
                                 await connector.DisposeAsync().ConfigureAwait(false);
                                 pendingConnectionSemaphore.Release();
                             }
@@ -374,6 +376,8 @@ public sealed class Server : IAsyncDisposable
                 if (!shutdownCancellationToken.IsCancellationRequested &&
                     (_maxConnections == 0 || _connections.Count < _maxConnections))
                 {
+                    // The protocol connection adopts the transport connection from the connector and it's not
+                    // responsible for disposing of it.
                     protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
                     _connections.Add(protocolConnection);
                 }
@@ -390,16 +394,20 @@ public sealed class Server : IAsyncDisposable
             }
             else if (!shutdownCancellationToken.IsCancellationRequested)
             {
-                // If the max connection count is reached, we refuse the transport connection.
+                // If the max connection count is reached, we refuse the transport connection. We don't pass a
+                // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the peer
+                // doesn't acknowledge the failure.
                 try
                 {
-                    await connector.RefuseTransportConnectionAsync(shutdownCancellationToken).ConfigureAwait(false);
+                    await connector.RefuseTransportConnectionAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
                     // ignore and continue
                 }
             }
+            // The transport connection is disposed by the disposal of the connector if the protocol connection didn't
+            // adopt it above.
         }
 
         // Remove the connection from _connections once shutdown completes

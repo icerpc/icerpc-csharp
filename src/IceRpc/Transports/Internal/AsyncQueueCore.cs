@@ -88,15 +88,15 @@ internal struct AsyncQueueCore<T>
             {
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
-                    // If the source is pending, set the result on the source result. The  queue should be empty if
-                    // the source is pending.
+                    // If the source is pending, set the result on the source result. The  queue should be empty if the
+                    // source is pending.
                     Debug.Assert(_queue is null || _queue.Count == 0);
                     _source.SetResult(value);
                 }
                 else
                 {
-                    // Create the queue if needed and queue the result. If will be consumed once the source's result
-                    // is consumed.
+                    // Create the queue if needed and queue the result. It will be consumed once the source's result is
+                    // consumed.
                     _queue ??= new();
                     // +1 for the element queued in _source
                     if (_maxCount > 0 && _maxCount == _queue.Count + 1)

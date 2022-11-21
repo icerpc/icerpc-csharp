@@ -257,8 +257,8 @@ internal class ClientColocConnection : ColocConnection
 
         if (_localPipeReader is not null)
         {
-            _reader = await _connectAsync(_localPipeReader, cancellationToken).WaitAsync(
-                    cancellationToken).ConfigureAwait(false);
+            _reader = await _connectAsync(_localPipeReader, cancellationToken).WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
             _localPipeReader = null; // The server-side connection is now responsible for completing the pipe reader.
         }
         return FinishConnect();

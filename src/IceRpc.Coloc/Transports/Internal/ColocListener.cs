@@ -92,7 +92,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     internal bool TryQueueConnectAsync(
         PipeReader clientPipeReader,
         CancellationToken cancellationToken,
-        [MaybeNullWhen(false)] out Task<PipeReader> serverPipeReaderTask)
+        [NotNullWhen(true)] out Task<PipeReader>? serverPipeReaderTask)
     {
         if (_disposeCts.IsCancellationRequested)
         {

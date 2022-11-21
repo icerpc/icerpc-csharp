@@ -20,7 +20,7 @@ public sealed class ColocTransport
 
     /// <summary>Constructs a <see cref="ColocTransport" />.</summary>
     public ColocTransport()
-        : this(512)
+        : this(511)
     {
     }
 
