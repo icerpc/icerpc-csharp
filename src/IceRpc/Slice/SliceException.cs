@@ -5,9 +5,6 @@ namespace IceRpc.Slice;
 /// <summary>Base class for exceptions defined in Slice.</summary>
 public abstract class SliceException : Exception, ITrait
 {
-    /// <inheritdoc/>
-    public override string Message => _hasCustomMessage || DefaultMessage is null ? base.Message : DefaultMessage;
-
     /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see
     /// cref="DispatchException" /> with status code <see cref="StatusCode.UnhandledException" /> when thrown from a
     /// dispatch.</summary>
@@ -20,13 +17,6 @@ public abstract class SliceException : Exception, ITrait
 
     /// <summary>Gets the Slice exception retry policy.</summary>
     public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
-
-    /// <summary>Gets the exception default message. When not null and the application does not construct the
-    /// exception with a constructor that takes a message parameter, Message returns DefaultMessage. This property
-    /// should be overridden in derived partial exception classes that provide a custom default message.</summary>
-    protected virtual string? DefaultMessage => null;
-
-    private readonly bool _hasCustomMessage;
 
     /// <summary>Encodes this exception.</summary>
     /// <param name="encoder">The Slice encoder.</param>
@@ -51,20 +41,14 @@ public abstract class SliceException : Exception, ITrait
         string? message,
         Exception? innerException = null,
         RetryPolicy? retryPolicy = null)
-        : base(message, innerException)
-    {
+        : base(message, innerException) =>
         RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
-        _hasCustomMessage = message is not null;
-    }
 
     /// <summary>Constructs a Slice exception using a decoder.</summary>
     /// <param name="decoder">The decoder.</param>
     protected SliceException(ref SliceDecoder decoder)
-        : base(decoder.Encoding == SliceEncoding.Slice1 ? null : decoder.DecodeString())
-    {
-        _hasCustomMessage = decoder.Encoding != SliceEncoding.Slice1;
+        : base(decoder.Encoding == SliceEncoding.Slice1 ? null : decoder.DecodeString()) =>
         ConvertToUnhandled = true;
-    }
 
     /// <summary>Decodes a Slice exception.</summary>
     /// <param name="decoder">The Slice decoder.</param>
