@@ -1161,62 +1161,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         }
                     }
                 }
-
-                static void EncodeResponseHeader(
-                    DuplexConnectionWriter writer,
-                    OutgoingResponse response,
-                    IncomingRequest request,
-                    int requestId,
-                    int payloadSize)
-                {
-                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-
-                    // Write the response header.
-
-                    encoder.WriteByteSpan(IceDefinitions.FramePrologue);
-                    encoder.EncodeIceFrameType(IceFrameType.Reply);
-                    encoder.EncodeUInt8(0); // compression status
-                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-
-                    encoder.EncodeInt32(requestId);
-
-                    if (response.StatusCode <= StatusCode.Failure)
-                    {
-                        encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
-
-                        // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only
-                        // relevant to a ZeroC Ice client that decodes the response. The only Slice encoding such a
-                        // client can possibly use to decode the response payload is 1.1 or 1.0, and we don't care
-                        // about interop with 1.0.
-                        var encapsulationHeader = new EncapsulationHeader(
-                            encapsulationSize: payloadSize + 6,
-                            payloadEncodingMajor: 1,
-                            payloadEncodingMinor: 1);
-                        encapsulationHeader.Encode(ref encoder);
-                    }
-                    else
-                    {
-                        // system exception
-                        switch (response.StatusCode)
-                        {
-                            case StatusCode.ServiceNotFound:
-                            case StatusCode.OperationNotFound:
-                                encoder.EncodeReplyStatus(response.StatusCode == StatusCode.ServiceNotFound ?
-                                    ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
-
-                                new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
-                                    .Encode(ref encoder);
-                                break;
-                            default:
-                                encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
-                                encoder.EncodeString(response.ErrorMessage!);
-                                break;
-                        }
-                    }
-
-                    int frameSize = encoder.EncodedByteCount + payloadSize;
-                    SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
-                }
             }
 
             static (int RequestId, IceRequestHeader Header, PipeReader? ContextReader, int Consumed) DecodeRequestIdAndHeader(
@@ -1260,6 +1204,62 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
 
                 return (requestId, requestHeader, contextPipe?.Reader, (int)decoder.Consumed);
+            }
+
+            static void EncodeResponseHeader(
+                DuplexConnectionWriter writer,
+                OutgoingResponse response,
+                IncomingRequest request,
+                int requestId,
+                int payloadSize)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+
+                // Write the response header.
+
+                encoder.WriteByteSpan(IceDefinitions.FramePrologue);
+                encoder.EncodeIceFrameType(IceFrameType.Reply);
+                encoder.EncodeUInt8(0); // compression status
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+
+                encoder.EncodeInt32(requestId);
+
+                if (response.StatusCode <= StatusCode.Failure)
+                {
+                    encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
+
+                    // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only
+                    // relevant to a ZeroC Ice client that decodes the response. The only Slice encoding such a
+                    // client can possibly use to decode the response payload is 1.1 or 1.0, and we don't care
+                    // about interop with 1.0.
+                    var encapsulationHeader = new EncapsulationHeader(
+                        encapsulationSize: payloadSize + 6,
+                        payloadEncodingMajor: 1,
+                        payloadEncodingMinor: 1);
+                    encapsulationHeader.Encode(ref encoder);
+                }
+                else
+                {
+                    // system exception
+                    switch (response.StatusCode)
+                    {
+                        case StatusCode.ServiceNotFound:
+                        case StatusCode.OperationNotFound:
+                            encoder.EncodeReplyStatus(response.StatusCode == StatusCode.ServiceNotFound ?
+                                ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+
+                            new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
+                                .Encode(ref encoder);
+                            break;
+                        default:
+                            encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+                            encoder.EncodeString(response.ErrorMessage!);
+                            break;
+                    }
+                }
+
+                int frameSize = encoder.EncodedByteCount + payloadSize;
+                SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
             }
         }
     }
