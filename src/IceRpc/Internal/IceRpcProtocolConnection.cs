@@ -387,8 +387,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
         CancellationToken invocationCancellationToken = invocationCts.Token;
 
-        // We unregister this cancellationToken once we receive a response (for twoway) or the request Payload is
-        // sent (oneway).
+        // We unregister this cancellationToken when this async method completes (it completes successfully when we
+        // receive a response  (for twoway) or the request Payload is sent (oneway)).
+        // This way, the background sending of the payload continuation is detached from cancellationToken once this
+        // async method completes.
         using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
             cts => ((CancellationTokenSource)cts!).Cancel(),
             invocationCts);
@@ -763,6 +765,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     try
                     {
+                        // When we send an outgoing request, the cancellation token is invocationCts.Token. The
+                        // cancellation of the token given to InvokeAsync/InvokeAsyncCore cancels invocationCts only
+                        // until InvokeAsyncCore completes (see tokenRegistration); after that, the cancellation of this
+                        // token has no effect on invocationCts, so it doesn't cancel the copying of
+                        // payloadContinuation.
                         FlushResult flushResult = await CopyReaderToWriterAsync(
                             payloadContinuation,
                             streamOutput,
