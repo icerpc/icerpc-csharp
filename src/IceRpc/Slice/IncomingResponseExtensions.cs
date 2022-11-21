@@ -132,7 +132,6 @@ public static class IncomingResponseExtensions
         }
 
         SliceException result = Decode(readResult.Buffer);
-        result.Origin = request;
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return result;
 
@@ -147,17 +146,17 @@ public static class IncomingResponseExtensions
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 maxDepth: feature.MaxDepth);
 
-            SliceException remoteException = encoding == SliceEncoding.Slice1 ?
+            SliceException sliceException = encoding == SliceEncoding.Slice1 ?
                 decoder.DecodeUserException() :
                 decoder.DecodeTrait(CreateUnknownException);
 
-            if (remoteException is not UnknownException)
+            if (sliceException is not UnknownException)
             {
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
             }
             // else, we did not decode the full exception from the buffer
 
-            return remoteException;
+            return sliceException;
 
             // If we can't decode this exception, we return an UnknownException with the undecodable exception's
             // type identifier and message.

@@ -18,9 +18,6 @@ public abstract class SliceException : Exception, ITrait
     /// </value>
     public bool ConvertToUnhandled { get; set; }
 
-    /// <summary>Gets the Slice exception origin.</summary>
-    public OutgoingRequest? Origin { get; internal set; }
-
     /// <summary>Gets the Slice exception retry policy.</summary>
     public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
 
