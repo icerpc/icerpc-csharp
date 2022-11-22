@@ -15,10 +15,21 @@ public abstract class OutgoingFrame
 
     /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is sent after the payload, in the
     /// background: the sending operation does not await it.</summary>
-    public PipeReader? PayloadContinuation { get; set; }
+    public PipeReader? PayloadContinuation
+    {
+        get => _payloadContinuation;
+        set
+        {
+            _payloadContinuation = Protocol.SupportsPayloadContinuation || value is null ?
+                value : throw new NotSupportedException(
+                    $"payload continuation is not supported with the '{Protocol}' protocol");
+        }
+    }
 
     /// <summary>Gets the protocol of this frame.</summary>
     public Protocol Protocol { get; }
+
+    private PipeReader? _payloadContinuation;
 
     /// <summary>Installs a payload writer interceptor in this outgoing frame. This interceptor is executed just
     /// before sending <see cref="Payload" />, and is typically used to compress both <see cref="Payload" /> and

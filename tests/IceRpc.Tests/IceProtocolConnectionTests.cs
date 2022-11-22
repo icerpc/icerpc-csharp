@@ -3,9 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -98,37 +96,6 @@ public sealed class IceProtocolConnectionTests
                 ResponseFieldKey.RetryPolicy,
                 (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
         Assert.That(retryPolicy, Is.EqualTo(expectedRetryPolicy));
-    }
-
-    /// <summary>Ensures that the response payload continuation is completed even if the Ice protocol doesn't support
-    /// it.</summary>
-    [Test]
-    public async Task PayloadContinuation_completed_on_response()
-    {
-        // Arrange
-        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-                new(new OutgoingResponse(request)
-                {
-                    PayloadContinuation = payloadContinuationDecorator
-                }));
-
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-
-        // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(async () => await payloadContinuationDecorator.Completed, Throws.Nothing);
-
-        // Cleanup
-        await responseTask;
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
