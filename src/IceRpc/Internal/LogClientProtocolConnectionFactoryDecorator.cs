@@ -92,9 +92,9 @@ internal class LogClientProtocolConnectionFactoryDecorator : IClientProtocolConn
                             _connectionInformation.RemoteNetworkAddress);
                     }
                 }
-                catch (Exception exception)
+                catch (Exception exception) when (_connectionInformation is not null)
                 {
-                    Debug.Assert(_connectionInformation is not null);
+                    // We only log Shutdown exceptions when ConnectAsync completed successfully.
                     _logger.LogConnectionFailed(
                         isServer: false,
                         _connectionInformation.LocalNetworkAddress,
