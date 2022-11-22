@@ -277,6 +277,8 @@ public static class IncomingResponseExtensions
 
         if (readResult.Buffer.IsEmpty)
         {
+            // The payload is empty, no need to decode it.
+            // Note that a Slice2-encoded exception uses at least 1 byte for tags.
             return new DispatchException(response.StatusCode, response.ErrorMessage)
             {
                 ConvertToUnhandled = true

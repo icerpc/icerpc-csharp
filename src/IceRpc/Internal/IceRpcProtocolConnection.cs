@@ -977,8 +977,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             catch (Exception exception)
             {
                 // We convert any exception into a dispatch exception if it's not already one.
-                // TODO: ApplicationError check is temporary
-                if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled || dispatchException.StatusCode == StatusCode.ApplicationError)
+                // When the status code is ApplicationError, we "slice" the exception to a plain DispatchException.
+                if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
                     // We don't expect a PayloadCompleteException since 'exception' is caught _before_ we
                     // write the response, and the application should not throw a PayloadCompleteException.
