@@ -16,6 +16,7 @@ public class CompressorMiddleware : IDispatcher
     private readonly IDispatcher _next;
     private readonly CompressionFormat _compressionFormat;
     private readonly CompressionLevel _compressionLevel;
+    private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
 
     /// <summary>Constructs a compress middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
@@ -35,6 +36,7 @@ public class CompressorMiddleware : IDispatcher
         }
         _compressionFormat = compressionFormat;
         _compressionLevel = compressionLevel;
+        _encodedCompressionFormatValue = new(new byte[] { (byte)compressionFormat });
     }
 
     /// <inheritdoc/>
@@ -81,9 +83,7 @@ public class CompressorMiddleware : IDispatcher
                 response.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
             }
 
-            response.Fields = response.Fields.With(
-                ResponseFieldKey.CompressionFormat,
-                new ReadOnlySequence<byte>(new byte[] { (byte)_compressionFormat }));
+            response.Fields = response.Fields.With(ResponseFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }
 
         return response;

@@ -41,11 +41,11 @@ public class CompressorMiddlewareTests
 
         // Rewind the out stream and check that it was correctly compressed.
         outStream.Seek(0, SeekOrigin.Begin);
-        using Stream decompressStream = compressionFormat == CompressionFormat.Brotli ?
+        using Stream decompressedStream = compressionFormat == CompressionFormat.Brotli ?
             new BrotliStream(outStream, CompressionMode.Decompress) :
             new DeflateStream(outStream, CompressionMode.Decompress);
         byte[] decompressedPayload = new byte[4096];
-        await decompressStream.ReadAsync(decompressedPayload);
+        await decompressedStream.ReadAsync(decompressedPayload);
         Assert.That(decompressedPayload, Is.EqualTo(_payload));
         payloadWriter.Complete();
     }
@@ -136,11 +136,11 @@ public class CompressorMiddlewareTests
         }
         var outStream = new MemoryStream();
         {
-            using Stream compressStream = compressionFormat == CompressionFormat.Brotli ?
+            using Stream compressedStream = compressionFormat == CompressionFormat.Brotli ?
                 new BrotliStream(outStream, CompressionMode.Compress, true) :
                 new DeflateStream(outStream, CompressionMode.Compress, true);
             using var payload = new MemoryStream(data);
-            payload.CopyTo(compressStream);
+            payload.CopyTo(compressedStream);
         }
         outStream.Seek(0, SeekOrigin.Begin);
         return outStream;

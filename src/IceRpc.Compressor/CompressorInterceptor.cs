@@ -16,6 +16,7 @@ public class CompressorInterceptor : IInvoker
     private readonly IInvoker _next;
     private readonly CompressionFormat _compressionFormat;
     private readonly CompressionLevel _compressionLevel;
+    private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
 
     /// <summary>Constructs a compressor interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
@@ -35,6 +36,7 @@ public class CompressorInterceptor : IInvoker
         }
         _compressionFormat = compressionFormat;
         _compressionLevel = compressionLevel;
+        _encodedCompressionFormatValue = new(new byte[] { (byte)compressionFormat });
     }
 
     /// <inheritdoc/>
@@ -57,9 +59,7 @@ public class CompressorInterceptor : IInvoker
                 request.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
             }
 
-            request.Fields = request.Fields.With(
-                RequestFieldKey.CompressionFormat,
-                new ReadOnlySequence<byte>(new byte[] { (byte)_compressionFormat }));
+            request.Fields = request.Fields.With(RequestFieldKey.CompressionFormat, _encodedCompressionFormatValue);
         }
 
         IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
