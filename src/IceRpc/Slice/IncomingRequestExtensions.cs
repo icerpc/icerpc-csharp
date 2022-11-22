@@ -99,9 +99,9 @@ public static class IncomingRequestExtensions
         return request.DecodeValueAsync(
             SliceEncoding.Slice1,
             feature,
-            feature.Activator ?? defaultActivator,
             templateProxy: null,
             decodeFunc,
+            feature.Activator ?? defaultActivator,
             cancellationToken);
     }
 
@@ -120,9 +120,9 @@ public static class IncomingRequestExtensions
         request.DecodeValueAsync(
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
-            activator: null,
             templateProxy: null,
             decodeFunc,
+            activator: null,
             cancellationToken);
 
     /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>

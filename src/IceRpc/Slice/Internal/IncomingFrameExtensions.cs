@@ -12,18 +12,18 @@ internal static class IncomingFrameExtensions
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="feature">The Slice feature.</param>
-    /// <param name="activator">The activator.</param>
     /// <param name="templateProxy">The template proxy.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
+    /// <param name="activator">The activator.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The decode value.</returns>
     internal static ValueTask<T> DecodeValueAsync<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
         ISliceFeature feature,
-        IActivator? activator,
         ServiceProxy? templateProxy,
         DecodeFunc<T> decodeFunc,
+        IActivator? activator,
         CancellationToken cancellationToken)
     {
         return frame.Payload.TryReadSegment(encoding, feature.MaxSegmentSize, out ReadResult readResult) ?

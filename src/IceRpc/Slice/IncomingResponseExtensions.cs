@@ -36,9 +36,9 @@ public static class IncomingResponseExtensions
             response.DecodeValueAsync(
                 SliceEncoding.Slice1,
                 feature,
-                activator,
                 sender,
                 decodeReturnValue,
+                activator,
                 cancellationToken) :
             ThrowExceptionAsync();
 
@@ -93,9 +93,9 @@ public static class IncomingResponseExtensions
             response.DecodeValueAsync(
                 encoding,
                 feature,
-                activator: null,
                 sender,
                 decodeReturnValue,
+                activator: null,
                 cancellationToken) :
             ThrowExceptionAsync();
 
