@@ -26,7 +26,7 @@ public sealed class ExceptionTests
         get
         {
             yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
-           // yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
+            yield return new TestCaseData(new MyDerivedException(), StatusCode.ApplicationError);
             yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }

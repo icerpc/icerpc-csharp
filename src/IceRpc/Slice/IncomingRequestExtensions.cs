@@ -63,9 +63,9 @@ public static class IncomingRequestExtensions
             var pipe = new Pipe(encodeOptions.PipeOptions);
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
-            // Encode can throw if the exception does not support encoding.
             if (encoding == SliceEncoding.Slice1)
             {
+                // Encode can throw if the exception does not support encoding.
                 sliceException.Encode(ref encoder);
             }
             else
