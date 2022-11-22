@@ -56,7 +56,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         // Cancel pending AcceptAsync.
         _disposeCts.Cancel();
 
-        // Ensure no more client connection establishment request are queued.
+        // Ensure no more client connection establishment request is queued.
         _channel.Writer.Complete();
 
         // Complete all the queued client connection establishment requests with TransportErrorCode.ConnectionAborted.
