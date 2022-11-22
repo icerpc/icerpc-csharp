@@ -9,7 +9,7 @@ namespace IceRpc.Slice;
 public delegate T DecodeFunc<T>(ref SliceDecoder decoder);
 
 /// <summary>A delegate that decodes a Slice exception from a Slice decoder.</summary>
-/// <param name="decoder">The Slice decoder.</param>
 /// <param name="message">The exception message.</param>
+/// <param name="decoder">The Slice decoder.</param>
 /// <returns>The decoded Slice exception.</returns>
-public delegate SliceException DecodeExceptionFunc(ref SliceDecoder decoder, string message);
+public delegate SliceException DecodeExceptionFunc(string? message, ref SliceDecoder decoder);

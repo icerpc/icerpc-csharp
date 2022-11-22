@@ -120,11 +120,13 @@ public static class IncomingResponseExtensions
         }
     }
 
-    /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
+    /// <summary>Verifies that a Slice1-encoded response payload carries no return value or only tagged return values.
+    /// </summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.
+    /// </param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
     public static ValueTask DecodeVoidReturnValueAsync(
@@ -299,7 +301,7 @@ public static class IncomingResponseExtensions
 
                 try
                 {
-                    SliceException sliceException = decodeException(ref decoder, response.ErrorMessage!);
+                    SliceException sliceException = decodeException(response.ErrorMessage, ref decoder);
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
                     return sliceException;
                 }

@@ -579,8 +579,8 @@ fn exception_decode_func(operation: &Operation) -> String {
     if let Throws::Specific(exception) = &operation.throws {
         format!(
             "\
-(ref SliceDecoder decoder, string message) => new {exception_type}(ref decoder, message)",
-            exception_type = exception.escape_scoped_identifier(&operation.namespace())
+(string? message, ref SliceDecoder decoder) => new {}(message, ref decoder)",
+            exception.escape_scoped_identifier(&operation.namespace())
         )
     } else {
         "null".to_owned()

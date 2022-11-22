@@ -82,79 +82,52 @@ impl Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        if exception_def.supported_encodings().supports(&Encoding::Slice1) {
-            if has_base {
-                exception_class_builder.add_block(
-                    FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                        .add_parameter("ref SliceDecoder", "decoder", None, None)
-                        .add_base_parameter("ref decoder")
-                        .set_body(
-                            EncodingBlockBuilder::new(
-                                "decoder.Encoding",
-                                &exception_name,
-                                exception_def.supported_encodings(),
-                                false,
-                            )
-                            .add_encoding_block(Encoding::Slice1, || {
-                                initialize_non_nullable_fields(&members, FieldType::Exception)
-                            })
-                            .add_encoding_block(Encoding::Slice2, || {
-                                // TODO: should throw, this constructor is Slice1-only
-                                initialize_non_nullable_fields(&members, FieldType::Exception) // TODO, only Joe can
-                                                                                               // make
-                                                                                               // sense of these
-                                                                                               // encoding
-                                                                                               // blocks
-                            })
-                            .build(),
-                        )
-                        .add_never_editor_browsable_attribute()
-                        .build(),
-                );
-            } else {
-                exception_class_builder.add_block(
-                    FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                        .add_parameter("ref SliceDecoder", "decoder", None, None)
-                        .set_body(
-                            EncodingBlockBuilder::new(
-                                "decoder.Encoding",
-                                &exception_name,
-                                exception_def.supported_encodings(),
-                                false,
-                            )
-                            .add_encoding_block(Encoding::Slice1, || {
-                                format!(
-                                    "\
-    {}
-    ConvertToUnhandled = true;",
-                                    initialize_non_nullable_fields(&members, FieldType::Exception)
-                                )
-                                .into()
-                            })
-                            .add_encoding_block(Encoding::Slice2, || {
-                                // TODO: slicec-cs crashes without this duplication.
-                                // This code is Slice1-only anyway
-                                format!(
-                                    "\
-    {}
-    ConvertToUnhandled = true;",
-                                    initialize_non_nullable_fields(&members, FieldType::Exception)
-                                )
-                                .into()
-                            })
-                            .build(),
-                        )
-                        .add_never_editor_browsable_attribute()
-                        .build(),
-                );
-            }
+        // The constructor used by the Activator.
+        // TODO: add never_editor_browsable_attribute
+        if !has_base && exception_def.supported_encodings().supports(&Encoding::Slice1) {
+            exception_class_builder.add_block(
+                format!(
+                    "\
+{access} {exception_name}(ref SliceDecoder decoder)
+    : this(message: null, ref decoder)
+{{
+}}",
+                    access = access,
+                    exception_name = exception_name
+                )
+                .into(),
+            );
         }
 
-        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+        if has_base {
             exception_class_builder.add_block(
                 FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string", "message", None, None)
+                    .add_base_parameter("ref decoder")
+                    .set_body(
+                        EncodingBlockBuilder::new(
+                            "decoder.Encoding",
+                            &exception_name,
+                            exception_def.supported_encodings(),
+                            false,
+                        )
+                        .add_encoding_block(Encoding::Slice1, || {
+                            initialize_non_nullable_fields(&members, FieldType::Exception)
+                        })
+                        .add_encoding_block(Encoding::Slice2, || {
+                            // TODO: should throw, this constructor is Slice1-only
+                            initialize_non_nullable_fields(&members, FieldType::Exception)
+                        })
+                        .build(),
+                    )
+                    .add_never_editor_browsable_attribute()
+                    .build(),
+            );
+        } else {
+            exception_class_builder.add_block(
+                FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
+                    .add_parameter("string?", "message", None, None)
+                    .add_parameter("ref SliceDecoder", "decoder", None, None)
                     .add_base_parameter("message")
                     .set_body(
                         EncodingBlockBuilder::new(
@@ -164,8 +137,13 @@ impl Visitor for ExceptionVisitor<'_> {
                             false,
                         )
                         .add_encoding_block(Encoding::Slice1, || {
-                            // TODO: should throw, this constructor is Slice2-only
-                            initialize_non_nullable_fields(&members, FieldType::Exception)
+                            format!(
+                                "\
+{}
+ConvertToUnhandled = true;",
+                                initialize_non_nullable_fields(&members, FieldType::Exception)
+                            )
+                            .into()
                         })
                         .add_encoding_block(Encoding::Slice2, || {
                             format!(
@@ -179,7 +157,6 @@ ConvertToUnhandled = true;",
                         })
                         .build(),
                     )
-                    .add_never_editor_browsable_attribute()
                     .build(),
             );
         }
