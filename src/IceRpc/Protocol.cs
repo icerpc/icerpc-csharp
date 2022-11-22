@@ -32,7 +32,7 @@ public class Protocol
     public string Name { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuation.</summary>
-    /// <returns><see langword="true" /> if the protocol supports payload continuation; otherwise,
+    /// <returns><see langword="true" /> if the protocol supports payload continuations; otherwise,
     /// <see langword="false" />.</returns>
     public bool SupportsPayloadContinuation { get; }
 
