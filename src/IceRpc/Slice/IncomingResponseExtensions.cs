@@ -11,23 +11,21 @@ namespace IceRpc.Slice;
 /// Slice encoding.</summary>
 public static class IncomingResponseExtensions
 {
-    /// <summary>Decodes a response payload.</summary>
+    /// <summary>Decodes a Slice1-encoded response payload.</summary>
     /// <typeparam name="T">The type of the return value.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="decodeFunc">The decode function for the return value.</param>
+    /// <param name="decodeReturnValue">A function that decodes the return value.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
         OutgoingRequest request,
-        SliceEncoding encoding,
         ServiceProxy sender,
         IActivator? defaultActivator,
-        DecodeFunc<T> decodeFunc,
+        DecodeFunc<T> decodeReturnValue,
         CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
@@ -36,11 +34,11 @@ public static class IncomingResponseExtensions
 
         return response.StatusCode == StatusCode.Success ?
             response.DecodeValueAsync(
-                encoding,
+                SliceEncoding.Slice1,
                 feature,
                 activator,
                 sender,
-                decodeFunc,
+                decodeReturnValue,
                 cancellationToken) :
             ThrowExceptionAsync();
 
@@ -53,10 +51,9 @@ public static class IncomingResponseExtensions
                     ConvertToUnhandled = true
                 };
             }
-            else
             {
                 throw await response.DecodeSliceExceptionAsync(
-                    encoding,
+                    SliceEncoding.Slice1,
                     feature,
                     activator,
                     sender,
@@ -65,10 +62,68 @@ public static class IncomingResponseExtensions
         }
     }
 
+    /// <summary>Decodes a response payload.</summary>
+    /// <typeparam name="T">The type of the return value.</typeparam>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
+    /// <param name="decodeReturnValue">A function that decodes the return value.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The return value.</returns>
+    public static ValueTask<T> DecodeReturnValueAsync<T>(
+        this IncomingResponse response,
+        OutgoingRequest request,
+        SliceEncoding encoding,
+        ServiceProxy sender,
+        DecodeFunc<T> decodeReturnValue,
+        DecodeExceptionFunc? decodeException = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (encoding == SliceEncoding.Slice1)
+        {
+            throw new ArgumentException(
+                $"{nameof(DecodeReturnValueAsync)} is not compatible with the Slice1 encoding",
+                nameof(encoding));
+        }
+
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+
+        return response.StatusCode == StatusCode.Success ?
+            response.DecodeValueAsync(
+                encoding,
+                feature,
+                activator: null,
+                sender,
+                decodeReturnValue,
+                cancellationToken) :
+            ThrowExceptionAsync();
+
+        async ValueTask<T> ThrowExceptionAsync()
+        {
+            if (response.StatusCode > StatusCode.ApplicationError || decodeException is null)
+            {
+                throw new DispatchException(response.StatusCode, response.ErrorMessage)
+                {
+                    ConvertToUnhandled = true
+                };
+            }
+            else
+            {
+                throw await response.DecodeSliceExceptionAsync(
+                    encoding,
+                    feature,
+                    sender,
+                    decodeException,
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -76,7 +131,6 @@ public static class IncomingResponseExtensions
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,
-        SliceEncoding encoding,
         ServiceProxy sender,
         IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
@@ -84,7 +138,7 @@ public static class IncomingResponseExtensions
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         return response.StatusCode == StatusCode.Success ?
-            response.DecodeVoidAsync(encoding, feature, cancellationToken) : ThrowExceptionAsync();
+            response.DecodeVoidAsync(SliceEncoding.Slice1, feature, cancellationToken) : ThrowExceptionAsync();
 
         async ValueTask ThrowExceptionAsync()
         {
@@ -98,10 +152,59 @@ public static class IncomingResponseExtensions
             else
             {
                 throw await response.DecodeSliceExceptionAsync(
-                    encoding,
+                    SliceEncoding.Slice1,
                     feature,
                     feature.Activator ?? defaultActivator,
                     sender,
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    public static ValueTask DecodeVoidReturnValueAsync(
+        this IncomingResponse response,
+        OutgoingRequest request,
+        SliceEncoding encoding,
+        ServiceProxy sender,
+        DecodeExceptionFunc? decodeException = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (encoding == SliceEncoding.Slice1)
+        {
+            throw new ArgumentException(
+                $"{nameof(DecodeVoidReturnValueAsync)} is not compatible with the Slice1 encoding",
+                nameof(encoding));
+        }
+
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+
+        return response.StatusCode == StatusCode.Success ?
+            response.DecodeVoidAsync(encoding, feature, cancellationToken) : ThrowExceptionAsync();
+
+        async ValueTask ThrowExceptionAsync()
+        {
+            if (response.StatusCode > StatusCode.ApplicationError || decodeException is null)
+            {
+                throw new DispatchException(response.StatusCode, response.ErrorMessage)
+                {
+                    ConvertToUnhandled = true
+                };
+            }
+            else
+            {
+                throw await response.DecodeSliceExceptionAsync(
+                    encoding,
+                    feature,
+                    sender,
+                    decodeException,
                     cancellationToken).ConfigureAwait(false);
             }
         }
@@ -160,6 +263,69 @@ public static class IncomingResponseExtensions
             static Exception CreateInvalidDataException(string typeId, ref SliceDecoder decoder) =>
                 new InvalidDataException(
                     $"could not decode Slice exception from response {{ typeID = {typeId}, Message = {decoder.DecodeString()}}}");
+        }
+    }
+
+    // Slice2+
+    private static async ValueTask<DispatchException> DecodeSliceExceptionAsync(
+        this IncomingResponse response,
+        SliceEncoding encoding,
+        ISliceFeature feature,
+        ServiceProxy sender,
+        DecodeExceptionFunc decodeException,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(response.StatusCode == StatusCode.ApplicationError);
+        Debug.Assert(encoding != SliceEncoding.Slice1);
+
+        ReadResult readResult = await response.Payload.ReadSegmentAsync(
+            SliceEncoding.Slice2,
+            feature.MaxSegmentSize,
+            cancellationToken).ConfigureAwait(false);
+
+        // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
+        }
+
+        if (readResult.Buffer.IsEmpty)
+        {
+            return new DispatchException(response.StatusCode, response.ErrorMessage)
+            {
+                ConvertToUnhandled = true
+            };
+        }
+        else
+        {
+            SliceException sliceException = Decode(readResult.Buffer);
+            response.Payload.AdvanceTo(readResult.Buffer.End);
+            return sliceException;
+
+            SliceException Decode(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(
+                    buffer,
+                    encoding,
+                    activator: null,
+                    feature.ServiceProxyFactory,
+                    sender,
+                    maxCollectionAllocation: feature.MaxCollectionAllocation,
+                    maxDepth: feature.MaxDepth);
+
+                try
+                {
+                    SliceException sliceException = decodeException(ref decoder, response.ErrorMessage!);
+                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                    return sliceException;
+                }
+                catch (InvalidDataException exception)
+                {
+                    throw new InvalidDataException(
+                        $"failed to decode Slice exception from response {{ Message = {response.ErrorMessage} }}",
+                        exception);
+                }
+            }
         }
     }
 }

@@ -61,10 +61,9 @@ public static class IncomingRequestExtensions
                 SliceEncodeOptions.Default;
 
             var pipe = new Pipe(encodeOptions.PipeOptions);
-
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
-            // Encode resp. EncodeTrait can throw if the exception does not support encoding.
+            // Encode can throw if the exception does not support encoding.
             if (encoding == SliceEncoding.Slice1)
             {
                 sliceException.Encode(ref encoder);
@@ -73,7 +72,7 @@ public static class IncomingRequestExtensions
             {
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                 int startPos = encoder.EncodedByteCount;
-                sliceException.EncodeTrait(ref encoder);
+                sliceException.Encode(ref encoder);
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 

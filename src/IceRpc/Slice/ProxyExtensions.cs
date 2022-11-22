@@ -54,14 +54,14 @@ public static class ProxyExtensions
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
-    /// <see cref="SliceException" /> when the response payload contains a failure.</param>
+    /// <see cref="SliceException" /> when the response payload contains a Slice exception.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
-    /// <remarks>This method stores the response features into the invocation's response features when
-    /// invocation is not null.</remarks>
+    /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
+    /// <remarks>This method stores the response features into the invocation's response features when invocation is not
+    /// null.</remarks>
     public static Task<T> InvokeAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -126,27 +126,25 @@ public static class ProxyExtensions
         }
     }
 
-    /// <summary>Sends a request to a service and decodes the "void" response.</summary>
+    /// <summary>Sends a request to a service and decodes the "void" response. Slice1 only.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <param name="proxy">A proxy for the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
-    /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
-    /// <param name="defaultActivator">The optional default activator.</param>
+    /// <param name="defaultActivator">The optional default activator, used to decode exceptions.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="oneway">When <see langword="true" />, the request is sent oneway and an empty response is returned
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
+    /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is
     /// not null.</remarks>
     public static Task InvokeAsync<TProxy>(
         this TProxy proxy,
         string operation,
-        SliceEncoding encoding,
         PipeReader? payload,
         PipeReader? payloadContinuation,
         IActivator? defaultActivator,
@@ -200,9 +198,94 @@ public static class ProxyExtensions
 
                 await response.DecodeVoidReturnValueAsync(
                     request,
-                    encoding,
                     new ServiceProxy(invoker, proxy.ServiceAddress, proxy.EncodeOptions),
                     defaultActivator,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                request.Dispose();
+            }
+        }
+    }
+
+    /// <summary>Sends a request to a service and decodes the "void" response.</summary>
+    /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
+    /// <param name="proxy">A proxy for the remote service.</param>
+    /// <param name="operation">The name of the operation, as specified in Slice.</param>
+    /// <param name="encoding">The encoding of the request payload. Must be Slice2 or greater.</param>
+    /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
+    /// <param name="payloadContinuation">The payload continuation of the request.</param>
+    /// <param name="features">The invocation features.</param>
+    /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
+    /// <param name="oneway">When <see langword="true" />, the request is sent oneway and an empty response is returned
+    /// immediately after sending the request.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that completes when the void response is returned.</returns>
+    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
+    /// <remarks>This method stores the response features into the invocation's response features when invocation is
+    /// not null.</remarks>
+    public static Task InvokeAsync<TProxy>(
+        this TProxy proxy,
+        string operation,
+        SliceEncoding encoding,
+        PipeReader? payload,
+        PipeReader? payloadContinuation,
+        IFeatureCollection? features,
+        bool idempotent = false,
+        bool oneway = false,
+        DecodeExceptionFunc? decodeException = null,
+        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
+    {
+        if (proxy.Invoker is not IInvoker invoker)
+        {
+            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+        }
+
+        if (payload is null && payloadContinuation is not null)
+        {
+            throw new ArgumentNullException(
+                nameof(payload),
+                $"when {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null");
+        }
+
+        var request = new OutgoingRequest(proxy.ServiceAddress)
+        {
+            Features = features ?? FeatureCollection.Empty,
+            Fields = idempotent ?
+                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            IsOneway = oneway,
+            Operation = operation,
+            Payload = payload ?? EmptyPipeReader.Instance,
+            PayloadContinuation = payloadContinuation
+        };
+
+        Task<IncomingResponse> responseTask;
+        try
+        {
+            responseTask = invoker.InvokeAsync(request, cancellationToken);
+        }
+        catch
+        {
+            request.Dispose();
+            throw;
+        }
+
+        // ReadResponseAsync is responsible for disposing the request
+        return ReadResponseAsync(responseTask, request);
+
+        async Task ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
+        {
+            try
+            {
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
+
+                await response.DecodeVoidReturnValueAsync(
+                    request,
+                    encoding,
+                    new ServiceProxy(invoker, proxy.ServiceAddress, proxy.EncodeOptions),
+                    decodeException,
                     cancellationToken).ConfigureAwait(false);
             }
             finally

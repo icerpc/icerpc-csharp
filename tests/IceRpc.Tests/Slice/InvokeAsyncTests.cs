@@ -32,7 +32,6 @@ public class InvokeAsyncTests
             SliceEncoding.Slice2,
             payload: requestPayload,
             payloadContinuation: null,
-            defaultActivator: null,
             features: null);
 
         // Assert
@@ -63,7 +62,6 @@ public class InvokeAsyncTests
                 SliceEncoding.Slice2,
                 payload: requestPayload,
                 payloadContinuation: requestPayloadContinuation,
-                defaultActivator: null,
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
 
