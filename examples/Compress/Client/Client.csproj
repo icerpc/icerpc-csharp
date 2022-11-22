@@ -4,6 +4,6 @@
     <SliceCompile Include="../Hello.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Deflate" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Compressor" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>
