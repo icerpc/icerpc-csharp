@@ -20,9 +20,9 @@ public abstract class OutgoingFrame
         get => _payloadContinuation;
         set
         {
-            if (Protocol == Protocol.Ice && value is not null)
+            if (!Protocol.HasStreaming && value is not null)
             {
-                throw new NotSupportedException("PayloadContinuation is not supported with the ice protocol");
+                throw new NotSupportedException($"streaming is not supported with the '{Protocol}' protocol");
             }
             _payloadContinuation = value;
         }

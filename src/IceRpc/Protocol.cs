@@ -28,6 +28,11 @@ public class Protocol
     /// </returns>
     public bool HasFragment { get; }
 
+    /// <summary>Gets a value indicating whether or not this protocol supports streaming.</summary>
+    /// <returns><see langword="true" /> if the protocol supports streaming; otherwise, <see langword="false" />.
+    /// </returns>
+    public bool HasStreaming { get; }
+
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
 
@@ -87,12 +92,14 @@ public class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
+        bool hasStreaming,
         byte byteValue)
     {
         Name = name;
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
+        HasStreaming = hasStreaming;
         ByteValue = byteValue;
     }
 }
