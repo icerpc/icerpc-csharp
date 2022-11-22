@@ -454,23 +454,18 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             function_type,
         );
 
-        if members.is_empty() {
-            builder.add_comment(
-                "summary",
-                &format!(
-                    r#"The <see cref="ResponseDecodeFunc" /> for operation {}."#,
-                    operation.cs_identifier(None)
-                ),
-            );
+        let comment_content = if members.is_empty() {
+            format!(
+                r#"The <see cref="ResponseDecodeFunc" /> for operation {}."#,
+                operation.cs_identifier(None)
+            )
         } else {
-            builder.add_comment(
-                "summary",
-                &format!(
-                    r#"The <see cref="ResponseDecodeFunc{{T}}" /> for operation {}."#,
-                    operation.cs_identifier(None)
-                ),
-            );
-        }
+            format!(
+                r#"The <see cref="ResponseDecodeFunc{{T}}" /> for operation {}."#,
+                operation.cs_identifier(None)
+            )
+        };
+        builder.add_comment("summary", &comment_content);
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter("ServiceProxy", "sender", None, None);
