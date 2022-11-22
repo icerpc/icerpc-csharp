@@ -57,30 +57,25 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
-    /// <param name="maxDepth">The maximum depth when decoding a type recursively. The default is <c>3</c>.</param>
+    /// <param name="activator">The activator for decoding Slice1-encoded classes and exceptions.</param>
+    /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
-        IActivator? activator = null,
         Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
         ServiceProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
+        IActivator? activator = null,
         int maxDepth = 3)
     {
         Encoding = encoding;
 
-        _activator = activator;
-        _classContext = default;
-
         _currentCollectionAllocation = 0;
-        _currentDepth = 0;
-
         _serviceProxyFactory = serviceProxyFactory;
         _templateProxy = templateProxy;
 
@@ -90,6 +85,9 @@ public ref partial struct SliceDecoder
                     $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1",
                     nameof(maxCollectionAllocation)));
 
+        _activator = activator;
+        _classContext = default;
+        _currentDepth = 0;
         _maxDepth = maxDepth >= 1 ? maxDepth :
             throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0", nameof(maxDepth));
 
@@ -99,28 +97,28 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
-    /// <param name="maxDepth">The maximum depth when decoding a type recursively. The default is <c>3</c>.</param>
+    /// <param name="activator">The activator for decoding Slice1-encoded classes and exceptions.</param>
+    /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
-        IActivator? activator = null,
         Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
         ServiceProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
+        IActivator? activator = null,
         int maxDepth = 3)
         : this(
             new ReadOnlySequence<byte>(buffer),
             encoding,
-            activator,
             serviceProxyFactory,
             templateProxy,
             maxCollectionAllocation,
+            activator,
             maxDepth)
     {
     }

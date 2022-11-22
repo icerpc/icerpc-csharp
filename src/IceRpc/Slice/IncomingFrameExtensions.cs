@@ -110,14 +110,13 @@ public static class IncomingFrameExtensions
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
+            // No activator or max depth since streams are Slice2+.
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,
-                activator: null, // stream elements require Slice2 or greater
                 sliceFeature.ServiceProxyFactory,
                 templateProxy,
-                sliceFeature.MaxCollectionAllocation,
-                sliceFeature.MaxDepth);
+                sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();
             do

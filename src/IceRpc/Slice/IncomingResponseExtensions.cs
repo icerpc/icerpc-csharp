@@ -240,10 +240,10 @@ public static class IncomingResponseExtensions
             var decoder = new SliceDecoder(
                 buffer,
                 SliceEncoding.Slice1,
-                activator,
                 feature.ServiceProxyFactory,
                 sender,
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
+                activator,
                 maxDepth: feature.MaxDepth);
 
             SliceException exception = decoder.DecodeUserException();
@@ -293,11 +293,9 @@ public static class IncomingResponseExtensions
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    activator: null,
                     feature.ServiceProxyFactory,
                     sender,
-                    maxCollectionAllocation: feature.MaxCollectionAllocation,
-                    maxDepth: feature.MaxDepth);
+                    maxCollectionAllocation: feature.MaxCollectionAllocation);
 
                 try
                 {

@@ -42,10 +42,10 @@ internal static class IncomingFrameExtensions
             var decoder = new SliceDecoder(
                 readResult.Buffer,
                 encoding,
-                activator,
                 feature.ServiceProxyFactory,
                 templateProxy,
                 feature.MaxCollectionAllocation,
+                activator,
                 feature.MaxDepth);
             T value = decodeFunc(ref decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
