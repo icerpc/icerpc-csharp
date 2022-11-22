@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,32 +32,14 @@ public ref partial struct SliceDecoder
     private static readonly UTF8Encoding _utf8 =
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
-    /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
-    /// assemblies.</summary>
-    /// <param name="assembly">The assembly.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assembly" /> provided this
-    /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute" />
-    /// attribute). Types defined in assemblies referenced by <paramref name="assembly" /> are included as well,
-    /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
-    /// considered.</returns>
-    public static IActivator GetActivator(Assembly assembly) => ActivatorFactory.Instance.Get(assembly);
-
-    /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
-    /// referenced assemblies.</summary>
-    /// <param name="assemblies">The assemblies.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies" /> and their
-    /// referenced assemblies. See <see cref="GetActivator(Assembly)" />.</returns>
-    public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
-        Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
-
-    private readonly IActivator _activator;
+    private readonly IActivator? _activator;
 
     private ClassContext _classContext;
 
     // The number of bytes already allocated for strings, dictionaries and sequences.
     private int _currentCollectionAllocation;
 
-    // The current depth when decoding a type recursively.
+    // The current depth when decoding a class recursively.
     private int _currentDepth;
 
     // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
@@ -94,7 +75,7 @@ public ref partial struct SliceDecoder
     {
         Encoding = encoding;
 
-        _activator = activator ?? _defaultActivator;
+        _activator = activator;
         _classContext = default;
 
         _currentCollectionAllocation = 0;

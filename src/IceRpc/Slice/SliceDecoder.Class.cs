@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using static IceRpc.Slice.Internal.Slice1Definitions;
@@ -14,6 +15,24 @@ namespace IceRpc.Slice;
 /// <summary>SliceDecoder class encoding methods.</summary>
 public ref partial struct SliceDecoder
 {
+    /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
+    /// assemblies.</summary>
+    /// <param name="assembly">The assembly.</param>
+    /// <returns>An activator that activates the Slice types defined in <paramref name="assembly" /> provided this
+    /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute" />
+    /// attribute). Types defined in assemblies referenced by <paramref name="assembly" /> are included as well,
+    /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
+    /// considered.</returns>
+    public static IActivator GetActivator(Assembly assembly) => ActivatorFactory.Instance.Get(assembly);
+
+    /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
+    /// referenced assemblies.</summary>
+    /// <param name="assemblies">The assemblies.</param>
+    /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies" /> and their
+    /// referenced assemblies. See <see cref="GetActivator(Assembly)" />.</returns>
+    public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
+        Internal.Activator.Merge(assemblies.Select(ActivatorFactory.Instance.Get));
+
     /// <summary>Decodes a class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
     /// <returns>The decoded class instance.</returns>
@@ -64,6 +83,7 @@ public ref partial struct SliceDecoder
         // Each slice contains its type ID as a string.
 
         string? mostDerivedTypeId = null;
+        IActivator activator = _activator ?? _defaultActivator;
 
         do
         {
@@ -74,7 +94,7 @@ public ref partial struct SliceDecoder
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-            sliceException = _activator?.CreateInstance(typeId, ref this) as SliceException;
+            sliceException = activator.CreateInstance(typeId, ref this) as SliceException;
             if (sliceException is null && SkipSlice(typeId))
             {
                 // Slice off what we don't understand.
@@ -255,6 +275,7 @@ public ref partial struct SliceDecoder
         _classContext.InstanceMap ??= new List<SliceClass>();
 
         bool decodeIndirectionTable = true;
+        IActivator activator = _activator ?? _defaultActivator;
         do
         {
             // Decode the slice header.
@@ -264,7 +285,7 @@ public ref partial struct SliceDecoder
             // not created yet.
             if (typeId is not null)
             {
-                instance = _activator?.CreateInstance(typeId, ref this) as SliceClass;
+                instance = activator.CreateInstance(typeId, ref this) as SliceClass;
             }
 
             if (instance is null && SkipSlice(typeId))
