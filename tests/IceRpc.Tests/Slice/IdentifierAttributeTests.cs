@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Slice.Identifiers;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentifierAttributeTests
 {
-    class IdentifierOperations : Service, IREnamedInterface
+    public class IdentifierOperations : Service, IREnamedInterface
     {
         public ValueTask<(int, int)> REnamedOpAsync(
             REnamedStruct renamedParam,
@@ -30,7 +30,7 @@ public class IdentifierAttributeTests
 
         // Assert
         Assert.That(myStruct.renamedX, Is.EqualTo(1));
-        Assert.That(REnamedStruct.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalStruct"));
+        Assert.That(typeof(REnamedStruct).GetSliceTypeId(), Is.EqualTo("::IceRpc::Tests::Slice::OriginalStruct"));
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class IdentifierAttributeTests
         REnamedException ex = new REnamedException();
 
         // Assert
-        Assert.That(REnamedException.SliceTypeId, Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
+        Assert.That(typeof(REnamedException).GetSliceTypeId(), Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
     }
 
     [Test]

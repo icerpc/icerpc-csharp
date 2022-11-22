@@ -54,14 +54,16 @@ impl Visitor for ExceptionVisitor<'_> {
                 .into(),
         );
 
-        exception_class_builder.add_block(
-            format!(
-                "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
-                if has_base { " new " } else { " " },
-                exception_name
-            )
-            .into(),
-        );
+        if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+            exception_class_builder.add_block(
+                format!(
+                    "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
+                    if has_base { " new " } else { " " },
+                    exception_name
+                )
+                .into(),
+            );
+        }
 
         exception_class_builder
             .add_block(one_shot_constructor(exception_def, false))

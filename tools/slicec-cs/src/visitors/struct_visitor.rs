@@ -37,14 +37,6 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_container_attributes(struct_def);
 
         builder.add_block(
-            format!(
-                "public static readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
-                &escaped_identifier
-            )
-            .into(),
-        );
-
-        builder.add_block(
             members
                 .iter()
                 .map(|m| data_member_declaration(m, FieldType::NonMangled))

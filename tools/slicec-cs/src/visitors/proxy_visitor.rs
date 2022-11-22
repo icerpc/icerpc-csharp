@@ -570,11 +570,10 @@ response.DecodeReturnValueAsync(
                 return_value_decode_func = return_value_decode_func(operation).indent()
             );
         }
-    } else {
-        if return_void {
-            writeln!(
-                code,
-                "\
+    } else if return_void {
+        writeln!(
+            code,
+            "\
 response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
@@ -582,13 +581,13 @@ response.DecodeVoidReturnValueAsync(
     {exception_decode_func},
     cancellationToken)
 ",
-                encoding = operation.encoding.to_cs_encoding(),
-                exception_decode_func = exception_decode_func(operation)
-            );
-        } else {
-            writeln!(
-                code,
-                "\
+            encoding = operation.encoding.to_cs_encoding(),
+            exception_decode_func = exception_decode_func(operation)
+        );
+    } else {
+        writeln!(
+            code,
+            "\
 response.DecodeReturnValueAsync(
     request,
     {encoding},
@@ -597,11 +596,10 @@ response.DecodeReturnValueAsync(
     {exception_decode_func},
     cancellationToken)
 ",
-                encoding = operation.encoding.to_cs_encoding(),
-                return_value_decode_func = return_value_decode_func(operation).indent(),
-                exception_decode_func = exception_decode_func(operation)
-            );
-        }
+            encoding = operation.encoding.to_cs_encoding(),
+            return_value_decode_func = return_value_decode_func(operation).indent(),
+            exception_decode_func = exception_decode_func(operation)
+        );
     }
     code
 }
