@@ -164,7 +164,6 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let return_task = operation.return_task(false);
 
     let parameters = operation.nonstreamed_parameters();
-    let stream_return = operation.streamed_return_member();
 
     let features_parameter = escape_parameter_name(&operation.parameters(), "features");
     let cancellation_token_parameter = escape_parameter_name(&operation.parameters(), "cancellationToken");
@@ -172,7 +171,6 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let void_return = operation.return_type.is_empty();
 
     let encoding = operation.encoding.to_cs_encoding();
-    let slice1 = operation.encoding == Encoding::Slice1;
 
     let body_type = if operation.compress_arguments() {
         FunctionType::BlockBody
@@ -207,9 +205,6 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     // The operation to call
     invocation_builder.add_argument(format!(r#""{}""#, operation.cs_identifier(None)));
-
-    // The encoding if operation is void and not Slice1
-    invocation_builder.add_argument_if(void_return && !slice1, encoding);
 
     // The payload argument
     if operation.parameters.is_empty() {
@@ -259,18 +254,13 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    invocation_builder.add_argument_if(void_return && stream_return.is_none() && slice1, "_defaultActivator");
-    invocation_builder.add_argument_unless(void_return, format!("Response.{}", async_operation_name));
+    invocation_builder.add_argument(format!("Response.{}", async_operation_name));
 
     invocation_builder.add_argument(features_parameter);
 
     invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
 
     invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
-    invocation_builder.add_argument_if(
-        void_return && !slice1,
-        format!("decodeException: {}", exception_decode_func(operation)),
-    );
 
     invocation_builder.add_argument(format!("cancellationToken: {}", cancellation_token_parameter));
 
@@ -412,12 +402,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| !o.return_type.is_empty())
-        .cloned()
-        .collect::<Vec<_>>();
+    let operations = interface_def.operations();
 
     if operations.is_empty() {
         return "".into();
@@ -428,17 +413,25 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     class_builder.add_comment(
         "summary",
         &format!(
-            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each non-void remote operation defined in <see cref="{}Proxy" />."#,
+            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}Proxy" />."#,
             interface_def.interface_name()));
 
     for operation in operations {
         let members = operation.return_members();
-        assert!(!members.is_empty());
 
         let function_type = if operation.streamed_return_member().is_some() {
             FunctionType::BlockBody
         } else {
             FunctionType::ExpressionBody
+        };
+
+        let return_type = if members.is_empty() {
+            "global::System.Threading.Tasks.ValueTask".to_owned()
+        } else {
+            format!(
+                "global::System.Threading.Tasks.ValueTask<{}>",
+                members.to_tuple_type(namespace, TypeContext::Decode, false)
+            )
         };
 
         let mut builder = FunctionBuilder::new(
@@ -447,21 +440,28 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             } else {
                 "public static async"
             },
-            &format!(
-                "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::Decode, false)
-            ),
+            &return_type,
             &operation.escape_identifier_with_suffix("Async"),
             function_type,
         );
 
-        builder.add_comment(
-            "summary",
-            &format!(
-                r#"The <see cref="ResponseDecodeFunc{{T}}" /> for the return value type of operation {}."#,
-                operation.cs_identifier(None)
-            ),
-        );
+        if members.is_empty() {
+            builder.add_comment(
+                "summary",
+                &format!(
+                    r#"The <see cref="ResponseDecodeFunc" /> for operation {}."#,
+                    operation.cs_identifier(None)
+                ),
+            );
+        } else {
+            builder.add_comment(
+                "summary",
+                &format!(
+                    r#"The <see cref="ResponseDecodeFunc{{T}}" /> for operation {}."#,
+                    operation.cs_identifier(None)
+                ),
+            );
+        }
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter("ServiceProxy", "sender", None, None);
@@ -483,8 +483,10 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
     let non_streamed_members = operation.nonstreamed_return_members();
+    let return_void = operation.return_members().is_empty();
 
     if let Some(stream_member) = operation.streamed_return_member() {
+        // async method with await
         if non_streamed_members.is_empty() {
             writeln!(
                 code,
@@ -543,9 +545,21 @@ var {stream_parameter_name} = {decode_operation_stream}
             operation.return_members().to_argument_tuple("sliceP_")
         );
     } else if operation.encoding == Encoding::Slice1 {
-        writeln!(
-            code,
-            "\
+        if return_void {
+            writeln!(
+                code,
+                "\
+response.DecodeVoidReturnValueAsync(
+    request,
+    sender,
+    _defaultActivator,
+    cancellationToken)
+"
+            );
+        } else {
+            writeln!(
+                code,
+                "\
 response.DecodeReturnValueAsync(
     request,
     sender,
@@ -553,12 +567,28 @@ response.DecodeReturnValueAsync(
     {return_value_decode_func},
     cancellationToken)
 ",
-            return_value_decode_func = return_value_decode_func(operation).indent()
-        );
+                return_value_decode_func = return_value_decode_func(operation).indent()
+            );
+        }
     } else {
-        writeln!(
-            code,
-            "\
+        if return_void {
+            writeln!(
+                code,
+                "\
+response.DecodeVoidReturnValueAsync(
+    request,
+    {encoding},
+    sender,
+    {exception_decode_func},
+    cancellationToken)
+",
+                encoding = operation.encoding.to_cs_encoding(),
+                exception_decode_func = exception_decode_func(operation)
+            );
+        } else {
+            writeln!(
+                code,
+                "\
 response.DecodeReturnValueAsync(
     request,
     {encoding},
@@ -567,10 +597,11 @@ response.DecodeReturnValueAsync(
     {exception_decode_func},
     cancellationToken)
 ",
-            encoding = operation.encoding.to_cs_encoding(),
-            return_value_decode_func = return_value_decode_func(operation).indent(),
-            exception_decode_func = exception_decode_func(operation)
-        );
+                encoding = operation.encoding.to_cs_encoding(),
+                return_value_decode_func = return_value_decode_func(operation).indent(),
+                exception_decode_func = exception_decode_func(operation)
+            );
+        }
     }
     code
 }
