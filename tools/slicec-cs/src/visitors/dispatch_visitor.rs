@@ -44,15 +44,17 @@ impl Visitor for DispatchVisitor<'_> {
             .add_block(request_class(interface_def))
             .add_block(response_class(interface_def));
 
-        interface_builder.add_block(
-            format!(
-                "\
+        if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+            interface_builder.add_block(
+                format!(
+                    "\
 private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({}).Assembly);",
-                interface_name
-            )
-            .into(),
-        );
+                    interface_name
+                )
+                .into(),
+            );
+        }
 
         for operation in interface_def.operations() {
             if operation.has_encoded_result() {

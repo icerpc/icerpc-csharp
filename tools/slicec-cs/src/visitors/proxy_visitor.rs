@@ -72,9 +72,6 @@ impl Visitor for ProxyVisitor<'_> {
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
     new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultPath() }};
 
-private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({proxy_impl}).Assembly);
-
 /// <inheritdoc/>
 public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
 
@@ -86,6 +83,18 @@ public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAdd
                                interface_name = interface_def.cs_identifier(None),
                                proxy_impl = proxy_impl
             ).into());
+
+        if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+            proxy_impl_builder.add_block(
+                format!(
+                    "\
+private static readonly IActivator _defaultActivator =
+    SliceDecoder.GetActivator(typeof({}).Assembly);",
+                    proxy_impl
+                )
+                .into(),
+            );
+        }
 
         for base_impl in all_base_impl {
             proxy_impl_builder.add_block(
