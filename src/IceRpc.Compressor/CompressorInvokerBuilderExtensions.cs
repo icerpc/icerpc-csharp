@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provides extension methods to add the deflate interceptor to an <see cref="IInvokerBuilder" />.
+/// <summary>This class provides extension methods to add the compressor interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>
 public static class CompressInvokerBuilderExtensions
 {

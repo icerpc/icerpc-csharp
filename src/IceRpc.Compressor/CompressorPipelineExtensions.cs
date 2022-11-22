@@ -14,7 +14,7 @@ public static class CompressorPipelineExtensions
     /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseCompress(
+    public static Pipeline UseCompressor(
         this Pipeline pipeline,
         CompressionFormat compressionFormat,
         CompressionLevel compressionLevel = CompressionLevel.Fastest) =>
