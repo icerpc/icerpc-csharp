@@ -576,7 +576,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 return replyStatus == ReplyStatus.Ok ?
                     (StatusCode.Success, null, consumed) :
-                    (StatusCode.ApplicationError, "Slice exception", consumed);
+                    (StatusCode.ApplicationError, "", consumed);
             }
             else
             {
@@ -1048,7 +1048,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a system exception.
+                    // If we catch an exception, we return a system exception. We also convert Slice exceptions
+                    // (with StatusCode.ApplicationError) into UnhandledException here.
                     if (exception is not DispatchException dispatchException ||
                         dispatchException.ConvertToUnhandled ||
                         dispatchException.StatusCode == StatusCode.ApplicationError)

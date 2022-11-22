@@ -275,11 +275,15 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
+        // If the error message is empty, we use the default System error message. This would typically happen with
+        // a Slice2 exception received over ice.
+        string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
+
         if (readResult.Buffer.IsEmpty)
         {
             // The payload is empty, no need to decode it.
             // Note that a Slice2-encoded exception uses at least 1 byte for tags.
-            return new DispatchException(response.StatusCode, response.ErrorMessage)
+            return new DispatchException(response.StatusCode, errorMessage)
             {
                 ConvertToUnhandled = true
             };
@@ -301,14 +305,14 @@ public static class IncomingResponseExtensions
 
                 try
                 {
-                    SliceException sliceException = decodeException(response.ErrorMessage, ref decoder);
+                    SliceException sliceException = decodeException(errorMessage, ref decoder);
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
                     return sliceException;
                 }
                 catch (InvalidDataException exception)
                 {
                     throw new InvalidDataException(
-                        $"failed to decode Slice exception from response {{ Message = {response.ErrorMessage} }}",
+                        $"failed to decode Slice exception from response {{ Message = {errorMessage} }}",
                         exception);
                 }
             }
