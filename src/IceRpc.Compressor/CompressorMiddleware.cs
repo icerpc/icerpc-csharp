@@ -13,10 +13,10 @@ namespace IceRpc.Compressor;
 /// <see cref="ICompressFeature" /> feature.</summary>
 public class CompressorMiddleware : IDispatcher
 {
-    private readonly IDispatcher _next;
     private readonly CompressionFormat _compressionFormat;
     private readonly CompressionLevel _compressionLevel;
     private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
+    private readonly IDispatcher _next;
 
     /// <summary>Constructs a compress middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>

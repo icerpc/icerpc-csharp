@@ -13,10 +13,10 @@ namespace IceRpc.Compressor;
 /// the <see cref="ICompressFeature" /> feature.</summary>
 public class CompressorInterceptor : IInvoker
 {
-    private readonly IInvoker _next;
     private readonly CompressionFormat _compressionFormat;
     private readonly CompressionLevel _compressionLevel;
     private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
+    private readonly IInvoker _next;
 
     /// <summary>Constructs a compressor interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>

@@ -5,7 +5,7 @@ using IceRpc;
 
 using var cts = new CancellationTokenSource();
 
-// Adding deflate middleware to the router
+// Adding compressor middleware to the router
 Router router = new Router().UseCompressor(CompressionFormat.Brotli);
 router.Map<IHello>(new Hello());
 
