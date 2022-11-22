@@ -258,23 +258,6 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_trait()
-    {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var expected = new MyStruct(10, 20);
-
-        expected.EncodeTrait(ref encoder);
-
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyStruct.SliceTypeId));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(20));
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-    }
-
-    [Test]
     public void Encode_struct_with_optional_members(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)

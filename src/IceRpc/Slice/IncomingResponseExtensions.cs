@@ -53,7 +53,6 @@ public static class IncomingResponseExtensions
             }
             {
                 throw await response.DecodeSliceExceptionAsync(
-                    SliceEncoding.Slice1,
                     feature,
                     activator,
                     sender,
@@ -152,7 +151,6 @@ public static class IncomingResponseExtensions
             else
             {
                 throw await response.DecodeSliceExceptionAsync(
-                    SliceEncoding.Slice1,
                     feature,
                     feature.Activator ?? defaultActivator,
                     sender,
@@ -210,9 +208,9 @@ public static class IncomingResponseExtensions
         }
     }
 
-    private static async ValueTask<Exception> DecodeSliceExceptionAsync(
+    // Slice1 only
+    private static async ValueTask<SliceException> DecodeSliceExceptionAsync(
         this IncomingResponse response,
-        SliceEncoding encoding,
         ISliceFeature feature,
         IActivator? activator,
         ServiceProxy sender,
@@ -221,7 +219,7 @@ public static class IncomingResponseExtensions
         Debug.Assert(response.StatusCode == StatusCode.ApplicationError);
 
         ReadResult readResult = await response.Payload.ReadSegmentAsync(
-            encoding,
+            SliceEncoding.Slice1,
             feature.MaxSegmentSize,
             cancellationToken).ConfigureAwait(false);
 
@@ -231,38 +229,24 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
-        Exception result = Decode(readResult.Buffer);
+        SliceException result = Decode(readResult.Buffer);
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return result;
 
-        Exception Decode(ReadOnlySequence<byte> buffer)
+        SliceException Decode(ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(
                 buffer,
-                encoding,
+                SliceEncoding.Slice1,
                 activator,
                 feature.ServiceProxyFactory,
                 sender,
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 maxDepth: feature.MaxDepth);
 
-            Exception exception = encoding == SliceEncoding.Slice1 ?
-                decoder.DecodeUserException() :
-                decoder.DecodeTrait(CreateInvalidDataException);
-
-            if (exception is not InvalidDataException)
-            {
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            }
-            // else, we did not decode the full exception from the buffer
-
+            SliceException exception = decoder.DecodeUserException();
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return exception;
-
-            // If we can't decode this exception, we return an UnknownException with the undecodable exception's
-            // type identifier and message.
-            static Exception CreateInvalidDataException(string typeId, ref SliceDecoder decoder) =>
-                new InvalidDataException(
-                    $"could not decode Slice exception from response {{ typeID = {typeId}, Message = {decoder.DecodeString()}}}");
         }
     }
 

@@ -13,10 +13,3 @@ public delegate T DecodeFunc<T>(ref SliceDecoder decoder);
 /// <param name="message">The exception message.</param>
 /// <returns>The decoded Slice exception.</returns>
 public delegate SliceException DecodeExceptionFunc(ref SliceDecoder decoder, string message);
-
-/// <summary>A delegate that decodes a trait from a Slice decoder.</summary>
-/// <typeparam name="T">The type of the trait to decode.</typeparam>
-/// <param name="typeId">The type ID of the trait.</param>
-/// <param name="decoder">The Slice decoder.</param>
-/// <returns>The trait.</returns>
-public delegate T DecodeTraitFunc<T>(string typeId, ref SliceDecoder decoder);

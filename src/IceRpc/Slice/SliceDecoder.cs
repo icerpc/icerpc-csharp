@@ -318,41 +318,6 @@ public ref partial struct SliceDecoder
 
     // Decode methods for constructed types
 
-    /// <summary>Decodes a trait.</summary>
-    /// <typeparam name="T">The type of the decoded trait.</typeparam>
-    /// <param name="fallback">An optional function that creates a trait in case the activator does not find a
-    /// struct or class associated with the type ID.</param>
-    /// <returns>The decoded trait.</returns>
-    public T DecodeTrait<T>(DecodeTraitFunc<T>? fallback = null)
-    {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException(
-                $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
-        }
-
-        string typeId = DecodeString();
-
-        if (++_currentDepth > _maxDepth)
-        {
-            throw new InvalidDataException($"maximum decoder depth reached while decoding trait {typeId}");
-        }
-
-        object? instance = _activator.CreateInstance(typeId, ref this);
-        _currentDepth--;
-
-        if (instance is null)
-        {
-            return fallback is not null ? fallback(typeId, ref this) :
-                throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
-        }
-        else
-        {
-            return instance is T result ? result : throw new InvalidDataException(
-                $"decoded instance of type '{instance.GetType()}' does not implement '{typeof(T)}'");
-        }
-    }
-
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded Proxy, or null.</returns>
