@@ -10,6 +10,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
 
-[assembly: InternalsVisibleTo("IceRpc.Deflate.Tests")] // For GetPayloadWriter
+[assembly: InternalsVisibleTo("IceRpc.Compressor.Tests")] // For GetPayloadWriter
 [assembly: InternalsVisibleTo("IceRpc.Retry.Tests")] // For EmptyPipeReader and MemoryBufferWriter
 [assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")] // For MemoryBufferWriter

@@ -7,13 +7,14 @@ using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IceRpc.Deflate.Tests;
+namespace IceRpc.Compressor.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class OperationGeneratedCodeTests
 {
     [Test]
-    public async Task Operation_with_compress_args_and_return_attribute()
+    public async Task Operation_with_compress_args_and_return_attribute(
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)]CompressionFormat compressionFormat)
     {
         // Arrange
         bool compressRequestFeature = false;
@@ -23,7 +24,7 @@ public class OperationGeneratedCodeTests
             .AddSingleton<MyOperationsA>()
             .AddClientServerColocTest(builder =>
             {
-                builder.UseDeflate();
+                builder.UseCompressor(compressionFormat);
                 builder.Use(next => new InlineDispatcher(async (request, cancellationToken) =>
                 {
                     var response = await next.DispatchAsync(request, cancellationToken);
@@ -33,15 +34,16 @@ public class OperationGeneratedCodeTests
                 }));
                 builder.Map<MyOperationsA>("/");
             })
-            .AddIceRpcInvoker(builder => builder
-                .UseDeflate()
-                .Use(next => new InlineInvoker(async (request, cancellationToken) =>
-                {
-                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
-                    compressRequestFeature =
-                        request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
-                    return response;
-                }))
+            .AddIceRpcInvoker(
+                builder => builder
+                    .UseCompressor(compressionFormat)
+                    .Use(next => new InlineInvoker(async (request, cancellationToken) =>
+                    {
+                        IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
+                        compressRequestFeature =
+                            request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
+                        return response;
+                    }))
                 .Into<ClientConnection>())
             .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>(new Uri("icerpc:/"))
             .BuildServiceProvider(validateScopes: true);
