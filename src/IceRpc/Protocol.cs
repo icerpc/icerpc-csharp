@@ -28,13 +28,13 @@ public class Protocol
     /// </returns>
     public bool HasFragment { get; }
 
-    /// <summary>Gets a value indicating whether or not this protocol supports streaming.</summary>
-    /// <returns><see langword="true" /> if the protocol supports streaming; otherwise, <see langword="false" />.
-    /// </returns>
-    public bool HasStreaming { get; }
-
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
+
+    /// <summary>Gets a value indicating whether or not this protocol supports payload continuation.</summary>
+    /// <returns><see langword="true" /> if the protocol supports payload continuation; otherwise,
+    /// <see langword="false" />.</returns>
+    public bool SupportsPayloadContinuation { get; }
 
     /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
     internal byte ByteValue { get; }
@@ -92,14 +92,14 @@ public class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
-        bool hasStreaming,
+        bool supportsPayloadContinuation,
         byte byteValue)
     {
         Name = name;
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
-        HasStreaming = hasStreaming;
+        SupportsPayloadContinuation = supportsPayloadContinuation;
         ByteValue = byteValue;
     }
 }

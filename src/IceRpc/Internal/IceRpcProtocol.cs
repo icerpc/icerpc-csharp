@@ -14,7 +14,7 @@ internal sealed class IceRpcProtocol : Protocol
             defaultPort: 4062,
             hasFields: true,
             hasFragment: false,
-            hasStreaming: true,
+            supportsPayloadContinuation: true,
             byteValue: 2)
     {
     }
