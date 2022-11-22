@@ -48,8 +48,7 @@ public static class IncomingFrameExtensions
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // Since the elements are fixed-size, they can't contain proxies or instances created by an activator, hence
-            // both activator and serviceProxyFactory can remain null.
+            // Since the elements are fixed-size, they can't contain proxies hence serviceProxyFactory can remain null.
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,

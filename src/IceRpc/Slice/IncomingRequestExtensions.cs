@@ -22,8 +22,8 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" />.
-    /// </summary>
+    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with
+    /// a Slice exception payload.</summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="sliceException">The Slice exception to encode in the payload.</param>
     /// <param name="encoding">The encoding used for the request payload.</param>
@@ -81,17 +81,15 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Decodes the request's payload into a list of arguments.</summary>
+    /// <summary>Decodes a Slice1-encoded request payload into a list of arguments.</summary>
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
-    /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
     public static ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
-        SliceEncoding encoding,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancellationToken = default)
@@ -99,13 +97,33 @@ public static class IncomingRequestExtensions
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         return request.DecodeValueAsync(
-            encoding,
+            SliceEncoding.Slice1,
             feature,
             feature.Activator ?? defaultActivator,
             templateProxy: null,
             decodeFunc,
             cancellationToken);
     }
+
+    /// <summary>Decodes a request payload into a list of arguments.</summary>
+    /// <typeparam name="T">The type of the request parameters.</typeparam>
+    /// <param name="request">The incoming request.</param>
+    /// <param name="encoding">The encoding of the request payload. Must be Slice2 or greater.</param>
+    /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The request arguments.</returns>
+    public static ValueTask<T> DecodeArgsAsync<T>(
+        this IncomingRequest request,
+        SliceEncoding encoding,
+        DecodeFunc<T> decodeFunc,
+        CancellationToken cancellationToken = default) =>
+        request.DecodeValueAsync(
+            encoding,
+            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
+            activator: null,
+            templateProxy: null,
+            decodeFunc,
+            cancellationToken);
 
     /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
     /// <param name="request">The incoming request.</param>

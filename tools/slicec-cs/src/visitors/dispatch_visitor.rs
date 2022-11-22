@@ -249,7 +249,6 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
                 "\
 var {args} = await request.DecodeArgsAsync(
     {encoding},
-    _defaultActivator,
     {decode_func},
     cancellationToken).ConfigureAwait(false);",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
@@ -276,13 +275,23 @@ var {stream_parameter_name} = {decode_operation_stream}
             ),
         }
         writeln!(code, "return {};", operation.parameters().to_argument_tuple("sliceP_"));
+    } else if operation.encoding == Encoding::Slice1 {
+        writeln!(
+            code,
+            "\
+request.DecodeArgsAsync(
+    _defaultActivator,
+    {decode_func},
+    cancellationToken)
+",
+            decode_func = request_decode_func(operation).indent()
+        );
     } else {
         writeln!(
             code,
             "\
 request.DecodeArgsAsync(
     {encoding},
-    _defaultActivator,
     {decode_func},
     cancellationToken)
 ",
