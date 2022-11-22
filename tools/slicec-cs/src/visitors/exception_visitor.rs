@@ -104,22 +104,7 @@ impl Visitor for ExceptionVisitor<'_> {
                 FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
                     .add_base_parameter("ref decoder")
-                    .set_body(
-                        EncodingBlockBuilder::new(
-                            "decoder.Encoding",
-                            &exception_name,
-                            exception_def.supported_encodings(),
-                            false,
-                        )
-                        .add_encoding_block(Encoding::Slice1, || {
-                            initialize_non_nullable_fields(&members, FieldType::Exception)
-                        })
-                        .add_encoding_block(Encoding::Slice2, || {
-                            // TODO: should throw, this constructor is Slice1-only
-                            initialize_non_nullable_fields(&members, FieldType::Exception)
-                        })
-                        .build(),
-                    )
+                    .set_body(initialize_non_nullable_fields(&members, FieldType::Exception))
                     .add_never_editor_browsable_attribute()
                     .build(),
             );

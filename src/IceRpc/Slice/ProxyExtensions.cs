@@ -213,7 +213,7 @@ public static class ProxyExtensions
     /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <param name="proxy">A proxy for the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
-    /// <param name="encoding">The encoding of the request payload. Must be Slice2 or greater.</param>
+    /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
     /// <param name="features">The invocation features.</param>
