@@ -31,7 +31,7 @@ public class Protocol
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
 
-    /// <summary>Gets a value indicating whether or not this protocol supports payload continuation.</summary>
+    /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
     /// <returns><see langword="true" /> if the protocol supports payload continuations; otherwise,
     /// <see langword="false" />.</returns>
     public bool SupportsPayloadContinuation { get; }
