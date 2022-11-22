@@ -45,7 +45,7 @@ public ref partial struct SliceDecoder
     // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
     private readonly int _maxCollectionAllocation;
 
-    // The maximum depth when decoding a type recursively.
+    // The maximum depth when decoding a class recursively.
     private readonly int _maxDepth;
 
     // The sequence reader.
