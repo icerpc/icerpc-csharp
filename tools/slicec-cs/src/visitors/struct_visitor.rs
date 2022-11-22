@@ -159,23 +159,6 @@ impl<'a> Visitor for StructVisitor<'a> {
             .build(),
         );
 
-        // EncodeTrait method
-        builder.add_block(
-            FunctionBuilder::new("public readonly", "void", "EncodeTrait", FunctionType::BlockBody)
-                .add_comment(
-                    "summary",
-                    "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
-                )
-                .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-                .set_body(
-                    r#"
-encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);"#
-                        .into(),
-                )
-                .build(),
-        );
-
         self.generated_code.insert_scoped(struct_def, builder.build());
     }
 }
