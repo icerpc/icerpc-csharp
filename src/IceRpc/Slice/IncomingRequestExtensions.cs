@@ -9,9 +9,9 @@ namespace IceRpc.Slice;
 /// Slice encoding.</summary>
 public static class IncomingRequestExtensions
 {
-    /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
-    /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
-    /// incorrectly believes this operation is idempotent.</summary>
+    /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared idempotent,
+    /// the request is not marked idempotent. If the request is marked idempotent, it means the caller incorrectly
+    /// believes this operation is idempotent.</summary>
     /// <param name="request">The request to check.</param>
     public static void CheckNonIdempotent(this IncomingRequest request)
     {
@@ -28,8 +28,8 @@ public static class IncomingRequestExtensions
     /// <param name="sliceException">The Slice exception to encode in the payload.</param>
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sliceException" /> is a dispatch exception or
-    /// its <see cref="DispatchException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
+    /// <exception cref="ArgumentException">Thrown if the <see cref="DispatchException.ConvertToUnhandled" /> property
+    /// of <paramref name="sliceException" /> is <see langword="true" />.</exception>
     public static OutgoingResponse CreateSliceExceptionResponse(
         this IncomingRequest request,
         SliceException sliceException,

@@ -977,7 +977,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             catch (Exception exception)
             {
                 // We convert any exception into a dispatch exception if it's not already one.
-                // When the status code is ApplicationError, we "slice" the exception to a plain DispatchException.
                 if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
                     // We don't expect a PayloadCompleteException since 'exception' is caught _before_ we
@@ -993,6 +992,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     dispatchException = new DispatchException(statusCode, message: null, exception);
                 }
 
+                // If the exception in question is derived from DispatchException (for example a SliceException),
+                // we encode this exception as a plain DispatchException with just a status code and a message.
+                // The payload of response below is always empty.
                 response = new OutgoingResponse(request, dispatchException);
 
                 // Encode the retry policy into the fields of the new response.
