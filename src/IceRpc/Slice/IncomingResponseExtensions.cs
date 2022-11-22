@@ -265,7 +265,7 @@ public static class IncomingResponseExtensions
         Debug.Assert(encoding != SliceEncoding.Slice1);
 
         ReadResult readResult = await response.Payload.ReadSegmentAsync(
-            SliceEncoding.Slice2,
+            encoding,
             feature.MaxSegmentSize,
             cancellationToken).ConfigureAwait(false);
 
@@ -284,9 +284,9 @@ public static class IncomingResponseExtensions
         }
         else
         {
-            SliceException sliceException = Decode(readResult.Buffer);
+            SliceException exception = Decode(readResult.Buffer);
             response.Payload.AdvanceTo(readResult.Buffer.End);
-            return sliceException;
+            return exception;
 
             SliceException Decode(ReadOnlySequence<byte> buffer)
             {
