@@ -8,9 +8,9 @@ unchecked enum CompressionFormat : uint8
     /// Reserved value which should not be encoded.
     NotCompressed = 0,
 
-    /// The payload is compressed using the brotli format.
-    Brotli = 1,
-
     /// The payload is compressed using the deflate format.
-    Deflate = 2,
+    Deflate = 1,
+
+    /// The payload is compressed using the brotli format.
+    Brotli = 2,
 }
