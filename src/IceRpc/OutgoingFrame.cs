@@ -21,7 +21,8 @@ public abstract class OutgoingFrame
         set
         {
             _payloadContinuation = Protocol.SupportsPayloadContinuation || value is null ?
-                value : throw new NotSupportedException($"payload continuation is not supported with the '{Protocol}' protocol");
+                value : throw new NotSupportedException(
+                    $"payload continuation is not supported with the '{Protocol}' protocol");
         }
     }
 
