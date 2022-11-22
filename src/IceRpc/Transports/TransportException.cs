@@ -27,8 +27,8 @@ public enum TransportErrorCode
     /// <summary>An internal error occurred.</summary>
     InternalError,
 
-    /// <summary>A call that was ongoing when the underlying resource (connection, stream) is disposed is aborted by
-    /// the dispose.</summary>
+    /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource
+    /// disposal.</summary>
     OperationAborted,
 
     /// <summary>An other unspecified error occurred.</summary>
