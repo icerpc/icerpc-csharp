@@ -98,7 +98,7 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
-            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc, StatusCode.Failure, ""));
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc, StatusCode.ApplicationError, ""));
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
@@ -110,7 +110,7 @@ public sealed class RetryInterceptorTests
         var response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Failure));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ApplicationError));
         Assert.That(attempts, Is.EqualTo(1));
     }
 
@@ -127,7 +127,7 @@ public sealed class RetryInterceptorTests
                 return Task.FromResult(new IncomingResponse(
                     request,
                     FakeConnectionContext.IceRpc,
-                    StatusCode.Failure,
+                    StatusCode.ApplicationError,
                     "error message",
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
@@ -168,7 +168,7 @@ public sealed class RetryInterceptorTests
                 return Task.FromResult(new IncomingResponse(
                     request,
                     FakeConnectionContext.IceRpc,
-                    StatusCode.Failure,
+                    StatusCode.ApplicationError,
                     "error message",
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
@@ -353,7 +353,7 @@ public sealed class RetryInterceptorTests
             return Task.FromResult(new IncomingResponse(
                 request,
                 FakeConnectionContext.IceRpc,
-                StatusCode.Failure,
+                StatusCode.ApplicationError,
                 "error message",
                 new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                 {
@@ -380,7 +380,7 @@ public sealed class RetryInterceptorTests
         var response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Failure));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ApplicationError));
         Assert.That(serverAddresses.Count, Is.EqualTo(3));
         Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
         Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));

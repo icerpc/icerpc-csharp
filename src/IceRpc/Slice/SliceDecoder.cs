@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,38 +32,20 @@ public ref partial struct SliceDecoder
     private static readonly UTF8Encoding _utf8 =
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
-    /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
-    /// assemblies.</summary>
-    /// <param name="assembly">The assembly.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assembly" /> provided this
-    /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute" />
-    /// attribute). Types defined in assemblies referenced by <paramref name="assembly" /> are included as well,
-    /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
-    /// considered.</returns>
-    public static IActivator GetActivator(Assembly assembly) => ActivatorFactory.Instance.Get(assembly);
-
-    /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
-    /// referenced assemblies.</summary>
-    /// <param name="assemblies">The assemblies.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies" /> and their
-    /// referenced assemblies. See <see cref="GetActivator(Assembly)" />.</returns>
-    public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
-        Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
-
-    private readonly IActivator _activator;
+    private readonly IActivator? _activator;
 
     private ClassContext _classContext;
 
     // The number of bytes already allocated for strings, dictionaries and sequences.
     private int _currentCollectionAllocation;
 
-    // The current depth when decoding a type recursively.
+    // The current depth when decoding a class recursively.
     private int _currentDepth;
 
     // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
     private readonly int _maxCollectionAllocation;
 
-    // The maximum depth when decoding a type recursively.
+    // The maximum depth when decoding a class recursively.
     private readonly int _maxDepth;
 
     // The sequence reader.
@@ -76,30 +57,25 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
-    /// <param name="maxDepth">The maximum depth when decoding a type recursively. The default is <c>3</c>.</param>
+    /// <param name="activator">The activator for decoding Slice1-encoded classes and exceptions.</param>
+    /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
-        IActivator? activator = null,
         Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
         ServiceProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
+        IActivator? activator = null,
         int maxDepth = 3)
     {
         Encoding = encoding;
 
-        _activator = activator ?? _defaultActivator;
-        _classContext = default;
-
         _currentCollectionAllocation = 0;
-        _currentDepth = 0;
-
         _serviceProxyFactory = serviceProxyFactory;
         _templateProxy = templateProxy;
 
@@ -109,6 +85,9 @@ public ref partial struct SliceDecoder
                     $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1",
                     nameof(maxCollectionAllocation)));
 
+        _activator = activator;
+        _classContext = default;
+        _currentDepth = 0;
         _maxDepth = maxDepth >= 1 ? maxDepth :
             throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0", nameof(maxDepth));
 
@@ -118,28 +97,28 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="activator">The activator.</param>
     /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
-    /// <param name="maxDepth">The maximum depth when decoding a type recursively. The default is <c>3</c>.</param>
+    /// <param name="activator">The activator for decoding Slice1-encoded classes and exceptions.</param>
+    /// <param name="maxDepth">The maximum depth when decoding a class recursively. The default is <c>3</c>.</param>
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
-        IActivator? activator = null,
         Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
         ServiceProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
+        IActivator? activator = null,
         int maxDepth = 3)
         : this(
             new ReadOnlySequence<byte>(buffer),
             encoding,
-            activator,
             serviceProxyFactory,
             templateProxy,
             maxCollectionAllocation,
+            activator,
             maxDepth)
     {
     }
@@ -317,41 +296,6 @@ public ref partial struct SliceDecoder
         TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     // Decode methods for constructed types
-
-    /// <summary>Decodes a trait.</summary>
-    /// <typeparam name="T">The type of the decoded trait.</typeparam>
-    /// <param name="fallback">An optional function that creates a trait in case the activator does not find a
-    /// struct or class associated with the type ID.</param>
-    /// <returns>The decoded trait.</returns>
-    public T DecodeTrait<T>(DecodeTraitFunc<T>? fallback = null)
-    {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException(
-                $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
-        }
-
-        string typeId = DecodeString();
-
-        if (++_currentDepth > _maxDepth)
-        {
-            throw new InvalidDataException($"maximum decoder depth reached while decoding trait {typeId}");
-        }
-
-        object? instance = _activator.CreateInstance(typeId, ref this);
-        _currentDepth--;
-
-        if (instance is null)
-        {
-            return fallback is not null ? fallback(typeId, ref this) :
-                throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
-        }
-        else
-        {
-            return instance is T result ? result : throw new InvalidDataException(
-                $"decoded instance of type '{instance.GetType()}' does not implement '{typeof(T)}'");
-        }
-    }
 
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>

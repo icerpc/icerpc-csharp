@@ -17,7 +17,7 @@ public sealed class SliceFeature : ISliceFeature
     /// <inheritdoc/>
     public int MaxCollectionAllocation { get; }
 
-    /// <summary>Gets the maximum depth when decoding a type recursively.</summary>
+    /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
     /// <value>The default value is 100.</value>
     public int MaxDepth { get; }
 

@@ -571,7 +571,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 return replyStatus == ReplyStatus.Ok ?
                     (StatusCode.Success, null, consumed) :
-                    (StatusCode.Failure, "Slice exception", consumed);
+                    (StatusCode.ApplicationError, "", consumed);
             }
             else
             {
@@ -1038,9 +1038,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a system exception.
-
-                    if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
+                    // If we catch an exception, we return a system exception. We also convert Slice exceptions
+                    // (with StatusCode.ApplicationError) into UnhandledException here.
+                    if (exception is not DispatchException dispatchException ||
+                        dispatchException.ConvertToUnhandled ||
+                        dispatchException.StatusCode == StatusCode.ApplicationError)
                     {
                         StatusCode statusCode = exception switch
                         {
@@ -1080,7 +1082,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // write semaphore.
                     ReadOnlySequence<byte> payload = ReadOnlySequence<byte>.Empty;
 
-                    if (response.StatusCode <= StatusCode.Failure)
+                    if (response.StatusCode <= StatusCode.ApplicationError)
                     {
                         try
                         {
@@ -1214,7 +1216,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 encoder.EncodeInt32(requestId);
 
-                if (response.StatusCode <= StatusCode.Failure)
+                if (response.StatusCode <= StatusCode.ApplicationError)
                 {
                     encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
 

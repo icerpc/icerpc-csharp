@@ -1,9 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using System;
-using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
@@ -12,9 +9,9 @@ namespace IceRpc.Slice;
 /// Slice encoding.</summary>
 public static class IncomingRequestExtensions
 {
-    /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
-    /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
-    /// incorrectly believes this operation is idempotent.</summary>
+    /// <summary>The generated code calls this method to ensure that when an operation is not declared idempotent,
+    /// the request is not marked idempotent. If the request is marked idempotent, it means the caller incorrectly
+    /// believes this operation is idempotent.</summary>
     /// <param name="request">The request to check.</param>
     public static void CheckNonIdempotent(this IncomingRequest request)
     {
@@ -25,33 +22,35 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.Failure" />.
-    /// </summary>
+    /// <summary>Creates an outgoing response with status code <see cref="StatusCode.ApplicationError" /> with
+    /// a Slice exception payload.</summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="remoteException">The remote exception to encode in the payload.</param>
+    /// <param name="sliceException">The Slice exception to encode in the payload.</param>
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException" /> is a dispatch exception or
-    /// its <see cref="RemoteException.ConvertToUnhandled" /> property is <see langword="true" />.</exception>
-    public static OutgoingResponse CreateFailureResponse(
+    /// <exception cref="ArgumentException">Thrown if the <see cref="DispatchException.ConvertToUnhandled" /> property
+    /// of <paramref name="sliceException" /> is <see langword="true" />.</exception>
+    /// <exception cref="NotSupportedException">Thrown when <paramref name="sliceException" /> does not support encoding
+    /// <paramref name="encoding" />.</exception>
+    public static OutgoingResponse CreateSliceExceptionResponse(
         this IncomingRequest request,
-        RemoteException remoteException,
+        SliceException sliceException,
         SliceEncoding encoding)
     {
-        if (remoteException.ConvertToUnhandled)
+        if (sliceException.ConvertToUnhandled)
         {
-            throw new ArgumentException("invalid remote exception", nameof(remoteException));
+            throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        var response = new OutgoingResponse(request, StatusCode.Failure, remoteException.Message)
+        var response = new OutgoingResponse(request, StatusCode.ApplicationError, sliceException.Message)
         {
             Payload = CreateExceptionPayload()
         };
 
-        if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+        if (response.Protocol.HasFields && sliceException.RetryPolicy != RetryPolicy.NoRetry)
         {
             // Encode the retry policy into the fields of the new response.
-            RetryPolicy retryPolicy = remoteException.RetryPolicy;
+            RetryPolicy retryPolicy = sliceException.RetryPolicy;
             response.Fields = response.Fields.With(
                 ResponseFieldKey.RetryPolicy,
                 retryPolicy.Encode);
@@ -64,38 +63,35 @@ public static class IncomingRequestExtensions
                 SliceEncodeOptions.Default;
 
             var pipe = new Pipe(encodeOptions.PipeOptions);
-
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
-            // Encode resp. EncodeTrait can throw if the exception does not support encoding.
+            // sliceException.Encode can throw NotSupportedException
             if (encoding == SliceEncoding.Slice1)
             {
-                remoteException.Encode(ref encoder);
+                sliceException.Encode(ref encoder);
             }
             else
             {
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                 int startPos = encoder.EncodedByteCount;
-                remoteException.EncodeTrait(ref encoder);
+                sliceException.Encode(ref encoder);
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
-            pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+            pipe.Writer.Complete();
             return pipe.Reader;
         }
     }
 
-    /// <summary>Decodes the request's payload into a list of arguments.</summary>
+    /// <summary>Decodes a Slice1-encoded request payload into a list of arguments.</summary>
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
-    /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
     public static ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
-        SliceEncoding encoding,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancellationToken = default)
@@ -103,11 +99,42 @@ public static class IncomingRequestExtensions
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         return request.DecodeValueAsync(
-            encoding,
+            SliceEncoding.Slice1,
             feature,
-            feature.Activator ?? defaultActivator,
             templateProxy: null,
             decodeFunc,
+            feature.Activator ?? defaultActivator,
+            cancellationToken);
+    }
+
+    /// <summary>Decodes a request payload into a list of arguments.</summary>
+    /// <typeparam name="T">The type of the request parameters.</typeparam>
+    /// <param name="request">The incoming request.</param>
+    /// <param name="encoding">The encoding of the request payload. Must be Slice2 or greater.</param>
+    /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The request arguments.</returns>
+    /// <exception cref="ArgumentException">Throw if <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</exception>
+    public static ValueTask<T> DecodeArgsAsync<T>(
+        this IncomingRequest request,
+        SliceEncoding encoding,
+        DecodeFunc<T> decodeFunc,
+        CancellationToken cancellationToken = default)
+    {
+        if (encoding == SliceEncoding.Slice1)
+        {
+            throw new ArgumentException(
+                $"{nameof(DecodeArgsAsync)} is not compatible with the Slice1 encoding",
+                nameof(encoding));
+        }
+
+        return request.DecodeValueAsync(
+            encoding,
+            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
+            templateProxy: null,
+            decodeFunc,
+            activator: null,
             cancellationToken);
     }
 

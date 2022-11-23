@@ -37,14 +37,6 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_container_attributes(struct_def);
 
         builder.add_block(
-            format!(
-                "public static readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
-                &escaped_identifier
-            )
-            .into(),
-        );
-
-        builder.add_block(
             members
                 .iter()
                 .map(|m| data_member_declaration(m, FieldType::NonMangled))
@@ -157,23 +149,6 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
             .set_body(encode_body)
             .build(),
-        );
-
-        // EncodeTrait method
-        builder.add_block(
-            FunctionBuilder::new("public readonly", "void", "EncodeTrait", FunctionType::BlockBody)
-                .add_comment(
-                    "summary",
-                    "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
-                )
-                .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-                .set_body(
-                    r#"
-encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);"#
-                        .into(),
-                )
-                .build(),
         );
 
         self.generated_code.insert_scoped(struct_def, builder.build());

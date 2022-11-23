@@ -35,7 +35,7 @@ public class SlicingTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
 
         // Act
-        AnyClass? anyClass = decoder.DecodeClass<AnyClass>();
+        SliceClass? anyClass = decoder.DecodeClass<SliceClass>();
 
         // Assert
         Assert.That(anyClass, Is.Not.Null);
@@ -65,7 +65,7 @@ public class SlicingTests
             slicedTypeIds: ImmutableList.Create(SlicingPreservedDerivedClass1.SliceTypeId));
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
-        AnyClass? r1 = decoder.DecodeClass<AnyClass>();
+        SliceClass? r1 = decoder.DecodeClass<SliceClass>();
 
         // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);

@@ -26,5 +26,5 @@ exception MyDerivedException : MyException
 
 interface Slice1ExceptionOperations
 {
-    opThrows();
+    opThrows() throws AnyException;
 }
