@@ -137,17 +137,13 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
-        // If the error message is empty, we use the default System error message. This would typically happen with
-        // an exception received over ice.
-        string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
+        DispatchException exception = DecodeBuffer(readResult.Buffer);
+        response.Payload.AdvanceTo(readResult.Buffer.End);
+        return exception;
 
-        if (encoding == SliceEncoding.Slice1)
+        DispatchException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            SliceException result = Decode(readResult.Buffer);
-            response.Payload.AdvanceTo(readResult.Buffer.End);
-            return result;
-
-            SliceException Decode(ReadOnlySequence<byte> buffer)
+            if (encoding == SliceEncoding.Slice1)
             {
                 var decoder = new SliceDecoder(
                     buffer,
@@ -162,39 +158,39 @@ public static class IncomingResponseExtensions
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 return exception;
             }
-        }
-        else if (readResult.Buffer.IsEmpty)
-        {
-            // The payload is empty, no need to decode it.
-            // Note that a Slice2-encoded exception uses at least 1 byte for tags.
-            return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
-        }
-        else
-        {
-            SliceException exception = Decode(readResult.Buffer);
-            response.Payload.AdvanceTo(readResult.Buffer.End);
-            return exception;
-
-            SliceException Decode(ReadOnlySequence<byte> buffer)
+            else
             {
-                var decoder = new SliceDecoder(
-                    buffer,
-                    encoding,
-                    feature.ServiceProxyFactory,
-                    sender,
-                    maxCollectionAllocation: feature.MaxCollectionAllocation);
+                // If the error message is empty, we use the default System error message. This would typically happen
+                // with a Slice2 exception received over ice.
+                string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
 
-                try
+                if (readResult.Buffer.IsEmpty)
                 {
-                    SliceException sliceException = decodeException!(errorMessage, ref decoder);
-                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                    return sliceException;
+                    // The payload is empty, no need to decode it.
+                    // Note that a Slice2-encoded exception uses at least 1 byte for tags.
+                    return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
                 }
-                catch (InvalidDataException exception)
+                else
                 {
-                    throw new InvalidDataException(
-                        $"failed to decode Slice exception from response {{ Message = {errorMessage} }}",
-                        exception);
+                    var decoder = new SliceDecoder(
+                        buffer,
+                        encoding,
+                        feature.ServiceProxyFactory,
+                        sender,
+                        maxCollectionAllocation: feature.MaxCollectionAllocation);
+
+                    try
+                    {
+                        SliceException sliceException = decodeException!(errorMessage, ref decoder);
+                        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                        return sliceException;
+                    }
+                    catch (InvalidDataException exception)
+                    {
+                        throw new InvalidDataException(
+                            $"failed to decode Slice exception from response {{ Message = {errorMessage} }}",
+                            exception);
+                    }
                 }
             }
         }
