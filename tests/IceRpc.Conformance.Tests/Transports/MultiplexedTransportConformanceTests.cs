@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -1415,21 +1414,6 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act/Assert
         Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
-    }
-
-    /// <summary>Verifies that create stream fails if called before connect.</summary>
-    [Test]
-    public async Task Create_stream_before_calling_connect_fails()
-    {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        await using IMultiplexedConnection sut = provider.GetRequiredService<IMultiplexedConnection>();
-
-        // Act/Assert
-        Assert.That(
-            async () => await sut.CreateStreamAsync(bidirectional: true, default),
-            Throws.TypeOf<InvalidOperationException>());
     }
 
     [Test]

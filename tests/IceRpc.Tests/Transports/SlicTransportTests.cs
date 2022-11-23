@@ -12,6 +12,63 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportTests
 {
+    /// <summary>Verifies that create stream fails if called before connect.</summary>
+    [Test]
+    public async Task Create_stream_before_calling_connect_fails()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<SlicConnection>();
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.CreateStreamAsync(bidirectional: true, default),
+            Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies that accept stream fails if called before connect.</summary>
+    [Test]
+    public async Task Accepting_stream_before_calling_connect_fails()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<SlicConnection>();
+
+        // Act/Assert
+        Assert.That(async () => await sut.AcceptStreamAsync(default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public async Task Connect_called_twice_throws_invalid_operation_exception()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<SlicConnection>();
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        // Act/Assert
+        Assert.That(async () => await sut.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies that close fails if called before connect.</summary>
+    [Test]
+    public async Task Closing_connection_before_calling_connect_fails()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<SlicConnection>();
+
+        // Act/Assert
+        Assert.That(async () => await sut.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
+    }
+
     [Test]
     public async Task Stream_peer_options_are_set_after_connect()
     {
