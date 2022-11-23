@@ -83,58 +83,30 @@ public static class IncomingRequestExtensions
         }
     }
 
-    /// <summary>Decodes a Slice1-encoded request payload into a list of arguments.</summary>
-    /// <typeparam name="T">The type of the request parameters.</typeparam>
-    /// <param name="request">The incoming request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The request arguments.</returns>
-    public static ValueTask<T> DecodeArgsAsync<T>(
-        this IncomingRequest request,
-        IActivator? defaultActivator,
-        DecodeFunc<T> decodeFunc,
-        CancellationToken cancellationToken = default)
-    {
-        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
-
-        return request.DecodeValueAsync(
-            SliceEncoding.Slice1,
-            feature,
-            templateProxy: null,
-            decodeFunc,
-            feature.Activator ?? defaultActivator,
-            cancellationToken);
-    }
-
     /// <summary>Decodes a request payload into a list of arguments.</summary>
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
-    /// <param name="encoding">The encoding of the request payload. Must be Slice2 or greater.</param>
+    /// <param name="encoding">The encoding of the request payload.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null. Used only
+    /// when <paramref name="encoding" /> is <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
-    /// <exception cref="ArgumentException">Throw if <paramref name="encoding" /> is
-    /// <see cref="SliceEncoding.Slice1" />.</exception>
     public static ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
         SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
+        IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
     {
-        if (encoding == SliceEncoding.Slice1)
-        {
-            throw new ArgumentException(
-                $"{nameof(DecodeArgsAsync)} is not compatible with the Slice1 encoding",
-                nameof(encoding));
-        }
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         return request.DecodeValueAsync(
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             templateProxy: null,
             decodeFunc,
-            activator: null,
+            feature.Activator ?? defaultActivator,
             cancellationToken);
     }
 

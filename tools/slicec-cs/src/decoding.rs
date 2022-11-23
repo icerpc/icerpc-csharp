@@ -49,6 +49,14 @@ pub fn decode_data_members(
     code
 }
 
+pub fn default_activator(encoding: Encoding) -> &'static str {
+    if encoding == Encoding::Slice1 {
+        "_defaultActivator"
+    } else {
+        "null"
+    }
+}
+
 fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let data_type = member.data_type();

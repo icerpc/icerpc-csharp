@@ -499,7 +499,8 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     sender,
-    {exception_decode_func},
+    decodeException: {exception_decode_func},
+    defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
                 encoding = operation.encoding.to_cs_encoding(),
@@ -514,7 +515,8 @@ var {return_value} = await response.DecodeReturnValueAsync(
     {encoding},
     sender,
     {return_value_decode_func},
-    {exception_decode_func},
+    decodeException: {exception_decode_func},
+    defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
@@ -548,32 +550,6 @@ var {stream_parameter_name} = {decode_operation_stream}
             "return {};",
             operation.return_members().to_argument_tuple("sliceP_")
         );
-    } else if operation.encoding == Encoding::Slice1 {
-        if return_void {
-            writeln!(
-                code,
-                "\
-response.DecodeVoidReturnValueAsync(
-    request,
-    sender,
-    _defaultActivator,
-    cancellationToken)
-"
-            );
-        } else {
-            writeln!(
-                code,
-                "\
-response.DecodeReturnValueAsync(
-    request,
-    sender,
-    _defaultActivator,
-    {return_value_decode_func},
-    cancellationToken)
-",
-                return_value_decode_func = return_value_decode_func(operation).indent()
-            );
-        }
     } else if return_void {
         writeln!(
             code,
@@ -582,11 +558,13 @@ response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     sender,
-    {exception_decode_func},
+    decodeException: {exception_decode_func},
+    defaultActivator: {default_activator},
     cancellationToken)
 ",
             encoding = operation.encoding.to_cs_encoding(),
-            exception_decode_func = exception_decode_func(operation)
+            exception_decode_func = exception_decode_func(operation),
+            default_activator = default_activator(operation.encoding)
         );
     } else {
         writeln!(
@@ -598,18 +576,23 @@ response.DecodeReturnValueAsync(
     sender,
     {return_value_decode_func},
     {exception_decode_func},
+    {default_activator},
     cancellationToken)
 ",
             encoding = operation.encoding.to_cs_encoding(),
             return_value_decode_func = return_value_decode_func(operation).indent(),
-            exception_decode_func = exception_decode_func(operation)
+            exception_decode_func = exception_decode_func(operation),
+            default_activator = default_activator(operation.encoding)
         );
     }
     code
 }
 
 fn exception_decode_func(operation: &Operation) -> String {
-    if let Throws::Specific(exception) = &operation.throws {
+    if operation.encoding == Encoding::Slice1 {
+        // TODO: merge will last else
+        "null".to_owned()
+    } else if let Throws::Specific(exception) = &operation.throws {
         format!(
             "\
 (string? message, ref SliceDecoder decoder) => new {}(message, ref decoder)",
