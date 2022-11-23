@@ -20,6 +20,8 @@ public static class IncomingResponseExtensions
     /// <param name="decodeReturnValue">A function that decodes the return value.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
+    /// <see cref="StatusCode.ApplicationError" />.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
         OutgoingRequest request,
@@ -65,6 +67,11 @@ public static class IncomingResponseExtensions
     /// <param name="decodeException">A function that decodes the exception thrown by the operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
+    /// <exception cref="ArgumentException">Throw if <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</exception>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
+    /// <see cref="StatusCode.ApplicationError" /> or is equal to <see cref="StatusCode.ApplicationError" /> and
+    /// <paramref name="decodeException" /> is null.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
         OutgoingRequest request,
@@ -116,6 +123,8 @@ public static class IncomingResponseExtensions
     /// </param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
+    /// <see cref="StatusCode.ApplicationError" />.</exception>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,
@@ -148,6 +157,11 @@ public static class IncomingResponseExtensions
     /// <param name="decodeException">A function that decodes the exception thrown by the operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    /// <exception cref="ArgumentException">Throw if <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</exception>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
+    /// <see cref="StatusCode.ApplicationError" /> or is equal to <see cref="StatusCode.ApplicationError" /> and
+    /// <paramref name="decodeException" /> is null.</exception>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,

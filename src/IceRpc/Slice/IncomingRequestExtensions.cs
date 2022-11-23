@@ -30,6 +30,8 @@ public static class IncomingRequestExtensions
     /// <returns>The new outgoing response.</returns>
     /// <exception cref="ArgumentException">Thrown if the <see cref="DispatchException.ConvertToUnhandled" /> property
     /// of <paramref name="sliceException" /> is <see langword="true" />.</exception>
+    /// <exception cref="NotSupportedException">Thrown when <paramref name="sliceException" /> does not support encoding
+    /// <paramref name="encoding" />.</exception>
     public static OutgoingResponse CreateSliceExceptionResponse(
         this IncomingRequest request,
         SliceException sliceException,
@@ -63,9 +65,9 @@ public static class IncomingRequestExtensions
             var pipe = new Pipe(encodeOptions.PipeOptions);
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
+            // sliceException.Encode can throw NotSupportedException
             if (encoding == SliceEncoding.Slice1)
             {
-                // Encode can throw if the exception does not support encoding.
                 sliceException.Encode(ref encoder);
             }
             else
@@ -112,6 +114,8 @@ public static class IncomingRequestExtensions
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
+    /// <exception cref="ArgumentException">Throw if <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</exception>
     public static ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
         SliceEncoding encoding,
