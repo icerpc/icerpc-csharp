@@ -575,8 +575,8 @@ response.DecodeReturnValueAsync(
     {encoding},
     sender,
     {return_value_decode_func},
-    {exception_decode_func},
-    {default_activator},
+    decodeException: {exception_decode_func},
+    defaultActivator: {default_activator},
     cancellationToken)
 ",
             encoding = operation.encoding.to_cs_encoding(),
