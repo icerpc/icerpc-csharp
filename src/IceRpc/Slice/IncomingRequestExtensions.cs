@@ -9,7 +9,7 @@ namespace IceRpc.Slice;
 /// Slice encoding.</summary>
 public static class IncomingRequestExtensions
 {
-    /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared idempotent,
+    /// <summary>The generated code calls this method to ensure that when an operation is not declared idempotent,
     /// the request is not marked idempotent. If the request is marked idempotent, it means the caller incorrectly
     /// believes this operation is idempotent.</summary>
     /// <param name="request">The request to check.</param>
@@ -76,7 +76,7 @@ public static class IncomingRequestExtensions
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
-            pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+            pipe.Writer.Complete();
             return pipe.Reader;
         }
     }
@@ -116,14 +116,23 @@ public static class IncomingRequestExtensions
         this IncomingRequest request,
         SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
-        CancellationToken cancellationToken = default) =>
-        request.DecodeValueAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (encoding == SliceEncoding.Slice1)
+        {
+            throw new ArgumentException(
+                $"{nameof(DecodeArgsAsync)} is not compatible with the Slice1 encoding",
+                nameof(encoding));
+        }
+
+        return request.DecodeValueAsync(
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             templateProxy: null,
             decodeFunc,
             activator: null,
             cancellationToken);
+    }
 
     /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
     /// <param name="request">The incoming request.</param>

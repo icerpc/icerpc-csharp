@@ -979,8 +979,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // We convert any exception into a dispatch exception if it's not already one.
                 if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
-                    // We don't expect a PayloadCompleteException since 'exception' is caught _before_ we
-                    // write the response, and the application should not throw a PayloadCompleteException.
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException => StatusCode.InvalidData,

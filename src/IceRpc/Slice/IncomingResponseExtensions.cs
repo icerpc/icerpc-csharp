@@ -32,33 +32,27 @@ public static class IncomingResponseExtensions
 
         IActivator? activator = feature.Activator ?? defaultActivator;
 
-        return response.StatusCode == StatusCode.Success ?
-            response.DecodeValueAsync(
+        return response.StatusCode switch
+        {
+            StatusCode.Success => response.DecodeValueAsync(
                 SliceEncoding.Slice1,
                 feature,
                 sender,
                 decodeReturnValue,
                 activator,
-                cancellationToken) :
-            ThrowExceptionAsync();
+                cancellationToken),
 
-        async ValueTask<T> ThrowExceptionAsync()
-        {
-            if (response.StatusCode > StatusCode.ApplicationError)
-            {
-                throw new DispatchException(response.StatusCode, response.ErrorMessage)
-                {
-                    ConvertToUnhandled = true
-                };
-            }
-            {
-                throw await response.DecodeSliceExceptionAsync(
-                    feature,
-                    activator,
-                    sender,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
+            StatusCode.ApplicationError => DecodeAndThrowExceptionAsync(),
+
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+        };
+
+        async ValueTask<T> DecodeAndThrowExceptionAsync() =>
+            throw await response.DecodeSliceExceptionAsync(
+                feature,
+                activator,
+                sender,
+                cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Decodes a response payload.</summary>
@@ -89,35 +83,28 @@ public static class IncomingResponseExtensions
 
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return response.StatusCode == StatusCode.Success ?
-            response.DecodeValueAsync(
+        return response.StatusCode switch
+        {
+            StatusCode.Success => response.DecodeValueAsync(
                 encoding,
                 feature,
                 sender,
                 decodeReturnValue,
                 activator: null,
-                cancellationToken) :
-            ThrowExceptionAsync();
+                cancellationToken),
 
-        async ValueTask<T> ThrowExceptionAsync()
-        {
-            if (response.StatusCode > StatusCode.ApplicationError || decodeException is null)
-            {
-                throw new DispatchException(response.StatusCode, response.ErrorMessage)
-                {
-                    ConvertToUnhandled = true
-                };
-            }
-            else
-            {
-                throw await response.DecodeSliceExceptionAsync(
+            StatusCode.ApplicationError when decodeException is not null => DecodeAndThrowExceptionAsync(),
+
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+        };
+
+        async ValueTask<T> DecodeAndThrowExceptionAsync() =>
+            throw await response.DecodeSliceExceptionAsync(
                     encoding,
                     feature,
                     sender,
                     decodeException,
                     cancellationToken).ConfigureAwait(false);
-            }
-        }
     }
 
     /// <summary>Verifies that a Slice1-encoded response payload carries no return value or only tagged return values.
@@ -138,27 +125,19 @@ public static class IncomingResponseExtensions
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return response.StatusCode == StatusCode.Success ?
-            response.DecodeVoidAsync(SliceEncoding.Slice1, feature, cancellationToken) : ThrowExceptionAsync();
-
-        async ValueTask ThrowExceptionAsync()
+        return response.StatusCode switch
         {
-            if (response.StatusCode > StatusCode.ApplicationError)
-            {
-                throw new DispatchException(response.StatusCode, response.ErrorMessage)
-                {
-                    ConvertToUnhandled = true
-                };
-            }
-            else
-            {
-                throw await response.DecodeSliceExceptionAsync(
-                    feature,
-                    feature.Activator ?? defaultActivator,
-                    sender,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
+            StatusCode.Success => response.DecodeVoidAsync(SliceEncoding.Slice1, feature, cancellationToken),
+            StatusCode.ApplicationError => DecodeAndThrowExceptionAsync(),
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+        };
+
+        async ValueTask DecodeAndThrowExceptionAsync() =>
+            throw await response.DecodeSliceExceptionAsync(
+                feature,
+                feature.Activator ?? defaultActivator,
+                sender,
+                cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
@@ -186,28 +165,20 @@ public static class IncomingResponseExtensions
 
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
-        return response.StatusCode == StatusCode.Success ?
-            response.DecodeVoidAsync(encoding, feature, cancellationToken) : ThrowExceptionAsync();
-
-        async ValueTask ThrowExceptionAsync()
+        return response.StatusCode switch
         {
-            if (response.StatusCode > StatusCode.ApplicationError || decodeException is null)
-            {
-                throw new DispatchException(response.StatusCode, response.ErrorMessage)
-                {
-                    ConvertToUnhandled = true
-                };
-            }
-            else
-            {
-                throw await response.DecodeSliceExceptionAsync(
-                    encoding,
-                    feature,
-                    sender,
-                    decodeException,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
+            StatusCode.Success => response.DecodeVoidAsync(encoding, feature, cancellationToken),
+            StatusCode.ApplicationError when decodeException is not null => DecodeAndThrowExceptionAsync(),
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+        };
+
+        async ValueTask DecodeAndThrowExceptionAsync() =>
+            throw await response.DecodeSliceExceptionAsync(
+                encoding,
+                feature,
+                sender,
+                decodeException,
+                cancellationToken).ConfigureAwait(false);
     }
 
     // Slice1 only
