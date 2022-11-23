@@ -86,7 +86,7 @@ public static class IncomingRequestExtensions
     /// <summary>Decodes a request payload into a list of arguments.</summary>
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
-    /// <param name="encoding">The encoding of the request payload.</param>
+    /// <param name="encoding">The encoding of the request's payload.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null. Used only
     /// when <paramref name="encoding" /> is <see cref="SliceEncoding.Slice1" />.</param>
