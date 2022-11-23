@@ -960,7 +960,14 @@ public sealed class ProtocolConnectionTests
         // Assert
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
+        // TODO: this will need to be fixed with the exception refactoring.
+        // The error we get is timing dependent. We can get ConnectRefused if the connection establishment request is
+        // queued after the listener disposal or TransportError if it's queued before (in this case ConnectAsync catches
+        // TransportException(TransportErrorCode.ConnectionAborted) and it's mapped to
+        // ConnectionErrorCode.TransportError)
+        Assert.That(
+            exception!.ErrorCode,
+            Is.EqualTo(ConnectionErrorCode.TransportError).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
         Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
     }
 

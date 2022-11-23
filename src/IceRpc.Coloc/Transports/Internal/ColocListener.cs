@@ -15,6 +15,15 @@ internal class ColocListener : IListener<IDuplexConnection>
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly EndPoint _networkAddress;
     private readonly PipeOptions _pipeOptions;
+
+    // The channel used by the client connection ConnectAsync method to queue a connection establishment request. A
+    // client connection establishment request is represented by:
+    // - a TaskCompletionSource which is completed by AcceptAsync when the connection is accepted. The server connection
+    //   pipe reader is set as the result. ClientColocConnection.ConnectAsync waits on the task completion source task.
+    // - the client connection pipe reader provided to the server connection when the server connection is created by
+    //   AcceptAsync.
+    // - the cancellation token from the caller of ClientColocConnection.ConnectAsync. The client cancellation token is
+    //   used by AcceptAsync to check if the connection establishment request has been canceled.
     private readonly Channel<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)> _channel;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
@@ -90,12 +99,6 @@ internal class ColocListener : IListener<IDuplexConnection>
         CancellationToken cancellationToken,
         [NotNullWhen(true)] out Task<PipeReader>? serverPipeReaderTask)
     {
-        if (_disposeCts.IsCancellationRequested)
-        {
-            // TODO: Why OperationAborted instead of ConnectionRefused?
-            throw new TransportException(TransportErrorCode.OperationAborted);
-        }
-
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (_channel.Writer.TryWrite((tcs, clientPipeReader, cancellationToken)))
         {
