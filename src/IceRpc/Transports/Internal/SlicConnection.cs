@@ -68,8 +68,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             Debug.Assert(exception.InnerException is not null);
 
-            // The cause of the channel completion, it's the exception given to ChannelWriter.Complete(Exception?
-            // exception).
+            // The exception given to to ChannelWriter.Complete(Exception? exception) is the InnerException.
             throw ExceptionUtil.Throw(exception.InnerException);
         }
     }
@@ -916,8 +915,8 @@ internal class SlicConnection : IMultiplexedConnection
                                 {
                                     Debug.Assert(exception.InnerException is not null);
 
-                                    // The cause of the channel completion, it's the exception given to
-                                    // ChannelWriter.Complete(Exception? exception).
+                                    // The exception given to to ChannelWriter.Complete(Exception? exception) is the
+                                    // InnerException.
                                     throw ExceptionUtil.Throw(exception.InnerException);
                                 }
                             }
