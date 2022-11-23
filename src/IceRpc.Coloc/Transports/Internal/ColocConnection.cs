@@ -30,7 +30,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
-        else if (_reader is null)
+        if (_reader is null)
         {
             throw new InvalidOperationException($"can't call {nameof(ReadAsync)} before {nameof(ConnectAsync)}");
         }
@@ -110,7 +110,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
-        else if (_reader is null)
+        if (_reader is null)
         {
             throw new InvalidOperationException($"can't call {nameof(ShutdownAsync)} before {nameof(ConnectAsync)}");
         }
@@ -136,7 +136,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
-        else if (_reader is null)
+        if (_reader is null)
         {
             throw new InvalidOperationException($"can't call {nameof(WriteAsync)} before {nameof(ConnectAsync)}");
         }
@@ -255,7 +255,7 @@ internal class ClientColocConnection : ColocConnection
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
-        else if (_reader is not null)
+        if (_reader is not null)
         {
             throw new InvalidOperationException($"can't call {nameof(ConnectAsync)} twice");
         }

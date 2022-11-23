@@ -64,7 +64,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             throw new ObjectDisposedException($"{typeof(SlicConnection)}");
         }
-        else if (_readFramesTask is null)
+        if (_readFramesTask is null)
         {
             throw new InvalidOperationException(
                 $"can't call {nameof(AcceptStreamAsync)} before {nameof(ConnectAsync)}");
@@ -89,7 +89,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             throw new ObjectDisposedException($"{typeof(SlicConnection)}");
         }
-        else if (_readFramesTask is not null)
+        if (_readFramesTask is not null)
         {
             throw new InvalidOperationException($"can't call {nameof(ConnectAsync)} twice");
         }
@@ -296,12 +296,12 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
-            else if (_readFramesTask is null)
+            if (_readFramesTask is null)
             {
                 throw new InvalidOperationException(
                     $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
             }
-            else if (_exception is not null)
+            if (_exception is not null)
             {
                 if (_exception.ErrorCode == TransportErrorCode.ConnectionAborted)
                 {
@@ -358,11 +358,11 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new InvalidOperationException(
                     $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
             }
-            else if (_disposeTask is not null)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
-            else if (_exception is not null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }
