@@ -20,8 +20,9 @@ public static class IncomingResponseExtensions
     /// <param name="decodeReturnValue">A function that decodes the return value.</param>
     /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
     /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null. Used only
-    /// when <paramref name="encoding" /> is <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
+    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
     /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
@@ -74,8 +75,9 @@ public static class IncomingResponseExtensions
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
     /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null. Used only
-    /// when <paramref name="encoding" /> is <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
+    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
     /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
@@ -165,10 +167,7 @@ public static class IncomingResponseExtensions
         {
             // The payload is empty, no need to decode it.
             // Note that a Slice2-encoded exception uses at least 1 byte for tags.
-            return new DispatchException(response.StatusCode, errorMessage)
-            {
-                ConvertToUnhandled = true
-            };
+            return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
         }
         else
         {
