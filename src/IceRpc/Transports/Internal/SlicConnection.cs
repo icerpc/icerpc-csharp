@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal;
 
@@ -30,7 +31,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal int ResumeWriterThreshold { get; }
 
-    private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();
+    private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
     private Task? _disposeTask;
@@ -57,8 +58,21 @@ internal class SlicConnection : IMultiplexedConnection
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
-        _acceptStreamQueue.DequeueAsync(cancellationToken);
+    public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _acceptStreamChannel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (ChannelClosedException exception)
+        {
+            Debug.Assert(exception.InnerException is not null);
+
+            // The cause of the channel completion, it's the exception given to ChannelWriter.Complete(Exception?
+            // exception).
+            throw ExceptionUtil.Throw(exception.InnerException);
+        }
+    }
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -242,7 +256,7 @@ internal class SlicConnection : IMultiplexedConnection
                     _duplexConnection.Dispose();
 
                     // Time for AcceptStreamAsync to return.
-                    _acceptStreamQueue.TryComplete(_exception);
+                    _acceptStreamChannel.Writer.TryComplete(_exception);
                 }
             },
             CancellationToken.None);
@@ -399,6 +413,12 @@ internal class SlicConnection : IMultiplexedConnection
             options.Pool,
             options.MinSegmentSize);
 
+        _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true
+            });
+
         Action? keepAliveAction = null;
         if (!IsServer)
         {
@@ -411,7 +431,7 @@ internal class SlicConnection : IMultiplexedConnection
             idleTimeout: _localIdleTimeout,
             options.Pool,
             options.MinSegmentSize,
-            connectionLostAction: exception => _acceptStreamQueue.TryComplete(exception),
+            connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception),
             keepAliveAction);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
@@ -886,7 +906,20 @@ internal class SlicConnection : IMultiplexedConnection
                             // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
                             if (readSize == dataSize)
                             {
-                                _acceptStreamQueue.Enqueue(stream);
+                                try
+                                {
+                                    await _acceptStreamChannel.Writer.WriteAsync(
+                                        stream,
+                                        cancellationToken).ConfigureAwait(false);
+                                }
+                                catch (ChannelClosedException exception)
+                                {
+                                    Debug.Assert(exception.InnerException is not null);
+
+                                    // The cause of the channel completion, it's the exception given to
+                                    // ChannelWriter.Complete(Exception? exception).
+                                    throw ExceptionUtil.Throw(exception.InnerException);
+                                }
                             }
                         }
                         catch
