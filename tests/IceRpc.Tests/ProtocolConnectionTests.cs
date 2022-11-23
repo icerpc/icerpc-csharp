@@ -352,14 +352,7 @@ public sealed class ProtocolConnectionTests
 
         async Task<long> WaitForShutdownCompleteAsync(IProtocolConnection connection)
         {
-            try
-            {
-                await connection.ShutdownComplete;
-            }
-            catch when (protocol == Protocol.Ice)
-            {
-                // TODO: with ice, the shutdown of the peer currently triggers an abort
-            }
+            await connection.ShutdownComplete;
             return Environment.TickCount64 - startTime;
         }
     }
@@ -858,7 +851,9 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(
+                protocol,
+                clientConnectionOptions: new ConnectionOptions { ConnectTimeout = TimeSpan.FromSeconds(1) })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
