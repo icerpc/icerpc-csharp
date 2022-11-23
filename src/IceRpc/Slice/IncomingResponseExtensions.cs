@@ -73,7 +73,7 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
-    /// when <paramref name="encoding" /> is nit<see cref="SliceEncoding.Slice1" />.</param>
+    /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null. Used only
     /// when <paramref name="encoding" /> is <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
