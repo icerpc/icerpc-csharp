@@ -154,7 +154,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyException("error message", ref decoder);
+        var value = new MyException(ref decoder, message: null);
 
         Assert.That(value.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
@@ -184,7 +184,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyExceptionWithOptionalMembers("error message", ref decoder);
+        var value = new MyExceptionWithOptionalMembers(ref decoder, "");
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value.I, Is.EqualTo(10));
@@ -222,7 +222,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyExceptionWithTaggedMembers("error message", ref decoder);
+        var value = new MyExceptionWithTaggedMembers(ref decoder, message: null);
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value.I, Is.EqualTo(10));

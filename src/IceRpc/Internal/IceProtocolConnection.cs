@@ -569,8 +569,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 SequencePosition consumed = buffer.GetPosition(headerSize);
 
-                return replyStatus == ReplyStatus.Ok ?
-                    (StatusCode.Success, null, consumed) :
+                return replyStatus == ReplyStatus.Ok ? (StatusCode.Success, null, consumed) :
+                    // Set the error message to the empty string; later on we convert this empty string to null decoding
+                    // the exception.
                     (StatusCode.ApplicationError, "", consumed);
             }
             else

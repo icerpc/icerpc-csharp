@@ -38,7 +38,7 @@ public sealed class OutgoingResponse : OutgoingFrame
         request.Response = this;
         StatusCode = statusCode > StatusCode.Success ? statusCode :
             throw new ArgumentException(
-                $"the status code for an exception must be greater than {nameof(StatusCode.Success)}",
+                $"The status code for an exception must be greater than {nameof(StatusCode.Success)}.",
                 nameof(statusCode));
         ErrorMessage = errorMessage;
     }
@@ -51,10 +51,10 @@ public sealed class OutgoingResponse : OutgoingFrame
     {
     }
 
-    // We include the inner exception type and message in the error message we sent with the response because we don't
-    // transmit this inner exception with the response.
+    // The error message includes the inner exception type and message because we don't transmit this inner exception
+    // with the response.
     private static string GetErrorMessage(DispatchException exception) =>
         exception.InnerException is Exception innerException ?
-            $"{exception.Message} caused by {innerException.GetType()} {{ Message = {innerException.Message} }}" :
+            $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
             exception.Message;
 }

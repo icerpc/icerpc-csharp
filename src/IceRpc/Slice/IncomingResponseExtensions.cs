@@ -143,6 +143,10 @@ public static class IncomingResponseExtensions
 
         DispatchException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
+            // If the error message is empty, we switch to null to get the default System exception message. This would
+            // typically happen when the Slice exception is received over ice.
+            string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
+
             if (encoding == SliceEncoding.Slice1)
             {
                 var decoder = new SliceDecoder(
@@ -154,43 +158,36 @@ public static class IncomingResponseExtensions
                     activator,
                     maxDepth: feature.MaxDepth);
 
-                SliceException exception = decoder.DecodeUserException();
+                SliceException exception = decoder.DecodeUserException(errorMessage);
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 return exception;
             }
+            else if (readResult.Buffer.IsEmpty)
+            {
+                // The payload is empty, no need to decode it.
+                // Note that a Slice2-encoded exception uses at least 1 byte for tags.
+                return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
+            }
             else
             {
-                // If the error message is empty, we use the default System error message. This would typically happen
-                // with a Slice2 exception received over ice.
-                string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
+                var decoder = new SliceDecoder(
+                    buffer,
+                    encoding,
+                    feature.ServiceProxyFactory,
+                    sender,
+                    maxCollectionAllocation: feature.MaxCollectionAllocation);
 
-                if (readResult.Buffer.IsEmpty)
+                try
                 {
-                    // The payload is empty, no need to decode it.
-                    // Note that a Slice2-encoded exception uses at least 1 byte for tags.
-                    return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
+                    SliceException sliceException = decodeException!(ref decoder, errorMessage);
+                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                    return sliceException;
                 }
-                else
+                catch (InvalidDataException exception)
                 {
-                    var decoder = new SliceDecoder(
-                        buffer,
-                        encoding,
-                        feature.ServiceProxyFactory,
-                        sender,
-                        maxCollectionAllocation: feature.MaxCollectionAllocation);
-
-                    try
-                    {
-                        SliceException sliceException = decodeException!(errorMessage, ref decoder);
-                        decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                        return sliceException;
-                    }
-                    catch (InvalidDataException exception)
-                    {
-                        throw new InvalidDataException(
-                            $"failed to decode Slice exception from response {{ Message = {errorMessage} }}",
-                            exception);
-                    }
+                    throw new InvalidDataException(
+                        $"Failed to decode Slice exception from response {{ Message = {errorMessage} }}.",
+                        exception);
                 }
             }
         }

@@ -47,11 +47,10 @@ public class DispatchException : Exception
         StatusCode = statusCode > StatusCode.Success ? statusCode :
             throw new ArgumentOutOfRangeException(
                 nameof(statusCode),
-                $"the status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Success)}");
+                $"The status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Success)}.");
         RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
     }
 
     private static string? GetDefaultMessage(StatusCode statusCode) =>
-        statusCode == StatusCode.ApplicationError ? null :
-            $"{nameof(DispatchException)} {{ StatusCode = {statusCode} }}";
+        statusCode == StatusCode.ApplicationError ? null : $"The dispatch failed with status code {statusCode}.";
 }
