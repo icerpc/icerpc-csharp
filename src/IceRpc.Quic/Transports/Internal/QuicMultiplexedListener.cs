@@ -29,10 +29,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
                 break;
             }
-            catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
+            catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
             {
                 // Listener was disposed while accept was in progress.
-                throw;
+                throw new TransportException(TransportErrorCode.OperationAborted, exception);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
