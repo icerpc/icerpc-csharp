@@ -13,4 +13,6 @@ exception MyExceptionWithOptionalMembers
 interface Slice2ExceptionOperations
 {
     opThrows();
+
+    opExceptionParam(\exception: MyExceptionWithOptionalMembers) -> MyExceptionWithOptionalMembers;
 }

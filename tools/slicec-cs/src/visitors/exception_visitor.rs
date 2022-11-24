@@ -88,7 +88,7 @@ impl Visitor for ExceptionVisitor<'_> {
             exception_class_builder.add_block(
                 FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string?", "message", None, None)
+                    .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("ref decoder")
                     .add_base_parameter("message")
                     .set_body(initialize_non_nullable_fields(&members, FieldType::Exception))
@@ -96,10 +96,13 @@ impl Visitor for ExceptionVisitor<'_> {
                     .build(),
             );
         } else {
+            // With Slice1, this constructor should be called only by the Activator and not directly by the application
+            // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
+            // generated code or the application. Hence no "never editor browsable" attribute.
             exception_class_builder.add_block(
                 FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string?", "message", None, None)
+                    .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("message")
                     .set_body(
                         EncodingBlockBuilder::new(

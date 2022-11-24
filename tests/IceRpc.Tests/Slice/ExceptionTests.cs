@@ -154,7 +154,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyException(ref decoder, message: null);
+        var value = new MyException(ref decoder);
 
         Assert.That(value.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
@@ -222,7 +222,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyExceptionWithTaggedMembers(ref decoder, message: null);
+        var value = new MyExceptionWithTaggedMembers(ref decoder);
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value.I, Is.EqualTo(10));
@@ -444,8 +444,13 @@ public sealed class ExceptionTests
 
         public Slice2ExceptionOperations(Exception exception) => _exception = exception;
 
-        public ValueTask OpThrowsAsync(IFeatureCollection features, CancellationToken cancellationToken = default) =>
+        public ValueTask OpThrowsAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
+
+        public ValueTask<MyExceptionWithOptionalMembers> OpExceptionParamAsync(
+            MyExceptionWithOptionalMembers exception,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(exception);
     }
 
     private class Slice1ExceptionOperations : Service, ISlice1ExceptionOperations
@@ -453,7 +458,7 @@ public sealed class ExceptionTests
         private readonly Exception _exception;
 
         public Slice1ExceptionOperations(Exception exception) => _exception = exception;
-        public ValueTask OpThrowsAsync(IFeatureCollection features, CancellationToken cancellationToken = default) =>
+        public ValueTask OpThrowsAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
     }
 }
