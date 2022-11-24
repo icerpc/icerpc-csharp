@@ -85,18 +85,20 @@ impl Visitor for ExceptionVisitor<'_> {
         }
 
         // The constructor used by the Activator. It needs to be public for the activator.
-        // TODO: add never_editor_browsable_attribute
         if !has_base && exception_def.supported_encodings().supports(&Encoding::Slice1) {
             exception_class_builder.add_block(
-                format!(
-                    "\
-public {}(ref SliceDecoder decoder)
-    : this(message: null, ref decoder)
-{{
-}}",
-                    exception_name
+                FunctionBuilder::new_with_base_constructor(
+                    "public",
+                    "",
+                    &exception_name,
+                    "this",
+                    FunctionType::BlockBody,
                 )
-                .into(),
+                .add_parameter("ref SliceDecoder", "decoder", None, None)
+                .add_base_parameter("message: null")
+                .add_base_parameter("ref decoder")
+                .add_never_editor_browsable_attribute()
+                .build(),
             );
         }
 

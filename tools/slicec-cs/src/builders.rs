@@ -233,6 +233,16 @@ pub struct FunctionBuilder {
 
 impl FunctionBuilder {
     pub fn new(access: &str, return_type: &str, name: &str, function_type: FunctionType) -> FunctionBuilder {
+        Self::new_with_base_constructor(access, return_type, name, "base", function_type)
+    }
+
+    pub fn new_with_base_constructor(
+        access: &str,
+        return_type: &str,
+        name: &str,
+        base_constructor: &str,
+        function_type: FunctionType,
+    ) -> FunctionBuilder {
         FunctionBuilder {
             parameters: Vec::new(),
             access: String::from(access),
@@ -241,7 +251,7 @@ impl FunctionBuilder {
             body: CodeBlock::default(),
             comments: Vec::new(),
             attributes: Vec::new(),
-            base_constructor: String::from("base"),
+            base_constructor: String::from(base_constructor),
             base_arguments: Vec::new(),
             function_type,
             inherit_doc: false,
