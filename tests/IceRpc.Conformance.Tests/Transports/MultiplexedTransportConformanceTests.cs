@@ -174,7 +174,7 @@ public abstract partial class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_and_dispose_the_listener_fails_with_operation_aborted()
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
