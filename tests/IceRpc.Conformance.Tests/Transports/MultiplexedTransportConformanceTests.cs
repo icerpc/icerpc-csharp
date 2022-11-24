@@ -173,6 +173,23 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
+    [Test]
+    public async Task Call_accept_and_dispose_the_listener_fails_with_operation_aborted()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Act
+        await listener.DisposeAsync();
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
     /// </param>
