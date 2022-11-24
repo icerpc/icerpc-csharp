@@ -218,12 +218,9 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        catch (IOException exception) when (SslStream is not null)
+        catch (IOException exception) when (exception.InnerException is SocketException socketException)
         {
-            // TODO: is it correct to use ConnectionAborted as fallback?
-            throw exception.InnerException is SocketException socketException ?
-                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+            throw new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception);
         }
         catch (SocketException exception)
         {
