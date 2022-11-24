@@ -592,8 +592,7 @@ fn exception_decode_func(operation: &Operation) -> String {
     match &operation.throws {
         Throws::Specific(exception) if operation.encoding != Encoding::Slice1 => {
             format!(
-                "\
-                (string? message, ref SliceDecoder decoder) => new {}(message, ref decoder)",
+                "(string? message, ref SliceDecoder decoder) => new {}(message, ref decoder)",
                 exception.escape_scoped_identifier(&operation.namespace())
             )
         }
