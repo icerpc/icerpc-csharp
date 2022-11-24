@@ -27,7 +27,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly SemaphoreSlim? _dispatchSemaphore;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
-    private bool _isDispatchesAndInvocationsReadOnly;
+    private bool _isAcceptingDispatchesAndInvocations;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
     // was accepted.
@@ -82,7 +82,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                _isDispatchesAndInvocationsReadOnly = true; // don't accept new dispatches or invocations.
+                _isAcceptingDispatchesAndInvocations = true; // don't accept new dispatches or invocations.
                 if (_streamCount == 0)
                 {
                     _streamsClosed.TrySetResult();
@@ -100,9 +100,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             // If idle, don't accept new dispatches or invocations and close the connection.
-            if (!_isDispatchesAndInvocationsReadOnly && _streamCount == 0)
+            if (!_isAcceptingDispatchesAndInvocations && _streamCount == 0)
             {
-                _isDispatchesAndInvocationsReadOnly = true;
+                _isAcceptingDispatchesAndInvocations = true;
                 ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
@@ -215,7 +215,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         CancellationToken cancellationToken = default;
                         lock (_mutex)
                         {
-                            if (_isDispatchesAndInvocationsReadOnly)
+                            if (_isAcceptingDispatchesAndInvocations)
                             {
                                 done = true;
                             }
@@ -299,7 +299,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     {
                                         lock (_mutex)
                                         {
-                                            if (--_dispatchCount == 0 && _isDispatchesAndInvocationsReadOnly)
+                                            if (--_dispatchCount == 0 && _isAcceptingDispatchesAndInvocations)
                                             {
                                                 _ = _dispatchesCompleted.TrySetResult();
                                             }
@@ -409,10 +409,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             lock (_mutex)
             {
-                if (_isDispatchesAndInvocationsReadOnly)
+                if (_isAcceptingDispatchesAndInvocations)
                 {
-                    // Don't process the invocation if the connection is in the process of shutting down or it's
-                    // already closed.
+                    // Don't process the invocation if the connection is in the process of shutting down or it's already
+                    // closed.
                     Debug.Assert(ConnectionClosedException is not null);
                     invocationCts.Dispose();
                     throw ConnectionClosedException;
@@ -468,7 +468,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                if (!_isDispatchesAndInvocationsReadOnly)
+                if (!_isAcceptingDispatchesAndInvocations)
                 {
                     // We received a response, it's no longer a pending invocation.
                     _ = _pendingInvocations.Remove(stream);
@@ -570,7 +570,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
         {
-            _isDispatchesAndInvocationsReadOnly = true; // don't accept new dispatches or invocations.
+            _isAcceptingDispatchesAndInvocations = true; // don't accept new dispatches or invocations.
             if (_streamCount == 0)
             {
                 _streamsClosed.TrySetResult();
@@ -1173,14 +1173,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && !_isDispatchesAndInvocationsReadOnly)
+            if (!stream.IsRemote && !_isAcceptingDispatchesAndInvocations)
             {
                 _ = _pendingInvocations.Remove(stream);
             }
 
             if (--_streamCount == 0)
             {
-                if (_isDispatchesAndInvocationsReadOnly)
+                if (_isAcceptingDispatchesAndInvocations)
                 {
                     _streamsClosed.TrySetResult();
                 }
