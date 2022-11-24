@@ -50,7 +50,7 @@ public class SlicTransportTests
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act/Assert
         Assert.That(async () => await sut.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
