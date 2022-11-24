@@ -47,7 +47,14 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <param name="request">The incoming request.</param>
     /// <param name="dispatchException">The dispatchException.</param>
     public OutgoingResponse(IncomingRequest request, DispatchException dispatchException)
-        : this(request, dispatchException.StatusCode, dispatchException.Message)
+        : this(request, dispatchException.StatusCode, GetErrorMessage(dispatchException))
     {
     }
+
+    // We include the inner exception type and message in the error message we sent with the response because we don't
+    // transmit this inner exception with the response.
+    private static string GetErrorMessage(DispatchException exception) =>
+        exception.InnerException is Exception innerException ?
+            $"{exception.Message} caused by {innerException.GetType()} {{ Message = {innerException.Message} }}" :
+            exception.Message;
 }

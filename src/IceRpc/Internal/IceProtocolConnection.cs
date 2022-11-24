@@ -1040,18 +1040,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     // If we catch an exception, we return a system exception. We also convert Slice exceptions
                     // (with StatusCode.ApplicationError) into UnhandledException here.
+
                     if (exception is not DispatchException dispatchException ||
                         dispatchException.ConvertToUnhandled ||
                         dispatchException.StatusCode == StatusCode.ApplicationError)
                     {
-                        StatusCode statusCode = exception switch
-                        {
-                            InvalidDataException _ => StatusCode.InvalidData,
-                            _ => StatusCode.UnhandledException
-                        };
-
-                        // We pass null for message to get the message computed by DispatchException.Message.
-                        dispatchException = new DispatchException(statusCode, message: null, exception);
+                        // We want the default error message for this new exception.
+                        dispatchException =
+                            new DispatchException(StatusCode.UnhandledException, message: null, exception);
                     }
 
                     response = new OutgoingResponse(request, dispatchException);
@@ -1095,7 +1091,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                                 StatusCode.UnhandledException,
                                 message: null,
                                 exception);
-                            response = new OutgoingResponse(request, dispatchException); // replace response in request
+
+                            response = new OutgoingResponse(request, dispatchException);
                         }
                     }
                     // else payload remains empty because the payload of a dispatch exception (if any) cannot be sent
