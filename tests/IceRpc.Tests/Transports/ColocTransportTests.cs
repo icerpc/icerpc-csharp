@@ -77,4 +77,88 @@ public class ColocTransportTests
             connection.Dispose();
         }
     }
+
+    [Test]
+    public async Task Connect_called_twice_throws_invalid_operation_exception()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        var serverConnectionTask = listener.AcceptAsync(default);
+        await clientConnection.ConnectAsync(default);
+        using IDuplexConnection serverConnection = (await serverConnectionTask).Connection;
+
+        // Assert
+        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.InvalidOperationException);
+    }
+
+    [Test]
+    public async Task Read_before_connect_throws_invalid_operation_exception()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        // Assert
+        Assert.That(
+            async () => await clientConnection.ReadAsync(new byte[1], default),
+            Throws.InvalidOperationException);
+    }
+
+    [Test]
+    public async Task Shutdown_before_connect_throws_invalid_operation_exception()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        // Assert
+        Assert.That(async () => await clientConnection.ShutdownAsync(default), Throws.InvalidOperationException);
+    }
+
+    [Test]
+    public async Task Write_before_connect_throws_invalid_operation_exception()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        // Assert
+        Assert.That(
+            async () => await clientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default),
+            Throws.InvalidOperationException);
+    }
 }
