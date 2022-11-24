@@ -979,8 +979,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // We convert any exception into a dispatch exception if it's not already one.
                 if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                 {
-                    // We don't expect a PayloadCompleteException since 'exception' is caught _before_ we
-                    // write the response, and the application should not throw a PayloadCompleteException.
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException => StatusCode.InvalidData,
@@ -992,6 +990,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     dispatchException = new DispatchException(statusCode, message: null, exception);
                 }
 
+                // If the exception in question is derived from DispatchException (for example a SliceException),
+                // we encode this exception as a plain DispatchException with just a status code and a message.
+                // The payload of response below is always empty.
                 response = new OutgoingResponse(request, dispatchException);
 
                 // Encode the retry policy into the fields of the new response.

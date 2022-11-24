@@ -203,7 +203,6 @@ public class StreamTests
         // Act
         IAsyncEnumerable<string> decoded = pipe.Reader.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            defaultActivator: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert
@@ -235,7 +234,6 @@ public class StreamTests
         // Act
         IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
             SliceEncoding.Slice2,
-            defaultActivator: null,
             (ref SliceDecoder decoder) => throw new InvalidDataException("invalid data"));
 
         // Assert

@@ -69,7 +69,8 @@ internal class ActivatorFactory
 
                     foreach (Type type in assembly.GetExportedTypes())
                     {
-                        if (type.GetSliceTypeId() is string typeId && !type.IsInterface)
+                        // We're only interested in generated Slice classes and exceptions.
+                        if (type.GetSliceTypeId() is string typeId && type.IsClass)
                         {
                             var lazy = new Lazy<ActivateObject>(() => CreateActivateObject(type));
 

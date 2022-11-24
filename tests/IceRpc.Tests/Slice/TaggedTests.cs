@@ -282,10 +282,7 @@ public class TaggedTests
             encoder.EncodeTagged(5, e, (ref SliceEncoder encoder, string value) => encoder.EncodeString(e));
         }
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(
-            buffer.WrittenMemory,
-            SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(MyStructWithTaggedMembers).Assembly));
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var decoded = new MyStructWithTaggedMembers(ref decoder);
         Assert.That(decoded.A, Is.EqualTo(expected.A));
@@ -427,10 +424,8 @@ public class TaggedTests
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(
-            buffer.WrittenMemory,
-            SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(MyStructWithTaggedMembers).Assembly));
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
         Assert.That(
             decoder.DecodeTagged(
                 1,

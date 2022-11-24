@@ -15,110 +15,116 @@ public static class IncomingResponseExtensions
     /// <typeparam name="T">The type of the return value.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload.</param>
+    /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
-    /// <param name="decodeFunc">The decode function for the return value.</param>
+    /// <param name="decodeReturnValue">A function that decodes the return value.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
+    /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
+    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The return value.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
+    /// <see cref="StatusCode.ApplicationError" />. When both <paramref name="decodeException" /> is null and
+    /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />, it is also thrown for status code
+    /// <see cref="StatusCode.ApplicationError" />.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
         ServiceProxy sender,
-        IActivator? defaultActivator,
-        DecodeFunc<T> decodeFunc,
+        DecodeFunc<T> decodeReturnValue,
+        DecodeExceptionFunc? decodeException = null,
+        IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
-
         IActivator? activator = feature.Activator ?? defaultActivator;
 
-        return response.StatusCode == StatusCode.Success ?
-            response.DecodeValueAsync(
+        return response.StatusCode switch
+        {
+            StatusCode.Success => response.DecodeValueAsync(
                 encoding,
                 feature,
-                activator,
                 sender,
-                decodeFunc,
-                cancellationToken) :
-            ThrowExceptionAsync();
+                decodeReturnValue,
+                activator,
+                cancellationToken),
 
-        async ValueTask<T> ThrowExceptionAsync()
-        {
-            if (response.StatusCode > StatusCode.Failure)
-            {
-                throw new DispatchException(response.StatusCode, response.ErrorMessage)
-                {
-                    ConvertToUnhandled = true
-                };
-            }
-            else
-            {
-                throw await response.DecodeRemoteExceptionAsync(
-                    request,
-                    encoding,
-                    feature,
-                    activator,
-                    sender,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
+            StatusCode.ApplicationError when decodeException is not null || encoding == SliceEncoding.Slice1 =>
+                DecodeAndThrowExceptionAsync(),
+
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+        };
+
+        async ValueTask<T> DecodeAndThrowExceptionAsync() =>
+            throw await response.DecodeSliceExceptionAsync(
+                encoding,
+                feature,
+                sender,
+                decodeException,
+                activator,
+                cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload.</param>
+    /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice sliceFeature is null.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
+    /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
+    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
+    /// <see cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
+    /// <see cref="StatusCode.ApplicationError" />. When both <paramref name="decodeException" /> is null and
+    /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />, it is also thrown for status code
+    /// <see cref="StatusCode.ApplicationError" />.</exception>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
         ServiceProxy sender,
+        DecodeExceptionFunc? decodeException = null,
         IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
     {
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+        IActivator? activator = defaultActivator ?? feature.Activator;
 
-        return response.StatusCode == StatusCode.Success ?
-            response.DecodeVoidAsync(encoding, feature, cancellationToken) : ThrowExceptionAsync();
-
-        async ValueTask ThrowExceptionAsync()
+        return response.StatusCode switch
         {
-            if (response.StatusCode > StatusCode.Failure)
-            {
-                throw new DispatchException(response.StatusCode, response.ErrorMessage)
-                {
-                    ConvertToUnhandled = true
-                };
-            }
-            else
-            {
-                throw await response.DecodeRemoteExceptionAsync(
-                    request,
-                    encoding,
-                    feature,
-                    feature.Activator ?? defaultActivator,
-                    sender,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
+            StatusCode.Success => response.DecodeVoidAsync(encoding, feature, cancellationToken),
+            StatusCode.ApplicationError when decodeException is not null || encoding == SliceEncoding.Slice1 =>
+                DecodeAndThrowExceptionAsync(),
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+        };
+
+        async ValueTask DecodeAndThrowExceptionAsync() =>
+            throw await response.DecodeSliceExceptionAsync(
+                encoding,
+                feature,
+                sender,
+                decodeException,
+                activator,
+                cancellationToken).ConfigureAwait(false);
     }
 
-    private static async ValueTask<RemoteException> DecodeRemoteExceptionAsync(
+    private static async ValueTask<DispatchException> DecodeSliceExceptionAsync(
         this IncomingResponse response,
-        OutgoingRequest request,
         SliceEncoding encoding,
         ISliceFeature feature,
-        IActivator? activator,
         ServiceProxy sender,
+        DecodeExceptionFunc? decodeException,
+        IActivator? activator,
         CancellationToken cancellationToken)
     {
-        Debug.Assert(response.StatusCode == StatusCode.Failure);
+        Debug.Assert(response.StatusCode == StatusCode.ApplicationError);
+        Debug.Assert(encoding == SliceEncoding.Slice1 || decodeException is not null);
 
         ReadResult readResult = await response.Payload.ReadSegmentAsync(
             encoding,
@@ -131,38 +137,62 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
         }
 
-        RemoteException result = Decode(readResult.Buffer);
-        result.Origin = request;
+        DispatchException exception = DecodeBuffer(readResult.Buffer);
         response.Payload.AdvanceTo(readResult.Buffer.End);
-        return result;
+        return exception;
 
-        RemoteException Decode(ReadOnlySequence<byte> buffer)
+        DispatchException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            var decoder = new SliceDecoder(
-                buffer,
-                encoding,
-                activator,
-                feature.ServiceProxyFactory,
-                sender,
-                maxCollectionAllocation: feature.MaxCollectionAllocation,
-                maxDepth: feature.MaxDepth);
-
-            RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
-                decoder.DecodeUserException() :
-                decoder.DecodeTrait(CreateUnknownException);
-
-            if (remoteException is not UnknownException)
+            if (encoding == SliceEncoding.Slice1)
             {
+                var decoder = new SliceDecoder(
+                    buffer,
+                    encoding,
+                    feature.ServiceProxyFactory,
+                    sender,
+                    maxCollectionAllocation: feature.MaxCollectionAllocation,
+                    activator,
+                    maxDepth: feature.MaxDepth);
+
+                SliceException exception = decoder.DecodeUserException();
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                return exception;
             }
-            // else, we did not decode the full exception from the buffer
+            else
+            {
+                // If the error message is empty, we use the default System error message. This would typically happen
+                // with a Slice2 exception received over ice.
+                string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
 
-            return remoteException;
+                if (readResult.Buffer.IsEmpty)
+                {
+                    // The payload is empty, no need to decode it.
+                    // Note that a Slice2-encoded exception uses at least 1 byte for tags.
+                    return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
+                }
+                else
+                {
+                    var decoder = new SliceDecoder(
+                        buffer,
+                        encoding,
+                        feature.ServiceProxyFactory,
+                        sender,
+                        maxCollectionAllocation: feature.MaxCollectionAllocation);
 
-            // If we can't decode this exception, we return an UnknownException with the undecodable exception's
-            // type identifier and message.
-            static RemoteException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
-                new UnknownException(typeId, decoder.DecodeString());
+                    try
+                    {
+                        SliceException sliceException = decodeException!(errorMessage, ref decoder);
+                        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                        return sliceException;
+                    }
+                    catch (InvalidDataException exception)
+                    {
+                        throw new InvalidDataException(
+                            $"failed to decode Slice exception from response {{ Message = {errorMessage} }}",
+                            exception);
+                    }
+                }
+            }
         }
     }
 }
