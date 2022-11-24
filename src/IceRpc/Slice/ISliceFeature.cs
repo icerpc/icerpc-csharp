@@ -5,7 +5,7 @@ namespace IceRpc.Slice;
 /// <summary>A feature to customize the encoding and decoding of request and response payloads.</summary>
 public interface ISliceFeature
 {
-    /// <summary>Gets the activator to use when decoding Slice classes, exceptions, and traits.</summary>
+    /// <summary>Gets the activator to use when decoding Slice1-encoded classes and exceptions.</summary>
     /// <value>The activator. When null, the decoding of a request or response payload uses the activator injected by
     /// the Slice generated code.</value>
     IActivator? Activator { get; }
@@ -17,7 +17,7 @@ public interface ISliceFeature
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     int MaxCollectionAllocation { get; }
 
-    /// <summary>Gets the maximum depth when decoding a type recursively.</summary>
+    /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
     int MaxDepth { get; }
 
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the

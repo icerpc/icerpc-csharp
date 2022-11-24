@@ -16,8 +16,8 @@ interface ProtocolBridgingTest
     // Oneway operation
     [oneway] opOneway(x: int32);
 
-    // Operation that throws remote exception
-    opException();
+    // Operation that throws an exception
+    opException() throws ProtocolBridgingException;
 
     // Operation that throws ServiceNotFoundException (one of the special ice system exceptions)
     opServiceNotFoundException();

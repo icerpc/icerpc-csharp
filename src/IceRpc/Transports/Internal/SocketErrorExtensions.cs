@@ -10,14 +10,14 @@ internal static class SocketExceptionExtensions
     internal static TransportErrorCode ToTransportErrorCode(this SocketError socketError) =>
         socketError switch
         {
+            SocketError.AddressAlreadyInUse => TransportErrorCode.AddressInUse,
+            SocketError.ConnectionAborted => TransportErrorCode.ConnectionAborted,
             // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer closing
             // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty
             // while ECONNRESET is returned if the send buffer is not empty.
-            SocketError.ConnectionReset => TransportErrorCode.ConnectionReset,
-            SocketError.Shutdown => TransportErrorCode.ConnectionReset,
-            SocketError.NotConnected => TransportErrorCode.ConnectionReset,
+            SocketError.ConnectionReset => TransportErrorCode.ConnectionAborted,
+            SocketError.Shutdown => TransportErrorCode.ConnectionAborted,
             SocketError.ConnectionRefused => TransportErrorCode.ConnectionRefused,
-            SocketError.AddressAlreadyInUse => TransportErrorCode.AddressInUse,
             SocketError.OperationAborted => TransportErrorCode.OperationAborted,
             _ => TransportErrorCode.Unspecified
         };

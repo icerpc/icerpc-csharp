@@ -44,15 +44,17 @@ impl Visitor for DispatchVisitor<'_> {
             .add_block(request_class(interface_def))
             .add_block(response_class(interface_def));
 
-        interface_builder.add_block(
-            format!(
-                "\
+        if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+            interface_builder.add_block(
+                format!(
+                    "\
 private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({}).Assembly);",
-                interface_name
-            )
-            .into(),
-        );
+                    interface_name
+                )
+                .into(),
+            );
+        }
 
         for operation in interface_def.operations() {
             if operation.has_encoded_result() {
@@ -249,8 +251,8 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
                 "\
 var {args} = await request.DecodeArgsAsync(
     {encoding},
-    _defaultActivator,
     {decode_func},
+    defaultActivator: null,
     cancellationToken).ConfigureAwait(false);",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
                 encoding = operation.encoding.to_cs_encoding(),
@@ -282,12 +284,13 @@ var {stream_parameter_name} = {decode_operation_stream}
             "\
 request.DecodeArgsAsync(
     {encoding},
-    _defaultActivator,
     {decode_func},
+    defaultActivator: {default_activator},
     cancellationToken)
 ",
             encoding = operation.encoding.to_cs_encoding(),
-            decode_func = request_decode_func(operation).indent()
+            decode_func = request_decode_func(operation).indent(),
+            default_activator = default_activator(operation.encoding)
         );
     }
     code
@@ -478,21 +481,38 @@ return new IceRpc.OutgoingResponse(request)
         }
     }
 
-    format!(
-        "
+    if let Throws::None = &operation.throws {
+        format!(
+            "
+{check_and_decode}
+{dispatch_and_return}",
+            check_and_decode = check_and_decode,
+            dispatch_and_return = dispatch_and_return,
+        )
+    } else {
+        let exception_type = match &operation.throws {
+            Throws::Specific(exception) => exception.escape_scoped_identifier(&operation.namespace()),
+            Throws::AnyException => "SliceException".to_owned(),
+            Throws::None => unreachable!(),
+        };
+
+        format!(
+            "
 {check_and_decode}
 try
 {{
     {dispatch_and_return}
 }}
-catch (RemoteException remoteException) when (!remoteException.ConvertToUnhandled)
+catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled)
 {{
-    return request.CreateFailureResponse(remoteException, {encoding});
+    return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
-        check_and_decode = check_and_decode,
-        dispatch_and_return = dispatch_and_return.indent(),
-        encoding = encoding
-    )
+            check_and_decode = check_and_decode,
+            dispatch_and_return = dispatch_and_return.indent(),
+            exception_type = exception_type,
+            encoding = encoding
+        )
+    }
     .into()
 }
 

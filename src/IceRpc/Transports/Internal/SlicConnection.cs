@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal;
 
@@ -30,7 +31,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal int ResumeWriterThreshold { get; }
 
-    private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();
+    private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
     private Task? _disposeTask;
@@ -57,8 +58,30 @@ internal class SlicConnection : IMultiplexedConnection
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
-        _acceptStreamQueue.DequeueAsync(cancellationToken);
+    public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
+    {
+        if (_disposeTask is not null)
+        {
+            throw new ObjectDisposedException($"{typeof(SlicConnection)}");
+        }
+        if (_readFramesTask is null)
+        {
+            throw new InvalidOperationException(
+                $"can't call {nameof(AcceptStreamAsync)} before {nameof(ConnectAsync)}");
+        }
+
+        try
+        {
+            return await _acceptStreamChannel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (ChannelClosedException exception)
+        {
+            Debug.Assert(exception.InnerException is not null);
+
+            // The exception given to to ChannelWriter.Complete(Exception? exception) is the InnerException.
+            throw ExceptionUtil.Throw(exception.InnerException);
+        }
+    }
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -66,10 +89,12 @@ internal class SlicConnection : IMultiplexedConnection
         {
             throw new ObjectDisposedException($"{typeof(SlicConnection)}");
         }
-        else if (_exception is not null)
+        if (_readFramesTask is not null)
         {
-            throw _exception;
+            throw new InvalidOperationException($"can't call {nameof(ConnectAsync)} twice");
         }
+
+        Debug.Assert(_exception is null);
 
         // Connect the duplex connection.
         TransportConnectionInformation information = await _duplexConnection.ConnectAsync(
@@ -242,7 +267,7 @@ internal class SlicConnection : IMultiplexedConnection
                     _duplexConnection.Dispose();
 
                     // Time for AcceptStreamAsync to return.
-                    _acceptStreamQueue.TryComplete(_exception);
+                    _acceptStreamChannel.Writer.TryComplete(_exception);
                 }
             },
             CancellationToken.None);
@@ -271,13 +296,14 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
-            else if (_readFramesTask is null)
+            if (_readFramesTask is null)
             {
-                throw new InvalidOperationException("ConnectAsync must be called first");
+                throw new InvalidOperationException(
+                    $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
             }
-            else if (_exception is not null)
+            if (_exception is not null)
             {
-                if (_exception.ErrorCode == TransportErrorCode.ConnectionClosed)
+                if (_exception.ErrorCode == TransportErrorCode.ConnectionAborted)
                 {
                     // The peer already closed the connection, there's nothing to close so just return.
                     return;
@@ -299,7 +325,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
-            var exception = new TransportException(TransportErrorCode.ConnectionClosed, applicationErrorCode);
+            var exception = new TransportException(TransportErrorCode.ConnectionAborted, applicationErrorCode);
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
@@ -329,13 +355,14 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_readFramesTask is null)
             {
-                throw new InvalidOperationException("the Slic connection is not connected");
+                throw new InvalidOperationException(
+                    $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
             }
-            else if (_disposeTask is not null)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
-            else if (_exception is not null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }
@@ -355,7 +382,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            await CloseAsyncCore(new TransportException(TransportErrorCode.ConnectionDisposed)).ConfigureAwait(false);
+            await CloseAsyncCore(new TransportException(TransportErrorCode.OperationAborted)).ConfigureAwait(false);
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -399,6 +426,12 @@ internal class SlicConnection : IMultiplexedConnection
             options.Pool,
             options.MinSegmentSize);
 
+        _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true
+            });
+
         Action? keepAliveAction = null;
         if (!IsServer)
         {
@@ -411,7 +444,7 @@ internal class SlicConnection : IMultiplexedConnection
             idleTimeout: _localIdleTimeout,
             options.Pool,
             options.MinSegmentSize,
-            connectionLostAction: exception => _acceptStreamQueue.TryComplete(exception),
+            connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception),
             keepAliveAction);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
@@ -583,7 +616,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
-                throw new TransportException(TransportErrorCode.ConnectionDisposed);
+                throw new TransportException(TransportErrorCode.OperationAborted);
             }
             finally
             {
@@ -886,7 +919,20 @@ internal class SlicConnection : IMultiplexedConnection
                             // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
                             if (readSize == dataSize)
                             {
-                                _acceptStreamQueue.Enqueue(stream);
+                                try
+                                {
+                                    await _acceptStreamChannel.Writer.WriteAsync(
+                                        stream,
+                                        cancellationToken).ConfigureAwait(false);
+                                }
+                                catch (ChannelClosedException exception)
+                                {
+                                    Debug.Assert(exception.InnerException is not null);
+
+                                    // The exception given to to ChannelWriter.Complete(Exception? exception) is the
+                                    // InnerException.
+                                    throw ExceptionUtil.Throw(exception.InnerException);
+                                }
                             }
                         }
                         catch
@@ -1028,7 +1074,7 @@ internal class SlicConnection : IMultiplexedConnection
         async Task PerformCloseAsync(ulong errorCode)
         {
             // TODO: better exception.
-            var exception = new TransportException(TransportErrorCode.ConnectionClosed, errorCode);
+            var exception = new TransportException(TransportErrorCode.ConnectionAborted, errorCode);
             if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
                 if (IsServer)

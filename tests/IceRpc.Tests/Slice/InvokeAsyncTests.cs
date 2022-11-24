@@ -29,10 +29,14 @@ public class InvokeAsyncTests
         // Act
         await sut.InvokeAsync(
             "",
-            SliceEncoding.Slice2,
             payload: requestPayload,
             payloadContinuation: null,
-            defaultActivator: null,
+            responseDecodeFunc: (response, request, sender, cancellationToken) =>
+                response.DecodeVoidReturnValueAsync(
+                    request,
+                    SliceEncoding.Slice2,
+                    sut,
+                    cancellationToken: cancellationToken),
             features: null);
 
         // Assert
@@ -60,10 +64,14 @@ public class InvokeAsyncTests
         Assert.That(
             async () => await sut.InvokeAsync(
                 "",
-                SliceEncoding.Slice2,
                 payload: requestPayload,
                 payloadContinuation: requestPayloadContinuation,
-                defaultActivator: null,
+                responseDecodeFunc: (response, request, sender, cancellationToken) =>
+                    response.DecodeVoidReturnValueAsync(
+                        request,
+                        SliceEncoding.Slice2,
+                        sut,
+                        cancellationToken: cancellationToken),
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
 

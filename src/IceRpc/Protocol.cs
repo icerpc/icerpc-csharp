@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
@@ -30,6 +29,11 @@ public class Protocol
 
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
+
+    /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
+    /// <returns><see langword="true" /> if the protocol supports payload continuations; otherwise,
+    /// <see langword="false" />.</returns>
+    public bool SupportsPayloadContinuation { get; }
 
     /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
     internal byte ByteValue { get; }
@@ -87,12 +91,14 @@ public class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
+        bool supportsPayloadContinuation,
         byte byteValue)
     {
         Name = name;
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
+        SupportsPayloadContinuation = supportsPayloadContinuation;
         ByteValue = byteValue;
     }
 }

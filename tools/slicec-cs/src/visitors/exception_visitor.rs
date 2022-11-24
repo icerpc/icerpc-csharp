@@ -42,7 +42,7 @@ impl Visitor for ExceptionVisitor<'_> {
         if let Some(base) = exception_def.base_exception() {
             exception_class_builder.add_base(base.escape_scoped_identifier(namespace));
         } else {
-            exception_class_builder.add_base("IceRpc.Slice.RemoteException".to_owned());
+            exception_class_builder.add_base("SliceException".to_owned());
         }
 
         exception_class_builder.add_block(
@@ -54,14 +54,16 @@ impl Visitor for ExceptionVisitor<'_> {
                 .into(),
         );
 
-        exception_class_builder.add_block(
-            format!(
-                "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
-                if has_base { " new " } else { " " },
-                exception_name
-            )
-            .into(),
-        );
+        if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+            exception_class_builder.add_block(
+                format!(
+                    "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
+                    if has_base { " new " } else { " " },
+                    exception_name
+                )
+                .into(),
+            );
+        }
 
         exception_class_builder
             .add_block(one_shot_constructor(exception_def, false))
@@ -82,37 +84,67 @@ impl Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        exception_class_builder.add_block(
-            FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                .add_parameter("ref SliceDecoder", "decoder", None, None)
-                .add_base_parameter("ref decoder")
-                .set_body(
-                    EncodingBlockBuilder::new(
-                        "decoder.Encoding",
-                        &exception_name,
-                        exception_def.supported_encodings(),
-                        false,
-                    )
-                    .add_encoding_block(Encoding::Slice1, || {
-                        initialize_non_nullable_fields(&members, FieldType::Exception)
-                    })
-                    .add_encoding_block(Encoding::Slice2, || {
-                        format!(
-                            "\
-{}
-decoder.SkipTagged(useTagEndMarker: true);",
-                            decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2,)
-                        )
-                        .into()
-                    })
-                    .build(),
+        // The constructor used by the Activator. It needs to be public for the activator.
+        // TODO: add never_editor_browsable_attribute
+        if !has_base && exception_def.supported_encodings().supports(&Encoding::Slice1) {
+            exception_class_builder.add_block(
+                format!(
+                    "\
+public {}(ref SliceDecoder decoder)
+    : this(message: null, ref decoder)
+{{
+}}",
+                    exception_name
                 )
-                .add_never_editor_browsable_attribute()
-                .build(),
-        );
+                .into(),
+            );
+        }
 
-        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
-            exception_class_builder.add_block(encode_trait_method());
+        if has_base {
+            exception_class_builder.add_block(
+                FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+                    .add_parameter("ref SliceDecoder", "decoder", None, None)
+                    .add_base_parameter("ref decoder")
+                    .set_body(initialize_non_nullable_fields(&members, FieldType::Exception))
+                    .add_never_editor_browsable_attribute()
+                    .build(),
+            );
+        } else {
+            exception_class_builder.add_block(
+                FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
+                    .add_parameter("string?", "message", None, None)
+                    .add_parameter("ref SliceDecoder", "decoder", None, None)
+                    .add_base_parameter("message")
+                    .set_body(
+                        EncodingBlockBuilder::new(
+                            "decoder.Encoding",
+                            &exception_name,
+                            exception_def.supported_encodings(),
+                            false,
+                        )
+                        .add_encoding_block(Encoding::Slice1, || {
+                            format!(
+                                "\
+{}
+ConvertToUnhandled = true;",
+                                initialize_non_nullable_fields(&members, FieldType::Exception)
+                            )
+                            .into()
+                        })
+                        .add_encoding_block(Encoding::Slice2, || {
+                            format!(
+                                "\
+{}
+decoder.SkipTagged(useTagEndMarker: true);
+ConvertToUnhandled = true;",
+                                decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2,)
+                            )
+                            .into()
+                        })
+                        .build(),
+                    )
+                    .build(),
+            );
         }
 
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
@@ -146,19 +178,6 @@ decoder.SkipTagged(useTagEndMarker: true);",
     }
 }
 
-fn encode_trait_method() -> CodeBlock {
-    FunctionBuilder::new("public override", "void", "EncodeTrait", FunctionType::BlockBody)
-        .add_parameter("ref SliceEncoder", "encoder", None, Some("The Slice encoder."))
-        .set_inherit_doc(true)
-        .set_body(
-            "\
-encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);"
-                .into(),
-        )
-        .build()
-}
-
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let members = &exception_def.members();
     let namespace = &exception_def.namespace();
@@ -186,7 +205,6 @@ encoder.EndSlice(lastSlice: {is_last_slice});
     .add_encoding_block(Encoding::Slice2, || {
         format!(
             "\
-encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
             encode_data_members = &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice2),

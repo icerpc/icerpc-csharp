@@ -28,13 +28,13 @@ public sealed class ProtocolConnectionTests
             {
                 // an unexpected OCE
                 yield return new(protocol, new OperationCanceledException(), StatusCode.UnhandledException);
-
-                yield return new(protocol, new MyException(), StatusCode.UnhandledException);
                 yield return new(protocol, new InvalidOperationException(), StatusCode.UnhandledException);
             }
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
+            yield return new(Protocol.IceRpc, new MyException(), StatusCode.ApplicationError);
             yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.UnhandledException);
+            yield return new(Protocol.Ice, new MyException(), StatusCode.UnhandledException);
         }
     }
 
@@ -329,14 +329,9 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         long startTime = Environment.TickCount64;
-        long? clientIdleCalledTime = null;
-        long? serverIdleCalledTime = null;
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-
-        Task clientTask = WaitForClientConnectionAsync();
-        Task serverTask = WaitForServerConnectionAsync();
 
         {
             using var request = new OutgoingRequest(new ServiceAddress(protocol));
@@ -344,40 +339,21 @@ public sealed class ProtocolConnectionTests
         }
 
         // Act
-        await Task.WhenAll(clientTask, serverTask);
+        long clientIdleCalledTime = await WaitForShutdownCompleteAsync(sut.Client);
+        long serverIdleCalledTime = await WaitForShutdownCompleteAsync(sut.Server);
 
         // Assert
         Assert.That(
-            TimeSpan.FromMilliseconds(clientIdleCalledTime!.Value),
+            TimeSpan.FromMilliseconds(clientIdleCalledTime),
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
         Assert.That(
-            TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
+            TimeSpan.FromMilliseconds(serverIdleCalledTime),
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
 
-        async Task WaitForClientConnectionAsync()
+        async Task<long> WaitForShutdownCompleteAsync(IProtocolConnection connection)
         {
-            try
-            {
-                await sut.Client.ShutdownComplete;
-            }
-            catch when (protocol == Protocol.Ice)
-            {
-                // TODO: with ice, the shutdown of the peer currently triggers an abort
-            }
-            clientIdleCalledTime ??= Environment.TickCount64 - startTime;
-        }
-
-        async Task WaitForServerConnectionAsync()
-        {
-            try
-            {
-                await sut.Server.ShutdownComplete;
-            }
-            catch when (protocol == Protocol.Ice)
-            {
-                // TODO: with ice, the shutdown of the peer currently triggers an abort
-            }
-            serverIdleCalledTime ??= Environment.TickCount64 - startTime;
+            await connection.ShutdownComplete;
+            return Environment.TickCount64 - startTime;
         }
     }
 
@@ -960,7 +936,14 @@ public sealed class ProtocolConnectionTests
         // Assert
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
+        // TODO: this will need to be fixed with the exception refactoring.
+        // The error we get is timing dependent. We can get ConnectRefused if the connection establishment request is
+        // queued after the listener disposal or TransportError if it's queued before (in this case ConnectAsync catches
+        // TransportException(TransportErrorCode.ConnectionAborted) and it's mapped to
+        // ConnectionErrorCode.TransportError)
+        Assert.That(
+            exception!.ErrorCode,
+            Is.EqualTo(ConnectionErrorCode.TransportError).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
         Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
     }
 
@@ -1048,7 +1031,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
         Assert.That(invokeTask.IsCompleted, Is.False);
 
-        // TODO: not AAA
+        // Cleanup
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask, Throws.Nothing);
     }

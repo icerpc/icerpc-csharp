@@ -85,8 +85,10 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // Consider IOException from SslStream as a connection reset from the peer.
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            // TODO: is it correct to use ConnectionAborted as fallback?
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
@@ -218,8 +220,10 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // Consider IOException from SslStream as a connection reset from the peer.
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            // TODO: is it correct to use ConnectionAborted as fallback?
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
@@ -255,10 +259,6 @@ internal class TcpClientConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        else if (_isShutdown)
-        {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
-        }
 
         try
         {
@@ -287,8 +287,10 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // Consider IOException from SslStream as a connection reset from the peer.
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            // TODO: is it correct to use ConnectionAborted as fallback?
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
@@ -297,15 +299,14 @@ internal class TcpClientConnection : TcpConnection
 
         try
         {
-            // Connection was reset if we can't get the local/remote endpoint of the socket.
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
     }
 
@@ -376,10 +377,6 @@ internal class TcpServerConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        else if (_isShutdown)
-        {
-            throw new TransportException(TransportErrorCode.ConnectionShutdown);
-        }
 
         Debug.Assert(!_isConnected);
         _isConnected = true;
@@ -402,8 +399,10 @@ internal class TcpServerConnection : TcpConnection
         }
         catch (IOException exception) when (SslStream is not null)
         {
-            // Consider IOException from SslStream as a connection reset from the peer.
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            // TODO: is it correct to use ConnectionAborted as fallback?
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
@@ -412,15 +411,14 @@ internal class TcpServerConnection : TcpConnection
 
         try
         {
-            // Connection was reset if we can't get the local/remote endpoint of the socket.
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch (Exception exception)
+        catch (SocketException exception)
         {
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
+            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
         }
     }
 

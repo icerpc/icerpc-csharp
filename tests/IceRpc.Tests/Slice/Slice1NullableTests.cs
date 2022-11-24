@@ -36,7 +36,7 @@ public class Slice1NullableTests
             () =>
             {
                 var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-                var decoded = decoder.DecodeClass<AnyClass>();
+                var decoded = decoder.DecodeClass<SliceClass>();
             },
             Throws.TypeOf<InvalidDataException>());
     }

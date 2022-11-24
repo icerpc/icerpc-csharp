@@ -63,6 +63,7 @@ internal sealed class IceProtocol : Protocol
             defaultPort: 4061,
             hasFields: false,
             hasFragment: true,
+            supportsPayloadContinuation: false,
             byteValue: 1)
     {
     }

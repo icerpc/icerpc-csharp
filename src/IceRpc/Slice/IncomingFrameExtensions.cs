@@ -48,8 +48,7 @@ public static class IncomingFrameExtensions
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // Since the elements are fixed-size, they can't contain proxies or instances created by an activator, hence
-            // both activator and serviceProxyFactory can remain null.
+            // Since the elements are fixed-size, they can't contain proxies hence serviceProxyFactory can remain null.
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,
@@ -95,7 +94,6 @@ public static class IncomingFrameExtensions
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="payload">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="templateProxy">The template proxy.</param>
     /// <param name="sliceFeature">The slice feature to customize the decoding.</param>
@@ -103,7 +101,6 @@ public static class IncomingFrameExtensions
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader payload,
         SliceEncoding encoding,
-        IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
         ServiceProxy? templateProxy = null,
         ISliceFeature? sliceFeature = null)
@@ -113,14 +110,13 @@ public static class IncomingFrameExtensions
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
+            // No activator or max depth since streams are Slice2+.
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,
-                sliceFeature.Activator ?? defaultActivator,
                 sliceFeature.ServiceProxyFactory,
                 templateProxy,
-                sliceFeature.MaxCollectionAllocation,
-                sliceFeature.MaxDepth);
+                sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();
             do

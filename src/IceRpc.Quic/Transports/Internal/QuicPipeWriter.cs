@@ -148,12 +148,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         {
             return new FlushResult(isCanceled: false, isCompleted: true);
         }
-        catch (QuicException exception) when (exception.QuicError == QuicError.ConnectionAborted)
-        {
-            // If the connection is closed before the stream. This indicates that the peer forcefully closed the
-            // connection (it called DisposeAsync before completing the streams).
-            throw new TransportException(TransportErrorCode.ConnectionReset, exception);
-        }
         catch (QuicException exception)
         {
             throw exception.ToTransportException();

@@ -19,17 +19,6 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceRpcProtocolConnectionTests
 {
-    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsDispatchExceptionSource
-    {
-        get
-        {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            // Slice1 only exception will get encoded as unhandled exception with Slice2
-            yield return new TestCaseData(new MyDerivedException(), StatusCode.UnhandledException);
-            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
-        }
-    }
-
     /// <summary>This test ensures that disposing the connection correctly aborts the incoming request underlying
     /// stream.</summary>
     [Test]
@@ -70,10 +59,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        // TODO: we get ConnectionDisposed with Slic and ConnectionReset with Quic
         Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<TransportException>()
-            .With.Property("ErrorCode").EqualTo(TransportErrorCode.ConnectionDisposed)
-            .Or.With.Property("ErrorCode").EqualTo(TransportErrorCode.ConnectionReset));
+            .With.Property("ErrorCode").EqualTo(TransportErrorCode.OperationAborted));
 
         payload.Complete();
         pipe.Writer.Complete();

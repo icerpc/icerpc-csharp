@@ -254,7 +254,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
                 }
                 catch (TransportException exception) when (
-                    exception.ErrorCode == TransportErrorCode.ConnectionReset &&
+                    exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
@@ -366,11 +366,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         int requestId = 0;
         try
         {
-            if (request.PayloadContinuation is not null)
-            {
-                throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
-            }
-
             // Read the full payload. This can take some time so this needs to be done before acquiring the write
             // semaphore.
             ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
@@ -576,7 +571,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 return replyStatus == ReplyStatus.Ok ?
                     (StatusCode.Success, null, consumed) :
-                    (StatusCode.Failure, "Slice exception", consumed);
+                    (StatusCode.ApplicationError, "", consumed);
             }
             else
             {
@@ -1028,11 +1023,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw new InvalidOperationException(
                             "the dispatcher did not return the last response created for this request");
                     }
-
-                    if (response.PayloadContinuation is not null)
-                    {
-                        throw new NotSupportedException("PayloadContinuation must be null with the ice protocol");
-                    }
                 }
                 catch when (request.IsOneway)
                 {
@@ -1048,9 +1038,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a system exception.
-
-                    if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
+                    // If we catch an exception, we return a system exception. We also convert Slice exceptions
+                    // (with StatusCode.ApplicationError) into UnhandledException here.
+                    if (exception is not DispatchException dispatchException ||
+                        dispatchException.ConvertToUnhandled ||
+                        dispatchException.StatusCode == StatusCode.ApplicationError)
                     {
                         StatusCode statusCode = exception switch
                         {
@@ -1090,7 +1082,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // write semaphore.
                     ReadOnlySequence<byte> payload = ReadOnlySequence<byte>.Empty;
 
-                    if (response.StatusCode <= StatusCode.Failure)
+                    if (response.StatusCode <= StatusCode.ApplicationError)
                     {
                         try
                         {
@@ -1224,7 +1216,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 encoder.EncodeInt32(requestId);
 
-                if (response.StatusCode <= StatusCode.Failure)
+                if (response.StatusCode <= StatusCode.ApplicationError)
                 {
                     encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
 

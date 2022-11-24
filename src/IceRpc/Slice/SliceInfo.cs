@@ -13,7 +13,7 @@ public sealed class SliceInfo
     public ReadOnlyMemory<byte> Bytes { get; }
 
     /// <summary>Gets the class instances referenced by this slice.</summary>
-    public IReadOnlyList<AnyClass> Instances { get; internal set; }
+    public IReadOnlyList<SliceClass> Instances { get; internal set; }
 
     /// <summary>Gets a value indicating whether or not the slice contains tagged members.</summary>
     public bool HasTaggedMembers { get; }
@@ -21,7 +21,7 @@ public sealed class SliceInfo
     internal SliceInfo(
         string typeId,
         ReadOnlyMemory<byte> bytes,
-        IReadOnlyList<AnyClass> instances,
+        IReadOnlyList<SliceClass> instances,
         bool hasTaggedMembers)
     {
         TypeId = typeId;

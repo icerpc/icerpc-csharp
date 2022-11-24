@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Title>IceRpc Deflate</Title>
+        <Title>IceRpc Compressor</Title>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
-        <Description>IceRPC Deflate.</Description>
+        <Description>IceRPC Compressor.</Description>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC</PackageTags>

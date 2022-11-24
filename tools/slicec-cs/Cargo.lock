@@ -66,9 +66,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clap"
-version = "4.0.22"
+version = "4.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91b9970d7505127a162fdaa9b96428d28a479ba78c9ec7550a63a5d9863db682"
+checksum = "2148adefda54e14492fb9bddcc600b4344c5d1a3123bd666dcb939c6f0e0e57e"
 dependencies = [
  "atty",
  "bitflags",
@@ -154,9 +154,9 @@ checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
 name = "digest"
-version = "0.10.5"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adfbc57365a37acbd2ebf2b64d7e69bb766e2fea813521ed536f5d0520dcf86c"
+checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
  "block-buffer",
  "crypto-common",
@@ -254,9 +254,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "1.9.1"
+version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10a35a97730320ffe8e2d410b5d3b69279b98d2c14bdb8b70ea89ecf7888d41e"
+checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg",
  "hashbrown",
@@ -350,9 +350,9 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "os_str_bytes"
-version = "6.3.1"
+version = "6.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3baf96e39c5359d2eb0dd6ccb42c62b91d9678aa68160d261b9e0ccbf9e9dea9"
+checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
 name = "parking_lot"
@@ -585,9 +585,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.87"
+version = "1.0.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce777b7b150d76b9cf60d28b55f5847135a003f7d7350c6be7a773508ce7d45"
+checksum = "8e8b3801309262e8184d9687fb697586833e939767aea0dda89f5a8e650e8bd7"
 dependencies = [
  "itoa",
  "ryu",
@@ -614,7 +614,7 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#990e405b68b54109af1bd45df5fe0c45c0b79ab6"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#7d07ecf7be7464bd55c32e1aec825ad838b51db4"
 dependencies = [
  "clap",
  "console",

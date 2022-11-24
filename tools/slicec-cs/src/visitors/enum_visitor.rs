@@ -83,7 +83,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     // for enum E { A = 3, B = 2, C = 1 } during decoding.
     let min_max_values = enum_def.get_min_max_values();
     let use_set = if let Some((min_value, max_value)) = min_max_values {
-        !enum_def.is_unchecked && (enum_def.enumerators.len() as i64) < max_value - min_value + 1
+        !enum_def.is_unchecked && (enum_def.enumerators.len() as i128) < max_value - min_value + 1
     } else {
         // This means there are no enumerators.*
         true

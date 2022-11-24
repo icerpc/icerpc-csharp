@@ -592,7 +592,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 
 {rewrite_size}
 
-pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+pipe_.Writer.Complete();
 {assign_pipe_reader} pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
             Encoding::Slice1 => "",

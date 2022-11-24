@@ -151,8 +151,8 @@ dotnet_diagnostic.SA1000.severity = warning
 # SA1001: Commas should not be preceded by whitespace
 dotnet_diagnostic.SA1001.severity = warning
 
-# SA1013: Closing brace should not be preceded by a space TODO review disabled due to our multi-line string style
-dotnet_diagnostic.SA1013.severity = none
+# SA1013: Closing brace should not be preceded by a space
+dotnet_diagnostic.SA1013.severity = warning
 
 # SA1014: Opening generic brackets should not be preceded by a space
 dotnet_diagnostic.SA1014.severity = warning
