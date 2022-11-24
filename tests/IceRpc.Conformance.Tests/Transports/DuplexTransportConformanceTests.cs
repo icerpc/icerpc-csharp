@@ -59,6 +59,23 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Act
+        await listener.DisposeAsync();
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
+    }
+
+    [Test]
     public async Task Call_accept_then_cancel_the_cancellation_source_and_dispose_the_listener_fails_with_operation_canceled_exception()
     {
         // Arrange
