@@ -86,20 +86,26 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
         }
 
-        // ListenAsync implementation is synchronous so it's safe to get the result synchronously.
-        ValueTask<QuicListener> task = QuicListener.ListenAsync(
-            new QuicListenerOptions
-            {
-                ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
-                ListenBacklog = quicTransportOptions.ListenBacklog,
-                ApplicationProtocols = authenticationOptions.ApplicationProtocols,
-                ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
-            },
-            CancellationToken.None);
+        try
+        {
+            // ListenAsync implementation is synchronous so it's safe to get the result synchronously.
+            ValueTask<QuicListener> task = QuicListener.ListenAsync(
+                new QuicListenerOptions
+                {
+                    ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
+                    ListenBacklog = quicTransportOptions.ListenBacklog,
+                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                    ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
+                },
+                CancellationToken.None);
+            Debug.Assert(task.IsCompleted);
+            _listener = task.Result;
 
-        Debug.Assert(task.IsCompleted);
-        _listener = task.Result;
-
-        ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
+            ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToTransportException();
+        }
     }
 }

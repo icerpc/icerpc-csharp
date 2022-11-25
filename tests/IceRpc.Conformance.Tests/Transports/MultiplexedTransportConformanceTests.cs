@@ -823,6 +823,26 @@ public abstract partial class MultiplexedTransportConformanceTests
     }
 
     [Test]
+    public async Task Listen_twice_on_the_same_address_fails_with_a_transport_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
+
+        // Act/Assert
+        TransportException? exception = Assert.Throws<TransportException>(
+            () => serverTransport.Listen(
+                listener.ServerAddress,
+                new MultiplexedConnectionOptions(),
+                provider.GetService<SslServerAuthenticationOptions>()));
+        // BUGFIX with Quic this throws an internal error https://github.com/dotnet/runtime/issues/78573
+        Assert.That(
+            exception!.ErrorCode,
+            Is.EqualTo(TransportErrorCode.AddressInUse).Or.EqualTo(TransportErrorCode.InternalError));
+    }
+
+    [Test]
     public async Task Listener_server_address_transport_property_is_set()
     {
         // Arrange
