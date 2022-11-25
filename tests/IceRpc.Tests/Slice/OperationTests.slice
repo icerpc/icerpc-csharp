@@ -34,10 +34,6 @@ interface MyOperationsA
     // Parameter with cs::attribute
     opWithCsAttribute(p: [cs::attribute("MyAttribute")] int32) -> int32;
 
-    // Encoded result
-    [cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> int32;
-    [cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: int32, r2: int32);
-
     // C# keyword as operation name
     continue();
 

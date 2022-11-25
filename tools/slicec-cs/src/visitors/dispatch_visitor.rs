@@ -4,7 +4,6 @@ use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilde
 use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
 use crate::cs_util::*;
 use crate::decoding::*;
-use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
@@ -57,9 +56,6 @@ private static readonly IActivator _defaultActivator =
         }
 
         for operation in interface_def.operations() {
-            if operation.has_encoded_result() {
-                interface_builder.add_block(encoded_result_struct(operation));
-            }
             interface_builder.add_block(operation_declaration(operation));
         }
 
@@ -411,74 +407,42 @@ await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);
     };
 
     let mut dispatch_and_return = CodeBlock::default();
+    let mut args = match parameters.as_slice() {
+        [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
+        _ => parameters
+            .iter()
+            .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
+            .collect(),
+    };
+    args.push("request.Features".to_owned());
+    args.push("cancellationToken".to_owned());
 
-    if operation.has_encoded_result() {
-        // TODO: support for stream param with encoded result?
-        let mut args = vec![];
-
-        match parameters.as_slice() {
-            [p] => {
-                args.push(p.parameter_name_with_prefix("sliceP_"));
-            }
-            _ => {
-                for p in parameters {
-                    args.push("args.".to_owned() + &p.field_name(FieldType::NonMangled));
-                }
-            }
-        }
-
-        args.push("request.Features".to_owned());
-        args.push("cancellationToken".to_owned());
-
-        writeln!(
-            dispatch_and_return,
-            "var returnValue = await target.{name}({args}).ConfigureAwait(false);",
-            name = async_operation_name,
-            args = args.join(", ")
-        );
-
-        writeln!(
-            dispatch_and_return,
-            "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
-        );
-    } else {
-        let mut args = match parameters.as_slice() {
-            [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
-            _ => parameters
-                .iter()
-                .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
-                .collect(),
-        };
-        args.push("request.Features".to_owned());
-        args.push("cancellationToken".to_owned());
-
-        writeln!(
-            dispatch_and_return,
-            "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
-            return_value = if !return_parameters.is_empty() {
-                "var returnValue = "
-            } else {
-                ""
-            },
-            async_operation_name = async_operation_name,
-            args = args.join(", ")
-        );
-
-        if operation.return_type.is_empty() {
-            writeln!(dispatch_and_return, "return new IceRpc.OutgoingResponse(request);")
+    writeln!(
+        dispatch_and_return,
+        "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
+        return_value = if !return_parameters.is_empty() {
+            "var returnValue = "
         } else {
-            writeln!(
-                dispatch_and_return,
-                "\
+            ""
+        },
+        async_operation_name = async_operation_name,
+        args = args.join(", ")
+    );
+
+    if operation.return_type.is_empty() {
+        writeln!(dispatch_and_return, "return new IceRpc.OutgoingResponse(request);")
+    } else {
+        writeln!(
+            dispatch_and_return,
+            "\
 return new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
     PayloadContinuation = {payload_continuation}
 }};",
-                payload = dispatch_return_payload(operation, encoding),
-                payload_continuation = payload_continuation(operation, encoding)
-            );
-        }
+            payload = dispatch_return_payload(operation, encoding),
+            payload_continuation = payload_continuation(operation, encoding)
+        );
     }
 
     if let Throws::None = &operation.throws {

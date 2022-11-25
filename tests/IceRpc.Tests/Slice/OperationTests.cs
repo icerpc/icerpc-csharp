@@ -254,45 +254,6 @@ public class OperationTests
         Assert.That(async () => await proxy.OpWithCsAttributeAsync(10), Throws.Nothing);
     }
 
-    [Test]
-    public async Task Operation_with_single_return_value_and_encoded_result_attribute()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
-            .BuildServiceProvider(validateScopes: true);
-
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
-
-        // Act
-        var r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
-
-        // Assert
-        Assert.That(r, Is.EqualTo(10));
-    }
-
-    [Test]
-    public async Task Operation_with_multiple_return_value_and_encoded_result_attribute()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
-            .BuildServiceProvider(validateScopes: true);
-
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
-
-        // Act
-        (int r1, int r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
-
-        // Assert
-        Assert.That(r1, Is.EqualTo(10));
-        Assert.That(r2, Is.EqualTo(20));
-    }
-
     /// <summary>Verifies that sequence of fixed size numeric values outgoing parameter is mapped to
     /// <see cref="ReadOnlyMemory{T}" /> the mapping for the incoming parameter is not affected.</summary>
     [Test]
@@ -508,7 +469,7 @@ public class OperationTests
         Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
     }
 
-    class MyOperationsA : Service, IMyOperationsA
+    public class MyOperationsA : Service, IMyOperationsA
     {
         public ServiceProxy? ReceivedProxy;
 
@@ -567,16 +528,6 @@ public class OperationTests
             int p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => default;
-
-        public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
-            IFeatureCollection features,
-            CancellationToken cancellationToken) =>
-            new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
-
-        public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
-            IFeatureCollection features,
-            CancellationToken cancellationToken) =>
-            new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,

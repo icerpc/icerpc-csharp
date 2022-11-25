@@ -7,7 +7,6 @@ mod cs_attributes;
 mod cs_options;
 mod cs_util;
 mod decoding;
-mod encoded_result;
 mod encoding;
 mod generated_code;
 mod member_util;

@@ -77,15 +77,6 @@ fn validate_cs_internal(attribute: &Attribute, diagnostic_reporter: &mut Diagnos
     }
 }
 
-fn validate_cs_encoded_result(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
-    if !attribute.arguments.is_empty() {
-        diagnostic_reporter.report_error(Error::new(
-            ErrorKind::TooManyArguments(cs_attributes::ENCODED_RESULT.to_owned()),
-            Some(attribute.span()),
-        ));
-    }
-}
-
 fn validate_cs_generic(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
@@ -218,7 +209,6 @@ impl Visitor for CsValidator<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         for attribute in &cs_attributes(interface_def.attributes()) {
             match attribute.directive.as_str() {
-                cs_attributes::ENCODED_RESULT => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 cs_attributes::INTERNAL => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -237,7 +227,6 @@ impl Visitor for CsValidator<'_> {
     fn visit_operation_start(&mut self, operation: &Operation) {
         for attribute in &cs_attributes(operation.attributes()) {
             match attribute.directive.as_str() {
-                cs_attributes::ENCODED_RESULT => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }

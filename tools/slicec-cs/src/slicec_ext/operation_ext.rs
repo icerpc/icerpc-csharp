@@ -1,18 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
-use crate::cs_attributes;
 
-use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
+use slice::grammar::{ClassFormat, Contained, Operation};
 use slice::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
-    /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.
-    fn has_encoded_result(&self) -> bool;
-
-    /// The name of the generated encoded result type.
-    fn encoded_result_struct(&self) -> String;
-
     /// The Slice format type of the operation
     fn format_type(&self) -> &str;
 
@@ -21,18 +14,6 @@ pub trait OperationExt {
 }
 
 impl OperationExt for Operation {
-    fn has_encoded_result(&self) -> bool {
-        self.has_attribute(cs_attributes::ENCODED_RESULT, true)
-    }
-
-    fn encoded_result_struct(&self) -> String {
-        format!(
-            "{}.{}EncodedResult",
-            self.parent().unwrap().interface_name(),
-            self.escape_identifier()
-        )
-    }
-
     fn format_type(&self) -> &str {
         match self.class_format() {
             ClassFormat::Sliced => "IceRpc.Slice.ClassFormat.Sliced",
@@ -51,7 +32,6 @@ impl OperationExt for Operation {
         } else {
             let return_type = operation_return_type(
                 self,
-                is_dispatch,
                 if is_dispatch {
                     TypeContext::Encode
                 } else {
@@ -67,12 +47,8 @@ impl OperationExt for Operation {
     }
 }
 
-fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
+fn operation_return_type(operation: &Operation, context: TypeContext) -> String {
     let return_members = operation.return_members();
-
-    if !return_members.is_empty() && is_dispatch && operation.has_encoded_result() {
-        return operation.encoded_result_struct();
-    }
 
     let ns = operation.parent().unwrap().namespace();
     match return_members.as_slice() {
