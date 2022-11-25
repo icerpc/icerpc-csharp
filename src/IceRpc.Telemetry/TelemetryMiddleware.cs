@@ -32,12 +32,9 @@ public class TelemetryMiddleware : IDispatcher
         {
             string name = $"{request.Path}/{request.Operation}";
             using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Server) ?? new Activity(name);
-
             activity.AddTag("rpc.system", "icerpc");
             activity.AddTag("rpc.service", request.Path);
             activity.AddTag("rpc.method", request.Operation);
-            // TODO add additional attributes
-            // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
             if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
             {
                 RestoreActivityContext(buffer, activity);
