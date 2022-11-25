@@ -271,7 +271,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // ConnectionClosedException should always be set at this point.
                     Debug.Assert(ConnectionClosedException is not null);
                 }
-                catch (TransportException exception)
+                catch (Exception exception)
                 {
                     ConnectionClosedException = new ConnectionException(
                         ConnectionErrorCode.ClosedByAbort,
@@ -280,16 +280,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Notify the ConnectionLost callback.
                     ConnectionLost(exception);
-                }
-                catch (Exception exception)
-                {
-                    ConnectionClosedException = new ConnectionException(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection was lost",
-                        exception);
-
-                    // This can occur if we read an invalid frame.
-                    ConnectionLost(exception);
+                    // Initiate the shutdown if not already done.
                     InitiateShutdown(ConnectionErrorCode.ClosedByAbort);
                 }
                 finally
