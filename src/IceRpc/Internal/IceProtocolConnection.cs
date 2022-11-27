@@ -600,7 +600,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         string target = requestFailed.Fragment.Length > 0 ?
                             $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                        message = $"{nameof(DispatchException)} {{ ReplyStatus = {replyStatus} }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                        message = $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
                         break;
                     default:
                         message = decoder.DecodeString();
@@ -1241,9 +1241,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                             new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
                                 .Encode(ref encoder);
                             break;
-                        default:
+                        case StatusCode.UnhandledException:
                             encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
                             encoder.EncodeString(response.ErrorMessage!);
+                            break;
+                        default:
+                            encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+                            encoder.EncodeString(
+                                $"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
                             break;
                     }
                 }
