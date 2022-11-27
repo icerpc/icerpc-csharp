@@ -147,7 +147,14 @@ public static class IncomingResponseExtensions
             // typically happen when the Slice exception is received over ice.
             string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
 
-            if (encoding == SliceEncoding.Slice1)
+            if (readResult.Buffer.IsEmpty)
+            {
+                // The payload is empty, no need to decode it. This is very uncommon for a payload received over ice.
+                // Note the Slice-encoded payload of an empty exception uses at least 1 byte (with Slice2, for the tag
+                // end marker).
+                return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
+            }
+            else if (encoding == SliceEncoding.Slice1)
             {
                 var decoder = new SliceDecoder(
                     buffer,
@@ -161,12 +168,6 @@ public static class IncomingResponseExtensions
                 SliceException exception = decoder.DecodeUserException(errorMessage);
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 return exception;
-            }
-            else if (readResult.Buffer.IsEmpty)
-            {
-                // The payload is empty, no need to decode it.
-                // Note that a Slice2-encoded exception uses at least 1 byte for tags.
-                return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
             }
             else
             {
