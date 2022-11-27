@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -173,6 +172,23 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
+    [Test]
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Act
+        await listener.DisposeAsync();
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
     /// </param>
@@ -254,26 +270,6 @@ public abstract partial class MultiplexedTransportConformanceTests
                 }
             });
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
-    }
-
-    [Test]
-    [Ignore("See #1859")]
-    public async Task Close_client_connection_before_connect_fails_with_transport_connection_closed_error()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-
-        // Act
-        await clientConnection.CloseAsync(applicationErrorCode: 4ul, default);
-
-        // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(
-            async () => await clientConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
-        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(4ul));
     }
 
     [Test]
@@ -824,6 +820,26 @@ public abstract partial class MultiplexedTransportConformanceTests
 
             stream.Input.Complete();
         }
+    }
+
+    [Test]
+    public async Task Listen_twice_on_the_same_address_fails_with_a_transport_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
+
+        // Act/Assert
+        TransportException? exception = Assert.Throws<TransportException>(
+            () => serverTransport.Listen(
+                listener.ServerAddress,
+                new MultiplexedConnectionOptions(),
+                provider.GetService<SslServerAuthenticationOptions>()));
+        // BUGFIX with Quic this throws an internal error https://github.com/dotnet/runtime/issues/78573
+        Assert.That(
+            exception!.ErrorCode,
+            Is.EqualTo(TransportErrorCode.AddressInUse).Or.EqualTo(TransportErrorCode.InternalError));
     }
 
     [Test]

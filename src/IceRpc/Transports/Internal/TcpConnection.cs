@@ -259,10 +259,6 @@ internal class TcpClientConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        else if (_isShutdown)
-        {
-            throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
-        }
 
         try
         {
@@ -380,10 +376,6 @@ internal class TcpServerConnection : TcpConnection
         if (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
-        else if (_isShutdown)
-        {
-           throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
         }
 
         Debug.Assert(!_isConnected);

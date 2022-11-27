@@ -34,7 +34,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_with_canceled_cancelation_token_fails_with_operation_canceled()
+    public async Task Call_accept_with_canceled_cancellation_token_fails_with_operation_canceled()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -56,6 +56,23 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
+    }
+
+    [Test]
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Act
+        await listener.DisposeAsync();
+
+        // Assert
+        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
+        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
     }
 
     [Test]
@@ -381,20 +398,6 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
-    }
-
-    [Test]
-    public async Task Shutdown_client_connection_before_connect_throws_invalid_operation_exception()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-
-        // Act
-        await clientConnection.ShutdownAsync(default);
-
-        // Assert
-        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.InvalidOperationException);
     }
 
     [Test]

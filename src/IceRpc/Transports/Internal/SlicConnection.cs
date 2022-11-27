@@ -60,6 +60,16 @@ internal class SlicConnection : IMultiplexedConnection
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
+        if (_disposeTask is not null)
+        {
+            throw new ObjectDisposedException($"{typeof(SlicConnection)}");
+        }
+        if (_readFramesTask is null)
+        {
+            throw new InvalidOperationException(
+                $"can't call {nameof(AcceptStreamAsync)} before {nameof(ConnectAsync)}");
+        }
+
         try
         {
             return await _acceptStreamChannel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -79,10 +89,12 @@ internal class SlicConnection : IMultiplexedConnection
         {
             throw new ObjectDisposedException($"{typeof(SlicConnection)}");
         }
-        else if (_exception is not null)
+        if (_readFramesTask is not null)
         {
-            throw _exception;
+            throw new InvalidOperationException($"can't call {nameof(ConnectAsync)} twice");
         }
+
+        Debug.Assert(_exception is null);
 
         // Connect the duplex connection.
         TransportConnectionInformation information = await _duplexConnection.ConnectAsync(
@@ -284,11 +296,12 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
-            else if (_readFramesTask is null)
+            if (_readFramesTask is null)
             {
-                throw new InvalidOperationException("ConnectAsync must be called first");
+                throw new InvalidOperationException(
+                    $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
             }
-            else if (_exception is not null)
+            if (_exception is not null)
             {
                 if (_exception.ErrorCode == TransportErrorCode.ConnectionAborted)
                 {
@@ -342,13 +355,14 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_readFramesTask is null)
             {
-                throw new InvalidOperationException("the Slic connection is not connected");
+                throw new InvalidOperationException(
+                    $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
             }
-            else if (_disposeTask is not null)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
-            else if (_exception is not null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }

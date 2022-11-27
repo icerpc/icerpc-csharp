@@ -26,11 +26,13 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        Debug.Assert(_reader is not null);
-
         if (_state.HasFlag(State.Disposed))
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+        if (_reader is null)
+        {
+            throw new InvalidOperationException($"can't call {nameof(ReadAsync)} before {nameof(ConnectAsync)}");
         }
 
         if (!_state.TrySetFlag(State.Reading))
@@ -108,6 +110,10 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
+        if (_reader is null)
+        {
+            throw new InvalidOperationException($"can't call {nameof(ShutdownAsync)} before {nameof(ConnectAsync)}");
+        }
 
         if (_state.TrySetFlag(State.ShuttingDown))
         {
@@ -126,11 +132,13 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        Debug.Assert(_reader is not null);
-
         if (_state.HasFlag(State.Disposed))
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
+        }
+        if (_reader is null)
+        {
+            throw new InvalidOperationException($"can't call {nameof(WriteAsync)} before {nameof(ConnectAsync)}");
         }
 
         if (!_state.TrySetFlag(State.Writing))
@@ -221,12 +229,6 @@ internal abstract class ColocConnection : IDuplexConnection
             _reader.Complete();
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
-        else if (_state.HasFlag(State.ShuttingDown))
-        {
-            // Dispose will complete the reader.
-            throw new InvalidOperationException(
-                $"cannot connect a connection after calling {nameof(ShutdownAsync)}");
-        }
 
         var colocEndPoint = new ColocEndPoint(ServerAddress);
         return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
@@ -253,10 +255,12 @@ internal class ClientColocConnection : ColocConnection
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
-        else if (_state.HasFlag(State.ShuttingDown))
+        if (_reader is not null)
         {
-            throw new InvalidOperationException($"cannot connect a connection after calling {nameof(ShutdownAsync)}");
+            throw new InvalidOperationException($"can't call {nameof(ConnectAsync)} twice");
         }
+
+        Debug.Assert(!_state.HasFlag(State.ShuttingDown));
 
         if (_localPipeReader is not null)
         {

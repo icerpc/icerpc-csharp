@@ -191,24 +191,6 @@ public class TcpTransportTests
         }
     }
 
-    [Test]
-    public async Task Call_accept_and_dispose_the_listener_fails_with_operation_aborted()
-    {
-        // Arrange
-        await using IListener<IDuplexConnection> listener = CreateTcpListener();
-
-        IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
-
-        var acceptTask = listener.AcceptAsync(default);
-
-        // Act
-        await listener.DisposeAsync();
-
-        // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
-    }
-
     /// <summary>Verifies that using a DNS name for a TCP listener server address fails with <see
     /// cref="NotSupportedException" /> exception.</summary>
     [Test]

@@ -589,17 +589,14 @@ response.DecodeReturnValueAsync(
 }
 
 fn exception_decode_func(operation: &Operation) -> String {
-    if operation.encoding == Encoding::Slice1 {
-        // TODO: merge will last else
-        "null".to_owned()
-    } else if let Throws::Specific(exception) = &operation.throws {
-        format!(
-            "\
-(ref SliceDecoder decoder, string? message) => new {}(ref decoder, message)",
-            exception.escape_scoped_identifier(&operation.namespace())
-        )
-    } else {
-        "null".to_owned()
+    match &operation.throws {
+        Throws::Specific(exception) if operation.encoding != Encoding::Slice1 => {
+            format!(
+                "(ref SliceDecoder decoder, string? message) => new {}(ref decoder, message)",
+                exception.escape_scoped_identifier(&operation.namespace())
+            )
+        }
+        _ => "null".to_owned(),
     }
 }
 

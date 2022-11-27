@@ -29,10 +29,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
                 break;
             }
-            catch (QuicException ex) when (ex.QuicError == QuicError.OperationAborted)
+            catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
             {
                 // Listener was disposed while accept was in progress.
-                throw;
+                throw new TransportException(TransportErrorCode.OperationAborted, exception);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
@@ -86,21 +86,28 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
         }
 
-        // ListenAsync implementation is synchronous so it's safe to get the result synchronously.
-        ValueTask<QuicListener> task = QuicListener.ListenAsync(
-            new QuicListenerOptions
-            {
-                ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
-                ListenBacklog = quicTransportOptions.ListenBacklog,
-                ApplicationProtocols = authenticationOptions.ApplicationProtocols,
-                ConnectionOptionsCallback = GetConnectionOptionsAsync
-            },
-            CancellationToken.None);
+        try
+        {
+            // ListenAsync implementation is synchronous so it's safe to get the result synchronously.
+            ValueTask<QuicListener> task = QuicListener.ListenAsync(
+                new QuicListenerOptions
+                {
+                    ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
+                    ListenBacklog = quicTransportOptions.ListenBacklog,
+                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                    ConnectionOptionsCallback = GetConnectionOptionsAsync
+                },
+                CancellationToken.None);
 
-        Debug.Assert(task.IsCompleted);
-        _listener = task.Result;
+            Debug.Assert(task.IsCompleted);
+            _listener = task.Result;
 
-        ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
+            ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToTransportException();
+        }
     }
 
     private ValueTask<QuicServerConnectionOptions> GetConnectionOptionsAsync(
