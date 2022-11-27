@@ -3,7 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -428,26 +430,12 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         // Arrange
-        var coloc = new ColocTransport();
-        await using var server = new Server(
-            new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions()
-                {
-                    Dispatcher = new Slice2ExceptionOperations(throwException),
-                },
-                ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
-            },
-            multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-        server.Listen();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(new Slice2ExceptionOperations(throwException))
+            .BuildServiceProvider(validateScopes: true);
 
-        await using var connection = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            },
-            multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-        var proxy = new Slice2ExceptionOperationsProxy(connection);
+        var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
 
         // Act/Assert
         DispatchException? exception;
@@ -470,26 +458,12 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         // Arrange
-        var coloc = new ColocTransport();
-        await using var server = new Server(
-            new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions()
-                {
-                    Dispatcher = new Slice2ExceptionOperations(throwException),
-                },
-                ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
-            },
-            multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-        server.Listen();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(new Slice2ExceptionOperations(throwException))
+            .BuildServiceProvider(validateScopes: true);
 
-        await using var connection = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            },
-            multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-        var proxy = new Slice2ExceptionOperationsProxy(connection);
+        var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
 
         // Act/Assert
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
@@ -502,26 +476,12 @@ public sealed class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        var coloc = new ColocTransport();
-        await using var server = new Server(
-            new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    Dispatcher = new Slice1ExceptionOperations(throwException),
-                },
-                ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
-            },
-            multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-        server.Listen();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(new Slice1ExceptionOperations(throwException))
+            .BuildServiceProvider(validateScopes: true);
 
-        await using var connection = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            },
-            multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-        var proxy = new Slice1ExceptionOperationsProxy(connection);
+        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
 
         DispatchException? exception;
         if (expectedStatusCode == StatusCode.ApplicationError)
@@ -544,26 +504,12 @@ public sealed class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        var coloc = new ColocTransport();
-        await using var server = new Server(
-            new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    Dispatcher = new Slice1ExceptionOperations(throwException),
-                },
-                ServerAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}/"))
-            },
-            multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-        server.Listen();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(new Slice1ExceptionOperations(throwException))
+            .BuildServiceProvider(validateScopes: true);
 
-        await using var connection = new ClientConnection(
-            new ClientConnectionOptions
-            {
-                ServerAddress = server.ServerAddress,
-            },
-            multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-        var proxy = new Slice1ExceptionOperationsProxy(connection);
+        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
 
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
         Assert.That(exception, Is.Not.Null);
