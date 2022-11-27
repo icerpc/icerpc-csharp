@@ -19,6 +19,78 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceRpcProtocolConnectionTests
 {
+    private static IEnumerable<TestCaseData> DispatchExceptionSource
+    {
+        get
+        {
+            var invalidDataException = new InvalidDataException("invalid data");
+            yield return new TestCaseData(
+                new InvalidDataException("invalid data"),
+                StatusCode.InvalidData,
+                GetErrorMessage(StatusCode.InvalidData, invalidDataException));
+
+            var invalidOperationException = new InvalidOperationException("invalid op message");
+            yield return new TestCaseData(
+                invalidOperationException,
+                StatusCode.UnhandledException,
+                GetErrorMessage(StatusCode.UnhandledException, invalidOperationException));
+
+            var applicationError = new DispatchException(StatusCode.ApplicationError, "application message");
+            yield return new TestCaseData(
+                applicationError,
+                applicationError.StatusCode,
+                applicationError.Message);
+
+            var deadlineExpired = new DispatchException(StatusCode.DeadlineExpired, "deadline message");
+            yield return new TestCaseData(
+                deadlineExpired,
+                deadlineExpired.StatusCode,
+                deadlineExpired.Message);
+
+            var serviceNotFound = new DispatchException(StatusCode.ServiceNotFound);
+            yield return new TestCaseData(
+                serviceNotFound,
+                serviceNotFound.StatusCode,
+                serviceNotFound.Message);
+
+            var operationNotFound = new DispatchException(StatusCode.OperationNotFound, "op not found");
+            yield return new TestCaseData(
+                operationNotFound,
+                operationNotFound.StatusCode,
+                operationNotFound.Message);
+        }
+    }
+
+    [Test, TestCaseSource(nameof(DispatchExceptionSource))]
+    public async Task Dispatcher_throws_exception(
+        Exception exception,
+        StatusCode expectedStatusCode,
+        string expectedErrorMessage)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw exception);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/foo" })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+        ReadResult readResult = await response.Payload.ReadAsync();
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
+        Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
+        Assert.That(readResult.IsCompleted, Is.True);
+        Assert.That(readResult.Buffer.IsEmpty, Is.True);
+    }
+
     /// <summary>This test ensures that disposing the connection correctly aborts the incoming request underlying
     /// stream.</summary>
     [Test]
@@ -763,6 +835,12 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
+    }
+
+    private static string GetErrorMessage(StatusCode statusCode, Exception innerException)
+    {
+        var dispatchException = new DispatchException(statusCode);
+        return $"{dispatchException.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
     }
 
     [Flags]

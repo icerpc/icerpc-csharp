@@ -34,7 +34,7 @@ public sealed class IceProtocolConnectionTests
             yield return new TestCaseData(
                 applicationError,
                 StatusCode.UnhandledException,
-                GetErrorMessage(unhandledException.Message, applicationError));
+                GetErrorMessage(applicationError));
 
             var deadlineExpired = new DispatchException(StatusCode.DeadlineExpired, "deadline message");
             yield return new TestCaseData(
@@ -104,7 +104,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         IncomingResponse response = await sut.Client.InvokeAsync(request);
         response.Payload.TryRead(out ReadResult readResult);
-;
+
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
         Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));

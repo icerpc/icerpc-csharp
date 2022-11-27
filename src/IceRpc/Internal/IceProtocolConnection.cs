@@ -1039,12 +1039,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    // If we catch an exception, we return a system exception. We also convert Slice exceptions
-                    // (with StatusCode.ApplicationError) into UnhandledException here.
-
-                    if (exception is not DispatchException dispatchException ||
-                        dispatchException.ConvertToUnhandled ||
-                        dispatchException.StatusCode == StatusCode.ApplicationError)
+                    // If we catch an exception, we return a system exception.
+                    if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
                         // We want the default error message for this new exception.
                         dispatchException =
@@ -1214,21 +1210,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 encoder.EncodeInt32(requestId);
 
-                if (response.StatusCode <= StatusCode.ApplicationError)
-                {
-                    encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
-
-                    // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only
-                    // relevant to a ZeroC Ice client that decodes the response. The only Slice encoding such a
-                    // client can possibly use to decode the response payload is 1.1 or 1.0, and we don't care
-                    // about interop with 1.0.
-                    var encapsulationHeader = new EncapsulationHeader(
-                        encapsulationSize: payloadSize + 6,
-                        payloadEncodingMajor: 1,
-                        payloadEncodingMinor: 1);
-                    encapsulationHeader.Encode(ref encoder);
-                }
-                else
+                if (response.StatusCode > StatusCode.ApplicationError ||
+                    (response.StatusCode == StatusCode.ApplicationError && payloadSize == 0))
                 {
                     // system exception
                     switch (response.StatusCode)
@@ -1251,6 +1234,20 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                                 $"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
                             break;
                     }
+                }
+                else
+                {
+                    encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
+
+                    // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only
+                    // relevant to a ZeroC Ice client that decodes the response. The only Slice encoding such a
+                    // client can possibly use to decode the response payload is 1.1 or 1.0, and we don't care
+                    // about interop with 1.0.
+                    var encapsulationHeader = new EncapsulationHeader(
+                        encapsulationSize: payloadSize + 6,
+                        payloadEncodingMajor: 1,
+                        payloadEncodingMinor: 1);
+                    encapsulationHeader.Encode(ref encoder);
                 }
 
                 int frameSize = encoder.EncodedByteCount + payloadSize;
