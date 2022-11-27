@@ -11,28 +11,20 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests
 {
-    private static IEnumerable<TestCaseData> Slice1DispatchThrowsSource
-    {
-        get
-        {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
-        }
-    }
-
     private static IEnumerable<TestCaseData> Slice1DispatchThrowsAnyExceptionSource
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
-
-            yield return new TestCaseData(new MyExceptionWithOptionalMembers(), StatusCode.UnhandledException);
-
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
             yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
+
+            yield return new TestCaseData(
+                new MyExceptionWithTaggedMembers(5, 12, 13, 28),
+                StatusCode.ApplicationError);
+
+            yield return new TestCaseData(
+                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                StatusCode.UnhandledException);
         }
     }
 
@@ -40,29 +32,16 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
-
-            // TODO: it's ApplicationError because we use the icerpc protocol. It would be UnhandledException with ice.
-            yield return new TestCaseData(new MyExceptionWithOptionalMembers(), StatusCode.ApplicationError);
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
-        }
-    }
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
 
-    private static IEnumerable<TestCaseData> Slice2DispatchThrowsSource
-    {
-        get
-        {
-            yield return new TestCaseData(new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
+            yield return new TestCaseData(
+                new MyExceptionWithTaggedMembers(5, 12, 13, 28),
+                StatusCode.ApplicationError);
 
             yield return new TestCaseData(
                 new MyExceptionWithOptionalMembers(5, 12, 13, 28),
                 StatusCode.ApplicationError);
-
-            yield return new TestCaseData(new InvalidOperationException(), StatusCode.UnhandledException);
         }
     }
 
@@ -70,10 +49,11 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice2DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
+
+            yield return new TestCaseData(
+                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                StatusCode.ApplicationError);
 
             // When there is an exception specification, we attempt and fail to encode the Slice1-only
             // MyDerivedException.
@@ -85,10 +65,11 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice2DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
+
+            yield return new TestCaseData(
+                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                StatusCode.ApplicationError);
 
             // When there is no exception specification, we don't attempt to encode the Slice exception at all; we
             // only encode the base DispatchException.

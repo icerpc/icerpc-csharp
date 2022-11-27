@@ -75,10 +75,7 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/foo" })
-        {
-            Operation = "op"
-        };
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
         IncomingResponse response = await sut.Client.InvokeAsync(request);
