@@ -12,7 +12,7 @@ public interface IActivator
     /// <returns>A new instance of the class identified by <paramref name="typeId" />.</returns>
     object? CreateClassInstance(string typeId, ref SliceDecoder decoder);
 
-    /// <summary>Creates an instance of a Slice class based on a type ID.</summary>
+    /// <summary>Creates an instance of a Slice exception based on a type ID.</summary>
     /// <param name="typeId">The Slice type ID.</param>
     /// <param name="decoder">The decoder.</param>
     /// <param name="message">The exception message.</param>
