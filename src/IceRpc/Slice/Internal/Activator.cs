@@ -8,7 +8,10 @@ using System.Reflection;
 
 namespace IceRpc.Slice.Internal;
 
-internal delegate object ActivateObject(ref SliceDecoder decoder);
+// Instantiates a Slice class or exception. The message is used only for exceptions.
+// Note that the decoder is actually not used by the constructor of the Slice class or exception since the actual
+// decoding takes place later on.
+internal delegate object ActivateObject(ref SliceDecoder decoder, string? message);
 
 /// <summary>The default implementation of <see cref="IActivator" />, which uses a dictionary.</summary>
 internal class Activator : IActivator
@@ -18,8 +21,11 @@ internal class Activator : IActivator
 
     private readonly IReadOnlyDictionary<string, Lazy<ActivateObject>> _dict;
 
-    object? IActivator.CreateInstance(string typeId, ref SliceDecoder decoder) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder) : null;
+    public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
+        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder, message: null) : null;
+
+    public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
+        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder, message) : null;
 
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
     internal static Activator Merge(IEnumerable<Activator> activators)
@@ -98,10 +104,16 @@ internal class ActivatorFactory
 
         static ActivateObject CreateActivateObject(Type type)
         {
+            bool isException = type.IsSubclassOf(typeof(SliceException));
+
+            Type[] types = isException ?
+                new Type[] { typeof(SliceDecoder).MakeByRefType(), typeof(string) } :
+                new Type[] { typeof(SliceDecoder).MakeByRefType() };
+
             ConstructorInfo? constructor = type.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public,
                 null,
-                new Type[] { typeof(SliceDecoder).MakeByRefType() },
+                types,
                 null);
 
             if (constructor is null)
@@ -112,13 +124,13 @@ internal class ActivatorFactory
             ParameterExpression decoderParam =
                 Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");
 
-            Expression expression = Expression.New(constructor, decoderParam);
-            if (type.IsValueType)
-            {
-                // Box the expression.
-                expression = Expression.Convert(expression, typeof(object));
-            }
-            return Expression.Lambda<ActivateObject>(expression, decoderParam).Compile();
+            ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
+
+            Expression expression = isException ?
+                Expression.New(constructor, decoderParam, messageParam) :
+                Expression.New(constructor, decoderParam);
+
+            return Expression.Lambda<ActivateObject>(expression, decoderParam, messageParam).Compile();
         }
     }
 

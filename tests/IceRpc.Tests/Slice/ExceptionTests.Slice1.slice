@@ -26,5 +26,10 @@ exception MyDerivedException : MyException
 
 interface Slice1ExceptionOperations
 {
-    opThrows() throws AnyException;
+    opThrowsAnyException() throws AnyException;
+
+    // TODO: see bug https://github.com/zeroc-ice/icerpc/issues/355
+    // opThrowsMyException() throws MyException;
+
+    opThrowsNothing();
 }

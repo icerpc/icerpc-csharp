@@ -107,7 +107,10 @@ public class SlicingTests
             _slicedTypeIds = slicedTypeIds ?? ImmutableList<string>.Empty;
         }
 
-        public object? CreateInstance(string typeId, ref SliceDecoder decoder) =>
-            _slicedTypeIds.Contains(typeId) ? null : _decoratee.CreateInstance(typeId, ref decoder);
+        public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
+            _slicedTypeIds.Contains(typeId) ? null : _decoratee.CreateClassInstance(typeId, ref decoder);
+
+        public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
+            _slicedTypeIds.Contains(typeId) ? null : _decoratee.CreateExceptionInstance(typeId, ref decoder, message);
     }
 }

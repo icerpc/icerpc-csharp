@@ -65,8 +65,9 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a Slice1 user exception.</summary>
+    /// <param name="message">The error message.</param>
     /// <returns>The decoded Slice exception.</returns>
-    public SliceException DecodeUserException()
+    public SliceException DecodeUserException(string? message = null)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -94,7 +95,7 @@ public ref partial struct SliceDecoder
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-            sliceException = activator.CreateInstance(typeId, ref this) as SliceException;
+            sliceException = activator.CreateExceptionInstance(typeId, ref this, message) as SliceException;
             if (sliceException is null && SkipSlice(typeId))
             {
                 // Slice off what we don't understand.
@@ -285,7 +286,7 @@ public ref partial struct SliceDecoder
             // not created yet.
             if (typeId is not null)
             {
-                instance = activator.CreateInstance(typeId, ref this) as SliceClass;
+                instance = activator.CreateClassInstance(typeId, ref this) as SliceClass;
             }
 
             if (instance is null && SkipSlice(typeId))

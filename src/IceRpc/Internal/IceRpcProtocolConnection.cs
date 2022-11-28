@@ -981,22 +981,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _ => StatusCode.UnhandledException
                     };
 
-                    // We pass null for message to get the message computed from the exception by Message.
+                    // We want the default error message for this new exception.
                     dispatchException = new DispatchException(statusCode, message: null, exception);
                 }
 
-                // If the exception in question is derived from DispatchException (for example a SliceException),
-                // we encode this exception as a plain DispatchException with just a status code and a message.
                 // The payload of response below is always empty.
                 response = new OutgoingResponse(request, dispatchException);
 
                 // Encode the retry policy into the fields of the new response.
                 if (dispatchException.RetryPolicy != RetryPolicy.NoRetry)
                 {
-                    RetryPolicy retryPolicy = dispatchException.RetryPolicy;
-                    response.Fields = response.Fields.With(
-                        ResponseFieldKey.RetryPolicy,
-                        retryPolicy.Encode);
+                    response.Fields =
+                        response.Fields.With(ResponseFieldKey.RetryPolicy, dispatchException.RetryPolicy.Encode);
                 }
             }
 

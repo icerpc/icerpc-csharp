@@ -602,7 +602,7 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
                     format!(
                         r#"if ({encoding_variable} != {encoding})
 {{
-    throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding");
+    throw new NotSupportedException("{identifier} can only be encoded with {encoding_name}.");
 }}
 "#,
                         identifier = self.identifier,

@@ -84,38 +84,25 @@ impl Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        // The constructor used by the Activator. It needs to be public for the activator.
-        if !has_base && exception_def.supported_encodings().supports(&Encoding::Slice1) {
-            exception_class_builder.add_block(
-                FunctionBuilder::new_with_base_constructor(
-                    "public",
-                    "",
-                    &exception_name,
-                    "this",
-                    FunctionType::BlockBody,
-                )
-                .add_parameter("ref SliceDecoder", "decoder", None, None)
-                .add_base_parameter("message: null")
-                .add_base_parameter("ref decoder")
-                .add_never_editor_browsable_attribute()
-                .build(),
-            );
-        }
-
         if has_base {
             exception_class_builder.add_block(
                 FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
+                    .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("ref decoder")
+                    .add_base_parameter("message")
                     .set_body(initialize_non_nullable_fields(&members, FieldType::Exception))
                     .add_never_editor_browsable_attribute()
                     .build(),
             );
         } else {
+            // With Slice1, this constructor should be called only by the Activator and not directly by the application
+            // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
+            // generated code or the application. Hence no "never editor browsable" attribute.
             exception_class_builder.add_block(
                 FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("string?", "message", None, None)
                     .add_parameter("ref SliceDecoder", "decoder", None, None)
+                    .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("message")
                     .set_body(
                         EncodingBlockBuilder::new(

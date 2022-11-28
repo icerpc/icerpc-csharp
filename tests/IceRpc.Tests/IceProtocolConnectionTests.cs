@@ -12,7 +12,51 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
-    public static IEnumerable<TestCaseData> ResponseRetryPolicySource
+    private static IEnumerable<TestCaseData> DispatchExceptionSource
+    {
+        get
+        {
+            var unhandledException = new DispatchException(StatusCode.UnhandledException);
+
+            var invalidDataException = new InvalidDataException("invalid data");
+            yield return new TestCaseData(
+                invalidDataException ,
+                StatusCode.UnhandledException,
+                GetErrorMessage(unhandledException.Message, invalidDataException));
+
+            var invalidOperationException = new InvalidOperationException("invalid op message");
+            yield return new TestCaseData(
+                invalidOperationException,
+                StatusCode.UnhandledException,
+                GetErrorMessage(unhandledException.Message, invalidOperationException));
+
+            var applicationError = new DispatchException(StatusCode.ApplicationError, "application message");
+            yield return new TestCaseData(
+                applicationError,
+                StatusCode.UnhandledException,
+                GetErrorMessage(applicationError));
+
+            var deadlineExpired = new DispatchException(StatusCode.DeadlineExpired, "deadline message");
+            yield return new TestCaseData(
+                deadlineExpired,
+                StatusCode.UnhandledException,
+                GetErrorMessage(deadlineExpired));
+
+            var serviceNotFound = new DispatchException(StatusCode.ServiceNotFound);
+            yield return new TestCaseData(
+                serviceNotFound,
+                StatusCode.ServiceNotFound,
+                "The dispatch failed with status code ServiceNotFound while dispatching 'op' on '/foo'.");
+
+            var operationNotFound = new DispatchException(StatusCode.OperationNotFound);
+            yield return new TestCaseData(
+                operationNotFound,
+                StatusCode.OperationNotFound,
+                "The dispatch failed with status code OperationNotFound while dispatching 'op' on '/foo'.");
+        }
+    }
+
+    private static IEnumerable<TestCaseData> ResponseRetryPolicySource
     {
         get
         {
@@ -36,6 +80,36 @@ public sealed class IceProtocolConnectionTests
                 StatusCode.UnhandledException,
                 null);
         }
+    }
+
+    [Test, TestCaseSource(nameof(DispatchExceptionSource))]
+    public async Task Dispatcher_throws_exception(
+        Exception exception,
+        StatusCode expectedStatusCode,
+        string expectedErrorMessage)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw exception);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+        response.Payload.TryRead(out ReadResult readResult);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
+        Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
+        Assert.That(readResult.IsCompleted, Is.True);
+        Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with a <see
@@ -186,4 +260,10 @@ public sealed class IceProtocolConnectionTests
         exception = Assert.ThrowsAsync<ConnectionException>(async () => await sut.Server.ShutdownComplete);
         Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
+
+    private static string GetErrorMessage(string Message, Exception innerException) =>
+        $"{Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
+
+    private static string GetErrorMessage(DispatchException dispatchException) =>
+        $"{dispatchException.Message} {{ Original StatusCode = {dispatchException.StatusCode} }}";
 }
