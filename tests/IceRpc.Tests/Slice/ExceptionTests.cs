@@ -12,8 +12,10 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests
 {
-    private static IEnumerable<TestCaseData> Slice1DispatchThrowsAnyExceptionSource
+    private static IEnumerable<TestCaseData> Slice1DispatchThrowsSource
     {
+        // Slice1-encodable exceptions are transmitted as dispatch exceptions with status code
+        // StatusCode.ApplicationError over icerpc regardless of the exception specification.
         get
         {
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
@@ -22,10 +24,38 @@ public sealed class ExceptionTests
             yield return new TestCaseData(
                 new MyExceptionWithTaggedMembers(5, 12, 13, 28),
                 StatusCode.ApplicationError);
+        }
+    }
 
+    private static IEnumerable<TestCaseData> Slice1DispatchThrowsAnyExceptionSource
+    {
+        get
+        {
+            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
+            {
+                yield return testCaseData;
+            }
+
+            // The generated code attempts to encode the exception and fails to do so since it's Slice2-only.
             yield return new TestCaseData(
                 new MyExceptionWithOptionalMembers(5, 12, 13, 28),
                 StatusCode.UnhandledException);
+        }
+    }
+
+    private static IEnumerable<TestCaseData> Slice1DispatchThrowsMyExceptionSource
+    {
+        get
+        {
+            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
+            {
+                yield return testCaseData;
+            }
+
+            // The generated code does not attempt to encode this exception, and we transmit it over icerpc.
+            yield return new TestCaseData(
+                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                StatusCode.ApplicationError);
         }
     }
 
@@ -33,12 +63,25 @@ public sealed class ExceptionTests
     {
         get
         {
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
-            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
+            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
+            {
+                yield return testCaseData;
+            }
 
+            // The generated code does not attempt to encode this exception, and we transmit it over icerpc.
             yield return new TestCaseData(
-                new MyExceptionWithTaggedMembers(5, 12, 13, 28),
+                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
                 StatusCode.ApplicationError);
+        }
+    }
+
+    private static IEnumerable<TestCaseData> Slice2DispatchThrowsSource
+    {
+        // Slice2-encodable exceptions are transmitted as application error over icerpc regardless of the exception
+        // specification.
+        get
+        {
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
 
             yield return new TestCaseData(
                 new MyExceptionWithOptionalMembers(5, 12, 13, 28),
@@ -50,11 +93,10 @@ public sealed class ExceptionTests
     {
         get
         {
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
-
-            yield return new TestCaseData(
-                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
-                StatusCode.ApplicationError);
+            foreach (TestCaseData testCaseData in Slice2DispatchThrowsSource)
+            {
+                yield return testCaseData;
+            }
 
             // When there is an exception specification, we attempt and fail to encode the Slice1-only
             // MyDerivedException.
@@ -66,11 +108,10 @@ public sealed class ExceptionTests
     {
         get
         {
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
-
-            yield return new TestCaseData(
-                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
-                StatusCode.ApplicationError);
+            foreach (TestCaseData testCaseData in Slice2DispatchThrowsSource)
+            {
+                yield return testCaseData;
+            }
 
             // When there is no exception specification, we don't attempt to encode the Slice exception at all; we
             // only encode the base DispatchException.
@@ -435,17 +476,13 @@ public sealed class ExceptionTests
 
         var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
+        Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
+            throwException.GetType() : typeof(DispatchException);
 
         // Act/Assert
-        DispatchException? exception;
-        if (throwException is MyException && expectedStatusCode == StatusCode.ApplicationError)
-        {
-            exception = Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
-        }
-        else
-        {
-            exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsMyExceptionAsync());
-        }
+        var exception = (DispatchException?)Assert.ThrowsAsync(
+                expectedType,
+                () => proxy.OpThrowsMyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
@@ -482,17 +519,35 @@ public sealed class ExceptionTests
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        DispatchException? exception;
-        if (expectedStatusCode == StatusCode.ApplicationError)
-        {
-            exception = (DispatchException?)Assert.ThrowsAsync(
-                throwException.GetType(),
-                () => proxy.OpThrowsAnyExceptionAsync());
-        }
-        else
-        {
-            exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsAnyExceptionAsync());
-        }
+        Type expectedType = expectedStatusCode == StatusCode.ApplicationError ?
+            throwException.GetType() : typeof(DispatchException);
+
+        var exception = (DispatchException?)Assert.ThrowsAsync(
+            expectedType,
+            () => proxy.OpThrowsAnyExceptionAsync());
+
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
+    }
+
+    [Test, TestCaseSource(nameof(Slice1DispatchThrowsMyExceptionSource))]
+    public async Task Slice1_operation_throws_exception_with_my_exception_specification(
+        Exception throwException,
+        StatusCode expectedStatusCode)
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(new Slice1ExceptionOperations(throwException))
+            .BuildServiceProvider(validateScopes: true);
+
+        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
+
+        Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
+            throwException.GetType() : typeof(DispatchException);
+
+        var exception = (DispatchException?)Assert.ThrowsAsync(
+                expectedType,
+                () => proxy.OpThrowsMyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
@@ -540,6 +595,9 @@ public sealed class ExceptionTests
         public Slice1ExceptionOperations(Exception exception) => _exception = exception;
 
         public ValueTask OpThrowsAnyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
+            throw _exception;
+
+        public ValueTask OpThrowsMyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
 
         public ValueTask OpThrowsNothingAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
