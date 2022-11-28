@@ -95,10 +95,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                     ListenEndPoint = new IPEndPoint(ipAddress, serverAddress.Port),
                     ListenBacklog = quicTransportOptions.ListenBacklog,
                     ApplicationProtocols = authenticationOptions.ApplicationProtocols,
-                    ConnectionOptionsCallback = GetConnectionOptionsAsync
+                    ConnectionOptionsCallback = (connection, sslInfo, cancellationToken) => new(_quicServerOptions)
                 },
                 CancellationToken.None);
-
             Debug.Assert(task.IsCompleted);
             _listener = task.Result;
 
@@ -109,12 +108,4 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             throw exception.ToTransportException();
         }
     }
-
-    private ValueTask<QuicServerConnectionOptions> GetConnectionOptionsAsync(
-        QuicConnection connection,
-        SslClientHelloInfo sslInfo,
-        CancellationToken cancellationToken) =>
-        // TODO: Provide functionality to validate the SSL client hello message here? Does Quic run the
-        // SslServerAuthenticationOptions.RemoteCertificateValidationCallback?
-        new(_quicServerOptions);
 }
