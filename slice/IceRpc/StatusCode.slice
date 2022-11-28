@@ -18,6 +18,10 @@ unchecked enum StatusCode : varuint62
     /// The dispatch found the target service but this target service does not have the requested operation.
     OperationNotFound,
 
+    /// The target service is currently unavailable. The caller can safely retry later or with another server since the
+    /// dispatch did not perform any non-idempotent action.
+    Unavailable,
+
     /// The dispatch failed with an unhandled exception.
     UnhandledException,
 

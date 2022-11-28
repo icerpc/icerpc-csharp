@@ -179,14 +179,12 @@ public sealed class ProtocolBridgingTests
 
             // Then create an outgoing response from the incoming response.
 
-            // Don't forward RetryPolicy
             // TODO: copy fields memory?
             var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
                     incomingResponse.Fields.Select(
                         pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
                             pair.Key,
                             new OutgoingFieldValue(pair.Value))));
-            _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
             if (incomingResponse.StatusCode == StatusCode.Success)
             {

@@ -29,7 +29,8 @@ impl Visitor for ExceptionVisitor<'_> {
 
         let members = exception_def.members();
 
-        let has_public_parameter_constructor = exception_def.all_members().iter().all(|m| m.is_default_initialized());
+        let has_parameterless_constructor = exception_def.all_members().iter().all(|m| m.is_default_initialized());
+
         let access = exception_def.access_modifier();
 
         let mut exception_class_builder = ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
@@ -69,17 +70,16 @@ impl Visitor for ExceptionVisitor<'_> {
             .add_block(one_shot_constructor(exception_def, false))
             .add_block(one_shot_constructor(exception_def, true));
 
-        // public parameter-less constructor
-        if has_public_parameter_constructor {
+        if has_parameterless_constructor {
             exception_class_builder.add_block(
                 FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                     .add_parameter(
-                        "IceRpc.RetryPolicy?",
-                        "retryPolicy",
+                        "string?",
+                        "message",
                         Some("null"),
-                        Some("The retry policy for the exception"),
+                        Some("A message that describes the exception."),
                     )
-                    .add_base_parameter("retryPolicy")
+                    .add_base_parameter("message")
                     .build(),
             );
         }
@@ -222,7 +222,6 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
 
     let message_parameter_name = escape_parameter_name(&all_data_members, "message");
     let inner_exception_parameter_name = escape_parameter_name(&all_data_members, "innerException");
-    let retry_policy_parameter_name = escape_parameter_name(&all_data_members, "retryPolicy");
 
     let base_parameters = if let Some(base) = exception_def.base_exception() {
         base.all_members()
@@ -245,7 +244,7 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
             "string?",
             &message_parameter_name,
             None,
-            Some("Message that describes the exception."),
+            Some("A message that describes the exception."),
         );
         ctor_builder.add_base_parameter(&message_parameter_name);
     }
@@ -271,14 +270,6 @@ fn one_shot_constructor(exception_def: &Exception, add_message_and_exception_par
         );
         ctor_builder.add_base_parameter(&inner_exception_parameter_name);
     }
-
-    ctor_builder.add_parameter(
-        "IceRpc.RetryPolicy?",
-        &retry_policy_parameter_name,
-        Some("null"),
-        Some("The retry policy for the exception."),
-    );
-    ctor_builder.add_base_parameter(&retry_policy_parameter_name);
 
     // ctor impl
     let mut ctor_body = CodeBlock::default();

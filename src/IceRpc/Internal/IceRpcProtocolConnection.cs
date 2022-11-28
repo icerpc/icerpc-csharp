@@ -987,13 +987,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 // The payload of response below is always empty.
                 response = new OutgoingResponse(request, dispatchException);
-
-                // Encode the retry policy into the fields of the new response.
-                if (dispatchException.RetryPolicy != RetryPolicy.NoRetry)
-                {
-                    response.Fields =
-                        response.Fields.With(ResponseFieldKey.RetryPolicy, dispatchException.RetryPolicy.Encode);
-                }
             }
 
             if (request.IsOneway)

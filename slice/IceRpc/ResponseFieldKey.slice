@@ -5,9 +5,6 @@ module IceRpc;
 /// The keys of fields carried by icerpc response headers.
 unchecked enum ResponseFieldKey : varuint62
 {
-    /// The retry policy field.
-    RetryPolicy = 0,
-
     /// The compression format of the payload.
     CompressionFormat = 2,
 }

@@ -42,45 +42,28 @@ public static class IncomingRequestExtensions
             throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        var response = new OutgoingResponse(request, sliceException)
-        {
-            Payload = CreateExceptionPayload()
-        };
-
-        if (response.Protocol.HasFields && sliceException.RetryPolicy != RetryPolicy.NoRetry)
-        {
-            // Encode the retry policy into the fields of the new response.
-            RetryPolicy retryPolicy = sliceException.RetryPolicy;
-            response.Fields = response.Fields.With(
-                ResponseFieldKey.RetryPolicy,
-                retryPolicy.Encode);
-        }
-        return response;
-
-        PipeReader CreateExceptionPayload()
-        {
-            SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
+        SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                 SliceEncodeOptions.Default;
 
-            var pipe = new Pipe(encodeOptions.PipeOptions);
-            var encoder = new SliceEncoder(pipe.Writer, encoding);
+        var pipe = new Pipe(encodeOptions.PipeOptions);
+        var encoder = new SliceEncoder(pipe.Writer, encoding);
 
-            // sliceException.Encode can throw NotSupportedException
-            if (encoding == SliceEncoding.Slice1)
-            {
-                sliceException.Encode(ref encoder);
-            }
-            else
-            {
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-                int startPos = encoder.EncodedByteCount;
-                sliceException.Encode(ref encoder);
-                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-            }
-
-            pipe.Writer.Complete();
-            return pipe.Reader;
+        // sliceException.Encode can throw NotSupportedException
+        if (encoding == SliceEncoding.Slice1)
+        {
+            sliceException.Encode(ref encoder);
         }
+        else
+        {
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            sliceException.Encode(ref encoder);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        }
+
+        pipe.Writer.Complete();
+
+        return new OutgoingResponse(request, sliceException) { Payload = pipe.Reader };
     }
 
     /// <summary>Decodes a request payload into a list of arguments.</summary>
