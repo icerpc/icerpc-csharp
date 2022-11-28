@@ -34,10 +34,13 @@ impl Visitor for ExceptionVisitor<'_> {
 
         let mut exception_class_builder = ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
 
-        exception_class_builder
-            .add_comment("summary", doc_comment_message(exception_def))
-            .add_type_id_attribute(exception_def)
-            .add_container_attributes(exception_def);
+        exception_class_builder.add_comment("summary", doc_comment_message(exception_def));
+
+        if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+            exception_class_builder.add_type_id_attribute(exception_def);
+        }
+
+        exception_class_builder.add_container_attributes(exception_def);
 
         if let Some(base) = exception_def.base_exception() {
             exception_class_builder.add_base(base.escape_scoped_identifier(namespace));
