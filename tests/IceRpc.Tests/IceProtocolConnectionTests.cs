@@ -20,7 +20,7 @@ public sealed class IceProtocolConnectionTests
 
             var invalidDataException = new InvalidDataException("invalid data");
             yield return new TestCaseData(
-                new InvalidDataException("invalid data"),
+                invalidDataException ,
                 StatusCode.UnhandledException,
                 GetErrorMessage(unhandledException.Message, invalidDataException));
 
