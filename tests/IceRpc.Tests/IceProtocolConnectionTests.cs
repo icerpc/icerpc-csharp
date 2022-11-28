@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -155,5 +156,34 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Receiving_a_frame_larger_than_max_ice_frame_size_aborts_the_connection()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                serverConnectionOptions: new ConnectionOptions
+                {
+                    MaxIceFrameSize = 256
+                })
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[1024]));
+        pipe.Writer.Complete();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        {
+            Payload = pipe.Reader
+        };
+
+        // Act/Assert
+        var exception = Assert.ThrowsAsync<ConnectionException>(
+            async () => await sut.Client.InvokeAsync(request, default));
+        Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
+        exception = Assert.ThrowsAsync<ConnectionException>(async () => await sut.Server.ShutdownComplete);
+        Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
 }
