@@ -28,8 +28,7 @@ interface Slice1ExceptionOperations
 {
     opThrowsAnyException() throws AnyException;
 
-    // TODO: see bug https://github.com/zeroc-ice/icerpc/issues/355
-    // opThrowsMyException() throws MyException;
+    opThrowsMyException() throws MyException;
 
     opThrowsNothing();
 }
