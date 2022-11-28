@@ -280,6 +280,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Notify the ConnectionLost callback.
                     ConnectionLost(exception);
+                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
+                    // be running.
+                    CancelDispatchesAndInvocations();
+
+                    // Also kill the transport connection right away instead of waiting Dispose to be called.
+                    _duplexConnection.Dispose();
                 }
                 finally
                 {
