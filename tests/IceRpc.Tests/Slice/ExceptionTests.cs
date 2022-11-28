@@ -556,7 +556,7 @@ public sealed class ExceptionTests
         {
             exception = (DispatchException?)Assert.ThrowsAsync(
                 throwException.GetType(),
-                () => proxy.OpThrowsAnyExceptionAsync());
+                () => proxy.OpThrowsMyExceptionAsync());
         }
         else
         {
