@@ -43,7 +43,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
-    private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
+    private int _invocationCount;
     private bool _isReadOnly;
     private readonly ILogger _logger;
     private readonly int _maxFrameSize;
@@ -58,6 +58,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly CancellationTokenSource _tasksCts = new();
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
+    private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _twowayInvocations = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
     internal IceProtocolConnection(
@@ -162,7 +163,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
-                if (_invocations.Count == 0 && _dispatchCount == 0)
+                if (_invocationCount == 0 && _dispatchCount == 0)
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
@@ -175,7 +176,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
-            if (_invocations.Count == 0 && _dispatchCount == 0)
+            if (_invocationCount == 0 && _dispatchCount == 0)
             {
                 _isReadOnly = true;
                 ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByIdle);
@@ -343,7 +344,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         OutgoingRequest request,
         CancellationToken cancellationToken)
     {
-        CancellationTokenSource? cts = null;
+        CancellationTokenSource cts;
 
         lock (_mutex)
         {
@@ -362,8 +363,26 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 cancellationToken);
         }
 
+        lock (_mutex)
+        {
+            if (_isReadOnly)
+            {
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
+            }
+            else
+            {
+                if (_invocationCount == 0 && _dispatchCount == 0)
+                {
+                    DisableIdleCheck();
+                }
+
+                ++_invocationCount;
+            }
+        }
+
         PipeReader? frameReader = null;
-        int requestId = 0;
+        int? requestId = null;
         try
         {
             // Read the full payload. This can take some time so this needs to be done before acquiring the write
@@ -378,35 +397,35 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
             PipeWriter payloadWriter = _payloadWriter;
             TaskCompletionSource<PipeReader>? responseCompletionSource = null;
+
             try
             {
                 // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
                 // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
                 // canceled request to allocate a request ID that won't be used.
-                if (!request.IsOneway)
+                lock (_mutex)
                 {
-                    lock (_mutex)
+                    if (_isReadOnly)
                     {
-                        if (_isReadOnly)
+                        Debug.Assert(ConnectionClosedException is not null);
+                        throw ConnectionClosedException;
+                    }
+                    else
+                    {
+                        if (request.IsOneway)
                         {
-                            Debug.Assert(ConnectionClosedException is not null);
-                            throw ConnectionClosedException;
+                            requestId = 0;
                         }
                         else
                         {
-                            if (_invocations.Count == 0 && _dispatchCount == 0)
-                            {
-                                DisableIdleCheck();
-                            }
-
                             requestId = ++_nextRequestId;
                             responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                            _invocations[requestId] = responseCompletionSource;
+                            _twowayInvocations[requestId.Value] = responseCompletionSource;
                         }
                     }
                 }
 
-                EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
+                EncodeRequestHeader(_duplexConnectionWriter, request, requestId.Value, payloadSize);
 
                 payloadWriter = request.GetPayloadWriter(payloadWriter);
 
@@ -461,7 +480,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             Debug.Assert(readResult.IsCompleted);
 
             (StatusCode statusCode, string? errorMessage, SequencePosition consumed) =
-                DecodeResponseHeader(readResult.Buffer, requestId);
+                DecodeResponseHeader(readResult.Buffer, requestId.Value);
 
             frameReader.AdvanceTo(consumed);
 
@@ -484,7 +503,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             frameReader = null; // response now owns frameReader
             return response;
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
+        catch (OperationCanceledException) when (
+            _dispatchesAndInvocationsCts.IsCancellationRequested ||
+            _tasksCts.IsCancellationRequested)
         {
             if (ConnectionClosedException is ConnectionException connectionException &&
                 connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
@@ -497,6 +518,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Otherwise, the invocation was canceled because of a speedy-shutdown.
                 throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
+        }
+        catch (ConnectionException)
+        {
+            throw;
         }
         catch (OperationCanceledException)
         {
@@ -512,24 +537,24 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         finally
         {
-            if (!request.IsOneway)
+            lock (_mutex)
             {
-                // Unregister the invocation.
-                lock (_mutex)
+                // If registered, unregister the twoway invocation.
+                if (requestId is not null && !request.IsOneway)
                 {
-                    if (_invocations.Remove(requestId))
+                    _twowayInvocations.Remove(requestId.Value);
+                }
+
+                --_invocationCount;
+                if (_invocationCount == 0 && _dispatchCount == 0)
+                {
+                    if (_isReadOnly)
                     {
-                        if (_invocations.Count == 0 && _dispatchCount == 0)
-                        {
-                            if (_isReadOnly)
-                            {
-                                _dispatchesAndInvocationsCompleted.TrySetResult();
-                            }
-                            else
-                            {
-                                EnableIdleCheck();
-                            }
-                        }
+                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                    }
+                    else
+                    {
+                        EnableIdleCheck();
                     }
                 }
             }
@@ -665,7 +690,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true;
-            if (_dispatchCount == 0 && _invocations.Count == 0)
+            if (_invocationCount == 0 && _dispatchCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
@@ -868,7 +893,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 lock (_mutex)
                 {
-                    if (_invocations.TryGetValue(
+                    if (_twowayInvocations.TryGetValue(
                         requestId,
                         out TaskCompletionSource<PipeReader>? responseCompletionSource))
                     {
@@ -961,10 +986,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         Debug.Assert(ConnectionClosedException is not null);
                         throw ConnectionClosedException;
                     }
-                    else if (_invocations.Count == 0 && ++_dispatchCount == 1)
+                    else
                     {
-                        // We were idle, we no longer are.
-                        DisableIdleCheck();
+                        if (_invocationCount == 0 && _dispatchCount == 0)
+                        {
+                            DisableIdleCheck();
+                        }
+
+                        ++_dispatchCount;
                     }
                 }
             }
@@ -1140,7 +1169,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         // Dispatch is done.
                         --_dispatchCount;
-                        if (_invocations.Count == 0 && _dispatchCount == 0)
+                        if (_invocationCount == 0 && _dispatchCount == 0)
                         {
                             if (_isReadOnly)
                             {
