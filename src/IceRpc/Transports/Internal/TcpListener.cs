@@ -57,7 +57,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     internal TcpListener(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        SslServerAuthenticationOptions? authenticationOptions,
         TcpServerTransportOptions tcpOptions)
     {
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
@@ -66,7 +66,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
                 $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
         }
 
-        _authenticationOptions = serverAuthenticationOptions;
+        _authenticationOptions = authenticationOptions?.Clone();
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
 
