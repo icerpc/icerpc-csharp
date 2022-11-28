@@ -14,8 +14,8 @@ public sealed class ExceptionTests
 {
     private static IEnumerable<TestCaseData> Slice1DispatchThrowsSource
     {
-        // Slice1-encodable exceptions are transmitted as application error over icerpc regardless of the exception
-        // specification.
+        // Slice1-encodable exceptions are transmitted as dispatch exceptions with status code
+        // StatusCode.ApplicationError over icerpc regardless of the exception specification.
         get
         {
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
@@ -476,17 +476,13 @@ public sealed class ExceptionTests
 
         var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
+        Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
+            throwException.GetType() : typeof(DispatchException);
 
         // Act/Assert
-        DispatchException? exception;
-        if (throwException is MyException && expectedStatusCode == StatusCode.ApplicationError)
-        {
-            exception = Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
-        }
-        else
-        {
-            exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsMyExceptionAsync());
-        }
+        var exception = (DispatchException?)Assert.ThrowsAsync(
+                expectedType,
+                () => proxy.OpThrowsMyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
@@ -523,17 +519,12 @@ public sealed class ExceptionTests
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        DispatchException? exception;
-        if (expectedStatusCode == StatusCode.ApplicationError)
-        {
-            exception = (DispatchException?)Assert.ThrowsAsync(
-                throwException.GetType(),
-                () => proxy.OpThrowsAnyExceptionAsync());
-        }
-        else
-        {
-            exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsAnyExceptionAsync());
-        }
+        Type expectedType = expectedStatusCode == StatusCode.ApplicationError ?
+            throwException.GetType() : typeof(DispatchException);
+
+        var exception = (DispatchException?)Assert.ThrowsAsync(
+            expectedType,
+            () => proxy.OpThrowsAnyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
@@ -551,17 +542,12 @@ public sealed class ExceptionTests
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        DispatchException? exception;
-        if (expectedStatusCode == StatusCode.ApplicationError && throwException is MyException)
-        {
-            exception = (DispatchException?)Assert.ThrowsAsync(
-                throwException.GetType(),
+        Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
+            throwException.GetType() : typeof(DispatchException);
+
+        var exception = (DispatchException?)Assert.ThrowsAsync(
+                expectedType,
                 () => proxy.OpThrowsMyExceptionAsync());
-        }
-        else
-        {
-            exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsMyExceptionAsync());
-        }
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
