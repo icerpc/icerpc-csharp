@@ -182,7 +182,7 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         var exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Client.InvokeAsync(request, default));
-        Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+        Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.TransportError));
         exception = Assert.ThrowsAsync<ConnectionException>(async () => await sut.Server.ShutdownComplete);
         Assert.That(exception.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
     }
