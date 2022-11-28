@@ -4,7 +4,8 @@ namespace IceRpc.Slice;
 
 /// <summary>With Slice1, each tagged parameter has a specific tag format. This tag format describes how the data is
 /// encoded and how it can be skipped by the decoding code if the tagged parameter is present in the buffer but is
-/// not known to the receiver.</summary>
+/// not known to the receiver. The tag format is encoded in 3 bits as a result only values in the range 0 to 7 are
+/// encoded.</summary>
 public enum TagFormat : int
 {
     /// <summary>A fixed size numeric encoded on 1 byte such as bool or uint8.</summary>
