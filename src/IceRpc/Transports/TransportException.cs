@@ -21,9 +21,6 @@ public enum TransportErrorCode
     /// <summary>The peer refused the connection.</summary>
     ConnectionRefused,
 
-    /// <summary>The connection timed out while waiting to get data from the peer.</summary>
-    ConnectionTimeout,
-
     /// <summary>An internal error occurred.</summary>
     InternalError,
 

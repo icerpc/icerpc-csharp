@@ -16,40 +16,23 @@ public class DispatchException : Exception
     /// <see cref="DispatchException" />.</value>
     public bool ConvertToUnhandled { get; set; }
 
-    /// <summary>Gets the retry policy.</summary>
-    public RetryPolicy RetryPolicy { get; }
-
     /// <summary>Gets the status code.</summary>
     public StatusCode StatusCode { get; }
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
     /// <param name="statusCode">The status code of this exception. It must be greater than
     /// <see cref="StatusCode.Success" />.</param>
-    /// <param name="retryPolicy">The retry policy for the exception.</param>
-    public DispatchException(StatusCode statusCode, RetryPolicy? retryPolicy = null)
-        : this(statusCode, message: GetDefaultMessage(statusCode), innerException: null, retryPolicy)
-    {
-    }
-
-    /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
-    /// <param name="statusCode">The status code of this exception. It must be greater than
-    /// <see cref="StatusCode.Success" />.</param>
-    /// <param name="message">Message that describes the exception.</param>
+    /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(
         StatusCode statusCode,
-        string? message,
-        Exception? innerException = null,
-        RetryPolicy? retryPolicy = null)
-        : base(message ?? GetDefaultMessage(statusCode), innerException)
-    {
+        string? message = null,
+        Exception? innerException = null)
+        : base(message ?? GetDefaultMessage(statusCode), innerException) =>
         StatusCode = statusCode > StatusCode.Success ? statusCode :
             throw new ArgumentOutOfRangeException(
                 nameof(statusCode),
                 $"The status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Success)}.");
-        RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
-    }
 
     private static string? GetDefaultMessage(StatusCode statusCode) =>
         statusCode == StatusCode.ApplicationError ? null : $"The dispatch failed with status code {statusCode}.";

@@ -252,7 +252,6 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(statusCode));
-        Assert.That(response.Fields.ContainsKey(ResponseFieldKey.RetryPolicy), Is.False);
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the

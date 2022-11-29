@@ -22,15 +22,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    private static readonly IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> _otherReplicaFields =
-        new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-        {
-            [ResponseFieldKey.RetryPolicy] = new ReadOnlySequence<byte>(new byte[]
-            {
-                (byte)Retryable.OtherReplica
-            })
-        }.ToImmutableDictionary();
-
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
@@ -44,7 +35,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private int _invocationCount;
-    private bool _isNotAcceptingDispatchesAndInvocations;
+    private bool _isAcceptingDispatchesAndInvocations;
     private readonly ILogger _logger;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -157,7 +148,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                _isNotAcceptingDispatchesAndInvocations = true; // don't accept new dispatches or invocations.
+                _isAcceptingDispatchesAndInvocations = false; // stop accepting new dispatches or invocations.
 
                 if (_invocationCount == 0 && _dispatchCount == 0)
                 {
@@ -171,10 +162,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
+            // If idle, stop accepting new dispatches or invocations and shutdown the connection.
             if (_invocationCount == 0 && _dispatchCount == 0)
             {
-                _isNotAcceptingDispatchesAndInvocations = true;
+                _isAcceptingDispatchesAndInvocations = false;
                 ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
@@ -229,6 +220,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
         }
 
+        // The connection is ready to start accepting dispatches on invocations.
+        _isAcceptingDispatchesAndInvocations = true;
+
         _readFramesTask = Task.Run(
             async () =>
             {
@@ -254,7 +248,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (TransportException exception) when (
                     exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
-                    _isNotAcceptingDispatchesAndInvocations &&
+                    !_isAcceptingDispatchesAndInvocations &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
@@ -354,7 +348,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             // Nothing prevents InvokeAsync to be called on a connection which is no longer accepting invocations. We
             // check for this condition here and throw ConnectionClosedException.
-            if (_isNotAcceptingDispatchesAndInvocations)
+            if (!_isAcceptingDispatchesAndInvocations)
             {
                 Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
@@ -400,23 +394,21 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // canceled request to allocate a request ID that won't be used.
                 lock (_mutex)
                 {
-                    if (_isNotAcceptingDispatchesAndInvocations)
+                    if (!_isAcceptingDispatchesAndInvocations)
                     {
                         Debug.Assert(ConnectionClosedException is not null);
                         throw ConnectionClosedException;
                     }
+
+                    if (request.IsOneway)
+                    {
+                        requestId = 0;
+                    }
                     else
                     {
-                        if (request.IsOneway)
-                        {
-                            requestId = 0;
-                        }
-                        else
-                        {
-                            requestId = ++_nextRequestId;
-                            responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                            _twowayInvocations[requestId.Value] = responseCompletionSource;
-                        }
+                        requestId = ++_nextRequestId;
+                        responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _twowayInvocations[requestId.Value] = responseCompletionSource;
                     }
                 }
 
@@ -479,18 +471,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             frameReader.AdvanceTo(consumed);
 
-            // For compatibility with ZeroC Ice "indirect" proxies
-            IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                statusCode == StatusCode.ServiceNotFound && request.ServiceAddress.ServerAddress is null ?
-                _otherReplicaFields :
-                ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
-
             var response = new IncomingResponse(
                 request,
                 _connectionContext!,
                 statusCode,
-                errorMessage,
-                fields)
+                errorMessage)
             {
                 Payload = frameReader
             };
@@ -539,13 +524,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 --_invocationCount;
                 if (_invocationCount == 0 && _dispatchCount == 0)
                 {
-                    if (_isNotAcceptingDispatchesAndInvocations)
+                    if (_isAcceptingDispatchesAndInvocations)
                     {
-                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                        EnableIdleCheck();
                     }
                     else
                     {
-                        EnableIdleCheck();
+                        _dispatchesAndInvocationsCompleted.TrySetResult();
                     }
                 }
             }
@@ -681,7 +666,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            _isNotAcceptingDispatchesAndInvocations = true;
+            _isAcceptingDispatchesAndInvocations = false;
             if (_invocationCount == 0 && _dispatchCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -892,7 +877,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         responseCompletionSource.SetResult(replyFrameReader);
                         completeFrameReader = false;
                     }
-                    else if (!_isNotAcceptingDispatchesAndInvocations)
+                    else
                     {
                         throw new InvalidDataException("received ice Reply for unknown invocation");
                     }
@@ -967,26 +952,23 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (OperationCanceledException)
                     {
-                        Debug.Assert(_isNotAcceptingDispatchesAndInvocations);
+                        Debug.Assert(!_isAcceptingDispatchesAndInvocations);
                     }
                 }
 
                 lock (_mutex)
                 {
-                    if (_isNotAcceptingDispatchesAndInvocations)
+                    if (!_isAcceptingDispatchesAndInvocations)
                     {
                         Debug.Assert(ConnectionClosedException is not null);
                         throw ConnectionClosedException;
                     }
-                    else
-                    {
-                        if (_invocationCount == 0 && _dispatchCount == 0)
-                        {
-                            DisableIdleCheck();
-                        }
 
-                        ++_dispatchCount;
+                    if (_invocationCount == 0 && _dispatchCount == 0)
+                    {
+                        DisableIdleCheck();
                     }
+                    ++_dispatchCount;
                 }
             }
             catch
@@ -1156,13 +1138,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         --_dispatchCount;
                         if (_invocationCount == 0 && _dispatchCount == 0)
                         {
-                            if (_isNotAcceptingDispatchesAndInvocations)
+                            if (_isAcceptingDispatchesAndInvocations)
                             {
-                                _dispatchesAndInvocationsCompleted.TrySetResult();
+                                EnableIdleCheck();
                             }
                             else
                             {
-                                EnableIdleCheck();
+                                _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
                         }
                     }

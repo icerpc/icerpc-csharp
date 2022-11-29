@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Retry.Internal;
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
@@ -21,7 +20,6 @@ public class RetryInterceptor : IInvoker
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="options">The options to configure the retry interceptor.</param>
     /// <param name="logger">The logger.</param>
-    /// <see cref="RetryPolicy" />
     public RetryInterceptor(IInvoker next, RetryOptions options, ILogger logger)
     {
         _next = next;
@@ -48,29 +46,29 @@ public class RetryInterceptor : IInvoker
                 IncomingResponse? response = null;
                 Exception? exception = null;
                 bool tryAgain;
-                RetryPolicy retryPolicy = RetryPolicy.NoRetry;
 
                 do
                 {
+                    bool retryWithOtherReplica = false;
+
                     // At this point, response can be non-null and carry a failure for which we're retrying. If
                     // _next.InvokeAsync throws NoServerAddressException, we return this previous failure.
                     try
                     {
-                        using IDisposable? scope = CreateRetryLogScope(attempt, retryPolicy);
-                        retryPolicy = RetryPolicy.NoRetry; // reset retry policy after logging
+                        using IDisposable? scope = CreateRetryLogScope(attempt);
 
                         response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-                        if (response.StatusCode == StatusCode.Success)
+                        if (response.StatusCode == StatusCode.Success ||
+                            (response.Protocol == Protocol.IceRpc && response.StatusCode != StatusCode.Unavailable) ||
+                            (response.Protocol == Protocol.Ice && response.StatusCode != StatusCode.ServiceNotFound))
                         {
                             return response;
                         }
-                        // else response carries a failure and we may want to retry
-
-                        // Extracts the retry policy from the fields
-                        retryPolicy = response.Fields.DecodeValue(
-                            ResponseFieldKey.RetryPolicy,
-                            (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
+                        else
+                        {
+                            retryWithOtherReplica = true;
+                        }
                     }
                     catch (NoServerAddressException ex)
                     {
@@ -80,51 +78,46 @@ public class RetryInterceptor : IInvoker
                     }
                     catch (OperationCanceledException)
                     {
-                        // TODO: try other replica depending on who canceled the request?
                         throw;
                     }
-                    catch (Exception ex)
+                    catch (Exception otherException)
                     {
                         response = null;
-                        exception = ex;
-
-                        // An invocation on a closed connection is always safe to retry.
-                        if ((ex is ConnectionException connectionException &&
-                             connectionException.ErrorCode.IsClosedErrorCode()) ||
-                            request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
-                            !decorator.IsRead)
-                        {
-                            retryPolicy = RetryPolicy.Immediately;
-                        }
+                        exception = otherException;
                     }
 
                     // We have an exception (possibly encoded in response) and the associated retry policy.
                     Debug.Assert(response is not null || exception is not null);
 
                     // Check if we can retry
-                    if (attempt < _options.MaxAttempts && retryPolicy != RetryPolicy.NoRetry && decorator.IsResettable)
+                    tryAgain = false;
+                    if (attempt < _options.MaxAttempts && decorator.IsResettable)
                     {
-                        tryAgain = true;
-                        attempt++;
-
-                        if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
+                        if (retryWithOtherReplica)
                         {
-                            await Task.Delay(retryPolicy.Delay, cancellationToken).ConfigureAwait(false);
+                            if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature &&
+                                serverAddressFeature.ServerAddress is ServerAddress mainServerAddress)
+                            {
+                                // We don't want to retry with this server address
+                                serverAddressFeature.RemoveServerAddress(mainServerAddress);
+
+                                tryAgain = serverAddressFeature.ServerAddress is not null;
+                            }
+                            // else there is no replica to retry with
+                        }
+                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
+                                 !decorator.IsRead ||
+                                 (exception is ConnectionException connectionException &&
+                                    connectionException.ErrorCode.IsClosedErrorCode()))
+                        {
+                            tryAgain = true;
                         }
 
-                        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature &&
-                            serverAddressFeature.ServerAddress is ServerAddress mainServerAddress &&
-                            retryPolicy == RetryPolicy.OtherReplica)
+                        if (tryAgain)
                         {
-                            // We don't want to retry with this server address
-                            serverAddressFeature.RemoveServerAddress(mainServerAddress);
+                            attempt++;
+                            decorator.Reset();
                         }
-
-                        decorator.Reset();
-                    }
-                    else
-                    {
-                        tryAgain = false;
                     }
                 }
                 while (tryAgain);
@@ -154,7 +147,7 @@ public class RetryInterceptor : IInvoker
         return ex;
     }
 
-    private IDisposable? CreateRetryLogScope(int attempt, RetryPolicy retryPolicy) =>
+    private IDisposable? CreateRetryLogScope(int attempt) =>
         _logger != NullLogger.Instance && attempt > 1 ?
-            _logger.RetryScope(attempt, _options.MaxAttempts, retryPolicy) : null;
+            _logger.RetryScope(attempt, _options.MaxAttempts) : null;
 }

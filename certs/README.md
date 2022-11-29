@@ -4,7 +4,7 @@ This directory contains certificates used by the clients and servers in Ice test
 suite. These certificates are for testing purposes only and should **never** be
 used in a production environment.
 
-As provided, the server certificates use `127.0.0.1` for the Common Name,  the
+As provided, the server certificates use `127.0.0.1` for the Common Name, the
 IP address and DNS name. This works fine when you run the client and server on
 the same host. However, if you want to run them on separate hosts, you may need
 to regenerate the certificates (This is especially true for the JavaScript).
@@ -17,13 +17,15 @@ You'll need Python to run the script. The script also depends on a utility
 package from a separate [ZeroC repository][1]. You can install this package as
 follows:
 
-    pip install zeroc-icecertutils
+```shell
+pip install zeroc-icecertutils
+```
 
 ## Usage
 
 Running the script with `-h` displays the following usage information:
 
-```
+```shell
 Usage: certs/makecerts.py [options]
 
 Options:

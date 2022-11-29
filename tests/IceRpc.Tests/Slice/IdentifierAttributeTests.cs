@@ -30,7 +30,6 @@ public class IdentifierAttributeTests
 
         // Assert
         Assert.That(myStruct.renamedX, Is.EqualTo(1));
-        Assert.That(typeof(REnamedStruct).GetSliceTypeId(), Is.EqualTo("::IceRpc::Tests::Slice::OriginalStruct"));
     }
 
     [Test]
