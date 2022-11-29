@@ -1,10 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Logger;
-using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -61,7 +58,6 @@ public sealed class RetryInterceptorTests
         Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc.Logger.LoggerInterceptor"));
         Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
         TestLoggerEntry entry = loggerFactory.Logger!.Entries[1];
-        Assert.That(entry.Scope["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));
         Assert.That(entry.Scope["Attempt"], Is.EqualTo(2));
         Assert.That(entry.Scope["MaxAttempts"], Is.EqualTo(2));
         Assert.That(entry.LogLevel, Is.EqualTo(LogLevel.Information));
@@ -91,7 +87,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task No_retry_with_NoRetry_policy()
+    public async Task No_retry_on_application_error()
     {
         // Arrange
         int attempts = 0;
@@ -112,87 +108,6 @@ public sealed class RetryInterceptorTests
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ApplicationError));
         Assert.That(attempts, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task Response_payload_is_completed_on_retry()
-    {
-        // Arrange
-        int attempts = 0;
-        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var invoker = new InlineInvoker((request, cancellationToken) =>
-        {
-            if (++attempts == 1)
-            {
-                return Task.FromResult(new IncomingResponse(
-                    request,
-                    FakeConnectionContext.IceRpc,
-                    StatusCode.ApplicationError,
-                    "error message",
-                    new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-                    {
-                        [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
-                    })
-                {
-                    Payload = payloadDecorator
-                });
-            }
-            else
-            {
-                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
-            }
-        });
-
-        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
-        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-
-        // Act
-        await sut.InvokeAsync(request, default);
-
-        // Assert
-        Assert.That(attempts, Is.EqualTo(2));
-        Assert.That(await payloadDecorator.Completed, Is.Null);
-    }
-
-    [Test]
-    public async Task Retry_after_delay_with_AfterDelay_policy()
-    {
-        // Arrange
-        int attempts = 0;
-        var delay = TimeSpan.FromMilliseconds(200);
-        var invoker = new InlineInvoker((request, cancellationToken) =>
-        {
-            if (++attempts == 1)
-            {
-                return Task.FromResult(new IncomingResponse(
-                    request,
-                    FakeConnectionContext.IceRpc,
-                    StatusCode.ApplicationError,
-                    "error message",
-                    new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-                    {
-                        [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
-                    }));
-            }
-            else
-            {
-                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
-            }
-        });
-
-        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
-        var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
-
-        using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
-        long startTime = Environment.TickCount64;
-
-        // Act
-        await sut.InvokeAsync(request, default);
-
-        // Assert
-        Assert.That(Environment.TickCount64 - startTime, Is.GreaterThanOrEqualTo(185));
-        Assert.That(attempts, Is.EqualTo(2));
     }
 
     [Test]
@@ -331,7 +246,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task Retry_with_OtherReplica_policy()
+    public async Task Retry_with_unavailable_status_code()
     {
         // Arrange
         await using var connection1 = new ClientConnection(new Uri("icerpc://host1"));
@@ -353,12 +268,8 @@ public sealed class RetryInterceptorTests
             return Task.FromResult(new IncomingResponse(
                 request,
                 FakeConnectionContext.IceRpc,
-                StatusCode.ApplicationError,
-                "error message",
-                new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-                {
-                    [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)
-                }));
+                StatusCode.Unavailable,
+                "error message"));
         });
 
         var serviceAddress = new ServiceAddress(connection1.ServerAddress.Protocol)
@@ -380,18 +291,10 @@ public sealed class RetryInterceptorTests
         var response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ApplicationError));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Unavailable));
         Assert.That(serverAddresses.Count, Is.EqualTo(3));
         Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
         Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));
         Assert.That(serverAddresses[2], Is.EqualTo(serviceAddress.AltServerAddresses[1]));
-    }
-
-    private static ReadOnlySequence<byte> EncodeRetryPolicy(RetryPolicy retryPolicy)
-    {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        retryPolicy.Encode(ref encoder);
-        return new ReadOnlySequence<byte>(buffer.WrittenMemory);
     }
 }

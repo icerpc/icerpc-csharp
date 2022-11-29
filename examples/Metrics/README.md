@@ -1,3 +1,5 @@
+# Metrics
+
 This example application illustrates how to use the metrics middleware with `dotnet-counters` to
 monitor the requests dispatched by a server.
 

@@ -22,7 +22,7 @@ internal static class QuicExceptionExtensions
                         (ulong)exception.ApplicationErrorCode,
                         exception),
             QuicError.ConnectionRefused => new TransportException(TransportErrorCode.ConnectionRefused, exception),
-            QuicError.ConnectionTimeout => new TransportException(TransportErrorCode.ConnectionTimeout, exception),
+            QuicError.ConnectionTimeout => new TransportException(TransportErrorCode.ConnectionAborted, exception),
             QuicError.InternalError => new TransportException(TransportErrorCode.InternalError, exception),
             QuicError.OperationAborted => new TransportException(TransportErrorCode.OperationAborted, exception),
 

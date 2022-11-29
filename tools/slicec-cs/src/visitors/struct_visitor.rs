@@ -33,7 +33,6 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
         builder
             .add_comment("summary", doc_comment_message(struct_def))
-            .add_type_id_attribute(struct_def)
             .add_container_attributes(struct_def);
 
         builder.add_block(

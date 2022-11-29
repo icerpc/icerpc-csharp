@@ -13,7 +13,7 @@ internal class ServiceNotFoundDispatcher : IDispatcher
 
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default) =>
-        throw new DispatchException(StatusCode.ServiceNotFound, RetryPolicy.OtherReplica);
+        throw new DispatchException(StatusCode.ServiceNotFound);
 
     private ServiceNotFoundDispatcher()
     {

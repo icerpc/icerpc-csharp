@@ -56,32 +56,6 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
-    private static IEnumerable<TestCaseData> ResponseRetryPolicySource
-    {
-        get
-        {
-            // Service not found failure with a service address that has no server address gets OtherReplica retry
-            // policy response field.
-            yield return new TestCaseData(
-                new ServiceAddress(Protocol.Ice),
-                StatusCode.ServiceNotFound,
-                RetryPolicy.OtherReplica);
-
-            // Service not found failure with a service address that has server addresses does not get a retry policy
-            // response field
-            yield return new TestCaseData(
-                new ServiceAddress(new Uri("ice://localhost/service")),
-                StatusCode.ServiceNotFound,
-                null);
-
-            // No retry policy field with other dispatch errors
-            yield return new TestCaseData(
-                new ServiceAddress(Protocol.Ice),
-                StatusCode.UnhandledException,
-                null);
-        }
-    }
-
     [Test, TestCaseSource(nameof(DispatchExceptionSource))]
     public async Task Dispatcher_throws_exception(
         Exception exception,
@@ -141,36 +115,6 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(response.ErrorMessage, Is.EqualTo("dispatch canceled"));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-    }
-
-    /// <summary>Verifies that a non-success response contains the expected retry policy field.</summary>
-    [Test, TestCaseSource(nameof(ResponseRetryPolicySource))]
-    public async Task Response_contains_the_expected_retry_policy_field(
-        ServiceAddress serviceAddress,
-        StatusCode statusCode,
-        RetryPolicy? expectedRetryPolicy)
-    {
-        // Arrange
-        var dispatcher = new InlineDispatcher(
-            (request, cancellationToken) => throw new DispatchException(statusCode: statusCode));
-
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        using var request = new OutgoingRequest(serviceAddress);
-
-        // Act
-        var response = await sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(statusCode));
-        var retryPolicy = response.Fields.DecodeValue(
-                ResponseFieldKey.RetryPolicy,
-                (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
-        Assert.That(retryPolicy, Is.EqualTo(expectedRetryPolicy));
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>

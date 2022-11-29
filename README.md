@@ -39,8 +39,8 @@ You can create the `nuget.config` in the source folder or any folder up to the d
 You must replace:
 
 - USERNAME with the name of your user account on GitHub
-- TOKEN with your personal access token. Create your token from https://github.com/settings/tokens and give it the
-  `read:packages` permission.
+- TOKEN with your personal access token. Create your token from [Github tokens](https://github.com/settings/tokens) and
+  give it the `read:packages` permission.
 
 Additionally, it may be necessary to set the following environment variable if you get a "Permission denied" error:
 
@@ -174,7 +174,7 @@ The `IceRpc.ProjectTemplates` package provides the following templates:
 | `icerpc-client` | Template for command line client applications. |
 | `icerpc-server` | Template for command line server applications. |
 
-### Usage:
+### Usage
 
 ```shell
 dotnet new <template-name>

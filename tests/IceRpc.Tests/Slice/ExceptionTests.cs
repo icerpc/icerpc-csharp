@@ -396,7 +396,7 @@ public sealed class ExceptionTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var value = new MyException("my exception", 10, 20);
+        var value = new MyException(10, 20, "This is MyException message.");
 
         value.Encode(ref encoder);
 
@@ -414,7 +414,7 @@ public sealed class ExceptionTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var value = new MyExceptionWithOptionalMembers("my exception with optional members", 10, 20, k, l);
+        var value = new MyExceptionWithOptionalMembers(10, 20, k, l, "This is my message.");
 
         value.Encode(ref encoder);
 
@@ -441,7 +441,7 @@ public sealed class ExceptionTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var value = new MyExceptionWithTaggedMembers("my exception with tagged members", 10, 20, k, l);
+        var value = new MyExceptionWithTaggedMembers(10, 20, k, l, "This is my message.");
 
         value.Encode(ref encoder);
 
