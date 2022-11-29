@@ -77,7 +77,31 @@ fn validate_cs_internal(attribute: &Attribute, diagnostic_reporter: &mut Diagnos
     }
 }
 
-fn validate_cs_encoded_result(attribute: &Attribute, diagnostic_reporter: &mut DiagnosticReporter) {
+fn validate_cs_encoded_result(
+    operation: &Operation,
+    attribute: &Attribute,
+    diagnostic_reporter: &mut DiagnosticReporter,
+) {
+    if operation.nonstreamed_return_members().is_empty() {
+        diagnostic_reporter.report_error(Error::new_with_notes(
+            ErrorKind::UnexpectedAttribute(cs_attributes::ENCODED_RESULT.to_owned()),
+            Some(attribute.span()),
+            vec![Note::new(
+                if operation.streamed_return_member().is_some() {
+                    format!(
+                        "The '{}' attribute is not valid for operations without non-stream return members",
+                        cs_attributes::ENCODED_RESULT
+                    )
+                } else {
+                    format!(
+                        "The '{}' attribute is not valid for operations with void return type",
+                        cs_attributes::ENCODED_RESULT
+                    )
+                },
+                None,
+            )],
+        ))
+    }
     if !attribute.arguments.is_empty() {
         diagnostic_reporter.report_error(Error::new(
             ErrorKind::TooManyArguments(cs_attributes::ENCODED_RESULT.to_owned()),
@@ -218,7 +242,6 @@ impl Visitor for CsValidator<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         for attribute in &cs_attributes(interface_def.attributes()) {
             match attribute.directive.as_str() {
-                cs_attributes::ENCODED_RESULT => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
                 cs_attributes::INTERNAL => validate_cs_internal(attribute, self.diagnostic_reporter),
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
@@ -237,7 +260,9 @@ impl Visitor for CsValidator<'_> {
     fn visit_operation_start(&mut self, operation: &Operation) {
         for attribute in &cs_attributes(operation.attributes()) {
             match attribute.directive.as_str() {
-                cs_attributes::ENCODED_RESULT => validate_cs_encoded_result(attribute, self.diagnostic_reporter),
+                cs_attributes::ENCODED_RESULT => {
+                    validate_cs_encoded_result(operation, attribute, self.diagnostic_reporter);
+                }
                 _ => validate_common_attributes(attribute, self.diagnostic_reporter),
             }
         }

@@ -270,7 +270,7 @@ public class OperationTests
         var r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
 
         // Assert
-        Assert.That(r, Is.EqualTo(10));
+        Assert.That(r, Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
     [Test]
@@ -286,11 +286,41 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        (int r1, int r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
+        (int[] r1, int[] r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
 
         // Assert
-        Assert.That(r1, Is.EqualTo(10));
-        Assert.That(r2, Is.EqualTo(20));
+        Assert.That(r1, Is.EqualTo(new int[] { 1, 2, 3 }));
+        Assert.That(r2, Is.EqualTo(new int[] { 1, 2, 3 }));
+    }
+
+    [Test]
+    public async Task Operation_with_stream_return_value_and_encoded_result_attribute()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(new MyOperationsA())
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        provider.GetRequiredService<Server>().Listen();
+
+        // Act
+        (int[] r1, IAsyncEnumerable<int> r2) = await proxy.OpWithStreamReturnAndEncodedResultAttributeAsync();
+
+        // Assert
+        Assert.That(r1, Is.EqualTo(new int[] { 1, 2, 3 }));
+        var enumerator = r2.GetAsyncEnumerator();
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(1));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(2));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(3));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.False);
     }
 
     /// <summary>Verifies that sequence of fixed size numeric values outgoing parameter is mapped to
@@ -508,7 +538,7 @@ public class OperationTests
         Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
     }
 
-    class MyOperationsA : Service, IMyOperationsA
+    public class MyOperationsA : Service, IMyOperationsA
     {
         public ServiceProxy? ReceivedProxy;
 
@@ -571,12 +601,30 @@ public class OperationTests
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
+            new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(new int[] { 1, 2, 3 }, features));
 
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
+            new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(
+                    new int[] { 1, 2, 3 },
+                    new int[] { 1, 2, 3 },
+                features));
+
+        public ValueTask<(IMyOperationsA.OpWithStreamReturnAndEncodedResultAttributeEncodedResult EncodedResult, IAsyncEnumerable<int> R2)> OpWithStreamReturnAndEncodedResultAttributeAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken)
+        {
+            return new((new IMyOperationsA.OpWithStreamReturnAndEncodedResultAttributeEncodedResult(new int[] { 1, 2, 3 }, features), GetDataAsync()));
+
+            static async IAsyncEnumerable<int> GetDataAsync()
+            {
+                await Task.Yield();
+                yield return 1;
+                yield return 2;
+                yield return 3;
+            }
+        }
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,
