@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
     private readonly IDuplexConnection _connection;
-    private TimeSpan _idleTimeout;
+    private TimeSpan? _keepAlivePeriod;
     private readonly Timer? _keepAliveTimer;
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
@@ -35,7 +35,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
-        TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action? keepAliveAction)
@@ -46,7 +45,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
-        _idleTimeout = idleTimeout;
 
         if (keepAliveAction is not null)
         {
@@ -54,16 +52,14 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
         }
     }
 
-    internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
+    /// <summary>Enables the sending of keep alive messages. Keep alive messages are sent every keepAlivePeriod if no
+    /// data is sent.</summary>
+    internal void EnableKeepAlive(TimeSpan keepAlivePeriod)
     {
         if (_keepAliveTimer is not null)
         {
-            if (idleTimeout is not null)
-            {
-                _idleTimeout = idleTimeout.Value;
-            }
-
-            _keepAliveTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+            _keepAlivePeriod = keepAlivePeriod;
+            _keepAliveTimer.Change(keepAlivePeriod, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -117,7 +113,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
                 await task.ConfigureAwait(false);
             }
 
-            _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+            _keepAliveTimer?.Change(_keepAlivePeriod!.Value, Timeout.InfiniteTimeSpan);
         }
         finally
         {

@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionReader : IDisposable
 {
     private readonly IDuplexConnection _connection;
-    private TimeSpan _idleTimeout;
+    private TimeSpan? _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
     private TimeSpan _nextIdleTime;
@@ -27,7 +27,6 @@ internal class DuplexConnectionReader : IDisposable
 
     internal DuplexConnectionReader(
         IDuplexConnection connection,
-        TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action<TransportException> connectionLostAction)
@@ -38,7 +37,6 @@ internal class DuplexConnectionReader : IDisposable
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
-        _idleTimeout = idleTimeout;
         _nextIdleTime = TimeSpan.Zero;
 
         // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
@@ -68,14 +66,13 @@ internal class DuplexConnectionReader : IDisposable
     internal void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
         _pipe.Reader.AdvanceTo(consumed, examined);
 
-    internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
+    /// <summary>Enables check for ensuring that the connection is alive. If no data is received within the idleTimeout
+    /// period, the connection is considered dead.</summary>
+    internal void EnableAliveCheck(TimeSpan idleTimeout)
     {
         lock (_mutex)
         {
-            if (idleTimeout is not null)
-            {
-                _idleTimeout = idleTimeout.Value;
-            }
+            _idleTimeout = idleTimeout;
 
             if (_idleTimeout == Timeout.InfiniteTimeSpan)
             {
@@ -84,8 +81,8 @@ internal class DuplexConnectionReader : IDisposable
             }
             else
             {
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+                _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
+                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + idleTimeout;
             }
         }
     }
@@ -196,8 +193,8 @@ internal class DuplexConnectionReader : IDisposable
             else
             {
                 // Postpone the idle timeout.
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+                _idleTimeoutTimer.Change(_idleTimeout!.Value, Timeout.InfiniteTimeSpan);
+                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout.Value;
             }
         }
     }

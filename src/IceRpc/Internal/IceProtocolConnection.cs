@@ -34,6 +34,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
     private bool _isAcceptingDispatchesAndInvocations;
     private readonly ILogger _logger;
@@ -74,13 +75,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 maxCount: options.MaxDispatches);
         }
 
+        _idleTimeout = options.IdleTimeout;
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
 
         _duplexConnection = duplexConnection;
         _duplexConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
-            options.IdleTimeout,
             _memoryPool,
             _minSegmentSize,
             keepAliveAction: () =>
@@ -95,7 +96,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             });
         _duplexConnectionReader = new DuplexConnectionReader(
             duplexConnection,
-            options.IdleTimeout,
             _memoryPool,
             _minSegmentSize,
             connectionLostAction: ConnectionLost);
@@ -190,8 +190,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
         // messages requires the connection to be established.
-        _duplexConnectionReader.EnableIdleCheck();
-        _duplexConnectionWriter.EnableIdleCheck();
+        _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
+        _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
 
         if (IsServer)
         {
@@ -368,7 +368,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
 
         PipeReader? frameReader = null;
-        int? requestId = null;
+        int requestId = 0;
         try
         {
             // Read the full payload. This can take some time so this needs to be done before acquiring the write
@@ -397,19 +397,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw ConnectionClosedException;
                     }
 
-                    if (request.IsOneway)
-                    {
-                        requestId = 0;
-                    }
-                    else
+                    if (!request.IsOneway)
                     {
                         requestId = ++_nextRequestId;
                         responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                        _twowayInvocations[requestId.Value] = responseCompletionSource;
+                        _twowayInvocations[requestId] = responseCompletionSource;
                     }
                 }
 
-                EncodeRequestHeader(_duplexConnectionWriter, request, requestId.Value, payloadSize);
+                EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
                 payloadWriter = request.GetPayloadWriter(payloadWriter);
 
@@ -464,7 +460,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             Debug.Assert(readResult.IsCompleted);
 
             (StatusCode statusCode, string? errorMessage, SequencePosition consumed) =
-                DecodeResponseHeader(readResult.Buffer, requestId.Value);
+                DecodeResponseHeader(readResult.Buffer, requestId);
 
             frameReader.AdvanceTo(consumed);
 
@@ -480,10 +476,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             frameReader = null; // response now owns frameReader
             return response;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (OperationCanceledException)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             if (ConnectionClosedException is ConnectionException connectionException &&
                 connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
             {
@@ -513,9 +511,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             lock (_mutex)
             {
                 // If registered, unregister the twoway invocation.
-                if (requestId is not null && !request.IsOneway)
+                if (requestId != 0)
                 {
-                    _twowayInvocations.Remove(requestId.Value);
+                    _twowayInvocations.Remove(requestId);
                 }
 
                 --_invocationCount;

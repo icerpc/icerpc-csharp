@@ -102,8 +102,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
         // messages requires the connection to be established.
-        _duplexConnectionReader.EnableIdleCheck();
-        _duplexConnectionWriter.EnableIdleCheck();
+        _duplexConnectionReader.EnableAliveCheck(_localIdleTimeout);
+        _duplexConnectionWriter.EnableKeepAlive(_localIdleTimeout / 2);
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
         (FrameType FrameType, int FrameSize, ulong?)? header;
@@ -435,14 +435,12 @@ internal class SlicConnection : IMultiplexedConnection
 
         _duplexConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
-            _localIdleTimeout,
             options.Pool,
             options.MinSegmentSize,
             keepAliveAction);
 
         _duplexConnectionReader = new DuplexConnectionReader(
             duplexConnection,
-            _localIdleTimeout,
             options.Pool,
             options.MinSegmentSize,
             connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception));
@@ -1169,8 +1167,8 @@ internal class SlicConnection : IMultiplexedConnection
         // Use the smallest idle timeout.
         if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
         {
-            _duplexConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
-            _duplexConnectionWriter.EnableIdleCheck(peerIdleTimeoutValue);
+            _duplexConnectionReader.EnableAliveCheck(peerIdleTimeoutValue);
+            _duplexConnectionWriter.EnableKeepAlive(peerIdleTimeoutValue / 2);
         }
     }
 
