@@ -880,7 +880,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         responseCompletionSource.SetResult(replyFrameReader);
                         completeFrameReader = false;
                     }
-                    else if (!_isAcceptingDispatchesAndInvocations)
+                    else
                     {
                         throw new InvalidDataException("received ice Reply for unknown invocation");
                     }
@@ -967,11 +967,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw ConnectionClosedException;
                     }
 
-                    if (_invocations.Count == 0 && ++_dispatchCount == 1)
+                    if (_invocations.Count == 0 && _dispatchCount == 0)
                     {
                         // We were idle, we no longer are.
                         DisableIdleCheck();
                     }
+                    ++_dispatchCount;
                 }
             }
             catch
