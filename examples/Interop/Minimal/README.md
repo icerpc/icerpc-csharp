@@ -1,3 +1,5 @@
+# Minimal
+
 This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol and `Slice1`
 encoding. The server application uses ZeroC Ice and the client application uses IceRPC.
 
