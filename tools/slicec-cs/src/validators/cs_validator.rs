@@ -89,12 +89,12 @@ fn validate_cs_encoded_result(
             vec![Note::new(
                 if operation.streamed_return_member().is_some() {
                     format!(
-                        "The '{}' attribute is not valid for operations without non-stream return members",
+                        "The '{}' attribute is not applicable to an operation that returns only a stream.",
                         cs_attributes::ENCODED_RESULT
                     )
                 } else {
                     format!(
-                        "The '{}' attribute is not valid for operations with void return type",
+                        "The '{}' attribute is not applicable to an operation that does not return anything.",
                         cs_attributes::ENCODED_RESULT
                     )
                 },
