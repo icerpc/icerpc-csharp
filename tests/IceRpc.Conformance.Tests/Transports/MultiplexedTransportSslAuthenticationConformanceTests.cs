@@ -41,7 +41,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         try
         {
             // We accept two behaviors here:
-            // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
+            // - the listener can internally kill the connection if it's not valid (e.g.: Quic behavior)
             // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
             (var serverConnection, _) = await listener.AcceptAsync(cts.Token);
             serverConnectTask = serverConnection.ConnectAsync(default);
@@ -54,6 +54,13 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+
+        // We accept two behaviors here:
+        // - serverConnectTask is null, the listener internally reject the connection (e.g.: Quic behavior)
+        // - the server connect operation fails with either TransportException or IOException (e.g:
+        //   Slic behavior), on Windows the underlying SslStream can fail with TransportException or
+        //   IOException depending on whether the SSL alert from the peer is detected before than the
+        //   peer connection closure.
         if (serverConnectTask is not null)
         {
             // The client will typically close the transport connection after receiving AuthenticationException
@@ -116,9 +123,16 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         Assert.That(
             async () =>
             {
+                // We accept two behaviors here:
+                // - the client connection fails with AuthenticationException when try to create a stream
+                //   (e.g.: Quic behavior)
+                // - the client connect operation fails with either TransportException or IOException (e.g:
+                //   Slic behavior), on Windows the underlying SslStream can fail with TransportException or
+                //   IOException depending on whether the SSL alert from the peer is detected before than the
+                //   peer connection closure.
                 if (serverConnection is not null)
                 {
-                    await serverConnection.DisposeAsync();
+                   await serverConnection.DisposeAsync();
                 }
                 await clientConnectTask;
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
