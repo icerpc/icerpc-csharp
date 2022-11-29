@@ -22,15 +22,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    private static readonly IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> _otherReplicaFields =
-        new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-        {
-            [ResponseFieldKey.RetryPolicy] = new ReadOnlySequence<byte>(new byte[]
-            {
-                (byte)Retryable.OtherReplica
-            })
-        }.ToImmutableDictionary();
-
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
@@ -471,18 +462,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             frameReader.AdvanceTo(consumed);
 
-            // For compatibility with ZeroC Ice "indirect" proxies
-            IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                statusCode == StatusCode.ServiceNotFound && request.ServiceAddress.ServerAddress is null ?
-                _otherReplicaFields :
-                ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
-
             var response = new IncomingResponse(
                 request,
                 _connectionContext!,
                 statusCode,
-                errorMessage,
-                fields)
+                errorMessage)
             {
                 Payload = frameReader
             };
