@@ -94,19 +94,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             _minSegmentSize,
             keepAliveAction: () =>
             {
-                try
+                lock (_mutex)
                 {
-                    lock (_mutex)
+                    if (_pingTask.IsCompleted && !_tasksCts.IsCancellationRequested)
                     {
-                        if (_pingTask.IsCompleted && !_tasksCts.IsCancellationRequested)
-                        {
-                            _pingTask = PingAsync(_tasksCts.Token);
-                        }
+                        _pingTask = PingAsync(_tasksCts.Token);
                     }
-                }
-                catch
-                {
-                    // Ignore, the read frames task will fail if the connection fails.
                 }
             });
         _duplexConnectionReader = new DuplexConnectionReader(
@@ -133,9 +126,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
                     await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    ConnectionLost(exception);
+                    // Ignore, the read frames task will fail if the connection fails.
                 }
                 finally
                 {
@@ -499,10 +492,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             frameReader = null; // response now owns frameReader
             return response;
         }
-        catch (OperationCanceledException) when (
-            _dispatchesAndInvocationsCts.IsCancellationRequested ||
-            _tasksCts.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (ConnectionClosedException is ConnectionException connectionException &&
                 connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
             {
@@ -511,15 +504,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             else
             {
-                // Otherwise, the invocation was canceled because of a speedy-shutdown.
+                // Otherwise, the invocation was canceled because of a speedy-shutdown or because it was disposed.
                 throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
         }
         catch (ConnectionException)
-        {
-            throw;
-        }
-        catch (OperationCanceledException)
         {
             throw;
         }

@@ -329,6 +329,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred by the
     /// reading of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    [Repeat(10)]
     public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred_by_payload_read(
         Protocol protocol,
         bool isOneway)
@@ -392,6 +393,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred by the
     /// writing of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    [Repeat(10)]
     public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred_by_payload_write(
         Protocol protocol,
         bool isOneway)
