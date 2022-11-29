@@ -491,6 +491,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch (OperationCanceledException)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             throw;
         }
         catch (TransportException exception)

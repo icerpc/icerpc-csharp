@@ -825,6 +825,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // This either throws the OutputClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                     }
+                    catch (OperationCanceledException)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested(); // should always throw
+                        throw;
+                    }
 
                     if (readResult.IsCanceled)
                     {

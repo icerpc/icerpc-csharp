@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.IO.Pipelines;
 using System.Security.Authentication;
 
 namespace IceRpc.Transports;

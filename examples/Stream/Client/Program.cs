@@ -19,9 +19,9 @@ try
         await numberStreamProxy.StreamDataAsync(GetDataAsync(index * 10, default));
     }
 }
-catch (OperationCanceledException ex)
+catch (OperationCanceledException exception)
 {
-    Console.WriteLine($"Operation Canceled Exception: {ex.Message}");
+    Console.WriteLine($"Operation Canceled Exception: {exception.Message}");
 }
 Console.WriteLine("Client has finished streaming data.");
 

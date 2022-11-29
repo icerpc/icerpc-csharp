@@ -88,7 +88,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
                         "the connection establishment was canceled");
-                    throw;
+
+                    throw new OperationCanceledException(cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -300,7 +301,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 await _shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
                 try
                 {
