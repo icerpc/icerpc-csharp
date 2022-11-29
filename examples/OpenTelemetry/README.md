@@ -31,6 +31,6 @@ dotnet run --project Client/Client.csproj
 
 The trace information should now be available in the Zipkin local service:
 
-- [localhost:9411/zipkin](http://localhost:9411/zipkin)
+- <http://localhost:9411/zipkin>
 
 ![Zipkin](./zipkin.png)
