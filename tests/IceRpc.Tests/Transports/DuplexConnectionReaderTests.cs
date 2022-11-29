@@ -33,22 +33,20 @@ public class DuplexConnectionReaderTests
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         int pingCount = 0;
-        using var reader = new DuplexConnectionReader(
+        using var writer = new DuplexConnectionWriter(
             clientConnection,
             TimeSpan.FromMilliseconds(1000),
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => { },
             keepAliveAction: () => ++pingCount);
-        reader.EnableIdleCheck();
+        writer.EnableIdleCheck();
 
         // Write and read data.
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-        ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
-        reader.AdvanceTo(buffer.End);
+        await writer.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
+        await serverConnection.ReadAsync(new byte[10], default);
 
         // Act
-        // The ping action is called 500ms after a ReadAsync. We wait 900ms to ensure the ping action is called.
+        // The ping action is called 500ms after a WriteAsync. We wait 900ms to ensure the ping action is called.
         await Task.Delay(TimeSpan.FromMilliseconds(900));
 
         // Assert
@@ -78,8 +76,7 @@ public class DuplexConnectionReaderTests
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-            keepAliveAction: () => { });
+            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
         reader.EnableIdleCheck();
 
         // Act
@@ -112,8 +109,7 @@ public class DuplexConnectionReaderTests
             TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-            keepAliveAction: () => { });
+            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
         reader.EnableIdleCheck();
 
         // Write and read data to defer the idle timeout

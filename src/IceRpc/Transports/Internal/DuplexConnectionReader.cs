@@ -14,27 +14,15 @@ internal class DuplexConnectionReader : IDisposable
     private readonly IDuplexConnection _connection;
     private TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
-    private bool _isDisposed;
-    private readonly Timer? _keepAliveTimer;
     private readonly object _mutex = new();
     private TimeSpan _nextIdleTime;
     private readonly Pipe _pipe;
 
     public void Dispose()
     {
-        lock (_mutex)
-        {
-            if (_isDisposed)
-            {
-                return;
-            }
-            _isDisposed = true;
-        }
-
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
         _idleTimeoutTimer.Dispose();
-        _keepAliveTimer?.Dispose();
     }
 
     internal DuplexConnectionReader(
@@ -42,8 +30,7 @@ internal class DuplexConnectionReader : IDisposable
         TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        Action<TransportException> connectionLostAction,
-        Action? keepAliveAction)
+        Action<TransportException> connectionLostAction)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -60,7 +47,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 lock (_mutex)
                 {
-                    if (_nextIdleTime >= TimeSpan.FromMilliseconds(Environment.TickCount64))
+                    if (_nextIdleTime > TimeSpan.FromMilliseconds(Environment.TickCount64))
                     {
                         // The idle timeout has just been postponed. Don't abort the connection since this indicates
                         // data was just received.
@@ -74,33 +61,34 @@ internal class DuplexConnectionReader : IDisposable
 
                 connectionLostAction(new TransportException(TransportErrorCode.ConnectionIdle));
             });
-
-        if (keepAliveAction is not null)
-        {
-            _keepAliveTimer = new Timer(
-                _ =>
-                {
-                    lock (_mutex)
-                    {
-                        if (_isDisposed)
-                        {
-                            return;
-                        }
-
-                        // Postpone the idle timeout.
-                        _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                    }
-
-                    // Keep the connection alive.
-                    keepAliveAction.Invoke();
-                });
-        }
     }
 
     internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
 
     internal void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
         _pipe.Reader.AdvanceTo(consumed, examined);
+
+    internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
+    {
+        lock (_mutex)
+        {
+            if (idleTimeout is not null)
+            {
+                _idleTimeout = idleTimeout.Value;
+            }
+
+            if (_idleTimeout == Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                _nextIdleTime = TimeSpan.Zero;
+            }
+            else
+            {
+                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+            }
+        }
+    }
 
     /// <summary>Writes <paramref name="byteCount" /> bytes read from this pipe reader or its underlying connection
     /// into <paramref name="bufferWriter" />.</summary>
@@ -176,35 +164,6 @@ internal class DuplexConnectionReader : IDisposable
     internal ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(int minimumSize, CancellationToken cancellationToken = default) =>
         ReadAsyncCore(minimumSize: minimumSize, canReturnEmptyBuffer: false, cancellationToken);
 
-    internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
-    {
-        lock (_mutex)
-        {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            if (idleTimeout is not null)
-            {
-                _idleTimeout = idleTimeout.Value;
-            }
-
-            if (_idleTimeout == Timeout.InfiniteTimeSpan)
-            {
-                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                _keepAliveTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                _nextIdleTime = TimeSpan.Zero;
-            }
-            else
-            {
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
-                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
-            }
-        }
-    }
-
     internal bool TryRead(out ReadOnlySequence<byte> buffer)
     {
         if (_pipe.Reader.TryRead(out ReadResult readResult))
@@ -224,8 +183,6 @@ internal class DuplexConnectionReader : IDisposable
     {
         lock (_mutex)
         {
-            Debug.Assert(!_isDisposed);
-
             if (_idleTimeout == Timeout.InfiniteTimeSpan)
             {
                 // Nothing to do, idle timeout is disabled.
@@ -238,9 +195,8 @@ internal class DuplexConnectionReader : IDisposable
             }
             else
             {
-                // Postpone the idle timeout and keep the connection alive.
+                // Postpone the idle timeout.
                 _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
             }
         }

@@ -279,10 +279,22 @@ public sealed class ProtocolConnectionTests
     public async Task ShutdownComplete_completes_when_idle(Protocol protocol)
     {
         // Arrange
+
+        // With the ice protocol, the idle timeout is used for both the transport connection and protocol connection
+        // idle timeout. We need to set the server side idle timeout to ensure the server-side connection sends a keep
+        // alive to prevent the client transport connection to be closed because it's idle.
+        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
+            new ConnectionOptions
+            {
+                IdleTimeout = TimeSpan.FromMilliseconds(750),
+            } :
+            null;
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
-                serverConnectionOptions: new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(500) })
+                clientConnectionOptions: new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(500) },
+                serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
         TimeSpan? clientIdleCalledTime = null;
@@ -326,7 +338,7 @@ public sealed class ProtocolConnectionTests
         // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
         // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
         // client transport connection to be closed because it's idle.
-        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice && isOneway ?
+        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
                 IdleTimeout = TimeSpan.FromMilliseconds(750),
@@ -389,7 +401,7 @@ public sealed class ProtocolConnectionTests
         // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
         // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
         // client transport connection to be closed because it's idle.
-        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice && isOneway ?
+        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
                 IdleTimeout = TimeSpan.FromMilliseconds(750),

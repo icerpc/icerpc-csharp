@@ -89,14 +89,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _duplexConnection = duplexConnection;
         _duplexConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
-            _memoryPool,
-            _minSegmentSize);
-        _duplexConnectionReader = new DuplexConnectionReader(
-            duplexConnection,
-            idleTimeout: options.IdleTimeout,
+            options.IdleTimeout,
             _memoryPool,
             _minSegmentSize,
-            connectionLostAction: ConnectionLost,
             keepAliveAction: () =>
             {
                 try
@@ -114,11 +109,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Ignore, the read frames task will fail if the connection fails.
                 }
             });
+        _duplexConnectionReader = new DuplexConnectionReader(
+            duplexConnection,
+            options.IdleTimeout,
+            _memoryPool,
+            _minSegmentSize,
+            connectionLostAction: ConnectionLost);
 
         _payloadWriter = new IcePayloadPipeWriter(_duplexConnectionWriter);
 
         async Task PingAsync(CancellationToken cancellationToken)
         {
+            Debug.Assert(_duplexConnectionWriter is not null);
+
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
@@ -201,8 +204,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // This needs to be set before starting the read frames task below.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        // Wait for the transport connection establishment to enable the idle timeout check.
+        // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
+        // messages requires the connection to be established.
         _duplexConnectionReader.EnableIdleCheck();
+        _duplexConnectionWriter.EnableIdleCheck();
 
         if (IsServer)
         {
@@ -355,21 +360,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
             }
-
-            // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
-            // linked source if the connection is not disposed.
-            cts = CancellationTokenSource.CreateLinkedTokenSource(
-                _dispatchesAndInvocationsCts.Token,
-                cancellationToken);
-        }
-
-        lock (_mutex)
-        {
-            if (_isReadOnly)
-            {
-                Debug.Assert(ConnectionClosedException is not null);
-                throw ConnectionClosedException;
-            }
             else
             {
                 if (_invocationCount == 0 && _dispatchCount == 0)
@@ -379,6 +369,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 ++_invocationCount;
             }
+
+            // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
+            // linked source if the connection is not disposed.
+            cts = CancellationTokenSource.CreateLinkedTokenSource(
+                _dispatchesAndInvocationsCts.Token,
+                cancellationToken);
         }
 
         PipeReader? frameReader = null;

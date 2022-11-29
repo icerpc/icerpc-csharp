@@ -11,6 +11,8 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
     private readonly IDuplexConnection _connection;
+    private TimeSpan _idleTimeout;
+    private readonly Timer? _keepAliveTimer;
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
 
@@ -22,6 +24,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
+        _keepAliveTimer?.Dispose();
     }
 
     /// <inheritdoc/>
@@ -32,8 +35,10 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
+        TimeSpan idleTimeout,
         MemoryPool<byte> pool,
-        int minimumSegmentSize)
+        int minimumSegmentSize,
+        Action? keepAliveAction)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -41,6 +46,25 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
+        _idleTimeout = idleTimeout;
+
+        if (keepAliveAction is not null)
+        {
+            _keepAliveTimer = new Timer(_ => keepAliveAction());
+        }
+    }
+
+    internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
+    {
+        if (_keepAliveTimer is not null)
+        {
+            if (idleTimeout is not null)
+            {
+                _idleTimeout = idleTimeout.Value;
+            }
+
+            _keepAliveTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+        }
     }
 
     /// <summary>Flush the buffered data.</summary>
@@ -92,6 +116,8 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
             {
                 await task.ConfigureAwait(false);
             }
+
+            _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
         }
         finally
         {
