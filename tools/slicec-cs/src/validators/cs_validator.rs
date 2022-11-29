@@ -89,7 +89,7 @@ fn validate_cs_encoded_result(
             vec![Note::new(
                 if operation.streamed_return_member().is_some() {
                     format!(
-                        "The '{}' attribute is not applicable to an operation that returns only a stream.",
+                        "The '{}' attribute is not applicable to an operation that only returns a stream.",
                         cs_attributes::ENCODED_RESULT
                     )
                 } else {
