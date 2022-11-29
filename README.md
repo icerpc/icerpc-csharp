@@ -130,7 +130,7 @@ build.cmd --examples
 ```
 
 If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you
-need to build and install the NuGet package from this repository before building the examples, this can be done by
+will need to build and install the NuGet package from this repository before building the examples. This can be done by
 running the following command:
 
 For Linux and macOS
