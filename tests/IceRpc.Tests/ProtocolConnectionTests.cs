@@ -297,39 +297,29 @@ public sealed class ProtocolConnectionTests
                 serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
-        TimeSpan? clientIdleCalledTime = null;
-        TimeSpan? serverIdleCalledTime = null;
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
         // Act
-        await Task.WhenAll(WaitForClientConnectionAsync(), WaitForServerConnectionAsync());
+        Task<TimeSpan> clientWaitForShutdownTask = WaitForShutdownAsync(sut.Client);
+        Task<TimeSpan> serverWaitForShutdownTask = WaitForShutdownAsync(sut.Server);
 
         // Assert
-        Assert.That(clientIdleCalledTime, Is.Not.Null);
-        Assert.That(serverIdleCalledTime, Is.Not.Null);
-        Assert.That(clientIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
-        Assert.That(serverIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(async () => await clientWaitForShutdownTask, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(async () => await serverWaitForShutdownTask, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
 
-        async Task WaitForClientConnectionAsync()
+        async Task<TimeSpan> WaitForShutdownAsync(IProtocolConnection connection)
         {
-            await sut.Client.ShutdownComplete;
-            clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime;
-        }
-
-        async Task WaitForServerConnectionAsync()
-        {
-            await sut.Server.ShutdownComplete;
-            serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime;
+            await connection.ShutdownComplete;
+            return TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime;
         }
     }
 
     /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred by the
     /// reading of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
-    [Repeat(10)]
     public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred_by_payload_read(
         Protocol protocol,
         bool isOneway)
@@ -393,7 +383,6 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred by the
     /// writing of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
-    [Repeat(10)]
     public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred_by_payload_write(
         Protocol protocol,
         bool isOneway)
