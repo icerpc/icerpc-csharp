@@ -21,7 +21,7 @@
             "type": "shell",
             "command": "./build.sh --srcdist --examples",
             "windows": {
-                "command": ".\\build.cmd"
+                "command": ".\\build.cmd -srcdist -examples"
             },
             "problemMatcher": "$msCompile",
             "group": {
