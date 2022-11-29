@@ -27,7 +27,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly SemaphoreSlim? _dispatchSemaphore;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
-    private bool _isReadOnly;
+    private bool _isNotAcceptingDispatchesAndInvocations;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
     // was accepted.
@@ -82,7 +82,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
+                _isNotAcceptingDispatchesAndInvocations = true; // don't accept new dispatches or invocations.
                 if (_streamCount == 0)
                 {
                     _streamsClosed.TrySetResult();
@@ -99,10 +99,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
-            if (!_isReadOnly && _streamCount == 0)
+            // If idle, don't accept new dispatches or invocations and close the connection.
+            if (!_isNotAcceptingDispatchesAndInvocations && _streamCount == 0)
             {
-                _isReadOnly = true;
+                _isNotAcceptingDispatchesAndInvocations = true;
                 ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
                 return true;
             }
@@ -215,7 +215,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         CancellationToken cancellationToken = default;
                         lock (_mutex)
                         {
-                            if (_isReadOnly)
+                            if (_isNotAcceptingDispatchesAndInvocations)
                             {
                                 done = true;
                             }
@@ -299,7 +299,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     {
                                         lock (_mutex)
                                         {
-                                            if (--_dispatchCount == 0 && _isReadOnly)
+                                            if (--_dispatchCount == 0 && _isNotAcceptingDispatchesAndInvocations)
                                             {
                                                 _ = _dispatchesCompleted.TrySetResult();
                                             }
@@ -316,27 +316,22 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    lock (_mutex)
+                    if (ConnectionClosedException is null)
                     {
-                        if (_isReadOnly)
-                        {
-                            return; // already closing or closed
-                        }
-
                         ConnectionClosedException = new(
                             ConnectionErrorCode.ClosedByAbort,
                             "the connection was lost",
                             exception);
+
+                        ConnectionLost(exception);
+
+                        // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might
+                        // still be running.
+                        CancelDispatchesAndInvocations();
+
+                        // Also kill the transport connection right away instead of waiting DisposeAsync to be called.
+                        await _transportConnection.DisposeAsync().ConfigureAwait(false);
                     }
-
-                    ConnectionLost(exception);
-
-                    // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might still
-                    // be running.
-                    CancelDispatchesAndInvocations();
-
-                    // Also kill the transport connection right away instead of waiting DisposeAsync to be called.
-                    await _transportConnection.DisposeAsync().ConfigureAwait(false);
                 }
             },
             CancellationToken.None);
@@ -346,7 +341,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Cancel dispatches and invocations. This also sets _isReadOnly to true.
+        // Cancel dispatches and invocations.
         CancelDispatchesAndInvocations();
 
         // Before disposing the transport connection, cancel pending tasks which are using the transport connection and
@@ -414,10 +409,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             lock (_mutex)
             {
-                if (_isReadOnly)
+                if (_isNotAcceptingDispatchesAndInvocations)
                 {
-                    // Don't process the invocation if the connection is in the process of shutting down or it's
-                    // already closed.
+                    // Don't process the invocation if the connection is in the process of shutting down or it's already
+                    // closed.
                     Debug.Assert(ConnectionClosedException is not null);
                     invocationCts.Dispose();
                     throw ConnectionClosedException;
@@ -473,7 +468,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                if (!_isReadOnly)
+                if (!_isNotAcceptingDispatchesAndInvocations)
                 {
                     // We received a response, it's no longer a pending invocation.
                     _ = _pendingInvocations.Remove(stream);
@@ -575,7 +570,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
         {
-            _isReadOnly = true;
+            _isNotAcceptingDispatchesAndInvocations = true; // don't accept new dispatches or invocations.
             if (_streamCount == 0)
             {
                 _streamsClosed.TrySetResult();
@@ -605,8 +600,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 .ConfigureAwait(false);
 
             // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-            // ConnectionClosedException which can be retried. Since _isReadOnly is true, _pendingInvocationCts
-            // is read-only at this point.
+            // ConnectionClosedException which can be retried. Since _isNotAcceptingDispatchesAndInvocationsReadOnly is
+            // true, _pendingInvocation is read-only at this point.
             foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocations)
             {
                 if (!stream.IsStarted ||
@@ -986,22 +981,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         _ => StatusCode.UnhandledException
                     };
 
-                    // We pass null for message to get the message computed from the exception by Message.
+                    // We want the default error message for this new exception.
                     dispatchException = new DispatchException(statusCode, message: null, exception);
                 }
 
-                // If the exception in question is derived from DispatchException (for example a SliceException),
-                // we encode this exception as a plain DispatchException with just a status code and a message.
                 // The payload of response below is always empty.
                 response = new OutgoingResponse(request, dispatchException);
 
                 // Encode the retry policy into the fields of the new response.
                 if (dispatchException.RetryPolicy != RetryPolicy.NoRetry)
                 {
-                    RetryPolicy retryPolicy = dispatchException.RetryPolicy;
-                    response.Fields = response.Fields.With(
-                        ResponseFieldKey.RetryPolicy,
-                        retryPolicy.Encode);
+                    response.Fields =
+                        response.Fields.With(ResponseFieldKey.RetryPolicy, dispatchException.RetryPolicy.Encode);
                 }
             }
 
@@ -1178,14 +1169,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && !_isReadOnly)
+            if (!stream.IsRemote && !_isNotAcceptingDispatchesAndInvocations)
             {
                 _ = _pendingInvocations.Remove(stream);
             }
 
             if (--_streamCount == 0)
             {
-                if (_isReadOnly)
+                if (_isNotAcceptingDispatchesAndInvocations)
                 {
                     _streamsClosed.TrySetResult();
                 }

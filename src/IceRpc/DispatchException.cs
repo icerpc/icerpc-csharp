@@ -16,52 +16,25 @@ public class DispatchException : Exception
     /// <see cref="DispatchException" />.</value>
     public bool ConvertToUnhandled { get; set; }
 
-    /// <inheritdoc/>
-    public override string Message
-    {
-        get
-        {
-            if (_hasCustomMessage || StatusCode == StatusCode.ApplicationError)
-            {
-                return base.Message;
-            }
-            else
-            {
-                // We always give a custom message to dispatch exceptions we decode (other than ApplicationError), so
-                // this code is only used for non-decoded dispatch exceptions.
-
-                string message = $"{nameof(DispatchException)} {{ StatusCode = {StatusCode} }}";
-
-                if (InnerException is not null)
-                {
-                    message += $":\n{InnerException}\n---";
-                }
-                return message;
-            }
-        }
-    }
-
     /// <summary>Gets the retry policy.</summary>
     public RetryPolicy RetryPolicy { get; }
 
     /// <summary>Gets the status code.</summary>
     public StatusCode StatusCode { get; }
 
-    private readonly bool _hasCustomMessage;
-
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
     /// <param name="statusCode">The status code of this exception. It must be greater than
     /// <see cref="StatusCode.Success" />.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(StatusCode statusCode, RetryPolicy? retryPolicy = null)
-        : this(statusCode, message: null, innerException: null, retryPolicy)
+        : this(statusCode, message: GetDefaultMessage(statusCode), innerException: null, retryPolicy)
     {
     }
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
-    /// <param name="message">Message that describes the exception.</param>
     /// <param name="statusCode">The status code of this exception. It must be greater than
     /// <see cref="StatusCode.Success" />.</param>
+    /// <param name="message">Message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     /// <param name="retryPolicy">The retry policy for the exception.</param>
     public DispatchException(
@@ -69,13 +42,15 @@ public class DispatchException : Exception
         string? message,
         Exception? innerException = null,
         RetryPolicy? retryPolicy = null)
-        : base(message, innerException)
+        : base(message ?? GetDefaultMessage(statusCode), innerException)
     {
-        _hasCustomMessage = message is not null;
         StatusCode = statusCode > StatusCode.Success ? statusCode :
             throw new ArgumentOutOfRangeException(
                 nameof(statusCode),
-                $"the status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Success)}");
+                $"The status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Success)}.");
         RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
     }
+
+    private static string? GetDefaultMessage(StatusCode statusCode) =>
+        statusCode == StatusCode.ApplicationError ? null : $"The dispatch failed with status code {statusCode}.";
 }

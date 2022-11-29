@@ -42,7 +42,7 @@ public static class IncomingRequestExtensions
             throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        var response = new OutgoingResponse(request, StatusCode.ApplicationError, sliceException.Message)
+        var response = new OutgoingResponse(request, sliceException)
         {
             Payload = CreateExceptionPayload()
         };

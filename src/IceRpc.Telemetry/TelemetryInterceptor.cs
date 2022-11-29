@@ -34,10 +34,7 @@ public class TelemetryInterceptor : IInvoker
             activity.AddTag("rpc.system", "icerpc");
             activity.AddTag("rpc.service", request.ServiceAddress.Path);
             activity.AddTag("rpc.method", request.Operation);
-            // TODO add additional attributes
-            // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
             activity.Start();
-
             request.Fields = request.Fields.With(
                 RequestFieldKey.TraceContext,
                 (ref SliceEncoder encoder) => WriteActivityContext(ref encoder, activity));
