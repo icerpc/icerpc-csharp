@@ -353,15 +353,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
             }
-            else
-            {
-                if (_invocationCount == 0 && _dispatchCount == 0)
-                {
-                    DisableIdleCheck();
-                }
 
-                ++_invocationCount;
+            if (_invocationCount == 0 && _dispatchCount == 0)
+            {
+                DisableIdleCheck();
             }
+            ++_invocationCount;
 
             // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
             // linked source if the connection is not disposed.
