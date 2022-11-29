@@ -27,7 +27,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly SemaphoreSlim? _dispatchSemaphore;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
-    private bool _isAcceptingDispatchesAndInvocations = true;
+    private bool _isAcceptingDispatchesAndInvocations;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
     // was accepted.
@@ -82,7 +82,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                _isAcceptingDispatchesAndInvocations = false; // don't accept new dispatches or invocations.
+                _isAcceptingDispatchesAndInvocations = false; // stop accepting new dispatches or invocations.
                 if (_streamCount == 0)
                 {
                     _streamsClosed.TrySetResult();
@@ -99,7 +99,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            // If idle, don't accept new dispatches or invocations and close the connection.
+            // If idle, stop accepting new dispatches or invocations and close the connection.
             if (_isAcceptingDispatchesAndInvocations && _streamCount == 0)
             {
                 _isAcceptingDispatchesAndInvocations = false;
@@ -164,6 +164,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
         }
+
+        // The connection is ready to start accepting dispatches on invocations.
+        _isAcceptingDispatchesAndInvocations = true;
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.
         _readGoAwayTask = Task.Run(
@@ -568,7 +571,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
         {
-            _isAcceptingDispatchesAndInvocations = false; // don't accept new dispatches or invocations.
+            _isAcceptingDispatchesAndInvocations = false; // stop accepting new dispatches or invocations.
             if (_streamCount == 0)
             {
                 _streamsClosed.TrySetResult();
@@ -598,8 +601,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 .ConfigureAwait(false);
 
             // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-            // ConnectionClosedException which can be retried. Since _isAcceptingDispatchesAndInvocationsReadOnly is
-            // true, _pendingInvocation is read-only at this point.
+            // ConnectionClosedException which can be retried. Since _isAcceptingDispatchesAndInvocations is true,
+            // _pendingInvocation is read-only at this point.
             foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocations)
             {
                 if (!stream.IsStarted ||

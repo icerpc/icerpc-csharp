@@ -44,7 +44,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-    private bool _isAcceptingDispatchesAndInvocations = true;
+    private bool _isAcceptingDispatchesAndInvocations;
     private readonly ILogger _logger;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -160,7 +160,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                _isAcceptingDispatchesAndInvocations = false; // don't accept new dispatches or invocations.
+                _isAcceptingDispatchesAndInvocations = false; // stop accepting new dispatches or invocations.
 
                 if (_invocations.Count == 0 && _dispatchCount == 0)
                 {
@@ -174,7 +174,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            // If idle, don't accept new dispatches or invocations and shutdown the connection.
+            // If idle, stop accepting new dispatches or invocations and shutdown the connection.
             if (_invocations.Count == 0 && _dispatchCount == 0)
             {
                 _isAcceptingDispatchesAndInvocations = false;
@@ -229,6 +229,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     $"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
             }
         }
+
+        // The connection is ready to start accepting dispatches on invocations.
+        _isAcceptingDispatchesAndInvocations = true;
 
         _readFramesTask = Task.Run(
             async () =>
