@@ -69,8 +69,8 @@ build.cmd
 This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRpc runtime assemblies, and the IceRpc tests in the
 default debug configuration.
 
-Additionally, a build task is provided for building IceRpc within Visual Studio Code. You can invoke this task by
-pressing `Ctrl+Shift+B` (`Cmd+Shift+B` on macOS) or selecting `Tasks: Run Build Task...` from the command palette.
+Additionally, a build task is provided for building IceRpc within Visual Studio Code. This task has been configured
+as the default build task, so you can invoke it by selecting `Tasks: Run Build Task...` from the command palette.
 
 The benefit of using this task is that any errors or warnings encountered while compiling slice are reported in the
 `Problems` view.
