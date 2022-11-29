@@ -42,8 +42,8 @@ public static class IncomingRequestExtensions
             throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
-                SliceEncodeOptions.Default;
+        SliceEncodeOptions encodeOptions =
+            request.Features.Get<ISliceFeature>()?.EncodeOptions ?? SliceEncodeOptions.Default;
 
         var pipe = new Pipe(encodeOptions.PipeOptions);
         var encoder = new SliceEncoder(pipe.Writer, encoding);
