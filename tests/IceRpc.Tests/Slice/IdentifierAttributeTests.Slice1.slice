@@ -9,3 +9,8 @@ class OriginalClass
 {
     [cs::identifier("renamedX")] x: int32,
 }
+
+[cs::identifier("REnamedException")]
+exception OriginalException
+{
+}
