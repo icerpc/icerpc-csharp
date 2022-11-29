@@ -505,7 +505,7 @@ public class OperationTests
         await proxy.OpWithProxyParameterAsync(ServiceProxy.FromPath("/hello"));
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
     }
 
     class MyOperationsA : Service, IMyOperationsA
