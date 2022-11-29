@@ -12,6 +12,6 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
         <NetRuntimeVersion>7.0.0-rc.2.22472.3</NetRuntimeVersion>
-        <IceRpcBuilderVersion>0.1.0-preview7</IceRpcBuilderVersion>
+        <IceRpcBuilderVersion>0.1.0-preview8</IceRpcBuilderVersion>
     </PropertyGroup>
 </Project>
