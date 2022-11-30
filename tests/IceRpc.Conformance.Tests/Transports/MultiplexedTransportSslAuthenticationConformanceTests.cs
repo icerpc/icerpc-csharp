@@ -113,7 +113,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 (serverConnection, _) = await listener.AcceptAsync(cts.Token);
                 await serverConnection.ConnectAsync(default);
             },
-            Throws.TypeOf<AuthenticationException>().Or.TypeOf<OperationCanceledException>());
+            Throws.TypeOf<AuthenticationException>().Or.InstanceOf<OperationCanceledException>());
 
         Assert.That(
             async () =>
@@ -124,7 +124,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 // - the client connect operation fails with either TransportException (e.g: Slic behavior).
                 if (serverConnection is not null)
                 {
-                   await serverConnection.DisposeAsync();
+                    await serverConnection.DisposeAsync();
                 }
                 await clientConnectTask;
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
