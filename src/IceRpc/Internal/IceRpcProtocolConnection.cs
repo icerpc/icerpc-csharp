@@ -150,8 +150,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
         {
             ConnectionClosedException = new(
-                ConnectionErrorCode.ClosedByPeer,
-                "the connection establishment was refused");
+                ConnectionErrorCode.ConnectionClosed,
+                "The connection establishment was refused.");
 
             throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
         }
@@ -170,7 +170,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         IceRpcControlFrameType.GoAway,
                         cancellationToken).ConfigureAwait(false);
                     IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer, "");
+                    InitiateShutdown(
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was closed because it received a GoAway frame from the peer.");
                     return goAwayFrame;
                 }
                 catch (IceRpcException)

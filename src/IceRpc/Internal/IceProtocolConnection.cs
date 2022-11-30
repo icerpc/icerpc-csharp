@@ -223,12 +223,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByPeer);
+                    var connectionClosedException = new ConnectionException(
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was closed by the peer.");
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
                         _pingTask,
-                        _writeSemaphore.CompleteAndWaitAsync(ConnectionClosedException)).ConfigureAwait(false);
+                        _writeSemaphore.CompleteAndWaitAsync(connectionClosedException)).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the transport connection and notify the
@@ -236,7 +238,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer, "");
+                    InitiateShutdown(connectionClosedException.ErrorCode, connectionClosedException.Message);
                 }
                 catch (IceRpcException exception) when (
                     exception.IceRpcError == IceRpcError.ConnectionAborted &&
@@ -671,7 +673,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _writeSemaphore.Release();
             }
         }
-        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ClosedByPeer)
+        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
         {
             // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
         }
