@@ -133,7 +133,13 @@ fn map_language_kind(
                 CsAttributeKind::Type { name: argument }.into()
             }),
 
-        _ => panic!("Unknown directive: {}", directive),
+        _ => {
+            diagnostic_reporter.report_error(Error::new(
+                ErrorKind::UnexpectedAttribute(directive.to_owned()),
+                Some(span),
+            ));
+            unmatched_attribute
+        }
     }
 }
 
