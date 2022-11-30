@@ -1,13 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-
 namespace IceRpc;
 
 /// <summary>The possible error codes carried by a <see cref="ConnectionException" />. The error code specifies the
 /// reason of the connection failure.</summary>
 public enum ConnectionErrorCode
 {
+    /// <summary>The protocol connection was closed prior to the current call. This error typically occurs when an
+    /// invoker such as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached
+    /// protocol connection that was closed but was not yet cleaned up or replaced by a background thread.</summary>
+    ConnectionClosed,
+
     /// <summary>The connection was closed because it was aborted, for example by a transport error or a connect
     /// timeout.</summary>
     ClosedByAbort,
@@ -45,7 +48,7 @@ public static class ConnectionErrorCodeExtensions
     /// <returns><see langword="true"/> if <paramref name="errorCode"/> is a Closed code; otherwise,
     /// <see langword="false"/>.</returns>
     public static bool IsClosedErrorCode(this ConnectionErrorCode errorCode) =>
-        errorCode >= ConnectionErrorCode.ClosedByAbort && errorCode <= ConnectionErrorCode.ClosedByShutdown;
+        errorCode >= ConnectionErrorCode.ConnectionClosed && errorCode <= ConnectionErrorCode.ClosedByShutdown;
 }
 
 /// <summary>This exception reports a connection failure.</summary>
