@@ -34,19 +34,14 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new InvalidOperationException($"can't call {nameof(ReadAsync)} before {nameof(ConnectAsync)}");
         }
-
         if (!_state.TrySetFlag(State.Reading))
         {
-            throw new InvalidOperationException($"{nameof(ReadAsync)} is not thread safe");
+            throw new InvalidOperationException(
+                $"can't call {nameof(ReadAsync)} while another ${nameof(ReadAsync)} is in progress");
         }
 
         try
         {
-            if (_state.HasFlag(State.Disposed))
-            {
-                throw new TransportException(TransportErrorCode.OperationAborted);
-            }
-
             ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
@@ -114,19 +109,17 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new InvalidOperationException($"can't call {nameof(ShutdownAsync)} before {nameof(ConnectAsync)}");
         }
-
-        if (_state.TrySetFlag(State.ShuttingDown))
+        if (_state.HasFlag(State.Writing))
         {
-            if (_state.TrySetFlag(State.Writing))
-            {
-                _writer.Complete();
-                _state.ClearFlag(State.Writing);
-            }
-            else
-            {
-                // WriteAsync will take care of completing the writer once it's done writing.
-            }
+            throw new InvalidOperationException(
+                $"can't call {nameof(ShutdownAsync)} while {nameof(WriteAsync)} is in progress");
         }
+        if (!_state.TrySetFlag(State.ShuttingDown))
+        {
+            throw new InvalidOperationException($"can't call {nameof(ShutdownAsync)} twice");
+        }
+
+        _writer.Complete();
         return Task.CompletedTask;
     }
 
@@ -140,45 +133,32 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new InvalidOperationException($"can't call {nameof(WriteAsync)} before {nameof(ConnectAsync)}");
         }
-
+        if (_state.HasFlag(State.ShuttingDown))
+        {
+            throw new InvalidOperationException($"can't call {nameof(WriteAsync)} after {nameof(ShutdownAsync)}");
+        }
         if (!_state.TrySetFlag(State.Writing))
         {
-            if (_state.HasFlag(State.ShuttingDown))
-            {
-                throw new InvalidOperationException(
-                    $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
-            }
-            else
-            {
-                throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
-            }
+            throw new InvalidOperationException(
+                $"can't call {nameof(WriteAsync)} while another ${nameof(WriteAsync)} is in progress");
         }
 
         try
         {
             foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
-                if (_state.HasFlag(State.ShuttingDown))
-                {
-                    throw new InvalidOperationException(
-                        $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
-                }
-
                 FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
                 if (flushResult.IsCanceled)
                 {
-                    // Dispose canceled ReadAsync.
+                    // Dispose canceled WriteAsync.
                     throw new TransportException(TransportErrorCode.OperationAborted);
                 }
             }
         }
         finally
         {
-            if (_state.HasFlag(State.ShuttingDown))
-            {
-                _writer.Complete();
-            }
-            else if (_state.HasFlag(State.Disposed))
+            Debug.Assert(!_state.HasFlag(State.ShuttingDown));
+            if (_state.HasFlag(State.Disposed))
             {
                 _writer.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
             }

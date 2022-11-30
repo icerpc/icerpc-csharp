@@ -59,7 +59,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operation_aborted()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -81,12 +81,12 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        using var cancelationSource = new CancellationTokenSource();
+        using var cancellationSource = new CancellationTokenSource();
 
-        var acceptTask = listener.AcceptAsync(cancelationSource.Token);
+        var acceptTask = listener.AcceptAsync(cancellationSource.Token);
 
         // Act
-        cancelationSource.Cancel();
+        cancellationSource.Cancel();
         await listener.DisposeAsync();
 
         // Assert
