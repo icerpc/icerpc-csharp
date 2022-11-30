@@ -10,7 +10,10 @@ mod primitive_ext;
 mod slice_encoding_ext;
 mod type_ref_ext;
 
-pub use attribute_ext::AttributeExt;
+pub use attribute_ext::{
+    match_cs_attribute, match_cs_encoded_result, match_cs_generic, match_cs_identifier, match_cs_internal,
+    match_cs_namespace, match_cs_readonly, match_cs_type, CsAttributeKind,
+};
 pub use entity_ext::EntityExt;
 pub use enum_ext::EnumExt;
 pub use interface_ext::InterfaceExt;

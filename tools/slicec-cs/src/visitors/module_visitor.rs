@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, ContainerBuilder};
-use crate::cs_attributes;
 use crate::generated_code::GeneratedCode;
+use crate::slicec_ext::match_cs_namespace;
 use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
@@ -32,9 +32,9 @@ impl ModuleVisitor<'_> {
     fn module_code_block(&mut self, module: &Module, module_prefix: Option<String>) -> CodeBlock {
         let code_blocks = self.generated_code.remove_scoped(module);
 
-        let identifier = match module.get_attribute(cs_attributes::NAMESPACE, false) {
-            Some(attribute) => attribute.first().unwrap(),
-            _ => module.identifier(),
+        let identifier = match module.get_attribute(false, match_cs_namespace) {
+            Some(namespace) => namespace,
+            _ => module.identifier().to_owned(),
         };
 
         let module_identifier = match &module_prefix {

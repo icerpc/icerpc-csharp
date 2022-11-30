@@ -8,3 +8,4 @@ pub const INTERNAL: &str = "cs::internal";
 pub const NAMESPACE: &str = "cs::namespace";
 pub const READONLY: &str = "cs::readonly";
 pub const TYPE: &str = "cs::type";
+pub const ATTRIBUTE_PREFIX: &str = "cs::";

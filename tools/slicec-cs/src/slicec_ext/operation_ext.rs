@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use super::{EntityExt, ParameterExt, ParameterSliceExt};
-use crate::cs_attributes;
+use super::{match_cs_encoded_result, EntityExt, ParameterExt, ParameterSliceExt};
 use crate::cs_util::FieldType;
 use crate::slicec_ext::member_ext::MemberExt;
 use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
@@ -23,7 +22,7 @@ pub trait OperationExt {
 
 impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
-        self.has_attribute(cs_attributes::ENCODED_RESULT, true)
+        self.has_attribute(false, match_cs_encoded_result)
     }
 
     fn encoded_result_struct(&self) -> String {
