@@ -479,7 +479,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception)
         {
-            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
         }
         catch (Exception exception)
         {

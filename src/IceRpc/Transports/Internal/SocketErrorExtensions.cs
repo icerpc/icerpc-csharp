@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal;
 internal static class SocketExceptionExtensions
 {
     /// <summary>Converts a socket error into a <see cref="IceRpcError" />.</summary>
-    internal static IceRpcError ToTransportErrorCode(this SocketError socketError) =>
+    internal static IceRpcError ToIceRpcError(this SocketError socketError) =>
         socketError switch
         {
             SocketError.AddressAlreadyInUse => IceRpcError.AddressInUse,

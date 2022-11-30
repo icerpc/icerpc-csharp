@@ -108,7 +108,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         catch (SocketException exception)
         {
             _socket.Dispose();
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
         catch
         {

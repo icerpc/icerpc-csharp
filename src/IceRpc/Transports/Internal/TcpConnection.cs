@@ -87,12 +87,12 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
                 new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
 
         return received;
@@ -222,12 +222,12 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
                 new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 
@@ -289,12 +289,12 @@ internal class TcpClientConnection : TcpConnection
         {
             // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
                 new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
 
         try
@@ -306,7 +306,7 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 
@@ -351,7 +351,7 @@ internal class TcpClientConnection : TcpConnection
         catch (SocketException exception)
         {
             Socket.Dispose();
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
         catch
         {
@@ -401,12 +401,12 @@ internal class TcpServerConnection : TcpConnection
         {
             // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
                 new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
 
         try
@@ -418,7 +418,7 @@ internal class TcpServerConnection : TcpConnection
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 

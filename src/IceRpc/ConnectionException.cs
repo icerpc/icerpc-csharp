@@ -17,10 +17,10 @@ public enum ConnectionErrorCode
     /// <summary>The operation was aborted because the connection was aborted.</summary>
     OperationAborted,
 
-    /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
-    /// cref="Exception.InnerException" /> is set to the <see cref="IceRpcException" /> that caused the
+    /// <summary>The connection establishment or shutdown failed because of an IceRpc exception. The <see
+    /// cref="Exception.InnerException" /> is set to the <see cref="IceRpc.IceRpcException" /> that caused the
     /// error.</summary>
-    TransportError,
+    IceRpcException,
 
     /// <summary>The connection establishment or shutdown failed because of an unspecified error. The <see
     /// cref="Exception.InnerException" /> is set to the exception that caused the error.</summary>

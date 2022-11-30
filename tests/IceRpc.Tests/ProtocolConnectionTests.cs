@@ -916,7 +916,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.TransportError) if
+    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.IceRpcError) if
     /// ConnectAsync fails with a transport error.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
@@ -937,12 +937,11 @@ public sealed class ProtocolConnectionTests
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
         // TODO: this will need to be fixed with the exception refactoring.
         // The error we get is timing dependent. We can get ConnectRefused if the connection establishment request is
-        // queued after the listener disposal or TransportError if it's queued before (in this case ConnectAsync catches
-        // TransportException(TransportErrorCode.ConnectionAborted) and it's mapped to
-        // ConnectionErrorCode.TransportError)
+        // queued after the listener disposal or IceRpcError if it's queued before (in this case ConnectAsync catches
+        // IceRpcException(IceRpcError.ConnectionAborted) and it's mapped to ConnectionErrorCode.IceRpcError)
         Assert.That(
             exception!.ErrorCode,
-            Is.EqualTo(ConnectionErrorCode.TransportError).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
+            Is.EqualTo(ConnectionErrorCode.IceRpcException).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
         Assert.That(exception!.InnerException, Is.InstanceOf<IceRpcException>());
     }
 

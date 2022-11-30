@@ -509,7 +509,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception)
         {
-            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
         }
         finally
         {

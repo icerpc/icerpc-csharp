@@ -130,7 +130,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         ConnectionErrorCode.ConnectionClosed,
                         "The connection establishment failed.",
                         exception);
-                    throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+                    throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
                 }
                 catch (Exception exception)
                 {
@@ -441,7 +441,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         catch (Exception ex)
         {
             var exception = new ConnectionException(
-                ex is IceRpcException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
+                ex is IceRpcException ? ConnectionErrorCode.IceRpcException : ConnectionErrorCode.Unspecified,
                 ex);
             _connectCts.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);
