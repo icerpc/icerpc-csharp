@@ -24,7 +24,7 @@ public sealed class TypeIdAttributeTests
     {
         get
         {
-            foreach ((Type type, string path) in _typeIds)
+            foreach ((Type type, string? path) in _typeIds)
             {
                 yield return new TestCaseData(type, path);
             }
@@ -32,20 +32,18 @@ public sealed class TypeIdAttributeTests
     }
 
     /// <summary>A collection of types generated from Slice definitions and its expected type IDs.</summary>
-    private static readonly Dictionary<Type, string> _typeIds = new()
+    private static readonly Dictionary<Type, string?> _typeIds = new()
     {
         [typeof(ServiceProxy)] = "::IceRpc::Slice::Service",
         [typeof(MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass",
         [typeof(IMyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
-        [typeof(MyException)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyException",
-        [typeof(MyStruct)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyStruct",
+        [typeof(MyException)] = null, // Slice2 exception
         [typeof(Inner.MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myClass",
         [typeof(Inner.MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
         [typeof(Inner.IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
-        [typeof(Inner.MyException)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myException",
-        [typeof(Inner.MyStruct)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myStruct",
+        [typeof(Inner.MyException)] = null, // Slice2 exception
     };
 
     /// <summary>A collection of types generated from Slice definitions and its expected default path.</summary>
@@ -56,12 +54,8 @@ public sealed class TypeIdAttributeTests
         [typeof(IMyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(IMyInterface)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
-        [typeof(MyException)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyException",
-        [typeof(MyStruct)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyStruct",
         [typeof(Inner.MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myClass",
         [typeof(Inner.MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myInterface",
-        [typeof(Inner.MyException)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myException",
-        [typeof(Inner.MyStruct)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myStruct",
     };
 
     /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>

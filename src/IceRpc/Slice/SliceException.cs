@@ -11,22 +11,11 @@ public abstract class SliceException : DispatchException
 
     internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
 
-    /// <summary>Constructs a Slice exception with the default system message.</summary>
-    /// <param name="retryPolicy">The retry policy for the exception.</param>
-    protected SliceException(RetryPolicy? retryPolicy = null)
-        : base(StatusCode.ApplicationError, retryPolicy)
-    {
-    }
-
     /// <summary>Constructs a Slice exception with the provided message and inner exception.</summary>
-    /// <param name="message">Message that describes the exception.</param>
-    /// <param name="retryPolicy">The retry policy for the exception.</param>
+    /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The inner exception.</param>
-    protected SliceException(
-        string? message,
-        Exception? innerException = null,
-        RetryPolicy? retryPolicy = null)
-        : base(StatusCode.ApplicationError, message, innerException, retryPolicy)
+    protected SliceException(string? message = null, Exception? innerException = null)
+        : base(StatusCode.ApplicationError, message, innerException)
     {
     }
 

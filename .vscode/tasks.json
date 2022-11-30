@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Rust and Dotnet Build",
+            "label": "Build",
             "type": "shell",
             "command": "./build.sh",
             "windows": {
@@ -14,6 +14,19 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
+            }
+        },
+        {
+            "label": "Build examples",
+            "type": "shell",
+            "command": "./build.sh --srcdist --examples",
+            "windows": {
+                "command": ".\\build.cmd -srcdist -examples"
+            },
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": false
             }
         },
         {

@@ -19,11 +19,6 @@ interface OriginalInterface
         );
 }
 
-[cs::identifier("REnamedException")]
-exception OriginalException
-{
-}
-
 [cs::identifier("REnamedEnum")]
 enum OriginalEnum
 {

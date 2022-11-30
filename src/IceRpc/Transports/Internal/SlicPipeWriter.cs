@@ -87,7 +87,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
-                tcs => ((CancellationTokenSource)tcs!).Cancel(),
+                cts => ((CancellationTokenSource)cts!).Cancel(),
                 _abortCts);
 
         ReadResult readResult = default;

@@ -44,11 +44,11 @@ pub fn main() {
 fn try_main() -> CompilationResult {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
-    let mut compilation_data = slice::parse_from_options(slice_options)
+    let mut compilation_data = slice::compile_from_options(slice_options)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)?;
 
-    if !slice_options.validate {
+    if !slice_options.dry_run {
         for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
             let mut generated_code = GeneratedCode::new();
 

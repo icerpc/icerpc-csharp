@@ -42,27 +42,13 @@ public static class IncomingRequestExtensions
             throw new ArgumentException("invalid Slice exception", nameof(sliceException));
         }
 
-        var response = new OutgoingResponse(request, StatusCode.ApplicationError, sliceException.Message)
-        {
-            Payload = CreateExceptionPayload()
-        };
+        SliceEncodeOptions encodeOptions =
+            request.Features.Get<ISliceFeature>()?.EncodeOptions ?? SliceEncodeOptions.Default;
 
-        if (response.Protocol.HasFields && sliceException.RetryPolicy != RetryPolicy.NoRetry)
-        {
-            // Encode the retry policy into the fields of the new response.
-            RetryPolicy retryPolicy = sliceException.RetryPolicy;
-            response.Fields = response.Fields.With(
-                ResponseFieldKey.RetryPolicy,
-                retryPolicy.Encode);
-        }
-        return response;
+        var pipe = new Pipe(encodeOptions.PipeOptions);
 
-        PipeReader CreateExceptionPayload()
+        try
         {
-            SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
-                SliceEncodeOptions.Default;
-
-            var pipe = new Pipe(encodeOptions.PipeOptions);
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
             // sliceException.Encode can throw NotSupportedException
@@ -79,7 +65,14 @@ public static class IncomingRequestExtensions
             }
 
             pipe.Writer.Complete();
-            return pipe.Reader;
+
+            return new OutgoingResponse(request, sliceException) { Payload = pipe.Reader };
+        }
+        catch
+        {
+            pipe.Reader.Complete();
+            pipe.Writer.Complete();
+            throw;
         }
     }
 

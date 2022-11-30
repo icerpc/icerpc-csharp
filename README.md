@@ -13,11 +13,11 @@
 
 Building IceRpc requires Rust and .NET development environments:
 
- - A Rust development environment
- - The .NET 7.0 SDK
+- A Rust development environment
+- The .NET 7.0 SDK
 
-The build depends on `IceRpc.Builder.MSBuild` NuGet package that is not publicly available, for accessing this package you must create a
-`nuget.config` file with the following contents:
+The build depends on `IceRpc.Builder.MSBuild` NuGet package that is not publicly available, for accessing this package
+you must create a `nuget.config` file with the following contents:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -38,14 +38,16 @@ You can create the `nuget.config` in the source folder or any folder up to the d
 
 You must replace:
 
-* USERNAME with the name of your user account on GitHub
-* TOKEN with your personal access token. Create your token from https://github.com/settings/tokens and give it the
-  `read:packages` permission.
+- USERNAME with the name of your user account on GitHub
+- TOKEN with your personal access token. Create your token from [Github tokens](https://github.com/settings/tokens) and
+  give it the `read:packages` permission.
 
 Additionally, it may be necessary to set the following environment variable if you get a "Permission denied" error:
+
 ```shell
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 ```
+
 This tells Cargo to use git's executable to fetch dependencies instead of it's own.
 
 ## Building
@@ -66,6 +68,9 @@ build.cmd
 
 This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRpc runtime assemblies, and the IceRpc tests in the
 default debug configuration.
+
+Additionally, a build task is provided for building IceRpc within Visual Studio Code. This task has been configured
+as the default build task, so you can invoke it by selecting `Tasks: Run Build Task...` from the command palette.
 
 ## Testing
 
@@ -121,9 +126,9 @@ For Windows
 build.cmd --examples
 ```
 
-If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you need
-to build and install the NuGet package from this repository before building the examples, this can be done by running the
-following command:
+If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you
+will need to build and install the NuGet package from this repository before building the examples. This can be done by
+running the following command:
 
 For Linux and macOS
 
@@ -166,7 +171,7 @@ The `IceRpc.ProjectTemplates` package provides the following templates:
 | `icerpc-client` | Template for command line client applications. |
 | `icerpc-server` | Template for command line server applications. |
 
-### Usage:
+### Usage
 
 ```shell
 dotnet new <template-name>
