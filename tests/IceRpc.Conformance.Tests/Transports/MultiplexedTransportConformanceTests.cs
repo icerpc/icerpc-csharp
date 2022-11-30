@@ -839,7 +839,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         // BUGFIX with Quic this throws an internal error https://github.com/dotnet/runtime/issues/78573
         Assert.That(
             exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.AddressInUse).Or.EqualTo(IceRpcError.InternalError));
+            Is.EqualTo(IceRpcError.AddressInUse).Or.EqualTo(IceRpcError.IceRpcError));
     }
 
     [Test]

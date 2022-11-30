@@ -23,9 +23,9 @@ internal static class QuicExceptionExtensions
                         exception),
             QuicError.ConnectionRefused => new IceRpcException(IceRpcError.ConnectionRefused, exception),
             QuicError.ConnectionTimeout => new IceRpcException(IceRpcError.ConnectionAborted, exception),
-            QuicError.InternalError => new IceRpcException(IceRpcError.InternalError, exception),
+            QuicError.InternalError => new IceRpcException(IceRpcError.IceRpcError, exception),
             QuicError.OperationAborted => new IceRpcException(IceRpcError.OperationAborted, exception),
 
-            _ => new IceRpcException(IceRpcError.Unspecified, exception)
+            _ => new IceRpcException(IceRpcError.IceRpcError, exception)
         };
 }

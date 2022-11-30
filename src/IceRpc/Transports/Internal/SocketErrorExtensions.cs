@@ -19,6 +19,6 @@ internal static class SocketExceptionExtensions
             SocketError.Shutdown => IceRpcError.ConnectionAborted,
             SocketError.ConnectionRefused => IceRpcError.ConnectionRefused,
             SocketError.OperationAborted => IceRpcError.OperationAborted,
-            _ => IceRpcError.Unspecified
+            _ => IceRpcError.IceRpcError
         };
 }
