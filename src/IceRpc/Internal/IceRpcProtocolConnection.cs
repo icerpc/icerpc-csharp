@@ -315,8 +315,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     if (ConnectionClosedException is null)
                     {
                         ConnectionClosedException = new(
-                            ConnectionErrorCode.ClosedByAbort,
-                            "the connection was lost",
+                            ConnectionErrorCode.ConnectionClosed,
+                            "The connection was lost.",
                             exception);
 
                         ConnectionLost(exception);

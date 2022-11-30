@@ -11,10 +11,6 @@ public enum ConnectionErrorCode
     /// protocol connection that was closed but was not yet cleaned up or replaced by a background thread.</summary>
     ConnectionClosed,
 
-    /// <summary>The connection was closed because it was aborted, for example by a transport error or a connect
-    /// timeout.</summary>
-    ClosedByAbort,
-
     /// <summary>The connection establishment was refused by the server.</summary>
     ConnectRefused,
 
@@ -29,17 +25,6 @@ public enum ConnectionErrorCode
     /// <summary>The connection establishment or shutdown failed because of an unspecified error. The <see
     /// cref="Exception.InnerException" /> is set to the exception that caused the error.</summary>
     Unspecified,
-}
-
-/// <summary>Provides extension methods for <see cref="ConnectionErrorCode"/>.</summary>
-public static class ConnectionErrorCodeExtensions
-{
-    /// <summary>Checks if this error code is a Closed code.</summary>
-    /// <param name="errorCode">The error code to check.</param>
-    /// <returns><see langword="true"/> if <paramref name="errorCode"/> is a Closed code; otherwise,
-    /// <see langword="false"/>.</returns>
-    public static bool IsClosedErrorCode(this ConnectionErrorCode errorCode) =>
-        errorCode >= ConnectionErrorCode.ConnectionClosed && errorCode <= ConnectionErrorCode.ClosedByAbort;
 }
 
 /// <summary>This exception reports a connection failure.</summary>

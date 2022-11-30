@@ -21,7 +21,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         get => Volatile.Read(ref _connectionClosedException);
         set
         {
-            Debug.Assert(value is not null && value.ErrorCode.IsClosedErrorCode());
+            Debug.Assert(value is not null && value.ErrorCode == ConnectionErrorCode.ConnectionClosed);
             Interlocked.CompareExchange(ref _connectionClosedException, value, null);
         }
     }

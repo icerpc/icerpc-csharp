@@ -170,7 +170,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             catch (ObjectDisposedException exception) when (
                 exception.InnerException is ConnectionException connectionException &&
-                connectionException.ErrorCode.IsClosedErrorCode())
+                connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed)
             {
                 // This can occasionally happen if we find a connection that was just closed  and then automatically
                 // disposed by this connection cache.
@@ -234,7 +234,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             catch (ObjectDisposedException exception) when (
                 exception.InnerException is ConnectionException connectionException &&
-                connectionException.ErrorCode.IsClosedErrorCode())
+                connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed)
             {
                 // This can occasionally happen if we find a connection that was just closed and then automatically
                 // disposed by this connection cache.

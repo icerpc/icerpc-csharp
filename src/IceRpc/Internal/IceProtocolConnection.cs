@@ -261,8 +261,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     ConnectionClosedException = new ConnectionException(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection was lost",
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was lost.",
                         exception);
 
                     // Notify the ConnectionLost callback.
@@ -470,17 +470,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            if (ConnectionClosedException is ConnectionException connectionException &&
-                connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
-            {
-                // If the connection was lost, report a transport error.
-                throw new ConnectionException(ConnectionErrorCode.TransportError, connectionException.InnerException);
-            }
-            else
-            {
-                // Otherwise, the invocation was canceled because of a speedy-shutdown.
-                throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-            }
+            // The connection is being disposed.
+            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
         }
         catch (OperationCanceledException)
         {
