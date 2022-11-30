@@ -87,8 +87,8 @@ pub trait AttributeBuilder {
         let custom_attributes = container
             .attributes(false)
             .into_iter()
-            .find_map(match_cs_attribute)
-            .unwrap_or_default();
+            .filter_map(match_cs_attribute)
+            .collect::<Vec<_>>();
 
         for attribute in custom_attributes {
             self.add_attribute(&attribute);
@@ -323,16 +323,13 @@ impl FunctionBuilder {
             // The attributes are a space separated list of attributes.
             // eg. [attribute1] [attribute2]
 
-            let parameter_attributes =
-                parameter
-                    .get_attribute(false, match_cs_attribute)
-                    .map_or("".to_owned(), |attributes| {
-                        attributes
-                            .into_iter()
-                            .map(|a| format!("[{}]", a))
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    });
+            let parameter_attributes = parameter
+                .attributes(false)
+                .into_iter()
+                .filter_map(match_cs_attribute)
+                .map(|attribute| format!("[{}]", attribute))
+                .collect::<Vec<_>>()
+                .join("\n");
 
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();

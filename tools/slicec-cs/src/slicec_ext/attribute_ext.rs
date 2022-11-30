@@ -2,9 +2,11 @@
 
 use slice::grammar::{Attribute, AttributeKind, LanguageKind};
 
+use crate::cs_attributes;
+
 #[derive(Clone, Debug)]
 pub enum CsAttributeKind {
-    Attribute { attributes: Vec<String> },
+    Attribute { attribute: String },
     EncodedResult,
     Generic { generic_type: String },
     Identifier { identifier: String },
@@ -15,6 +17,19 @@ pub enum CsAttributeKind {
 }
 
 impl LanguageKind for CsAttributeKind {
+    fn directive(&self) -> &str {
+        match &self {
+            CsAttributeKind::Attribute { .. } => cs_attributes::ATTRIBUTE,
+            CsAttributeKind::EncodedResult => cs_attributes::ENCODED_RESULT,
+            CsAttributeKind::Generic { .. } => cs_attributes::GENERIC,
+            CsAttributeKind::Identifier { .. } => cs_attributes::IDENTIFIER,
+            CsAttributeKind::Internal => cs_attributes::INTERNAL,
+            CsAttributeKind::Namespace { .. } => cs_attributes::NAMESPACE,
+            CsAttributeKind::Readonly => cs_attributes::READONLY,
+            CsAttributeKind::Type { .. } => cs_attributes::TYPE,
+        }
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -28,16 +43,22 @@ impl LanguageKind for CsAttributeKind {
     }
 }
 
+impl From<CsAttributeKind> for AttributeKind {
+    fn from(kind: CsAttributeKind) -> Self {
+        AttributeKind::LanguageKind { kind: Box::new(kind) }
+    }
+}
+
 fn as_cs_attribute(attribute: &Attribute) -> Option<&CsAttributeKind> {
     match &attribute.kind {
-        AttributeKind::LanguageKind { directive: _, kind } => kind.as_any().downcast_ref::<CsAttributeKind>(),
+        AttributeKind::LanguageKind { kind } => kind.as_any().downcast_ref::<CsAttributeKind>(),
         _ => None,
     }
 }
 
-pub fn match_cs_attribute(attribute: &Attribute) -> Option<Vec<String>> {
+pub fn match_cs_attribute(attribute: &Attribute) -> Option<String> {
     as_cs_attribute(attribute).and_then(|a| match a {
-        CsAttributeKind::Attribute { attributes } => Some(attributes.clone()),
+        CsAttributeKind::Attribute { attribute } => Some(attribute.clone()),
         _ => None,
     })
 }

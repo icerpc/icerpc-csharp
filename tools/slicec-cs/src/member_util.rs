@@ -22,7 +22,7 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
         .cs_type_string(&data_member.namespace(), TypeContext::DataMember, false);
     let mut prelude = CodeBlock::default();
 
-    let attributes = data_member.get_attribute(false, match_cs_attribute).unwrap_or(vec![]);
+    let attributes = data_member.attributes(false).into_iter().filter_map(match_cs_attribute);
 
     prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());

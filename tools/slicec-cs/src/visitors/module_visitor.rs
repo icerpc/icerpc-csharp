@@ -43,7 +43,7 @@ impl ModuleVisitor<'_> {
                 // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
                 format!("{}.{}", prefix, identifier)
             }
-            None => identifier.to_owned(),
+            None => identifier,
         };
 
         // If this module has any code blocks the submodules are mapped to namespaces inside the
