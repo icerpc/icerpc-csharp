@@ -57,17 +57,12 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 
         // We accept two behaviors here:
         // - serverConnectTask is null, the listener internally reject the connection (e.g.: Quic behavior)
-        // - the server connect operation fails with either TransportException or IOException (e.g:
-        //   Slic behavior), on Windows the underlying SslStream can fail with TransportException or
-        //   IOException depending on whether the SSL alert from the peer is detected before than the
-        //   peer connection closure.
+        // - the server connect operation fails with either TransportException (e.g: Slic behavior).
         if (serverConnectTask is not null)
         {
             // The client will typically close the transport connection after receiving AuthenticationException
             await clientConnection.DisposeAsync();
-            Assert.That(
-                async () => await serverConnectTask,
-                Throws.TypeOf<TransportException>().Or.TypeOf<IOException>());
+            Assert.That(async () => await serverConnectTask, Throws.TypeOf<TransportException>());
         }
     }
 
@@ -126,10 +121,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 // We accept two behaviors here:
                 // - the client connection fails with AuthenticationException when try to create a stream
                 //   (e.g.: Quic behavior)
-                // - the client connect operation fails with either TransportException or IOException (e.g:
-                //   Slic behavior), on Windows the underlying SslStream can fail with TransportException or
-                //   IOException depending on whether the SSL alert from the peer is detected before than the
-                //   peer connection closure.
+                // - the client connect operation fails with either TransportException (e.g: Slic behavior).
                 if (serverConnection is not null)
                 {
                    await serverConnection.DisposeAsync();
@@ -138,7 +130,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
                 await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
             },
-            Throws.TypeOf<AuthenticationException>().Or.TypeOf<TransportException>().Or.TypeOf<IOException>());
+            Throws.TypeOf<AuthenticationException>().Or.TypeOf<TransportException>());
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>

@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -83,9 +82,11 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        catch (IOException exception) when (exception.InnerException is SocketException socketException)
+        catch (IOException exception)
         {
-            throw new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -215,9 +216,11 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        catch (IOException exception) when (exception.InnerException is SocketException socketException)
+        catch (IOException exception)
         {
-            throw new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -279,9 +282,11 @@ internal class TcpClientConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        catch (IOException exception) when (exception.InnerException is SocketException socketException)
+        catch (IOException exception)
         {
-            throw new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -388,9 +393,11 @@ internal class TcpServerConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-        catch (IOException exception) when (exception.InnerException is SocketException socketException)
+        catch (IOException exception)
         {
-            throw new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw exception.InnerException is SocketException socketException ?
+                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
