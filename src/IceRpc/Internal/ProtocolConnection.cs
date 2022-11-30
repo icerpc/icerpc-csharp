@@ -301,8 +301,11 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 await _shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            catch (OperationCanceledException exception)
             {
+                // _shutdownTask does not throw or complete with OperationCanceledException
+                Debug.Assert(exception.CancellationToken == cancellationToken);
+
                 try
                 {
                     _shutdownCts.Cancel();

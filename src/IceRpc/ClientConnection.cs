@@ -440,7 +440,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 catch
                 {
                     // ShutdownComplete throws a ConnectionException with a Closed error code
-                    await _decoratee.ShutdownComplete.ConfigureAwait(false);
+                    await ShutdownComplete.ConfigureAwait(false);
                     throw;
                 }
             }

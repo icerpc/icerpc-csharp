@@ -475,8 +475,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             frameReader = null; // response now owns frameReader
             return response;
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested || _tasksCts.IsCancellationRequested);
+
             if (ConnectionClosedException is ConnectionException connectionException &&
                 connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
             {
@@ -488,11 +492,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Otherwise, the invocation was canceled because of a speedy-shutdown.
                 throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            throw;
         }
         catch (TransportException exception)
         {

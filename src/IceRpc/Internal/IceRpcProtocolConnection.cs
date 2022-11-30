@@ -820,16 +820,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException) when (streamOutputClosed.IsCompleted)
+                    catch (OperationCanceledException exception) when (exception.CancellationToken == readCts.Token)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        Debug.Assert(streamOutputClosed.IsCompleted);
+
                         // This either throws the OutputClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested(); // should always throw
-                        throw;
-                    }
+                    // we let other exceptions thrown by ReadAsync (including possibly an OperationCanceledException
+                    // thrown incorrectly) escape.
 
                     if (readResult.IsCanceled)
                     {
