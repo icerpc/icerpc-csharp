@@ -15,51 +15,53 @@ public class IceRpcException : IOException
     /// "IMultiplexedConnection.CloseAsync" />.</summary>
     public ulong? ApplicationErrorCode { get; }
 
-    /// <summary>Gets the transport error code.</summary>
+    /// <summary>Gets the IceRpc error.</summary>
     public IceRpcError IceRpcError { get; }
 
-    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error
-    /// code.</summary>
-    /// <param name="errorCode">The error code.</param>
-    public IceRpcException(IceRpcError errorCode)
-        : base($"{nameof(IceRpcException)} {{ ErrorCode = {errorCode} }}") => IceRpcError = errorCode;
-
-    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error
-    /// code and message.</summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <param name="message">The message.</param>
-    public IceRpcException(IceRpcError errorCode, string message)
-        : base(message) => IceRpcError = errorCode;
-
-    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error
-    /// code and application error code.</summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <param name="applicationErrorCode">The application error code.</param>
-    public IceRpcException(IceRpcError errorCode, ulong applicationErrorCode)
-        : base($"{nameof(IceRpcException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode = {applicationErrorCode} }}")
+    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error.
+    /// </summary>
+    /// <param name="error">The IceRpc error.</param>
+    public IceRpcException(IceRpcError error)
+        : this(error, $"{nameof(IceRpcException)} {{ IceRpcError = {error} }}")
     {
-        IceRpcError = errorCode;
+    }
+
+    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error
+    /// and message.</summary>
+    /// <param name="error">The error code.</param>
+    /// <param name="message">The message.</param>
+    public IceRpcException(IceRpcError error, string message)
+        : base(message) => IceRpcError = error;
+
+    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error and
+    /// application error code.</summary>
+    /// <param name="error">The error.</param>
+    /// <param name="applicationErrorCode">The application error code.</param>
+    public IceRpcException(IceRpcError error, ulong applicationErrorCode)
+        : base($"{nameof(IceRpcException)} {{ IceRpcError = {error}, ApplicationErrorCode = {applicationErrorCode} }}")
+    {
+        IceRpcError = error;
         ApplicationErrorCode = applicationErrorCode;
     }
 
-    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error code
-    /// and a reference to the inner exception that is the cause of this exception.</summary>
-    /// <param name="errorCode">The error code.</param>
+    /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class with a specified error and a
+    /// reference to the inner exception that is the cause of this exception.</summary>
+    /// <param name="error">The error code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public IceRpcException(IceRpcError errorCode, Exception innerException)
-        : base($"{nameof(IceRpcException)} {{ ErrorCode = {errorCode} }}", innerException) => IceRpcError = errorCode;
+    public IceRpcException(IceRpcError error, Exception innerException)
+        : base($"{nameof(IceRpcException)} {{ IceRpcError = {error} }}", innerException) => IceRpcError = error;
 
-    /// <summary>Constructs a new instance of the <see cref="IceRpcException"/> class with a specified error code,
+    /// <summary>Constructs a new instance of the <see cref="IceRpcException"/> class with a specified error,
     /// application error code and a reference to the inner exception that is the cause of this exception.</summary>
-    /// <param name="errorCode">The error code.</param>
+    /// <param name="error">The error.</param>
     /// <param name="applicationErrorCode">The application error code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public IceRpcException(IceRpcError errorCode, ulong applicationErrorCode, Exception innerException)
+    public IceRpcException(IceRpcError error, ulong applicationErrorCode, Exception innerException)
         : base(
-            $"{nameof(IceRpcException)} {{ ErrorCode = {errorCode}, ApplicationErrorCode = {applicationErrorCode} }}",
+            $"{nameof(IceRpcException)} {{ IceRpcError = {error}, ApplicationErrorCode = {applicationErrorCode} }}",
             innerException)
     {
-        IceRpcError = errorCode;
+        IceRpcError = error;
         ApplicationErrorCode = applicationErrorCode;
     }
 }
