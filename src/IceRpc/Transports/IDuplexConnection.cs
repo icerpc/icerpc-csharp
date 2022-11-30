@@ -11,7 +11,8 @@ public interface IDuplexConnection : IDisposable
     /// non-null.</summary>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Connects this connection.</summary>
+    /// <summary>Connects this connection. This method is only called once and always before any other methods of this
+    /// interface.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation" />.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
@@ -22,7 +23,9 @@ public interface IDuplexConnection : IDisposable
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Reads data from the connection.</summary>
+    /// <summary>Reads data from the connection. This method is always called after a successful <see
+    /// cref="ConnectAsync" /> call. It's never called concurrently or after a <see cref="IDisposable.Dispose" />
+    /// call.</summary>
     /// <param name="buffer">The buffer that holds the read data.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The number of bytes read. The implementation should always return a positive and non-null number of
@@ -32,12 +35,15 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
-    /// <summary>Shuts down the connection.</summary>
+    /// <summary>Shuts down the connection. This method is never called twice or while a <see cref="WriteAsync" /> call
+    /// is in progress.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
     Task ShutdownAsync(CancellationToken cancellationToken);
 
-    /// <summary>Writes data over the connection.</summary>
+    /// <summary>Writes data over the connection. This method is always called after a successful <see
+    /// cref="ConnectAsync" /> call. It's never called concurrently or after a <see cref="ShutdownAsync" /> or <see
+    /// cref="IDisposable.Dispose" /> call.</summary>
     /// <param name="buffers">The buffers containing the data to write.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes once the buffers are written.</returns>

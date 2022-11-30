@@ -12,12 +12,15 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// </summary>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Accepts a remote stream.</summary>
+    /// <summary>Accepts a remote stream. This method is never called concurrently or after a <see
+    /// cref="IAsyncDisposable.DisposeAsync" /> call. It's only called after a successful <see cref="ConnectAsync" />
+    /// call.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The remote stream.</returns>
     ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken);
 
-    /// <summary>Connects this connection. This method should only be called once.</summary>
+    /// <summary>Connects this connection. This method is only called once and always before any other methods of this
+    /// interface.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation" />.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
@@ -28,14 +31,16 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Closes the connection. This method should only be called once.</summary>
+    /// <summary>Closes the connection. This method is only called once.</summary>
     /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is closed.</returns>
     Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
 
     /// <summary>Creates a local stream. The creation might be delayed if the maximum number of unidirectional or
-    /// bidirectional streams prevents creating the new stream.</summary>
+    /// bidirectional streams prevents creating the new stream. This method is never called after a <see
+    /// cref="IAsyncDisposable.DisposeAsync" /> call. It's only called after a successful <see cref="ConnectAsync" />
+    /// call.</summary>
     /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream, <see langword="false"/>
     /// otherwise.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
