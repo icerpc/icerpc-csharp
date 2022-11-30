@@ -143,7 +143,7 @@ public sealed class ExceptionTests
         var value = decoder.DecodeUserException() as MyDerivedException;
 
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
+        Assert.That(value!.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
         Assert.That(value.K, Is.EqualTo(30));
         Assert.That(value.L, Is.EqualTo(40));
@@ -176,7 +176,7 @@ public sealed class ExceptionTests
         var value = decoder.DecodeUserException() as MyException;
 
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
+        Assert.That(value!.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -216,7 +216,7 @@ public sealed class ExceptionTests
         var value = decoder.DecodeUserException() as MyExceptionWithTaggedMembers;
 
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
+        Assert.That(value!.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
         Assert.That(value.K, Is.EqualTo(k));
         Assert.That(value.L, Is.EqualTo(l));
@@ -339,7 +339,7 @@ public sealed class ExceptionTests
         // TODO how we test this without using DecodeUserException?
         var decoded = decoder.DecodeUserException() as MyDerivedException;
         Assert.That(decoded, Is.Not.Null);
-        Assert.That(decoded.I, Is.EqualTo(expected.I));
+        Assert.That(decoded!.I, Is.EqualTo(expected.I));
         Assert.That(decoded.J, Is.EqualTo(expected.J));
         Assert.That(decoded.K, Is.EqualTo(expected.K));
         Assert.That(decoded.L, Is.EqualTo(expected.L));
@@ -361,7 +361,7 @@ public sealed class ExceptionTests
             activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
         var value = decoder.DecodeUserException() as MyException;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(expected.I));
+        Assert.That(value!.I, Is.EqualTo(expected.I));
         Assert.That(value.J, Is.EqualTo(expected.J));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -384,7 +384,7 @@ public sealed class ExceptionTests
             activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedMembers).Assembly));
         var value = decoder.DecodeUserException() as MyExceptionWithTaggedMembers;
         Assert.That(value, Is.Not.Null);
-        Assert.That(value.I, Is.EqualTo(10));
+        Assert.That(value!.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
         Assert.That(value.K, Is.EqualTo(k));
         Assert.That(value.L, Is.EqualTo(l));

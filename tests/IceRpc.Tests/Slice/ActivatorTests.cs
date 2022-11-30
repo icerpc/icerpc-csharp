@@ -110,7 +110,7 @@ public class ActivatorTests
         object? instance = sut.CreateClassInstance(typeId, ref decoder);
 
         Assert.That(instance, Is.Not.Null);
-        Assert.That(instance.GetType(), Is.EqualTo(expectedType));
+        Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
     }
 
     [Test, TestCaseSource(nameof(ReferencedAssembliesExceptionTypeIdsWithType))]
@@ -125,6 +125,6 @@ public class ActivatorTests
         object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
 
         Assert.That(instance, Is.Not.Null);
-        Assert.That(instance.GetType(), Is.EqualTo(expectedType));
+        Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
     }
 }
