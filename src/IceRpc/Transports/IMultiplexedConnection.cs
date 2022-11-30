@@ -22,7 +22,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <returns>The <see cref="TransportConnectionInformation" />.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
-    /// <exception cref="TransportException">Thrown if a transport error was encountered.</exception>
+    /// <exception cref="IceRpcException">Thrown if a transport error was encountered.</exception>
     /// <remarks>A transport implementation might raise other exceptions. A connection supporting SSL can for instance
     /// raise <see cref="AuthenticationException" /> if the authentication fails while the connection is being
     /// established.</remarks>

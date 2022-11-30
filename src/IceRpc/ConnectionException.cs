@@ -28,7 +28,7 @@ public enum ConnectionErrorCode
     OperationAborted,
 
     /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
-    /// cref="Exception.InnerException" /> is set to the <see cref="TransportException" /> that caused the
+    /// cref="Exception.InnerException" /> is set to the <see cref="IceRpcException" /> that caused the
     /// error.</summary>
     TransportError,
 

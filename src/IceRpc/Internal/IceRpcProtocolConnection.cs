@@ -154,7 +154,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
         }
-        catch (TransportException exception) when (
+        catch (IceRpcException exception) when (
             exception.ApplicationErrorCode is ulong errorCode &&
             errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
         {
@@ -182,7 +182,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
                     return goAwayFrame;
                 }
-                catch (TransportException)
+                catch (IceRpcException)
                 {
                     throw; // The connection with the peer was lost.
                 }
@@ -514,7 +514,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             throw new ConnectionException(ConnectionErrorCode.OperationAborted);
         }
-        catch (TransportException exception)
+        catch (IceRpcException exception)
         {
             throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
         }
@@ -650,8 +650,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
             }
         }
-        catch (TransportException exception) when (
-            exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
+        catch (IceRpcException exception) when (
+            exception.IceRpcError == IceRpcError.ConnectionAborted &&
             exception.ApplicationErrorCode is ulong errorCode &&
             (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
         {

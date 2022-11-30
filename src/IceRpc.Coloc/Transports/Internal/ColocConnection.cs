@@ -44,14 +44,14 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                throw new TransportException(TransportErrorCode.OperationAborted);
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
 
             ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 // Dispose canceled ReadAsync.
-                throw new TransportException(TransportErrorCode.OperationAborted);
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
             else if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
             {
@@ -84,7 +84,7 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             if (_state.HasFlag(State.Disposed))
             {
-                _reader.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
+                _reader.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
             }
             _state.ClearFlag(State.Reading);
         }
@@ -168,7 +168,7 @@ internal abstract class ColocConnection : IDuplexConnection
                 if (flushResult.IsCanceled)
                 {
                     // Dispose canceled ReadAsync.
-                    throw new TransportException(TransportErrorCode.OperationAborted);
+                    throw new IceRpcException(IceRpcError.OperationAborted);
                 }
             }
         }
@@ -180,7 +180,7 @@ internal abstract class ColocConnection : IDuplexConnection
             }
             else if (_state.HasFlag(State.Disposed))
             {
-                _writer.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
+                _writer.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
             }
             _state.ClearFlag(State.Writing);
         }
@@ -205,7 +205,7 @@ internal abstract class ColocConnection : IDuplexConnection
                 }
                 else
                 {
-                    _reader.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
+                    _reader.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
                 }
             }
 
@@ -215,7 +215,7 @@ internal abstract class ColocConnection : IDuplexConnection
             }
             else
             {
-                _writer.Complete(new TransportException(TransportErrorCode.ConnectionAborted));
+                _writer.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
             }
         }
     }

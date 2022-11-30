@@ -128,8 +128,8 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<TransportException>()
-            .With.Property("ErrorCode").EqualTo(TransportErrorCode.OperationAborted));
+        Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<IceRpcException>()
+            .With.Property("ErrorCode").EqualTo(IceRpcError.OperationAborted));
 
         payload.Complete();
         pipe.Writer.Complete();

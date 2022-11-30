@@ -943,7 +943,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(
             exception!.ErrorCode,
             Is.EqualTo(ConnectionErrorCode.TransportError).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
-        Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
+        Assert.That(exception!.InnerException, Is.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if

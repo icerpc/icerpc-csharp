@@ -274,7 +274,7 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or
     /// shutting down.</exception>
-    /// <exception cref="TransportException">Thrown when another server is already listening on the same server address.
+    /// <exception cref="IceRpcException">Thrown when another server is already listening on the same server address.
     /// </exception>
     public void Listen()
     {

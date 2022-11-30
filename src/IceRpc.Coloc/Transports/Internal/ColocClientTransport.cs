@@ -50,7 +50,7 @@ internal class ColocClientTransport : IDuplexClientTransport
             }
             else
             {
-                throw new TransportException(TransportErrorCode.ConnectionRefused);
+                throw new IceRpcException(IceRpcError.ConnectionRefused);
             }
         }
     }

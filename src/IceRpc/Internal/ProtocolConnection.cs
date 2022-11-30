@@ -113,7 +113,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 {
                     throw;
                 }
-                catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.ConnectionRefused)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionRefused)
                 {
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
@@ -121,7 +121,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         exception);
                     throw new ConnectionException(ConnectionErrorCode.ConnectRefused, exception);
                 }
-                catch (TransportException exception)
+                catch (IceRpcException exception)
                 {
                     ConnectionClosedException = new(
                         ConnectionErrorCode.ClosedByAbort,
@@ -434,7 +434,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         catch (Exception ex)
         {
             var exception = new ConnectionException(
-                ex is TransportException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
+                ex is IceRpcException ? ConnectionErrorCode.TransportError : ConnectionErrorCode.Unspecified,
                 ex);
             _connectCts.Cancel();
             _ = _shutdownCompleteSource.TrySetException(exception);

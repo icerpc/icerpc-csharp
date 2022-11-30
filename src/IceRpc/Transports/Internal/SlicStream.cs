@@ -303,7 +303,7 @@ internal class SlicStream : IMultiplexedStream
         else if (newValue > _connection.PeerPauseWriterThreshold)
         {
             // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
-            throw new TransportException(TransportErrorCode.InternalError, "invalid flow control credit increase");
+            throw new IceRpcException(IceRpcError.InternalError, "invalid flow control credit increase");
         }
     }
 
@@ -317,8 +317,8 @@ internal class SlicStream : IMultiplexedStream
     {
         if (!IsBidirectional && !IsRemote)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.InternalError,
                 "received Slic reset frame on local unidirectional stream");
         }
 
@@ -333,8 +333,8 @@ internal class SlicStream : IMultiplexedStream
     {
         if (!IsBidirectional && IsRemote)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.InternalError,
                 "received Slic stop sending on remote unidirectional stream");
         }
 
@@ -348,8 +348,8 @@ internal class SlicStream : IMultiplexedStream
     {
         if (IsBidirectional && IsRemote)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.InternalError,
                 "received Slic unidirectional stream released on remote bidirectional stream");
         }
 

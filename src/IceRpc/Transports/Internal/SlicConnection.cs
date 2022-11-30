@@ -38,7 +38,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
-    private TransportException? _exception;
+    private IceRpcException? _exception;
     private readonly TimeSpan _localIdleTimeout;
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
@@ -116,13 +116,13 @@ internal class SlicConnection : IMultiplexedConnection
             header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
             if (header is null || header.Value.FrameSize == 0)
             {
-                throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize frame");
+                throw new IceRpcException(IceRpcError.InternalError, "invalid Slic initialize frame");
             }
 
             if (header.Value.FrameType != FrameType.Initialize)
             {
-                throw new TransportException(
-                    TransportErrorCode.InternalError,
+                throw new IceRpcException(
+                    IceRpcError.InternalError,
                     $"unexpected Slic frame '{header.Value.FrameType}'");
             }
 
@@ -145,7 +145,7 @@ internal class SlicConnection : IMultiplexedConnection
                 header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
                 if (header is null || header.Value.FrameSize == 0)
                 {
-                    throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize frame");
+                    throw new IceRpcException(IceRpcError.InternalError, "invalid Slic initialize frame");
                 }
 
                 (version, initializeBody) = await ReadFrameAsync(
@@ -194,7 +194,7 @@ internal class SlicConnection : IMultiplexedConnection
             header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
             if (header is null || header.Value.FrameSize == 0)
             {
-                throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize ack frame");
+                throw new IceRpcException(IceRpcError.InternalError, "invalid Slic initialize ack frame");
             }
 
             switch (header.Value.FrameType)
@@ -219,8 +219,8 @@ internal class SlicConnection : IMultiplexedConnection
                         $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
 
                 default:
-                    throw new TransportException(
-                        TransportErrorCode.InternalError,
+                    throw new IceRpcException(
+                        IceRpcError.InternalError,
                         $"unexpected Slic frame '{header.Value.FrameType}'");
             }
         }
@@ -245,7 +245,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     // Nothing to do, DisposeAsync has been called and it takes care of the cleanup.
                 }
-                catch (TransportException exception)
+                catch (IceRpcException exception)
                 {
                     // Unexpected transport exception.
                     await CloseAsyncCore(exception).ConfigureAwait(false);
@@ -253,8 +253,8 @@ internal class SlicConnection : IMultiplexedConnection
                 catch (Exception exception)
                 {
                     // Unexpected exception.
-                    await CloseAsyncCore(new TransportException(
-                        TransportErrorCode.Unspecified,
+                    await CloseAsyncCore(new IceRpcException(
+                        IceRpcError.Unspecified,
                         exception)).ConfigureAwait(false);
                 }
                 finally
@@ -303,7 +303,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_exception is not null)
             {
-                if (_exception.ErrorCode == TransportErrorCode.ConnectionAborted)
+                if (_exception.IceRpcError == IceRpcError.ConnectionAborted)
                 {
                     // The peer already closed the connection, there's nothing to close so just return.
                     return;
@@ -325,7 +325,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
-            var exception = new TransportException(TransportErrorCode.ConnectionAborted, applicationErrorCode);
+            var exception = new IceRpcException(IceRpcError.ConnectionAborted, applicationErrorCode);
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
@@ -382,7 +382,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            await CloseAsyncCore(new TransportException(TransportErrorCode.OperationAborted)).ConfigureAwait(false);
+            await CloseAsyncCore(new IceRpcException(IceRpcError.OperationAborted)).ConfigureAwait(false);
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -616,7 +616,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
             {
-                throw new TransportException(TransportErrorCode.OperationAborted);
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
             finally
             {
@@ -628,7 +628,7 @@ internal class SlicConnection : IMultiplexedConnection
         return new FlushResult(isCanceled: false, isCompleted: false);
     }
 
-    private async ValueTask<bool> CloseAsyncCore(TransportException exception)
+    private async ValueTask<bool> CloseAsyncCore(IceRpcException exception)
     {
         lock (_mutex)
         {
@@ -804,7 +804,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     if (_exception is null)
                     {
-                        throw new TransportException(TransportErrorCode.InternalError);
+                        throw new IceRpcException(IceRpcError.InternalError);
                     }
                 }
                 return;
@@ -850,14 +850,14 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (!isBidirectional && !isRemote)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "received Slic stream frame on local unidirectional stream");
                     }
                     else if (dataSize == 0 && !endStream)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "invalid Slic stream frame, received 0 bytes without end of stream");
                     }
 
@@ -876,8 +876,8 @@ internal class SlicConnection : IMultiplexedConnection
 
                         if (dataSize == 0)
                         {
-                            throw new TransportException(
-                                TransportErrorCode.InternalError,
+                            throw new IceRpcException(
+                                IceRpcError.InternalError,
                                 "received empty Slic stream frame on new stream");
                         }
 
@@ -885,8 +885,8 @@ internal class SlicConnection : IMultiplexedConnection
                         {
                             if (_bidirectionalStreamCount == _maxBidirectionalStreams)
                             {
-                                throw new TransportException(
-                                    TransportErrorCode.InternalError,
+                                throw new IceRpcException(
+                                    IceRpcError.InternalError,
                                     $"maximum bidirectional stream count {_maxBidirectionalStreams} reached");
                             }
                             Interlocked.Increment(ref _bidirectionalStreamCount);
@@ -895,8 +895,8 @@ internal class SlicConnection : IMultiplexedConnection
                         {
                             if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
                             {
-                                throw new TransportException(
-                                    TransportErrorCode.InternalError,
+                                throw new IceRpcException(
+                                    IceRpcError.InternalError,
                                     $"maximum unidirectional stream count {_maxUnidirectionalStreams} reached");
                             }
                             Interlocked.Increment(ref _unidirectionalStreamCount);
@@ -972,14 +972,14 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic stream consumed frame too small");
                     }
                     else if (dataSize > 8)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic stream consumed frame too large");
                     }
 
@@ -998,14 +998,14 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic stream reset frame too small");
                     }
                     else if (dataSize > 8)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic stream reset frame too large");
                     }
 
@@ -1024,14 +1024,14 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic stream stop sending frame too small");
                     }
                     else if (dataSize > 8)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic stream stop sending frame too large");
                     }
 
@@ -1050,8 +1050,8 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(streamId is not null);
                     if (dataSize > 0)
                     {
-                        throw new TransportException(
-                            TransportErrorCode.InternalError,
+                        throw new IceRpcException(
+                            IceRpcError.InternalError,
                             "Slic unidirectional stream released frame too large");
                     }
 
@@ -1066,7 +1066,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 default:
                 {
-                    throw new TransportException(TransportErrorCode.InternalError, $"unexpected Slic frame '{type}'");
+                    throw new IceRpcException(IceRpcError.InternalError, $"unexpected Slic frame '{type}'");
                 }
             }
         }
@@ -1074,7 +1074,7 @@ internal class SlicConnection : IMultiplexedConnection
         async Task PerformCloseAsync(ulong errorCode)
         {
             // TODO: better exception.
-            var exception = new TransportException(TransportErrorCode.ConnectionAborted, errorCode);
+            var exception = new IceRpcException(IceRpcError.ConnectionAborted, errorCode);
             if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
                 if (IsServer)
@@ -1147,22 +1147,22 @@ internal class SlicConnection : IMultiplexedConnection
 
         if (_bidirectionalStreamSemaphore is null)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.InternalError,
                 "missing MaxBidirectionalStreams Slic connection parameter");
         }
 
         if (_unidirectionalStreamSemaphore is null)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.InternalError,
                 "missing MaxUnidirectionalStreams Slic connection parameter");
         }
 
         if (PeerPacketMaxSize < 1024)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.InternalError,
                 $"invalid PacketMaxSize={PeerPacketMaxSize} Slic connection parameter");
         }
 

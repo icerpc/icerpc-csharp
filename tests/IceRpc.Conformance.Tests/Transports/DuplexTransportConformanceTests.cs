@@ -71,8 +71,8 @@ public abstract class DuplexTransportConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
     [Test]
@@ -186,7 +186,7 @@ public abstract class DuplexTransportConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
         clientConnection.Dispose();
     }
 
@@ -244,9 +244,9 @@ public abstract class DuplexTransportConformanceTests
         var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
 
         // Act/Assert
-        TransportException? exception = Assert.Throws<TransportException>(
+        IceRpcException? exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.AddressInUse));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.AddressInUse));
     }
 
     [Test]
@@ -284,7 +284,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     /// <summary>Verifies that calling read on a connection fails with
-    /// <see cref="TransportErrorCode.ConnectionAborted" /> if the peer connection is disposed.</summary>
+    /// <see cref="IceRpcError.ConnectionAborted" /> if the peer connection is disposed.</summary>
     [Test]
     public async Task Read_from_disposed_peer_connection_fails_with_connection_aborted(
         [Values(true, false)] bool readFromServer)
@@ -301,9 +301,9 @@ public abstract class DuplexTransportConformanceTests
         disposedPeer.Dispose();
 
         // Act/Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await readFrom.ReadAsync(new byte[1], default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
@@ -426,10 +426,10 @@ public abstract class DuplexTransportConformanceTests
         }
 
         // Assert
-        Assert.That(exception, Is.Null.Or.InstanceOf<TransportException>());
-        if (exception is TransportException transportException)
+        Assert.That(exception, Is.Null.Or.InstanceOf<IceRpcException>());
+        if (exception is IceRpcException transportException)
         {
-            Assert.That(transportException!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+            Assert.That(transportException!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
         }
 
         async Task AcceptAndShutdownAsync()
@@ -490,7 +490,7 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling write fails with <see cref="TransportErrorCode.ConnectionAborted" />
+    /// <summary>Verifies that calling write fails with <see cref="IceRpcError.ConnectionAborted" />
     /// when the peer connection is disposed.</summary>
     [Test]
     public async Task Write_to_disposed_peer_connection_fails_with_connection_aborted()
@@ -506,7 +506,7 @@ public abstract class DuplexTransportConformanceTests
 
         // Assert
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
-        TransportException exception;
+        IceRpcException exception;
         try
         {
             // It can take few writes to detect the peer's connection closure.
@@ -516,12 +516,12 @@ public abstract class DuplexTransportConformanceTests
                 await Task.Delay(50);
             }
         }
-        catch (TransportException ex)
+        catch (IceRpcException ex)
         {
             exception = ex;
         }
 
-        Assert.That(exception.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.

@@ -485,7 +485,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         {
             readResult2 = await sut.LocalStream.Input.ReadAsync();
         }
-        catch (TransportException exception) when (exception.ErrorCode == TransportErrorCode.OperationAborted)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
             // acceptable behavior (and that's what Quic does)
             // we get OperationAborted because we locally "aborted" the stream by calling CancelPendingRead.

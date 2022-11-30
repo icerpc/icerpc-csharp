@@ -69,11 +69,11 @@ public class ColocTransportTests
             null);
 
         // Act/Assert
-        Assert.That(() => clientConnection.ConnectAsync(default), Throws.InstanceOf<TransportException>());
+        Assert.That(() => clientConnection.ConnectAsync(default), Throws.InstanceOf<IceRpcException>());
         await listener.DisposeAsync();
         foreach ((IDuplexConnection connection, Task connectTask) in connections)
         {
-            Assert.That(() => connectTask, Throws.InstanceOf<TransportException>());
+            Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
             connection.Dispose();
         }
     }

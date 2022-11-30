@@ -50,7 +50,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            throw new TransportException(TransportErrorCode.OperationAborted);
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
     }
 
@@ -71,7 +71,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         // Complete all the queued client connection establishment requests with TransportErrorCode.ConnectionAborted.
         while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader, CancellationToken) item))
         {
-            item.Tcs.SetException(new TransportException(TransportErrorCode.ConnectionAborted));
+            item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionAborted));
         }
 
         _disposeCts.Dispose();

@@ -58,8 +58,8 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         {
             // The client will typically close the transport connection after receiving AuthenticationException
             await clientConnection.DisposeAsync();
-            var ex = Assert.ThrowsAsync<TransportException>(async () => await serverConnectTask);
-            Assert.That(ex!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+            var ex = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask);
+            Assert.That(ex!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
         }
     }
 
@@ -123,7 +123,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
                 await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
             },
-            Throws.TypeOf<AuthenticationException>().Or.TypeOf<TransportException>());
+            Throws.TypeOf<AuthenticationException>().Or.TypeOf<IceRpcException>());
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
