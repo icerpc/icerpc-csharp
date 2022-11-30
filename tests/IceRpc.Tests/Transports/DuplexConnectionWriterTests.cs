@@ -11,7 +11,7 @@ using System.Net;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class DuplexConnectionReaderTests
+public class DuplexConnectionWriterTests
 {
     // TODO: Add more tests
 
