@@ -35,14 +35,14 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
-    /// <summary>Shuts down the connection. This method is never called twice or while a <see cref="WriteAsync" /> call
-    /// is in progress.</summary>
+    /// <summary>Shuts down the connection. This method is never called twice, while a <see cref="WriteAsync" /> call
+    /// is in progress or after a <see cref="IDisposable.Dispose" /> call.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete.</returns>
     Task ShutdownAsync(CancellationToken cancellationToken);
 
     /// <summary>Writes data over the connection. This method is always called after a successful <see
-    /// cref="ConnectAsync" /> call. It's never called concurrently or after a <see cref="ShutdownAsync" /> or <see
+    /// cref="ConnectAsync" /> call. It's never called concurrently, after a <see cref="ShutdownAsync" /> or <see
     /// cref="IDisposable.Dispose" /> call.</summary>
     /// <param name="buffers">The buffers containing the data to write.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

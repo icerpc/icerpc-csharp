@@ -2,12 +2,11 @@
 
 namespace IceRpc.Transports;
 
-/// <summary>A property bag used to configure a <see cref="SlicClientTransport" /> or
-/// <see cref="SlicServerTransport" />.</summary>
+/// <summary>A property bag used to configure a <see cref="ColocTransport" />.</summary>
 public sealed record class ColocTransportOptions
 {
     /// <summary>Gets or sets the maximum length of the pending connections queue.</summary>
-    /// <value>The queue length.</value>
+    /// <value>The maximum queue length.</value>
     public int ListenBacklog
     {
         get => _listenBacklog;
@@ -15,7 +14,7 @@ public sealed record class ColocTransportOptions
             throw new ArgumentException($"{nameof(ListenBacklog)} can't be less than 1", nameof(value));
     }
 
-    /// <summary>Gets or sets the number of bytes when writes on a Slic stream starts blocking.</summary>
+    /// <summary>Gets or sets the number of bytes when writes on a Coloc stream starts blocking.</summary>
     /// <value>The pause writer threshold.</value>
     public int PauseWriterThreshold
     {
@@ -24,7 +23,7 @@ public sealed record class ColocTransportOptions
             throw new ArgumentException($"{nameof(PauseWriterThreshold)} can't be less than 1KB", nameof(value));
     }
 
-    /// <summary>Gets or sets the number of bytes when writes on a Slic stream stops blocking.</summary>
+    /// <summary>Gets or sets the number of bytes when writes on a Coloc stream stops blocking.</summary>
     /// <value>The resume writer threshold.</value>
     public int ResumeWriterThreshold
     {

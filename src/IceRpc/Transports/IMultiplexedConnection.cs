@@ -31,7 +31,8 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Closes the connection. This method is only called once.</summary>
+    /// <summary>Closes the connection. This method is only called once and before <see
+    /// cref="IAsyncDisposable.DisposeAsync" />.</summary>
     /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is closed.</returns>
