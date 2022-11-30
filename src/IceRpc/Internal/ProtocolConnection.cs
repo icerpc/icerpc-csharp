@@ -86,8 +86,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     ConnectionClosedException = new(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment was canceled");
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection establishment was canceled.");
                     throw;
                 }
                 catch (OperationCanceledException)
@@ -96,14 +96,17 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     {
                         if (_connectCts.IsCancellationRequested)
                         {
-                            ConnectionClosedException = new(ConnectionErrorCode.ClosedByAbort);
+                            ConnectionClosedException = new(
+                                ConnectionErrorCode.ConnectionClosed,
+                                "The connection establishment was canceled.");
+
                             throw new ConnectionException(ConnectionErrorCode.OperationAborted);
                         }
                         else
                         {
                             ConnectionClosedException = new(
-                                ConnectionErrorCode.ClosedByAbort,
-                                "the connection establishment timeout out");
+                                ConnectionErrorCode.ConnectionClosed,
+                                "The connection establishment timeout out.");
                             throw new TimeoutException(
                                 $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
                         }
@@ -116,24 +119,24 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionRefused)
                 {
                     ConnectionClosedException = new(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed",
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was refused.",
                         exception);
                     throw new ConnectionException(ConnectionErrorCode.ConnectRefused, exception);
                 }
                 catch (IceRpcException exception)
                 {
                     ConnectionClosedException = new(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed",
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection establishment failed.",
                         exception);
                     throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
                 }
                 catch (Exception exception)
                 {
                     ConnectionClosedException = new(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection establishment failed",
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection establishment failed.",
                         exception);
                     throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
                 }
@@ -345,10 +348,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
         CancellationToken cancellationToken);
 
     private protected void ConnectionLost(Exception exception) =>
-        _ = _shutdownCompleteSource.TrySetException(new ConnectionException(
-            ConnectionErrorCode.ClosedByAbort,
-            "the connection was lost",
-            exception));
+        _ = _shutdownCompleteSource.TrySetException(
+                new ConnectionException(ConnectionErrorCode.ConnectionClosed, "The connection was lost.", exception));
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);

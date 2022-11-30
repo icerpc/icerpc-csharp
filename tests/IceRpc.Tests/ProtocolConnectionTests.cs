@@ -384,7 +384,7 @@ public sealed class ProtocolConnectionTests
         // Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
@@ -406,7 +406,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await connectTask, Throws.InstanceOf<ConnectionException>());
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Client.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
