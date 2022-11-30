@@ -163,19 +163,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override bool CheckIfIdle()
     {
+        // CheckForIdle only checks if the connection is idle. It's the caller that takes action.
         lock (_mutex)
         {
-            // If idle, stop accepting new dispatches or invocations and shutdown the connection.
-            if (_invocations.Count == 0 && _dispatchCount == 0)
-            {
-                _isAcceptingDispatchesAndInvocations = false;
-                ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByIdle);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return _invocations.Count == 0 && _dispatchCount == 0;
         }
     }
 
@@ -245,7 +236,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
+                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer, "");
                 }
                 catch (IceRpcException exception) when (
                     exception.IceRpcError == IceRpcError.ConnectionAborted &&

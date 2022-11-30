@@ -538,7 +538,7 @@ public sealed class ProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
 
         await shutdownTask;
     }

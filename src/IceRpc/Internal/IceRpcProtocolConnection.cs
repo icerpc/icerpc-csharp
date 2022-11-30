@@ -97,19 +97,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override bool CheckIfIdle()
     {
+        // CheckForIdle only checks if the connection is idle. It's the caller that takes action.
         lock (_mutex)
         {
-            // If idle, stop accepting new dispatches or invocations and close the connection.
-            if (_isAcceptingDispatchesAndInvocations && _streamCount == 0)
-            {
-                _isAcceptingDispatchesAndInvocations = false;
-                ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return _isAcceptingDispatchesAndInvocations && _streamCount == 0;
         }
     }
 
@@ -179,7 +170,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         IceRpcControlFrameType.GoAway,
                         cancellationToken).ConfigureAwait(false);
                     IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
+                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer, "");
                     return goAwayFrame;
                 }
                 catch (IceRpcException)

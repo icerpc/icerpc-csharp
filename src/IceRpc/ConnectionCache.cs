@@ -339,7 +339,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         // The ConnectionCache shut down or disposal canceled the connection establishment.
                         // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                        throw new ConnectionException(ConnectionErrorCode.ClosedByShutdown);
+                        throw new ConnectionException(
+                            ConnectionErrorCode.ConnectionClosed,
+                            "The connection was shut down or disposed.");
                     }
                     else
                     {
@@ -360,7 +362,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new ConnectionException(ConnectionErrorCode.ClosedByShutdown);
+                    throw new ConnectionException(
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was shut down or disposed.");
                 }
                 else
                 {

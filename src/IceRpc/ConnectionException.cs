@@ -15,14 +15,8 @@ public enum ConnectionErrorCode
     /// timeout.</summary>
     ClosedByAbort,
 
-    /// <summary>The connection was closed locally because it was idle.</summary>
-    ClosedByIdle,
-
     /// <summary>The connection was closed by the remote peer.</summary>
     ClosedByPeer,
-
-    /// <summary>The connection was closed by a local call to shutdown or dispose.</summary>
-    ClosedByShutdown,
 
     /// <summary>The connection establishment was refused by the server.</summary>
     ConnectRefused,
@@ -48,7 +42,7 @@ public static class ConnectionErrorCodeExtensions
     /// <returns><see langword="true"/> if <paramref name="errorCode"/> is a Closed code; otherwise,
     /// <see langword="false"/>.</returns>
     public static bool IsClosedErrorCode(this ConnectionErrorCode errorCode) =>
-        errorCode >= ConnectionErrorCode.ConnectionClosed && errorCode <= ConnectionErrorCode.ClosedByShutdown;
+        errorCode >= ConnectionErrorCode.ConnectionClosed && errorCode <= ConnectionErrorCode.ClosedByPeer;
 }
 
 /// <summary>This exception reports a connection failure.</summary>
