@@ -32,12 +32,11 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         if (_reader is null)
         {
-            throw new InvalidOperationException($"can't call {nameof(ReadAsync)} before {nameof(ConnectAsync)}");
+            throw new InvalidOperationException("Reading is not allowed before connection is connected.");
         }
-
         if (!_state.TrySetFlag(State.Reading))
         {
-            throw new InvalidOperationException($"{nameof(ReadAsync)} is not thread safe");
+            throw new InvalidOperationException("Reading is already in progress.");
         }
 
         try
@@ -112,21 +111,18 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         if (_reader is null)
         {
-            throw new InvalidOperationException($"can't call {nameof(ShutdownAsync)} before {nameof(ConnectAsync)}");
+            throw new InvalidOperationException("Shutdown is not allowed before the connection is connected.");
+        }
+        if (_state.HasFlag(State.Writing))
+        {
+            throw new InvalidOperationException("Shutdown or writing is in progress");
+        }
+        if (!_state.TrySetFlag(State.ShuttingDown))
+        {
+            throw new InvalidOperationException("Shutdown has already been called.");
         }
 
-        if (_state.TrySetFlag(State.ShuttingDown))
-        {
-            if (_state.TrySetFlag(State.Writing))
-            {
-                _writer.Complete();
-                _state.ClearFlag(State.Writing);
-            }
-            else
-            {
-                // WriteAsync will take care of completing the writer once it's done writing.
-            }
-        }
+        _writer.Complete();
         return Task.CompletedTask;
     }
 
@@ -138,32 +134,26 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         if (_reader is null)
         {
-            throw new InvalidOperationException($"can't call {nameof(WriteAsync)} before {nameof(ConnectAsync)}");
+            throw new InvalidOperationException("Writing is not allowed before the connection is connected.");
         }
-
+        if (_state.HasFlag(State.ShuttingDown))
+        {
+            throw new InvalidOperationException($"Writing is not allowed after the connection is shutdown.");
+        }
         if (!_state.TrySetFlag(State.Writing))
         {
-            if (_state.HasFlag(State.ShuttingDown))
-            {
-                throw new InvalidOperationException(
-                    $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
-            }
-            else
-            {
-                throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
-            }
+            throw new InvalidOperationException("Writing is already in progress.");
         }
 
         try
         {
+            if (_state.HasFlag(State.Disposed))
+            {
+                throw new IceRpcException(IceRpcError.OperationAborted);
+            }
+
             foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
-                if (_state.HasFlag(State.ShuttingDown))
-                {
-                    throw new InvalidOperationException(
-                        $"cannot write to a connection after calling {nameof(ShutdownAsync)}");
-                }
-
                 FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
                 if (flushResult.IsCanceled)
                 {
@@ -174,11 +164,8 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         finally
         {
-            if (_state.HasFlag(State.ShuttingDown))
-            {
-                _writer.Complete();
-            }
-            else if (_state.HasFlag(State.Disposed))
+            Debug.Assert(!_state.HasFlag(State.ShuttingDown));
+            if (_state.HasFlag(State.Disposed))
             {
                 _writer.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
             }
@@ -257,7 +244,7 @@ internal class ClientColocConnection : ColocConnection
         }
         if (_reader is not null)
         {
-            throw new InvalidOperationException($"can't call {nameof(ConnectAsync)} twice");
+            throw new InvalidOperationException($"Connection establishment can't be called twice.");
         }
 
         Debug.Assert(!_state.HasFlag(State.ShuttingDown));

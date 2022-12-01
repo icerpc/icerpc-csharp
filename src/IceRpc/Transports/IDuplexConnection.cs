@@ -5,6 +5,21 @@ using System.Security.Authentication;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a duplex transport.</summary>
+/// <remarks>This interface is used by the IceRpc core. It provides a number of guarantees on how the methods from this
+/// interface are called:
+/// <list type="bullet">
+/// <item><description>the <see cref="ConnectAsync" /> method is always called first and once. No other methods are
+/// called until it completes.</description></item>
+/// <item><description>the <see cref="ReadAsync" /> method is never called while another <see cref="ReadAsync"/> is in
+/// progress. It can be called concurrently with a <see cref="WriteAsync"/> or <see cref="ShutdownAsync"/>
+/// call.</description></item>
+/// <item><description>the <see cref="WriteAsync" /> method is never called while another <see cref="WriteAsync"/> is in
+/// progress. It's also never called after a <see cref="ShutdownAsync"/> call. It can be called concurrently with a <see
+/// cref="ReadAsync" /> call.</description></item>
+/// <item><description>the <see cref="ShutdownAsync" /> method is only called once and never called while a <see
+/// cref="WriteAsync" /> is in progress.</description></item>
+/// </list>
+/// </remarks>
 public interface IDuplexConnection : IDisposable
 {
     /// <summary>Gets the server address of this connection. The Transport property of this server address is always

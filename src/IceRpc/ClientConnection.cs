@@ -5,6 +5,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -440,7 +441,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 catch
                 {
                     // ShutdownComplete throws a ConnectionException with a Closed error code
-                    await _decoratee.ShutdownComplete.ConfigureAwait(false);
+                    await ShutdownComplete.ConfigureAwait(false);
+                    Debug.Assert(false); // the line above always throws
                     throw;
                 }
             }
