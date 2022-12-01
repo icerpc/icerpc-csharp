@@ -12,6 +12,7 @@ namespace IceRpc.Transports;
 /// called until it completes.</description></item>
 /// <item><description>the <see cref="AcceptStreamAsync" /> method is never called concurrently.</description></item>
 /// <item><description>the <see cref="CreateStreamAsync" /> method can be called concurrently.</description></item>
+/// <item><description>the <see cref="CloseAsync" /> method is only called once.</description></item>
 /// </list>
 /// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable
@@ -36,8 +37,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Closes the connection. This method is only called once and before <see
-    /// cref="IAsyncDisposable.DisposeAsync" />.</summary>
+    /// <summary>Closes the connection.</summary>
     /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is closed.</returns>

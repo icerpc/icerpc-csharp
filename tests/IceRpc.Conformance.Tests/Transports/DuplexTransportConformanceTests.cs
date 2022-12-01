@@ -306,26 +306,6 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
     }
 
-    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
-    /// </summary>
-    [Test]
-    public async Task Read_from_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<IDuplexConnection>>(),
-            provider.GetRequiredService<IDuplexConnection>());
-        IDuplexConnection disposedConnection = disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
-
-        disposedConnection.Dispose();
-
-        // Act/Assert
-        Assert.That(
-            async () => await disposedConnection.ReadAsync(new byte[1], default),
-            Throws.TypeOf<ObjectDisposedException>());
-    }
-
     [Test]
     public async Task Read_returns_zero_after_shutdown()
     {

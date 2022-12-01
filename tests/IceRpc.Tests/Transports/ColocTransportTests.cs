@@ -101,6 +101,31 @@ public class ColocTransportTests
         Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.InvalidOperationException);
     }
 
+    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
+    /// </summary>
+    [Test]
+    public async Task Read_from_disposed_connection_fails()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverAddress = new ServerAddress(new Uri($"icerpc://{Guid.NewGuid()}"));
+        await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+        using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
+            serverAddress,
+            new DuplexConnectionOptions(),
+            null);
+
+        clientConnection.Dispose();
+
+        // Act/Assert
+        Assert.That(
+            async () => await clientConnection.ReadAsync(new byte[1], default),
+            Throws.TypeOf<ObjectDisposedException>());
+    }
+
     [Test]
     public async Task Read_before_connect_throws_invalid_operation_exception()
     {

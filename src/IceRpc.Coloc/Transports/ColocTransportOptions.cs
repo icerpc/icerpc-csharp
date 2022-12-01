@@ -14,7 +14,8 @@ public sealed record class ColocTransportOptions
             throw new ArgumentException($"{nameof(ListenBacklog)} can't be less than 1", nameof(value));
     }
 
-    /// <summary>Gets or sets the number of bytes when writes on a Coloc stream starts blocking.</summary>
+    /// <summary>Gets or sets the number of bytes in the Coloc connection when <see cref="IDuplexConnection.WriteAsync"
+    /// /> starts blocking.</summary>
     /// <value>The pause writer threshold.</value>
     public int PauseWriterThreshold
     {
@@ -23,7 +24,8 @@ public sealed record class ColocTransportOptions
             throw new ArgumentException($"{nameof(PauseWriterThreshold)} can't be less than 1KB", nameof(value));
     }
 
-    /// <summary>Gets or sets the number of bytes when writes on a Coloc stream stops blocking.</summary>
+    /// <summary>Gets or sets the number of bytes in the Coloc connection when <see cref="IDuplexConnection.WriteAsync"
+    /// /> stops blocking.</summary>
     /// <value>The resume writer threshold.</value>
     public int ResumeWriterThreshold
     {
