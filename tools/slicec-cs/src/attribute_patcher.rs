@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_attributes;
-use crate::slicec_ext::*;
+use crate::cs_attributes::CsAttributeKind;
 
 use slice::ast::node::Node;
 use slice::compilation_result::{CompilationData, CompilationResult};

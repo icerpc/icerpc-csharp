@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use super::{match_cs_encoded_result, EntityExt, ParameterExt, ParameterSliceExt};
+use super::{EntityExt, ParameterExt, ParameterSliceExt};
+use crate::cs_attributes::match_cs_encoded_result;
 use crate::cs_util::FieldType;
 use crate::slicec_ext::member_ext::MemberExt;
 use slice::grammar::{Attributable, ClassFormat, Contained, Operation};

@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, ContainerBuilder};
+use crate::cs_attributes::match_cs_namespace;
 use crate::generated_code::GeneratedCode;
-use crate::slicec_ext::match_cs_namespace;
 use slice::code_block::CodeBlock;
 
 use slice::grammar::*;

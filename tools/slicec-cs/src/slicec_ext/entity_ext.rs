@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
 use crate::cs_util::escape_keyword;
-use crate::slicec_ext::match_cs_namespace;
 
 use slice::convert_case::{Case, Casing};
 use slice::grammar::Entity;
-
-use super::{match_cs_identifier, match_cs_internal, match_cs_readonly};
 
 pub trait EntityExt: Entity {
     // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified

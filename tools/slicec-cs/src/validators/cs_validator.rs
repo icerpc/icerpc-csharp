@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::cs_attributes;
-use crate::slicec_ext::{match_cs_type, CsAttributeKind};
+use crate::cs_attributes::{self, match_cs_type, CsAttributeKind};
 use slice::compilation_result::{CompilationData, CompilationResult};
 use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note, Warning, WarningKind};
 use slice::grammar::*;
