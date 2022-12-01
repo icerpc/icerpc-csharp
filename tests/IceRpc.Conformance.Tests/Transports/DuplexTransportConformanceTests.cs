@@ -400,46 +400,6 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Shutdown_by_peer_before_connect_fails_with_connection_aborted()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
-
-        Task acceptTask = AcceptAndShutdownAsync();
-
-        // Act
-        Exception? exception = null;
-        try
-        {
-            await clientConnection.ConnectAsync(default);
-
-            // Connect might succeed if ConnectAsync doesn't require additional data exchange after connecting. It's the
-            // case for raw TCP which only connects the socket.
-            await clientConnection.ShutdownAsync(default);
-        }
-        catch (Exception ex)
-        {
-            exception = ex;
-        }
-
-        // Assert
-        Assert.That(exception, Is.Null.Or.InstanceOf<TransportException>());
-        if (exception is TransportException transportException)
-        {
-            Assert.That(transportException!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
-        }
-
-        async Task AcceptAndShutdownAsync()
-        {
-            (IDuplexConnection connection, EndPoint remoteNetworkAddress) = await listener.AcceptAsync(default);
-            await connection.ShutdownAsync(default);
-            connection.Dispose();
-        }
-    }
-
-    [Test]
     public async Task Write_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
