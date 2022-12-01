@@ -506,13 +506,13 @@ public sealed class ClassTests
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
         Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-        Assert.That(theA.TheB.TheA, Is.Null);
+        Assert.That(theA.TheB!.TheA, Is.Null);
         Assert.That(theA.TheB.TheB, Is.Null);
         Assert.That(theA.TheB.TheC, Is.Null);
 
         Assert.That(theA.TheC, Is.Not.Null);
         Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-        Assert.That(theA.TheC.TheB, Is.Null);
+        Assert.That(theA.TheC!.TheB, Is.Null);
 
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -586,13 +586,13 @@ public sealed class ClassTests
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
         Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-        Assert.That(theA.TheB.TheA, Is.Null);
+        Assert.That(theA.TheB!.TheA, Is.Null);
         Assert.That(theA.TheB.TheB, Is.Null);
         Assert.That(theA.TheB.TheC, Is.Null);
 
         Assert.That(theA.TheC, Is.Not.Null);
         Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-        Assert.That(theA.TheC.TheB, Is.Null);
+        Assert.That(theA.TheC!.TheB, Is.Null);
 
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -649,13 +649,13 @@ public sealed class ClassTests
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
         Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-        Assert.That(theA.TheB.TheA, Is.Null);
+        Assert.That(theA.TheB!.TheA, Is.Null);
         Assert.That(theA.TheB.TheB, Is.Null);
         Assert.That(theA.TheB.TheC, Is.Not.Null);
 
         Assert.That(theA.TheC, Is.Not.Null);
         Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-        Assert.That(theA.TheC.TheB, Is.Not.Null);
+        Assert.That(theA.TheC!.TheB, Is.Not.Null);
 
         Assert.That(theA.TheB.TheC, Is.EqualTo(theA.TheC));
         Assert.That(theA.TheC.TheB, Is.EqualTo(theA.TheB));
@@ -741,13 +741,13 @@ public sealed class ClassTests
         // Assert
         Assert.That(theA.TheB, Is.Not.Null);
         Assert.That(theA.TheB, Is.TypeOf<MyClassB>());
-        Assert.That(theA.TheB.TheA, Is.Null);
+        Assert.That(theA.TheB!.TheA, Is.Null);
         Assert.That(theA.TheB.TheB, Is.Null);
         Assert.That(theA.TheB.TheC, Is.Not.Null);
 
         Assert.That(theA.TheC, Is.Not.Null);
         Assert.That(theA.TheC, Is.TypeOf<MyClassC>());
-        Assert.That(theA.TheC.TheB, Is.Not.Null);
+        Assert.That(theA.TheC!.TheB, Is.Not.Null);
 
         Assert.That(theA.TheB.TheC, Is.EqualTo(theA.TheC));
         Assert.That(theA.TheC.TheB, Is.EqualTo(theA.TheB));

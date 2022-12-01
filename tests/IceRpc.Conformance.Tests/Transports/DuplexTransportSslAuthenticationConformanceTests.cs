@@ -52,7 +52,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                 await serverConnectTask;
                 await serverConnection.ReadAsync(new byte[1], CancellationToken.None);
             });
-        Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(ex!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
     }
 
     [Test]

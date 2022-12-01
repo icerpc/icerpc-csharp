@@ -62,7 +62,10 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         {
             // The client will typically close the transport connection after receiving AuthenticationException
             await clientConnection.DisposeAsync();
-            Assert.That(async () => await serverConnectTask, Throws.TypeOf<TransportException>());
+            var ex = Assert.ThrowsAsync<TransportException>(async () => await serverConnectTask);
+            Assert.That(
+                ex!.ErrorCode,
+                Is.EqualTo(TransportErrorCode.ConnectionAborted).Or.EqualTo(TransportErrorCode.Unspecified));
         }
     }
 

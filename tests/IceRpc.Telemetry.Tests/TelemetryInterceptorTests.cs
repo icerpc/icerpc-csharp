@@ -40,7 +40,7 @@ public sealed class TelemetryInterceptorTests
 
         // Assert
         Assert.That(invocationActivity, Is.Not.Null);
-        Assert.That(invocationActivity.Kind, Is.EqualTo(ActivityKind.Client));
+        Assert.That(invocationActivity!.Kind, Is.EqualTo(ActivityKind.Client));
         Assert.That(invocationActivity.OperationName, Is.EqualTo($"{request.ServiceAddress.Path}/{request.Operation}"));
         Assert.That(invocationActivity.Tags, Is.Not.Null);
         var tags = invocationActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
@@ -94,7 +94,7 @@ public sealed class TelemetryInterceptorTests
         Assert.That(invocationActivity, Is.Not.Null);
         Assert.That(decodedActivity, Is.Not.Null);
         // The decode activity parent is the invocation activity
-        Assert.That(decodedActivity.ParentId, Is.EqualTo(invocationActivity.Id));
+        Assert.That(decodedActivity!.ParentId, Is.EqualTo(invocationActivity!.Id));
         Assert.That(decodedActivity.ParentSpanId, Is.EqualTo(invocationActivity.SpanId));
         Assert.That(decodedActivity.Baggage, Is.Not.Null);
         Assert.That(decodedActivity.ActivityTraceFlags, Is.EqualTo(invocationActivity.ActivityTraceFlags));
