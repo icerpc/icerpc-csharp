@@ -135,9 +135,18 @@ public class ServerTests
         var completedConnectTask = await Task.WhenAny(connectTask1, connectTask2, connectTask3);
 
         // Assert
-        var exception = Assert.ThrowsAsync<ConnectionException>(async () => await completedConnectTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ServerBusy));
-        await server.DisposeAsync();
+
+        // TODO: if any of the Assert fails, we need to dispose the server first, otherwise the test hangs and hides the
+        // actual Assert failure.
+        try
+        {
+            IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
+            Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
+        }
+        finally
+        {
+            await server.DisposeAsync();
+        }
     }
 
     [Test]
@@ -183,9 +192,9 @@ public class ServerTests
         DelayDisposeMultiplexedConnection serverConnection1 = serverListener.LastConnection!;
 
         // Act/Assert
-        Assert.That(() => clientConnection2.ConnectAsync(),
-            Throws.InstanceOf<ConnectionException>().With.Property("ErrorCode")
-            .EqualTo(ConnectionErrorCode.ServerBusy));
+        Assert.That(
+            () => clientConnection2.ConnectAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ServerBusy));
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.

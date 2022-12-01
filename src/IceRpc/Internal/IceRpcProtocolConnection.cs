@@ -145,15 +145,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
         }
-        catch (IceRpcException exception) when (
-            exception.ApplicationErrorCode is ulong errorCode &&
-            errorCode == (ulong)MultiplexedConnectionCloseError.ServerBusy)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ServerBusy)
         {
             ConnectionClosedException = new(
                 ConnectionErrorCode.ConnectionClosed,
-                "The connection establishment was refused.");
+                "The connection establishment failed because the server is too busy.");
 
-            throw new ConnectionException(ConnectionErrorCode.ServerBusy);
+            throw;
         }
 
         // The connection is ready to start accepting dispatches on invocations.
@@ -643,10 +641,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
             }
         }
-        catch (IceRpcException exception) when (
-            exception.IceRpcError == IceRpcError.ConnectionAborted &&
-            exception.ApplicationErrorCode is ulong errorCode &&
-            (MultiplexedConnectionCloseError)errorCode == MultiplexedConnectionCloseError.NoError)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosedByPeer)
         {
             // Expected if the peer closed the connection first.
         }

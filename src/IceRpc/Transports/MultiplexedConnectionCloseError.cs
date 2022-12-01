@@ -10,6 +10,6 @@ public enum MultiplexedConnectionCloseError : byte
 
     /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
     /// </summary>
-    /// <seealso cref="ConnectionErrorCode.ServerBusy" />
+    /// <seealso cref="IceRpcError.ServerBusy" />
     ServerBusy = 1,
 }

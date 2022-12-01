@@ -489,7 +489,7 @@ public sealed class ProtocolConnectionTests
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the ConnectAsync failure.
 
         // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<ConnectionException>());
+        Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Client.ShutdownComplete);
         Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
@@ -1027,7 +1027,7 @@ public sealed class ProtocolConnectionTests
         // IceRpcException(IceRpcError.ConnectionAborted) and it's mapped to ConnectionErrorCode.IceRpcError)
         Assert.That(
             exception!.ErrorCode,
-            Is.EqualTo(ConnectionErrorCode.IceRpcException).Or.EqualTo(ConnectionErrorCode.ServerBusy));
+            Is.EqualTo(ConnectionErrorCode.IceRpcException));
         Assert.That(exception!.InnerException, Is.InstanceOf<IceRpcException>());
     }
 

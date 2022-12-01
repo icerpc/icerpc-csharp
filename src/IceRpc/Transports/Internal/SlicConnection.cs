@@ -97,8 +97,8 @@ internal class SlicConnection : IMultiplexedConnection
         Debug.Assert(_exception is null);
 
         // Connect the duplex connection.
-        TransportConnectionInformation information = await _duplexConnection.ConnectAsync(
-                cancellationToken).ConfigureAwait(false);
+        TransportConnectionInformation information = await _duplexConnection.ConnectAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
         // messages requires the connection to be established.
@@ -301,7 +301,8 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_exception is not null)
             {
-                if (_exception.IceRpcError == IceRpcError.ConnectionAborted)
+                if (_exception.IceRpcError == IceRpcError.ConnectionClosedByPeer ||
+                    _exception.IceRpcError == IceRpcError.ConnectionAborted)
                 {
                     // The peer already closed the connection, there's nothing to close so just return.
                     return;
@@ -323,9 +324,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
-            ulong applicationErrorCode = (ulong)closeError;
-
-            var exception = new IceRpcException(IceRpcError.ConnectionAborted, applicationErrorCode);
+            var exception = new IceRpcException(IceRpcError.ConnectionAborted);
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
@@ -335,7 +334,7 @@ internal class SlicConnection : IMultiplexedConnection
                 await WriteFrameAsync(
                     FrameType.Close,
                     streamId: null,
-                    new CloseBody(applicationErrorCode).Encode,
+                    new CloseBody((ulong)closeError).Encode,
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -1072,8 +1071,17 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync(ulong errorCode)
         {
-            // TODO: better exception.
-            var exception = new IceRpcException(IceRpcError.ConnectionAborted, errorCode);
+            IceRpcException exception = errorCode switch
+            {
+                (ulong)MultiplexedConnectionCloseError.NoError =>
+                    new IceRpcException(IceRpcError.ConnectionClosedByPeer),
+                (ulong)MultiplexedConnectionCloseError.ServerBusy =>
+                    new IceRpcException(IceRpcError.ServerBusy),
+                _ => new IceRpcException(
+                    IceRpcError.ConnectionAborted,
+                    $"The connection was closed by the peer with unknown application error code {errorCode}.")
+            };
+
             if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
                 if (IsServer)

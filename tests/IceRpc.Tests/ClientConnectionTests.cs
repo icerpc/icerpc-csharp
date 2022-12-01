@@ -139,7 +139,7 @@ public class ClientConnectionTests
         {
             await connection.ConnectAsync();
         }
-        catch (ConnectionException)
+        catch (IceRpcException)
         {
             // expected
             // TODO: which error code is ok/expected?
