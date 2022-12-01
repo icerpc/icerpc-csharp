@@ -494,6 +494,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 throw new ConnectionException(ConnectionErrorCode.OperationAborted);
             }
         }
+        catch (ConnectionException)
+        {
+            throw;
+        }
         catch (TransportException exception)
         {
             throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
