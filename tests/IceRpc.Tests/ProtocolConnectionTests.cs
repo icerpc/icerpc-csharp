@@ -1027,7 +1027,7 @@ public sealed class ProtocolConnectionTests
         // IceRpcException(IceRpcError.ConnectionAborted) and it's mapped to ConnectionErrorCode.IceRpcError)
         Assert.That(
             exception!.ErrorCode,
-            Is.EqualTo(ConnectionErrorCode.IceRpcException).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
+            Is.EqualTo(ConnectionErrorCode.IceRpcException).Or.EqualTo(ConnectionErrorCode.ServerBusy));
         Assert.That(exception!.InnerException, Is.InstanceOf<IceRpcException>());
     }
 

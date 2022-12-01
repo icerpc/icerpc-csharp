@@ -145,7 +145,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamStopSending,
-                    new StreamStopSendingBody(applicationProtocolErrorCode: 0).Encode,
+                    new StreamStopSendingBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -188,7 +188,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamReset,
-                    new StreamResetBody(applicationProtocolErrorCode: 0).Encode,
+                    new StreamResetBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
             catch

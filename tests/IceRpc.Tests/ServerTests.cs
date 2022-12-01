@@ -136,7 +136,7 @@ public class ServerTests
 
         // Assert
         var exception = Assert.ThrowsAsync<ConnectionException>(async () => await completedConnectTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectRefused));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ServerBusy));
         await server.DisposeAsync();
     }
 
@@ -185,7 +185,7 @@ public class ServerTests
         // Act/Assert
         Assert.That(() => clientConnection2.ConnectAsync(),
             Throws.InstanceOf<ConnectionException>().With.Property("ErrorCode")
-            .EqualTo(ConnectionErrorCode.ConnectRefused));
+            .EqualTo(ConnectionErrorCode.ServerBusy));
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
@@ -395,8 +395,8 @@ public class ServerTests
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
             _connection.ConnectAsync(cancellationToken);
 
-        public Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
-            _connection.CloseAsync(applicationErrorCode, cancellationToken);
+        public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
+            _connection.CloseAsync(closeError, cancellationToken);
 
         public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
             => _connection.CreateStreamAsync(bidirectional, cancellationToken);

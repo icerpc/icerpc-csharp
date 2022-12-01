@@ -44,13 +44,13 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    public async Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken)
+    public async Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
     {
         try
         {
             if (_connection is not null)
             {
-                await _connection.CloseAsync((long)applicationErrorCode, cancellationToken).ConfigureAwait(false);
+                await _connection.CloseAsync((long)closeError, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (QuicException exception)

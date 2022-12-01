@@ -123,7 +123,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         ConnectionErrorCode.ConnectionClosed,
                         "The connection was refused.",
                         exception);
-                    throw new ConnectionException(ConnectionErrorCode.ConnectRefused, exception);
+                    throw new ConnectionException(ConnectionErrorCode.ServerBusy, exception);
                 }
                 catch (IceRpcException exception)
                 {

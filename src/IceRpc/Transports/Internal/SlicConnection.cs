@@ -287,7 +287,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public async Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken)
+    public async Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -323,6 +323,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
+            ulong applicationErrorCode = (ulong)closeError;
+
             var exception = new IceRpcException(IceRpcError.ConnectionAborted, applicationErrorCode);
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
@@ -821,7 +823,7 @@ internal class SlicConnection : IMultiplexedConnection
                     lock (_mutex)
                     {
                         // If close is not already in progress initiate the closure.
-                        _closeTask ??= PerformCloseAsync(closeBody.ApplicationProtocolErrorCode);
+                        _closeTask ??= PerformCloseAsync(closeBody.ApplicationErrorCode);
                     }
                     await _closeTask.ConfigureAwait(false);
                     break;

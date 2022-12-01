@@ -81,7 +81,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
-        await clientConnection.CloseAsync(applicationErrorCode: 2ul, CancellationToken.None);
+        await clientConnection.CloseAsync((MultiplexedConnectionCloseError)2, CancellationToken.None);
 
         // Assert
         IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreams)!;
@@ -252,7 +252,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         IMultiplexedConnection peerConnection =
             closeServerConnection ? clientConnection : serverConnection;
 
-        await closeConnection.CloseAsync(applicationErrorCode: 5ul, CancellationToken.None);
+        await closeConnection.CloseAsync((MultiplexedConnectionCloseError)5, CancellationToken.None);
 
         IceRpcException? exception;
 
@@ -328,10 +328,10 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         // Act/Assert
         Assert.That(async () => await clientConnection.CloseAsync(
-            applicationErrorCode: 0ul,
+            MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
         Assert.That(async () => await serverConnection.CloseAsync(
-            applicationErrorCode: 0ul,
+             MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
     }
 
@@ -347,8 +347,13 @@ public abstract partial class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        Task clientCloseTask = clientConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
-        Task serverCloseTask = serverConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
+        Task clientCloseTask = clientConnection.CloseAsync(
+            MultiplexedConnectionCloseError.NoError,
+            CancellationToken.None);
+
+        Task serverCloseTask = serverConnection.CloseAsync(
+            MultiplexedConnectionCloseError.NoError,
+            CancellationToken.None);
 
         // Assert
         Assert.That(() => clientCloseTask, Throws.Nothing);

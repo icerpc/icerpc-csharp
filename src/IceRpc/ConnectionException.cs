@@ -11,8 +11,9 @@ public enum ConnectionErrorCode
     /// connection that was just closed but not yet unregistered from the cache.</summary>
     ConnectionClosed,
 
-    /// <summary>The connection establishment was refused by the server.</summary>
-    ConnectRefused,
+    /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
+    /// </summary>
+    ServerBusy,
 
     /// <summary>The operation was aborted because the connection was aborted.</summary>
     OperationAborted,

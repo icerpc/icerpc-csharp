@@ -147,13 +147,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception) when (
             exception.ApplicationErrorCode is ulong errorCode &&
-            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
+            errorCode == (ulong)MultiplexedConnectionCloseError.ServerBusy)
         {
             ConnectionClosedException = new(
                 ConnectionErrorCode.ConnectionClosed,
                 "The connection establishment was refused.");
 
-            throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
+            throw new ConnectionException(ConnectionErrorCode.ServerBusy);
         }
 
         // The connection is ready to start accepting dispatches on invocations.
@@ -646,14 +646,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (IceRpcException exception) when (
             exception.IceRpcError == IceRpcError.ConnectionAborted &&
             exception.ApplicationErrorCode is ulong errorCode &&
-            (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
+            (MultiplexedConnectionCloseError)errorCode == MultiplexedConnectionCloseError.NoError)
         {
             // Expected if the peer closed the connection first.
         }
 
         // We can now safely close the connection.
         await _transportConnection.CloseAsync(
-            (ulong)IceRpcConnectionErrorCode.NoError,
+            MultiplexedConnectionCloseError.NoError,
             cancellationToken).ConfigureAwait(false);
 
         // We wait for the completion of the dispatches that we created.
