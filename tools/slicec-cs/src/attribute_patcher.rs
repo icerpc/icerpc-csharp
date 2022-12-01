@@ -177,7 +177,10 @@ fn single_argument(
 }
 
 fn error_missing(required_argument: String, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    diagnostic_reporter.report_error(Error::new(ErrorKind::TooManyArguments(required_argument), Some(span)));
+    diagnostic_reporter.report_error(Error::new(
+        ErrorKind::MissingRequiredArgument(required_argument),
+        Some(span),
+    ));
 }
 fn error_too_many(expected: String, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     diagnostic_reporter.report_error(Error::new(ErrorKind::TooManyArguments(expected), Some(span)));
