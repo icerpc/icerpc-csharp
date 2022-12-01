@@ -80,12 +80,12 @@ internal abstract class TcpConnection : IDuplexConnection
         catch (IOException exception)
         {
             throw exception.InnerException is SocketException socketException ?
-                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.Unspecified, exception);
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
+                new IceRpcException(IceRpcError.IceRpcError, exception);
         }
         catch (SocketException exception)
         {
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
 
         return received;
@@ -209,12 +209,12 @@ internal abstract class TcpConnection : IDuplexConnection
         catch (IOException exception)
         {
             throw exception.InnerException is SocketException socketException ?
-                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.Unspecified, exception);
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
+                new IceRpcException(IceRpcError.IceRpcError, exception);
         }
         catch (SocketException exception)
         {
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 
@@ -270,12 +270,12 @@ internal class TcpClientConnection : TcpConnection
         catch (IOException exception)
         {
             throw exception.InnerException is SocketException socketException ?
-                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.Unspecified, exception);
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
+                new IceRpcException(IceRpcError.IceRpcError, exception);
         }
         catch (SocketException exception)
         {
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
 
         try
@@ -287,7 +287,7 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (SocketException exception)
         {
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 
@@ -332,7 +332,7 @@ internal class TcpClientConnection : TcpConnection
         catch (SocketException exception)
         {
             Socket.Dispose();
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
         catch
         {
@@ -372,12 +372,12 @@ internal class TcpServerConnection : TcpConnection
         catch (IOException exception)
         {
             throw exception.InnerException is SocketException socketException ?
-                new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.Unspecified, exception);
+                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
+                new IceRpcException(IceRpcError.IceRpcError, exception);
         }
         catch (SocketException exception)
         {
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
 
         try
@@ -389,7 +389,7 @@ internal class TcpServerConnection : TcpConnection
         }
         catch (SocketException exception)
         {
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 

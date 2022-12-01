@@ -59,7 +59,7 @@ internal class QuicPipeReader : PipeReader
         }
         catch (QuicException exception)
         {
-            throw exception.ToTransportException();
+            throw exception.ToIceRpcException();
         }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
@@ -100,7 +100,7 @@ internal class QuicPipeReader : PipeReader
             }
             catch (QuicException exception)
             {
-                throw exception.ToTransportException();
+                throw exception.ToIceRpcException();
             }
             // we don't wrap other exceptions
         }

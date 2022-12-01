@@ -100,7 +100,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     await connection.ShutdownComplete.ConfigureAwait(false);
                 }
-                catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+                catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
                 {
                     // expected, call refresh below
                 }
@@ -196,7 +196,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             throw;
         }
-        catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
@@ -275,7 +275,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 throw;
             }
-            catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
             {
                 if (RefreshConnection(connection) is IProtocolConnection newConnection)
                 {

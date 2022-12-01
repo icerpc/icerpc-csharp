@@ -97,19 +97,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override bool CheckIfIdle()
     {
+        // CheckForIdle only checks if the connection is idle. It's the caller that takes action.
         lock (_mutex)
         {
-            // If idle, stop accepting new dispatches or invocations and close the connection.
-            if (_isAcceptingDispatchesAndInvocations && _streamCount == 0)
-            {
-                _isAcceptingDispatchesAndInvocations = false;
-                ConnectionClosedException = new(ConnectionErrorCode.ClosedByIdle);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return _isAcceptingDispatchesAndInvocations && _streamCount == 0;
         }
     }
 
@@ -154,13 +145,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
         }
-        catch (TransportException exception) when (
+        catch (IceRpcException exception) when (
             exception.ApplicationErrorCode is ulong errorCode &&
             errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
         {
             ConnectionClosedException = new(
-                ConnectionErrorCode.ClosedByPeer,
-                "the connection establishment was refused");
+                ConnectionErrorCode.ConnectionClosed,
+                "The connection establishment was refused.");
 
             throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
         }
@@ -179,10 +170,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         IceRpcControlFrameType.GoAway,
                         cancellationToken).ConfigureAwait(false);
                     IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
+                    InitiateShutdown(
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was closed because it received a GoAway frame from the peer.");
                     return goAwayFrame;
                 }
-                catch (TransportException)
+                catch (IceRpcException)
                 {
                     throw; // The connection with the peer was lost.
                 }
@@ -322,8 +315,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     if (ConnectionClosedException is null)
                     {
                         ConnectionClosedException = new(
-                            ConnectionErrorCode.ClosedByAbort,
-                            "the connection was lost",
+                            ConnectionErrorCode.ConnectionClosed,
+                            "The connection was lost.",
                             exception);
 
                         ConnectionLost(exception);
@@ -514,9 +507,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             throw new ConnectionException(ConnectionErrorCode.OperationAborted);
         }
-        catch (TransportException exception)
+        catch (IceRpcException exception)
         {
-            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
         }
         finally
         {
@@ -650,8 +643,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
             }
         }
-        catch (TransportException exception) when (
-            exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
+        catch (IceRpcException exception) when (
+            exception.IceRpcError == IceRpcError.ConnectionAborted &&
             exception.ApplicationErrorCode is ulong errorCode &&
             (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
         {

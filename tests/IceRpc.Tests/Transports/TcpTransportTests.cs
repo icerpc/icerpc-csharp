@@ -286,9 +286,9 @@ public class TcpTransportTests
         clientConnection.Dispose();
 
         // Act/Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await serverConnection.ConnectAsync(default));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails with

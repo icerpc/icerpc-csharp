@@ -29,7 +29,7 @@ internal class DuplexConnectionReader : IDisposable
         IDuplexConnection connection,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        Action<TransportException> connectionLostAction)
+        Action<IceRpcException> connectionLostAction)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -57,7 +57,7 @@ internal class DuplexConnectionReader : IDisposable
                     _nextIdleTime = Timeout.InfiniteTimeSpan;
                 }
 
-                connectionLostAction(new TransportException(TransportErrorCode.ConnectionIdle));
+                connectionLostAction(new IceRpcException(IceRpcError.ConnectionIdle));
             });
     }
 
@@ -188,7 +188,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
                 // calling read method doesn't return data.
-                throw new TransportException(TransportErrorCode.ConnectionIdle);
+                throw new IceRpcException(IceRpcError.ConnectionIdle);
             }
             else
             {

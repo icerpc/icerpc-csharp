@@ -160,19 +160,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override bool CheckIfIdle()
     {
+        // CheckForIdle only checks if the connection is idle. It's the caller that takes action.
         lock (_mutex)
         {
-            // If idle, stop accepting new dispatches or invocations and shutdown the connection.
-            if (_invocationCount == 0 && _dispatchCount == 0)
-            {
-                _isAcceptingDispatchesAndInvocations = false;
-                ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByIdle);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return _invocationCount == 0 && _dispatchCount == 0;
         }
     }
 
@@ -231,12 +222,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    ConnectionClosedException = new ConnectionException(ConnectionErrorCode.ClosedByPeer);
+                    var connectionClosedException = new ConnectionException(
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was closed by the peer.");
 
                     _tasksCts.Cancel();
                     await Task.WhenAll(
                         _pingTask,
-                        _writeSemaphore.CompleteAndWaitAsync(ConnectionClosedException)).ConfigureAwait(false);
+                        _writeSemaphore.CompleteAndWaitAsync(connectionClosedException)).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the transport connection and notify the
@@ -244,10 +237,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown(ConnectionErrorCode.ClosedByPeer);
+                    InitiateShutdown(connectionClosedException.ErrorCode, connectionClosedException.Message);
                 }
-                catch (TransportException exception) when (
-                    exception.ErrorCode == TransportErrorCode.ConnectionAborted &&
+                catch (IceRpcException exception) when (
+                    exception.IceRpcError == IceRpcError.ConnectionAborted &&
                     !_isAcceptingDispatchesAndInvocations &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
@@ -267,8 +260,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     ConnectionClosedException = new ConnectionException(
-                        ConnectionErrorCode.ClosedByAbort,
-                        "the connection was lost",
+                        ConnectionErrorCode.ConnectionClosed,
+                        "The connection was lost.",
                         exception);
 
                     // Notify the ConnectionLost callback.
@@ -482,25 +475,16 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested || _tasksCts.IsCancellationRequested);
 
-            if (ConnectionClosedException is ConnectionException connectionException &&
-                connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
-            {
-                // If the connection was lost, report a transport error.
-                throw new ConnectionException(ConnectionErrorCode.TransportError, connectionException.InnerException);
-            }
-            else
-            {
-                // Otherwise, the invocation was canceled because of a speedy-shutdown or because it was disposed.
-                throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-            }
+            // The connection is being disposed.
+            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
         }
         catch (ConnectionException)
         {
             throw;
         }
-        catch (TransportException exception)
+        catch (IceRpcException exception)
         {
-            throw new ConnectionException(ConnectionErrorCode.TransportError, exception);
+            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
         }
         catch (Exception exception)
         {
@@ -685,7 +669,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _writeSemaphore.Release();
             }
         }
-        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ClosedByPeer)
+        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
         {
             // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
         }

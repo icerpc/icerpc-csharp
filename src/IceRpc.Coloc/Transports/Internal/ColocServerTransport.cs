@@ -37,7 +37,7 @@ internal class ColocServerTransport : IDuplexServerTransport
 
         if (!_listeners.TryAdd(listener.ServerAddress, listener))
         {
-            throw new TransportException(TransportErrorCode.AddressInUse);
+            throw new IceRpcException(IceRpcError.AddressInUse);
         }
         return listener;
     }
