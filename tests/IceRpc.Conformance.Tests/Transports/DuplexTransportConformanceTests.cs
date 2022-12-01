@@ -76,7 +76,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_then_cancel_the_cancellation_source_and_dispose_the_listener_fails_with_operation_canceled_exception()
+    public async Task Call_accept_on_the_listener_and_then_cancel_the_cancellation_source_fails_with_operation_canceled_exception()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -87,7 +87,6 @@ public abstract class DuplexTransportConformanceTests
 
         // Act
         cancelationSource.Cancel();
-        await listener.DisposeAsync();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());

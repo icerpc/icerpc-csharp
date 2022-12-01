@@ -189,6 +189,48 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
     }
 
+    [Test]
+    public async Task Call_accept_on_the_listener_and_then_cancel_the_cancellation_source_fails_with_operation_canceled_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        using var cancelationSource = new CancellationTokenSource();
+
+        var acceptTask = listener.AcceptAsync(cancelationSource.Token);
+
+        // Act
+        cancelationSource.Cancel();
+
+        // Assert
+        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.DisposeAsync();
+
+        // Act/Assert
+        Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
+    }
+
+    [Test]
+    public async Task Call_accept_with_canceled_cancellation_token_fails_with_operation_canceled()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act / Assert
+        Assert.That(
+            async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
     /// </param>
