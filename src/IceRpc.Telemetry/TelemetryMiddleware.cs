@@ -70,7 +70,7 @@ public class TelemetryMiddleware : IDispatcher
 
         activity.SetParentId(traceId, spanId, traceFlags);
 
-        // Read tracestate encoded as a string
+        // Read TraceState encoded as a string
         activity.TraceStateString = decoder.DecodeString();
 
         IEnumerable<(string Key, string Value)> baggage = decoder.DecodeSequence(

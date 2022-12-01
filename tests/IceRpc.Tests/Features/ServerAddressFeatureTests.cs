@@ -22,7 +22,7 @@ public class ServerAddressFeatureTests
     }
 
     [Test]
-    public void First_non_removed_alt_address_becomes_main_server_addres_when_main_server_address_is_removed()
+    public void First_non_removed_alt_address_becomes_main_server_address_when_main_server_address_is_removed()
     {
         var removedServerAddresses = new ServerAddress[] { new ServerAddress(new Uri("icerpc://127.0.0.1:10001")) };
         var serviceAddress = new ServiceAddress(new Uri("icerpc://127.0.0.1:10001/hello?alt-server=127.0.0.1:10002"));

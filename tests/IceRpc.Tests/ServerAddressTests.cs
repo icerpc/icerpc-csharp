@@ -18,7 +18,7 @@ public class ServerAddressTests
                       string host,
                       ushort port,
                       string? transport,
-                      IDictionary<string, string>? parameters) in _validServerAddresss)
+                      IDictionary<string, string>? parameters) in _validServerAddress)
             {
                 yield return new TestCaseData(
                     uri,
@@ -35,7 +35,7 @@ public class ServerAddressTests
     {
         get
         {
-            foreach ((Uri uri, string _, ushort _, string? _, IDictionary<string, string>? _) in _validServerAddresss)
+            foreach ((Uri uri, string _, ushort _, string? _, IDictionary<string, string>? _) in _validServerAddress)
             {
                 yield return new TestCaseData(uri);
             }
@@ -44,7 +44,7 @@ public class ServerAddressTests
 
     /// <summary>A collection of valid server address strings with its expected host, port, transport and parameters.
     /// </summary>
-    private static readonly (Uri Uri, string Host, ushort Port, string? Transport, IDictionary<string, string>? Parameters)[] _validServerAddresss =
+    private static readonly (Uri Uri, string Host, ushort Port, string? Transport, IDictionary<string, string>? Parameters)[] _validServerAddress =
         new (Uri, string, ushort, string?, IDictionary<string, string>?)[]
         {
             (new Uri("icerpc://host:10000"), "host", 10000, null, null),

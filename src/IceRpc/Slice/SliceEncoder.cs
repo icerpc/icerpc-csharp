@@ -622,7 +622,7 @@ public ref partial struct SliceEncoder
         };
     }
 
-    /// <summary>Gets the mimimum number of bytes needed to encode a ulong value with the varuint62 encoding as an
+    /// <summary>Gets the minimum number of bytes needed to encode a ulong value with the varuint62 encoding as an
     /// exponent of 2.</summary>
     /// <param name="value">The value to encode.</param>
     /// <returns>N where 2^N is the number of bytes needed to encode value with Slice's varuint62 encoding.</returns>

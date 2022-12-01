@@ -88,7 +88,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, (ulong)5)]
     [TestCase(new byte[] { 0x01, 0x04 }, (ulong)256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, (ulong)16384)]
-    public void Decode_varulong_value(byte[] encodedBytes, ulong expected)
+    public void Decode_varuint62_value(byte[] encodedBytes, ulong expected)
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
@@ -98,7 +98,7 @@ public class NumericTypesDecodingTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Tests that attempting to decode a variable length unisgned int that that is out of bound throws
+    /// <summary>Tests that attempting to decode a variable length unassigned int that that is out of bound throws
     /// an <see cref="InvalidDataException" />.</summary>
     /// <param name="value">A long to encode into a byte array that will fail to be decoded into an uint.</param>
     [TestCase((ulong)UInt32.MaxValue + 1)]
