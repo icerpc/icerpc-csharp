@@ -136,10 +136,10 @@ public class RouterTests
     {
         var router = new Router();
 
-        DispatchException ex = Assert.ThrowsAsync<DispatchException>(
+        DispatchException? ex = Assert.ThrowsAsync<DispatchException>(
             async () => await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc)));
 
-        Assert.That(ex.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
+        Assert.That(ex!.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
     }
 
     /// <summary>Verifies that the router middleware are called in the expected order. That corresponds
@@ -201,14 +201,14 @@ public class RouterTests
     /// <summary>Verifies that the middleware are called in the expected order before dispatching the request to the
     /// inner most router.</summary>
     /// <param name="prefix">The prefix for the sub-router.</param>
-    /// <param name="subprefix">The prefix for the sub-sub-router</param>
+    /// <param name="subPrefix">The prefix for the sub-sub-router</param>
     /// <param name="path">The path for the request.</param>
     /// <param name="subpath">The path for the dispatcher in the inner most router.</param>
     [TestCase("/foo", "/bar", "/foo/bar/abc", "/abc")]
     [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
-    public async Task Router_with_middleware_and_nested_subrouters(
+    public async Task Router_with_middleware_and_nested_sub_routers(
         string prefix,
-        string subprefix,
+        string subPrefix,
         string path,
         string subpath)
     {
@@ -234,7 +234,7 @@ public class RouterTests
                     return next.DispatchAsync(request, cancellationToken);
                 }));
 
-            r.Route(subprefix, r =>
+            r.Route(subPrefix, r =>
             {
                 r.Use(next => new InlineDispatcher(
                    (request, cancellationToken) =>

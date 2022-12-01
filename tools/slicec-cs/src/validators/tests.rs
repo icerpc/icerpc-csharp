@@ -146,7 +146,7 @@ fn identifier_attribute_on_type_alias_fails() {
     let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
-        .unwrap_err()
+        .unwrap()
         .diagnostic_reporter;
 
     // Assert

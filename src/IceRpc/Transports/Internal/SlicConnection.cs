@@ -100,11 +100,10 @@ internal class SlicConnection : IMultiplexedConnection
         TransportConnectionInformation information = await _duplexConnection.ConnectAsync(
                 cancellationToken).ConfigureAwait(false);
 
-        // Enable the idle timeout check after the transport connection establishment. We don't want the transport
-        // connection to be disposed because it's idle when the transport connection establishment is in progress. This
-        // would require the duplex connection ConnectAsync/Dispose implementations to be thread safe. The transport
-        // connection establishment timeout is handled by the cancellation token instead.
-        _duplexConnectionReader.EnableIdleCheck();
+        // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
+        // messages requires the connection to be established.
+        _duplexConnectionReader.EnableAliveCheck(_localIdleTimeout);
+        _duplexConnectionWriter.EnableKeepAlive(_localIdleTimeout / 2);
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
         (FrameType FrameType, int FrameSize, ulong?)? header;
@@ -420,16 +419,11 @@ internal class SlicConnection : IMultiplexedConnection
 
         _duplexConnection = duplexConnection;
 
-        _duplexConnectionWriter = new DuplexConnectionWriter(
-            duplexConnection,
-            options.Pool,
-            options.MinSegmentSize);
-
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = true
-            });
+        {
+            SingleReader = true,
+            SingleWriter = true
+        });
 
         Action? keepAliveAction = null;
         if (!IsServer)
@@ -438,13 +432,17 @@ internal class SlicConnection : IMultiplexedConnection
             keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
         }
 
-        _duplexConnectionReader = new DuplexConnectionReader(
+        _duplexConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
-            idleTimeout: _localIdleTimeout,
             options.Pool,
             options.MinSegmentSize,
-            connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception),
             keepAliveAction);
+
+        _duplexConnectionReader = new DuplexConnectionReader(
+            duplexConnection,
+            options.Pool,
+            options.MinSegmentSize,
+            connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception));
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.
@@ -1168,7 +1166,8 @@ internal class SlicConnection : IMultiplexedConnection
         // Use the smallest idle timeout.
         if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
         {
-            _duplexConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
+            _duplexConnectionReader.EnableAliveCheck(peerIdleTimeoutValue);
+            _duplexConnectionWriter.EnableKeepAlive(peerIdleTimeoutValue / 2);
         }
     }
 
