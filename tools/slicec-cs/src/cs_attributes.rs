@@ -47,7 +47,7 @@ impl LanguageKind for CsAttributeKind {
     }
 
     fn debug_kind(&self) -> &str {
-        ""
+        self.directive()
     }
 }
 

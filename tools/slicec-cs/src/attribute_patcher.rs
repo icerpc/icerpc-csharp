@@ -11,177 +11,156 @@ use slice::slice_file::Span;
 
 pub fn patch_attributes(mut compilation_data: CompilationData) -> CompilationResult {
     let ast = &mut compilation_data.ast;
-    let diagnostic_reporter = &mut compilation_data.diagnostic_reporter;
+    let reporter = &mut compilation_data.diagnostic_reporter;
 
-    unsafe {
-        ast.as_mut_slice().iter_mut().for_each(|node| match node {
-            Node::Module(module_ptr) => {
-                patch_language_kind(&mut module_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::Struct(struct_ptr) => {
-                patch_language_kind(&mut struct_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::Class(class_ptr) => patch_language_kind(&mut class_ptr.borrow_mut().attributes, diagnostic_reporter),
-            Node::Exception(exception_ptr) => {
-                patch_language_kind(&mut exception_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::DataMember(data_member_ptr) => {
-                patch_language_kind(
-                    &mut data_member_ptr.borrow_mut().data_type.attributes,
-                    diagnostic_reporter,
-                );
-                patch_language_kind(&mut data_member_ptr.borrow_mut().attributes, diagnostic_reporter);
-            }
-            Node::Interface(interface_ptr) => {
-                patch_language_kind(&mut interface_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::Operation(operation_ptr) => {
-                patch_language_kind(&mut operation_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::Parameter(parameter_ptr) => {
-                patch_language_kind(
-                    &mut parameter_ptr.borrow_mut().data_type.attributes,
-                    diagnostic_reporter,
-                );
-                patch_language_kind(&mut parameter_ptr.borrow_mut().attributes, diagnostic_reporter);
-            }
-            Node::Enum(enum_ptr) => patch_language_kind(&mut enum_ptr.borrow_mut().attributes, diagnostic_reporter),
-            Node::Enumerator(enumerator_ptr) => {
-                patch_language_kind(&mut enumerator_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::CustomType(custom_type_ptr) => {
-                patch_language_kind(&mut custom_type_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::TypeAlias(type_alias_ptr) => {
-                patch_language_kind(&mut type_alias_ptr.borrow_mut().attributes, diagnostic_reporter)
-            }
-            Node::Sequence(sequence_ptr) => patch_language_kind(
-                &mut sequence_ptr.borrow_mut().element_type.attributes,
-                diagnostic_reporter,
-            ),
-            Node::Dictionary(dictionary_ptr) => {
-                patch_language_kind(
-                    &mut dictionary_ptr.borrow_mut().key_type.attributes,
-                    diagnostic_reporter,
-                );
-                patch_language_kind(
-                    &mut dictionary_ptr.borrow_mut().value_type.attributes,
-                    diagnostic_reporter,
-                );
-            }
-            _ => (),
-        });
-    }
+    let mut patcher = AttributePatcher { reporter };
+
+    ast.as_mut_slice().iter_mut().for_each(|node| {
+        patcher.patch_node(node);
+    });
 
     compilation_data.into()
 }
 
-fn patch_language_kind(attributes: &mut [Attribute], diagnostic_reporter: &mut DiagnosticReporter) {
-    for attribute in attributes.iter_mut() {
-        match &attribute.kind {
-            AttributeKind::Other { directive, arguments } if directive.starts_with(cs_attributes::ATTRIBUTE_PREFIX) => {
-                attribute.kind = map_language_kind(directive, arguments, &attribute.span, diagnostic_reporter)
+struct GeneralAttribute<'a> {
+    directive: &'a str,
+    arguments: &'a [String],
+    span: &'a Span,
+}
+
+struct AttributePatcher<'a> {
+    reporter: &'a mut DiagnosticReporter,
+}
+
+impl AttributePatcher<'_> {
+    fn patch_node(&mut self, node: &mut Node) {
+        unsafe {
+            match node {
+                Node::Module(module_ptr) => self.patch_attributes(&mut module_ptr.borrow_mut().attributes),
+                Node::Struct(struct_ptr) => self.patch_attributes(&mut struct_ptr.borrow_mut().attributes),
+                Node::Class(class_ptr) => self.patch_attributes(&mut class_ptr.borrow_mut().attributes),
+                Node::Exception(exception_ptr) => self.patch_attributes(&mut exception_ptr.borrow_mut().attributes),
+                Node::DataMember(data_member_ptr) => {
+                    self.patch_attributes(&mut data_member_ptr.borrow_mut().data_type.attributes);
+                    self.patch_attributes(&mut data_member_ptr.borrow_mut().attributes);
+                }
+                Node::Interface(interface_ptr) => self.patch_attributes(&mut interface_ptr.borrow_mut().attributes),
+                Node::Operation(operation_ptr) => self.patch_attributes(&mut operation_ptr.borrow_mut().attributes),
+                Node::Parameter(parameter_ptr) => {
+                    self.patch_attributes(&mut parameter_ptr.borrow_mut().data_type.attributes);
+                    self.patch_attributes(&mut parameter_ptr.borrow_mut().attributes);
+                }
+                Node::Enum(enum_ptr) => self.patch_attributes(&mut enum_ptr.borrow_mut().attributes),
+                Node::Enumerator(enumerator_ptr) => self.patch_attributes(&mut enumerator_ptr.borrow_mut().attributes),
+                Node::CustomType(custom_type_ptr) => {
+                    self.patch_attributes(&mut custom_type_ptr.borrow_mut().attributes)
+                }
+                Node::TypeAlias(type_alias_ptr) => self.patch_attributes(&mut type_alias_ptr.borrow_mut().attributes),
+                Node::Sequence(sequence_ptr) => {
+                    self.patch_attributes(&mut sequence_ptr.borrow_mut().element_type.attributes)
+                }
+                Node::Dictionary(dictionary_ptr) => {
+                    self.patch_attributes(&mut dictionary_ptr.borrow_mut().key_type.attributes);
+                    self.patch_attributes(&mut dictionary_ptr.borrow_mut().value_type.attributes);
+                }
+                _ => (),
             }
-            _ => (),
         }
     }
-}
 
-fn map_language_kind(
-    directive: &str,
-    arguments: &[String],
-    span: &Span,
-    diagnostic_reporter: &mut DiagnosticReporter,
-) -> AttributeKind {
-    // Check for known attributes, if a parsing error occurs return an unknown attribute.
-    let unmatched_attribute = AttributeKind::Other {
-        directive: directive.to_owned(),
-        arguments: arguments.to_owned(),
-    };
-
-    match directive {
-        cs_attributes::ATTRIBUTE => single_argument(directive, arguments, span, diagnostic_reporter)
-            .map_or(unmatched_attribute, |argument| {
-                CsAttributeKind::Attribute { attribute: argument }.into()
-            }),
-        cs_attributes::ENCODED_RESULT => match no_arguments(directive, arguments, span, diagnostic_reporter) {
-            true => CsAttributeKind::EncodedResult.into(),
-            false => unmatched_attribute,
-        },
-        cs_attributes::GENERIC => single_argument(directive, arguments, span, diagnostic_reporter)
-            .map_or(unmatched_attribute, |argument| {
-                CsAttributeKind::Generic { generic_type: argument }.into()
-            }),
-        cs_attributes::IDENTIFIER => single_argument(directive, arguments, span, diagnostic_reporter)
-            .map_or(unmatched_attribute, |argument| {
-                CsAttributeKind::Identifier { identifier: argument }.into()
-            }),
-        cs_attributes::INTERNAL => match no_arguments(directive, arguments, span, diagnostic_reporter) {
-            true => CsAttributeKind::Internal.into(),
-            false => unmatched_attribute,
-        },
-        cs_attributes::NAMESPACE => single_argument(directive, arguments, span, diagnostic_reporter)
-            .map_or(unmatched_attribute, |argument| {
-                CsAttributeKind::Namespace { namespace: argument }.into()
-            }),
-        cs_attributes::READONLY => match no_arguments(directive, arguments, span, diagnostic_reporter) {
-            true => CsAttributeKind::Readonly.into(),
-            false => unmatched_attribute,
-        },
-        cs_attributes::TYPE => single_argument(directive, arguments, span, diagnostic_reporter)
-            .map_or(unmatched_attribute, |argument| {
-                CsAttributeKind::Type { name: argument }.into()
-            }),
-
-        _ => {
-            diagnostic_reporter.report_error(Error::new(
-                ErrorKind::UnexpectedAttribute(directive.to_owned()),
-                Some(span),
-            ));
-            unmatched_attribute
+    fn patch_attributes(&mut self, attributes: &mut [Attribute]) {
+        for attribute in attributes.iter_mut() {
+            match &attribute.kind {
+                AttributeKind::Other { directive, arguments }
+                    if directive.starts_with(cs_attributes::ATTRIBUTE_PREFIX) =>
+                {
+                    if let Some(cs_attribute) = self.map_language_kind(&GeneralAttribute {
+                        directive,
+                        arguments,
+                        span: &attribute.span,
+                    }) {
+                        attribute.kind = cs_attribute.into()
+                    }
+                }
+                _ => (),
+            }
         }
     }
-}
 
-fn no_arguments(
-    directive: &str,
-    arguments: &[String],
-    span: &Span,
-    diagnostic_reporter: &mut DiagnosticReporter,
-) -> bool {
-    if arguments.is_empty() {
-        true
-    } else {
-        error_too_many(directive.to_owned(), span, diagnostic_reporter);
-        false
-    }
-}
-
-fn single_argument(
-    directive: &str,
-    arguments: &[String],
-    span: &Span,
-    diagnostic_reporter: &mut DiagnosticReporter,
-) -> Option<String> {
-    match arguments {
-        [argument] => Some(argument.clone()),
-        [] => {
-            error_missing(directive.to_owned() + r#"("<argument>")"#, span, diagnostic_reporter);
-            None
+    fn map_language_kind(&mut self, attribute: &GeneralAttribute) -> Option<CsAttributeKind> {
+        match attribute.directive {
+            cs_attributes::ATTRIBUTE => self
+                .single_argument(attribute)
+                .map(|argument| CsAttributeKind::Attribute { attribute: argument }),
+            cs_attributes::ENCODED_RESULT => match self.no_arguments(attribute) {
+                true => Some(CsAttributeKind::EncodedResult),
+                false => None,
+            },
+            cs_attributes::GENERIC => self
+                .single_argument(attribute)
+                .map(|argument| CsAttributeKind::Generic { generic_type: argument }),
+            cs_attributes::IDENTIFIER => self
+                .single_argument(attribute)
+                .map(|argument| CsAttributeKind::Identifier { identifier: argument }),
+            cs_attributes::INTERNAL => match self.no_arguments(attribute) {
+                true => Some(CsAttributeKind::Internal),
+                false => None,
+            },
+            cs_attributes::NAMESPACE => self
+                .single_argument(attribute)
+                .map(|argument| CsAttributeKind::Namespace { namespace: argument }),
+            cs_attributes::READONLY => match self.no_arguments(attribute) {
+                true => Some(CsAttributeKind::Readonly),
+                false => None,
+            },
+            cs_attributes::TYPE => self
+                .single_argument(attribute)
+                .map(|argument| CsAttributeKind::Type { name: argument }),
+            _ => {
+                self.reporter.report_error(Error::new(
+                    ErrorKind::UnexpectedAttribute(attribute.directive.to_owned()),
+                    Some(attribute.span),
+                ));
+                None
+            }
         }
-        [..] => {
-            error_too_many(directive.to_owned() + r#"("<argument>")"#, span, diagnostic_reporter);
-            None
+    }
+
+    // Helper functions to check the number of arguments of an attribute and report any
+    // associated diagnostics.
+
+    fn no_arguments(&mut self, attribute: &GeneralAttribute) -> bool {
+        if attribute.arguments.is_empty() {
+            true
+        } else {
+            self.error_too_many(attribute.directive.to_owned(), attribute.span);
+            false
         }
     }
-}
 
-fn error_missing(required_argument: String, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    diagnostic_reporter.report_error(Error::new(
-        ErrorKind::MissingRequiredArgument(required_argument),
-        Some(span),
-    ));
-}
-fn error_too_many(expected: String, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    diagnostic_reporter.report_error(Error::new(ErrorKind::TooManyArguments(expected), Some(span)));
+    fn single_argument(&mut self, attribute: &GeneralAttribute) -> Option<String> {
+        match attribute.arguments {
+            [argument] => Some(argument.clone()),
+            [] => {
+                self.error_missing(attribute.directive.to_owned() + r#"("<argument>")"#, attribute.span);
+                None
+            }
+            [..] => {
+                self.error_too_many(attribute.directive.to_owned() + r#"("<argument>")"#, attribute.span);
+                None
+            }
+        }
+    }
+
+    fn error_missing(&mut self, required_argument: String, span: &Span) {
+        self.reporter.report_error(Error::new(
+            ErrorKind::MissingRequiredArgument(required_argument),
+            Some(span),
+        ));
+    }
+
+    fn error_too_many(&mut self, expected: String, span: &Span) {
+        self.reporter
+            .report_error(Error::new(ErrorKind::TooManyArguments(expected), Some(span)));
+    }
 }
