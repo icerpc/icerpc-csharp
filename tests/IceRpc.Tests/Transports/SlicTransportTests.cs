@@ -1,9 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Transports;
@@ -67,6 +69,117 @@ public class SlicTransportTests
 
         // Act/Assert
         Assert.That(async () => await sut.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public async Task Send_initialize_frame_with_usupported_slic_version_replies_with_version_frame()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+          .AddSlicTest()
+          .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        await duplexClientConnection.ConnectAsync(default);
+
+        using var writer = new DuplexConnectionWriter(
+            duplexClientConnection,
+            MemoryPool<byte>.Shared,
+            4096,
+            keepAliveAction: null);
+        using var reader = new DuplexConnectionReader(
+            duplexClientConnection,
+            MemoryPool<byte>.Shared,
+            4096,
+            connectionLostAction: exception => { });
+        reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
+        // Act
+        EncodeInitializeFrame(writer);
+        await writer.FlushAsync(default);
+        (var multiplexedServerConnection, _) = await acceptTask;
+        var connectTask = multiplexedServerConnection.ConnectAsync(default);
+        (FrameType frameType, int frameSize, VersionBody versionBody) = await ReadFrameHeaderAsync(reader);
+
+        // Assert
+        Assert.That(frameType, Is.EqualTo(FrameType.Version));
+        Assert.That(versionBody.Versions, Is.EqualTo(new ulong[] { 1 }));
+
+        await multiplexedServerConnection.DisposeAsync();
+
+        void EncodeInitializeFrame(IBufferWriter<byte> writer)
+        {
+            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeFrameType(FrameType.Initialize);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encoder.EncodeVarUInt62(2);
+            initializeBody.Encode(ref encoder);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        }
+
+        async Task<(FrameType FrameType, int FrameSize, VersionBody VersionBody)> ReadFrameHeaderAsync(
+            DuplexConnectionReader reader)
+        {
+            while (true)
+            {
+                // Read data from the pipe reader.
+                if (!reader.TryRead(out ReadOnlySequence<byte> buffer))
+                {
+                    buffer = await reader.ReadAsync(default);
+                }
+
+                if (TryDecodeHeader(
+                    buffer,
+                    out (FrameType FrameType, int FrameSize) header,
+                    out int consumed))
+                {
+                    reader.AdvanceTo(buffer.GetPosition(consumed));
+                    buffer = await reader.ReadAtLeastAsync(header.FrameSize);
+                    return (header.FrameType, header.FrameSize, DecodeVersionBody(buffer));
+                }
+                else
+                {
+                    reader.AdvanceTo(buffer.Start, buffer.End);
+                }
+            }
+        }
+
+        static VersionBody DecodeVersionBody(ReadOnlySequence<byte> buffer)
+        {
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var versionBody = new VersionBody(ref decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return versionBody;
+        }
+
+        static bool TryDecodeHeader(
+            ReadOnlySequence<byte> buffer,
+            out (FrameType FrameType, int FrameSize) header,
+            out int consumed)
+        {
+            header = default;
+            consumed = default;
+
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+
+            // Decode the frame type and frame size.
+            if (!decoder.TryDecodeUInt8(out byte frameType) ||
+                !decoder.TryDecodeSize(out header.FrameSize))
+            {
+                return false;
+            }
+            header.FrameType = frameType.AsFrameType();
+
+            consumed = (int)decoder.Consumed;
+            return true;
+        }
     }
 
     [Test]
