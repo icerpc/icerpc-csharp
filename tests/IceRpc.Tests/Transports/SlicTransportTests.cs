@@ -88,14 +88,17 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
 
-        using var writer = new DuplexConnectionWriter(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
-        using var reader = new DuplexConnectionReader(
+        using var writer = new DuplexConnectionWriter(
             duplexClientConnection,
-            TimeSpan.FromSeconds(60),
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: exception => { },
             keepAliveAction: null);
+        using var reader = new DuplexConnectionReader(
+            duplexClientConnection,
+            MemoryPool<byte>.Shared,
+            4096,
+            connectionLostAction: exception => { });
+        reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
         // Act
         EncodeInitializeFrame(writer);
         await writer.FlushAsync(default);
