@@ -33,6 +33,7 @@
     "Quic",
     "reportgenerator",
     "retryable",
+    "rustfmt",
     "seealso",
     "signtool",
     "Slic",
