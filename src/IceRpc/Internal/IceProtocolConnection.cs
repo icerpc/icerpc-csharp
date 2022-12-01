@@ -476,12 +476,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             frameReader = null; // response now owns frameReader
             return response;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
         catch (OperationCanceledException)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested || _tasksCts.IsCancellationRequested);
+
             if (ConnectionClosedException is ConnectionException connectionException &&
                 connectionException.ErrorCode == ConnectionErrorCode.ClosedByAbort)
             {
