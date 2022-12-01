@@ -202,7 +202,7 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request, default));
         Assert.That(exception, Is.Not.Null); // TODO: which error should we get here?
         exception = Assert.ThrowsAsync<ConnectionException>(async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed)); // TODO: not correct
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>
