@@ -2,7 +2,6 @@
 
 using System.Buffers;
 using System.Net.Quic;
-using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 

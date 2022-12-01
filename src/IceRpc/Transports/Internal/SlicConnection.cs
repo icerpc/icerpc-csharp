@@ -226,7 +226,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         // Start a task to read frames from the transport connection.
         _readFramesTask = Task.Run(
-            (Func<Task?>)(async () =>
+            async () =>
             {
                 try
                 {
@@ -268,7 +268,7 @@ internal class SlicConnection : IMultiplexedConnection
                     // Time for AcceptStreamAsync to return.
                     _acceptStreamChannel.Writer.TryComplete(_exception);
                 }
-            }),
+            },
             CancellationToken.None);
 
         return information;

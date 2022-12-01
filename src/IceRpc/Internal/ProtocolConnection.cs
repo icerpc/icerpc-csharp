@@ -99,7 +99,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         {
                             ConnectionClosedException = new(
                                 ConnectionErrorCode.ConnectionClosed,
-                                "The connection establishment was canceled.");
+                                "The connection establishment was aborted.");
 
                             throw new ConnectionException(ConnectionErrorCode.OperationAborted);
                         }

@@ -8,7 +8,7 @@ public enum ConnectionErrorCode
 {
     /// <summary>The protocol connection was closed prior to the current call. This error typically occurs when an
     /// invoker such as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached
-    /// protocol connection that was closed but was not yet cleaned up or replaced by a background thread.</summary>
+    /// connection that was just closed but not yet unregistered from the cache.</summary>
     ConnectionClosed,
 
     /// <summary>The connection establishment was refused by the server.</summary>
