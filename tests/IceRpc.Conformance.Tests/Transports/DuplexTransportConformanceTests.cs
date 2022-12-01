@@ -86,7 +86,7 @@ public abstract class DuplexTransportConformanceTests
         var acceptTask = listener.AcceptAsync(cancellationSource.Token);
 
         // Act
-        cancelationSource.Cancel();
+        cancellationSource.Cancel();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
