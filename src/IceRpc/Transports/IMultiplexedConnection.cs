@@ -1,26 +1,31 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.IO.Pipelines;
 using System.Security.Authentication;
 
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a multiplexed transport.</summary>
+/// <remarks>This interface is used by the IceRpc core. It provides a number of guarantees on how the methods from this
+/// interface are called:
+/// <list type="bullet">
+/// <item><description>the <see cref="ConnectAsync" /> method is always called first and once. No other methods are
+/// called until it completes.</description></item>
+/// <item><description>the <see cref="AcceptStreamAsync" /> method is never called concurrently.</description></item>
+/// <item><description>the <see cref="CreateStreamAsync" /> method can be called concurrently.</description></item>
+/// </list>
+/// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection. This server address Transport property is non-null.
     /// </summary>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Accepts a remote stream. This method is never called concurrently or after a <see
-    /// cref="IAsyncDisposable.DisposeAsync" /> call. It's only called after a successful <see cref="ConnectAsync" />
-    /// call.</summary>
+    /// <summary>Accepts a remote stream.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The remote stream.</returns>
     ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken);
 
-    /// <summary>Connects this connection. This method is only called once and always before any other methods of this
-    /// interface.</summary>
+    /// <summary>Connects this connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation" />.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
@@ -39,9 +44,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
 
     /// <summary>Creates a local stream. The creation might be delayed if the maximum number of unidirectional or
-    /// bidirectional streams prevents creating the new stream. This method is never called after a <see
-    /// cref="IAsyncDisposable.DisposeAsync" /> call. It's only called after a successful <see cref="ConnectAsync" />
-    /// call.</summary>
+    /// bidirectional streams prevents creating the new stream.</summary>
     /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream, <see langword="false"/>
     /// otherwise.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
