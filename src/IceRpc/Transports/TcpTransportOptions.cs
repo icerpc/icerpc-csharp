@@ -46,7 +46,7 @@ public sealed record class TcpServerTransportOptions : TcpTransportOptions
 {
     /// <summary>Gets or sets the length of the server socket queue for accepting new connections. If a new connection
     /// request arrives and the queue is full, the client connection establishment will fail with a <see
-    /// cref="TransportException" /> and the <see cref="TransportErrorCode.ConnectionRefused" /> error code.</summary>
+    /// cref="IceRpcException" /> and the <see cref="IceRpcError.ConnectionRefused" /> error code.</summary>
     /// <value>The server socket backlog size. The default is 511.</value>
     public int ListenBacklog
     {

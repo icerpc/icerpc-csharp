@@ -413,7 +413,6 @@ await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);
     let mut dispatch_and_return = CodeBlock::default();
 
     if operation.has_encoded_result() {
-        // TODO: support for stream param with encoded result?
         let mut args = vec![];
 
         match parameters.as_slice() {
@@ -436,11 +435,23 @@ await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);
             name = async_operation_name,
             args = args.join(", ")
         );
-
-        writeln!(
-            dispatch_and_return,
-            "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
-        );
+        if operation.streamed_return_member().is_some() {
+            writeln!(
+                dispatch_and_return,
+                "\
+return new IceRpc.OutgoingResponse(request)
+{{
+    Payload = returnValue.EncodedResult.Payload,
+    PayloadContinuation = {payload_continuation}
+}};",
+                payload_continuation = payload_continuation(operation, encoding).indent()
+            );
+        } else {
+            writeln!(
+                dispatch_and_return,
+                "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
+            );
+        }
     } else {
         let mut args = match parameters.as_slice() {
             [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
@@ -476,7 +487,7 @@ return new IceRpc.OutgoingResponse(request)
     PayloadContinuation = {payload_continuation}
 }};",
                 payload = dispatch_return_payload(operation, encoding),
-                payload_continuation = payload_continuation(operation, encoding)
+                payload_continuation = payload_continuation(operation, encoding).indent()
             );
         }
     }

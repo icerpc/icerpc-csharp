@@ -50,7 +50,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            throw new TransportException(TransportErrorCode.OperationAborted);
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
     }
 
@@ -68,10 +68,10 @@ internal class ColocListener : IListener<IDuplexConnection>
         // Ensure no more client connection establishment request is queued.
         _channel.Writer.Complete();
 
-        // Complete all the queued client connection establishment requests with TransportErrorCode.ConnectionAborted.
+        // Complete all the queued client connection establishment requests with IceRpcError.ConnectionAborted.
         while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader, CancellationToken) item))
         {
-            item.Tcs.SetException(new TransportException(TransportErrorCode.ConnectionAborted));
+            item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionAborted));
         }
 
         _disposeCts.Dispose();
@@ -79,15 +79,22 @@ internal class ColocListener : IListener<IDuplexConnection>
         return default;
     }
 
-    internal ColocListener(ServerAddress serverAddress, int listenBacklog, DuplexConnectionOptions options)
+    internal ColocListener(
+        ServerAddress serverAddress,
+        ColocTransportOptions colocTransportOptions,
+        DuplexConnectionOptions duplexConnectionOptions)
     {
         ServerAddress = serverAddress;
 
         _networkAddress = new ColocEndPoint(serverAddress);
-        _pipeOptions = new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize);
+        _pipeOptions = new PipeOptions(
+            pool: duplexConnectionOptions.Pool,
+            minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
+            pauseWriterThreshold: colocTransportOptions.PauseWriterThreshold,
+            resumeWriterThreshold: colocTransportOptions.ResumeWriterThreshold);
 
         _channel = Channel.CreateBounded<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)>(
-            new BoundedChannelOptions(listenBacklog)
+            new BoundedChannelOptions(colocTransportOptions.ListenBacklog)
             {
                 SingleReader = true,
                 SingleWriter = true

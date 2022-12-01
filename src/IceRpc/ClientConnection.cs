@@ -5,6 +5,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -99,7 +100,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     await connection.ShutdownComplete.ConfigureAwait(false);
                 }
-                catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+                catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
                 {
                     // expected, call refresh below
                 }
@@ -195,7 +196,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             throw;
         }
-        catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
@@ -274,7 +275,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 throw;
             }
-            catch (ConnectionException exception) when (exception.ErrorCode.IsClosedErrorCode())
+            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
             {
                 if (RefreshConnection(connection) is IProtocolConnection newConnection)
                 {
@@ -440,7 +441,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 catch
                 {
                     // ShutdownComplete throws a ConnectionException with a Closed error code
-                    await _decoratee.ShutdownComplete.ConfigureAwait(false);
+                    await ShutdownComplete.ConfigureAwait(false);
+                    Debug.Assert(false); // the line above always throws
                     throw;
                 }
             }

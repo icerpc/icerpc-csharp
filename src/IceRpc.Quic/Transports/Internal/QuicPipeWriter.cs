@@ -150,7 +150,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
         catch (QuicException exception)
         {
-            throw exception.ToTransportException();
+            throw exception.ToIceRpcException();
         }
         // We don't wrap other exceptions
 
@@ -212,7 +212,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             catch (QuicException exception)
             {
-                throw exception.ToTransportException();
+                throw exception.ToIceRpcException();
             }
             // we don't wrap other exceptions
         }

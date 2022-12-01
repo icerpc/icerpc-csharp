@@ -84,8 +84,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         await clientConnection.CloseAsync(applicationErrorCode: 2ul, CancellationToken.None);
 
         // Assert
-        TransportException ex = Assert.ThrowsAsync<TransportException>(async () => await acceptStreams)!;
-        Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreams)!;
+        Assert.That(ex.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(ex.ApplicationErrorCode, Is.EqualTo(2ul));
 
     }
@@ -185,8 +185,50 @@ public abstract partial class MultiplexedTransportConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        TransportException? exception = Assert.ThrowsAsync<TransportException>(async () => await acceptTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.OperationAborted));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
+    }
+
+    [Test]
+    public async Task Call_accept_on_the_listener_and_then_cancel_the_cancellation_source_fails_with_operation_canceled_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        using var cancelationSource = new CancellationTokenSource();
+
+        var acceptTask = listener.AcceptAsync(cancelationSource.Token);
+
+        // Act
+        cancelationSource.Cancel();
+
+        // Assert
+        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.DisposeAsync();
+
+        // Act/Assert
+        Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
+    }
+
+    [Test]
+    public async Task Call_accept_with_canceled_cancellation_token_fails_with_operation_canceled()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act / Assert
+        Assert.That(
+            async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
@@ -212,17 +254,17 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         await closeConnection.CloseAsync(applicationErrorCode: 5ul, CancellationToken.None);
 
-        TransportException? exception;
+        IceRpcException? exception;
 
         // Act/Assert
-        exception = Assert.ThrowsAsync<TransportException>(
+        exception = Assert.ThrowsAsync<IceRpcException>(
             () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
 
-        exception = Assert.ThrowsAsync<TransportException>(
+        exception = Assert.ThrowsAsync<IceRpcException>(
             () => peerConnection.CreateStreamAsync(true, default).AsTask());
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
     }
 
@@ -252,11 +294,11 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         // Assert
 
-        TransportException? exception;
+        IceRpcException? exception;
 
         Assert.ThrowsAsync<ObjectDisposedException>(() => disposedConnection.CreateStreamAsync(true, default).AsTask());
 
-        exception = Assert.ThrowsAsync<TransportException>(async () =>
+        exception = Assert.ThrowsAsync<IceRpcException>(async () =>
             {
                 // It can take few writes for the peer to detect the connection closure.
                 while (true)
@@ -269,7 +311,7 @@ public abstract partial class MultiplexedTransportConformanceTests
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });
-        Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
@@ -352,7 +394,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         // with AuthenticationException otherwise it fails with TransportException.
         Assert.That(
             async () => await connectTask,
-            Throws.InstanceOf<TransportException>().Or.TypeOf<AuthenticationException>());
+            Throws.InstanceOf<IceRpcException>().Or.TypeOf<AuthenticationException>());
 
         async Task ConnectAsync(IMultiplexedClientTransport clientTransport)
         {
@@ -515,8 +557,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.InstanceOf<TransportException>());
-        Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<TransportException>());
+        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.InstanceOf<IceRpcException>());
+        Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<IceRpcException>());
 
         CompleteStreams(sut);
     }
@@ -548,11 +590,11 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         // Assert
 
-        Assert.ThrowsAsync<TransportException>(async () => await disposedStream.Input.ReadAsync());
-        Assert.ThrowsAsync<TransportException>(async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
+        Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Input.ReadAsync());
+        Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
-        Assert.ThrowsAsync<TransportException>(async () => await peerStream.Input.ReadAsync());
-        Assert.ThrowsAsync<TransportException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
+        Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Input.ReadAsync());
+        Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -577,10 +619,10 @@ public abstract partial class MultiplexedTransportConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await localStream.InputClosed, Throws.TypeOf<TransportException>());
-        Assert.That(async () => await localStream.OutputClosed, Throws.TypeOf<TransportException>());
-        Assert.That(async () => await remoteStream.InputClosed, Throws.TypeOf<TransportException>());
-        Assert.That(async () => await remoteStream.OutputClosed, Throws.TypeOf<TransportException>());
+        Assert.That(async () => await localStream.InputClosed, Throws.TypeOf<IceRpcException>());
+        Assert.That(async () => await localStream.OutputClosed, Throws.TypeOf<IceRpcException>());
+        Assert.That(async () => await remoteStream.InputClosed, Throws.TypeOf<IceRpcException>());
+        Assert.That(async () => await remoteStream.OutputClosed, Throws.TypeOf<IceRpcException>());
 
         CompleteStream(localStream);
         CompleteStream(remoteStream);
@@ -831,15 +873,15 @@ public abstract partial class MultiplexedTransportConformanceTests
         var serverTransport = provider.GetRequiredService<IMultiplexedServerTransport>();
 
         // Act/Assert
-        TransportException? exception = Assert.Throws<TransportException>(
+        IceRpcException? exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(
                 listener.ServerAddress,
                 new MultiplexedConnectionOptions(),
                 provider.GetService<SslServerAuthenticationOptions>()));
         // BUGFIX with Quic this throws an internal error https://github.com/dotnet/runtime/issues/78573
         Assert.That(
-            exception!.ErrorCode,
-            Is.EqualTo(TransportErrorCode.AddressInUse).Or.EqualTo(TransportErrorCode.InternalError));
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.AddressInUse).Or.EqualTo(IceRpcError.IceRpcError));
     }
 
     [Test]

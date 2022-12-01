@@ -40,7 +40,7 @@ public sealed class TelemetryMiddlewareTests
 
         // Assert
         Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity.Kind, Is.EqualTo(ActivityKind.Server));
+        Assert.That(dispatchActivity!.Kind, Is.EqualTo(ActivityKind.Server));
         Assert.That(dispatchActivity.OperationName, Is.EqualTo($"{request.Path}/{request.Operation}"));
         Assert.That(dispatchActivity.Tags, Is.Not.Null);
         var tags = dispatchActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
@@ -66,7 +66,7 @@ public sealed class TelemetryMiddlewareTests
         });
 
         string? encodedActivityId;
-        ActivitySpanId? parentSpandId;
+        ActivitySpanId? parentSpanId;
         ReadOnlySequence<byte>? encodedTraceContext = EncodeTraceContext();
 
         ReadOnlySequence<byte> EncodeTraceContext()
@@ -77,7 +77,7 @@ public sealed class TelemetryMiddlewareTests
             encodedActivity.AddBaggage("foo", "bar");
             encodedActivity.Start();
             encodedActivityId = encodedActivity.Id;
-            parentSpandId = encodedActivity.SpanId;
+            parentSpanId = encodedActivity.SpanId;
 
             var buffer = new byte[1024];
             var bufferWriter = new MemoryBufferWriter(buffer);
@@ -110,8 +110,8 @@ public sealed class TelemetryMiddlewareTests
         // Assert
         Assert.That(dispatchActivity, Is.Not.Null);
         // The dispatch activity parent matches the activity context encoded in the TraceContext field
-        Assert.That(dispatchActivity.ParentId, Is.EqualTo(encodedActivityId));
-        Assert.That(dispatchActivity.ParentSpanId, Is.EqualTo(parentSpandId));
+        Assert.That(dispatchActivity!.ParentId, Is.EqualTo(encodedActivityId));
+        Assert.That(dispatchActivity.ParentSpanId, Is.EqualTo(parentSpanId));
         Assert.That(dispatchActivity.ActivityTraceFlags, Is.EqualTo(ActivityTraceFlags.None));
         Assert.That(dispatchActivity.Baggage, Is.Not.Null);
         var baggage = dispatchActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);

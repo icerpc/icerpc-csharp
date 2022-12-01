@@ -1,25 +1,15 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-
 namespace IceRpc;
 
 /// <summary>The possible error codes carried by a <see cref="ConnectionException" />. The error code specifies the
 /// reason of the connection failure.</summary>
 public enum ConnectionErrorCode
 {
-    /// <summary>The connection was closed because it was aborted, for example by a transport error or a connect
-    /// timeout.</summary>
-    ClosedByAbort,
-
-    /// <summary>The connection was closed locally because it was idle.</summary>
-    ClosedByIdle,
-
-    /// <summary>The connection was closed by the remote peer.</summary>
-    ClosedByPeer,
-
-    /// <summary>The connection was closed by a local call to shutdown or dispose.</summary>
-    ClosedByShutdown,
+    /// <summary>The protocol connection was closed prior to the current call. This error typically occurs when an
+    /// invoker such as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached
+    /// connection that was just closed but not yet unregistered from the cache.</summary>
+    ConnectionClosed,
 
     /// <summary>The connection establishment was refused by the server.</summary>
     ConnectRefused,
@@ -27,25 +17,14 @@ public enum ConnectionErrorCode
     /// <summary>The operation was aborted because the connection was aborted.</summary>
     OperationAborted,
 
-    /// <summary>The connection establishment or shutdown failed because of a transport error. The <see
-    /// cref="Exception.InnerException" /> is set to the <see cref="TransportException" /> that caused the
+    /// <summary>The connection establishment or shutdown failed because of an IceRpc exception. The <see
+    /// cref="Exception.InnerException" /> is set to the <see cref="IceRpc.IceRpcException" /> that caused the
     /// error.</summary>
-    TransportError,
+    IceRpcException,
 
     /// <summary>The connection establishment or shutdown failed because of an unspecified error. The <see
     /// cref="Exception.InnerException" /> is set to the exception that caused the error.</summary>
     Unspecified,
-}
-
-/// <summary>Provides extension methods for <see cref="ConnectionErrorCode"/>.</summary>
-public static class ConnectionErrorCodeExtensions
-{
-    /// <summary>Checks if this error code is a Closed code.</summary>
-    /// <param name="errorCode">The error code to check.</param>
-    /// <returns><see langword="true"/> if <paramref name="errorCode"/> is a Closed code; otherwise,
-    /// <see langword="false"/>.</returns>
-    public static bool IsClosedErrorCode(this ConnectionErrorCode errorCode) =>
-        errorCode >= ConnectionErrorCode.ClosedByAbort && errorCode <= ConnectionErrorCode.ClosedByShutdown;
 }
 
 /// <summary>This exception reports a connection failure.</summary>

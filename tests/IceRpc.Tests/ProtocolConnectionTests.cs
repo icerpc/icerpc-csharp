@@ -278,53 +278,72 @@ public sealed class ProtocolConnectionTests
     public async Task ShutdownComplete_completes_when_idle(Protocol protocol)
     {
         // Arrange
+
+        // With the ice protocol, the idle timeout is used for both the transport connection and protocol connection
+        // idle timeout. We need to set the server side idle timeout to ensure the server-side connection sends a keep
+        // alive to prevent the client transport connection to be closed because it's idle.
+        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
+            new ConnectionOptions
+            {
+                IdleTimeout = TimeSpan.FromMilliseconds(750),
+            } :
+            null;
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
-                serverConnectionOptions: new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(500) })
+                clientConnectionOptions: new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(500) },
+                serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
-        TimeSpan? clientIdleCalledTime = null;
-        TimeSpan? serverIdleCalledTime = null;
+        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
         // Act
-        await Task.WhenAll(WaitForClientConnectionAsync(), WaitForServerConnectionAsync());
+        Task<TimeSpan> clientWaitForShutdownTask = WaitForShutdownAsync(sut.Client);
+        Task<TimeSpan> serverWaitForShutdownTask = WaitForShutdownAsync(sut.Server);
 
         // Assert
-        Assert.That(clientIdleCalledTime, Is.Not.Null);
-        Assert.That(serverIdleCalledTime, Is.Not.Null);
-        Assert.That(clientIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
-        Assert.That(serverIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(async () => await clientWaitForShutdownTask, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(async () => await serverWaitForShutdownTask, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
 
-        async Task WaitForClientConnectionAsync()
+        async Task<TimeSpan> WaitForShutdownAsync(IProtocolConnection connection)
         {
-            await sut.Client.ShutdownComplete;
-            clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64);
-        }
-
-        async Task WaitForServerConnectionAsync()
-        {
-            await sut.Server.ShutdownComplete;
-            serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64);
+            await connection.ShutdownComplete;
+            return TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime;
         }
     }
 
-    /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred(Protocol protocol)
+    /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred by the
+    /// reading of the payload.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred_by_payload_read(
+        Protocol protocol,
+        bool isOneway)
     {
         // Arrange
+
+        // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
+        // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
+        // client transport connection to be closed because it's idle.
+        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
+            new ConnectionOptions
+            {
+                IdleTimeout = TimeSpan.FromMilliseconds(750),
+            } :
+            null;
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
-                serverConnectionOptions: new ConnectionOptions
+                clientConnectionOptions: new ConnectionOptions
                 {
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
                     Dispatcher = ServiceNotFoundDispatcher.Instance
-                })
+                },
+                serverConnectionOptions : serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
         long startTime = Environment.TickCount64;
@@ -333,7 +352,11 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         {
-            using var request = new OutgoingRequest(new ServiceAddress(protocol));
+            using var request = new OutgoingRequest(new ServiceAddress(protocol))
+                {
+                    IsOneway = isOneway,
+                    Payload = new DelayPipeReader()
+                };
             _ = await sut.Client.InvokeAsync(request);
         }
 
@@ -344,10 +367,73 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.That(
             TimeSpan.FromMilliseconds(clientIdleCalledTime),
-            Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
         Assert.That(
             TimeSpan.FromMilliseconds(serverIdleCalledTime),
-            Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(2)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
+
+        async Task<long> WaitForShutdownCompleteAsync(IProtocolConnection connection)
+        {
+            await connection.ShutdownComplete;
+            return Environment.TickCount64 - startTime;
+        }
+    }
+
+    /// <summary>Verifies that ShutdownComplete completes when idle and after the idle time has been deferred by the
+    /// writing of the payload.</summary>
+    [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
+    public async Task ShutdownComplete_completes_when_idle_and_idle_timeout_deferred_by_payload_write(
+        Protocol protocol,
+        bool isOneway)
+    {
+        // Arrange
+
+        // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
+        // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
+        // client transport connection to be closed because it's idle.
+        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
+            new ConnectionOptions
+            {
+                IdleTimeout = TimeSpan.FromMilliseconds(750),
+            } :
+            null;
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                protocol,
+                clientConnectionOptions: new ConnectionOptions
+                {
+                    IdleTimeout = TimeSpan.FromMilliseconds(500),
+                    Dispatcher = ServiceNotFoundDispatcher.Instance
+                },
+                serverConnectionOptions: serverConnectionOptions)
+            .BuildServiceProvider(validateScopes: true);
+
+        long startTime = Environment.TickCount64;
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        {
+            using var request = new OutgoingRequest(new ServiceAddress(protocol))
+            {
+                IsOneway = isOneway,
+            };
+            request.Use(writer => new DelayPipeWriter(writer));
+            _ = await sut.Client.InvokeAsync(request);
+        }
+
+        // Act
+        long clientIdleCalledTime = await WaitForShutdownCompleteAsync(sut.Client);
+        long serverIdleCalledTime = await WaitForShutdownCompleteAsync(sut.Server);
+
+        // Assert
+        Assert.That(
+            TimeSpan.FromMilliseconds(clientIdleCalledTime),
+            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
+        Assert.That(
+            TimeSpan.FromMilliseconds(serverIdleCalledTime),
+            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
 
         async Task<long> WaitForShutdownCompleteAsync(IProtocolConnection connection)
         {
@@ -384,7 +470,7 @@ public sealed class ProtocolConnectionTests
         // Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
@@ -406,7 +492,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await connectTask, Throws.InstanceOf<ConnectionException>());
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             async () => await sut.Client.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByAbort));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
@@ -538,7 +624,7 @@ public sealed class ProtocolConnectionTests
         // Act/Assert
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ClosedByShutdown));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
 
         await shutdownTask;
     }
@@ -916,7 +1002,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.TransportError) if
+    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.IceRpcError) if
     /// ConnectAsync fails with a transport error.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
@@ -937,13 +1023,12 @@ public sealed class ProtocolConnectionTests
         ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
         // TODO: this will need to be fixed with the exception refactoring.
         // The error we get is timing dependent. We can get ConnectRefused if the connection establishment request is
-        // queued after the listener disposal or TransportError if it's queued before (in this case ConnectAsync catches
-        // TransportException(TransportErrorCode.ConnectionAborted) and it's mapped to
-        // ConnectionErrorCode.TransportError)
+        // queued after the listener disposal or IceRpcError if it's queued before (in this case ConnectAsync catches
+        // IceRpcException(IceRpcError.ConnectionAborted) and it's mapped to ConnectionErrorCode.IceRpcError)
         Assert.That(
             exception!.ErrorCode,
-            Is.EqualTo(ConnectionErrorCode.TransportError).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
-        Assert.That(exception!.InnerException, Is.InstanceOf<TransportException>());
+            Is.EqualTo(ConnectionErrorCode.IceRpcException).Or.EqualTo(ConnectionErrorCode.ConnectRefused));
+        Assert.That(exception!.InnerException, Is.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if
@@ -1064,5 +1149,59 @@ public sealed class ProtocolConnectionTests
 
         Assert.That(async () => await invokeTask, Throws.Nothing);
         Assert.That(async () => await shutdownTask, Throws.Nothing);
+    }
+
+    private class DelayPipeReader : PipeReader
+    {
+        public override void AdvanceTo(SequencePosition consumed)
+        {
+        }
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+        {
+        }
+
+        public override void CancelPendingRead()
+        {
+        }
+
+        public override void Complete(Exception? exception = null)
+        {
+        }
+
+        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
+        {
+            await Task.Delay(600, cancellationToken);
+            return new ReadResult(new ReadOnlySequence<byte>(new byte[10]), isCanceled: false, isCompleted: true);
+        }
+
+        public override bool TryRead(out ReadResult result)
+        {
+            result = new ReadResult();
+            return false;
+        }
+    }
+
+    private class DelayPipeWriter : PipeWriter
+    {
+        private readonly PipeWriter _decoratee;
+
+        public override void Advance(int bytes) => _decoratee.Advance(bytes);
+
+        public override void CancelPendingFlush() => _decoratee.CancelPendingFlush();
+
+        public override void Complete(Exception? exception) => _decoratee.Complete(exception);
+
+        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
+        {
+            await Task.Delay(600, cancellationToken);
+            return await _decoratee.FlushAsync(cancellationToken);
+        }
+
+        public override Memory<byte> GetMemory(int sizeHint) => _decoratee.GetMemory(sizeHint);
+
+        public override Span<byte> GetSpan(int sizeHint) => _decoratee.GetSpan(sizeHint);
+
+        internal DelayPipeWriter(PipeWriter decoratee) => _decoratee = decoratee;
     }
 }

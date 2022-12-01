@@ -41,7 +41,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         try
         {
             // We accept two behaviors here:
-            // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
+            // - the listener can internally kill the connection if it's not valid (e.g.: Quic behavior)
             // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
             (var serverConnection, _) = await listener.AcceptAsync(cts.Token);
             serverConnectTask = serverConnection.ConnectAsync(default);
@@ -54,12 +54,18 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+
+        // We accept two behaviors here:
+        // - serverConnectTask is null, the listener internally rejects the connection (e.g.: Quic behavior)
+        // - the server connect operation fails with an IceRpcException (e.g: Slic behavior).
         if (serverConnectTask is not null)
         {
             // The client will typically close the transport connection after receiving AuthenticationException
             await clientConnection.DisposeAsync();
-            var ex = Assert.ThrowsAsync<TransportException>(async () => await serverConnectTask);
-            Assert.That(ex.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
+            var ex = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask);
+            Assert.That(
+                ex!.IceRpcError,
+                Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
         }
     }
 
@@ -110,11 +116,15 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 (serverConnection, _) = await listener.AcceptAsync(cts.Token);
                 await serverConnection.ConnectAsync(default);
             },
-            Throws.TypeOf<AuthenticationException>().Or.TypeOf<OperationCanceledException>());
+            Throws.TypeOf<AuthenticationException>().Or.InstanceOf<OperationCanceledException>());
 
         Assert.That(
             async () =>
             {
+                // We accept two behaviors here:
+                // - the client connection fails with AuthenticationException when try to create a stream
+                //   (e.g.: Quic behavior)
+                // - the client connect operation fails with either TransportException (e.g: Slic behavior).
                 if (serverConnection is not null)
                 {
                     await serverConnection.DisposeAsync();
@@ -123,7 +133,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
                 await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
             },
-            Throws.TypeOf<AuthenticationException>().Or.TypeOf<TransportException>());
+            Throws.TypeOf<AuthenticationException>().Or.TypeOf<IceRpcException>());
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>

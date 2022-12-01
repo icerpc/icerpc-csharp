@@ -39,7 +39,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             }
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
-                throw new TransportException(TransportErrorCode.OperationAborted, exception);
+                throw new IceRpcException(IceRpcError.OperationAborted, exception);
             }
             catch (SocketException)
             {
@@ -108,7 +108,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         catch (SocketException exception)
         {
             _socket.Dispose();
-            throw new TransportException(exception.SocketErrorCode.ToTransportErrorCode(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
         catch
         {

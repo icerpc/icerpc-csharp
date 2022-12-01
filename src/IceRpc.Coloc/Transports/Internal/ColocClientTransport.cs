@@ -13,6 +13,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     public string Name => ColocTransport.Name;
 
     private readonly ConcurrentDictionary<ServerAddress, ColocListener> _listeners;
+    private readonly ColocTransportOptions _options;
 
     /// <inheritdoc/>
     public bool CheckParams(ServerAddress serverAddress) => ColocTransport.CheckParams(serverAddress);
@@ -20,7 +21,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
         ServerAddress serverAddress,
-        DuplexConnectionOptions options,
+        DuplexConnectionOptions duplexConnectionOptions,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
         if (clientAuthenticationOptions is not null)
@@ -35,7 +36,11 @@ internal class ColocClientTransport : IDuplexClientTransport
 
         serverAddress = serverAddress with { Transport = Name };
 
-        var localPipe = new Pipe(new PipeOptions(pool: options.Pool, minimumSegmentSize: options.MinSegmentSize));
+        var localPipe = new Pipe(new PipeOptions(
+            pool: duplexConnectionOptions.Pool,
+            minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
+            pauseWriterThreshold: _options.PauseWriterThreshold,
+            resumeWriterThreshold: _options.ResumeWriterThreshold));
         return new ClientColocConnection(serverAddress, localPipe, ConnectAsync);
 
         Task<PipeReader> ConnectAsync(PipeReader clientPipeReader, CancellationToken cancellationToken)
@@ -50,11 +55,16 @@ internal class ColocClientTransport : IDuplexClientTransport
             }
             else
             {
-                throw new TransportException(TransportErrorCode.ConnectionRefused);
+                throw new IceRpcException(IceRpcError.ConnectionRefused);
             }
         }
     }
 
-    internal ColocClientTransport(ConcurrentDictionary<ServerAddress, ColocListener> listeners) =>
+    internal ColocClientTransport(
+        ConcurrentDictionary<ServerAddress, ColocListener> listeners,
+        ColocTransportOptions options)
+    {
         _listeners = listeners;
+        _options = options;
+    }
 }

@@ -39,7 +39,7 @@ public sealed class DeadlineInterceptorTests
         // Assert
         Assert.That(hasDeadline, Is.True);
         Assert.That(token, Is.Not.Null);
-        Assert.That(token.Value.CanBeCanceled, Is.True);
+        Assert.That(token!.Value.CanBeCanceled, Is.True);
         Assert.That(token.Value.IsCancellationRequested, Is.True);
     }
 
@@ -133,7 +133,7 @@ public sealed class DeadlineInterceptorTests
 
         // Assert
         Assert.That(token, Is.Not.Null);
-        Assert.That(token.Value, Is.EqualTo(cts.Token));
+        Assert.That(token!.Value, Is.EqualTo(cts.Token));
     }
 
     [Test]

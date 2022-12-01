@@ -47,7 +47,7 @@ public class LocatorInterceptorTests
 
         IServerAddressFeature? serverAddressFeature = request.Features.Get<IServerAddressFeature>();
         Assert.That(serverAddressFeature, Is.Not.Null);
-        Assert.That(serverAddressFeature.ServerAddress, Is.EqualTo(expected.ServerAddress));
+        Assert.That(serverAddressFeature!.ServerAddress, Is.EqualTo(expected.ServerAddress));
     }
 
     /// <summary>Verifies that the locator interceptor correctly resolves a well-known proxy using the given
@@ -67,7 +67,7 @@ public class LocatorInterceptorTests
 
         IServerAddressFeature? serverAddressFeature = request.Features.Get<IServerAddressFeature>();
         Assert.That(serverAddressFeature, Is.Not.Null);
-        Assert.That(serverAddressFeature.ServerAddress, Is.EqualTo(expected.ServerAddress));
+        Assert.That(serverAddressFeature!.ServerAddress, Is.EqualTo(expected.ServerAddress));
     }
 
     /// <summary>Verifies that the locator interceptor set the refresh cache parameter on the second attempt to resolve

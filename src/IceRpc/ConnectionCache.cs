@@ -170,9 +170,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             catch (ObjectDisposedException exception) when (
                 exception.InnerException is ConnectionException connectionException &&
-                connectionException.ErrorCode.IsClosedErrorCode())
+                connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed)
             {
-                // This can occasionally happen if we find a connection that was just closed  and then automatically
+                // This can occasionally happen if we find a connection that was just closed and then automatically
                 // disposed by this connection cache.
                 // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
                 throw ExceptionUtil.Throw(connectionException);
@@ -234,7 +234,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             catch (ObjectDisposedException exception) when (
                 exception.InnerException is ConnectionException connectionException &&
-                connectionException.ErrorCode.IsClosedErrorCode())
+                connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed)
             {
                 // This can occasionally happen if we find a connection that was just closed and then automatically
                 // disposed by this connection cache.
@@ -267,8 +267,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
             .Concat(_activeConnections.Values);
 
-        return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)));
+        return Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)));
     }
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
@@ -339,7 +338,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         // The ConnectionCache shut down or disposal canceled the connection establishment.
                         // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                        throw new ConnectionException(ConnectionErrorCode.ClosedByShutdown);
+                        throw new ConnectionException(
+                            ConnectionErrorCode.OperationAborted,
+                            "The connection cache was shut down or disposed.");
                     }
                     else
                     {
@@ -360,7 +361,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new ConnectionException(ConnectionErrorCode.ClosedByShutdown);
+                    throw new ConnectionException(
+                        ConnectionErrorCode.OperationAborted,
+                        "The connection cache was shut down or disposed.");
                 }
                 else
                 {

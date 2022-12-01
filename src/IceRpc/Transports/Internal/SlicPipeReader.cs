@@ -171,8 +171,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (dataSize == 0 && !endStream)
         {
-            throw new TransportException(
-                TransportErrorCode.InternalError,
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
                 "empty Slic stream frame are not allowed unless endStream is true");
         }
 
@@ -192,8 +192,8 @@ internal class SlicPipeReader : PipeReader
             int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
             if (newCredit < 0)
             {
-                throw new TransportException(
-                    TransportErrorCode.InternalError,
+                throw new IceRpcException(
+                    IceRpcError.IceRpcError,
                     "received more data than flow control permits");
             }
 
