@@ -2,7 +2,8 @@
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes;
-
+use crate::cs_util::FieldType;
+use crate::slicec_ext::member_ext::MemberExt;
 use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
 use slice::utils::code_gen_util::TypeContext;
 
@@ -68,16 +69,23 @@ impl OperationExt for Operation {
 }
 
 fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
-    let return_members = operation.return_members();
-
-    if !return_members.is_empty() && is_dispatch && operation.has_encoded_result() {
-        return operation.encoded_result_struct();
-    }
-
     let ns = operation.parent().unwrap().namespace();
-    match return_members.as_slice() {
-        [] => "void".to_owned(),
-        [member] => member.cs_type_string(&ns, context, false),
-        _ => return_members.to_tuple_type(&ns, context, false),
+    if is_dispatch && operation.has_encoded_result() {
+        if let Some(stream_member) = operation.streamed_return_member() {
+            format!(
+                "({} EncodedResult, {} {})",
+                operation.encoded_result_struct(),
+                stream_member.cs_type_string(&ns, context, false),
+                stream_member.field_name(FieldType::NonMangled)
+            )
+        } else {
+            operation.encoded_result_struct()
+        }
+    } else {
+        match operation.return_members().as_slice() {
+            [] => "void".to_owned(),
+            [member] => member.cs_type_string(&ns, context, false),
+            members => members.to_tuple_type(&ns, context, false),
+        }
     }
 }

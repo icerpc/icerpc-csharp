@@ -217,6 +217,7 @@ public class ServiceAddressTests
     /// </summary>
     private static readonly (string uriString, string Path, string Fragment)[] _validServiceAddressUris = new (string, string, string)[]
         {
+            /* spellchecker:disable */
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
             ("ice://host.zeroc.com/identity#facet", "/identity", "facet"),
             ("ice://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x"),
@@ -268,6 +269,7 @@ public class ServiceAddressTests
             ("/foo/bar", "/foo/bar", ""),
             ("//foo/bar", "//foo/bar", ""),
             ("/foo:bar", "/foo:bar", ""),
+            /* spellchecker:enable */
         };
 
     private static readonly Dictionary<string, ServerAddress[]> _altServerAddresses = new()
@@ -499,7 +501,7 @@ public class ServiceAddressTests
         await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(pipeline));
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(pipeline));
     }
 
     /// <summary>Verifies that a proxy received over an incoming connection has a null invoker by default.</summary>
@@ -517,7 +519,7 @@ public class ServiceAddressTests
         await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
     }
 
     /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.
