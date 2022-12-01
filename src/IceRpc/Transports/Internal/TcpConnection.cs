@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -78,12 +77,11 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw;
         }
-        catch (IOException exception) when (SslStream is not null)
+        catch (IOException exception)
         {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -208,12 +206,11 @@ internal abstract class TcpConnection : IDuplexConnection
                 }
             }
         }
-        catch (IOException exception) when (SslStream is not null)
+        catch (IOException exception)
         {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -270,12 +267,11 @@ internal class TcpClientConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (IOException exception) when (SslStream is not null)
+        catch (IOException exception)
         {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -373,12 +369,11 @@ internal class TcpServerConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (IOException exception) when (SslStream is not null)
+        catch (IOException exception)
         {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
