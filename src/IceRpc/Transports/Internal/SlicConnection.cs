@@ -126,8 +126,9 @@ internal class SlicConnection : IMultiplexedConnection
                     $"unexpected Slic frame '{header.Value.FrameType}'");
             }
 
-            (ulong version, InitializeBody? initializeBody) = await ReadInitializeFrameAsync(
+            (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
                 header.Value.FrameSize,
+                DecodeInitialize,
                 cancellationToken).ConfigureAwait(false);
 
             if (version != 1)
@@ -147,8 +148,9 @@ internal class SlicConnection : IMultiplexedConnection
                     throw new TransportException(TransportErrorCode.InternalError, "invalid Slic initialize frame");
                 }
 
-                (version, initializeBody) = await ReadInitializeFrameAsync(
+                (version, initializeBody) = await ReadFrameAsync(
                     header.Value.FrameSize,
+                    DecodeInitialize,
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -271,6 +273,20 @@ internal class SlicConnection : IMultiplexedConnection
             CancellationToken.None);
 
         return information;
+
+        static (uint, InitializeBody?) DecodeInitialize(ref SliceDecoder decoder)
+        {
+            uint version = decoder.DecodeVarUInt32();
+            if (version == SlicDefinitions.V1)
+            {
+                return (version, new InitializeBody(ref decoder));
+            }
+            else
+            {
+                decoder.SkipRemainig();
+                return (version, null);
+            }
+        }
     }
 
     public async Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken)
@@ -690,40 +706,6 @@ internal class SlicConnection : IMultiplexedConnection
             byte[] buffer = new byte[sizeLength];
             SliceEncoder.EncodeVarUInt62(value, buffer);
             return new(key, buffer);
-        }
-    }
-
-    private async ValueTask<(uint Version, InitializeBody? InitializeBody)> ReadInitializeFrameAsync(
-        int size,
-        CancellationToken cancellationToken)
-    {
-        Debug.Assert(size > 0);
-
-        ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
-            size, cancellationToken).ConfigureAwait(false);
-
-        if (buffer.Length > size)
-        {
-            buffer = buffer.Slice(0, size);
-        }
-        var result = DecodeBuffer();
-        _duplexConnectionReader.AdvanceTo(buffer.End);
-        return result;
-
-        (uint Version, InitializeBody? InitializeBody) DecodeBuffer()
-        {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            uint version = decoder.DecodeVarUInt32();
-            if (version == SlicDefinitions.V1)
-            {
-                var result = (version, new InitializeBody(ref decoder));
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return result;
-            }
-            else
-            {
-                return (version, null);
-            }
         }
     }
 

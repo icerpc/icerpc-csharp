@@ -551,6 +551,9 @@ public ref partial struct SliceDecoder
         }
     }
 
+    /// <summary>Skip the remaining bytes.</summary>
+    public void SkipRemainig() => _reader.Advance(_reader.Remaining);
+
     /// <summary>Skip Slice size.</summary>
     public void SkipSize()
     {
