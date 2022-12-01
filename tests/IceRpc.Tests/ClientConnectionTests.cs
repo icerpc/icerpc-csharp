@@ -195,7 +195,7 @@ public class ClientConnectionTests
     [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=coloc")]
     [TestCase("icerpc://foo.com", "icerpc://bar.com")]
     [TestCase("icerpc://foo.com", "icerpc://foo.com:10000")]
-    [TestCase("icerpc://foo.com", "icerpc://foo.com?transport=tcp")]
+    [TestCase("icerpc://foo.com", "icerpc://foo.com?tanpot=tcp")] // cspell:disable-line
     [TestCase("icerpc://foo.com", "icerpc://foo.com?t=10000")]
     [TestCase("ice://foo.com?t=10000&z", "ice://foo.com:10000/path?t=10000&z")]
     public async Task InvokeAsync_fails_without_a_compatible_server_address(
