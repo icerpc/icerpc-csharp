@@ -41,6 +41,11 @@ internal abstract class ColocConnection : IDuplexConnection
 
         try
         {
+            if (_state.HasFlag(State.Disposed))
+            {
+                throw new TransportException(TransportErrorCode.OperationAborted);
+            }
+
             ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
@@ -142,6 +147,11 @@ internal abstract class ColocConnection : IDuplexConnection
 
         try
         {
+            if (_state.HasFlag(State.Disposed))
+            {
+                throw new TransportException(TransportErrorCode.OperationAborted);
+            }
+
             foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
                 FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
