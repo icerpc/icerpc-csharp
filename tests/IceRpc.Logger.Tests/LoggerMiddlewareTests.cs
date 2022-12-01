@@ -22,7 +22,7 @@ public sealed class LoggerMiddlewareTests
 
         // Assert
         Assert.That(loggerFactory.Logger, Is.Not.Null);
-        List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
+        List<TestLoggerEntry> entries = loggerFactory.Logger!.Entries;
 
         Assert.That(entries.Count, Is.EqualTo(1));
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
@@ -57,7 +57,7 @@ public sealed class LoggerMiddlewareTests
 
         Assert.That(loggerFactory.Logger, Is.Not.Null);
 
-        List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
+        List<TestLoggerEntry> entries = loggerFactory.Logger!.Entries;
 
         Assert.That(entries.Count, Is.EqualTo(1));
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchException));

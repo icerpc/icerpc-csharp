@@ -21,7 +21,7 @@ public sealed class LoggerInterceptorTests
         await sut.InvokeAsync(request, default);
 
         Assert.That(loggerFactory.Logger, Is.Not.Null);
-        List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
+        List<TestLoggerEntry> entries = loggerFactory.Logger!.Entries;
 
         Assert.That(entries.Count, Is.EqualTo(1));
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.Invoke));
@@ -55,7 +55,7 @@ public sealed class LoggerInterceptorTests
 
         Assert.That(loggerFactory.Logger, Is.Not.Null);
 
-        List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
+        List<TestLoggerEntry> entries = loggerFactory.Logger!.Entries;
 
         Assert.That(entries.Count, Is.EqualTo(1));
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventId.InvokeException));

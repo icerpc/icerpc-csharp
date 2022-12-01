@@ -47,7 +47,7 @@ immediately encodes the return value of operation {operation_name}."#,
         ),
     );
 
-    match operation.return_members().as_slice() {
+    match operation.nonstreamed_return_members().as_slice() {
         [p] => {
             constructor_builder.add_parameter(
                 &p.cs_type_string(&namespace, TypeContext::Encode, false),

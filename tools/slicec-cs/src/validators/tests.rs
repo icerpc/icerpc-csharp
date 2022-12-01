@@ -25,7 +25,7 @@ fn identifier_attribute_no_args() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
         .unwrap_err()
@@ -51,7 +51,7 @@ fn identifier_attribute_multiple_args() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
         .unwrap_err()
@@ -77,7 +77,7 @@ fn identifier_attribute_single_arg() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
         .unwrap()
@@ -96,7 +96,7 @@ fn identifier_attribute_invalid_on_modules() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
         .unwrap_err()
@@ -122,7 +122,7 @@ fn identifier_attribute_on_parameter() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
         .unwrap()
@@ -143,10 +143,10 @@ fn identifier_attribute_on_type_alias_fails() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::parse_from_strings(&[slice], None)
+    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
         .and_then(patch_comments)
         .and_then(validate_cs_attributes)
-        .unwrap_err()
+        .unwrap()
         .diagnostic_reporter;
 
     // Assert

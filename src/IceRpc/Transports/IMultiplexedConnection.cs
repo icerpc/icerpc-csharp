@@ -5,6 +5,16 @@ using System.Security.Authentication;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a multiplexed transport.</summary>
+/// <remarks>This interface is used by the IceRpc core. It provides a number of guarantees on how the methods from this
+/// interface are called:
+/// <list type="bullet">
+/// <item><description>the <see cref="ConnectAsync" /> method is always called first and once. No other methods are
+/// called until it completes.</description></item>
+/// <item><description>the <see cref="AcceptStreamAsync" /> method is never called concurrently.</description></item>
+/// <item><description>the <see cref="CreateStreamAsync" /> method can be called concurrently.</description></item>
+/// <item><description>the <see cref="CloseAsync" /> method is only called once.</description></item>
+/// </list>
+/// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection. This server address Transport property is non-null.
@@ -16,7 +26,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <returns>The remote stream.</returns>
     ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken);
 
-    /// <summary>Connects this connection. This method should only be called once.</summary>
+    /// <summary>Connects this connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The <see cref="TransportConnectionInformation" />.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
@@ -27,7 +37,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// established.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
-    /// <summary>Closes the connection. This method should only be called once.</summary>
+    /// <summary>Closes the connection.</summary>
     /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is closed.</returns>

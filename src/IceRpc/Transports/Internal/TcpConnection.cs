@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
@@ -32,10 +31,6 @@ internal abstract class TcpConnection : IDuplexConnection
 
     public void Dispose()
     {
-        if (_isDisposed)
-        {
-            return;
-        }
         _isDisposed = true;
 
         if (SslStream is SslStream sslStream)
@@ -57,6 +52,10 @@ internal abstract class TcpConnection : IDuplexConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
+        }
         if (buffer.Length == 0)
         {
             throw new ArgumentException($"empty {nameof(buffer)}");
@@ -78,17 +77,11 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw;
         }
-        // a disposed Socket throws SocketException instead of ObjectDisposedException
-        catch when (_isDisposed)
+        catch (IOException exception)
         {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
-        catch (IOException exception) when (SslStream is not null)
-        {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -102,11 +95,6 @@ internal abstract class TcpConnection : IDuplexConnection
     {
         try
         {
-            if (_isShutdown)
-            {
-                return;
-            }
-
             _isShutdown = true;
 
             if (SslStream is SslStream sslStream)
@@ -126,6 +114,11 @@ internal abstract class TcpConnection : IDuplexConnection
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
+        }
+
         Debug.Assert(buffers.Count > 0);
 
         try
@@ -213,17 +206,11 @@ internal abstract class TcpConnection : IDuplexConnection
                 }
             }
         }
-        // a disposed Socket throws SocketException instead of ObjectDisposedException
-        catch when (_isDisposed)
+        catch (IOException exception)
         {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
-        catch (IOException exception) when (SslStream is not null)
-        {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -280,17 +267,11 @@ internal class TcpClientConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        // a disposed Socket throws SocketException instead of ObjectDisposedException
-        catch when (_isDisposed)
+        catch (IOException exception)
         {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
-        catch (IOException exception) when (SslStream is not null)
-        {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
@@ -368,7 +349,6 @@ internal class TcpServerConnection : TcpConnection
     internal override SslStream? SslStream => _sslStream;
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
-    private bool _isConnected;
     private SslStream? _sslStream;
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -377,9 +357,6 @@ internal class TcpServerConnection : TcpConnection
         {
             throw new ObjectDisposedException($"{typeof(TcpConnection)}");
         }
-
-        Debug.Assert(!_isConnected);
-        _isConnected = true;
 
         try
         {
@@ -392,17 +369,11 @@ internal class TcpServerConnection : TcpConnection
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        // a disposed Socket throws SocketException instead of ObjectDisposedException
-        catch when (_isDisposed)
+        catch (IOException exception)
         {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
-        catch (IOException exception) when (SslStream is not null)
-        {
-            // TODO: is it correct to use ConnectionAborted as fallback?
             throw exception.InnerException is SocketException socketException ?
                 new TransportException(socketException.SocketErrorCode.ToTransportErrorCode(), exception) :
-                new TransportException(TransportErrorCode.ConnectionAborted, exception);
+                new TransportException(TransportErrorCode.Unspecified, exception);
         }
         catch (SocketException exception)
         {
