@@ -128,7 +128,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
                 header.Value.FrameSize,
-                DecodeInitialize,
+                (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
                 cancellationToken).ConfigureAwait(false);
 
             if (version != 1)
@@ -150,7 +150,7 @@ internal class SlicConnection : IMultiplexedConnection
 
                 (version, initializeBody) = await ReadFrameAsync(
                     header.Value.FrameSize,
-                    DecodeInitialize,
+                    (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -274,7 +274,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         return information;
 
-        static (uint, InitializeBody?) DecodeInitialize(ref SliceDecoder decoder)
+        static (uint, InitializeBody?) DecodeInitialize(ref SliceDecoder decoder, int frameSize)
         {
             uint version = decoder.DecodeVarUInt32();
             if (version == SlicDefinitions.V1)
@@ -283,7 +283,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                decoder.SkipRemainig();
+                decoder.Skip(frameSize - (int)decoder.Consumed);
                 return (version, null);
             }
         }
