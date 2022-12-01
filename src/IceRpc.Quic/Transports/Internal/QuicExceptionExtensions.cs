@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal;
 internal static class QuicExceptionExtensions
 {
     /// <summary>Converts a <see cref="QuicException"/> into a <see cref="IceRpcException"/>.</summary>
-    internal static IceRpcException ToTransportException(this QuicException exception) =>
+    internal static IceRpcException ToIceRpcException(this QuicException exception) =>
         exception.QuicError switch
         {
             QuicError.AddressInUse => new IceRpcException(IceRpcError.AddressInUse, exception),

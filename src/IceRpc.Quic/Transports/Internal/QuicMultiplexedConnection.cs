@@ -39,7 +39,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToTransportException();
+            throw exception.ToIceRpcException();
         }
     }
 
@@ -56,7 +56,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToTransportException();
+            throw exception.ToIceRpcException();
         }
     }
 
@@ -78,7 +78,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToTransportException();
+            throw exception.ToIceRpcException();
         }
 
         return new QuicMultiplexedStream(
@@ -109,7 +109,7 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToTransportException();
+            throw exception.ToIceRpcException();
         }
 
         return new TransportConnectionInformation(
