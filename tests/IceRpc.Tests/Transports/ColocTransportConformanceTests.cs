@@ -16,5 +16,5 @@ public class ColocTransportConformanceTests : DuplexTransportConformanceTests
         new ServiceCollection()
             .AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/"))
             .AddColocTransport()
-            .AddSingleton(_ => new ColocTransport(1));
+            .AddSingleton(_ => new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 }));
 }

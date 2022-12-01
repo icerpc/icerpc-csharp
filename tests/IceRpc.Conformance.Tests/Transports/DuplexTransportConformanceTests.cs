@@ -59,7 +59,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operation_aborted()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -81,12 +81,12 @@ public abstract class DuplexTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        using var cancelationSource = new CancellationTokenSource();
+        using var cancellationSource = new CancellationTokenSource();
 
-        var acceptTask = listener.AcceptAsync(cancelationSource.Token);
+        var acceptTask = listener.AcceptAsync(cancellationSource.Token);
 
         // Act
-        cancelationSource.Cancel();
+        cancellationSource.Cancel();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
@@ -303,26 +303,6 @@ public abstract class DuplexTransportConformanceTests
         TransportException? exception = Assert.ThrowsAsync<TransportException>(
             async () => await readFrom.ReadAsync(new byte[1], default));
         Assert.That(exception!.ErrorCode, Is.EqualTo(TransportErrorCode.ConnectionAborted));
-    }
-
-    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
-    /// </summary>
-    [Test]
-    public async Task Read_from_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<IDuplexConnection>>(),
-            provider.GetRequiredService<IDuplexConnection>());
-        IDuplexConnection disposedConnection = disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
-
-        disposedConnection.Dispose();
-
-        // Act/Assert
-        Assert.That(
-            async () => await disposedConnection.ReadAsync(new byte[1], default),
-            Throws.TypeOf<ObjectDisposedException>());
     }
 
     [Test]

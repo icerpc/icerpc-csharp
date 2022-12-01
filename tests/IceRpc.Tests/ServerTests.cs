@@ -97,7 +97,7 @@ public class ServerTests
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
 
-        var colocTransport = new ColocTransport(listenBacklog: 1);
+        var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
         var serverTransport = new SlicServerTransport(new HoldServerTransport(colocTransport.ServerTransport));
         var clientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 

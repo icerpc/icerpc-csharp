@@ -297,8 +297,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_readFramesTask is null)
             {
-                throw new InvalidOperationException(
-                    $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
+                throw new InvalidOperationException($"can't call {nameof(CloseAsync)} before {nameof(ConnectAsync)}");
             }
             if (_exception is not null)
             {
@@ -352,14 +351,14 @@ internal class SlicConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
+            }
             if (_readFramesTask is null)
             {
                 throw new InvalidOperationException(
                     $"can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}");
-            }
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
             }
             if (_exception is not null)
             {
