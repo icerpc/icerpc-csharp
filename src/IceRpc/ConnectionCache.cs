@@ -267,8 +267,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
             .Concat(_activeConnections.Values);
 
-        return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)));
+        return Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)));
     }
 
     /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
