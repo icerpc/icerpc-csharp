@@ -430,9 +430,9 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     let namespace = &operation.namespace();
 
     let non_streamed_members = if dispatch {
-        operation.nonstreamed_parameters()
+        operation.non_streamed_parameters()
     } else {
-        operation.nonstreamed_return_members()
+        operation.non_streamed_return_members()
     };
 
     assert!(!non_streamed_members.is_empty());

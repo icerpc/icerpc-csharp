@@ -26,7 +26,6 @@
     "makecerts",
     "Memberwise",
     "Nonmutating",
-    "nonstreamed",
     "Parallelizable",
     "parameterless",
     "paramref",
