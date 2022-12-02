@@ -70,11 +70,11 @@ public class NumericTypesEncodingTests
     }
 
     /// <summary>Tests that <see cref="SliceEncoder.EncodeVarInt62" /> will throw an ArgumentOutOfRangeException
-    /// if the parameter is larger than the max value of a varlong or smaller than the min value of a varlong.</summary>
-    /// <param name="value">The varlong to be encoded.</param>
+    /// if the parameter is larger than the max value of a varint62 or smaller than the min value of a varint62.</summary>
+    /// <param name="value">The varint62 to be encoded.</param>
     [TestCase(SliceEncoder.VarInt62MinValue - 1)]
     [TestCase(SliceEncoder.VarInt62MaxValue + 1)]
-    public void Encode_varlong_out_of_range_value_fails(long value)
+    public void Encode_varint62_out_of_range_value_fails(long value)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
@@ -97,7 +97,7 @@ public class NumericTypesEncodingTests
     [TestCase((ulong)512, new byte[] { 0x01, 0x08 })]
     [TestCase((ulong)32768, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
     [TestCase(SliceEncoder.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
-    public void Encode_varulong_value(ulong value, byte[] expected)
+    public void Encode_varuint62_value(ulong value, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -110,10 +110,10 @@ public class NumericTypesEncodingTests
     }
 
     /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)" /> will throw an ArgumentOutOfRangeException
-    /// if the parameter is larger than the max value of a varulong.</summary>
+    /// if the parameter is larger than the max value of a varuint62.</summary>
     /// <param name="value">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarUInt62MaxValue + 1)]
-    public void Encode_varulong_value_throws_out_of_range(ulong value)
+    public void Encode_varuint62_value_throws_out_of_range(ulong value)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.

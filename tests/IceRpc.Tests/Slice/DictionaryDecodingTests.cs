@@ -46,10 +46,10 @@ public class DictionaryDecodingTests
             key => key,
             value => value % 2 == 0 ? null : $"value-{value}");
         encoder.EncodeSize(expected.Count);
-        var bitSequenceWritter = encoder.GetBitSequenceWriter(expected.Count);
+        var bitSequenceWriter = encoder.GetBitSequenceWriter(expected.Count);
         foreach ((int key, string? value) in expected)
         {
-            bitSequenceWritter.Write(value is not null);
+            bitSequenceWriter.Write(value is not null);
             encoder.EncodeInt32(key);
             if (value is not null)
             {

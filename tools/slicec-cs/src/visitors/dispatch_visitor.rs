@@ -154,7 +154,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.has_nonstreamed_return_members())
+        .filter(|o| o.has_non_streamed_return_members())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -177,7 +177,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     );
 
     for operation in operations {
-        let non_streamed_returns = operation.nonstreamed_return_members();
+        let non_streamed_returns = operation.non_streamed_return_members();
 
         let namespace = &operation.namespace();
         let operation_name = &operation.escape_identifier();
@@ -238,7 +238,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
 
     if let Some(stream_member) = operation.streamed_parameter() {
-        let non_streamed_parameters = operation.nonstreamed_parameters();
+        let non_streamed_parameters = operation.non_streamed_parameters();
         if non_streamed_parameters.is_empty() {
             writeln!(
                 code,
@@ -299,7 +299,7 @@ request.DecodeArgsAsync(
 fn request_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
 
-    let parameters = operation.nonstreamed_parameters();
+    let parameters = operation.non_streamed_parameters();
     assert!(!parameters.is_empty());
 
     let use_default_decode_func =
@@ -529,7 +529,7 @@ catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled
 
 // only called for non-void operations
 fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
-    let non_streamed_return_values = operation.nonstreamed_return_members();
+    let non_streamed_return_values = operation.non_streamed_return_members();
 
     let mut returns = vec![];
 

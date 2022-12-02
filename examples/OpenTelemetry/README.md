@@ -7,9 +7,9 @@ the IceRpc telemetry interceptor and middleware.
 
 For build instructions check the top-level [README.md](../../README.md).
 
-Firt start the Zipkin service as documented in the Zipkin quick start guide:
+First start the Zipkin service as documented in the Zipkin quick start guide:
 
-- [Zipkin quickstart](https://zipkin.io/pages/quickstart.html)
+- [Zipkin quick-start](https://zipkin.io/pages/quickstart.html)
 
 In a separate window start the CRM Server program:
 

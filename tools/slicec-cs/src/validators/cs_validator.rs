@@ -82,7 +82,7 @@ fn validate_cs_encoded_result(
     attribute: &Attribute,
     diagnostic_reporter: &mut DiagnosticReporter,
 ) {
-    if operation.nonstreamed_return_members().is_empty() {
+    if operation.non_streamed_return_members().is_empty() {
         diagnostic_reporter.report_error(Error::new_with_notes(
             ErrorKind::UnexpectedAttribute(cs_attributes::ENCODED_RESULT.to_owned()),
             Some(attribute.span()),

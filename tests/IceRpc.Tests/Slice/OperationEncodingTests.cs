@@ -191,7 +191,7 @@ public class OperationEncodingTests
 
         // Assert
         // readResult: size + 4 bytes payload size
-        // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+        // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
         // (optional int 0|4 bytes) + (optional string 0|13 bytes)
         int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13);
         Assert.That(payload.TryRead(out var readResult));
@@ -247,7 +247,7 @@ public class OperationEncodingTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-            // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+            // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (optional int 0|4 bytes) + (optional string 0|13 bytes)
             int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13);
             encoder.EncodeSize(size);
@@ -279,7 +279,7 @@ public class OperationEncodingTests
         PipeReader payload = IMyOperationsB.Response.OpOptional(p1, p2, p3, p4);
 
         // Assert
-        // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+        // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
         // (optional int 0|4 bytes) + (optional string 0|13 bytes)
         int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13);
         Assert.That(payload.TryRead(out var readResult));
@@ -336,7 +336,7 @@ public class OperationEncodingTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-            // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+            // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
             // (optional int 0|4 bytes) + (optional string 0|13 bytes)
             int size = 1 + 4 + 13 + (p3 is null ? 0 : 4) + (p4 is null ? 0 : 13);
             encoder.EncodeSize(size);

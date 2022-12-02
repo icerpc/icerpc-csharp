@@ -1,28 +1,5 @@
 {
-  "cSpell.words": [
-    "_decoratee",
-    "coloc",
-    "colocated",
-    "cref",
-    "decoratee",
-    "icerpc",
-    "inheritdoc",
-    "langword",
-    "Nonmutating",
-    "Parallelizable",
-    "paramref",
-    "Quic",
-    "seealso",
-    "Slic",
-    "slicec",
-    "struct",
-    "typealias",
-    "typeparam",
-    "typeref",
-    "varint",
-    "varuint",
-    "zeroc"
-  ],
+  "cSpell.showStatus": true,
   "rust-analyzer.linkedProjects": ["tools/slicec-cs/Cargo.toml"],
   "rust-analyzer.rustfmt.extraArgs": ["+nightly"]
 }

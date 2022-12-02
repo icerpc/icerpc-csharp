@@ -80,7 +80,7 @@ public class FeatureCollectionTests
     }
 
     [Test]
-    public void Iterate_returns_all_features_except_masked_defauls()
+    public void Iterate_returns_all_features_except_masked_defaults()
     {
         // Arrange
         IFeatureCollection f1 = new FeatureCollection

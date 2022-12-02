@@ -217,7 +217,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.is_fixed_size() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
-                // faster than unmarshaling the collection elements one by one.
+                // faster than decoding the collection elements one by one.
                 Some(format!(
                     "decoder.DecodeSequence<{}>()",
                     element_type.cs_type_string(namespace, TypeContext::Decode, true)
@@ -225,7 +225,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
-                // faster than unmarshaling the collection elements one by one.
+                // faster than decoding the collection elements one by one.
                 if enum_def.is_unchecked {
                     Some(format!(
                         "decoder.DecodeSequence<{}>()",
@@ -430,9 +430,9 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     let namespace = &operation.namespace();
 
     let non_streamed_members = if dispatch {
-        operation.nonstreamed_parameters()
+        operation.non_streamed_parameters()
     } else {
-        operation.nonstreamed_return_members()
+        operation.non_streamed_return_members()
     };
 
     assert!(!non_streamed_members.is_empty());

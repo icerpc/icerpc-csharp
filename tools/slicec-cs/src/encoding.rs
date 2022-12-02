@@ -519,9 +519,9 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
     let namespace = &operation.namespace();
 
     let members = if return_type {
-        operation.nonstreamed_return_members()
+        operation.non_streamed_return_members()
     } else {
-        operation.nonstreamed_parameters()
+        operation.non_streamed_parameters()
     };
 
     let (required_members, tagged_members) = get_sorted_members(&members);

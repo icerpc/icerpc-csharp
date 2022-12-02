@@ -67,11 +67,11 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
         Level = LogLevel.Trace,
-        Message = "Server|Client connection connect from '{ServerAddress}' to '{RemoteNetworkAdress}' failed")]
+        Message = "Server|Client connection connect from '{ServerAddress}' to '{RemoteNetworkAddress}' failed")]
     internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
         ServerAddress serverAddress,
-        EndPoint remoteNetworkAdress,
+        EndPoint remoteNetworkAddress,
         Exception exception);
 #pragma warning restore SYSLIB1006
 
