@@ -126,7 +126,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         if (serverAddressFeature.ServerAddress is null)
         {
-            throw new NoServerAddressException(request.ServiceAddress);
+            throw new IceRpcException(IceRpcError.NoServerAddress);
         }
 
         IProtocolConnection? connection = null;

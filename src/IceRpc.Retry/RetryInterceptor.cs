@@ -70,11 +70,12 @@ public class RetryInterceptor : IInvoker
                             retryWithOtherReplica = true;
                         }
                     }
-                    catch (NoServerAddressException ex)
+                    catch (IceRpcException iceRpcException) when (
+                        iceRpcException.IceRpcError == IceRpcError.NoServerAddress)
                     {
-                        // NoServerAddressException is always considered non-retryable; it typically occurs because we
+                        // NoServerAddress is always considered non-retryable; it typically occurs because we
                         // removed server addresses from serverAddressFeature.
-                        return response ?? throw RethrowException(exception ?? ex);
+                        return response ?? throw RethrowException(exception ?? iceRpcException);
                     }
                     catch (OperationCanceledException)
                     {

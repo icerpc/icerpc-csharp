@@ -33,6 +33,9 @@ public enum IceRpcError
     /// establishment.</summary>
     LimitExceeded,
 
+    /// <summary>A service address has no server address or no usable server address.</summary>
+    NoServerAddress,
+
     /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource
     /// disposal.</summary>
     OperationAborted,
