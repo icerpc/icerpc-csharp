@@ -275,8 +275,8 @@ public class ServerAddressTests
     [TestCase("alt-server", "x")]
     [TestCase("", "value")]
     [TestCase(" name", "value")]
-    [TestCase("name", "valu#e")]
-    [TestCase("name", "valu&e")]
+    [TestCase("name", "valu#e")] // cSpell:disable-line
+    [TestCase("name", "valu&e")] // cSpell:disable-line
     public void Setting_invalid_server_address_params_fails(string name, string value)
     {
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost"));
