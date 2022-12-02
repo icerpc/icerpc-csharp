@@ -11,8 +11,7 @@ edition = "2021"
 
 [dependencies]
 # Uses the github repo when built locally, and Crates.io when published.
-# slicec = { git = "ssh://git@github.com/zeroc-ice/icerpc", version = "0.1.0" }
-slicec = { path = "/Users/joe/Developer/zeroc-ice/icerpc" }
+slicec = { git = "ssh://git@github.com/zeroc-ice/icerpc", version = "0.1.0" }
 
 [[bin]]
 name = "slicec-cs"
