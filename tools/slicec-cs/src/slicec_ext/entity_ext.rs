@@ -212,12 +212,8 @@ where
     }
 
     fn readonly_modifier(&self) -> Option<String> {
-        if self
-            .attributes(self.kind() == "data member")
-            .into_iter()
-            .find_map(match_cs_readonly)
-            .is_some()
-        {
+        // Readonly is only valid for structs
+        if self.attributes(true).into_iter().find_map(match_cs_readonly).is_some() {
             Some("readonly".to_owned())
         } else {
             None
