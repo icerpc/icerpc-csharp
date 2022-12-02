@@ -26,6 +26,8 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_state.HasFlag(State.Disposed))
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
