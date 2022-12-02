@@ -967,7 +967,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException => StatusCode.InvalidData,
-                        TruncatedDataException => StatusCode.TruncatedPayload,
+                        IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
+                             StatusCode.TruncatedPayload,
                         _ => StatusCode.UnhandledException
                     };
 

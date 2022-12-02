@@ -554,7 +554,7 @@ public sealed class ProtocolConnectionTests
             IncomingResponse response = await responseTask;
             Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
         }
-        catch (TruncatedDataException)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.TruncatedData)
         {
             // expected
         }

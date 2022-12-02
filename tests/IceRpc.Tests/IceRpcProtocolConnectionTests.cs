@@ -136,7 +136,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
-    /// cref="TruncatedDataException" />.</summary>
+    /// cref="IceRpcError.TruncatedData" />.</summary>
     [Test]
     public async Task Disposing_server_connection_triggers_payload_read_with_truncated_data(
         [Values(false, true)] bool shutdown)
@@ -161,7 +161,9 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<TruncatedDataException>());
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
     [Test]
@@ -189,7 +191,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that canceling the invocation while sending the request payload, completes the incoming
-    /// request payload with a <see cref="TruncatedDataException"/>.</summary>
+    /// request payload with a <see cref="IceRpcError.TruncatedData"/>.</summary>
     [Test]
     public async Task Invocation_cancellation_while_sending_the_payload_completes_the_input_request_payload()
     {
@@ -215,12 +217,14 @@ public sealed class IceRpcProtocolConnectionTests
         invocationCts.Cancel();
 
         // Assert
-        Assert.That(async () => await dispatcher.PayloadReadCompleted, Throws.TypeOf<TruncatedDataException>());
+        Assert.That(
+            async () => await dispatcher.PayloadReadCompleted,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that canceling the invocation while sending the request payload continuation, completes the
-    /// incoming request payload with a <see cref="TruncatedDataException"/>.</summary>
+    /// incoming request payload with a <see cref="IceRpcError.TruncatedData"/>.</summary>
     [Test]
     public async Task Invocation_cancellation_while_sending_the_payload_continuation_completes_the_input_request_payload()
     {
@@ -247,7 +251,9 @@ public sealed class IceRpcProtocolConnectionTests
         invocationCts.Cancel();
 
         // Assert
-        Assert.That(async () => await dispatcher.PayloadReadCompleted, Throws.TypeOf<TruncatedDataException>());
+        Assert.That(
+            async () => await dispatcher.PayloadReadCompleted,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
@@ -328,7 +334,7 @@ public sealed class IceRpcProtocolConnectionTests
                 remotePayload.AdvanceTo(result.Buffer.End);
                 await remotePayload.ReadAsync();
             },
-            Throws.InstanceOf<TruncatedDataException>());
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
     [Test]
@@ -434,7 +440,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act/Assert
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
-            Throws.InstanceOf<TruncatedDataException>());
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
@@ -463,7 +469,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act/Assert
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
-            Throws.InstanceOf<TruncatedDataException>());
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
@@ -497,7 +503,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
+        Assert.That(
+            async () => await responseTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
@@ -598,7 +606,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             await responseTask;
         }
-        catch (TruncatedDataException)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.TruncatedData)
         {
             // Depending on the timing, the payload stream send failure might abort the invocation before the response
             // is sent.
@@ -667,7 +675,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             await responseTask;
         }
-        catch (TruncatedDataException)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.TruncatedData)
         {
             // Depending on the timing, the payload stream send failure might abort the invocation before the response
             // is sent.
@@ -742,7 +750,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null);
-        Assert.That(async () => await responseTask, Throws.InstanceOf<TruncatedDataException>());
+        Assert.That(
+            async () => await responseTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
     [Test]

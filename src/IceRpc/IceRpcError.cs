@@ -36,4 +36,7 @@ public enum IceRpcError
     /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
     /// </summary>
     ServerBusy,
+
+    /// <summary>The reading of a transport stream completed with incomplete data.</summary>
+    TruncatedData,
 }

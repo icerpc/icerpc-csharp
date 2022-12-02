@@ -322,7 +322,7 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic reset frame on local unidirectional stream");
         }
 
-        var exception = new TruncatedDataException();
+        var exception = new IceRpcException(IceRpcError.TruncatedData);
         if (TrySetReadsClosed(exception))
         {
             _inputPipeReader?.Abort(exception);
