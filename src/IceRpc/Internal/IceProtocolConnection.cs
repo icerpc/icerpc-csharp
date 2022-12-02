@@ -218,7 +218,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    // The peer expects the connection to be closed once the CloseConnection is received.
+                    // The peer expects the connection to be closed once the CloseConnection frame is received.
                     Close("The connection was closed by the peer.");
 
                     // Notify the ConnectionClosed back that the connection is now closed.
@@ -613,9 +613,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch (ObjectDisposedException)
         {
-            // Expected if the peer also sent a CloseConnection frame and a result the transport connection was
-            // disposed. To avoid having to catch ObjectDisposedException here we could eventually add
-            // IDuplexConnection.Close to decouple the connection closure from the disposal.
+            // The transport connection is disposed if the peer also sent a CloseConnection frame. To avoid having to
+            // catch ObjectDisposedException here we could eventually add IDuplexConnection.Close to decouple the
+            // connection closure from the disposal.
             Debug.Assert(ConnectionClosedException!.ErrorCode == ConnectionErrorCode.ConnectionClosed);
         }
 
