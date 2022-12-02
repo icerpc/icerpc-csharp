@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-
 namespace IceRpc;
 
 /// <summary>The IceRpc core and built-in invokers, dispatchers (including built-in middleware and interceptors) report

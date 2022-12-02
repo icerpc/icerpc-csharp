@@ -118,15 +118,26 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
+        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
+            if (serverAddressFeature.ServerAddress is null)
+            {
+                throw new IceRpcException(
+                    IceRpcError.NoConnection,
+                    $"Could not invoke '{request.Operation}' on '{request.ServiceAddress}': tried all server addresses without success.");
+            }
+        }
+        else
+        {
+            if (request.ServiceAddress.ServerAddress is null)
+            {
+                throw new IceRpcException(
+                    IceRpcError.NoConnection,
+                    $"{nameof(ConnectionCache)} cannot send a request to a service without a server address.");
+            }
+
             serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
             request.Features = request.Features.With(serverAddressFeature);
-        }
-
-        if (serverAddressFeature.ServerAddress is null)
-        {
-            throw new IceRpcException(IceRpcError.NoServerAddress);
         }
 
         IProtocolConnection? connection = null;

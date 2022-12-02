@@ -2,7 +2,7 @@
 
 namespace IceRpc;
 
-/// <summary>The possible errors carried by an <see cref="IceRpcException" />.</summary>
+/// <summary>The errors carried by an <see cref="IceRpcException" />.</summary>
 public enum IceRpcError
 {
     /// <summary>An uncategorized IceRpc error.</summary>
@@ -15,9 +15,9 @@ public enum IceRpcError
     /// such as an intermediary router going down.</summary>
     ConnectionAborted,
 
-    /// <summary>The protocol connection was closed prior to the current call. This error typically occurs when an
-    /// invoker such as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached
-    /// connection that was just closed but not yet unregistered from the cache.</summary>
+    /// <summary>The RPC connection was closed prior to the current call. This error typically occurs when an invoker
+    /// such as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached connection that
+    /// was just closed but not yet unregistered from the cache.</summary>
     ConnectionClosed,
 
     /// <summary>The peer closed the connection without reporting any error.</summary>
@@ -33,8 +33,9 @@ public enum IceRpcError
     /// establishment.</summary>
     LimitExceeded,
 
-    /// <summary>A service address has no server address or no usable server address.</summary>
-    NoServerAddress,
+    /// <summary>An invoker failed to send a request because it could not establish or locate a RPC connection.
+    /// </summary>
+    NoConnection,
 
     /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource
     /// disposal.</summary>

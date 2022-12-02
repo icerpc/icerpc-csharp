@@ -71,7 +71,7 @@ public class RetryInterceptor : IInvoker
                         }
                     }
                     catch (IceRpcException iceRpcException) when (
-                        iceRpcException.IceRpcError == IceRpcError.NoServerAddress)
+                        iceRpcException.IceRpcError == IceRpcError.NoConnection)
                     {
                         // NoServerAddress is always considered non-retryable; it typically occurs because we
                         // removed server addresses from serverAddressFeature.
