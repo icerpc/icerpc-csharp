@@ -773,7 +773,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
-            Throws.InstanceOf<ProtocolException>());
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
     }
 
     [Test]

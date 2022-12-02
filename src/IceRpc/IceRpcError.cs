@@ -29,6 +29,10 @@ public enum IceRpcError
     /// <summary>The peer refused the connection.</summary>
     ConnectionRefused,
 
+    /// <summary>A limit was exceeded, such as the icerpc max header size set by the peer during connection
+    /// establishment.</summary>
+    LimitExceeded,
+
     /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource
     /// disposal.</summary>
     OperationAborted,

@@ -868,8 +868,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         if (headerSize > _maxRemoteHeaderSize)
         {
-            throw new ProtocolException(
-                $"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+            throw new IceRpcException(
+                IceRpcError.LimitExceeded,
+                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_maxRemoteHeaderSize})");
         }
     }
 
