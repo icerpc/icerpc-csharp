@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, ContainerBuilder};
-use crate::cs_attributes;
+use crate::cs_attributes::match_cs_namespace;
 use crate::generated_code::GeneratedCode;
 use slice::code_block::CodeBlock;
 
@@ -32,9 +32,9 @@ impl ModuleVisitor<'_> {
     fn module_code_block(&mut self, module: &Module, module_prefix: Option<String>) -> CodeBlock {
         let code_blocks = self.generated_code.remove_scoped(module);
 
-        let identifier = match module.get_attribute(cs_attributes::NAMESPACE, false) {
-            Some(attribute) => attribute.first().unwrap(),
-            _ => module.identifier(),
+        let identifier = match module.get_attribute(false, match_cs_namespace) {
+            Some(namespace) => namespace,
+            _ => module.identifier().to_owned(),
         };
 
         let module_identifier = match &module_prefix {
@@ -43,7 +43,7 @@ impl ModuleVisitor<'_> {
                 // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
                 format!("{}.{}", prefix, identifier)
             }
-            None => identifier.to_owned(),
+            None => identifier,
         };
 
         // If this module has any code blocks the submodules are mapped to namespaces inside the

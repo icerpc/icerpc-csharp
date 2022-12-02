@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, FunctionCallBuilder};
-use crate::cs_attributes;
+use crate::cs_attributes::match_cs_generic;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
@@ -201,9 +201,10 @@ decoder.DecodeDictionary(
 pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
-    if sequence_ref.get_attribute(cs_attributes::GENERIC, false).is_none()
-        && matches!(element_type.concrete_type(), Types::Sequence(_))
-    {
+
+    let generic_attribute = sequence_ref.get_attribute(false, match_cs_generic);
+
+    if generic_attribute.is_none() && matches!(element_type.concrete_type(), Types::Sequence(_)) {
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
         // used in the request and response decode methods.
         write!(
@@ -213,7 +214,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
         );
     };
 
-    if sequence_ref.get_attribute(cs_attributes::GENERIC, false).is_some() {
+    if generic_attribute.is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.is_fixed_size() => {
                 // We always read an array even when mapped to a collection, as it's expected to be

@@ -3,11 +3,10 @@
 use std::collections::HashMap;
 
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
-use crate::cs_attributes;
+use crate::cs_attributes::match_cs_attribute;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-
 use slice::grammar::{Attributable, Class, Commentable, Encoding, Entity, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::TypeContext;
@@ -85,7 +84,13 @@ pub trait AttributeBuilder {
             self.add_attribute(&attribute);
         }
 
-        for attribute in container.custom_attributes() {
+        let custom_attributes = container
+            .attributes(false)
+            .into_iter()
+            .filter_map(match_cs_attribute)
+            .collect::<Vec<_>>();
+
+        for attribute in custom_attributes {
             self.add_attribute(&attribute);
         }
 
@@ -317,10 +322,14 @@ impl FunctionBuilder {
         for parameter in &parameters {
             // The attributes are a space separated list of attributes.
             // eg. [attribute1] [attribute2]
-            let parameter_attributes = parameter.get_attribute(cs_attributes::ATTRIBUTE, false).map_or_else(
-                || "".to_owned(),
-                |vec| vec.iter().map(|a| format!("[{}]", a)).collect::<Vec<_>>().join("\n"),
-            );
+
+            let parameter_attributes = parameter
+                .attributes(false)
+                .into_iter()
+                .filter_map(match_cs_attribute)
+                .map(|attribute| format!("[{}]", attribute))
+                .collect::<Vec<_>>()
+                .join("\n");
 
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();

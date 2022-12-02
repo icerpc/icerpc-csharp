@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::cs_attributes;
+use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
 use crate::cs_util::escape_keyword;
 
 use slice::convert_case::{Case, Casing};
@@ -71,12 +71,14 @@ where
     T: Entity + ?Sized,
 {
     fn cs_identifier(&self, case: Option<Case>) -> String {
-        if let Some(args) = self.get_attribute(cs_attributes::IDENTIFIER, false) {
-            args[0].to_owned()
-        } else if let Some(c) = case {
-            self.identifier().to_case(c)
-        } else {
-            self.identifier().to_owned()
+        let identifier_attribute = self.attributes(false).into_iter().find_map(match_cs_identifier);
+
+        match identifier_attribute {
+            Some(identifier) => identifier,
+            None => match case {
+                Some(case) => self.identifier().to_case(case),
+                None => self.identifier().to_string(),
+            },
         }
     }
 
@@ -165,7 +167,11 @@ where
         let module_scope = &self.raw_scope().module_scope;
 
         // List of all recursive (it and its parents) cs::namespace attributes for this entity.
-        let mut attribute_list = self.get_attribute_list(cs_attributes::NAMESPACE);
+        let mut attribute_list = self
+            .all_attributes()
+            .into_iter()
+            .map(|l| l.into_iter().find_map(match_cs_namespace))
+            .collect::<Vec<_>>();
         // Reverse the list so that the top level module name is first.
         attribute_list.reverse();
 
@@ -174,8 +180,8 @@ where
         module_scope
             .iter()
             .enumerate()
-            .map(|(i, s)| match attribute_list[i] {
-                Some(args) => args[0].to_owned(),
+            .map(|(i, s)| match &attribute_list[i] {
+                Some(namespace) => namespace.to_owned(),
                 None => escape_keyword(&s.to_case(Case::Pascal)),
             })
             .collect::<Vec<_>>()
@@ -185,7 +191,7 @@ where
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
         self.get_deprecation(check_parent).map(|attribute| {
             let reason = if let Some(argument) = attribute {
-                argument.to_owned()
+                argument
             } else {
                 format!("This {} has been deprecated", self.kind())
             };
@@ -198,7 +204,7 @@ where
     }
 
     fn access_modifier(&self) -> String {
-        if self.has_attribute(cs_attributes::INTERNAL, true) {
+        if self.attributes(true).into_iter().find_map(match_cs_internal).is_some() {
             "internal".to_owned()
         } else {
             "public".to_owned()
@@ -206,7 +212,8 @@ where
     }
 
     fn readonly_modifier(&self) -> Option<String> {
-        if self.has_attribute(cs_attributes::READONLY, self.kind() == "data member") {
+        // Readonly is only valid for structs
+        if self.attributes(true).into_iter().find_map(match_cs_readonly).is_some() {
             Some("readonly".to_owned())
         } else {
             None

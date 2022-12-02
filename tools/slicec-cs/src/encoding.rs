@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{Builder, FunctionCallBuilder};
-use crate::cs_attributes;
+use crate::cs_attributes::match_cs_generic;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
@@ -177,7 +177,7 @@ if ({param} != null)
                     param = match concrete_typeref {
                         TypeRefs::Sequence(sequence_ref)
                             if sequence_ref.has_fixed_size_numeric_elements()
-                                && !sequence_ref.has_attribute(cs_attributes::GENERIC, false)
+                                && !sequence_ref.has_attribute(false, match_cs_generic)
                                 && type_context == TypeContext::Encode =>
                             format!("{}.Span", param),
                         _ => param.to_owned(),
@@ -212,7 +212,7 @@ fn encode_tagged_type(
         data_type.concrete_type(),
         Types::Sequence(sequence_def) if sequence_def.has_fixed_size_numeric_elements()
             && type_context == TypeContext::Encode
-            && !data_type.has_attribute(cs_attributes::GENERIC, false)
+            && !data_type.has_attribute(false, match_cs_generic)
     );
 
     let value = if data_type.is_value_type() {
@@ -342,7 +342,7 @@ fn encode_sequence(
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
-    let has_custom_type = sequence_ref.has_attribute(cs_attributes::GENERIC, false);
+    let has_custom_type = sequence_ref.has_attribute(false, match_cs_generic);
     if sequence_ref.has_fixed_size_numeric_elements() {
         if type_context == TypeContext::Encode && !has_custom_type {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
