@@ -373,6 +373,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 return;
             }
+
             ConnectionClosedException = new(ConnectionErrorCode.ConnectionClosed, message);
             _shutdownTask = CreateShutdownTask();
         }

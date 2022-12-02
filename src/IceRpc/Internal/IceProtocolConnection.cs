@@ -895,10 +895,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException ex)
+                    catch (OperationCanceledException)
                     {
-                        Debug.Assert(ex.CancellationToken == _dispatchesAndInvocationsCts.Token);
-
                         Debug.Assert(ConnectionClosedException is not null);
                         throw ConnectionClosedException;
                     }
