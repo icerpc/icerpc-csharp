@@ -36,7 +36,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
-    private bool _isAcceptingDispatchesAndInvocations;
     private readonly ILogger _logger;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -150,8 +149,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                _isAcceptingDispatchesAndInvocations = false; // stop accepting new dispatches or invocations.
-
                 if (_invocationCount == 0 && _dispatchCount == 0)
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -212,9 +209,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     $"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
             }
         }
-
-        // The connection is ready to start accepting dispatches on invocations.
-        _isAcceptingDispatchesAndInvocations = true;
 
         _readFramesTask = Task.Run(
             async () =>
@@ -291,9 +285,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             // Nothing prevents InvokeAsync to be called on a connection which is no longer accepting invocations. We
             // check for this condition here and throw ConnectionClosedException.
-            if (!_isAcceptingDispatchesAndInvocations)
+            if (ConnectionClosedException is not null)
             {
-                Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
             }
 
@@ -334,9 +327,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // canceled request to allocate a request ID that won't be used.
                 lock (_mutex)
                 {
-                    if (!_isAcceptingDispatchesAndInvocations)
+                    if (ConnectionClosedException is not null)
                     {
-                        Debug.Assert(ConnectionClosedException is not null);
                         throw ConnectionClosedException;
                     }
 
@@ -453,7 +445,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 --_invocationCount;
                 if (_invocationCount == 0 && _dispatchCount == 0)
                 {
-                    if (_isAcceptingDispatchesAndInvocations)
+                    if (ConnectionClosedException is null)
                     {
                         EnableIdleCheck();
                     }
@@ -595,7 +587,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            _isAcceptingDispatchesAndInvocations = false;
+            Debug.Assert(ConnectionClosedException is not null);
             if (_invocationCount == 0 && _dispatchCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -692,6 +684,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
     }
 
+    /// <summary>Cancels network operations which are in progress and close the transport connection. The pending
+    /// invocations and dispatches are also canceled.</summary>
     private void Close(string? message = null, Exception? innerException = null)
     {
         ConnectionClosedException = message == null ?
@@ -901,17 +895,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException ex)
                     {
-                        Debug.Assert(!_isAcceptingDispatchesAndInvocations);
+                        Debug.Assert(ex.CancellationToken == _dispatchesAndInvocationsCts.Token);
+
+                        Debug.Assert(ConnectionClosedException is not null);
+                        throw ConnectionClosedException;
                     }
                 }
 
                 lock (_mutex)
                 {
-                    if (!_isAcceptingDispatchesAndInvocations)
+                    if (ConnectionClosedException is not null)
                     {
-                        Debug.Assert(ConnectionClosedException is not null);
                         throw ConnectionClosedException;
                     }
 
@@ -1089,7 +1085,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         --_dispatchCount;
                         if (_invocationCount == 0 && _dispatchCount == 0)
                         {
-                            if (_isAcceptingDispatchesAndInvocations)
+                            if (ConnectionClosedException is null)
                             {
                                 EnableIdleCheck();
                             }
