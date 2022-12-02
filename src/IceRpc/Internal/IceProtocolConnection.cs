@@ -43,7 +43,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly object _mutex = new();
     private int _nextRequestId;
     private readonly IcePayloadPipeWriter _payloadWriter;
-    private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
     private readonly CancellationTokenSource _tasksCts = new();
@@ -622,7 +622,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
         // closure here. We can't just return and close the underlying transport since this could abort the receive of
         // the dispatch responses and close connection frame by the peer.
-        await _pendingClose.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _closeTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
         {
@@ -702,7 +702,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         CancelDispatchesAndInvocations();
 
         // Make sure to unblock ShutdownAsync if it's waiting for the connection closure.
-        _pendingClose.TrySetResult();
+        _closeTcs.TrySetResult();
     }
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
