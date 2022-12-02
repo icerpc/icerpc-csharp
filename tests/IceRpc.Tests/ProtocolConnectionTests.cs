@@ -468,9 +468,9 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
@@ -490,9 +490,9 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Client.ShutdownComplete);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
@@ -581,8 +581,8 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await invokeTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -609,7 +609,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see
-    /// cref="ConnectionException" />.</summary>
+    /// cref="IceRpcException" />.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Invoke_on_shutdown_connection_fails_with_connection_closed(Protocol protocol)
     {
@@ -622,9 +622,9 @@ public sealed class ProtocolConnectionTests
         Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
 
         await shutdownTask;
     }
@@ -980,8 +980,8 @@ public sealed class ProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await connectTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Verifies connection shutdown is successful</summary>
@@ -1002,7 +1002,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.IceRpcError) if
+    /// <summary>Ensure that ShutdownAsync fails with IceRpcException(IceRpcError.IceRpcError) if
     /// ConnectAsync fails with a transport error.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
@@ -1020,18 +1020,14 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
+        Assert.That(async () => await shutdownTask, Throws.InstanceOf<IceRpcException>());
         // TODO: this will need to be fixed with the exception refactoring.
         // The error we get is timing dependent. We can get ConnectRefused if the connection establishment request is
         // queued after the listener disposal or IceRpcError if it's queued before (in this case ConnectAsync catches
-        // IceRpcException(IceRpcError.ConnectionAborted) and it's mapped to ConnectionErrorCode.IceRpcError)
-        Assert.That(
-            exception!.ErrorCode,
-            Is.EqualTo(ConnectionErrorCode.IceRpcException));
-        Assert.That(exception!.InnerException, Is.InstanceOf<IceRpcException>());
+        // IceRpcException(IceRpcError.ConnectionAborted) and it's mapped to IceRpcError.IceRpcError)
     }
 
-    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if
+    /// <summary>Ensure that ShutdownAsync fails with IceRpcException(IceRpcError.OperationAborted) if
     /// ConnectAsync is canceled.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_if_connect_is_canceled(Protocol protocol)
@@ -1050,11 +1046,11 @@ public sealed class ProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await shutdownTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
-    /// <summary>Ensure that ShutdownAsync fails with ConnectionException(ConnectionErrorCode.OperationAborted) if
+    /// <summary>Ensure that ShutdownAsync fails with IceRpcException(IceRpcError.OperationAborted) if
     /// ConnectAsync timeouts.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_on_connect_timeout(Protocol protocol)
@@ -1073,8 +1069,8 @@ public sealed class ProtocolConnectionTests
         Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
-        ConnectionException? exception = Assert.ThrowsAsync<ConnectionException>(async () => await shutdownTask);
-        Assert.That(exception!.ErrorCode, Is.EqualTo(ConnectionErrorCode.OperationAborted));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await shutdownTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Verifies that connection shutdown timeouts after the <see cref="ConnectionOptions.ShutdownTimeout" />

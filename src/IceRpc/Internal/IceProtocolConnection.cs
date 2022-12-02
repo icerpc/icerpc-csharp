@@ -222,8 +222,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
 
-                    var connectionClosedException = new ConnectionException(
-                        ConnectionErrorCode.ConnectionClosed,
+                    var connectionClosedException = new IceRpcException(
+                        IceRpcError.ConnectionClosed,
                         "The connection was closed by the peer.");
 
                     _tasksCts.Cancel();
@@ -237,7 +237,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _duplexConnection.Dispose();
 
                     // Initiate the shutdown.
-                    InitiateShutdown(connectionClosedException.ErrorCode, connectionClosedException.Message);
+                    InitiateShutdown(connectionClosedException.IceRpcError, connectionClosedException.Message);
                 }
                 catch (IceRpcException exception) when (
                     exception.IceRpcError == IceRpcError.ConnectionAborted &&
@@ -245,10 +245,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
-                    Debug.Assert(ConnectionClosedException is not null);
-                }
-                catch (ConnectionException)
-                {
                     Debug.Assert(ConnectionClosedException is not null);
                 }
                 catch (OperationCanceledException)
@@ -259,8 +255,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new ConnectionException(
-                        ConnectionErrorCode.ConnectionClosed,
+                    ConnectionClosedException = new IceRpcException(
+                        IceRpcError.ConnectionClosed,
                         "The connection was lost.",
                         exception);
 
@@ -303,7 +299,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private protected override async ValueTask DisposeAsyncCore()
     {
         // Dispose triggers the cancellation of pending operations (invocations, dispatches, ...)
-        var exception = new ConnectionException(ConnectionErrorCode.OperationAborted);
+        var exception = new IceRpcException(IceRpcError.OperationAborted);
 
         // Before disposing the transport connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
@@ -476,19 +472,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested || _tasksCts.IsCancellationRequested);
 
             // The connection is being disposed.
-            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
-        catch (ConnectionException)
+        catch (IceRpcException)
         {
             throw;
         }
-        catch (IceRpcException exception)
-        {
-            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
-        }
         catch (Exception exception)
         {
-            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
+            throw new IceRpcException(IceRpcError.IceRpcError, exception);
         }
         finally
         {
@@ -669,7 +661,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _writeSemaphore.Release();
             }
         }
-        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
         {
             // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
         }

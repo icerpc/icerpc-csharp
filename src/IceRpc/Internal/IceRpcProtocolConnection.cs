@@ -148,7 +148,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ServerBusy)
         {
             ConnectionClosedException = new(
-                ConnectionErrorCode.ConnectionClosed,
+                IceRpcError.ConnectionClosed,
                 "The connection establishment failed because the server is too busy.");
 
             throw;
@@ -169,7 +169,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         cancellationToken).ConfigureAwait(false);
                     IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
                     InitiateShutdown(
-                        ConnectionErrorCode.ConnectionClosed,
+                        IceRpcError.ConnectionClosed,
                         "The connection was closed because it received a GoAway frame from the peer.");
                     return goAwayFrame;
                 }
@@ -313,7 +313,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     if (ConnectionClosedException is null)
                     {
                         ConnectionClosedException = new(
-                            ConnectionErrorCode.ConnectionClosed,
+                            IceRpcError.ConnectionClosed,
                             "The connection was lost.",
                             exception);
 
@@ -503,11 +503,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-        }
-        catch (IceRpcException exception)
-        {
-            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
         finally
         {
