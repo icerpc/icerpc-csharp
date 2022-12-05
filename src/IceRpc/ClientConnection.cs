@@ -28,8 +28,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     private readonly object _mutex = new();
 
-    // When true, we retry once when _connection is closed, i.e. a call on _connection throws a ConnectionException
-    // with a Closed error code or ObjectDisposedException.
+    // When true, we retry once when _connection is closed, i.e. a call on _connection throws an IceRpcException
+    // with a ConnectionClosed error or ObjectDisposedException.
     private bool _retryOnClosed = true;
 
     /// <summary>Constructs a client connection.</summary>
@@ -100,7 +100,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     await connection.ShutdownComplete.ConfigureAwait(false);
                 }
-                catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // expected, call refresh below
                 }
@@ -169,7 +169,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
     /// once this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionException" />if the connection establishment failed.</description>
+    /// <item><description><see cref="IceRpcException" />if the connection establishment failed.</description>
     /// </item>
     /// <item><description><see cref="ObjectDisposedException" />if this connection is disposed.</description></item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
@@ -196,7 +196,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             throw;
         }
-        catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
         {
             if (RefreshConnection(connection) is IProtocolConnection newConnection)
             {
@@ -275,7 +275,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 throw;
             }
-            catch (ConnectionException exception) when (exception.ErrorCode == ConnectionErrorCode.ConnectionClosed)
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
             {
                 if (RefreshConnection(connection) is IProtocolConnection newConnection)
                 {
@@ -294,14 +294,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionException" />if the connection shutdown failed.</description></item>
+    /// <item><description><see cref="IceRpcException" />if the connection shutdown failed.</description></item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded <see
     /// cref="ConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ConnectionException">Thrown if the connection is closed but not disposed yet.</exception>
+    /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <remarks>If shutdown is canceled, the protocol connection transitions to a faulted state and the disposal of the
     /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
@@ -440,7 +440,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch
                 {
-                    // ShutdownComplete throws a ConnectionException with a Closed error code
+                    // ShutdownComplete throws an IceRpcException.
                     await ShutdownComplete.ConfigureAwait(false);
                     Debug.Assert(false); // the line above always throws
                     throw;

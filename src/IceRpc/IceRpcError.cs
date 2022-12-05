@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-
 namespace IceRpc;
 
-/// <summary>The possible errors carried by an <see cref="IceRpcException" />.</summary>
+/// <summary>The errors carried by an <see cref="IceRpcException" />.</summary>
 public enum IceRpcError
 {
     /// <summary>An uncategorized IceRpc error.</summary>
@@ -14,10 +12,16 @@ public enum IceRpcError
     AddressInUse = 1,
 
     /// <summary>The connection was aborted, typically by the peer. The abort can also be caused by a network failure,
-    /// such as an intermediary router going down. With multiplexed transports, <see
-    /// cref="IceRpcException.ApplicationErrorCode" /> is set to the error code provided to <see
-    /// cref="IMultiplexedConnection.CloseAsync" />.</summary>
+    /// such as an intermediary router going down.</summary>
     ConnectionAborted,
+
+    /// <summary>The connection was closed prior to the current call. This error typically occurs when an invoker such
+    /// as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached connection that was just
+    /// closed but not yet unregistered from the cache.</summary>
+    ConnectionClosed,
+
+    /// <summary>The peer closed the connection without reporting any error.</summary>
+    ConnectionClosedByPeer,
 
     /// <summary>The connection was idle and timed-out.</summary>
     ConnectionIdle,
@@ -25,7 +29,21 @@ public enum IceRpcError
     /// <summary>The peer refused the connection.</summary>
     ConnectionRefused,
 
+    /// <summary>A limit was exceeded, such as the <see cref="ConnectionOptions.MaxIceRpcHeaderSize" /> sent by the peer
+    /// during connection establishment.</summary>
+    LimitExceeded,
+
+    /// <summary>An invoker failed to send a request because it could not establish or locate a connection.</summary>
+    NoConnection,
+
     /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource
     /// disposal.</summary>
     OperationAborted,
+
+    /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
+    /// </summary>
+    ServerBusy,
+
+    /// <summary>The reading of a transport stream completed with incomplete data.</summary>
+    TruncatedData,
 }

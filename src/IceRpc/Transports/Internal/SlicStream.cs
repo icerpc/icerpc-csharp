@@ -145,7 +145,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamStopSending,
-                    new StreamStopSendingBody(applicationProtocolErrorCode: 0).Encode,
+                    new StreamStopSendingBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -188,7 +188,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamReset,
-                    new StreamResetBody(applicationProtocolErrorCode: 0).Encode,
+                    new StreamResetBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
             catch
@@ -322,7 +322,7 @@ internal class SlicStream : IMultiplexedStream
                 "received Slic reset frame on local unidirectional stream");
         }
 
-        var exception = new TruncatedDataException();
+        var exception = new IceRpcException(IceRpcError.TruncatedData);
         if (TrySetReadsClosed(exception))
         {
             _inputPipeReader?.Abort(exception);

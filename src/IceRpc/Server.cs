@@ -954,7 +954,7 @@ public sealed class Server : IAsyncDisposable
         public ValueTask DisposeAsync() => _transportConnection?.DisposeAsync() ?? new();
 
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
-            _transportConnection!.CloseAsync((ulong)IceRpcConnectionErrorCode.Refused, cancel);
+            _transportConnection!.CloseAsync(MultiplexedConnectionCloseError.ServerBusy, cancel);
 
         internal IceRpcConnector(
             IMultiplexedConnection transportConnection,

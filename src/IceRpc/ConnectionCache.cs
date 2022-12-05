@@ -118,15 +118,26 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Features.Get<IServerAddressFeature>() is not IServerAddressFeature serverAddressFeature)
+        if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
+            if (serverAddressFeature.ServerAddress is null)
+            {
+                throw new IceRpcException(
+                    IceRpcError.NoConnection,
+                    $"Could not invoke '{request.Operation}' on '{request.ServiceAddress}': tried all server addresses without success.");
+            }
+        }
+        else
+        {
+            if (request.ServiceAddress.ServerAddress is null)
+            {
+                throw new IceRpcException(
+                    IceRpcError.NoConnection,
+                    "Cannot send a request to a service without a server address.");
+            }
+
             serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
             request.Features = request.Features.With(serverAddressFeature);
-        }
-
-        if (serverAddressFeature.ServerAddress is null)
-        {
-            throw new NoServerAddressException(request.ServiceAddress);
         }
 
         IProtocolConnection? connection = null;
@@ -169,13 +180,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 return connection.InvokeAsync(request, cancellationToken);
             }
             catch (ObjectDisposedException exception) when (
-                exception.InnerException is ConnectionException connectionException &&
-                connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed)
+                exception.InnerException is IceRpcException innerException &&
+                innerException.IceRpcError == IceRpcError.ConnectionClosed)
             {
                 // This can occasionally happen if we find a connection that was just closed and then automatically
                 // disposed by this connection cache.
                 // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
-                throw ExceptionUtil.Throw(connectionException);
+                throw ExceptionUtil.Throw(innerException);
             }
         }
         else
@@ -233,13 +244,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
             catch (ObjectDisposedException exception) when (
-                exception.InnerException is ConnectionException connectionException &&
-                connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed)
+                exception.InnerException is IceRpcException innerException &&
+                innerException.IceRpcError == IceRpcError.ConnectionClosed)
             {
                 // This can occasionally happen if we find a connection that was just closed and then automatically
                 // disposed by this connection cache.
                 // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
-                throw ExceptionUtil.Throw(connectionException);
+                throw ExceptionUtil.Throw(innerException);
             }
         }
     }
@@ -338,8 +349,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         // The ConnectionCache shut down or disposal canceled the connection establishment.
                         // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                        throw new ConnectionException(
-                            ConnectionErrorCode.OperationAborted,
+                        throw new IceRpcException(
+                            IceRpcError.OperationAborted,
                             "The connection cache was shut down or disposed.");
                     }
                     else
@@ -361,8 +372,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new ConnectionException(
-                        ConnectionErrorCode.OperationAborted,
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
                         "The connection cache was shut down or disposed.");
                 }
                 else

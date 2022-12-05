@@ -53,10 +53,6 @@ internal class QuicPipeReader : PipeReader
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
-        {
-            throw new TruncatedDataException(exception);
-        }
         catch (QuicException exception)
         {
             throw exception.ToIceRpcException();
@@ -93,10 +89,6 @@ internal class QuicPipeReader : PipeReader
             catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted && _isCompleted)
             {
                 // Ignore exception: this occurs when we call Complete(null) on this pipe reader.
-            }
-            catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
-            {
-                throw new TruncatedDataException(exception);
             }
             catch (QuicException exception)
             {

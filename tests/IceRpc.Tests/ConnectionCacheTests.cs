@@ -280,8 +280,8 @@ public sealed class ConnectionCacheTests
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
             _connection.ConnectAsync(cancellationToken);
 
-        public Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken) =>
-            _connection.CloseAsync(applicationErrorCode, cancellationToken);
+        public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
+            _connection.CloseAsync(closeError, cancellationToken);
 
         public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken) =>
             _connection.CreateStreamAsync(bidirectional, cancellationToken);

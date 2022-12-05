@@ -72,7 +72,7 @@ public class SlicTransportTests
     }
 
     [Test]
-    public async Task Send_initialize_frame_with_usupported_slic_version_replies_with_version_frame()
+    public async Task Send_initialize_frame_with_unsupported_slic_version_replies_with_version_frame()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()

@@ -19,7 +19,7 @@ public sealed class RetryInterceptorTests
         get
         {
             yield return new OperationCanceledException();
-            yield return new NoServerAddressException();
+            yield return new IceRpcException(IceRpcError.NoConnection);
         }
     }
 
@@ -32,7 +32,7 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                throw new ConnectionException(ConnectionErrorCode.ConnectionClosed);
+                throw new IceRpcException(IceRpcError.ConnectionClosed);
             }
             else
             {
@@ -181,7 +181,7 @@ public sealed class RetryInterceptorTests
                 }
                 while (!readResult.IsCompleted && !readResult.IsCanceled);
 
-                throw new ConnectionException(ConnectionErrorCode.ConnectionClosed);
+                throw new IceRpcException(IceRpcError.ConnectionClosed);
             }
             else
             {
