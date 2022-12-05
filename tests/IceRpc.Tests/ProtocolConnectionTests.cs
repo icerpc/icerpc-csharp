@@ -1151,10 +1151,11 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to finish.</summary>
+    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
+    /// Requests that are not dispatched by the server should complete with a ConnectionClosed eror code.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     [Ignore("See #2195")]
-    public async Task Shutdown_does_not_abort_operations_which_are_not_dispatched(Protocol protocol)
+    public async Task Shutdown_does_not_abort_requests_being_dispatched(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -1164,8 +1165,8 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        // Perform invocations on the server and shut it down. The invocations should either succeed or fail with
-        // ConnectionException(ConnectionErrorCode.ConnectionClosed)
+        // Perform invocations on the server and shut it down. The invocations should either return a dispatch exception
+        // or fail with ConnectionException(ConnectionErrorCode.ConnectionClosed)
         Task<List<Task>> performInvocationsTask = PerformInvocationsAsync();
         await Task.Delay(10);
 

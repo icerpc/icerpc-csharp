@@ -22,9 +22,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
+    private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
-
     private int _dispatchCount;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -43,7 +43,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly object _mutex = new();
     private int _nextRequestId;
     private readonly IcePayloadPipeWriter _payloadWriter;
-    private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
     private readonly CancellationTokenSource _tasksCts = new();
@@ -221,7 +220,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // The peer expects the connection to be closed once the CloseConnection frame is received.
                     Close("The connection was closed by the peer.");
 
-                    // Notify the ConnectionClosed back that the connection is now closed.
+                    // Notify the ConnectionClosed callback that the connection is now closed.
                     ConnectionClosed();
                 }
                 catch (Exception exception)
@@ -254,10 +253,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Close the network connection.
+        // Close the transport connection and cancel dispatches and invocations.
         Close();
 
-        // Wait for the read frames and ping task to complete.
+        // Wait for the read frames and ping tasks to complete.
         await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
 
         if (_readFramesTask is not null)
@@ -621,7 +620,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
         // closure here. We can't just return and close the underlying transport since this could abort the receive of
-        // the dispatch responses and close connection frame by the peer.
+        // the responses and close connection frame by the peer.
         await _closeTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
@@ -684,15 +683,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
     }
 
-    /// <summary>Cancels network operations which are in progress and close the transport connection. The pending
-    /// invocations and dispatches are also canceled.</summary>
+    /// <summary>Closes the transport connection and cancels pending dispatches and invocations.</summary>
     private void Close(string? message = null, Exception? innerException = null)
     {
         ConnectionClosedException = message == null ?
             new(ConnectionErrorCode.ConnectionClosed, innerException) :
             new(ConnectionErrorCode.ConnectionClosed, message, innerException);
 
-        // Cancel all the running network operations.
+        // Cancel tasks that rely on the transport to ensure that no more calls on the transport are pending before
+        // calling Dispose.
         _tasksCts.Cancel();
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
