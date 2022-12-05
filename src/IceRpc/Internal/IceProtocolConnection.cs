@@ -4,7 +4,6 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -30,13 +29,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
+    private readonly Action<Exception> _dispatchPanicAction;
     private readonly SemaphoreSlim? _dispatchSemaphore;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
-    private readonly ILogger _logger;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
@@ -54,15 +53,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
         TransportConnectionInformation? transportConnectionInformation,
-        ConnectionOptions options,
-        ILogger logger)
+        ConnectionOptions options)
         : base(isServer: transportConnectionInformation is not null, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
-        _logger = logger;
+        _dispatchPanicAction = options.DispatchPanicAction;
         _maxFrameSize = options.MaxIceFrameSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -926,9 +924,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
                     }
+                    catch (ObjectDisposedException)
+                    {
+                        // expected if we dispose the connection while writing a response
+                    }
                     catch (Exception exception)
                     {
-                        _logger.LogConnectionDispatchFailed(request, exception);
+                        _dispatchPanicAction(exception);
                     }
                 },
                 CancellationToken.None);
@@ -1050,8 +1052,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (flushResult.IsCanceled || flushResult.IsCompleted)
                     {
                         throw new NotSupportedException(
-                            "payload writer cancellation or completion is not supported with the ice protocol");
+                            "A payload writer decorator must not return a completed or canceled FlushResult with the ice protocol");
                     }
+                }
+                catch (OperationCanceledException exception) when (
+                    exception.CancellationToken == cancellationToken)
+                {
+                    // expected
                 }
                 finally
                 {

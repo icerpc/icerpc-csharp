@@ -23,7 +23,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     {
         get => _fragment;
         init => _fragment = Protocol == Protocol.Ice || value.Length == 0 ? value :
-            throw new InvalidOperationException("cannot create an icerpc request with a non-empty fragment");
+            throw new InvalidOperationException("Cannot create an icerpc request with a non-empty fragment.");
     }
 
     /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
@@ -77,4 +77,9 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
             _response.PayloadContinuation?.Complete();
         }
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => Fragment.Length == 0 ?
+        $"'{Operation}' on '{Path}'" :
+        $"'{Operation}' on '{Path}#{Fragment}'";
 }

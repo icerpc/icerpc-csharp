@@ -429,7 +429,13 @@ public sealed class IceRpcProtocolConnectionTests
                 }));
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                serverConnectionOptions: new()
+                {
+                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -458,7 +464,13 @@ public sealed class IceRpcProtocolConnectionTests
             return new(response);
         });
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                serverConnectionOptions: new()
+                {
+                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -490,7 +502,13 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                serverConnectionOptions: new()
+                {
+                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -737,7 +755,13 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                serverConnectionOptions: new()
+                {
+                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();

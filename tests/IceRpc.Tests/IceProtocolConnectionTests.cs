@@ -158,7 +158,13 @@ public sealed class IceProtocolConnectionTests
             return new(response);
         });
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher,
+                serverConnectionOptions: new()
+                {
+                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();

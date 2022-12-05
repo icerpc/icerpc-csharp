@@ -4,8 +4,6 @@ using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Tests;
 
@@ -20,8 +18,7 @@ public static class ProtocolServiceCollectionExtensions
                 clientProtocolConnection: new IceProtocolConnection(
                     provider.GetRequiredService<IDuplexConnection>(),
                     transportConnectionInformation: null,
-                    clientConnectionOptions,
-                    provider.GetService<ILogger>() ?? NullLogger.Instance),
+                    clientConnectionOptions),
                 acceptServerConnectionAsync:
                     async () =>
                     {
@@ -34,8 +31,7 @@ public static class ProtocolServiceCollectionExtensions
                         return new IceProtocolConnection(
                             transportConnection,
                             transportConnectionInformation,
-                            serverConnectionOptions,
-                            provider.GetService<ILogger>() ?? NullLogger.Instance);
+                            serverConnectionOptions);
                     },
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
@@ -49,8 +45,7 @@ public static class ProtocolServiceCollectionExtensions
                 clientProtocolConnection: new IceRpcProtocolConnection(
                     provider.GetRequiredService<IMultiplexedConnection>(),
                     transportConnectionInformation: null,
-                    clientConnectionOptions,
-                    provider.GetService<ILogger>() ?? NullLogger.Instance),
+                    clientConnectionOptions),
                 acceptServerConnectionAsync:
                     async () =>
                     {
@@ -63,8 +58,7 @@ public static class ProtocolServiceCollectionExtensions
                         return new IceRpcProtocolConnection(
                             transportConnection,
                             transportConnectionInformation,
-                            serverConnectionOptions,
-                            provider.GetService<ILogger>() ?? NullLogger.Instance);
+                            serverConnectionOptions);
                     },
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
