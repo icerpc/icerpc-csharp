@@ -503,34 +503,47 @@ public abstract class DuplexTransportConformanceTests
 
     /// <summary>Verifies that we can write and read using server and client connections.</summary>
     [Test]
-    public async Task WriteAndRead(
-        [Values(1, 1024, 16 * 1024, 32 * 1024, 64 * 1024, 1024 * 1024)] int size,
-        [Values(true, false)] bool useServerConnection)
+    public async Task Write_and_read_buffers(
+        [Values(
+            new int[] { 1 },
+            new int[] { 1024 },
+            new int[] { 32 * 1024 },
+            new int[] { 1024 * 1024 },
+            new int[] { 16, 32, 64, 128 },
+            new int[] { 3, 9, 15, 512 * 1024},
+            new int[] { 3, 512 * 1024})] int[] sizes)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
             provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
-        byte[] writeBuffer = Enumerable.Range(0, size).Select(i => (byte)(i % 255)).ToArray();
 
-        IDuplexConnection writeConnection = useServerConnection ? sut.ServerConnection : sut.ClientConnection;
-        IDuplexConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
+        int size = sizes.Sum();
+        ReadOnlyMemory<byte>[] buffers =
+            sizes.Select(
+                n => (ReadOnlyMemory<byte>)Enumerable.Range(0, n).Select(i => (byte)(i % 255)).ToArray())
+            .ToArray();
 
         // Act
-        ValueTask writeTask = writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
-
-        // Assert
+        ValueTask writeTask = sut.ClientConnection.WriteAsync(buffers, default);
         Memory<byte> readBuffer = new byte[size];
         int offset = 0;
         while (offset < size)
         {
-            offset += await readConnection.ReadAsync(readBuffer[offset..], default);
+            offset += await sut.ServerConnection.ReadAsync(readBuffer[offset..], default);
         }
         await writeTask;
-        Assert.That(offset, Is.EqualTo(size));
-        Assert.That(readBuffer.Span.SequenceEqual(writeBuffer), Is.True);
 
+        // Assert
+        Assert.That(offset, Is.EqualTo(size));
+        offset = 0;
+        for (int i = 0; i < sizes.Length; ++i)
+        {
+            size = sizes[i];
+            Assert.That(readBuffer.Span.Slice(offset, size).SequenceEqual(buffers[i].Span), Is.True);
+            offset += size;
+        }
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
