@@ -38,7 +38,7 @@ public class QuicTransportTests
             new SslClientAuthenticationOptions
             {
                 // First connection is rejected, the following connections are accepted.
-                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>  ++connectionNum > 1,
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => ++connectionNum > 1,
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 

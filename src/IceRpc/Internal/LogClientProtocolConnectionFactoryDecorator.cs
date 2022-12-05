@@ -2,8 +2,6 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
-using System.Net;
 
 namespace IceRpc.Internal;
 

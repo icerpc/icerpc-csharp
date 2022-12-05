@@ -343,7 +343,7 @@ public sealed class ProtocolConnectionTests
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
                     Dispatcher = ServiceNotFoundDispatcher.Instance
                 },
-                serverConnectionOptions : serverConnectionOptions)
+                serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
         long startTime = Environment.TickCount64;
@@ -353,10 +353,10 @@ public sealed class ProtocolConnectionTests
 
         {
             using var request = new OutgoingRequest(new ServiceAddress(protocol))
-                {
-                    IsOneway = isOneway,
-                    Payload = new DelayPipeReader()
-                };
+            {
+                IsOneway = isOneway,
+                Payload = new DelayPipeReader()
+            };
             _ = await sut.Client.InvokeAsync(request);
         }
 

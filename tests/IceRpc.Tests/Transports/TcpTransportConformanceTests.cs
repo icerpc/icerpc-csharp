@@ -4,7 +4,6 @@ using IceRpc.Conformance.Tests;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports;
@@ -16,8 +15,8 @@ public class TcpTransportConformanceTests : DuplexTransportConformanceTests
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection()
         .AddDuplexTransportClientServerTest(new Uri("icerpc://127.0.0.1:0/"))
         .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(new TcpServerTransportOptions
-            {
-                ListenBacklog = 1
-            }))
+        {
+            ListenBacklog = 1
+        }))
         .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport());
 }

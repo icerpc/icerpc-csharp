@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -20,7 +19,7 @@ public sealed class IceProtocolConnectionTests
 
             var invalidDataException = new InvalidDataException("invalid data");
             yield return new TestCaseData(
-                invalidDataException ,
+                invalidDataException,
                 StatusCode.UnhandledException,
                 GetErrorMessage(unhandledException.Message, invalidDataException));
 
