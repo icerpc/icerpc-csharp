@@ -311,7 +311,7 @@ public class ColocTransportTests
     /// <summary>Verifies that calling write on a disposed connection fails with <see cref="ObjectDisposedException" />.
     /// </summary>
     [Test]
-    public async Task Writre_to_disposed_connection_fails()
+    public async Task Write_to_disposed_connection_fails()
     {
         // Arrange
         var colocTransport = new ColocTransport();
