@@ -170,9 +170,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         IceRpcControlFrameType.GoAway,
                         cancellationToken).ConfigureAwait(false);
                     IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancellationToken).ConfigureAwait(false);
-                    InitiateShutdown(
-                        ConnectionErrorCode.ConnectionClosed,
-                        "The connection was closed because it received a GoAway frame from the peer.");
+                    InitiateShutdown("The connection was closed because it received a GoAway frame from the peer.");
                     return goAwayFrame;
                 }
                 catch (IceRpcException)
@@ -319,7 +317,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             "The connection was lost.",
                             exception);
 
-                        ConnectionLost(exception);
+                        ConnectionClosed(exception);
 
                         // Don't wait for DisposeAsync to be called to cancel dispatches and invocations which might
                         // still be running.

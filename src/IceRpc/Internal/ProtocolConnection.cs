@@ -335,7 +335,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 if (CheckIfIdle())
                 {
                     InitiateShutdown(
-                        ConnectionErrorCode.ConnectionClosed,
                         $"The connection was closed because it was idle for over {_idleTimeout.TotalSeconds} s.");
                 }
             });
@@ -351,8 +350,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
         CancellationToken cancellationToken);
 
-    private protected void ConnectionLost(Exception exception) =>
-        _ = _shutdownCompleteSource.TrySetException(
+    private protected void ConnectionClosed(Exception? exception = null) =>
+        _ = exception is null ?
+            _shutdownCompleteSource.TrySetResult() :
+            _shutdownCompleteSource.TrySetException(
                 new ConnectionException(ConnectionErrorCode.ConnectionClosed, "The connection was lost.", exception));
 
     private protected void DisableIdleCheck() =>
@@ -364,7 +365,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Initiate shutdown if it's not already initiated.</summary>
-    private protected void InitiateShutdown(ConnectionErrorCode closedErrorCode, string message)
+    private protected void InitiateShutdown(string message)
     {
         lock (_mutex)
         {
@@ -373,7 +374,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 return;
             }
 
-            ConnectionClosedException = new(closedErrorCode, message);
+            ConnectionClosedException = new(ConnectionErrorCode.ConnectionClosed, message);
             _shutdownTask = CreateShutdownTask();
         }
     }
