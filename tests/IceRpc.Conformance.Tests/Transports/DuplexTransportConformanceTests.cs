@@ -511,8 +511,7 @@ public abstract class DuplexTransportConformanceTests
             new int[] { 1024 * 1024 },
             new int[] { 16, 32, 64, 128 },
             new int[] { 3, 9, 15, 512 * 1024},
-            new int[] { 3, 512 * 1024})] int[] sizes,
-        [Values(true, false)] bool useServerConnection)
+            new int[] { 3, 512 * 1024})] int[] sizes)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -526,16 +525,13 @@ public abstract class DuplexTransportConformanceTests
                 n => (ReadOnlyMemory<byte>)Enumerable.Range(0, n).Select(i => (byte)(i % 255)).ToArray())
             .ToArray();
 
-        IDuplexConnection writeConnection = useServerConnection ? sut.ServerConnection : sut.ClientConnection;
-        IDuplexConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
-
         // Act
-        ValueTask writeTask = writeConnection.WriteAsync(buffers, default);
+        ValueTask writeTask = sut.ClientConnection.WriteAsync(buffers, default);
         Memory<byte> readBuffer = new byte[size];
         int offset = 0;
         while (offset < size)
         {
-            offset += await readConnection.ReadAsync(readBuffer[offset..], default);
+            offset += await sut.ServerConnection.ReadAsync(readBuffer[offset..], default);
         }
         await writeTask;
 
