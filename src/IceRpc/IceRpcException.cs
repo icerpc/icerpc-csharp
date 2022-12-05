@@ -15,7 +15,7 @@ public class IceRpcException : IOException
     /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The exception that caused this exception.</param>
     public IceRpcException(IceRpcError error, string? message, Exception? innerException = null)
-        : base(message ?? GetDefaultMessage(error), innerException) =>
+        : base(message ?? $"An IceRpc call failed with error '{error}'.", innerException) =>
         IceRpcError = error;
 
     /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class.</summary>
@@ -25,6 +25,4 @@ public class IceRpcException : IOException
         : this(error, message: null, innerException)
     {
     }
-
-    private static string GetDefaultMessage(IceRpcError error) => $"An IceRpc call failed with error '{error}'.";
 }

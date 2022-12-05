@@ -38,8 +38,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly ILogger _logger;
     private readonly int _maxLocalHeaderSize;
-    private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
+    private int _peerMaxHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
     // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
     // by the peer yet.
@@ -147,9 +147,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ServerBusy)
         {
-            ConnectionClosedException = new(
+            ConnectionClosedException = new IceRpcException(
                 IceRpcError.ConnectionClosed,
-                "The connection establishment failed because the server is too busy.");
+                "The connection establishment failed because the server is busy.");
 
             throw;
         }
@@ -310,7 +310,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     if (ConnectionClosedException is null)
                     {
-                        ConnectionClosedException = new(
+                        ConnectionClosedException = new IceRpcException(
                             IceRpcError.ConnectionClosed,
                             "The connection was lost.",
                             exception);
@@ -864,11 +864,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private void CheckRemoteHeaderSize(int headerSize)
     {
-        if (headerSize > _maxRemoteHeaderSize)
+        if (headerSize > _peerMaxHeaderSize)
         {
             throw new IceRpcException(
                 IceRpcError.LimitExceeded,
-                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_maxRemoteHeaderSize})");
+                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize})");
         }
     }
 
@@ -1128,7 +1128,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
             {
                 // a varuint62 always fits in a long
-                _maxRemoteHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                _peerMaxHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
                 _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             }
             // all other settings are unknown and ignored

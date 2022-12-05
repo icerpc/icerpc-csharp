@@ -133,7 +133,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 throw new IceRpcException(
                     IceRpcError.NoConnection,
-                    $"{nameof(ConnectionCache)} cannot send a request to a service without a server address.");
+                    "Cannot send a request to a service without a server address.");
             }
 
             serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
