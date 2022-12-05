@@ -30,7 +30,9 @@ public class ProxyTests
                     SliceEncoding.Slice2),
                 ("ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
                     "ice://127.0.0.1:12010/identity?transport=tcp&t=10000",
-                    SliceEncoding.Slice1)
+                    SliceEncoding.Slice1),
+                ("ice:/path?adapter-id=foo", null, SliceEncoding.Slice1),
+                ("ice:/path", null, SliceEncoding.Slice1)
                 // cSpell:enable
             };
             foreach ((
