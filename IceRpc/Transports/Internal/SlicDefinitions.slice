@@ -99,17 +99,17 @@ compact struct VersionBody
 [cs::readonly]
 compact struct CloseBody
 {
-    /// The application protocol error code indicating the reason of the closure.
-    applicationProtocolErrorCode: varuint62,
+    /// The application error code indicating the reason of the closure.
+    applicationErrorCode: varuint62,
 }
 
 /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
-/// the stream. The error code is application protocol specific.
+/// the stream.
 [cs::readonly]
 compact struct StreamResetBody
 {
-    /// The application protocol error code indicating the reason of the reset.
-    applicationProtocolErrorCode: varuint62,
+    /// The application error code indicating the reason of the reset.
+    applicationErrorCode: varuint62,
 }
 
 /// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
@@ -125,6 +125,6 @@ compact struct StreamConsumedBody
 [cs::readonly]
 compact struct StreamStopSendingBody
 {
-    /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
-    applicationProtocolErrorCode: varuint62,
+    /// The application error code indicating the reason why the peer no longer needs to receive data.
+    applicationErrorCode: varuint62,
 }
