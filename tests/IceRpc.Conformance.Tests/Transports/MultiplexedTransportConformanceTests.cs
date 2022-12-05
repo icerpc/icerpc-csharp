@@ -193,12 +193,12 @@ public abstract partial class MultiplexedTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        using var cancelationSource = new CancellationTokenSource();
+        using var cancellationSource = new CancellationTokenSource();
 
-        var acceptTask = listener.AcceptAsync(cancelationSource.Token);
+        var acceptTask = listener.AcceptAsync(cancellationSource.Token);
 
         // Act
-        cancelationSource.Cancel();
+        cancellationSource.Cancel();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());

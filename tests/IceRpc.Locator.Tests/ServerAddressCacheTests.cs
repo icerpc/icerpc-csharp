@@ -76,7 +76,7 @@ public class ServerAddressCacheTests
     }
 
     [Test]
-    public void Updatate_existing_location_entry()
+    public void Update_existing_location_entry()
     {
         // Arrange
         var expected = new ServiceAddress(new Uri("ice:/expected"));

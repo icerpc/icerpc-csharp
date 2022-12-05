@@ -165,7 +165,7 @@ public class BitSequenceWriterTests
         IList<Memory<byte>>? additionalMemory)
     {
         // We cannot follow traditional AAA with this test as the writer must be accessible inside of the lambda
-        // expression. Thus the arrange and act sections were moved into the Nunit assertion.
+        // expression. Thus the arrange and act sections were moved into the NUnit assertion.
         Assert.That(() =>
         {
             // Arrange

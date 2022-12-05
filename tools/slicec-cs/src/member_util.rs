@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::comments::{doc_comment_message, CommentTag};
+use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
-use slice::grammar::{DataMember, Member, Primitive, Types};
+use slice::grammar::{Attributable, DataMember, Member, Primitive, Types};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -22,8 +23,10 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
         .cs_type_string(&data_member.namespace(), TypeContext::DataMember, false);
     let mut prelude = CodeBlock::default();
 
+    let attributes = data_member.attributes(false).into_iter().filter_map(match_cs_attribute);
+
     prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));
-    prelude.writeln(&data_member.custom_attributes().into_iter().collect::<CodeBlock>());
+    prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
     if let Some(obsolete) = data_member.obsolete_attribute(true) {
         prelude.writeln(&format!("[{}]", obsolete));
     }

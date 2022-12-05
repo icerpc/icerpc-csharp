@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Slice;
 
 public class TaggedTests
 {
-    public static IEnumerable<TestCaseData> EncodeSlice1TagggedMembersSource
+    public static IEnumerable<TestCaseData> EncodeSlice1TaggedMembersSource
     {
         get
         {
@@ -24,7 +24,7 @@ public class TaggedTests
         }
     }
 
-    public static IEnumerable<TestCaseData> EncodeSlice2TagggedMembersSource
+    public static IEnumerable<TestCaseData> EncodeSlice2TaggedMembersSource
     {
         get
         {
@@ -39,7 +39,7 @@ public class TaggedTests
         }
     }
 
-    public static IEnumerable<TestCaseData> DecodeSlice1TagggedMembersSource
+    public static IEnumerable<TestCaseData> DecodeSlice1TaggedMembersSource
     {
         get
         {
@@ -54,7 +54,7 @@ public class TaggedTests
         }
     }
 
-    public static IEnumerable<TestCaseData> DecodeSlice2TagggedMembersSource
+    public static IEnumerable<TestCaseData> DecodeSlice2TaggedMembersSource
     {
         get
         {
@@ -111,7 +111,7 @@ public class TaggedTests
                                       "hello world!"),
     };
 
-    [Test, TestCaseSource(nameof(DecodeSlice1TagggedMembersSource))]
+    [Test, TestCaseSource(nameof(DecodeSlice1TaggedMembersSource))]
     public void Decode_slice1_tagged_members(ClassWithTaggedMembers expected)
     {
         // Arrange
@@ -253,7 +253,7 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(DecodeSlice2TagggedMembersSource))]
+    [Test, TestCaseSource(nameof(DecodeSlice2TaggedMembersSource))]
     public void Decode_slice2_tagged_members(MyStructWithTaggedMembers expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -293,7 +293,7 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeSlice1TagggedMembersSource))]
+    [Test, TestCaseSource(nameof(EncodeSlice1TaggedMembersSource))]
     public void Encode_slice1_tagged_members(ClassWithTaggedMembers c)
     {
         // Arrange
@@ -416,7 +416,7 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test, TestCaseSource(nameof(EncodeSlice2TagggedMembersSource))]
+    [Test, TestCaseSource(nameof(EncodeSlice2TaggedMembersSource))]
     public void Encode_slice2_tagged_members(MyStructWithTaggedMembers expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);

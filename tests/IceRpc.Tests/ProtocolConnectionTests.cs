@@ -285,7 +285,7 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
-                IdleTimeout = TimeSpan.FromMilliseconds(750),
+                IdleTimeout = TimeSpan.FromMilliseconds(800),
             } :
             null;
 
@@ -331,7 +331,7 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
-                IdleTimeout = TimeSpan.FromMilliseconds(750),
+                IdleTimeout = TimeSpan.FromMilliseconds(800),
             } :
             null;
 
@@ -394,7 +394,7 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
-                IdleTimeout = TimeSpan.FromMilliseconds(750),
+                IdleTimeout = TimeSpan.FromMilliseconds(800),
             } :
             null;
 
@@ -1147,6 +1147,60 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
+    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
+    /// Requests that are not dispatched by the server should complete with a ConnectionClosed error code.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    [Ignore("See #2195")]
+    public async Task Shutdown_does_not_abort_requests_being_dispatched(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, ServiceNotFoundDispatcher.Instance)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Perform invocations on the server and shut it down. The invocations should either return a dispatch exception
+        // or fail with IceRpcException(IceRpcError.ConnectionClosed)
+        Task<List<Task>> performInvocationsTask = PerformInvocationsAsync();
+        await Task.Delay(10);
+
+        // Act
+        await sut.Server.ShutdownAsync();
+
+        // Assert
+        foreach (Task invocationTask in await performInvocationsTask)
+        {
+            try
+            {
+                await invocationTask;
+            }
+            catch (IceRpcException exception)
+            {
+                Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+            }
+        }
+
+        async Task<List<Task>> PerformInvocationsAsync()
+        {
+            var invocationsTasks = new List<Task>();
+            while (!sut.Client.ShutdownComplete.IsCompleted)
+            {
+                invocationsTasks.Add(PerformInvocationAsync());
+                await Task.Delay(10);
+            }
+            return invocationsTasks;
+
+            async Task PerformInvocationAsync()
+            {
+                await Task.Yield(); // Don't throw synchronously.
+                using var request = new OutgoingRequest(new ServiceAddress(protocol));
+                await sut.Client.InvokeAsync(request);
+            }
+        }
+    }
+
     private class DelayPipeReader : PipeReader
     {
         public override void AdvanceTo(SequencePosition consumed)
@@ -1167,7 +1221,7 @@ public sealed class ProtocolConnectionTests
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(600, cancellationToken);
+            await Task.Delay(520, cancellationToken);
             return new ReadResult(new ReadOnlySequence<byte>(new byte[10]), isCanceled: false, isCompleted: true);
         }
 
@@ -1190,7 +1244,7 @@ public sealed class ProtocolConnectionTests
 
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(600, cancellationToken);
+            await Task.Delay(520, cancellationToken);
             return await _decoratee.FlushAsync(cancellationToken);
         }
 

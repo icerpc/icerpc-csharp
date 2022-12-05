@@ -459,7 +459,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 // Perform the connection establishment without a cancellation token. It will timeout if the connect
                 // timeout is reached.
                 _ = await ConnectAsync(CancellationToken.None).WaitAsync(cancellationToken).ConfigureAwait(false);
-                return await InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                return await _decoratee.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             }
         }
 

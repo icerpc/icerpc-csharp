@@ -20,6 +20,7 @@ public class ProxyTests
         {
             (string, string?, SliceEncoding)[] testData =
             {
+                // cSpell:disable
                 ("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice2),
                 ("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice1),
                 ("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice2),
@@ -30,6 +31,7 @@ public class ProxyTests
                 ("ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
                     "ice://127.0.0.1:12010/identity?transport=tcp&t=10000",
                     SliceEncoding.Slice1)
+                // cSpell:enable
             };
             foreach ((
                 string value,
@@ -120,7 +122,7 @@ public class ProxyTests
     }
 
     [Test]
-    public async Task Downcast_proxy_with_as_aync_fails()
+    public async Task Downcast_proxy_with_as_async_fails()
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(new MyBaseInterface())

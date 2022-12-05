@@ -3,7 +3,7 @@
 use super::entity_ext::EntityExt;
 use super::interface_ext::InterfaceExt;
 use super::primitive_ext::PrimitiveExt;
-use crate::cs_attributes;
+use crate::cs_attributes::{match_cs_generic, match_cs_type};
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::TypeContext;
@@ -27,8 +27,8 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 
     fn cs_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
         let type_str = match &self.concrete_typeref() {
-            TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute(cs_attributes::TYPE, false) {
-                Some(args) => args.first().unwrap().to_owned(),
+            TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute(false, match_cs_type) {
+                Some(name) => name,
                 None => struct_ref.escape_scoped_identifier(namespace),
             },
             TypeRefs::Exception(exception_ref) => exception_ref.escape_scoped_identifier(namespace),
@@ -37,17 +37,14 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_implementation_name(namespace),
             TypeRefs::CustomType(custom_type_ref) => custom_type_ref
                 .definition()
-                .get_attribute(cs_attributes::TYPE, false)
-                .unwrap()
-                .first()
-                .unwrap()
-                .to_owned(),
+                .get_attribute(false, match_cs_type)
+                .unwrap(),
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.
                 if context == TypeContext::Encode
                     && sequence_ref.has_fixed_size_numeric_elements()
-                    && !self.has_attribute(cs_attributes::GENERIC, false)
+                    && !self.has_attribute(false, match_cs_generic)
                 {
                     ignore_optional = true;
                 }
@@ -71,21 +68,21 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
         .element_type
         .cs_type_string(namespace, TypeContext::Nested, false);
 
+    let generic_attribute = sequence_ref.get_attribute(false, match_cs_generic);
+
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IList<{}>", element_type)
         }
-        TypeContext::Decode => match sequence_ref.get_attribute(cs_attributes::GENERIC, false) {
-            Some(args) => {
-                format!("{}<{}>", args.first().unwrap(), element_type)
+        TypeContext::Decode => match generic_attribute {
+            Some(arg) => {
+                format!("{}<{}>", arg, element_type)
             }
             None => format!("{}[]", element_type),
         },
         TypeContext::Encode => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-            if sequence_ref.has_fixed_size_numeric_elements()
-                && !sequence_ref.has_attribute(cs_attributes::GENERIC, false)
-            {
+            if sequence_ref.has_fixed_size_numeric_elements() && generic_attribute.is_none() {
                 format!("global::System.ReadOnlyMemory<{}>", element_type)
             } else {
                 format!("global::System.Collections.Generic.IEnumerable<{}>", element_type)
@@ -103,6 +100,8 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
         .value_type
         .cs_type_string(namespace, TypeContext::Nested, false);
 
+    let generic_attribute = dictionary_ref.get_attribute(false, match_cs_generic);
+
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
             format!(
@@ -110,9 +109,9 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
                 key_type, value_type,
             )
         }
-        TypeContext::Decode => match dictionary_ref.get_attribute(cs_attributes::GENERIC, false) {
-            Some(args) => {
-                format!("{}<{}, {}>", args.first().unwrap(), key_type, value_type)
+        TypeContext::Decode => match generic_attribute {
+            Some(arg) => {
+                format!("{}<{}, {}>", arg, key_type, value_type)
             }
             None => format!(
                 "global::System.Collections.Generic.Dictionary<{}, {}>",

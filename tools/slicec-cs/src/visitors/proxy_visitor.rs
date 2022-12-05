@@ -172,7 +172,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.return_task(false);
 
-    let parameters = operation.nonstreamed_parameters();
+    let parameters = operation.non_streamed_parameters();
 
     let features_parameter = escape_parameter_name(&operation.parameters(), "features");
     let cancellation_token_parameter = escape_parameter_name(&operation.parameters(), "cancellationToken");
@@ -342,7 +342,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.has_nonstreamed_parameters())
+        .filter(|o| o.has_non_streamed_parameters())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -358,7 +358,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     );
 
     for operation in operations {
-        let params: Vec<&Parameter> = operation.nonstreamed_parameters();
+        let params: Vec<&Parameter> = operation.non_streamed_parameters();
 
         assert!(!params.is_empty());
 
@@ -486,7 +486,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 fn response_operation_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
-    let non_streamed_members = operation.nonstreamed_return_members();
+    let non_streamed_members = operation.non_streamed_return_members();
     let return_void = operation.return_members().is_empty();
 
     if let Some(stream_member) = operation.streamed_return_member() {
@@ -603,7 +603,7 @@ fn exception_decode_func(operation: &Operation) -> String {
 fn return_value_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     // vec of members
-    let members = operation.nonstreamed_return_members();
+    let members = operation.non_streamed_return_members();
     assert!(!members.is_empty());
 
     if members.len() == 1 && get_bit_sequence_size(&members) == 0 && members.first().unwrap().tag.is_none() {
