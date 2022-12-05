@@ -122,44 +122,6 @@ internal static partial class ProtocolLoggerExtensions
             localNetworkAddress,
             remoteNetworkAddress);
 
-    // Multiple logging methods are using same event id.
-#pragma warning disable SYSLIB1006
-    [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionDispatchFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailed),
-        Level = LogLevel.Error,
-        Message = "Request dispatch failed")]
-    internal static partial void LogConnectionDispatchFailed(
-        this ILogger logger,
-        Exception exception);
-
-    [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionDispatchFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionDispatchFailed),
-        Level = LogLevel.Error,
-        Message = "Request dispatch '{Path}/{Operation}' failed")]
-    internal static partial void LogConnectionDispatchFailed(
-        this ILogger logger,
-        string path,
-        string operation,
-        Exception exception);
-#pragma warning restore SYSLIB1006
-
-    internal static void LogConnectionDispatchFailed(
-        this ILogger logger,
-        IncomingRequest? request,
-        Exception exception)
-    {
-        if (request is not null)
-        {
-            LogConnectionDispatchFailed(logger, request.Path, request.Operation, exception);
-        }
-        else
-        {
-            LogConnectionDispatchFailed(logger, exception);
-        }
-    }
-
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
