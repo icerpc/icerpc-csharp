@@ -119,7 +119,7 @@ public class ClientConnectionTests
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connection_can_connect_after_connection_refused(Protocol protocol)
+    public async Task Connection_can_connect_after_connect_failure(Protocol protocol)
     {
         // Arrange
         var colocTransport = new ColocTransport();
@@ -137,7 +137,6 @@ public class ClientConnectionTests
         // Act/Assert
         IceRpcException exception =
             Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
-        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
         server.Listen();
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
     }
