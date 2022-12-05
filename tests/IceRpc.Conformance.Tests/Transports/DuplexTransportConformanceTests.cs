@@ -34,7 +34,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_with_canceled_cancellation_token_fails_with_operation_canceled()
+    public async Task Accept_with_canceled_cancellation_token_fails_with_operation_canceled()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -47,7 +47,7 @@ public abstract class DuplexTransportConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
+    public async Task Accept_on_a_disposed_listener_fails_with_object_disposed_exception()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -463,29 +463,6 @@ public abstract class DuplexTransportConformanceTests
         Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
 
-    /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException" />.
-    /// </summary>
-    [Test]
-    public async Task Write_to_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<IDuplexConnection>>(),
-            provider.GetRequiredService<IDuplexConnection>());
-        IDuplexConnection disposedConnection =
-            disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
-
-        disposedConnection.Dispose();
-
-        // Act/Assert
-        Assert.That(
-            async () => await disposedConnection.WriteAsync(
-                new List<ReadOnlyMemory<byte>>() { new byte[1024] },
-                default),
-            Throws.TypeOf<ObjectDisposedException>());
-    }
-
     [Test]
     public async Task Write_fails_after_shutdown()
     {
@@ -501,7 +478,7 @@ public abstract class DuplexTransportConformanceTests
             CancellationToken.None));
     }
 
-    /// <summary>Verifies that we can write and read using server and client connections.</summary>
+    /// <summary>Verifies that we can write and read using the duplex connection.</summary>
     [Test]
     public async Task Write_and_read_buffers(
         [Values(
