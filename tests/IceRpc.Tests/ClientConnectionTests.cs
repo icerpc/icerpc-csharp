@@ -134,19 +134,11 @@ public class ClientConnectionTests
             duplexClientTransport: colocTransport.ClientTransport,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        // Act
-        try
-        {
-            await connection.ConnectAsync();
-        }
-        catch (IceRpcException)
-        {
-            // expected
-            // TODO: which error code is ok/expected?
-        }
+        // Act/Assert
+        IceRpcException exception =
+            Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
+        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
         server.Listen();
-
-        // Assert
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
     }
 
