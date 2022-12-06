@@ -285,11 +285,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     {
                                         await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
                                     }
-                                    catch (OperationCanceledException exception) when (
-                                        exception.CancellationToken == cancellationToken)
-                                    {
-                                        // expected
-                                    }
                                     catch (IceRpcException exception) when (
                                         exception.IceRpcError is
                                             IceRpcError.LimitExceeded or
@@ -299,6 +294,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                         // expected
                                     }
                                     catch (InvalidDataException)
+                                    {
+                                        // expected
+                                    }
+                                    catch (OperationCanceledException exception) when (
+                                        exception.CancellationToken == cancellationToken)
                                     {
                                         // expected
                                     }

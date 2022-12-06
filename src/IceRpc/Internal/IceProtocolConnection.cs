@@ -596,11 +596,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _writeSemaphore.Release();
             }
         }
-        catch (ObjectDisposedException)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            // The transport connection is disposed if the peer also sent a CloseConnection frame. To avoid having to
-            // catch ObjectDisposedException here we could eventually add IDuplexConnection.Close to decouple the
-            // connection closure from the disposal.
+            // The transport connection is disposed if the peer also sent a CloseConnection frame.
             Debug.Assert(ConnectionClosedException!.IceRpcError == IceRpcError.ConnectionClosed);
         }
 
@@ -924,9 +922,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     {
                         await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
                     }
-                    catch (ObjectDisposedException)
+                    catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
                     {
-                        // expected if we dispose the connection while writing a response
+                        // expected
                     }
                     catch (Exception exception)
                     {
