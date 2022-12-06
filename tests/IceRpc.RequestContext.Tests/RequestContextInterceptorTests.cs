@@ -54,4 +54,30 @@ public sealed class RequestContextInterceptorTests
         Assert.That(decoded, Is.Not.Null);
         Assert.That(decoded, Is.EqualTo(context));
     }
+
+    [Test]
+    public async Task Empty_context_not_encoded_in_context_field()
+    {
+        var context = new Dictionary<string, string>();
+        var proxy = new ServiceAddress(Protocol.IceRpc);
+        using var request = new OutgoingRequest(proxy)
+        {
+            Features = new FeatureCollection().With<IRequestContextFeature>(
+                new RequestContextFeature()
+                {
+                    Value = context
+                })
+        };
+
+        bool hasContextFiled = true;
+        var sut = new RequestContextInterceptor(
+           new InlineInvoker((request, cancellationToken) =>
+           {
+               hasContextFiled = request.Fields.ContainsKey(RequestFieldKey.Context);
+               return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+           }));
+        await sut.InvokeAsync(request, default);
+
+        Assert.That(hasContextFiled, Is.False);
+    }
 }
