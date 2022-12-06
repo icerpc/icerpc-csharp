@@ -299,8 +299,16 @@ public sealed class IceRpcProtocolConnectionTests
                 return new(new OutgoingResponse(request));
             });
 
+        Exception? sendException = null;
+
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                clientConnectionOptions: new()
+                {
+                    FaultedTaskAction = (_, exception) => sendException = exception
+                })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -314,9 +322,10 @@ public sealed class IceRpcProtocolConnectionTests
         };
         await sut.Client.InvokeAsync(request);
         PipeReader remotePayload = await remotePayloadTcs.Task;
+        var exception = new OperationCanceledException(); // can be any exception
 
         // Act
-        payloadContinuation.SetReadException(new OperationCanceledException()); // can be any exception
+        payloadContinuation.SetReadException(exception);
 
         // Assert
         Assert.That(
@@ -333,6 +342,8 @@ public sealed class IceRpcProtocolConnectionTests
                 await remotePayload.ReadAsync();
             },
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        Assert.That(sendException, Is.EqualTo(exception));
     }
 
     [Test]
@@ -436,7 +447,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => dispatchTaskException = exception
+                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -473,7 +484,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => dispatchTaskException = exception
+                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -513,7 +524,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => dispatchTaskException = exception
+                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -605,8 +616,14 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Payload_completed_on_invalid_request_payload_continuation([Values(true, false)] bool isOneway)
     {
         // Arrange
+        Exception? sendException = null;
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                clientConnectionOptions: new()
+                {
+                    FaultedTaskAction = (_, exception) => sendException = exception
+                })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
@@ -623,6 +640,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
+        Assert.That(sendException, Is.InstanceOf<NotSupportedException>());
 
         // Cleanup
         try
@@ -679,8 +697,16 @@ public sealed class IceRpcProtocolConnectionTests
                     PayloadContinuation = payloadContinuationDecorator
                 }));
 
+        Exception? sendException = null;
+
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                serverConnectionOptions: new()
+                {
+                    FaultedTaskAction = (_, exception) => sendException = exception
+                })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -692,6 +718,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
+        Assert.That(sendException, Is.InstanceOf<NotSupportedException>());
 
         // Cleanup
         try
@@ -768,7 +795,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => dispatchTaskException = exception
+                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();

@@ -29,11 +29,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
-    private readonly Action<Exception> _dispatchPanicAction;
     private readonly SemaphoreSlim? _dispatchSemaphore;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly Action<string, Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
     private readonly int _maxFrameSize;
@@ -60,7 +60,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
-        _dispatchPanicAction = options.DispatchPanicAction;
+        _faultedTaskAction = options.FaultedTaskAction;
         _maxFrameSize = options.MaxIceFrameSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -928,7 +928,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        _dispatchPanicAction(exception);
+                        _faultedTaskAction("ice dispatch", exception);
                     }
                 },
                 CancellationToken.None);
