@@ -293,7 +293,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     catch (IceRpcException exception) when (
                                         exception.IceRpcError is
                                             IceRpcError.LimitExceeded or
-                                            IceRpcError.OperationAborted)
+                                            IceRpcError.OperationAborted or
+                                            IceRpcError.TruncatedData)
+                                    {
+                                        // expected
+                                    }
+                                    catch (InvalidDataException)
                                     {
                                         // expected
                                     }
@@ -902,7 +907,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("received icerpc request with empty header");
+                throw new InvalidDataException("Received icerpc request with empty header.");
             }
 
             (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
