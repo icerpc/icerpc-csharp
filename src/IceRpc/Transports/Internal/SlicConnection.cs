@@ -682,9 +682,9 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private Dictionary<ParameterKey, ReadOnlySequence<byte>> GetParameters()
+    private Dictionary<ParameterKey, IList<byte>> GetParameters()
     {
-        var parameters = new List<KeyValuePair<ParameterKey, ReadOnlySequence<byte>>>
+        var parameters = new List<KeyValuePair<ParameterKey, IList<byte>>>
         {
             EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_maxBidirectionalStreams),
             EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_maxUnidirectionalStreams),
@@ -696,14 +696,14 @@ internal class SlicConnection : IMultiplexedConnection
         {
             parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)_localIdleTimeout.TotalMilliseconds));
         }
-        return new Dictionary<ParameterKey, ReadOnlySequence<byte>>(parameters);
+        return new Dictionary<ParameterKey, IList<byte>>(parameters);
 
-        static KeyValuePair<ParameterKey, ReadOnlySequence<byte>> EncodeParameter(ParameterKey key, ulong value)
+        static KeyValuePair<ParameterKey, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
         {
             int sizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             byte[] buffer = new byte[sizeLength];
             SliceEncoder.EncodeVarUInt62(value, buffer);
-            return new(key, new ReadOnlySequence<byte>(buffer));
+            return new(key, buffer);
         }
     }
 
@@ -1112,50 +1112,39 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private void SetParameters(IDictionary<ParameterKey, ReadOnlySequence<byte>> parameters)
+    private void SetParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
         TimeSpan? peerIdleTimeout = null;
 
-        foreach ((ParameterKey key, ReadOnlySequence<byte> buffer) in parameters)
+        foreach ((ParameterKey key, IList<byte> buffer) in parameters)
         {
             switch (key)
             {
                 case ParameterKey.MaxBidirectionalStreams:
                 {
-                    ulong value = SliceEncoding.Slice2.DecodeBuffer(
-                        buffer,
-                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
-                    _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
+                    int value = DecodeIntParam(buffer);
+                    _bidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
                     break;
                 }
                 case ParameterKey.MaxUnidirectionalStreams:
                 {
-                    ulong value = SliceEncoding.Slice2.DecodeBuffer(
-                        buffer,
-                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
-                    _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
+                    int value = DecodeIntParam(buffer);
+                    _unidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
                     break;
                 }
                 case ParameterKey.IdleTimeout:
                 {
-                    peerIdleTimeout = TimeSpan.FromMilliseconds(
-                        SliceEncoding.Slice2.DecodeBuffer(
-                            buffer,
-                            (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()));
+                    peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeIntParam(buffer));
                     break;
                 }
                 case ParameterKey.PacketMaxSize:
                 {
-                    PeerPacketMaxSize = (int)SliceEncoding.Slice2.DecodeBuffer(
-                        buffer,
-                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+                    PeerPacketMaxSize = DecodeIntParam(buffer);
                     break;
                 }
                 case ParameterKey.PauseWriterThreshold:
                 {
-                    PeerPauseWriterThreshold = (int)SliceEncoding.Slice2.DecodeBuffer(
-                        buffer,
-                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+                    PeerPauseWriterThreshold = DecodeIntParam(buffer);
                     break;
                 }
                 // Ignore unsupported parameter.
@@ -1190,6 +1179,15 @@ internal class SlicConnection : IMultiplexedConnection
         {
             _duplexConnectionReader.EnableAliveCheck(peerIdleTimeoutValue);
             _duplexConnectionWriter.EnableKeepAlive(peerIdleTimeoutValue / 2);
+        }
+
+        static int DecodeIntParam(IList<byte> buffer)
+        {
+            // The IList<byte> decoded by the Slice engine is backed by an array
+            ulong value = SliceEncoding.Slice2.DecodeBuffer(
+                new ReadOnlySequence<byte>((byte[])buffer),
+                (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+            return checked((int)value);
         }
     }
 

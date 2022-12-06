@@ -114,7 +114,7 @@ public class SlicTransportTests
 
         void EncodeInitializeFrame(IBufferWriter<byte> writer)
         {
-            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, ReadOnlySequence<byte>>());
+            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
             encoder.EncodeFrameType(FrameType.Initialize);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
