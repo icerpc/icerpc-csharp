@@ -12,7 +12,7 @@ internal abstract class ColocConnection : IDuplexConnection
     public ServerAddress ServerAddress { get; }
 
     private protected PipeReader? _reader;
-    private protected int _state;
+    private protected bool _disposed;
 
     private readonly PipeWriter _writer;
 
@@ -26,7 +26,7 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
+        if (_disposed)
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
@@ -34,59 +34,37 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new InvalidOperationException("Reading is not allowed before connection is connected.");
         }
-        if (!_state.TrySetFlag(State.Reading))
+
+        ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+
+        Debug.Assert(!readResult.IsCanceled);
+
+        if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
         {
-            throw new InvalidOperationException("Reading is already in progress.");
+            return 0;
         }
 
-        try
+        // We could eventually add a CopyTo(this ReadOnlySequence<byte> src, Memory<byte> dest) extension method
+        // if we need this in other places.
+        int read;
+        if (readResult.Buffer.IsSingleSegment)
         {
-            if (_state.HasFlag(State.Disposed))
+            read = CopySegmentToMemory(readResult.Buffer.First, buffer);
+        }
+        else
+        {
+            read = 0;
+            foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
             {
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-
-            ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (readResult.IsCanceled)
-            {
-                // Dispose canceled ReadAsync.
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-            else if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
-            {
-                return 0;
-            }
-
-            // We could eventually add a CopyTo(this ReadOnlySequence<byte> src, Memory<byte> dest) extension method
-            // if we need this in other places.
-            int read;
-            if (readResult.Buffer.IsSingleSegment)
-            {
-                read = CopySegmentToMemory(readResult.Buffer.First, buffer);
-            }
-            else
-            {
-                read = 0;
-                foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
+                read += CopySegmentToMemory(segment, buffer[read..]);
+                if (read == buffer.Length)
                 {
-                    read += CopySegmentToMemory(segment, buffer[read..]);
-                    if (read == buffer.Length)
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
-            _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
-            return read;
         }
-        finally
-        {
-            if (_state.HasFlag(State.Disposed))
-            {
-                _reader.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
-            }
-            _state.ClearFlag(State.Reading);
-        }
+        _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
+        return read;
 
         static int CopySegmentToMemory(ReadOnlyMemory<byte> source, Memory<byte> destination)
         {
@@ -103,9 +81,9 @@ internal abstract class ColocConnection : IDuplexConnection
         }
     }
 
-    public Task ShutdownAsync(CancellationToken cancellationToken)
+    public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
+        if (_disposed)
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
@@ -113,22 +91,17 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new InvalidOperationException("Shutdown is not allowed before the connection is connected.");
         }
-        if (_state.HasFlag(State.Writing))
-        {
-            throw new InvalidOperationException("Shutdown or writing is in progress");
-        }
-        if (!_state.TrySetFlag(State.ShuttingDown))
-        {
-            throw new InvalidOperationException("Shutdown has already been called.");
-        }
+
+        // The FlushAsync is a no-op here since no data if buffered on the writer. It's only useful for ensuring that
+        // ShutdownAsync is not called while WriteAsync is pending.
+        _ = await _writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
         _writer.Complete();
-        return Task.CompletedTask;
     }
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
+        if (_disposed)
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
@@ -136,40 +109,11 @@ internal abstract class ColocConnection : IDuplexConnection
         {
             throw new InvalidOperationException("Writing is not allowed before the connection is connected.");
         }
-        if (_state.HasFlag(State.ShuttingDown))
-        {
-            throw new InvalidOperationException($"Writing is not allowed after the connection is shutdown.");
-        }
-        if (!_state.TrySetFlag(State.Writing))
-        {
-            throw new InvalidOperationException("Writing is already in progress.");
-        }
 
-        try
+        foreach (ReadOnlyMemory<byte> buffer in buffers)
         {
-            if (_state.HasFlag(State.Disposed))
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-
-            foreach (ReadOnlyMemory<byte> buffer in buffers)
-            {
-                FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-                if (flushResult.IsCanceled)
-                {
-                    // Dispose canceled ReadAsync.
-                    throw new IceRpcException(IceRpcError.OperationAborted);
-                }
-            }
-        }
-        finally
-        {
-            Debug.Assert(!_state.HasFlag(State.ShuttingDown));
-            if (_state.HasFlag(State.Disposed))
-            {
-                _writer.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
-            }
-            _state.ClearFlag(State.Writing);
+            FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+            Debug.Assert(!flushResult.IsCanceled);
         }
     }
 
@@ -181,37 +125,19 @@ internal abstract class ColocConnection : IDuplexConnection
 
     private protected virtual void Dispose(bool disposing)
     {
-        if (_state.TrySetFlag(State.Disposed))
-        {
-            // _reader can be null if connection establishment failed or didn't run.
-            if (_reader is not null)
-            {
-                if (_state.HasFlag(State.Reading))
-                {
-                    _reader.CancelPendingRead();
-                }
-                else
-                {
-                    _reader.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
-                }
-            }
+        _disposed = true;
 
-            if (_state.HasFlag(State.Writing))
-            {
-                _writer.CancelPendingFlush();
-            }
-            else
-            {
-                _writer.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
-            }
-        }
+        // _reader can be null if connection establishment failed or didn't run.
+        _reader?.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
+
+        _writer.Complete(new IceRpcException(IceRpcError.ConnectionAborted));
     }
 
     private protected TransportConnectionInformation FinishConnect()
     {
         Debug.Assert(_reader is not null);
 
-        if (_state.HasFlag(State.Disposed))
+        if (_disposed)
         {
             _reader.Complete();
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
@@ -219,14 +145,6 @@ internal abstract class ColocConnection : IDuplexConnection
 
         var colocEndPoint = new ColocEndPoint(ServerAddress);
         return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
-    }
-
-    private protected enum State : int
-    {
-        Disposed = 1,
-        Reading = 2,
-        ShuttingDown = 4,
-        Writing = 8,
     }
 }
 
@@ -238,7 +156,7 @@ internal class ClientColocConnection : ColocConnection
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
+        if (_disposed)
         {
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
@@ -246,8 +164,6 @@ internal class ClientColocConnection : ColocConnection
         {
             throw new InvalidOperationException($"Connection establishment can't be called twice.");
         }
-
-        Debug.Assert(!_state.HasFlag(State.ShuttingDown));
 
         if (_localPipeReader is not null)
         {
