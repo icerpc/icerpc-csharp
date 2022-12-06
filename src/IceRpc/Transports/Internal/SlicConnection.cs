@@ -1122,29 +1122,29 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 case ParameterKey.MaxBidirectionalStreams:
                 {
-                    int value = DecodeIntParam(buffer);
+                    int value = DecodeParamValue(buffer);
                     _bidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
                     break;
                 }
                 case ParameterKey.MaxUnidirectionalStreams:
                 {
-                    int value = DecodeIntParam(buffer);
+                    int value = DecodeParamValue(buffer);
                     _unidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
                     break;
                 }
                 case ParameterKey.IdleTimeout:
                 {
-                    peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeIntParam(buffer));
+                    peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeParamValue(buffer));
                     break;
                 }
                 case ParameterKey.PacketMaxSize:
                 {
-                    PeerPacketMaxSize = DecodeIntParam(buffer);
+                    PeerPacketMaxSize = DecodeParamValue(buffer);
                     break;
                 }
                 case ParameterKey.PauseWriterThreshold:
                 {
-                    PeerPauseWriterThreshold = DecodeIntParam(buffer);
+                    PeerPauseWriterThreshold = DecodeParamValue(buffer);
                     break;
                 }
                 // Ignore unsupported parameter.
@@ -1181,7 +1181,8 @@ internal class SlicConnection : IMultiplexedConnection
             _duplexConnectionWriter.EnableKeepAlive(peerIdleTimeoutValue / 2);
         }
 
-        static int DecodeIntParam(IList<byte> buffer)
+        // all parameter values are currently integers in the range 0..Int32Max encoded as varuint62.
+        static int DecodeParamValue(IList<byte> buffer)
         {
             // The IList<byte> decoded by the Slice engine is backed by an array
             ulong value = SliceEncoding.Slice2.DecodeBuffer(
