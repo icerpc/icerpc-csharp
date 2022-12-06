@@ -63,7 +63,10 @@ unchecked enum ParameterKey : varuint62
     PauseWriterThreshold = 4,
 }
 
-typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>;
+[cs::type("System.Buffers.ReadOnlySequence<byte>")]
+custom ParameterFieldValue;
+
+typealias ParameterFields = dictionary<ParameterKey, ParameterFieldValue>;
 
 /// The Slic initialize frame body.
 [cs::readonly]
