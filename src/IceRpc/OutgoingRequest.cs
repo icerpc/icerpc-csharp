@@ -58,4 +58,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         PayloadContinuation?.Complete();
         _response?.Dispose();
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => $"'{Operation}' on '{ServiceAddress}'";
 }

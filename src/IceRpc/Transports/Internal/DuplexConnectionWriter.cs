@@ -115,6 +115,13 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 
             _keepAliveTimer?.Change(_keepAlivePeriod!.Value, Timeout.InfiniteTimeSpan);
         }
+        catch (ObjectDisposedException exception)
+        {
+            throw new IceRpcException(
+                IceRpcError.OperationAborted,
+                "The write operation was aborted by the disposal of the duplex connection.",
+                exception);
+        }
         finally
         {
             if (consumed is not null)

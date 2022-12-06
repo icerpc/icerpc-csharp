@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Transports;
+namespace IceRpc;
 
 /// <summary>This enum contains event ID constants used for protocol connection related logging.</summary>
 public enum ProtocolEventIds
@@ -19,9 +19,6 @@ public enum ProtocolEventIds
 
     /// <summary>A client connection has been created.</summary>
     ConnectionCreated,
-
-    /// <summary>A request dispatch failed with an exception that prevents sending a response.</summary>
-    ConnectionDispatchFailed,
 
     /// <summary>A connection has been terminated because a failure.</summary>
     ConnectionFailed,
