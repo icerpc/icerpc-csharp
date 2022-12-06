@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::cs_attributes::{self, match_cs_type, CsAttributeKind};
+use crate::cs_attributes::{self, match_cs_custom, CsAttributeKind};
 use slice::compilation_result::{CompilationData, CompilationResult};
 use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Warning, WarningKind};
 use slice::grammar::*;
@@ -177,17 +177,17 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
-        // We require 'cs::type' on custom types to know how to encode/decode it.
+        // We require 'cs::custom' on custom types to know how to encode/decode it.
 
-        if !custom_type.has_attribute(false, match_cs_type) {
-            Error::new(ErrorKind::MissingRequiredAttribute(cs_attributes::TYPE.to_owned()))
+        if !custom_type.has_attribute(false, match_cs_custom) {
+            Error::new(ErrorKind::MissingRequiredAttribute(cs_attributes::CUSTOM.to_owned()))
                 .set_span(custom_type.span())
-                .report(self.diagnostic_reporter);
+                .report(self.diagnostic_reporter);' to 'cs::custom'.)
         }
 
         for (attribute, span) in &cs_attributes(&custom_type.attributes(false)) {
             match attribute {
-                CsAttributeKind::Type { .. } => {}
+                CsAttributeKind::Custom { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }

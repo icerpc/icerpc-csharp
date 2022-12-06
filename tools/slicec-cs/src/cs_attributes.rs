@@ -9,7 +9,7 @@ pub const IDENTIFIER: &str = "cs::identifier";
 pub const INTERNAL: &str = "cs::internal";
 pub const NAMESPACE: &str = "cs::namespace";
 pub const READONLY: &str = "cs::readonly";
-pub const TYPE: &str = "cs::type";
+pub const CUSTOM: &str = "cs::custom";
 pub const ATTRIBUTE_PREFIX: &str = "cs::";
 
 #[derive(Clone, Debug)]
@@ -21,7 +21,7 @@ pub enum CsAttributeKind {
     Internal,
     Namespace { namespace: String },
     Readonly,
-    Type { name: String },
+    Custom { name: String },
 }
 
 impl LanguageKind for CsAttributeKind {
@@ -34,7 +34,7 @@ impl LanguageKind for CsAttributeKind {
             CsAttributeKind::Internal => INTERNAL,
             CsAttributeKind::Namespace { .. } => NAMESPACE,
             CsAttributeKind::Readonly => READONLY,
-            CsAttributeKind::Type { .. } => TYPE,
+            CsAttributeKind::Custom { .. } => CUSTOM,
         }
     }
 
@@ -113,9 +113,9 @@ pub fn match_cs_readonly(attribute: &Attribute) -> Option<()> {
     })
 }
 
-pub fn match_cs_type(attribute: &Attribute) -> Option<String> {
+pub fn match_cs_custom(attribute: &Attribute) -> Option<String> {
     as_cs_attribute(attribute).and_then(|a| match a {
-        CsAttributeKind::Type { name } => Some(name.to_owned()),
+        CsAttributeKind::Custom { name } => Some(name.to_owned()),
         _ => None,
     })
 }

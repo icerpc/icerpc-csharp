@@ -113,7 +113,7 @@ impl AttributePatcher<'_> {
                 true => Some(CsAttributeKind::Readonly),
                 false => None,
             },
-            cs_attributes::TYPE => self
+            cs_attributes::CUSTOM => self
                 .single_argument(attribute)
                 .map(|argument| CsAttributeKind::Type { name: argument }),
             _ => {
