@@ -671,13 +671,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
     }
 
-    /// <summary>Closes the transport connection and cancels pending dispatches and invocations.</summary>
+    /// <summary>Disposes the transport connection and cancels pending dispatches and invocations.</summary>
     private void Close(string? message = null, Exception? innerException = null)
     {
         ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
 
-        // Cancel tasks that rely on the transport to ensure that no more calls on the transport are pending before
-        // calling Dispose.
+        // Cancel tasks that rely on the transport to ensure that calls on the transport are canceled before calling
+        // Dispose.
         _tasksCts.Cancel();
 
         // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.

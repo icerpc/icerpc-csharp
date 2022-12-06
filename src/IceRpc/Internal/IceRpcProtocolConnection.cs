@@ -855,15 +855,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    /// <summary>Closes the transport connection and cancels pending dispatches and invocations.</summary>
+    /// <summary>Disposes the transport connection and cancels pending dispatches and invocations.</summary>
     private async Task CloseAsync(string? message = null, Exception? innerException = null)
     {
-        ConnectionClosedException = message == null ?
-            new(IceRpcError.ConnectionClosed, innerException) :
-            new(IceRpcError.ConnectionClosed, message, innerException);
+        ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
 
-        // Cancel tasks that rely on the transport to ensure that no more calls on the transport are pending before
-        // calling Dispose.
+        // Cancel tasks that rely on the transport to ensure that calls on the transport are canceled before calling
+        // Dispose.
         _tasksCts.Cancel();
 
         // Cancel dispatches and invocations that might still be in progress.

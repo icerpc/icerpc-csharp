@@ -67,7 +67,7 @@ internal class SlicConnection : IMultiplexedConnection
         if (_readFramesTask is null)
         {
             throw new InvalidOperationException(
-                $"Can't call {nameof(AcceptStreamAsync)} before {nameof(ConnectAsync)}.");
+                $"Cannot call {nameof(AcceptStreamAsync)} before {nameof(ConnectAsync)}.");
         }
 
         try
@@ -91,7 +91,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
         if (_readFramesTask is not null)
         {
-            throw new InvalidOperationException($"Can't call {nameof(ConnectAsync)} twice.");
+            throw new InvalidOperationException($"Cannot call {nameof(ConnectAsync)} twice.");
         }
 
         Debug.Assert(_exception is null);
@@ -296,7 +296,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_readFramesTask is null)
             {
-                throw new InvalidOperationException($"Can't call {nameof(CloseAsync)} before {nameof(ConnectAsync)}.");
+                throw new InvalidOperationException($"Cannot call {nameof(CloseAsync)} before {nameof(ConnectAsync)}.");
             }
             if (_exception is not null)
             {
@@ -358,7 +358,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_readFramesTask is null)
             {
                 throw new InvalidOperationException(
-                    $"Can't call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}.");
+                    $"Cannot call {nameof(CreateStreamAsync)} before {nameof(ConnectAsync)}.");
             }
             if (_exception is not null)
             {
