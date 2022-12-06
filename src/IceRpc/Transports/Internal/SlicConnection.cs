@@ -1116,37 +1116,48 @@ internal class SlicConnection : IMultiplexedConnection
     {
         TimeSpan? peerIdleTimeout = null;
 
-        IEnumerable<(ParameterKey Key, ulong Value)> decodedParameters =
-            parameters.Select(pair =>
-                (pair.Key,
-                 SliceEncoding.Slice2.DecodeBuffer(
-                     pair.Value,
-                     (ref SliceDecoder decoder) => decoder.DecodeVarUInt62())));
-
-        foreach ((ParameterKey key, ulong value) in decodedParameters)
+        foreach ((ParameterKey key, ReadOnlySequence<byte> buffer) in parameters)
         {
-            if (key == ParameterKey.MaxBidirectionalStreams)
+            switch (key)
             {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
-            }
-            else if (key == ParameterKey.MaxUnidirectionalStreams)
-            {
-                _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
-            }
-            else if (key == ParameterKey.IdleTimeout)
-            {
-                peerIdleTimeout = TimeSpan.FromMilliseconds(value);
-            }
-            else if (key == ParameterKey.PacketMaxSize)
-            {
-                PeerPacketMaxSize = (int)value;
-            }
-            else if (key == ParameterKey.PauseWriterThreshold)
-            {
-                PeerPauseWriterThreshold = (int)value;
-            }
-            else
-            {
+                case ParameterKey.MaxBidirectionalStreams:
+                {
+                    ulong value = SliceEncoding.Slice2.DecodeBuffer(
+                        buffer,
+                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+                    _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
+                    break;
+                }
+                case ParameterKey.MaxUnidirectionalStreams:
+                {
+                    ulong value = SliceEncoding.Slice2.DecodeBuffer(
+                        buffer,
+                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+                    _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
+                    break;
+                }
+                case ParameterKey.IdleTimeout:
+                {
+                    peerIdleTimeout = TimeSpan.FromMilliseconds(
+                        SliceEncoding.Slice2.DecodeBuffer(
+                            buffer,
+                            (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()));
+                    break;
+                }
+                case ParameterKey.PacketMaxSize:
+                {
+                    PeerPacketMaxSize = (int)SliceEncoding.Slice2.DecodeBuffer(
+                        buffer,
+                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+                    break;
+                }
+                case ParameterKey.PauseWriterThreshold:
+                {
+                    PeerPauseWriterThreshold = (int)SliceEncoding.Slice2.DecodeBuffer(
+                        buffer,
+                        (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
+                    break;
+                }
                 // Ignore unsupported parameter.
             }
         }
