@@ -37,8 +37,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly ILogger _logger;
     private readonly int _maxLocalHeaderSize;
-    private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
+    private int _peerMaxHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
     // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
     // by the peer yet.
@@ -145,15 +145,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await ReceiveSettingsFrameBody(cancellationToken).ConfigureAwait(false);
         }
-        catch (IceRpcException exception) when (
-            exception.ApplicationErrorCode is ulong errorCode &&
-            errorCode == (ulong)IceRpcConnectionErrorCode.Refused)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ServerBusy)
         {
-            ConnectionClosedException = new(
-                ConnectionErrorCode.ConnectionClosed,
-                "The connection establishment was refused.");
+            ConnectionClosedException = new IceRpcException(
+                IceRpcError.ConnectionClosed,
+                "The connection establishment failed because the server is busy.");
 
-            throw new ConnectionException(ConnectionErrorCode.ConnectRefused);
+            throw;
         }
 
         // Start a task to read the go away frame from the control stream and initiate shutdown.
@@ -488,11 +486,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-        }
-        catch (IceRpcException exception)
-        {
-            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
         finally
         {
@@ -624,17 +618,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
             }
         }
-        catch (IceRpcException exception) when (
-            exception.IceRpcError == IceRpcError.ConnectionAborted &&
-            exception.ApplicationErrorCode is ulong errorCode &&
-            (IceRpcConnectionErrorCode)errorCode == IceRpcConnectionErrorCode.NoError)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosedByPeer)
         {
             // Expected if the peer closed the connection first.
         }
 
         // We can now safely close the connection.
         await _transportConnection.CloseAsync(
-            (ulong)IceRpcConnectionErrorCode.NoError,
+            MultiplexedConnectionCloseError.NoError,
             cancellationToken).ConfigureAwait(false);
 
         // We wait for the completion of the dispatches that we created.
@@ -856,10 +847,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private void CheckRemoteHeaderSize(int headerSize)
     {
-        if (headerSize > _maxRemoteHeaderSize)
+        if (headerSize > _peerMaxHeaderSize)
         {
-            throw new ProtocolException(
-                $"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+            throw new IceRpcException(
+                IceRpcError.LimitExceeded,
+                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize})");
         }
     }
 
@@ -867,8 +859,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private async Task CloseAsync(string? message = null, Exception? innerException = null)
     {
         ConnectionClosedException = message == null ?
-            new(ConnectionErrorCode.ConnectionClosed, innerException) :
-            new(ConnectionErrorCode.ConnectionClosed, message, innerException);
+            new(IceRpcError.ConnectionClosed, innerException) :
+            new(IceRpcError.ConnectionClosed, message, innerException);
 
         // Cancel tasks that rely on the transport to ensure that no more calls on the transport are pending before
         // calling Dispose.
@@ -975,7 +967,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     StatusCode statusCode = exception switch
                     {
                         InvalidDataException => StatusCode.InvalidData,
-                        TruncatedDataException => StatusCode.TruncatedPayload,
+                        IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
+                             StatusCode.TruncatedPayload,
                         _ => StatusCode.UnhandledException
                     };
 
@@ -1136,7 +1129,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
             {
                 // a varuint62 always fits in a long
-                _maxRemoteHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                _peerMaxHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
                 _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             }
             // all other settings are unknown and ignored

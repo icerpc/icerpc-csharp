@@ -417,19 +417,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested || _tasksCts.IsCancellationRequested);
 
             // The connection is being disposed.
-            throw new ConnectionException(ConnectionErrorCode.OperationAborted);
-        }
-        catch (ConnectionException)
-        {
-            throw;
-        }
-        catch (IceRpcException exception)
-        {
-            throw new ConnectionException(ConnectionErrorCode.IceRpcException, exception);
-        }
-        catch (Exception exception)
-        {
-            throw new ConnectionException(ConnectionErrorCode.Unspecified, exception);
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
         finally
         {
@@ -615,7 +603,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // The transport connection is disposed if the peer also sent a CloseConnection frame. To avoid having to
             // catch ObjectDisposedException here we could eventually add IDuplexConnection.Close to decouple the
             // connection closure from the disposal.
-            Debug.Assert(ConnectionClosedException!.ErrorCode == ConnectionErrorCode.ConnectionClosed);
+            Debug.Assert(ConnectionClosedException!.IceRpcError == IceRpcError.ConnectionClosed);
         }
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
@@ -686,9 +674,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     /// <summary>Closes the transport connection and cancels pending dispatches and invocations.</summary>
     private void Close(string? message = null, Exception? innerException = null)
     {
-        ConnectionClosedException = message == null ?
-            new(ConnectionErrorCode.ConnectionClosed, innerException) :
-            new(ConnectionErrorCode.ConnectionClosed, message, innerException);
+        ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
 
         // Cancel tasks that rely on the transport to ensure that no more calls on the transport are pending before
         // calling Dispose.

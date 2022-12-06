@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-
 namespace IceRpc.Internal;
 
 /// <summary>A trivial dispatcher that always throws a <see cref="DispatchException" /> with status code

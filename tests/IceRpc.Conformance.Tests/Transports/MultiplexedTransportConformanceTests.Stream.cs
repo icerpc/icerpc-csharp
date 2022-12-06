@@ -119,7 +119,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        sut.RemoteStream.Input.Complete(new TruncatedDataException()); // can be any exception
+        sut.RemoteStream.Input.Complete(new ArgumentException()); // can be any exception
 
         // Assert
         Assert.That(
@@ -161,7 +161,9 @@ public abstract partial class MultiplexedTransportConformanceTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        Assert.That(async () => await sut.RemoteStream.Input.ReadAsync(), Throws.InstanceOf<TruncatedDataException>());
+        Assert.That(
+            async () => await sut.RemoteStream.Input.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
 
         // Complete the pipe readers/writers to complete the stream.
         CompleteStreams(sut);

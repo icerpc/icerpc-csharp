@@ -38,10 +38,10 @@ public interface IMultiplexedConnection : IAsyncDisposable
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Closes the connection.</summary>
-    /// <param name="applicationErrorCode">The application error code to transmit to the peer.</param>
+    /// <param name="closeError">The error to transmit to the peer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the connection is closed.</returns>
-    Task CloseAsync(ulong applicationErrorCode, CancellationToken cancellationToken);
+    Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken);
 
     /// <summary>Creates a local stream. The creation might be delayed if the maximum number of unidirectional or
     /// bidirectional streams prevents creating the new stream.</summary>

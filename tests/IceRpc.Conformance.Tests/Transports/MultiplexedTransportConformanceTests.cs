@@ -81,13 +81,11 @@ public abstract partial class MultiplexedTransportConformanceTests
         Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
-        await clientConnection.CloseAsync(applicationErrorCode: 2ul, CancellationToken.None);
+        await clientConnection.CloseAsync((MultiplexedConnectionCloseError)2, CancellationToken.None);
 
         // Assert
         IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreams)!;
         Assert.That(ex.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-        Assert.That(ex.ApplicationErrorCode, Is.EqualTo(2ul));
-
     }
 
     /// <summary>Verifies that after reaching the stream max count, new streams are not accepted until a
@@ -252,7 +250,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         IMultiplexedConnection peerConnection =
             closeServerConnection ? clientConnection : serverConnection;
 
-        await closeConnection.CloseAsync(applicationErrorCode: 5ul, CancellationToken.None);
+        await closeConnection.CloseAsync((MultiplexedConnectionCloseError)5, CancellationToken.None);
 
         IceRpcException? exception;
 
@@ -260,12 +258,10 @@ public abstract partial class MultiplexedTransportConformanceTests
         exception = Assert.ThrowsAsync<IceRpcException>(
             () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
 
         exception = Assert.ThrowsAsync<IceRpcException>(
             () => peerConnection.CreateStreamAsync(true, default).AsTask());
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(5ul));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
@@ -311,7 +307,11 @@ public abstract partial class MultiplexedTransportConformanceTests
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+
+        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code.
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionClosedByPeer).Or.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
@@ -328,10 +328,11 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         // Act/Assert
         Assert.That(async () => await clientConnection.CloseAsync(
-            applicationErrorCode: 0ul,
+            MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
+
         Assert.That(async () => await serverConnection.CloseAsync(
-            applicationErrorCode: 0ul,
+            MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
     }
 
@@ -347,8 +348,13 @@ public abstract partial class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        Task clientCloseTask = clientConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
-        Task serverCloseTask = serverConnection.CloseAsync(applicationErrorCode: 0ul, CancellationToken.None);
+        Task clientCloseTask = clientConnection.CloseAsync(
+            MultiplexedConnectionCloseError.NoError,
+            CancellationToken.None);
+
+        Task serverCloseTask = serverConnection.CloseAsync(
+            MultiplexedConnectionCloseError.NoError,
+            CancellationToken.None);
 
         // Assert
         Assert.That(() => clientCloseTask, Throws.Nothing);

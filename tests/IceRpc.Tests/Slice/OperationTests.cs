@@ -237,23 +237,6 @@ public class OperationTests
             Throws.Nothing);
     }
 
-    // TODO check that the parameter has the expected attributes or reject cs::attribute for operation parameters.
-    [Test]
-    public async Task Operation_with_cs_attribute()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
-            .BuildServiceProvider(validateScopes: true);
-
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
-        provider.GetRequiredService<Server>().Listen();
-
-        // Act
-        Assert.That(async () => await proxy.OpWithCsAttributeAsync(10), Throws.Nothing);
-    }
-
     [Test]
     public async Task Operation_with_single_return_value_and_encoded_result_attribute()
     {
@@ -592,11 +575,6 @@ public class OperationTests
             int features,
             IFeatureCollection features_,
             CancellationToken cancellationToken_) => default;
-
-        public ValueTask<int> OpWithCsAttributeAsync(
-            int p,
-            IFeatureCollection features,
-            CancellationToken cancellationToken) => default;
 
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             IFeatureCollection features,

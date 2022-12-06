@@ -14,7 +14,7 @@ public class OperationGeneratedCodeTests
 {
     [Test]
     public async Task Operation_with_compress_args_and_return_attribute(
-        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)]CompressionFormat compressionFormat)
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
         // Arrange
         bool compressRequestFeature = false;

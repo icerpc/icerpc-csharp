@@ -19,7 +19,7 @@ public class CompressorInterceptorTests
     /// input using the given compression format when the request carries the compress payload feature.</summary>
     [Test]
     public async Task Compress_request_payload(
-        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)]CompressionFormat compressionFormat)
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
@@ -112,7 +112,7 @@ public class CompressorInterceptorTests
     /// decompress it, when the response carries a supported compression format field.</summary>
     [Test]
     public async Task Decompress_response_payload(
-        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)]CompressionFormat compressionFormat)
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {

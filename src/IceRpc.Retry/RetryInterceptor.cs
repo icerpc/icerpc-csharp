@@ -52,7 +52,7 @@ public class RetryInterceptor : IInvoker
                     bool retryWithOtherReplica = false;
 
                     // At this point, response can be non-null and carry a failure for which we're retrying. If
-                    // _next.InvokeAsync throws NoServerAddressException, we return this previous failure.
+                    // _next.InvokeAsync reports NoConnection, we return this previous failure.
                     try
                     {
                         using IDisposable? scope = CreateRetryLogScope(attempt);
@@ -70,11 +70,12 @@ public class RetryInterceptor : IInvoker
                             retryWithOtherReplica = true;
                         }
                     }
-                    catch (NoServerAddressException ex)
+                    catch (IceRpcException iceRpcException) when (
+                        iceRpcException.IceRpcError == IceRpcError.NoConnection)
                     {
-                        // NoServerAddressException is always considered non-retryable; it typically occurs because we
+                        // NoConnection is always considered non-retryable; it typically occurs because we
                         // removed server addresses from serverAddressFeature.
-                        return response ?? throw RethrowException(exception ?? ex);
+                        return response ?? throw RethrowException(exception ?? iceRpcException);
                     }
                     catch (OperationCanceledException)
                     {
@@ -107,8 +108,8 @@ public class RetryInterceptor : IInvoker
                         }
                         else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
                                  !decorator.IsRead ||
-                                 (exception is ConnectionException connectionException &&
-                                    connectionException.ErrorCode == ConnectionErrorCode.ConnectionClosed))
+                                 (exception is IceRpcException iceRpcException &&
+                                    iceRpcException.IceRpcError == IceRpcError.ConnectionClosed))
                         {
                             tryAgain = true;
                         }

@@ -62,14 +62,3 @@ compact struct IceRpcGoAway
     bidirectionalStreamId: varuint62,
     unidirectionalStreamId: varuint62,
 }
-
-/// The icerpc-specific error codes carried by multiplexed connections. These values are shared and carried blindly by
-/// all multiplexed transports. Multiplexed transports don't interpret these error codes or generate these codes.
-unchecked enum IceRpcConnectionErrorCode : varuint62
-{
-    /// The connection closed without error.
-    NoError = 0,
-
-    /// The connection was refused by the server.
-    Refused
-}

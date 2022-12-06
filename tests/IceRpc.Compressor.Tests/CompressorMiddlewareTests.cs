@@ -18,7 +18,7 @@ public class CompressorMiddlewareTests
     /// input using the given compression format when the request carries the compress payload feature.</summary>
     [Test]
     public async Task Compress_response_payload(
-        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)]CompressionFormat compressionFormat)
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
@@ -113,7 +113,7 @@ public class CompressorMiddlewareTests
     /// decompress it, when the request carries a supported compression format field.</summary>
     [Test]
     public async Task Decompress_request_payload(
-        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)]CompressionFormat compressionFormat)
+        [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var sut = new CompressorMiddleware(dispatcher, compressionFormat);
@@ -153,7 +153,7 @@ public class CompressorMiddlewareTests
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {
                 [RequestFieldKey.CompressionFormat] =
-                    new ReadOnlySequence<byte>(new byte[]{(byte) compressionFormat})
+                    new ReadOnlySequence<byte>(new byte[] { (byte)compressionFormat })
             }
         };
 }

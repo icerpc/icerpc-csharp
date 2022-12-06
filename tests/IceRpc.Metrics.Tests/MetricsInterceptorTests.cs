@@ -55,7 +55,7 @@ public sealed class MetricsInterceptorTests
         }
 
         Assert.That(canceled, Is.EqualTo(new long[] { 1 }));
-        Assert.That(current, Is.EqualTo(new long[] { 1, -1}));
+        Assert.That(current, Is.EqualTo(new long[] { 1, -1 }));
         Assert.That(total, Is.EqualTo(new long[] { 1 }));
     }
 

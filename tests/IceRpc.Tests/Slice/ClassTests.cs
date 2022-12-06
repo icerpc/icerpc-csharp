@@ -890,7 +890,7 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_request_with_compact_format([Values(true, false)]bool anyClass)
+    public void Operation_request_with_compact_format([Values(true, false)] bool anyClass)
     {
         // Act
         var payload = anyClass ?
@@ -920,7 +920,7 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_request_with_sliced_format([Values(true, false)]bool anyClass)
+    public void Operation_request_with_sliced_format([Values(true, false)] bool anyClass)
     {
         // Act
         var payload = anyClass ?
@@ -988,7 +988,7 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Operation_response_with_sliced_format([Values(true, false)]bool anyClass)
+    public void Operation_response_with_sliced_format([Values(true, false)] bool anyClass)
     {
         // Act
         var payload = anyClass ?
