@@ -157,13 +157,14 @@ public sealed class IceProtocolConnectionTests
             response.Use(writer => InvalidPipeWriter.Instance);
             return new(response);
         });
+        Exception? dispatchTaskException = null;
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 Protocol.Ice,
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                    DispatchPanicAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -179,6 +180,7 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(dispatchTaskException, Is.InstanceOf<NotSupportedException>());
     }
 
     [Test]

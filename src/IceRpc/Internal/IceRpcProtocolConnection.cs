@@ -291,16 +291,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                             IceRpcError.OperationAborted or
                                             IceRpcError.TruncatedData)
                                     {
-                                        // expected
+                                        // LimitExceeded is expected when attempting to encode a response header larger
+                                        // than the peer's max header size.
+                                        // OperationAborted is expected when the connection is disposed (and aborted)
+                                        // while we're receiving a request header or sending a response.
+                                        // TruncatedData is expected when reading a request header. It can also be
+                                        // thrown when reading a response payload tied to an incoming IceRPC payload.
                                     }
                                     catch (InvalidDataException)
                                     {
-                                        // expected
+                                        // This occurs when we can't decode the request header.
                                     }
                                     catch (OperationCanceledException exception) when (
                                         exception.CancellationToken == cancellationToken)
                                     {
-                                        // expected
+                                        // This occurs during shutdown.
                                     }
                                     catch (Exception exception)
                                     {

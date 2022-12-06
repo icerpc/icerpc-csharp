@@ -428,13 +428,15 @@ public sealed class IceRpcProtocolConnectionTests
                     Payload = payloadDecorator
                 }));
 
+        Exception? dispatchTaskException = null;
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 Protocol.IceRpc,
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                    DispatchPanicAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -446,6 +448,7 @@ public sealed class IceRpcProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(dispatchTaskException, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -463,13 +466,14 @@ public sealed class IceRpcProtocolConnectionTests
             response.Use(writer => InvalidPipeWriter.Instance);
             return new(response);
         });
+        Exception? dispatchTaskException = null;
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 Protocol.IceRpc,
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                    DispatchPanicAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -481,6 +485,7 @@ public sealed class IceRpcProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(dispatchTaskException, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
@@ -500,6 +505,7 @@ public sealed class IceRpcProtocolConnectionTests
                     (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
                 return new(response);
             });
+        Exception? dispatchTaskException = null;
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
@@ -507,7 +513,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                    DispatchPanicAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -522,6 +528,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await responseTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        Assert.That(dispatchTaskException, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the payload continuation of a request is completed when the dispatcher does not read this
@@ -753,6 +760,7 @@ public sealed class IceRpcProtocolConnectionTests
                     });
                 return new(response);
             });
+        Exception? dispatchTaskException = null;
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
@@ -760,7 +768,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    DispatchPanicAction = exception => Assert.That(exception, Is.InstanceOf<NotSupportedException>())
+                    DispatchPanicAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -775,6 +783,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await responseTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        Assert.That(dispatchTaskException, Is.InstanceOf<NotSupportedException>());
     }
 
     [Test]

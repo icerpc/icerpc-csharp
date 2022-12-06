@@ -924,7 +924,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
                     {
-                        // expected
+                        // This can occur when the connection is disposed while we're sending a response.
                     }
                     catch (Exception exception)
                     {
@@ -1050,7 +1050,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (flushResult.IsCanceled || flushResult.IsCompleted)
                     {
                         throw new NotSupportedException(
-                            "A payload writer decorator must not return a completed or canceled FlushResult with the ice protocol");
+                            "A payload writer decorator must not return a completed or canceled FlushResult with the ice protocol.");
                     }
                 }
                 catch (OperationCanceledException exception) when (
