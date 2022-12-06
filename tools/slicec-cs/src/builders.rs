@@ -7,7 +7,7 @@ use crate::cs_attributes::match_cs_attribute;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-use slice::grammar::{Attributable, Class, Commentable, Encoding, Entity, Operation};
+use slice::grammar::{Class, Commentable, Encoding, Entity, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::TypeContext;
 
@@ -320,17 +320,6 @@ impl FunctionBuilder {
         let parameters = operation.parameters();
 
         for parameter in &parameters {
-            // The attributes are a space separated list of attributes.
-            // eg. [attribute1] [attribute2]
-
-            let parameter_attributes = parameter
-                .attributes(false)
-                .into_iter()
-                .filter_map(match_cs_attribute)
-                .map(|attribute| format!("[{}]", attribute))
-                .collect::<Vec<_>>()
-                .join("\n");
-
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
@@ -339,7 +328,7 @@ impl FunctionBuilder {
             let parameter_comment = operation_parameter_doc_comment(operation, &parameter.cs_identifier(None));
 
             self.add_parameter(
-                &format!("{}{}", parameter_attributes, &parameter_type),
+                &format!("{}", &parameter_type),
                 &parameter_name,
                 if context == TypeContext::Encode && parameter.tag.is_some() {
                     Some("default")

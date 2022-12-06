@@ -80,7 +80,7 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_
 
 fn validate_common_attributes(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute {
-        CsAttributeKind::Attribute { .. } | CsAttributeKind::Identifier { .. } => {}
+        CsAttributeKind::Identifier { .. } => {}
         _ => report_unexpected_attribute(attribute, span, diagnostic_reporter),
     }
 }
@@ -123,7 +123,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_struct_start(&mut self, struct_def: &Struct) {
         for (attribute, span) in &cs_attributes(&struct_def.attributes(false)) {
             match attribute {
-                CsAttributeKind::Readonly | CsAttributeKind::Internal => {}
+                CsAttributeKind::Readonly | CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -132,7 +132,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_class_start(&mut self, class_def: &Class) {
         for (attribute, span) in &cs_attributes(&class_def.attributes(false)) {
             match attribute {
-                CsAttributeKind::Internal => {}
+                CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -141,7 +141,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_exception_start(&mut self, exception_def: &Exception) {
         for (attribute, span) in &cs_attributes(&exception_def.attributes(false)) {
             match attribute {
-                CsAttributeKind::Internal => {}
+                CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -159,7 +159,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_enum_start(&mut self, enum_def: &Enum) {
         for (attribute, span) in &cs_attributes(&enum_def.attributes(false)) {
             match attribute {
-                CsAttributeKind::Internal => {}
+                CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -215,7 +215,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_data_member(&mut self, data_member: &DataMember) {
         for (attribute, ..) in &cs_attributes(&data_member.attributes(false)) {
             match attribute {
-                CsAttributeKind::Identifier { .. } => {}
+                CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
                 _ => validate_data_type_attributes(&data_member.data_type, self.diagnostic_reporter),
             }
         }

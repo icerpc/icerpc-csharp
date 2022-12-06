@@ -31,9 +31,6 @@ interface MyOperationsA
     // cancel and features as regular parameter names
     opWithSpecialParameterNames(cancel: int32, features: int32);
 
-    // Parameter with cs::attribute
-    opWithCsAttribute(p: [cs::attribute("MyAttribute")] int32) -> int32;
-
     // Encoded result
     [cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> sequence<int32>;
     [cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: sequence<int32>);
