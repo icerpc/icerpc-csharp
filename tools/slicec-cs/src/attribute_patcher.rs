@@ -115,7 +115,7 @@ impl AttributePatcher<'_> {
             },
             cs_attributes::CUSTOM => self
                 .single_argument(attribute)
-                .map(|argument| CsAttributeKind::Type { name: argument }),
+                .map(|argument| CsAttributeKind::Custom { name: argument }),
             _ => {
                 Error::new(ErrorKind::UnexpectedAttribute(attribute.directive.to_owned()))
                     .set_span(attribute.span)
