@@ -1050,7 +1050,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (flushResult.IsCanceled || flushResult.IsCompleted)
                     {
                         throw new NotSupportedException(
-                            "A payload writer decorator must not return a completed or canceled FlushResult with the ice protocol.");
+                            "A payload writer must not return a completed or canceled FlushResult with the ice protocol.");
                     }
                 }
                 catch (OperationCanceledException exception) when (
