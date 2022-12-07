@@ -29,7 +29,7 @@ pub fn encode_data_members(
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceWriter = encoder.GetBitSequenceWriter({bit_sequence_size});"
+            "var bitSequenceWriter = encoder.GetBitSequenceWriter({bit_sequence_size});",
         );
     }
 
@@ -377,7 +377,7 @@ pub fn encode_action(
             } else {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeServiceAddress({value}.ServiceAddress)"
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeServiceAddress({value}.ServiceAddress)",
                 );
             }
         }
@@ -386,12 +386,12 @@ pub fn encode_action(
             if is_optional {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableClass(value)"
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableClass(value)",
                 );
             } else {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeClass(value)"
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeClass(value)",
                 );
             }
         }
@@ -408,14 +408,14 @@ pub fn encode_action(
             let name = enum_ref.cs_identifier(Some(Case::Pascal));
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})"
+                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})",
             )
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             let encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding);
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}"
+                "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}",
             );
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -430,11 +430,11 @@ pub fn encode_action(
         }
         TypeRefs::Struct(_) => write!(
             code,
-            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)"
+            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
         ),
         TypeRefs::Exception(_) => write!(
             code,
-            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)"
+            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
         ),
         TypeRefs::CustomType(custom_type_ref) => {
             let encoder_extensions_class =
@@ -442,7 +442,7 @@ pub fn encode_action(
             let identifier = custom_type_ref.cs_identifier(None);
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)"
+                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
             )
         }
     }
@@ -471,7 +471,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceWriter = {encoder_param}.GetBitSequenceWriter({bit_sequence_size});"
+            "var bitSequenceWriter = {encoder_param}.GetBitSequenceWriter({bit_sequence_size});",
         );
     }
 
