@@ -30,7 +30,7 @@ impl Visitor for DispatchVisitor<'_> {
 {}"#,
             interface_def.cs_identifier(None),
             interface_def.proxy_name(),
-            doc_comment_message(interface_def)
+            doc_comment_message(interface_def),
         );
 
         interface_builder
@@ -117,7 +117,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::Decode, false)
+                &parameters.to_tuple_type(namespace, TypeContext::Decode, false),
             ),
             &operation.escape_identifier_with_suffix("Async"),
             function_type,
@@ -128,7 +128,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             &format!(
                 "Decodes the argument{s} of operation {operation_identifier}.",
                 s = if parameters.len() == 1 { "" } else { "s" },
-                operation_identifier = operation.escape_identifier()
+                operation_identifier = operation.escape_identifier(),
             ),
         );
 
@@ -242,7 +242,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
-                encoding = operation.encoding.to_cs_encoding()
+                encoding = operation.encoding.to_cs_encoding(),
             );
         } else {
             writeln!(
@@ -255,7 +255,7 @@ var {args} = await request.DecodeArgsAsync(
     cancellationToken).ConfigureAwait(false);",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
                 encoding = operation.encoding.to_cs_encoding(),
-                decode_func = request_decode_func(operation).indent()
+                decode_func = request_decode_func(operation).indent(),
             );
         }
         match stream_member.data_type().concrete_type() {
@@ -263,7 +263,7 @@ var {args} = await request.DecodeArgsAsync(
                 writeln!(
                     code,
                     "var {} = request.DetachPayload();",
-                    stream_member.parameter_name_with_prefix("sliceP_")
+                    stream_member.parameter_name_with_prefix("sliceP_"),
                 )
             }
             _ => writeln!(
@@ -273,7 +273,7 @@ var payloadContinuation = request.DetachPayload();
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                 stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, true)
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, true),
             ),
         }
         writeln!(code, "return {};", operation.parameters().to_argument_tuple("sliceP_"));
@@ -289,7 +289,7 @@ request.DecodeArgsAsync(
 ",
             encoding = operation.encoding.to_cs_encoding(),
             decode_func = request_decode_func(operation).indent(),
-            default_activator = default_activator(operation.encoding)
+            default_activator = default_activator(operation.encoding),
         );
     }
     code
@@ -315,7 +315,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 {{
     {}
 }}",
-            decode_operation(operation, true).indent()
+            decode_operation(operation, true).indent(),
         )
         .into()
     }
@@ -351,7 +351,7 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
 "#,
         name = operation.cs_identifier(None),
         interface_name = operation.parent().unwrap().interface_name(),
-        dispatch_body = operation_dispatch_body(operation).indent()
+        dispatch_body = operation_dispatch_body(operation).indent(),
     )
     .into()
 }
@@ -386,7 +386,7 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Featu
             writeln!(
                 check_and_decode,
                 "\
-await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);"
+await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
             );
         }
         [parameter] => {
@@ -427,7 +427,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
         writeln!(
             dispatch_and_return,
             "var returnValue = await target.{async_operation_name}({args}).ConfigureAwait(false);",
-            args = args.join(", ")
+            args = args.join(", "),
         );
         if operation.streamed_return_member().is_some() {
             writeln!(
@@ -438,12 +438,12 @@ return new IceRpc.OutgoingResponse(request)
     Payload = returnValue.EncodedResult.Payload,
     PayloadContinuation = {payload_continuation}
 }};",
-                payload_continuation = payload_continuation(operation, encoding).indent()
+                payload_continuation = payload_continuation(operation, encoding).indent(),
             );
         } else {
             writeln!(
                 dispatch_and_return,
-                "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
+                "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};",
             );
         }
     } else {
@@ -465,7 +465,7 @@ return new IceRpc.OutgoingResponse(request)
             } else {
                 ""
             },
-            args = args.join(", ")
+            args = args.join(", "),
         );
 
         if operation.return_type.is_empty() {
@@ -480,7 +480,7 @@ return new IceRpc.OutgoingResponse(request)
     PayloadContinuation = {payload_continuation}
 }};",
                 payload = dispatch_return_payload(operation, encoding),
-                payload_continuation = payload_continuation(operation, encoding).indent()
+                payload_continuation = payload_continuation(operation, encoding).indent(),
             );
         }
     }
@@ -510,7 +510,7 @@ catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled
     return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
             dispatch_and_return = dispatch_and_return.indent(),
-            encoding = encoding
+            encoding = encoding,
         )
     }
     .into()
@@ -536,7 +536,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
         _ => format!(
             "Response.{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
             operation_name = operation.escape_identifier(),
-            args = returns.join(", ")
+            args = returns.join(", "),
         ),
     }
     .into()
@@ -568,7 +568,7 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
                     encode_action =
                         encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
                     use_segments = !stream_type.is_fixed_size(),
-                    encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions"
+                    encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
                 )
                 .into(),
             }

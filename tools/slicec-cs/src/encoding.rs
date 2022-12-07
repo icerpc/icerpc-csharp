@@ -107,7 +107,7 @@ fn encode_type(
                 TypeRefs::Dictionary(dictionary_ref) => {
                     format!(
                         "{};",
-                        encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding)
+                        encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding),
                     )
                 }
                 TypeRefs::Interface(_) => format!("{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);"),
@@ -224,7 +224,7 @@ fn encode_tagged_type(
                 (
                     Some(format!(
                         "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
-                        min_wire_size = sequence_def.element_type.min_wire_size()
+                        min_wire_size = sequence_def.element_type.min_wire_size(),
                     )),
                     Some(value.clone()),
                 )
@@ -279,7 +279,7 @@ if ({null_check})
             }
             code.writeln(&encode_tagged_call);
             code
-        }
+        },
     );
 
     code
@@ -392,7 +392,7 @@ pub fn encode_action(
         TypeRefs::Primitive(primitive_ref) => write!(
             code,
             "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{}({value})",
-            primitive_ref.type_suffix()
+            primitive_ref.type_suffix(),
         ),
         TypeRefs::Enum(enum_ref) => {
             let encoder_extensions_class =
@@ -416,7 +416,7 @@ pub fn encode_action(
             write!(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_sequence}",
-                encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding)
+                encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding),
             )
         }
         TypeRefs::Struct(_) => write!(
@@ -533,7 +533,7 @@ int startPos_ = encoder_.EncodedByteCount;",
         encoding = operation.encoding.to_cs_encoding(),
         class_format = operation.format_type(),
         encode_returns = encode_operation_parameters(operation, return_type, "encoder_"),
-        assign_pipe_reader = assign_pipe_reader
+        assign_pipe_reader = assign_pipe_reader,
     )
     .into()
 }

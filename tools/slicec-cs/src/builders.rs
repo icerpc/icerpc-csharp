@@ -275,7 +275,7 @@ impl FunctionBuilder {
             default_value = match default_value {
                 Some(value) => format!(" = {value}"),
                 None => "".to_string(),
-            }
+            },
         ));
 
         if let Some(comment) = doc_comment {
@@ -404,7 +404,7 @@ impl Builder for FunctionBuilder {
                 {}(
     {})",
                 self.name,
-                CodeBlock::from(self.parameters.join(",\n")).indent()
+                CodeBlock::from(self.parameters.join(",\n")).indent(),
             );
         } else {
             write!(code, "{}({})", self.name, self.parameters.join(", "))
@@ -416,7 +416,7 @@ impl Builder for FunctionBuilder {
                 code,
                 "\n    : {}({})",
                 self.base_constructor,
-                self.base_arguments.join(", ")
+                self.base_arguments.join(", "),
             ),
         }
 
@@ -629,7 +629,7 @@ if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        encoding_2 = encoding_2.indent()
+                        encoding_2 = encoding_2.indent(),
                     )
                     .into()
                 } else if !encoding_1.is_empty() && !encoding_2.is_empty() {
@@ -646,7 +646,7 @@ else // Slice2
 ",
                         encoding_variable = self.encoding_variable,
                         encoding_1 = encoding_1.indent(),
-                        encoding_2 = encoding_2.indent()
+                        encoding_2 = encoding_2.indent(),
                     )
                     .into()
                 } else {

@@ -179,7 +179,7 @@ fn constructor(
                 code,
                 "this.{} = {};",
                 member.field_name(FieldType::Class),
-                member.parameter_name()
+                member.parameter_name(),
             );
         }
         code

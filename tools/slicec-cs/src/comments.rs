@@ -48,7 +48,7 @@ impl fmt::Display for CommentTag {
             f,
             "/// <{tag}{attribute}>{content}</{tag}>",
             tag = self.tag,
-            content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// ")
+            content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// "),
         )
     }
 }

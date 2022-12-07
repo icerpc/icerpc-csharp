@@ -75,7 +75,7 @@ immediately encodes the return value of operation {operation_name}."#
                         .iter()
                         .map(|p| p.parameter_name())
                         .collect::<Vec<_>>()
-                        .join(", ")
+                        .join(", "),
                 )
                 .into(),
             );

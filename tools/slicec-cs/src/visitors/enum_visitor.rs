@@ -46,7 +46,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
             "{}\n{} = {},",
             CommentTag::new("summary", doc_comment_message(enumerator)),
             enumerator.cs_identifier(Some(Case::Pascal)),
-            enumerator.value
+            enumerator.value,
         )));
     }
     code
@@ -98,7 +98,7 @@ private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _e
                     .iter()
                     .map(|e| e.value.to_string())
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(", "),
             )
             .into(),
         );
@@ -230,7 +230,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
             decode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
                 _ => "decoder.DecodeSize()".to_owned(),
-            }
+            },
         )
         .into(),
     );

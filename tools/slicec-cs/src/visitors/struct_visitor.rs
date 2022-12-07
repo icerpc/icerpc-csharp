@@ -54,7 +54,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             "summary",
             &format!(
                 r#"Constructs a new instance of <see cref="{}" />."#,
-                &escaped_identifier
+                &escaped_identifier,
             ),
         );
 
@@ -111,7 +111,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 "summary",
                 &format!(
                     r#"Constructs a new instance of <see cref="{}" /> from a decoder."#,
-                    &escaped_identifier
+                    &escaped_identifier,
                 ),
             )
             .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder."))

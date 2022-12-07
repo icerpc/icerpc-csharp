@@ -53,12 +53,12 @@ fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_rep
                 if operation.streamed_return_member().is_some() {
                     format!(
                         "The '{}' attribute is not applicable to an operation that only returns a stream.",
-                        cs_attributes::ENCODED_RESULT
+                        cs_attributes::ENCODED_RESULT,
                     )
                 } else {
                     format!(
                         "The '{}' attribute is not applicable to an operation that does not return anything.",
-                        cs_attributes::ENCODED_RESULT
+                        cs_attributes::ENCODED_RESULT,
                     )
                 },
                 None,
