@@ -71,7 +71,7 @@ pub trait AttributeBuilder {
 
     fn add_compact_type_id_attribute(&mut self, class_def: &Class) -> &mut Self {
         if let Some(compact_id) = class_def.compact_id {
-            self.add_attribute(&format!("IceRpc.Slice.CompactTypeId({})", compact_id));
+            self.add_attribute(&format!("IceRpc.Slice.CompactTypeId({compact_id})"));
         }
         self
     }
@@ -157,7 +157,7 @@ impl Builder for ContainerBuilder {
         }
 
         for attribute in &self.attributes {
-            code.writeln(&format!("[{}]", attribute));
+            code.writeln(&format!("[{attribute}]"));
         }
 
         writeln!(
@@ -275,7 +275,7 @@ impl FunctionBuilder {
             param_type = param_type,
             param_name = param_name,
             default_value = match default_value {
-                Some(value) => format!(" = {}", value),
+                Some(value) => format!(" = {value}"),
                 None => "".to_string(),
             }
         ));
@@ -328,7 +328,7 @@ impl FunctionBuilder {
             let parameter_comment = operation_parameter_doc_comment(operation, &parameter.cs_identifier(None));
 
             self.add_parameter(
-                &parameter_type.to_string(),
+                &parameter_type,
                 &parameter_name,
                 if context == TypeContext::Encode && parameter.tag.is_some() {
                     Some("default")
@@ -393,7 +393,7 @@ impl Builder for FunctionBuilder {
         }
 
         for attribute in &self.attributes {
-            code.writeln(&format!("[{}]", attribute));
+            code.writeln(&format!("[{attribute}]"));
         }
 
         // CodeBlock ignores whitespace only writes so there's no issue of over-padding here.

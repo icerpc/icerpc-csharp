@@ -53,7 +53,7 @@ impl ParameterExt for Parameter {
             if type_str == "byte" {
                 "global::System.IO.Pipelines.PipeReader".to_owned()
             } else {
-                format!("global::System.Collections.Generic.IAsyncEnumerable<{}>", type_str)
+                format!("global::System.Collections.Generic.IAsyncEnumerable<{type_str}>")
             }
         } else {
             self.data_type().cs_type_string(namespace, context, ignore_optional)

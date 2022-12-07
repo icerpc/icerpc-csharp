@@ -29,8 +29,7 @@ pub fn decode_data_members(
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceReader = decoder.GetBitSequenceReader({});",
-            bit_sequence_size
+            "var bitSequenceReader = decoder.GetBitSequenceReader({bit_sequence_size});",
         );
     }
 
@@ -62,17 +61,17 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
     let data_type = member.data_type();
     let type_string = data_type.cs_type_string(namespace, TypeContext::Decode, true);
 
-    write!(code, "{} = ", param);
+    write!(code, "{param} = ");
 
     if data_type.is_optional {
         match data_type.concrete_type() {
             Types::Interface(_) if encoding == Encoding::Slice1 => {
-                writeln!(code, "decoder.DecodeNullableProxy<{}>();", type_string);
+                writeln!(code, "decoder.DecodeNullableProxy<{type_string}>();");
                 return code;
             }
             _ if data_type.is_class_type() => {
                 // does not use bit sequence
-                writeln!(code, "decoder.DecodeNullableClass<{}>();", type_string);
+                writeln!(code, "decoder.DecodeNullableClass<{type_string}>();");
                 return code;
             }
             _ => {
@@ -84,11 +83,11 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            write!(code, "decoder.DecodeProxy<{}>()", type_string);
+            write!(code, "decoder.DecodeProxy<{type_string}>()");
         }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
-            write!(code, "decoder.DecodeClass<{}>()", type_string);
+            write!(code, "decoder.DecodeClass<{type_string}>()");
         }
         TypeRefs::Primitive(primitive_ref) => {
             if primitive_ref.is_class_type() {
@@ -97,10 +96,8 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
             }
         }
-        TypeRefs::Struct(_) => write!(code, "new {}(ref decoder)", type_string),
-        TypeRefs::Exception(_) => {
-            write!(code, "new {}(ref decoder)", type_string)
-        }
+        TypeRefs::Struct(_) => write!(code, "new {type_string}(ref decoder)"),
+        TypeRefs::Exception(_) => write!(code, "new {type_string}(ref decoder)"),
         TypeRefs::Dictionary(dictionary_ref) => code.write(&decode_dictionary(dictionary_ref, namespace, encoding)),
         TypeRefs::Sequence(sequence_ref) => code.write(&decode_sequence(sequence_ref, namespace, encoding)),
         TypeRefs::Enum(enum_ref) => {
@@ -149,10 +146,10 @@ pub fn decode_tagged(
             format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
         })
         .add_argument(decode_func(data_type, namespace, encoding))
-        .add_argument(format!("useTagEndMarker: {}", use_tag_end_marker))
+        .add_argument(format!("useTagEndMarker: {use_tag_end_marker}"))
         .build();
 
-    format!("{} = {};", param, decode).into()
+    format!("{param} = {decode};").into()
 }
 
 pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
@@ -349,12 +346,9 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if encoding == Encoding::Slice1 && type_ref.is_optional {
-                format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodeNullableProxy<{}>()",
-                    type_name
-                )
+                format!("(ref SliceDecoder decoder) => decoder.DecodeNullableProxy<{type_name}>()")
             } else {
-                format!("(ref SliceDecoder decoder) => decoder.DecodeProxy<{}>()", type_name)
+                format!("(ref SliceDecoder decoder) => decoder.DecodeProxy<{type_name}>()")
             }
         }
         _ if type_ref.is_class_type() => {
@@ -366,7 +360,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                     type_ref.cs_type_string(namespace, TypeContext::Decode, true)
                 )
             } else {
-                format!("(ref SliceDecoder decoder) => decoder.DecodeClass<{}>()", type_name)
+                format!("(ref SliceDecoder decoder) => decoder.DecodeClass<{type_name}>()")
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
@@ -400,11 +394,8 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 name = enum_ref.cs_identifier(Some(Case::Pascal))
             )
         }
-        TypeRefs::Struct(_) => {
-            format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name,)
-        }
-        TypeRefs::Exception(_) => {
-            format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name)
+        TypeRefs::Struct(_) | TypeRefs::Exception(_) => {
+            format!("(ref SliceDecoder decoder) => new {type_name}(ref decoder)")
         }
         TypeRefs::CustomType(custom_type_ref) => {
             format!(
@@ -419,7 +410,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
     .into();
 
     if type_ref.is_optional && type_ref.is_value_type() {
-        write!(code, " as {}?", type_name);
+        write!(code, " as {type_name}?");
     }
 
     code
@@ -449,8 +440,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceReader = decoder.GetBitSequenceReader({});",
-            bit_sequence_size
+            "var bitSequenceReader = decoder.GetBitSequenceReader({bit_sequence_size});",
         );
     }
 
@@ -512,7 +502,7 @@ pub fn decode_operation_stream(
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
             panic!("Must not be called for UInt8 parameters as there is no decoding");
         }
-        _ => FunctionCallBuilder::new(&format!("payloadContinuation.ToAsyncEnumerable<{}>", param_type_str))
+        _ => FunctionCallBuilder::new(&format!("payloadContinuation.ToAsyncEnumerable<{param_type_str}>"))
             .arguments_on_newline(true)
             .add_argument(cs_encoding)
             .add_argument(decode_func(param_type, namespace, encoding).indent())
