@@ -132,7 +132,7 @@ pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
 
     // If the name conflicts with a base method, add a Slice prefix to it.
     if needs_mangling {
-        format!("Slice{}", identifier)
+        format!("Slice{identifier}")
     } else {
         identifier.to_owned()
     }

@@ -40,7 +40,7 @@ impl fmt::Display for CommentTag {
         }
 
         let attribute = match (&self.attribute_name, &self.attribute_value) {
-            (Some(name), Some(value)) => format!(r#" {}="{}""#, name, value),
+            (Some(name), Some(value)) => format!(r#" {name}="{value}""#),
             _ => "".to_owned(),
         };
 

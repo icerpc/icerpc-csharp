@@ -195,7 +195,7 @@ where
             } else {
                 format!("This {} has been deprecated", self.kind())
             };
-            format!(r#"global::System.Obsolete("{}")"#, reason)
+            format!(r#"global::System.Obsolete("{reason}")"#)
         })
     }
 
@@ -233,6 +233,6 @@ fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_names
     if current_namespace == identifier_namespace {
         identifier.to_owned()
     } else {
-        format!("global::{}.{}", identifier_namespace, identifier)
+        format!("global::{identifier_namespace}.{identifier}")
     }
 }

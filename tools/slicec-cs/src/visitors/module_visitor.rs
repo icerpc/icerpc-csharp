@@ -41,7 +41,7 @@ impl ModuleVisitor<'_> {
             Some(prefix) => {
                 // If there is a prefix the previous module was empty and we keep the prefix in the
                 // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
-                format!("{}.{}", prefix, identifier)
+                format!("{prefix}.{identifier}")
             }
             None => identifier,
         };
@@ -77,7 +77,7 @@ impl ModuleVisitor<'_> {
                 && (module_prefix.is_some() || module.is_top_level())
             {
                 let mut code_block = CodeBlock::default();
-                writeln!(code_block, "namespace {};", module_identifier);
+                writeln!(code_block, "namespace {module_identifier};");
 
                 for code in vec {
                     code_block.add_block(&code);

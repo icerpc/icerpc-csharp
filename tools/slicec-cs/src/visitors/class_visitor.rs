@@ -46,7 +46,7 @@ impl Visitor for ClassVisitor<'_> {
             .filter(|m| !m.is_default_initialized())
             .collect::<Vec<_>>();
 
-        let mut class_builder = ContainerBuilder::new(&format!("{} partial class", access), &class_name);
+        let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
         class_builder
             .add_comment("summary", doc_comment_message(class_def))
@@ -84,14 +84,13 @@ impl Visitor for ClassVisitor<'_> {
         if class_def.compact_id.is_some() {
             class_builder.add_block(
                 format!(
-                    "private static readonly int _compactSliceTypeId = typeof({}).GetCompactSliceTypeId()!.Value;",
-                    class_name
+                    "private static readonly int _compactSliceTypeId = typeof({class_name}).GetCompactSliceTypeId()!.Value;"
                 )
                 .into(),
             );
         }
 
-        let constructor_summary = format!(r#"Constructs a new instance of <see cref="{}" />."#, class_name);
+        let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
         // One-shot ctor (may be parameterless)
         class_builder.add_block(constructor(

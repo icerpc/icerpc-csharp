@@ -28,17 +28,14 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
     prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
     if let Some(obsolete) = data_member.obsolete_attribute(true) {
-        prelude.writeln(&format!("[{}]", obsolete));
+        prelude.writeln(&format!("[{obsolete}]"));
     }
-
+    let modifiers = data_member.modifiers();
+    let name = data_member.field_name(field_type);
     format!(
         "\
 {prelude}
-{modifiers} {type_string} {name};",
-        prelude = prelude,
-        modifiers = data_member.modifiers(),
-        type_string = type_string,
-        name = data_member.field_name(field_type)
+{modifiers} {type_string} {name};"
     )
 }
 
