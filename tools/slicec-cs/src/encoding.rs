@@ -253,7 +253,6 @@ fn encode_tagged_type(
         format!("{param}.Span != null")
     } else {
         let unwrapped_type = data_type.cs_type_string(namespace, type_context, true);
-        let unwrapped_name = &unwrapped_name;
         format!("{param} is {unwrapped_type} {unwrapped_name}")
     };
 
