@@ -138,9 +138,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.IceRpcError, exception);
                 }
             }
-            catch (Exception exception)
+            catch
             {
-                _shutdownCompleteSource.TrySetException(ConnectionClosedException ?? exception);
+                Debug.Assert(ConnectionClosedException != null);
+                _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 throw;
             }
         }
