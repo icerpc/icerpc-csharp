@@ -682,9 +682,9 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private Dictionary<ParameterKey, ReadOnlySequence<byte>> GetParameters()
+    private Dictionary<ParameterKey, IList<byte>> GetParameters()
     {
-        var parameters = new List<KeyValuePair<ParameterKey, ReadOnlySequence<byte>>>
+        var parameters = new List<KeyValuePair<ParameterKey, IList<byte>>>
         {
             EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_maxBidirectionalStreams),
             EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_maxUnidirectionalStreams),
@@ -696,14 +696,14 @@ internal class SlicConnection : IMultiplexedConnection
         {
             parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)_localIdleTimeout.TotalMilliseconds));
         }
-        return new Dictionary<ParameterKey, ReadOnlySequence<byte>>(parameters);
+        return new Dictionary<ParameterKey, IList<byte>>(parameters);
 
-        static KeyValuePair<ParameterKey, ReadOnlySequence<byte>> EncodeParameter(ParameterKey key, ulong value)
+        static KeyValuePair<ParameterKey, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
         {
             int sizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             byte[] buffer = new byte[sizeLength];
             SliceEncoder.EncodeVarUInt62(value, buffer);
-            return new(key, new ReadOnlySequence<byte>(buffer));
+            return new(key, buffer);
         }
     }
 
@@ -1112,7 +1112,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private void SetParameters(IDictionary<ParameterKey, ReadOnlySequence<byte>> parameters)
+    private void SetParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
         TimeSpan? peerIdleTimeout = null;
 
@@ -1120,7 +1120,7 @@ internal class SlicConnection : IMultiplexedConnection
             parameters.Select(pair =>
                 (pair.Key,
                  SliceEncoding.Slice2.DecodeBuffer(
-                     pair.Value,
+                     new ReadOnlySequence<byte>(pair.Value.ToArray()), // TODO: fix to avoid copy
                      (ref SliceDecoder decoder) => decoder.DecodeVarUInt62())));
 
         foreach ((ParameterKey key, ulong value) in decodedParameters)
