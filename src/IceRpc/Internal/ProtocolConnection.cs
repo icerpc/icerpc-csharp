@@ -48,7 +48,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_connectTask is not null)
             {
-                throw new InvalidOperationException("ConnectAsync can be called only once.");
+                throw new InvalidOperationException("The ConnectAsync operation can be called only once.");
             }
             else if (_disposeTask is not null)
             {

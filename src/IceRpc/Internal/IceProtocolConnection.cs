@@ -715,7 +715,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             if (prologue.CompressionStatus == 2)
             {
-                throw new NotSupportedException("Cannot decompress Ice frame.");
+                throw new NotSupportedException("The ice protocol compression is not supported by IceRpc.");
             }
 
             // Then process the frame based on its type.
@@ -726,7 +726,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
-                            $"Unexpected data for {nameof(IceFrameType.CloseConnection)} frame.");
+                            $"Received {nameof(IceFrameType.CloseConnection)} frame with unexpected data.");
                     }
                     return;
                 }
@@ -755,7 +755,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
-                            $"Unexpected data for {nameof(IceFrameType.ValidateConnection)} frame.");
+                            $"Received {nameof(IceFrameType.ValidateConnection)} frame with unexpected data.");
                     }
                     break;
                 }
@@ -785,7 +785,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Read and decode request ID
                 if (!replyFrameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                 {
-                    throw new InvalidDataException("Received response with invalid request ID.");
+                    throw new InvalidDataException("Received a response with an invalid request ID.");
                 }
 
                 ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
@@ -805,7 +805,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     else
                     {
-                        throw new InvalidDataException("Received ice response for unknown request.");
+                        throw new InvalidDataException("Received an ice response for an unknown request.");
                     }
                 }
             }
@@ -838,7 +838,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 if (!requestFrameReader.TryRead(out ReadResult readResult))
                 {
-                    throw new InvalidDataException("Received invalid request frame.");
+                    throw new InvalidDataException("Received an invalid request frame.");
                 }
 
                 Debug.Assert(readResult.IsCompleted);

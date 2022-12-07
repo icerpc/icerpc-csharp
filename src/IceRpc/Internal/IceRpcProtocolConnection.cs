@@ -495,7 +495,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("Received icerpc response with an empty header.");
+                throw new InvalidDataException("Received an icerpc response with an empty header.");
             }
 
             (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
@@ -657,7 +657,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (!readResult.IsCompleted || !readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
+                throw new InvalidDataException("Received bytes on the control stream after receiving the GoAway frame.");
             }
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosedByPeer)

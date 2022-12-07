@@ -86,14 +86,14 @@ public sealed class IncomingResponse : IncomingFrame
             if (errorMessage is not null)
             {
                 throw new ArgumentException(
-                    $"The {nameof(errorMessage)} must be null when {nameof(statusCode)} is {nameof(StatusCode.Success)}.",
+                    $"The {nameof(errorMessage)} argument must be null when {nameof(statusCode)} is {nameof(StatusCode.Success)}.",
                     nameof(errorMessage));
             }
         }
         else if (errorMessage is null)
         {
             throw new ArgumentException(
-                $"The {nameof(errorMessage)} must be non-null when {nameof(statusCode)} is greater than {nameof(StatusCode.Success)}.",
+                $"The {nameof(errorMessage)} argument must be non-null when {nameof(statusCode)} is greater than {nameof(StatusCode.Success)}.",
                 nameof(errorMessage));
         }
 
