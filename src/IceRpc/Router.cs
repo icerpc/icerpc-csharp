@@ -60,7 +60,7 @@ public sealed class Router : IDispatcher
         if (_dispatcher.IsValueCreated)
         {
             throw new InvalidOperationException(
-                $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
+                $"Cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}.");
         }
         ServiceAddress.CheckPath(path);
         _exactMatchRoutes[path] = dispatcher;
@@ -80,7 +80,7 @@ public sealed class Router : IDispatcher
         if (_dispatcher.IsValueCreated)
         {
             throw new InvalidOperationException(
-                $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
+                $"Cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}.");
         }
         ServiceAddress.CheckPath(prefix);
         prefix = NormalizePrefix(prefix);
@@ -98,7 +98,7 @@ public sealed class Router : IDispatcher
         if (_dispatcher.IsValueCreated)
         {
             throw new InvalidOperationException(
-                $"all middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}");
+                $"All the middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}.");
         }
         _middlewareStack.Push(middleware);
         return this;
@@ -148,7 +148,7 @@ public sealed class Router : IDispatcher
                     else
                     {
                         throw new InvalidOperationException(
-                            $"received request for path '{path}' in router mounted at '{AbsolutePrefix}'");
+                            $"Received request for path '{path}' in router mounted at '{AbsolutePrefix}'.");
                     }
                 }
                 // else there is nothing to remove
@@ -189,7 +189,7 @@ public sealed class Router : IDispatcher
                         }
                         // and try again with the new shorter prefix
                     }
-                    throw new DispatchException(StatusCode.InvalidData, "too many segments in path");
+                    throw new DispatchException(StatusCode.InvalidData, "Too many segments in path.");
                 }
             });
 

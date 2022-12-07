@@ -30,7 +30,7 @@ internal readonly partial record struct Identity
         {
             if (firstSlash != workingPath.LastIndexOf('/'))
             {
-                throw new FormatException($"too many slashes in path '{path}'");
+                throw new FormatException($"Too many slashes in path '{path}'.");
             }
 
             name = Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]);

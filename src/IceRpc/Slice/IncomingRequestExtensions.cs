@@ -18,7 +18,7 @@ public static class IncomingRequestExtensions
         if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
         {
             throw new InvalidDataException(
-                $"idempotent mismatch for operation '{request.Operation}': received request marked idempotent for a non-idempotent operation");
+                $"Invocation mode mismatch for operation '{request.Operation}': received idempotent field for an operation not marked as idempotent.");
         }
     }
 
@@ -39,7 +39,9 @@ public static class IncomingRequestExtensions
     {
         if (sliceException.ConvertToUnhandled)
         {
-            throw new ArgumentException("invalid Slice exception", nameof(sliceException));
+            throw new ArgumentException(
+                "Cannot create a response using an slice exception that has 'ConvertToUnhandled' property set to true.",
+                nameof(sliceException));
         }
 
         SliceEncodeOptions encodeOptions =

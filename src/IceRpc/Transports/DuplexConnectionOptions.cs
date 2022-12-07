@@ -13,7 +13,7 @@ public record class DuplexConnectionOptions
     {
         get => _minSegmentSize;
         set => _minSegmentSize = value >= 1024 ? value :
-            throw new ArgumentException($"{nameof(MinSegmentSize)} can't be less than 1KB", nameof(value));
+            throw new ArgumentException($"The {nameof(MinSegmentSize)} cannot be less than 1KB", nameof(value));
     }
 
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>

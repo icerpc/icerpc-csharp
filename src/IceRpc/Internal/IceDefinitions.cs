@@ -62,19 +62,19 @@ internal static class IceDefinitions
         {
             byte[] magic = new byte[] { prologue.Magic1, prologue.Magic2, prologue.Magic3, prologue.Magic4 };
             throw new InvalidDataException(
-                $"received incorrect magic bytes in prologue of ice frame: {BytesToString(magic)}");
+                $"Received incorrect magic bytes in prologue of ice frame: '{BytesToString(magic)}'.");
         }
 
         if (prologue.ProtocolMajor != ProtocolBytes[0] || prologue.ProtocolMinor != ProtocolBytes[1])
         {
             throw new InvalidDataException(
-                $"received ice prologue with protocol set to {prologue.ProtocolMajor}.{prologue.ProtocolMinor}");
+                $"Received ice prologue with protocol set to '{prologue.ProtocolMajor}.{prologue.ProtocolMinor}'.");
         }
 
         if (prologue.EncodingMajor != ProtocolBytes[2] || prologue.EncodingMinor != ProtocolBytes[3])
         {
             throw new InvalidDataException(
-                $"received ice prologue with protocol encoding set to {prologue.EncodingMajor}.{prologue.EncodingMinor}");
+                $"Received ice prologue with protocol encoding set to '{prologue.EncodingMajor}.{prologue.EncodingMinor}'.");
         }
     }
 

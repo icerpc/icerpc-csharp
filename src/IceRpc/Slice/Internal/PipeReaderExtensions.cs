@@ -47,7 +47,7 @@ internal static class PipeReaderExtensions
             else
             {
                 reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                throw new InvalidDataException("segment size exceeds maximum value");
+                throw new InvalidDataException("The segment size exceeds the maximum value.");
             }
         }
         else
@@ -100,7 +100,8 @@ internal static class PipeReaderExtensions
             {
                 Debug.Assert(readResult.IsCompleted);
                 reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                throw new InvalidDataException($"payload has fewer than '{segmentSize}' bytes");
+                throw new InvalidDataException(
+                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} were expected.");
             }
 
             return readResult.Buffer.Length == segmentSize ? readResult :
@@ -141,8 +142,7 @@ internal static class PipeReaderExtensions
                 if (readResult.Buffer.Length > maxSize)
                 {
                     reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    throw new InvalidDataException(
-                        $"segment size '{readResult.Buffer.Length}' exceeds maximum value");
+                    throw new InvalidDataException("The segment size exceeds the maximum value.");
                 }
 
                 if (readResult.IsCompleted)
@@ -224,7 +224,7 @@ internal static class PipeReaderExtensions
 
             if (segmentSize > maxSize)
             {
-                throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
+                throw new InvalidDataException("The segment size exceeds the maximum value.");
             }
 
             if (readResult.Buffer.Length >= consumed + segmentSize)
@@ -241,7 +241,8 @@ internal static class PipeReaderExtensions
 
             if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
             {
-                throw new InvalidDataException($"payload has fewer than '{segmentSize}' bytes");
+                throw new InvalidDataException(
+                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} were expected.");
             }
 
             // segmentSize and consumed are set and can be used by the caller.
@@ -249,7 +250,7 @@ internal static class PipeReaderExtensions
         }
         else if (readResult.IsCompleted)
         {
-            throw new InvalidDataException("received Slice segment with truncated size");
+            throw new InvalidDataException("Received a Slice segment with truncated size.");
         }
         else
         {

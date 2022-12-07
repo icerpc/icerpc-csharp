@@ -118,7 +118,7 @@ internal class ActivatorFactory
 
             if (constructor is null)
             {
-                throw new InvalidOperationException($"cannot get Slice decoding constructor for '{type}'");
+                throw new InvalidOperationException($"Cannot get Slice decoding constructor for '{type}'.");
             }
 
             ParameterExpression decoderParam =

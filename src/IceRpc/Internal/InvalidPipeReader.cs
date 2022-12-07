@@ -11,7 +11,7 @@ internal sealed class InvalidPipeReader : PipeReader
     public static PipeReader Instance { get; } = new InvalidPipeReader();
 
     private static readonly Exception _notSupportedException =
-        new NotSupportedException("cannot use invalid pipe reader");
+        new NotSupportedException("Cannot use invalid pipe reader.");
 
     public override bool TryRead(out ReadResult result) => throw _notSupportedException;
 

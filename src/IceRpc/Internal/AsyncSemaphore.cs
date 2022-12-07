@@ -37,15 +37,15 @@ internal class AsyncSemaphore
     {
         if (initialCount < 0)
         {
-            throw new ArgumentOutOfRangeException($"{nameof(initialCount)} can't be < 0");
+            throw new ArgumentOutOfRangeException($"The {nameof(initialCount)} cannot be less than 0.");
         }
         if (maxCount < 0)
         {
-            throw new ArgumentOutOfRangeException($"{nameof(maxCount)} can't be < 0");
+            throw new ArgumentOutOfRangeException($"The {nameof(maxCount)} cannot be less than 0.");
         }
         if (maxCount < initialCount)
         {
-            throw new ArgumentOutOfRangeException($"{nameof(maxCount)} can't be < {nameof(initialCount)}");
+            throw new ArgumentOutOfRangeException($"The {nameof(maxCount)} cannot be less than the {nameof(initialCount)}.");
         }
         _currentCount = initialCount;
         _maxCount = maxCount;
@@ -186,7 +186,7 @@ internal class AsyncSemaphore
         {
             if (_currentCount == _maxCount)
             {
-                throw new SemaphoreFullException($"semaphore maximum count of {_maxCount} already reached");
+                throw new SemaphoreFullException($"The semaphore maximum count of '{_maxCount}' already reached.");
             }
 
             while (_queue.Count > 0)

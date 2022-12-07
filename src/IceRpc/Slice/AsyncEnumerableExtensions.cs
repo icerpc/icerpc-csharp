@@ -168,7 +168,7 @@ public static class AsyncEnumerableExtensions
         {
             if (encoding == SliceEncoding.Slice1)
             {
-                throw new NotSupportedException("streaming is not supported with Slice1");
+                throw new NotSupportedException("Streaming is not supported by the Slice1 encoding.");
             }
 
             encodeOptions ??= SliceEncodeOptions.Default;

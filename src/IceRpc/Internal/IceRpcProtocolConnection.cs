@@ -393,7 +393,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         if (request.ServiceAddress.Fragment.Length > 0)
         {
-            throw new NotSupportedException("the icerpc protocol does not support fragments");
+            throw new NotSupportedException("The icerpc protocol does not support fragments.");
         }
 
         var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
@@ -495,7 +495,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("received icerpc response with empty header");
+                throw new InvalidDataException("Received icerpc response with an empty header.");
             }
 
             (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
@@ -749,7 +749,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             else if (flushResult.IsCanceled)
             {
                 throw new InvalidOperationException(
-                    "a payload writer is not allowed to return a canceled flush result");
+                    "A payload writer interceptor is not allowed to return a canceled flush result.");
             }
         }
         catch
@@ -789,7 +789,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         if (flushResult.IsCanceled)
                         {
                             throw new InvalidOperationException(
-                                "a payload writer interceptor is not allowed to return a canceled flush result");
+                                "A payload writer interceptor is not allowed to return a canceled flush result.");
                         }
                         streamOutput.CompleteOutput(success: true);
                     }
@@ -893,7 +893,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             throw new IceRpcException(
                 IceRpcError.LimitExceeded,
-                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize})");
+                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize}).");
         }
     }
 
@@ -971,7 +971,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 if (response != request.Response)
                 {
                     throw new InvalidOperationException(
-                        "the dispatcher did not return the last response created for this request");
+                        "The dispatcher did not return the last response created for this request.");
                 }
             }
             catch when (request.IsOneway || _tasksCts.IsCancellationRequested)
@@ -1071,7 +1071,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("invalid empty control frame");
+                throw new InvalidDataException("Received an invalid empty control frame.");
             }
 
             if (TryDecodeFrameType(readResult.Buffer, out IceRpcControlFrameType frameType, out long consumed))
@@ -1094,7 +1094,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 if (frameType != expectedFrameType)
                 {
                     throw new InvalidDataException(
-                       $"received frame type {frameType} but expected {expectedFrameType}");
+                       $"Received frame type {frameType} but expected {expectedFrameType}.");
                 }
                 consumed = decoder.Consumed;
                 return true;

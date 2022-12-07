@@ -92,7 +92,7 @@ public static class TypeExtensions
         }
         else
         {
-            throw new ArgumentException($"{type} doesn't have an IceRpc.TypeId attribute", nameof(type));
+            throw new ArgumentException($"The type '{type}' doesn't have an IceRpc.TypeId attribute.", nameof(type));
         }
     }
 }

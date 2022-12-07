@@ -64,7 +64,7 @@ public class Protocol
     internal static Protocol FromByteValue(byte value) =>
         value == Ice.ByteValue ? Ice :
             (value == IceRpc.ByteValue ? IceRpc :
-                throw new NotSupportedException($"cannot convert '{value}' into a protocol"));
+                throw new NotSupportedException($"Cannot convert '{value}' into a protocol."));
 
     /// <summary>Checks if a path is valid for this protocol.</summary>
     /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.

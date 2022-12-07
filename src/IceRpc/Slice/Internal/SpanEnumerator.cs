@@ -8,7 +8,7 @@ internal ref struct SpanEnumerator
 {
     /// <summary>Gets the current span.</summary>
     internal Span<byte> Current => _position >= 0 ? _currentSpan :
-        throw new InvalidOperationException("enumerator not initialized");
+        throw new InvalidOperationException("The enumerator was not initialized.");
 
     private Span<byte> _currentSpan;
     private readonly Span<byte> _firstSpan;
