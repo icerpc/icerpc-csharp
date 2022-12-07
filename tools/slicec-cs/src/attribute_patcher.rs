@@ -117,10 +117,9 @@ impl AttributePatcher<'_> {
                 .single_argument(attribute)
                 .map(|argument| CsAttributeKind::Type { name: argument }),
             _ => {
-                self.reporter.report_error(Error::new(
-                    ErrorKind::UnexpectedAttribute(attribute.directive.to_owned()),
-                    Some(attribute.span),
-                ));
+                Error::new(ErrorKind::UnexpectedAttribute(attribute.directive.to_owned()))
+                    .set_span(attribute.span)
+                    .report(self.reporter);
                 None
             }
         }
@@ -153,14 +152,14 @@ impl AttributePatcher<'_> {
     }
 
     fn error_missing(&mut self, required_argument: String, span: &Span) {
-        self.reporter.report_error(Error::new(
-            ErrorKind::MissingRequiredArgument(required_argument),
-            Some(span),
-        ));
+        Error::new(ErrorKind::MissingRequiredArgument(required_argument))
+            .set_span(span)
+            .report(self.reporter);
     }
 
     fn error_too_many(&mut self, expected: String, span: &Span) {
-        self.reporter
-            .report_error(Error::new(ErrorKind::TooManyArguments(expected), Some(span)));
+        Error::new(ErrorKind::TooManyArguments(expected))
+            .set_span(span)
+            .report(self.reporter);
     }
 }

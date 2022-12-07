@@ -2,7 +2,7 @@
 
 using System.Runtime.CompilerServices;
 
-// Make internals visible to coloc and interop assembly
+// Make internals visible to coloc assembly
 [assembly: InternalsVisibleTo("IceRpc.Coloc")] // necessary to use IceRpc.Transports.Internal utility classes
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
