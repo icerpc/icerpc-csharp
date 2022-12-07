@@ -198,7 +198,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
             {
                 throw new InvalidDataException(
-                    $"Received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
+                    $"Received ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
             }
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
