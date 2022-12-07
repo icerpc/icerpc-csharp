@@ -42,7 +42,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         _multiplexedClientTransport = multiplexedClientTransport ?? IMultiplexedClientTransport.Default;
 
         // If the dispatcher is null, we don't allow the peer to open streams for incoming requests. The only stream
-        // which is accepted locally is the peer remote control stream.
+        // which is accepted locally is the control stream created by the peer.
         _multiplexedConnectionOptions = new MultiplexedConnectionOptions
         {
             MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? 0 :

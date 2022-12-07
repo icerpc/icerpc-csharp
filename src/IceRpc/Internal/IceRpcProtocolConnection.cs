@@ -605,8 +605,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 goAwayFrame.Encode,
                 cancellationToken).ConfigureAwait(false);
 
-            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown
-            // has been initiated by the remote peer.
+            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown was
+            // initiated by the peer.
             IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
 
@@ -638,9 +638,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Close the control stream to notify the peer that on our side, all the streams completed and that it
             // can close the transport connection whenever it likes.
             // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
-            // abortive closure and from our point of view, it's ok for the remote peer to close the transport
-            // connection. We don't close the transport connection immediately as this would kill the streams in the
-            // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
+            // abortive closure and from our point of view, it's ok for the peer to close the transport connection. We
+            // don't close the transport connection immediately as this would kill the streams in the peer and we want
+            // to give the peer a chance to complete its shutdown gracefully.
             _controlStream!.Output.Complete();
         }
 
