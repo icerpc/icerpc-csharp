@@ -60,9 +60,9 @@ impl OperationExt for Operation {
                 },
             );
             if is_dispatch {
-                format!("global::System.Threading.Tasks.ValueTask<{}>", return_type)
+                format!("global::System.Threading.Tasks.ValueTask<{return_type}>")
             } else {
-                format!("global::System.Threading.Tasks.Task<{}>", return_type)
+                format!("global::System.Threading.Tasks.Task<{return_type}>")
             }
         }
     }

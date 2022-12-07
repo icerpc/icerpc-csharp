@@ -48,7 +48,7 @@ impl Visitor for ProxyVisitor<'_> {
 
         let mut code = CodeBlock::default();
         code.add_block(
-            &ContainerBuilder::new(&format!("{} partial interface", access), &proxy_interface)
+            &ContainerBuilder::new(&format!("{access} partial interface"), &proxy_interface)
                 .add_comment("summary", &summary_message)
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
@@ -58,10 +58,10 @@ impl Visitor for ProxyVisitor<'_> {
         );
 
         let mut proxy_impl_builder =
-            ContainerBuilder::new(&format!("{} readonly partial record struct", access), &proxy_impl);
+            ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
 
         proxy_impl_builder.add_bases(&proxy_impl_bases)
-            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{}" /> by sending requests to a remote IceRPC service."#, proxy_interface))
+            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{proxy_interface}" /> by sending requests to a remote IceRPC service."#))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))
@@ -89,8 +89,7 @@ public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAdd
                 format!(
                     "\
 private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({}).Assembly);",
-                    proxy_impl
+    SliceDecoder.GetActivator(typeof({proxy_impl}).Assembly);"
                 )
                 .into(),
             );
@@ -102,9 +101,7 @@ private static readonly IActivator _defaultActivator =
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}" />.</summary>
 public static implicit operator {base_impl}({proxy_impl} proxy) =>
-    new() {{ EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }};"#,
-                    base_impl = base_impl,
-                    proxy_impl = proxy_impl
+    new() {{ EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }};"#
                 )
                 .into(),
             );
@@ -196,15 +193,14 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     if operation.compress_arguments() {
         body.writeln(&format!(
             "\
-if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
+if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 {{
-    {features} ??= new IceRpc.Features.FeatureCollection();
-    {features} = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
-        {features},
+    {features_parameter} ??= new IceRpc.Features.FeatureCollection();
+    {features_parameter} = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
+        {features_parameter},
         IceRpc.Features.CompressFeature.Compress);
 }}
-",
-            features = features_parameter
+"
         ));
     }
 
@@ -219,7 +215,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
     if operation.parameters.is_empty() {
         invocation_builder.add_argument("payload: null");
     } else if parameters.is_empty() {
-        invocation_builder.add_argument(format!("{}.CreateSizeZeroPayload()", encoding));
+        invocation_builder.add_argument(format!("{encoding}.CreateSizeZeroPayload()"));
     } else {
         invocation_builder.add_argument(format!(
             "Request.{}({}, encodeOptions: EncodeOptions)",
@@ -263,7 +259,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    invocation_builder.add_argument(format!("Response.{}", async_operation_name));
+    invocation_builder.add_argument(format!("Response.{async_operation_name}"));
 
     invocation_builder.add_argument(features_parameter);
 
@@ -271,13 +267,13 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
 
-    invocation_builder.add_argument(format!("cancellationToken: {}", cancellation_token_parameter));
+    invocation_builder.add_argument(format!("cancellationToken: {cancellation_token_parameter}"));
 
     let invocation = invocation_builder.build();
 
     match body_type {
         FunctionType::ExpressionBody => body.writeln(&invocation),
-        FunctionType::BlockBody => writeln!(body, "return {};", invocation),
+        FunctionType::BlockBody => writeln!(body, "return {invocation};"),
         _ => panic!("unexpected function type"),
     }
 

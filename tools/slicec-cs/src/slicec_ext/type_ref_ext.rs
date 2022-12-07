@@ -72,20 +72,18 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
-            format!("global::System.Collections.Generic.IList<{}>", element_type)
+            format!("global::System.Collections.Generic.IList<{element_type}>")
         }
         TypeContext::Decode => match generic_attribute {
-            Some(arg) => {
-                format!("{}<{}>", arg, element_type)
-            }
-            None => format!("{}[]", element_type),
+            Some(arg) => format!("{arg}<{element_type}>"),
+            None => format!("{element_type}[]"),
         },
         TypeContext::Encode => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
             if sequence_ref.has_fixed_size_numeric_elements() && generic_attribute.is_none() {
-                format!("global::System.ReadOnlyMemory<{}>", element_type)
+                format!("global::System.ReadOnlyMemory<{element_type}>")
             } else {
-                format!("global::System.Collections.Generic.IEnumerable<{}>", element_type)
+                format!("global::System.Collections.Generic.IEnumerable<{element_type}>")
             }
         }
     }
@@ -104,25 +102,15 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
-            format!(
-                "global::System.Collections.Generic.IDictionary<{}, {}>",
-                key_type, value_type,
-            )
+            format!("global::System.Collections.Generic.IDictionary<{key_type}, {value_type}>")
         }
         TypeContext::Decode => match generic_attribute {
-            Some(arg) => {
-                format!("{}<{}, {}>", arg, key_type, value_type)
-            }
-            None => format!(
-                "global::System.Collections.Generic.Dictionary<{}, {}>",
-                key_type, value_type,
-            ),
+            Some(arg) => format!("{arg}<{key_type}, {value_type}>"),
+            None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
         },
-        TypeContext::Encode => {
+        TypeContext::Encode =>
             format!(
-                "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{}, {}>>",
-                key_type, value_type,
+                "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{key_type}, {value_type}>>"
             )
-        }
     }
 }

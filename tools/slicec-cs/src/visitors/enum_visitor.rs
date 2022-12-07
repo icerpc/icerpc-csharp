@@ -58,7 +58,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     let namespace = &enum_def.namespace();
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
-        &format!("{} static class", access),
+        &format!("{access} static class"),
         &format!(
             "{}{}Extensions",
             enum_def.cs_identifier(Some(Case::Pascal)),
@@ -70,9 +70,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         &format!(
-            r#"Provides an extension method for creating a <see cref="{enum_name}" /> from a <see cref="{underlying_type}" />"#,
-            enum_name = escaped_identifier,
-            underlying_type = cs_type
+            r#"Provides an extension method for creating a <see cref="{escaped_identifier}" /> from a <see cref="{cs_type}" />"#
         ),
     );
 
@@ -108,14 +106,14 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     }
 
     let mut as_enum_block = FunctionBuilder::new(
-        format!("{} static", access).as_str(),
+        format!("{access} static").as_str(),
         &escaped_identifier,
         format!("As{}", enum_def.cs_identifier(Some(Case::Pascal))).as_str(),
         FunctionType::ExpressionBody,
     );
     as_enum_block
         .add_parameter(
-            format!("this {}", cs_type).as_str(),
+            format!("this {cs_type}").as_str(),
             "value",
             None,
             Some("The value being converted."),
@@ -124,16 +122,14 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
             "summary",
             format!(
                 r#"
-Converts a <see cref="{underlying_type}" /> into the corresponding <see cref="{escaped_identifier}" />
-enumerator."#,
-                underlying_type = cs_type,
-                escaped_identifier = escaped_identifier
+Converts a <see cref="{cs_type}" /> into the corresponding <see cref="{escaped_identifier}" />
+enumerator."#
             )
             .as_str(),
         )
         .add_comment("returns", "The enumerator.")
         .set_body(if enum_def.is_unchecked {
-            format!("({})value", escaped_identifier).into()
+            format!("({escaped_identifier})value").into()
         } else {
             format!(
                 r#"
@@ -173,16 +169,13 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     let escaped_identifier = enum_def.escape_identifier();
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
-        &format!("{} static class", access),
+        &format!("{access} static class"),
         &format!("{}SliceEncoderExtensions", enum_def.cs_identifier(Some(Case::Pascal))),
     );
 
     builder.add_comment(
         "summary",
-        &format!(
-            r#"Provide extension methods for encoding <see cref="{}" />."#,
-            escaped_identifier
-        ),
+        &format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
     );
 
     // Enum encoding
@@ -214,16 +207,13 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let escaped_identifier = enum_def.escape_identifier();
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
-        &format!("{} static class", access),
+        &format!("{access} static class"),
         &format!("{}SliceDecoderExtensions", enum_def.cs_identifier(Some(Case::Pascal))),
     );
 
     builder.add_comment(
         "summary",
-        &format!(
-            r#"Provide extension methods for encoding <see cref="{}" />."#,
-            escaped_identifier
-        ),
+        &format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
     );
 
     let underlying_extensions_class = format!(
