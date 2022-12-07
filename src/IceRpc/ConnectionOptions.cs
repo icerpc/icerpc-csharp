@@ -124,8 +124,8 @@ public record class ConnectionOptions
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
     /// <summary>Gets or sets the connection shutdown timeout. This timeout is used when gracefully shutting down a
-    /// connection to wait for the remote peer to shut down. If the peer doesn't close its side of the connection
-    /// within the timeout time frame, the connection is forcefully closed.</summary>
+    /// connection to wait for the peer to shut down. If the peer doesn't close its side of the connection within the
+    /// timeout time frame, the connection is forcefully closed.</summary>
     /// <value>The shutdown timeout value. The default is 10s.</value>
     public TimeSpan ShutdownTimeout
     {

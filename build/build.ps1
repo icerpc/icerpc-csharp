@@ -89,10 +89,10 @@ function InstallTemplates($config) {
     RunCommand "dotnet" @('pack', '--configuration', $dotnetConfiguration)
     $dotnet_templates = dotnet new -l
     if ($dotnet_templates.Where({$_.Contains("icerpc-client")}).count -gt 0) {
-        RunCommand "dotnet" @('new', '--uninstall', 'IceRpc.ProjectTemplates')
+        RunCommand "dotnet" @('new', 'uninstall', 'IceRpc.ProjectTemplates')
     }
 
-    RunCommand "dotnet" @('new', '--install', "bin\Any CPU\$dotnetConfiguration\IceRpc.ProjectTemplates.$version.nupkg")
+    RunCommand "dotnet" @('new', 'install', "bin\Any CPU\$dotnetConfiguration\IceRpc.ProjectTemplates.$version.nupkg")
     Pop-Location
 }
 
