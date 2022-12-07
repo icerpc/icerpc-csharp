@@ -47,7 +47,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private IMultiplexedStream? _remoteControlStream;
     private int _streamCount;
     private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly CancellationTokenSource _tasksCts = new();
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
 
@@ -161,30 +160,42 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     // Wait to receive the GoAway frame.
                     await ReceiveControlFrameHeaderAsync(
                         IceRpcControlFrameType.GoAway,
-                        _tasksCts.Token).ConfigureAwait(false);
-                    IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(_tasksCts.Token).ConfigureAwait(false);
+                        CancellationToken.None).ConfigureAwait(false);
+
+                    PipeReader input = _remoteControlStream!.Input;
+                    ReadResult readResult = await input.ReadSegmentAsync(
+                        SliceEncoding.Slice2,
+                        _maxLocalHeaderSize,
+                        CancellationToken.None).ConfigureAwait(false);
+
+                    // We don't call CancelPendingRead on _remoteControlStream.Input
+                    Debug.Assert(!readResult.IsCanceled);
+
+                    IceRpcGoAway goAwayFrame;
+                    try
+                    {
+                        goAwayFrame = SliceEncoding.Slice2.DecodeBuffer(
+                            readResult.Buffer,
+                            (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
+                    }
+                    finally
+                    {
+                        input.AdvanceTo(readResult.Buffer.End);
+                    }
 
                     // Initiate the shutdown.
                     InitiateShutdown("The connection was closed because it received a GoAway frame from the peer.");
 
                     return goAwayFrame;
                 }
-                catch (IceRpcException)
+                catch (IceRpcException exception)
                 {
-                    throw; // The connection with the peer was lost.
-                }
-                catch (OperationCanceledException)
-                {
-                    throw new IceRpcException(IceRpcError.OperationAborted); // The connection was closed.
+                    await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
+                    throw;
                 }
                 catch (Exception exception)
                 {
-                    // Any other failure to read the GoAway frame is considered as a protocol violation. We close the
-                    // connection in this case.
-                    if (ConnectionClosedException is null)
-                    {
-                        _ = CloseAsync("Unexpected error", exception);
-                    }
+                    _dispatchPanicAction(exception);
                     throw;
                 }
             },
@@ -201,7 +212,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // If _dispatcher is null, this call will block indefinitely until the connection is closed
                         // because the multiplexed connection MaxUnidirectionalStreams and MaxBidirectionalStreams
                         // options don't allow this peer to accept streams.
-                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_tasksCts.Token)
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(CancellationToken.None)
                             .ConfigureAwait(false);
 
                         bool done = false;
@@ -330,20 +341,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                     }
                 }
-                catch (OperationCanceledException)
+                catch (IceRpcException exception)
                 {
-                    // Connection closed.
+                    await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    // Notify the ConnectionClosed callback and close the connection if the connection is not already
-                    // being closed or closed.
-                    if (ConnectionClosedException is null)
-                    {
-                        ConnectionClosed(exception);
-
-                        _ = CloseAsync("The connection was lost.", exception);
-                    }
+                    _dispatchPanicAction(exception);
                 }
             },
             CancellationToken.None);
@@ -356,11 +360,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Close the transport connection and cancel dispatches and invocations.
         await CloseAsync().ConfigureAwait(false);
 
+        try
+        {
+            await Task.WhenAll(
+                _acceptRequestsTask ?? Task.CompletedTask,
+                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
+        }
+
         // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
         // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
         await _dispatchesCompleted.Task.ConfigureAwait(false);
 
-        _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
         _dispatchSemaphore?.Dispose();
     }
@@ -501,9 +515,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Canceled by shutdown
             throw ConnectionClosedException!;
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCts.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Speedy-shutdown canceled the invocation.
+            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested);
             throw new IceRpcException(IceRpcError.OperationAborted);
+        }
+        catch (IceRpcException exception) when (
+            exception.IceRpcError is IceRpcError.LimitExceeded or IceRpcError.TruncatedData)
+        {
+            throw;
+        }
+        catch (IceRpcException exception) when (exception != ConnectionClosedException)
+        {
+            // The connection failed or was disposed.
+            throw new IceRpcException(IceRpcError.OperationAborted, exception);
         }
         finally
         {
@@ -873,31 +901,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     }
 
     /// <summary>Disposes the transport connection and cancels pending dispatches and invocations.</summary>
-    private async Task CloseAsync(string? message = null, Exception? innerException = null)
+    private async Task CloseAsync(string? message = null, IceRpcException? innerException = null)
     {
-        ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
-
-        // Cancel tasks that rely on the transport to ensure that calls on the transport are canceled before calling
-        // Dispose on the transport connection.
-        _tasksCts.Cancel();
-
-        // Wait for the transport connection operations to complete.
-        try
+        // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
+        // case the connection shutdown or disposal is responsible for calling the connection closed callback.
+        if (ConnectionClosedException is null)
         {
-            await Task.WhenAll(
-                _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
+            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
+            ConnectionClosed(innerException is null ? null : ConnectionClosedException);
         }
 
-        // Cancel dispatches and invocations that might still be in progress.
-        CancelDispatchesAndInvocations();
-
-        // Dispose the transport connection. This will abort the transport connection if it wasn't closed first.
+        // Dispose the transport connection. This will trigger the failure of pending tasks waiting on the transport.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
+
+        // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
+        CancelDispatchesAndInvocations();
     }
 
     private async Task DispatchRequestAsync(IMultiplexedStream stream, CancellationToken cancellationToken)
@@ -977,7 +995,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch when (request.IsOneway || _tasksCts.IsCancellationRequested)
+            catch when (request.IsOneway)
             {
                 // No reply for oneway requests or if the connection is disposed.
                 return;
@@ -1108,29 +1126,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 consumed = 0;
                 return false;
             }
-        }
-    }
-
-    private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancellationToken)
-    {
-        PipeReader input = _remoteControlStream!.Input;
-        ReadResult readResult = await input.ReadSegmentAsync(
-            SliceEncoding.Slice2,
-            _maxLocalHeaderSize,
-            cancellationToken).ConfigureAwait(false);
-
-        // We don't call CancelPendingRead on _remoteControlStream.Input
-        Debug.Assert(!readResult.IsCanceled);
-
-        try
-        {
-            return SliceEncoding.Slice2.DecodeBuffer(
-                readResult.Buffer,
-                (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
-        }
-        finally
-        {
-            input.AdvanceTo(readResult.Buffer.End);
         }
     }
 

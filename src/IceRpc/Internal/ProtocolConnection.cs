@@ -275,9 +275,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("cannot call ShutdownAsync before calling ConnectAsync");
             }
 
-            ConnectionClosedException = new(
-                IceRpcError.ConnectionClosed,
-                "The connection was shut down.");
+            ConnectionClosedException = new(IceRpcError.ConnectionClosed, "The connection was shut down.");
 
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
@@ -349,8 +347,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected void ConnectionClosed(Exception? exception = null) =>
         _ = exception is null ?
             _shutdownCompleteSource.TrySetResult() :
-            _shutdownCompleteSource.TrySetException(
-                new IceRpcException(IceRpcError.ConnectionClosed, "The connection was lost.", exception));
+            _shutdownCompleteSource.TrySetException(exception);
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
