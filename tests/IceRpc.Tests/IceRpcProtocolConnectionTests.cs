@@ -835,6 +835,43 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    public async Task Response_with_header_size_larger_than_max_header_size_fails()
+    {
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(
+            new OutgoingResponse(request)
+            {
+                Fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>
+                {
+                    [(ResponseFieldKey)3] = new OutgoingFieldValue(new ReadOnlySequence<byte>(new byte[200]))
+                }
+            }));
+
+        Exception? dispatchTaskException = null;
+
+        await using var provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.IceRpc,
+                dispatcher,
+                clientConnectionOptions: new ConnectionOptions { MaxIceRpcHeaderSize = 100 },
+                serverConnectionOptions: new ConnectionOptions
+                {
+                    FaultedTaskAction = exception => dispatchTaskException = exception
+                })
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        Assert.That(
+            dispatchTaskException,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
+    }
+
+    [Test]
     public async Task Response_with_large_header()
     {
         // Arrange

@@ -287,12 +287,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     }
                                     catch (IceRpcException exception) when (
                                         exception.IceRpcError is
-                                            IceRpcError.LimitExceeded or
                                             IceRpcError.OperationAborted or
                                             IceRpcError.TruncatedData)
                                     {
-                                        // LimitExceeded is expected when attempting to encode a response header larger
-                                        // than the peer's max header size.
                                         // OperationAborted is expected when the connection is disposed (and aborted)
                                         // while we're receiving a request header or sending a response.
                                         // TruncatedData is expected when reading a request header. It can also be
