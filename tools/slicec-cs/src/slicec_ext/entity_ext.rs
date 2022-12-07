@@ -97,10 +97,7 @@ where
     }
 
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
-        escape_keyword(&format!(
-            "{prefix}{}{suffix}",
-            self.cs_identifier(Some(Case::Pascal)),
-        ))
+        escape_keyword(&format!("{prefix}{}{suffix}", self.cs_identifier(Some(Case::Pascal))))
     }
 
     /// Escapes and returns the definition's identifier, fully scoped.
