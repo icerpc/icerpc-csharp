@@ -69,15 +69,15 @@ public sealed class RequestContextInterceptorTests
                 })
         };
 
-        bool hasContextFiled = true;
+        bool hasContextField = true;
         var sut = new RequestContextInterceptor(
            new InlineInvoker((request, cancellationToken) =>
            {
-               hasContextFiled = request.Fields.ContainsKey(RequestFieldKey.Context);
+               hasContextField = request.Fields.ContainsKey(RequestFieldKey.Context);
                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
            }));
         await sut.InvokeAsync(request, default);
 
-        Assert.That(hasContextFiled, Is.False);
+        Assert.That(hasContextField, Is.False);
     }
 }
