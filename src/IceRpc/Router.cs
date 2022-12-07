@@ -98,7 +98,7 @@ public sealed class Router : IDispatcher
         if (_dispatcher.IsValueCreated)
         {
             throw new InvalidOperationException(
-                $"All the middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}.");
+                $"All middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}.");
         }
         _middlewareStack.Push(middleware);
         return this;
