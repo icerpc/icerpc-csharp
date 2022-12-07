@@ -350,7 +350,6 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
 }}
 "#,
         name = operation.cs_identifier(None),
-        internal_name = internal_name,
         interface_name = operation.parent().unwrap().interface_name(),
         dispatch_body = operation_dispatch_body(operation).indent()
     )
@@ -395,7 +394,6 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
                 check_and_decode,
                 "var {var_name} = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("sliceP_"),
-                async_operation_name = async_operation_name,
             )
         }
         _ => {
@@ -428,8 +426,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
 
         writeln!(
             dispatch_and_return,
-            "var returnValue = await target.{name}({args}).ConfigureAwait(false);",
-            name = async_operation_name,
+            "var returnValue = await target.{async_operation_name}({args}).ConfigureAwait(false);",
             args = args.join(", ")
         );
         if operation.streamed_return_member().is_some() {
@@ -468,7 +465,6 @@ return new IceRpc.OutgoingResponse(request)
             } else {
                 ""
             },
-            async_operation_name = async_operation_name,
             args = args.join(", ")
         );
 
@@ -513,9 +509,7 @@ catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled
 {{
     return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
-            check_and_decode = check_and_decode,
             dispatch_and_return = dispatch_and_return.indent(),
-            exception_type = exception_type,
             encoding = encoding
         )
     }
@@ -571,11 +565,9 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
     {use_segments},
     {encoding},
     {encode_options})",
-                    stream_arg = stream_arg,
                     encode_action =
                         encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
                     use_segments = !stream_type.is_fixed_size(),
-                    encoding = encoding,
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions"
                 )
                 .into(),

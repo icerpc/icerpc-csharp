@@ -91,9 +91,8 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         builder.add_block(
             format!(
                 "\
-private static readonly global::System.Collections.Generic.HashSet<{underlying}> _enumeratorValues =
-    new global::System.Collections.Generic.HashSet<{underlying}> {{ {enum_values} }};",
-                underlying = cs_type,
+private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _enumeratorValues =
+    new global::System.Collections.Generic.HashSet<{cs_type}> {{ {enum_values} }};",
                 enum_values = enum_def
                     .enumerators()
                     .iter()
@@ -144,7 +143,6 @@ enumerator."#
                         max_value = min_max_values.unwrap().1,
                     ),
                 },
-                escaped_identifier = escaped_identifier,
                 scoped = enum_def.escape_scoped_identifier(namespace),
             )
             .into()
@@ -186,15 +184,12 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 /// <param name="encoder">The Slice encoder.</param>
 /// <param name="value">The <see cref="{escaped_identifier}" /> enumerator value to encode.</param>
 {access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
-    {encode_enum}(({underlying_type})value);"#,
-            access = access,
+    {encode_enum}(({cs_type})value);"#,
             identifier = enum_def.cs_identifier(Some(Case::Pascal)),
-            escaped_identifier = escaped_identifier,
             encode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
             },
-            underlying_type = cs_type,
         )
         .into(),
     );
@@ -231,10 +226,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 /// <returns>The decoded <see cref="{escaped_identifier}" /> enumerator value.</returns>
 {access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     {underlying_extensions_class}.As{identifier}({decode_enum});"#,
-            access = access,
             identifier = enum_def.cs_identifier(Some(Case::Pascal)),
-            escaped_identifier = escaped_identifier,
-            underlying_extensions_class = underlying_extensions_class,
             decode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
                 _ => "decoder.DecodeSize()".to_owned(),

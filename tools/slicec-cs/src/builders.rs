@@ -272,8 +272,6 @@ impl FunctionBuilder {
     ) -> &mut Self {
         self.parameters.push(format!(
             "{param_type} {param_name}{default_value}",
-            param_type = param_type,
-            param_name = param_name,
             default_value = match default_value {
                 Some(value) => format!(" = {value}"),
                 None => "".to_string(),
@@ -598,15 +596,14 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
 ",
                 encoding_check = if self.encoding_check {
                     format!(
-                        r#"if ({encoding_variable} != {encoding})
+                        r#"if ({encoding_variable} != {cs_encoding})
 {{
-    throw new NotSupportedException("{identifier} can only be encoded with {encoding_name}.");
+    throw new NotSupportedException("{identifier} can only be encoded with {encoding}.");
 }}
 "#,
                         identifier = self.identifier,
                         encoding_variable = self.encoding_variable,
-                        encoding = encoding.to_cs_encoding(),
-                        encoding_name = encoding,
+                        cs_encoding = encoding.to_cs_encoding(),
                     )
                 } else {
                     "".to_owned()

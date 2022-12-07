@@ -143,7 +143,6 @@ if ({param} != null)
                             format!("{param}.Span"),
                         _ => param.to_owned(),
                     },
-                    encode_type = encode_type,
                 )
             } else {
                 encode_type
@@ -217,9 +216,7 @@ fn encode_tagged_type(
                 (
                     Some(format!(
                         "{encoder_param}.GetSizeLength({value}.Length) + {min_wire_size} * {value}.Length",
-                        encoder_param = encoder_param,
                         min_wire_size = sequence_def.element_type.min_wire_size(),
-                        value = value,
                     )),
                     None,
                 )
@@ -227,7 +224,6 @@ fn encode_tagged_type(
                 (
                     Some(format!(
                         "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
-                        encoder_param = encoder_param,
                         min_wire_size = sequence_def.element_type.min_wire_size()
                     )),
                     Some(value.clone()),
@@ -276,7 +272,6 @@ if ({null_check})
 {{
     {encode_tagged}
 }}",
-        null_check = null_check,
         encode_tagged = {
             let mut code = CodeBlock::default();
             if let Some(count) = count_value {
@@ -421,7 +416,6 @@ pub fn encode_action(
             write!(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_sequence}",
-                value_type = value_type,
                 encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding)
             )
         }

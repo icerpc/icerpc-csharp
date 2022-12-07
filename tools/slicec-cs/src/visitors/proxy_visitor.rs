@@ -302,7 +302,6 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
         format!(
             "(({base_proxy_impl})this).{async_name}({operation_params})",
             base_proxy_impl = operation.parent().unwrap().proxy_implementation_name(),
-            async_name = async_name,
             operation_params = operation_params.join(", ")
         )
         .into(),
