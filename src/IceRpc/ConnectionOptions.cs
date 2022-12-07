@@ -23,12 +23,14 @@ public record class ConnectionOptions
     /// not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
 
-    /// <summary>Gets or sets the action to execute when the processing of an incoming request throws an exception
-    /// before it calls <see cref="Dispatcher" /> or while it sends the response provided by <see cref="Dispatcher" />.
-    /// Such an exception can represent a bug in IceRPC or in the application code (for example, in the implementation
-    /// of the <see cref="OutgoingFrame.Payload" /> supplied by the application).</summary>
+    /// <summary>Gets or sets the action to execute when a task that IceRPC starts and does not await completes due to
+    /// an unhandled exception. This unhandled exception can correspond to a bug in IceRPC itself or to an exception
+    /// thrown by the application code called by IceRPC. For example, when a dispatch task sends a response provided by
+    /// the application and the reading of this response throws <c>MyException</c>, this action will be called with this
+    /// exception instance.</summary>
     /// <value>The default action calls Assert and includes the exception in the Assert message.</value>
-    public Action<Exception> DispatchPanicAction { get; set; } = _defaultDispatchPanicAction;
+    /// <seealso cref="TaskScheduler.UnobservedTaskException" />
+    public Action<Exception> FaultedTaskAction { get; set; } = _defaultFaultedTaskAction;
 
     /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
     /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
@@ -136,8 +138,8 @@ public record class ConnectionOptions
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
     private const int IceMinFrameSize = 256;
-    private static readonly Action<Exception> _defaultDispatchPanicAction = exception =>
-        Debug.Assert(false, $"Dispatch panic: {exception}");
+    private static readonly Action<Exception> _defaultFaultedTaskAction =
+        exception => Debug.Assert(false, $"IceRpc task completed due to an unhandled exception: {exception}");
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
