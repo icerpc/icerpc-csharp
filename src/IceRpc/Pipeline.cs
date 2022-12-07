@@ -3,7 +3,7 @@
 namespace IceRpc;
 
 /// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use" />,
-/// and a final invoker installed by calling <see cref="Into"/>,request using this pipeline flows through the
+/// and a final invoker installed by calling <see cref="Into"/>, requests using this pipeline flows through the
 /// interceptors into the last invoker that is responsible for sending request.</summary>
 public sealed class Pipeline : IInvoker
 {
