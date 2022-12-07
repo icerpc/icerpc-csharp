@@ -164,7 +164,7 @@ public sealed class IceProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
+                    FaultedTaskAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();

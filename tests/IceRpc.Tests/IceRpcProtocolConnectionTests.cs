@@ -307,7 +307,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 clientConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => sendException = exception
+                    FaultedTaskAction = exception => sendException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -447,7 +447,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
+                    FaultedTaskAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -484,7 +484,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
+                    FaultedTaskAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -524,7 +524,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
+                    FaultedTaskAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -622,7 +622,7 @@ public sealed class IceRpcProtocolConnectionTests
                 Protocol.IceRpc,
                 clientConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => sendException = exception
+                    FaultedTaskAction = exception => sendException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -705,7 +705,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => sendException = exception
+                    FaultedTaskAction = exception => sendException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
 
@@ -795,7 +795,7 @@ public sealed class IceRpcProtocolConnectionTests
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = (_, exception) => dispatchTaskException = exception
+                    FaultedTaskAction = exception => dispatchTaskException = exception
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();

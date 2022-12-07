@@ -24,7 +24,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
-    private readonly Action<string, Exception> _faultedTaskAction;
+    private readonly Action<Exception> _faultedTaskAction;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
     private bool _isAcceptingDispatchesAndInvocations;
@@ -310,7 +310,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     catch (Exception exception)
                                     {
                                         // not expected
-                                        _faultedTaskAction("icerpc dispatch", exception);
+                                        _faultedTaskAction(exception);
+                                        throw;
                                     }
                                     finally
                                     {
@@ -810,7 +811,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        _faultedTaskAction("payload continuation sender", exception);
+                        _faultedTaskAction(exception);
+                        throw;
                     }
                     finally
                     {

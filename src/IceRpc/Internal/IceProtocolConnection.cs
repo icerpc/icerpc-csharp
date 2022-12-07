@@ -33,7 +33,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
-    private readonly Action<string, Exception> _faultedTaskAction;
+    private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
     private readonly int _maxFrameSize;
@@ -928,7 +928,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        _faultedTaskAction("ice dispatch", exception);
+                        _faultedTaskAction(exception);
+                        throw;
                     }
                 },
                 CancellationToken.None);
