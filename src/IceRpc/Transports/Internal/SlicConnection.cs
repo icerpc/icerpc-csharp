@@ -122,7 +122,7 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(
                     IceRpcError.IceRpcError,
-                    $"Received unexpected Slic frame '{header.Value.FrameType}'.");
+                    $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
             }
 
             (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
@@ -220,7 +220,7 @@ internal class SlicConnection : IMultiplexedConnection
                 default:
                     throw new IceRpcException(
                         IceRpcError.IceRpcError,
-                        $"Received unexpected Slic frame '{header.Value.FrameType}'.");
+                        $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
             }
         }
 
@@ -851,7 +851,7 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new IceRpcException(
                             IceRpcError.IceRpcError,
-                            "Received Slic stream frame on local unidirectional stream.");
+                            "Received unexpected Slic stream frame on local unidirectional stream.");
                     }
                     else if (dataSize == 0 && !endStream)
                     {
@@ -1080,7 +1080,7 @@ internal class SlicConnection : IMultiplexedConnection
                     new IceRpcException(IceRpcError.ServerBusy),
                 _ => new IceRpcException(
                     IceRpcError.ConnectionAborted,
-                    $"The connection was closed by the peer with unknown application error code {errorCode}.")
+                    $"The connection was closed by the peer with an unknown application error code: '{errorCode}'.")
             };
 
             if (await CloseAsyncCore(exception).ConfigureAwait(false))

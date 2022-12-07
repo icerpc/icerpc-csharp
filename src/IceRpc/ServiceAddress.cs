@@ -106,7 +106,7 @@ public sealed record class ServiceAddress
                 if (value.Any(e => e.Protocol != Protocol))
                 {
                     throw new ArgumentException(
-                        $"The {nameof(AltServerAddresses)} server addresses must use the service address's protocol {Protocol}.",
+                        $"The {nameof(AltServerAddresses)} server addresses must use the service address's protocol: '{Protocol}'.",
                         nameof(value));
                 }
             }

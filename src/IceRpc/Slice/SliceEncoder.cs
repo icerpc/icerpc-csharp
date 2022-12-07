@@ -129,7 +129,7 @@ public ref partial struct SliceEncoder
         if (value < 0)
         {
             throw new ArgumentException(
-                $"The size value {nameof(value)} must be at least 0",
+                $"The {nameof(value)} argument must be greater than 0.",
                 nameof(value));
         }
 

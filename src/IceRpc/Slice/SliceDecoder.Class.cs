@@ -363,7 +363,7 @@ public ref partial struct SliceDecoder
             {
                 if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
                 {
-                    throw new InvalidDataException("Invalid Slice flags; a slice in compact format cannot carry a size.");
+                    throw new InvalidDataException("Invalid Slice flags; a Slice in compact format cannot carry a size.");
                 }
             }
         }

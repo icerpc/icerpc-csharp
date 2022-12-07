@@ -25,7 +25,7 @@ internal static class ServerAddressExtensions
                     {
                         "1.0" => ((byte)1, (byte)0),
                         "1.1" => ((byte)1, (byte)1),
-                        _ => throw new FormatException($"Invalid value for parameter 'e' in server address '{serverAddress}'.")
+                        _ => throw new FormatException($"Invalid value for parameter 'e' in server address: '{serverAddress}'.")
                     };
                     break;
 
@@ -38,13 +38,13 @@ internal static class ServerAddressExtensions
                     catch (FormatException exception)
                     {
                         throw new FormatException(
-                            $"Invalid value for parameter 't' in server address '{serverAddress}'.", exception);
+                            $"Invalid value for parameter 't' in server address: '{serverAddress}'.", exception);
                     }
 
                     if (t < 0)
                     {
                         throw new FormatException(
-                            $"The value for parameter 't' is out of range in server address '{serverAddress}'");
+                            $"The value for parameter 't' is out of range in server address: '{serverAddress}'.");
                     }
 
                     transportCode = (TransportCode)t;
@@ -57,22 +57,22 @@ internal static class ServerAddressExtensions
                     }
                     catch (FormatException exception)
                     {
-                        throw new FormatException($"Invalid Base64 value in server address '{serverAddress}'.", exception);
+                        throw new FormatException($"Invalid Base64 value in server address: '{serverAddress}'.", exception);
                     }
                     break;
 
                 default:
-                    throw new FormatException($"Unknown parameter '{name}' in server address '{serverAddress}'.");
+                    throw new FormatException($"Unknown parameter '{name}' in server address: '{serverAddress}'.");
             }
         }
 
         if (transportCode is null)
         {
-            throw new FormatException($"Missing 't' parameter in server address '{serverAddress}'.");
+            throw new FormatException($"Missing 't' parameter in server address: '{serverAddress}'.");
         }
         else if (bytes.Length == 0)
         {
-            throw new FormatException($"Missing 'v' parameter in server address '{serverAddress}'.");
+            throw new FormatException($"Missing 'v' parameter in server address: '{serverAddress}'.");
         }
 
         return (transportCode.Value, encodingMajor, encodingMinor, bytes);

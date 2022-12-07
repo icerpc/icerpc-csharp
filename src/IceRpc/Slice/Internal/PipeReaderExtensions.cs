@@ -101,7 +101,7 @@ internal static class PipeReaderExtensions
                 Debug.Assert(readResult.IsCompleted);
                 reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 throw new InvalidDataException(
-                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} were expected.");
+                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} bytes were expected.");
             }
 
             return readResult.Buffer.Length == segmentSize ? readResult :
@@ -242,7 +242,7 @@ internal static class PipeReaderExtensions
             if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
             {
                 throw new InvalidDataException(
-                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} were expected.");
+                    $"The payload has {readResult.Buffer.Length} bytes, but {segmentSize} bytes were expected.");
             }
 
             // segmentSize and consumed are set and can be used by the caller.

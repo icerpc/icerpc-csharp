@@ -82,14 +82,14 @@ public ref partial struct SliceDecoder
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                 throw new ArgumentException(
-                    $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1.",
+                    $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
                     nameof(maxCollectionAllocation)));
 
         _activator = activator;
         _classContext = default;
         _currentDepth = 0;
         _maxDepth = maxDepth >= 1 ? maxDepth :
-            throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0.", nameof(maxDepth));
+            throw new ArgumentException($"The {nameof(maxDepth)} argument must be greater than 0.", nameof(maxDepth));
 
         _reader = new SequenceReader<byte>(buffer);
     }
@@ -459,7 +459,7 @@ public ref partial struct SliceDecoder
         {
             throw new ArgumentOutOfRangeException(
                 nameof(bitSequenceSize),
-                $"The {nameof(bitSequenceSize)} must be greater than 0.");
+                $"The {nameof(bitSequenceSize)} argument must be greater than 0.");
         }
 
         int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
@@ -920,7 +920,7 @@ public ref partial struct SliceDecoder
         if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
         {
             throw new ArgumentException(
-                $"The {nameof(useTagEndMarker)} argument must be true when decoding a class/exception data members.",
+                $"The {nameof(useTagEndMarker)} argument must be true when decoding the data members of a class or exception.",
                 nameof(useTagEndMarker));
         }
         else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)

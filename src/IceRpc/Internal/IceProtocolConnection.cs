@@ -459,7 +459,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 if (buffer.Length < headerSize)
                 {
-                    throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'");
+                    throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
                 }
 
                 EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
