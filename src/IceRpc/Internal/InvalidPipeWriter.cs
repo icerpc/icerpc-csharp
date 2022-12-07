@@ -15,7 +15,7 @@ internal sealed class InvalidPipeWriter : PipeWriter
     internal static PipeWriter Instance { get; } = new InvalidPipeWriter();
 
     private static readonly Exception _notSupportedException =
-        new NotSupportedException("cannot use invalid pipe writer");
+        new NotSupportedException("Cannot use invalid pipe writer.");
 
     public override void Advance(int bytes) => throw _notSupportedException;
 

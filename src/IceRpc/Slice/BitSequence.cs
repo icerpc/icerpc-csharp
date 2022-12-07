@@ -21,7 +21,7 @@ public ref struct BitSequenceReader
         if (!_sequenceReader.TryRead(out _currentByte))
         {
             throw new ArgumentException(
-                "cannot create a bit sequence reader over an empty byte sequence",
+                "Cannot create a bit sequence reader over an empty byte sequence.",
                 nameof(bitSequence));
         }
     }
@@ -35,7 +35,7 @@ public ref struct BitSequenceReader
             _index = 0;
             if (!_sequenceReader.TryRead(out _currentByte))
             {
-                throw new InvalidOperationException("attempting to read past the end of the bit sequence");
+                throw new InvalidOperationException("Attempting to read past the end of the bit sequence.");
             }
         }
         return (_currentByte & (1 << _index++)) != 0;
@@ -69,7 +69,7 @@ public ref struct BitSequenceWriter
             }
             else
             {
-                throw new InvalidOperationException("cannot write past end of bit sequence");
+                throw new InvalidOperationException("Cannot write past the end of the bit sequence.");
             }
         }
 

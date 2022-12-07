@@ -87,14 +87,14 @@ public static class ProxyExtensions
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
-            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+            throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
         if (payload is null && payloadContinuation is not null)
         {
             throw new ArgumentNullException(
                 nameof(payload),
-                $"when {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null");
+                $"When {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null.");
         }
 
         var request = new OutgoingRequest(proxy.ServiceAddress)
@@ -169,14 +169,14 @@ public static class ProxyExtensions
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
-            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+            throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
         if (payload is null && payloadContinuation is not null)
         {
             throw new ArgumentNullException(
                 nameof(payload),
-                $"when {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null");
+                $"When {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null.");
         }
 
         var request = new OutgoingRequest(proxy.ServiceAddress)

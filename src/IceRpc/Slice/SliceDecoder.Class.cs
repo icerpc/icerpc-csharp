@@ -38,7 +38,7 @@ public ref partial struct SliceDecoder
     /// <returns>The decoded class instance.</returns>
     public T DecodeClass<T>() where T : SliceClass =>
         DecodeNullableClass<T>() ??
-           throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
+           throw new InvalidDataException("Decoded a null class instance, but expected a non-null instance.");
 
     /// <summary>Decodes a nullable class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
@@ -47,7 +47,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}");
+            throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}.");
         }
 
         SliceClass? obj = DecodeClass();
@@ -61,7 +61,7 @@ public ref partial struct SliceDecoder
             return null;
         }
         throw new InvalidDataException(
-            $"decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'");
+            $"Decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'.");
     }
 
     /// <summary>Decodes a Slice1 user exception.</summary>
@@ -71,7 +71,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"{nameof(DecodeUserException)} is not compatible with {Encoding}");
+            throw new InvalidOperationException($"{nameof(DecodeUserException)} is not compatible with {Encoding}.");
         }
 
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
@@ -113,7 +113,7 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            throw new InvalidDataException($"could not find class to decode Slice exception {mostDerivedTypeId}");
+            throw new InvalidDataException($"Cannot not find a class to decode Slice exception with type id '{mostDerivedTypeId}'");
         }
     }
 
@@ -123,7 +123,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"{nameof(EndSlice)} is not compatible with encoding {Encoding}");
+            throw new InvalidOperationException($"{nameof(EndSlice)} is not compatible with encoding {Encoding}.");
         }
 
         // Note that EndSlice is not called when we call SkipSlice.
@@ -150,7 +150,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
+            throw new InvalidOperationException($"{nameof(StartSlice)} is not compatible with encoding {Encoding}.");
         }
 
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
@@ -174,7 +174,7 @@ public ref partial struct SliceDecoder
         int index = DecodeSize();
         if (index < 0)
         {
-            throw new InvalidDataException($"invalid index {index} while decoding a class");
+            throw new InvalidDataException($"Found invalid index {index} while decoding a class.");
         }
         else if (index == 0)
         {
@@ -193,7 +193,7 @@ public ref partial struct SliceDecoder
             }
             else
             {
-                throw new InvalidDataException("index too big for indirection table");
+                throw new InvalidDataException("The index is too big for the indirection table.");
             }
         }
         else
@@ -209,7 +209,7 @@ public ref partial struct SliceDecoder
         int size = DecodeSize();
         if (size == 0)
         {
-            throw new InvalidDataException("invalid empty indirection table");
+            throw new InvalidDataException("Invalid empty indirection table.");
         }
         IncreaseCollectionAllocation(size * Unsafe.SizeOf<SliceClass>());
         var indirectionTable = new SliceClass[size];
@@ -218,7 +218,7 @@ public ref partial struct SliceDecoder
             int index = DecodeSize();
             if (index < 1)
             {
-                throw new InvalidDataException($"decoded invalid index {index} in indirection table");
+                throw new InvalidDataException($"Found invalid index {index} decoding the indirection table.");
             }
             indirectionTable[i] = DecodeInstance(index);
         }
@@ -235,7 +235,7 @@ public ref partial struct SliceDecoder
         {
             if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
             {
-                throw new InvalidDataException("slice has indirection table but does not have a size");
+                throw new InvalidDataException("The Slice has indirection table flag but has not size flag.");
             }
 
             long savedPos = _reader.Consumed;
@@ -259,12 +259,12 @@ public ref partial struct SliceDecoder
             {
                 return _classContext.InstanceMap[index - 2];
             }
-            throw new InvalidDataException($"could not find index {index} in {nameof(_classContext.InstanceMap)}");
+            throw new InvalidDataException($"Cannot find instance index {index} in the instance map.");
         }
 
         if (++_currentDepth > _maxDepth)
         {
-            throw new InvalidDataException("maximum decoder depth reached while decoding a class");
+            throw new InvalidDataException("The maximum decoder depth was reached while decoding a class.");
         }
 
         // Save current in case we're decoding a nested instance.
@@ -363,8 +363,7 @@ public ref partial struct SliceDecoder
             {
                 if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
                 {
-                    // A slice in compact format cannot carry a size.
-                    throw new InvalidDataException("inconsistent slice flags");
+                    throw new InvalidDataException("Invalid Slice flags; a Slice in compact format cannot carry a size.");
                 }
             }
         }
@@ -398,7 +397,7 @@ public ref partial struct SliceDecoder
         int size = DecodeInt32();
         if (size < 4)
         {
-            throw new InvalidDataException($"invalid slice size: {size}");
+            throw new InvalidDataException($"Invalid Slice size: {size}.");
         }
         // With Slice1, the encoded size includes the size length.
         return size - 4;
@@ -420,7 +419,7 @@ public ref partial struct SliceDecoder
                     // The encoded type-id indexes start at 1, not 0.
                     return _classContext.TypeIdMap[index - 1];
                 }
-                throw new InvalidDataException($"decoded invalid type ID index {index}");
+                throw new InvalidDataException($"Decoded invalid type ID index {index}.");
 
             case TypeIdKind.String:
                 string typeId = DecodeString();
@@ -460,13 +459,13 @@ public ref partial struct SliceDecoder
             int index = DecodeSize();
             if (index <= 0)
             {
-                throw new InvalidDataException($"decoded invalid index {index} in indirection table");
+                throw new InvalidDataException($"Decoded invalid index {index} in indirection table.");
             }
             if (index == 1)
             {
                 if (++_currentDepth > _maxDepth)
                 {
-                    throw new InvalidDataException("maximum decoder depth reached while decoding a class");
+                    throw new InvalidDataException("Maximum decoder depth reached while decoding a class.");
                 }
 
                 // Decode/skip this instance
@@ -481,7 +480,7 @@ public ref partial struct SliceDecoder
                     // Decode the slice size, then skip the slice
                     if ((sliceFlags & SliceFlags.HasSliceSize) == 0)
                     {
-                        throw new InvalidDataException("size of slice missing");
+                        throw new InvalidDataException("The Slice size flag is missing.");
                     }
                     _reader.Advance(DecodeSliceSize());
 
@@ -506,14 +505,14 @@ public ref partial struct SliceDecoder
     {
         if (typeId is null)
         {
-            throw new InvalidDataException("cannot skip a class slice with no type ID");
+            throw new InvalidDataException("Cannot skip a class slice with no type ID.");
         }
 
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
         {
             string kind = _classContext.Current.InstanceType.ToString().ToLowerInvariant();
             throw new InvalidDataException(
-                $"no {kind} found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead)");
+                $"No {kind} found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead).");
         }
 
         bool hasTaggedMembers = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;

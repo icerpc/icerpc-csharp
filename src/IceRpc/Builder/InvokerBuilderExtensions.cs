@@ -18,7 +18,7 @@ public static class InvokerBuilderExtensions
         object? into = builder.ServiceProvider.GetService(typeof(TService));
         return into is not null ? builder.Into((IInvoker)into) :
             throw new InvalidOperationException(
-                $"could not find service of type {typeof(TService)} in service container");
+                $"Could not find service of type '{typeof(TService)}' in the service container.");
     }
 
     /// <summary>Adds an interceptor that sets a feature in all requests.</summary>

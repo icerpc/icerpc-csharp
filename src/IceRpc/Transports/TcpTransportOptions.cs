@@ -14,7 +14,9 @@ public record class TcpTransportOptions
     {
         get => _receiveBufferSize;
         set => _receiveBufferSize = value is null || value >= 1024 ? value :
-            throw new ArgumentException($"{nameof(ReceiveBufferSize)} can't be less than 1KB", nameof(value));
+            throw new ArgumentException(
+                $"The {nameof(ReceiveBufferSize)} value cannot be less than 1KB.",
+                nameof(value));
     }
 
     /// <summary>Gets or sets the socket send buffer size in bytes.</summary>
@@ -24,7 +26,9 @@ public record class TcpTransportOptions
     {
         get => _sendBufferSize;
         set => _sendBufferSize = value is null || value >= 1024 ? value :
-            throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
+            throw new ArgumentException(
+                $"The {nameof(SendBufferSize)} value cannot be less than 1KB.",
+                nameof(value));
     }
 
     private int? _receiveBufferSize;
@@ -52,7 +56,7 @@ public sealed record class TcpServerTransportOptions : TcpTransportOptions
     {
         get => _listenBacklog;
         set => _listenBacklog = value > 0 ? value :
-            throw new ArgumentException($"{nameof(ListenBacklog)} can't be less than 1", nameof(value));
+            throw new ArgumentException($"The {nameof(ListenBacklog)} value cannot be less than 1", nameof(value));
     }
 
     private int _listenBacklog = 511;

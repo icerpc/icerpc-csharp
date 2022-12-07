@@ -198,12 +198,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
             {
                 throw new InvalidDataException(
-                    $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                    $"Received ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
             }
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
                 throw new InvalidDataException(
-                    $"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                    $"Expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'.");
             }
         }
 
@@ -353,7 +353,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
                 {
                     throw new NotSupportedException(
-                        "payload writer cancellation or completion is not supported with the ice protocol");
+                        "Payload writer cancellation or completion is not supported with the ice protocol.");
                 }
 
                 request.Payload.Complete();
@@ -386,7 +386,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             if (!frameReader.TryRead(out ReadResult readResult))
             {
-                throw new InvalidDataException($"received empty response frame for request #{requestId}");
+                throw new InvalidDataException($"Received empty response frame for request with id '{requestId}'.");
             }
 
             Debug.Assert(readResult.IsCompleted);
@@ -459,7 +459,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 if (buffer.Length < headerSize)
                 {
-                    throw new InvalidDataException($"received invalid frame header for request #{requestId}");
+                    throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
                 }
 
                 EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
@@ -471,7 +471,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 if (payloadSize != buffer.Length - headerSize)
                 {
                     throw new InvalidDataException(
-                        $"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {buffer.Length - headerSize} bytes left");
+                        $"Response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {buffer.Length - headerSize} bytes left.");
                 }
 
                 SequencePosition consumed = buffer.GetPosition(headerSize);
@@ -660,11 +660,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         if (readResult.IsCanceled)
         {
-            throw new InvalidOperationException("unexpected call to CancelPendingRead on ice payload");
+            throw new InvalidOperationException("Unexpected call to CancelPendingRead on ice payload.");
         }
 
         return readResult.IsCompleted ? readResult.Buffer :
-            throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
+            throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
     /// <summary>Closes the transport connection and cancels pending dispatches and invocations.</summary>
@@ -710,12 +710,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (prologue.FrameSize > _maxFrameSize)
             {
                 throw new InvalidDataException(
-                    $"received frame with size ({prologue.FrameSize}) greater than max frame size");
+                    $"Received frame with size ({prologue.FrameSize}) greater than max frame size.");
             }
 
             if (prologue.CompressionStatus == 2)
             {
-                throw new NotSupportedException("cannot decompress Ice frame");
+                throw new NotSupportedException("The ice protocol compression is not supported by IceRpc.");
             }
 
             // Then process the frame based on its type.
@@ -726,7 +726,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
-                            $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
+                            $"Received {nameof(IceFrameType.CloseConnection)} frame with unexpected data.");
                     }
                     return;
                 }
@@ -755,7 +755,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
-                            $"unexpected data for {nameof(IceFrameType.ValidateConnection)}");
+                            $"Received {nameof(IceFrameType.ValidateConnection)} frame with unexpected data.");
                     }
                     break;
                 }
@@ -763,7 +763,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 default:
                 {
                     throw new InvalidDataException(
-                        $"received Ice frame with unknown frame type '{prologue.FrameType}'");
+                        $"Received Ice frame with unknown frame type '{prologue.FrameType}'.");
                 }
             }
         } // while
@@ -785,7 +785,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Read and decode request ID
                 if (!replyFrameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                 {
-                    throw new InvalidDataException("received invalid response request ID");
+                    throw new InvalidDataException("Received a response with an invalid request ID.");
                 }
 
                 ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
@@ -805,7 +805,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     else
                     {
-                        throw new InvalidDataException("received ice Reply for unknown invocation");
+                        throw new InvalidDataException("Received an ice response for an unknown request.");
                     }
                 }
             }
@@ -838,7 +838,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 if (!requestFrameReader.TryRead(out ReadResult readResult))
                 {
-                    throw new InvalidDataException("received invalid request frame");
+                    throw new InvalidDataException("Received an invalid request frame.");
                 }
 
                 Debug.Assert(readResult.IsCompleted);
@@ -955,7 +955,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (response != request.Response)
                     {
                         throw new InvalidOperationException(
-                            "the dispatcher did not return the last response created for this request");
+                            "The dispatcher did not return the last response created for this request.");
                     }
                 }
                 catch when (request.IsOneway)
@@ -968,7 +968,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     response = new OutgoingResponse(
                         request,
                         StatusCode.UnhandledException,
-                        "dispatch canceled");
+                        "The dispatch was canceled.");
                 }
                 catch (Exception exception)
                 {
@@ -1117,14 +1117,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     encapsulationHeader.PayloadEncodingMinor != 1)
                 {
                     throw new InvalidDataException(
-                        $"unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor}.{encapsulationHeader.PayloadEncodingMinor}'");
+                        $"Unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor}.{encapsulationHeader.PayloadEncodingMinor}'.");
                 }
 
                 int payloadSize = encapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
                 {
                     throw new InvalidDataException(
-                        $"request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes");
+                        $"Request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes.");
                 }
 
                 return (requestId, requestHeader, contextPipe?.Reader, (int)decoder.Consumed);

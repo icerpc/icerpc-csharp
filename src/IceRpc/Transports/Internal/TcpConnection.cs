@@ -58,7 +58,7 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         if (buffer.Length == 0)
         {
-            throw new ArgumentException($"empty {nameof(buffer)}");
+            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
         }
 
         int received;
@@ -197,7 +197,7 @@ internal abstract class TcpConnection : IDuplexConnection
                         else
                         {
                             throw new ArgumentException(
-                                $"{nameof(buffers)} are not backed by arrays",
+                                $"The {nameof(buffers)} must be backed by arrays.",
                                 nameof(buffers));
                         }
                     }

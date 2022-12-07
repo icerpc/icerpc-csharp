@@ -173,12 +173,12 @@ internal class SlicPipeReader : PipeReader
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "empty Slic stream frame are not allowed unless endStream is true");
+                "An empty Slic stream frame is not allowed unless endStream is true.");
         }
 
         if (!_state.TrySetFlag(State.PipeWriterInUse))
         {
-            throw new InvalidOperationException($"{nameof(ReceivedStreamFrameAsync)} is not thread safe");
+            throw new InvalidOperationException($"The {nameof(ReceivedStreamFrameAsync)} operation is not thread safe.");
         }
 
         try
@@ -194,7 +194,7 @@ internal class SlicPipeReader : PipeReader
             {
                 throw new IceRpcException(
                     IceRpcError.IceRpcError,
-                    "received more data than flow control permits");
+                    "Received more data than flow control permits.");
             }
 
             // Fill the pipe writer with dataSize bytes.
@@ -232,7 +232,7 @@ internal class SlicPipeReader : PipeReader
         {
             // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing the
             // pipe reader.
-            throw new InvalidOperationException("reading is not allowed once the reader is completed");
+            throw new InvalidOperationException("Reading is not allowed once the reader is completed.");
         }
     }
 

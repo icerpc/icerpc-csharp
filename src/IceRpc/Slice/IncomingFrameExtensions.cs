@@ -40,7 +40,7 @@ public static class IncomingFrameExtensions
     {
         if (elementSize <= 0)
         {
-            throw new ArgumentException("element size must be greater than 0");
+            throw new ArgumentException("The element size must be greater than 0.", nameof(elementSize));
         }
 
         sliceFeature ??= SliceFeature.Default;
@@ -150,7 +150,7 @@ public static class IncomingFrameExtensions
                 if (readResult.IsCanceled)
                 {
                     // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                    throw new InvalidOperationException("unexpected call to CancelPendingRead");
+                    throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
                 }
                 if (readResult.Buffer.IsEmpty)
                 {

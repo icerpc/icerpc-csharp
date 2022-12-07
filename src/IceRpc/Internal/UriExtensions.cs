@@ -42,7 +42,7 @@ internal static class UriExtensions
                 {
                     if (name.Length == 0)
                     {
-                        throw new FormatException($"invalid empty query parameter name in URI '{uri.OriginalString}'");
+                        throw new FormatException($"Invalid empty query parameter name in URI '{uri.OriginalString}'.");
                     }
 
                     // we assume the C# URI parser validates the name and value sufficiently

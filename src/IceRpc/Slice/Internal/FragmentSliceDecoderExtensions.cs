@@ -10,6 +10,6 @@ internal static class FragmentSliceDecoderExtensions
         {
             0 => "",
             1 => Uri.EscapeDataString(decoder.DecodeString()),
-            _ => throw new InvalidDataException("received a Fragment with too many sequence elements")
+            _ => throw new InvalidDataException("Received a Fragment with too many sequence elements.")
         };
 }

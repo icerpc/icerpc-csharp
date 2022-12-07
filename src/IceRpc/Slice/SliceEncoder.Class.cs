@@ -151,7 +151,7 @@ public ref partial struct SliceEncoder
         // slices, which essentially "slices" the instance into the most-derived type known by the sender.
         if (_classContext.ClassFormat != ClassFormat.Sliced)
         {
-            throw new NotSupportedException($"cannot encode sliced data into payload using {_classContext.ClassFormat} format");
+            throw new NotSupportedException($"Cannot encode sliced data into payload using {_classContext.ClassFormat} format.");
         }
 
         for (int i = 0; i < unknownSlices.Count; ++i)
@@ -168,7 +168,7 @@ public ref partial struct SliceEncoder
                 }
                 catch (FormatException ex)
                 {
-                    throw new InvalidDataException($"received invalid type ID {sliceInfo.TypeId}", ex);
+                    throw new InvalidDataException($"Received invalid type ID {sliceInfo.TypeId}.", ex);
                 }
             }
 

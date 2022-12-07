@@ -36,7 +36,7 @@ internal static class IncomingFrameExtensions
             // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
             if (readResult.IsCanceled)
             {
-                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+                throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
             }
 
             var decoder = new SliceDecoder(
@@ -86,7 +86,7 @@ internal static class IncomingFrameExtensions
             // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
             if (readResult.IsCanceled)
             {
-                throw new InvalidOperationException("unexpected call to CancelPendingRead");
+                throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
             }
 
             if (!readResult.Buffer.IsEmpty)

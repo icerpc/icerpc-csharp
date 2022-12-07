@@ -27,7 +27,7 @@ public sealed class Pipeline : IInvoker
     {
         if (_invoker.IsValueCreated)
         {
-            throw new InvalidOperationException($"{nameof(Into)} must be called before {nameof(InvokeAsync)}");
+            throw new InvalidOperationException($"{nameof(Into)} must be called before {nameof(InvokeAsync)}.");
         }
 
         _lastInvoker = lastInvoker;
@@ -44,7 +44,7 @@ public sealed class Pipeline : IInvoker
         if (_invoker.IsValueCreated)
         {
             throw new InvalidOperationException(
-                $"interceptors must be installed before the first call to {nameof(InvokeAsync)}");
+                $"The interceptors must be installed before the first call to {nameof(InvokeAsync)}.");
         }
         _interceptorStack.Push(interceptor);
         return this;
@@ -58,7 +58,7 @@ public sealed class Pipeline : IInvoker
         if (_lastInvoker is null)
         {
             throw new InvalidOperationException(
-                $"call {nameof(Into)} before calling {nameof(InvokeAsync)} on a Pipeline");
+                $"{nameof(Into)} must be called before calling {nameof(InvokeAsync)} on a Pipeline.");
         }
 
         IInvoker pipeline = _lastInvoker;

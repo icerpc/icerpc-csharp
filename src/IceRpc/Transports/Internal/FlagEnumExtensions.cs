@@ -35,7 +35,7 @@ internal static class FlagEnumExtensions
         int previousValue = Interlocked.And(ref source, ~flagValue);
         if (previousValue == (previousValue & ~flagValue))
         {
-            throw new InvalidOperationException("state was already cleared");
+            throw new InvalidOperationException("The state was already cleared.");
         }
     }
 }
