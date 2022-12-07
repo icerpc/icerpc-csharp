@@ -253,7 +253,6 @@ fn encode_tagged_type(
         format!("{param}.Span != null")
     } else {
         let unwrapped_type = data_type.cs_type_string(namespace, type_context, true);
-        let unwrapped_name = &unwrapped_name;
         format!("{param} is {unwrapped_type} {unwrapped_name}")
     };
 
@@ -395,13 +394,11 @@ pub fn encode_action(
                 );
             }
         }
-        TypeRefs::Primitive(primitive_ref) => {
-            let builtin_type = primitive_ref.type_suffix();
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{builtin_type}({value})"
-            )
-        }
+        TypeRefs::Primitive(primitive_ref) => write!(
+            code,
+            "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{}({value})",
+            primitive_ref.type_suffix()
+        ),
         TypeRefs::Enum(enum_ref) => {
             let encoder_extensions_class =
                 enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
@@ -411,13 +408,11 @@ pub fn encode_action(
                 "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})"
             )
         }
-        TypeRefs::Dictionary(dictionary_ref) => {
-            let encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding);
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}"
-            );
-        }
+        TypeRefs::Dictionary(dictionary_ref) => write!(
+            code,
+            "(ref SliceEncoder encoder, {value_type} value) => {}",
+            encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
+        ),
         TypeRefs::Sequence(sequence_ref) => {
             // We generate the sequence encoder inline, so this function must not be called when
             // the top-level object is not cached.

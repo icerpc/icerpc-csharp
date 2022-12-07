@@ -328,7 +328,7 @@ impl FunctionBuilder {
             let parameter_comment = operation_parameter_doc_comment(operation, &parameter.cs_identifier(None));
 
             self.add_parameter(
-                &format!("{}", &parameter_type),
+                &parameter_type,
                 &parameter_name,
                 if context == TypeContext::Encode && parameter.tag.is_some() {
                     Some("default")
