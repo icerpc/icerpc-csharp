@@ -126,28 +126,38 @@ internal class DuplexConnectionReader : IDisposable
         // Read the remaining bytes directly from the connection into the buffer writer.
         async ValueTask ReadFromConnectionAsync(int byteCount)
         {
-            do
+            try
             {
-                Memory<byte> buffer = bufferWriter.GetMemory();
-                if (buffer.Length > byteCount)
+                do
                 {
-                    buffer = buffer[0..byteCount];
+                    Memory<byte> buffer = bufferWriter.GetMemory();
+                    if (buffer.Length > byteCount)
+                    {
+                        buffer = buffer[0..byteCount];
+                    }
+
+                    int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                    bufferWriter.Advance(read);
+                    byteCount -= read;
+
+                    ResetTimers();
+
+                    if (byteCount > 0 && read == 0)
+                    {
+                        // The peer gracefully shut down the connection but returned less data than expected, it's
+                        // considered as an error.
+                        throw new InvalidDataException("received less data than expected");
+                    }
                 }
-
-                int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-                bufferWriter.Advance(read);
-                byteCount -= read;
-
-                ResetTimers();
-
-                if (byteCount > 0 && read == 0)
-                {
-                    // The peer gracefully shut down the connection but returned less data than expected, it's
-                    // considered as an error.
-                    throw new InvalidDataException("received less data than expected");
-                }
+                while (byteCount > 0);
             }
-            while (byteCount > 0);
+            catch (ObjectDisposedException exception)
+            {
+                throw new IceRpcException(
+                    IceRpcError.ConnectionAborted,
+                    "The read operation was aborted by the disposal of the duplex connection.",
+                    exception);
+            }
         }
     }
 
@@ -221,32 +231,42 @@ internal class DuplexConnectionReader : IDisposable
             minimumSize -= (int)readResult.Buffer.Length;
         }
 
-        do
+        try
         {
-            // Fill the pipe with data read from the connection.
-            Memory<byte> buffer = _pipe.Writer.GetMemory();
-            int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            _pipe.Writer.Advance(read);
-            minimumSize -= read;
-
-            ResetTimers();
-
-            // The peer shutdown its side of the connection, return an empty buffer if allowed.
-            if (read == 0)
+            do
             {
-                if (canReturnEmptyBuffer)
+                // Fill the pipe with data read from the connection.
+                Memory<byte> buffer = _pipe.Writer.GetMemory();
+                int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                _pipe.Writer.Advance(read);
+                minimumSize -= read;
+
+                ResetTimers();
+
+                // The peer shutdown its side of the connection, return an empty buffer if allowed.
+                if (read == 0)
                 {
-                    break;
-                }
-                else
-                {
-                    // The peer gracefully shut down the connection but returned less data than expected, it's
-                    // considered as an error.
-                    throw new InvalidDataException("received less data than expected");
+                    if (canReturnEmptyBuffer)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        // The peer gracefully shut down the connection but returned less data than expected, it's
+                        // considered as an error.
+                        throw new InvalidDataException("received less data than expected");
+                    }
                 }
             }
+            while (minimumSize > 0);
         }
-        while (minimumSize > 0);
+        catch (ObjectDisposedException exception)
+        {
+            throw new IceRpcException(
+                IceRpcError.ConnectionAborted,
+                "The read operation was aborted by the disposal of the duplex connection.",
+                exception);
+        }
 
         _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 

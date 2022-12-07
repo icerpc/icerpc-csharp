@@ -227,7 +227,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (NotSupportedException exception)
                 {
-                    Close("Frame with unsupported feature received from the peer.", exception);
+                    Close("Frame with unsupported feature was received from the peer.", exception);
                 }
                 catch (IceRpcException exception)
                 {
@@ -257,7 +257,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Close the transport connection and cancel dispatches and invocations.
+        // Close the connection.
         Close();
 
         // Wait for the read frames and ping tasks to complete.
@@ -608,7 +608,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
             // The transport connection is disposed if the peer also sent a CloseConnection frame.
-            Debug.Assert(ConnectionClosedException!.IceRpcError == IceRpcError.ConnectionClosed);
+            Debug.Assert(ConnectionClosedException.IceRpcError == IceRpcError.ConnectionClosed);
         }
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
