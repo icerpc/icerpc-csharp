@@ -3,7 +3,6 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -24,6 +23,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private readonly Action<Exception> _dispatchPanicAction;
     private readonly SemaphoreSlim? _dispatchSemaphore;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
@@ -35,7 +35,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     // The ID of the last unidirectional stream accepted by this connection. It's null as long as no unidirectional
     // stream (other than _remoteControlStream) was accepted.
     private ulong? _lastRemoteUnidirectionalStreamId;
-    private readonly ILogger _logger;
     private readonly int _maxLocalHeaderSize;
     private readonly object _mutex = new();
     private int _peerMaxHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
@@ -55,15 +54,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
         TransportConnectionInformation? transportConnectionInformation,
-        ConnectionOptions options,
-        ILogger logger)
+        ConnectionOptions options)
         : base(isServer: transportConnectionInformation is not null, options)
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
+        _dispatchPanicAction = options.DispatchPanicAction;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         _transportConnectionInformation = transportConnectionInformation;
-        _logger = logger;
 
         if (options.MaxDispatches > 0)
         {
@@ -290,6 +288,33 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     {
                                         await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
                                     }
+                                    catch (IceRpcException exception) when (
+                                        exception.IceRpcError is
+                                            IceRpcError.LimitExceeded or
+                                            IceRpcError.OperationAborted or
+                                            IceRpcError.TruncatedData)
+                                    {
+                                        // LimitExceeded is expected when attempting to encode a response header larger
+                                        // than the peer's max header size.
+                                        // OperationAborted is expected when the connection is disposed (and aborted)
+                                        // while we're receiving a request header or sending a response.
+                                        // TruncatedData is expected when reading a request header. It can also be
+                                        // thrown when reading a response payload tied to an incoming IceRPC payload.
+                                    }
+                                    catch (InvalidDataException)
+                                    {
+                                        // This occurs when we can't decode the request header.
+                                    }
+                                    catch (OperationCanceledException exception) when (
+                                        exception.CancellationToken == cancellationToken)
+                                    {
+                                        // This occurs during shutdown.
+                                    }
+                                    catch (Exception exception)
+                                    {
+                                        // not expected
+                                        _dispatchPanicAction(exception);
+                                    }
                                     finally
                                     {
                                         lock (_mutex)
@@ -505,7 +530,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // We're done with the header encoding, write the header size.
             int headerSize = encoder.EncodedByteCount - headerStartPos;
-            CheckRemoteHeaderSize(headerSize);
+            CheckPeerHeaderSize(headerSize);
             SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
         }
 
@@ -837,7 +862,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private void CheckRemoteHeaderSize(int headerSize)
+    private void CheckPeerHeaderSize(int headerSize)
     {
         if (headerSize > _peerMaxHeaderSize)
         {
@@ -890,7 +915,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("received icerpc request with empty header");
+                throw new InvalidDataException("Received icerpc request with empty header.");
             }
 
             (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
@@ -910,13 +935,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             await PerformDispatchRequestAsync(request).ConfigureAwait(false);
         }
-        catch (Exception exception)
+        catch
         {
             // We always need to complete streamOutput when an exception is thrown. For example, we
             // received an invalid request header that we could not decode.
             streamOutput?.CompleteOutput(success: false);
             streamInput?.Complete();
-            _logger.LogConnectionDispatchFailed(request, exception);
+            throw;
         }
         finally
         {
@@ -1017,7 +1042,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 // We're done with the header encoding, write the header size.
                 int headerSize = encoder.EncodedByteCount - headerStartPos;
-                CheckRemoteHeaderSize(headerSize);
+                CheckPeerHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
         }
@@ -1195,7 +1220,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             int startPos = encoder.EncodedByteCount; // does not include the size
             encodeAction.Invoke(ref encoder);
             int headerSize = encoder.EncodedByteCount - startPos;
-            CheckRemoteHeaderSize(headerSize);
+            CheckPeerHeaderSize(headerSize);
             SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
         }
     }

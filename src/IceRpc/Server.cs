@@ -101,10 +101,7 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool,
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceConnectorListener(
-                    transportListener,
-                    options.ConnectionOptions,
-                    logger ?? NullLogger.Instance);
+                listener = new IceConnectorListener(transportListener, options.ConnectionOptions);
             }
             else
             {
@@ -119,10 +116,7 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceRpcConnectorListener(
-                    transportListener,
-                    options.ConnectionOptions,
-                    logger ?? NullLogger.Instance);
+                listener = new IceRpcConnectorListener(transportListener, options.ConnectionOptions);
             }
 
             listener = new MetricsConnectorListenerDecorator(listener);
@@ -839,7 +833,6 @@ public sealed class Server : IAsyncDisposable
     {
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
-        private readonly ILogger _logger;
         private readonly IListener<IDuplexConnection> _listener;
         private readonly ConnectionOptions _options;
 
@@ -849,20 +842,18 @@ public sealed class Server : IAsyncDisposable
         {
             (IDuplexConnection transportConnection, EndPoint remoteNetworkAddress) = await _listener.AcceptAsync(
                 cancel).ConfigureAwait(false);
-            return (new IceConnector(transportConnection, _options, _logger), remoteNetworkAddress);
+            return (new IceConnector(transportConnection, _options), remoteNetworkAddress);
         }
 
-        internal IceConnectorListener(IListener<IDuplexConnection> listener, ConnectionOptions options, ILogger logger)
+        internal IceConnectorListener(IListener<IDuplexConnection> listener, ConnectionOptions options)
         {
             _listener = listener;
             _options = options;
-            _logger = logger;
         }
     }
 
     private class IceConnector : IConnector
     {
-        private readonly ILogger _logger;
         private readonly ConnectionOptions _options;
         private IDuplexConnection? _transportConnection;
 
@@ -877,8 +868,7 @@ public sealed class Server : IAsyncDisposable
             var protocolConnection = new IceProtocolConnection(
                 _transportConnection!,
                 transportConnectionInformation,
-                _options,
-                _logger);
+                _options);
             _transportConnection = null;
             return protocolConnection;
         }
@@ -892,11 +882,10 @@ public sealed class Server : IAsyncDisposable
         public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
             _transportConnection!.ShutdownAsync(cancel);
 
-        internal IceConnector(IDuplexConnection transportConnection, ConnectionOptions options, ILogger logger)
+        internal IceConnector(IDuplexConnection transportConnection, ConnectionOptions options)
         {
             _transportConnection = transportConnection;
             _options = options;
-            _logger = logger;
         }
     }
 
@@ -905,32 +894,26 @@ public sealed class Server : IAsyncDisposable
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
         private readonly IListener<IMultiplexedConnection> _listener;
-        private readonly ILogger _logger;
         private readonly ConnectionOptions _options;
 
         public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancel)
         {
             (IMultiplexedConnection transportConnection, EndPoint remoteNetworkAddress) = await _listener.AcceptAsync(
                 cancel).ConfigureAwait(false);
-            return (new IceRpcConnector(transportConnection, _options, _logger), remoteNetworkAddress);
+            return (new IceRpcConnector(transportConnection, _options), remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
 
-        internal IceRpcConnectorListener(
-            IListener<IMultiplexedConnection> listener,
-            ConnectionOptions options,
-            ILogger logger)
+        internal IceRpcConnectorListener(IListener<IMultiplexedConnection> listener, ConnectionOptions options)
         {
             _listener = listener;
             _options = options;
-            _logger = logger;
         }
     }
 
     private class IceRpcConnector : IConnector
     {
-        private readonly ILogger _logger;
         private readonly ConnectionOptions _options;
         private IMultiplexedConnection? _transportConnection;
 
@@ -945,8 +928,7 @@ public sealed class Server : IAsyncDisposable
             var protocolConnection = new IceRpcProtocolConnection(
                 _transportConnection!,
                 transportConnectionInformation,
-                _options,
-                _logger);
+                _options);
             _transportConnection = null;
             return protocolConnection;
         }
@@ -958,12 +940,10 @@ public sealed class Server : IAsyncDisposable
 
         internal IceRpcConnector(
             IMultiplexedConnection transportConnection,
-            ConnectionOptions options,
-            ILogger logger)
+            ConnectionOptions options)
         {
             _transportConnection = transportConnection;
             _options = options;
-            _logger = logger;
         }
     }
 }

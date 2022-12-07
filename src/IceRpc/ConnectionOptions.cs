@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using System.Buffers;
+using System.Diagnostics;
 
 namespace IceRpc;
 
@@ -21,6 +22,13 @@ public record class ConnectionOptions
     /// <value>The dispatcher that dispatches requests received by this connection, or null if this connection does
     /// not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
+
+    /// <summary>Gets or sets the action to execute when the processing of an incoming request throws an exception
+    /// before it calls <see cref="Dispatcher" /> or while it sends the response provided by <see cref="Dispatcher" />.
+    /// Such an exception can represent a bug in IceRPC or in the application code (for example, in the implementation
+    /// of the <see cref="OutgoingFrame.Payload" /> supplied by the application).</summary>
+    /// <value>The default action calls Assert and includes the exception in the Assert message.</value>
+    public Action<Exception> DispatchPanicAction { get; set; } = _defaultDispatchPanicAction;
 
     /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
     /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
@@ -128,6 +136,9 @@ public record class ConnectionOptions
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
     private const int IceMinFrameSize = 256;
+    private static readonly Action<Exception> _defaultDispatchPanicAction = exception =>
+        Debug.Assert(false, $"Dispatch panic: {exception}");
+
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
     private int _maxDispatches = 100;
