@@ -140,7 +140,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             catch
             {
-                Debug.Assert(ConnectionClosedException != null);
+                Debug.Assert(ConnectionClosedException is not null);
                 _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 throw;
             }
