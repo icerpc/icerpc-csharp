@@ -2,7 +2,7 @@
 
 use crate::cs_attributes::{self, match_cs_type, CsAttributeKind};
 use slice::compilation_result::{CompilationData, CompilationResult};
-use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Note, Warning, WarningKind};
+use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Warning, WarningKind};
 use slice::grammar::*;
 use slice::slice_file::Span;
 use slice::visitor::Visitor;
@@ -40,18 +40,16 @@ fn cs_attributes<'a>(attributes: &[&'a Attribute]) -> Vec<(&'a CsAttributeKind, 
 }
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    diagnostic_reporter.report_error(Error::new(
-        ErrorKind::UnexpectedAttribute(attribute.directive().to_owned()),
-        Some(span),
-    ));
+    Error::new(ErrorKind::UnexpectedAttribute(attribute.directive().to_owned()))
+        .set_span(span)
+        .report(diagnostic_reporter);
 }
 
 fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     if operation.non_streamed_return_members().is_empty() {
-        diagnostic_reporter.report_error(Error::new_with_notes(
-            ErrorKind::UnexpectedAttribute(cs_attributes::ENCODED_RESULT.to_owned()),
-            Some(span),
-            vec![Note::new(
+        Error::new(ErrorKind::UnexpectedAttribute(cs_attributes::ENCODED_RESULT.to_owned()))
+            .set_span(span)
+            .add_note(
                 if operation.streamed_return_member().is_some() {
                     format!(
                         "The '{}' attribute is not applicable to an operation that only returns a stream.",
@@ -64,8 +62,8 @@ fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_rep
                     )
                 },
                 None,
-            )],
-        ))
+            )
+            .report(diagnostic_reporter);
     }
 }
 
@@ -106,14 +104,16 @@ impl Visitor for CsValidator<'_> {
         for (attribute, span) in &cs_attributes(&module_def.attributes(false)) {
             match attribute {
                 CsAttributeKind::Namespace { .. } => {}
-                CsAttributeKind::Identifier { .. } => self.diagnostic_reporter.report_error(Error::new_with_notes(
-                    ErrorKind::InvalidAttribute(cs_attributes::IDENTIFIER.to_owned(), "module".to_owned()),
-                    Some(span),
-                    vec![Note::new(
-                        format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
-                        None,
-                    )],
-                )),
+                CsAttributeKind::Identifier { .. } => Error::new(ErrorKind::InvalidAttribute(
+                    cs_attributes::IDENTIFIER.to_owned(),
+                    "module".to_owned(),
+                ))
+                .set_span(span)
+                .add_note(
+                    format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
+                    None,
+                )
+                .report(self.diagnostic_reporter),
                 CsAttributeKind::Internal => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
@@ -180,10 +180,9 @@ impl Visitor for CsValidator<'_> {
         // We require 'cs::type' on custom types to know how to encode/decode it.
 
         if !custom_type.has_attribute(false, match_cs_type) {
-            self.diagnostic_reporter.report_error(Error::new(
-                ErrorKind::MissingRequiredAttribute(cs_attributes::TYPE.to_owned()),
-                Some(custom_type.span()),
-            ));
+            Error::new(ErrorKind::MissingRequiredAttribute(cs_attributes::TYPE.to_owned()))
+                .set_span(custom_type.span())
+                .report(self.diagnostic_reporter);
         }
 
         for (attribute, span) in &cs_attributes(&custom_type.attributes(false)) {
@@ -197,16 +196,14 @@ impl Visitor for CsValidator<'_> {
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for (attribute, ..) in &cs_attributes(&type_alias.attributes(false)) {
             match attribute {
-                CsAttributeKind::Identifier { .. } => self.diagnostic_reporter.report_warning(
-                    Warning::new(
-                        WarningKind::InconsequentialUseOfAttribute(
-                            cs_attributes::IDENTIFIER.to_owned(),
-                            "typealias".to_owned(),
-                        ),
-                        type_alias.span(),
+                CsAttributeKind::Identifier { .. } => Warning::new(
+                    WarningKind::InconsequentialUseOfAttribute(
+                        cs_attributes::IDENTIFIER.to_owned(),
+                        "typealias".to_owned(),
                     ),
-                    type_alias,
-                ),
+                    type_alias.span(),
+                )
+                .report(self.diagnostic_reporter, type_alias),
                 _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
             }
         }
