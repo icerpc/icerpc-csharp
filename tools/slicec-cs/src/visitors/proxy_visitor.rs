@@ -81,7 +81,6 @@ public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#,
                                interface_name = interface_def.cs_identifier(None),
-                               proxy_impl = proxy_impl,
             ).into());
 
         if interface_def.supported_encodings().supports(&Encoding::Slice1) {
@@ -218,8 +217,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument(format!("{encoding}.CreateSizeZeroPayload()"));
     } else {
         invocation_builder.add_argument(format!(
-            "Request.{}({}, encodeOptions: EncodeOptions)",
-            operation_name,
+            "Request.{operation_name}({}, encodeOptions: EncodeOptions)",
             parameters
                 .iter()
                 .map(|p| p.parameter_name())
@@ -240,8 +238,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
             _ => {
                 invocation_builder.add_argument(
                     FunctionCallBuilder::new(&format!(
-                        "{}.ToPipeReader<{}>",
-                        stream_parameter_name,
+                        "{stream_parameter_name}.ToPipeReader<{}>",
                         stream_type.cs_type_string(namespace, TypeContext::Encode, false),
                     ))
                     .use_semi_colon(false)

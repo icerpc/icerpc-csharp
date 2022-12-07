@@ -510,7 +510,6 @@ catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled
     return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
             dispatch_and_return = dispatch_and_return.indent(),
-            encoding = encoding,
         )
     }
     .into()

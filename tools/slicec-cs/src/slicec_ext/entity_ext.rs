@@ -98,10 +98,8 @@ where
 
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
         escape_keyword(&format!(
-            "{}{}{}",
-            prefix,
+            "{prefix}{}{suffix}",
             self.cs_identifier(Some(Case::Pascal)),
-            suffix,
         ))
     }
 

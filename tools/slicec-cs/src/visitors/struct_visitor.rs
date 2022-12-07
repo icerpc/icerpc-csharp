@@ -52,10 +52,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
         main_constructor.add_comment(
             "summary",
-            &format!(
-                r#"Constructs a new instance of <see cref="{}" />."#,
-                &escaped_identifier,
-            ),
+            &format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
         );
 
         for member in &members {
@@ -109,10 +106,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             )
             .add_comment(
                 "summary",
-                &format!(
-                    r#"Constructs a new instance of <see cref="{}" /> from a decoder."#,
-                    &escaped_identifier,
-                ),
+                &format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> from a decoder."#),
             )
             .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder."))
             .set_body(decode_body)

@@ -533,7 +533,6 @@ int startPos_ = encoder_.EncodedByteCount;",
         encoding = operation.encoding.to_cs_encoding(),
         class_format = operation.format_type(),
         encode_returns = encode_operation_parameters(operation, return_type, "encoder_"),
-        assign_pipe_reader = assign_pipe_reader,
     )
     .into()
 }

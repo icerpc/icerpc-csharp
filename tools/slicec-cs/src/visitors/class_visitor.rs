@@ -73,10 +73,8 @@ impl Visitor for ClassVisitor<'_> {
         // Class static type ID string
         class_builder.add_block(
             format!(
-                "{} static{} readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
-                &access,
+                "{access} static{} readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;",
                 if has_base_class { " new" } else { "" },
-                class_name,
             )
             .into(),
         );
