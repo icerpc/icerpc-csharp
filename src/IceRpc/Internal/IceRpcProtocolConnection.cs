@@ -23,8 +23,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly Action<Exception> _dispatchPanicAction;
     private readonly SemaphoreSlim? _dispatchSemaphore;
+    private readonly Action<Exception> _faultedTaskAction;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
     private bool _isAcceptingDispatchesAndInvocations;
@@ -60,7 +60,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
-        _dispatchPanicAction = options.DispatchPanicAction;
+        _faultedTaskAction = options.FaultedTaskAction;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -310,7 +310,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     catch (Exception exception)
                                     {
                                         // not expected
-                                        _dispatchPanicAction(exception);
+                                        _faultedTaskAction(exception);
+                                        throw;
                                     }
                                     finally
                                     {
@@ -722,7 +723,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     /// <summary>Sends the payload and payload continuation of an outgoing frame, and takes ownership of streamOutput.
     /// </summary>
-    private static async ValueTask SendPayloadAsync(
+    private async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         PipeWriter streamOutput,
         Task streamOutputClosed,
@@ -773,6 +774,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _ = Task.Run(
                 async () =>
                 {
+                    bool success = false;
                     try
                     {
                         // When we send an outgoing request, the cancellation token is invocationCts.Token. The
@@ -789,16 +791,32 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         if (flushResult.IsCanceled)
                         {
                             throw new InvalidOperationException(
-                                "a payload writer interceptor is not allowed to return a canceled flush result");
+                                "A payload writer is not allowed to return a canceled FlushResult.");
                         }
-                        streamOutput.CompleteOutput(success: true);
+                        success = true;
                     }
-                    catch
+                    catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                     {
-                        streamOutput.CompleteOutput(success: false);
+                        // Expected when the connection is shut down.
+                    }
+                    catch (IceRpcException exception) when (
+                        exception.IceRpcError is IceRpcError.ConnectionAborted or
+                        IceRpcError.OperationAborted or
+                        IceRpcError.TruncatedData)
+                    {
+                        // ConnectionAborted is expected when the peer aborts the connection.
+                        // OperationAborted is expected when the local application disposes the connection.
+                        // TruncatedData is expected when the payloadContinuation comes from an incoming IceRPC payload
+                        // and the peer's Output is completed with an exception.
+                    }
+                    catch (Exception exception)
+                    {
+                        _faultedTaskAction(exception);
+                        throw;
                     }
                     finally
                     {
+                        streamOutput.CompleteOutput(success);
                         payloadContinuation.Complete();
                     }
                 },
