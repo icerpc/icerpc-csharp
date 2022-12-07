@@ -183,7 +183,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Any other failure to read the GoAway frame is considered as a protocol violation. We close the
                     // connection in this case.
-                    await CloseAsync("Unexpected error", exception).ConfigureAwait(false);
+                    if (ConnectionClosedException is null)
+                    {
+                        _ = CloseAsync("Unexpected error", exception);
+                    }
                     throw;
                 }
             },
@@ -314,7 +317,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         ConnectionClosed(exception);
 
-                        await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
+                        _ = CloseAsync("The connection was lost.", exception);
                     }
                 }
             },
@@ -327,17 +330,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         // Close the transport connection and cancel dispatches and invocations.
         await CloseAsync().ConfigureAwait(false);
-
-        try
-        {
-            await Task.WhenAll(
-                _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
-        }
 
         // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
         // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
@@ -861,8 +853,20 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
 
         // Cancel tasks that rely on the transport to ensure that calls on the transport are canceled before calling
-        // Dispose.
+        // Dispose on the transport connection.
         _tasksCts.Cancel();
+
+        // Wait for the transport connection operations to complete.
+        try
+        {
+            await Task.WhenAll(
+                _acceptRequestsTask ?? Task.CompletedTask,
+                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
+        }
 
         // Cancel dispatches and invocations that might still be in progress.
         CancelDispatchesAndInvocations();
