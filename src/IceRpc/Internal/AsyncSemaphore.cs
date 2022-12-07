@@ -186,7 +186,7 @@ internal class AsyncSemaphore
         {
             if (_currentCount == _maxCount)
             {
-                throw new SemaphoreFullException($"The semaphore is full, maximum count of '{_maxCount}' was already reached.");
+                throw new SemaphoreFullException($"The semaphore has already reached its maximum count of '{_maxCount}'.");
             }
 
             while (_queue.Count > 0)
