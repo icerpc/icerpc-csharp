@@ -252,7 +252,8 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request1, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
         dispatchSemaphore.Release();
-        // Ensure the response to the first request is send before we process the second request.
+        // Ensure the response to the first request is send after the request was discarded and
+        // before we process the second request.
         await payloadDecorator.Completed;
         Assert.That(
             async () =>
