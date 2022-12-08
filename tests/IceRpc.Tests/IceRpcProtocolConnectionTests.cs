@@ -459,7 +459,7 @@ public sealed class IceRpcProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -639,7 +639,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
 
         // Cleanup
         try
@@ -717,7 +717,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadContinuationDecorator.Completed, Is.Null);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
 
         // Cleanup
         try
@@ -761,7 +761,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null); // actual exception does not matter
-        Assert.That(async () => await responseTask, Throws.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await responseTask, Throws.InstanceOf<InvalidOperationException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -809,7 +809,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await responseTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
 
     [Test]
