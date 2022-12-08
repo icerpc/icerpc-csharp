@@ -11,7 +11,7 @@ internal sealed class InvalidPipeReader : PipeReader
     public static PipeReader Instance { get; } = new InvalidPipeReader();
 
     private static readonly Exception _invalidOperationException =
-        new InvalidOperationException("Cannot read an invalid pipe reader.");
+        new InvalidOperationException("Reading an invalid pipe reader is not allowed.");
 
     public override bool TryRead(out ReadResult result) => throw _invalidOperationException;
 
