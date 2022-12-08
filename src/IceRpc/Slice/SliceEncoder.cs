@@ -58,7 +58,7 @@ public ref partial struct SliceEncoder
         {
             throw new ArgumentOutOfRangeException(
                 nameof(value),
-                $"'{value}' cannot be encoded on {sizeLength} bytes");
+                $"The value '{value}' cannot be encoded on {sizeLength} bytes.");
         }
 
         Span<byte> ulongBuf = stackalloc byte[8];
@@ -123,29 +123,31 @@ public ref partial struct SliceEncoder
     public void EncodeInt64(long v) => EncodeFixedSizeNumeric(v);
 
     /// <summary>Encodes a size on variable number of bytes.</summary>
-    /// <param name="v">The size to encode.</param>
-    public void EncodeSize(int v)
+    /// <param name="value">The size to encode.</param>
+    public void EncodeSize(int value)
     {
-        if (v < 0)
+        if (value < 0)
         {
-            throw new ArgumentException($"{nameof(v)} must be at least 0", nameof(v));
+            throw new ArgumentException(
+                $"The {nameof(value)} argument must be greater than 0.",
+                nameof(value));
         }
 
         if (Encoding == SliceEncoding.Slice1)
         {
-            if (v < 255)
+            if (value < 255)
             {
-                EncodeUInt8((byte)v);
+                EncodeUInt8((byte)value);
             }
             else
             {
                 EncodeUInt8(255);
-                EncodeInt32(v);
+                EncodeInt32(value);
             }
         }
         else
         {
-            EncodeVarUInt62((ulong)v);
+            EncodeVarUInt62((ulong)value);
         }
     }
 
@@ -282,7 +284,7 @@ public ref partial struct SliceEncoder
         if (Encoding != SliceEncoding.Slice1)
         {
             throw new InvalidOperationException(
-                "encoding a nullable service address without a bit sequence is only supported with Slice1");
+                "Encoding a nullable service address without a bit sequence is only supported with Slice1.");
         }
 
         if (serviceAddress is not null)
@@ -313,7 +315,7 @@ public ref partial struct SliceEncoder
 
             if (serviceAddress.Protocol is not Protocol protocol)
             {
-                throw new NotSupportedException("cannot encode a relative service address with Slice1");
+                throw new NotSupportedException("Cannot encode a relative service address with Slice1.");
             }
 
             this.EncodeFragment(serviceAddress.Fragment);
@@ -341,7 +343,7 @@ public ref partial struct SliceEncoder
                 if (serviceAddress.Params.Count > maxCount)
                 {
                     throw new NotSupportedException(
-                        "cannot encode a service address with a parameter other than adapter-id using Slice1");
+                        "Cannot encode a service address with a parameter other than adapter-id using Slice1.");
                 }
                 EncodeString(adapterId ?? "");
             }
@@ -364,7 +366,7 @@ public ref partial struct SliceEncoder
     {
         if (Encoding == SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
+            throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats.");
         }
 
         EncodeVarInt32(tag); // the key
@@ -385,7 +387,7 @@ public ref partial struct SliceEncoder
     {
         if (size <= 0)
         {
-            throw new ArgumentException("invalid size value, size must be greater than zero", nameof(size));
+            throw new ArgumentException("Invalid size value, size must be greater than zero.", nameof(size));
         }
 
         if (Encoding == SliceEncoding.Slice1)
@@ -405,7 +407,7 @@ public ref partial struct SliceEncoder
         if (actualSize != size)
         {
             throw new ArgumentException(
-                $"value of size ({size}) does not match encoded size ({actualSize})",
+                $"The value of size ({size}) does not match encoded size ({actualSize}).",
                 nameof(size));
         }
     }
@@ -426,7 +428,7 @@ public ref partial struct SliceEncoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
+            throw new InvalidOperationException("Tag formats can only be used with the Slice1 encoding.");
         }
 
         switch (tagFormat)
@@ -456,7 +458,7 @@ public ref partial struct SliceEncoder
                 break;
 
             default:
-                throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
+                throw new ArgumentException($"Invalid tag format value: '{tagFormat}'.", nameof(tagFormat));
         }
     }
 
@@ -468,14 +470,14 @@ public ref partial struct SliceEncoder
     {
         if (Encoding == SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException("bit sequence reader cannot be used with the Slice1 encoding");
+            throw new InvalidOperationException("The bit sequence writer cannot be used with the Slice1 encoding.");
         }
 
         if (bitSequenceSize <= 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(bitSequenceSize),
-                $"{nameof(bitSequenceSize)} must be greater than 0");
+                $"The {nameof(bitSequenceSize)} argument must be greater than 0.");
         }
 
         int remaining = GetBitSequenceByteCount(bitSequenceSize);
@@ -610,7 +612,7 @@ public ref partial struct SliceEncoder
     {
         if (value < VarInt62MinValue || value > VarInt62MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(value), $"varint62 value '{value}' is out of range");
+            throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varint62 range.");
         }
 
         return (value << 2) switch
@@ -630,7 +632,7 @@ public ref partial struct SliceEncoder
     {
         if (value > VarUInt62MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(value), $"varuint62 value '{value}' is out of range");
+            throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varuint62 range.");
         }
 
         return (value << 2) switch

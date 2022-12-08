@@ -112,7 +112,7 @@ public sealed class IceProtocolConnectionTests
         IncomingResponse response = await invokeTask;
 
         // Assert
-        Assert.That(response.ErrorMessage, Is.EqualTo("dispatch canceled"));
+        Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
     }
 
@@ -157,14 +157,14 @@ public sealed class IceProtocolConnectionTests
             response.Use(writer => InvalidPipeWriter.Instance);
             return new(response);
         });
-        Exception? dispatchTaskException = null;
+        var tcs = new TaskCompletionSource<Exception>();
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 Protocol.Ice,
                 dispatcher,
                 serverConnectionOptions: new()
                 {
-                    FaultedTaskAction = exception => dispatchTaskException = exception
+                    FaultedTaskAction = tcs.SetResult
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -180,7 +180,7 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(dispatchTaskException, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
     }
 
     [Test]

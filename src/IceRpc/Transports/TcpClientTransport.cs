@@ -67,7 +67,7 @@ public class TcpClientTransport : IDuplexClientTransport
             transport != TransportNames.Ssl) ||
             !CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a TCP connection to server address '{serverAddress}'");
+            throw new FormatException($"Cannot create a TCP connection to server address '{serverAddress}'.");
         }
 
         if (serverAddress.Transport is null)
@@ -117,7 +117,7 @@ public class TcpClientTransport : IDuplexClientTransport
         string host = decoder.DecodeString();
         if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
         {
-            throw new InvalidDataException($"received service address with invalid host '{host}'");
+            throw new InvalidDataException($"Received service address with invalid host '{host}'.");
         }
 
         ushort port = checked((ushort)decoder.DecodeInt32());

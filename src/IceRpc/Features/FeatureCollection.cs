@@ -17,10 +17,6 @@ public class FeatureCollection : IFeatureCollection
     private readonly Dictionary<Type, object> _features = new();
 
     /// <inheritdoc/>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Microsoft.Design",
-        "CA1043:Use Integral Or String Argument For Indexers",
-        Justification = "FeatureCollection relies on usage of type as the key")]
     public object? this[Type key]
     {
         get => _features.TryGetValue(key, out object? value) ? value : _defaults?[key];

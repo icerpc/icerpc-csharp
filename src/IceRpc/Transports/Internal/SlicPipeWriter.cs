@@ -37,8 +37,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             {
                 if (exception is null && _pipe.Writer.UnflushedBytes > 0)
                 {
-                    throw new NotSupportedException(
-                        $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
+                    throw new NotSupportedException($"Cannot complete {nameof(SlicPipeWriter)} with unflushed bytes.");
                 }
 
                 if (exception is null)
@@ -95,7 +94,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             if (!_state.TrySetFlag(State.PipeReaderInUse))
             {
-                throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
+                throw new InvalidOperationException($"The {nameof(WriteAsync)} operation is not thread safe");
             }
 
             if (_pipe.Writer.UnflushedBytes > 0)
@@ -203,7 +202,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             // If the writer is completed, the caller is bogus, it shouldn't call write operations after completing the
             // pipe writer.
-            throw new InvalidOperationException("writing is not allowed once the writer is completed");
+            throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
         }
     }
 

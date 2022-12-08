@@ -134,7 +134,7 @@ public static class IncomingResponseExtensions
         // We never call CancelPendingRead on response.Payload; an interceptor can but it's not correct.
         if (readResult.IsCanceled)
         {
-            throw new InvalidOperationException("unexpected call to CancelPendingRead on a response payload");
+            throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
         }
 
         DispatchException exception = DecodeBuffer(readResult.Buffer);

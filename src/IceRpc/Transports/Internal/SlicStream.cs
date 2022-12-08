@@ -19,7 +19,7 @@ internal class SlicStream : IMultiplexedStream
             ulong id = Thread.VolatileRead(ref _id);
             if (id == ulong.MaxValue)
             {
-                throw new InvalidOperationException("stream ID isn't allocated yet");
+                throw new InvalidOperationException("The stream ID isn't allocated yet.");
             }
             return id;
         }
@@ -33,7 +33,7 @@ internal class SlicStream : IMultiplexedStream
 
     public PipeReader Input =>
         _inputPipeReader ??
-        throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
+        throw new InvalidOperationException($"Cannot get the {nameof(Input)} of an unidirectional local stream.");
 
     /// <inheritdoc/>
     public bool IsBidirectional { get; }
@@ -46,7 +46,7 @@ internal class SlicStream : IMultiplexedStream
 
     public PipeWriter Output =>
         _outputPipeWriter ??
-        throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
+        throw new InvalidOperationException($"Cannot get the {nameof(Output)} of an unidirectional remote stream");
 
     public Task InputClosed => _readsClosedCompletionSource.Task;
 
@@ -303,7 +303,9 @@ internal class SlicStream : IMultiplexedStream
         else if (newValue > _connection.PeerPauseWriterThreshold)
         {
             // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
-            throw new IceRpcException(IceRpcError.IceRpcError, "invalid flow control credit increase");
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                "The consumed frame size is trying to increase the credit to a value larger than allowed.");
         }
     }
 
@@ -319,7 +321,7 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "received Slic reset frame on local unidirectional stream");
+                "Received unexpected Slic reset frame on local unidirectional stream.");
         }
 
         var exception = new IceRpcException(IceRpcError.TruncatedData);
@@ -335,7 +337,7 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "received Slic stop sending on remote unidirectional stream");
+                "Received unexpected Slic stop sending frame on remote unidirectional stream.");
         }
 
         if (TrySetWritesClosed(exception: null))
@@ -350,7 +352,7 @@ internal class SlicStream : IMultiplexedStream
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "received Slic unidirectional stream released on remote bidirectional stream");
+                "Received unexpected Slic unidirectional stream released frame on remote bidirectional stream.");
         }
 
         if (TrySetWritesClosed(null))

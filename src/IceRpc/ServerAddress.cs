@@ -27,7 +27,7 @@ public readonly record struct ServerAddress
         {
             if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
             {
-                throw new ArgumentException($"cannot set {nameof(Host)} to '{value}'", nameof(value));
+                throw new ArgumentException($"Cannot set {nameof(Host)} to '{value}'.", nameof(value));
             }
             _host = value;
             OriginalUri = null; // new host invalidates OriginalUri
@@ -55,7 +55,7 @@ public readonly record struct ServerAddress
         init
         {
             _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
-                throw new ArgumentException($"`{value}` is not valid transport name", nameof(value));
+                throw new ArgumentException($"The value '{value}' is not valid transport name", nameof(value));
             OriginalUri = null; // new transport invalidates OriginalUri
         }
     }
@@ -73,7 +73,7 @@ public readonly record struct ServerAddress
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException("invalid parameters", nameof(Params), ex);
+                throw new ArgumentException("Invalid parameters.", nameof(value), ex);
             }
             _params = value;
             OriginalUri = null; // new params invalidates OriginalUri
@@ -114,33 +114,33 @@ public readonly record struct ServerAddress
     {
         if (!uri.IsAbsoluteUri)
         {
-            throw new ArgumentException("cannot create a server address from a relative URI", nameof(uri));
+            throw new ArgumentException("Cannot create a server address from a relative URI.", nameof(uri));
         }
 
         Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol) ? protocol :
-            throw new ArgumentException($"cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
+            throw new ArgumentException($"Cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
 
         _host = uri.IdnHost;
         if (_host.Length == 0)
         {
-            throw new ArgumentException("cannot create a server address with an empty host", nameof(uri));
+            throw new ArgumentException("Cannot create a server address with an empty host.", nameof(uri));
         }
 
         _port = uri.Port == -1 ? Protocol.DefaultPort : checked((ushort)uri.Port);
 
         if (uri.UserInfo.Length > 0)
         {
-            throw new ArgumentException("cannot create a server address with a user info", nameof(uri));
+            throw new ArgumentException("Cannot create a server address with a user info.", nameof(uri));
         }
 
         if (uri.AbsolutePath.Length > 1)
         {
-            throw new ArgumentException("cannot create a server address with a path", nameof(uri));
+            throw new ArgumentException("Cannot create a server address with a path.", nameof(uri));
         }
 
         if (uri.Fragment.Length > 0)
         {
-            throw new ArgumentException("cannot create a server address with a fragment", nameof(uri));
+            throw new ArgumentException("Cannot create a server address with a fragment.", nameof(uri));
         }
 
         try
@@ -150,13 +150,13 @@ public readonly record struct ServerAddress
             if (altServerValue is not null)
             {
                 throw new ArgumentException(
-                    "cannot create a server address with an alt-server query parameter",
+                    "Cannot create a server address with an alt-server query parameter.",
                     nameof(uri));
             }
         }
         catch (FormatException exception)
         {
-            throw new ArgumentException("cannot parse query of server address URI", nameof(uri), exception);
+            throw new ArgumentException("Cannot parse query of server address URI.", nameof(uri), exception);
         }
 
         OriginalUri = uri;

@@ -12,10 +12,6 @@ public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>
     /// <param name="key">The feature key.</param>
     /// <returns>The requested feature.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Microsoft.Design",
-        "CA1043:Use Integral Or String Argument For Indexers",
-        Justification = "IFeatureCollection relies on usage of type as the key")]
     object? this[Type key] { get; set; }
 
     /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
