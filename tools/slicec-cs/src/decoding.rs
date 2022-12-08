@@ -106,7 +106,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = enum_ref.cs_identifier(Some(Case::Pascal))
+                name = enum_ref.cs_identifier(Some(Case::Pascal)),
             );
         }
         TypeRefs::CustomType(custom_type_ref) => {
@@ -115,7 +115,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = custom_type_ref.cs_identifier(Some(Case::Pascal))
+                name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
             );
         }
     }
@@ -165,7 +165,7 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, 
         write!(
             decode_value,
             " as {}",
-            value_type.cs_type_string(namespace, TypeContext::Nested, false)
+            value_type.cs_type_string(namespace, TypeContext::Nested, false),
         );
     }
 
@@ -178,7 +178,7 @@ decoder.DecodeDictionaryWithBitSequence(
     {decode_value})",
             dictionary_type = dictionary_ref.cs_type_string(namespace, TypeContext::Decode, true),
             decode_key = decode_key.indent(),
-            decode_value = decode_value.indent()
+            decode_value = decode_value.indent(),
         )
     } else {
         format!(
@@ -189,7 +189,7 @@ decoder.DecodeDictionary(
     {decode_value})",
             dictionary_type = dictionary_ref.cs_type_string(namespace, TypeContext::Decode, true),
             decode_key = decode_key.indent(),
-            decode_value = decode_value.indent()
+            decode_value = decode_value.indent(),
         )
     }
     .into()
@@ -207,7 +207,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
         write!(
             code,
             "({}[])",
-            element_type.cs_type_string(namespace, TypeContext::Nested, true)
+            element_type.cs_type_string(namespace, TypeContext::Nested, true),
         );
     };
 
@@ -218,7 +218,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
                 // faster than decoding the collection elements one by one.
                 Some(format!(
                     "decoder.DecodeSequence<{}>()",
-                    element_type.cs_type_string(namespace, TypeContext::Decode, true)
+                    element_type.cs_type_string(namespace, TypeContext::Decode, true),
                 ))
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
@@ -227,7 +227,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
                 if enum_def.is_unchecked {
                     Some(format!(
                         "decoder.DecodeSequence<{}>()",
-                        element_type.cs_type_string(namespace, TypeContext::Decode, true)
+                        element_type.cs_type_string(namespace, TypeContext::Decode, true),
                     ))
                 } else {
                     Some(format!(
@@ -237,7 +237,7 @@ decoder.DecodeSequence(
                         enum_type_name = element_type.cs_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
                             &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
-                            namespace
+                            namespace,
                         ),
                         name = enum_def.cs_identifier(Some(Case::Pascal)),
                         underlying_type = enum_def.get_underlying_cs_type(),
@@ -253,7 +253,7 @@ decoder.DecodeSequenceWithBitSequence(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
                         sequence_type = sequence_ref.cs_type_string(namespace, TypeContext::Decode, true),
-                        decode_func = decode_func(element_type, namespace, encoding).indent()
+                        decode_func = decode_func(element_type, namespace, encoding).indent(),
                     );
                 } else {
                     write!(
@@ -263,7 +263,7 @@ decoder.DecodeSequence(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
                         sequence_type = sequence_ref.cs_type_string(namespace, TypeContext::Decode, true),
-                        decode_func = decode_func(element_type, namespace, encoding).indent()
+                        decode_func = decode_func(element_type, namespace, encoding).indent(),
                     );
                 }
                 None
@@ -286,7 +286,7 @@ new {}(
             "\
 decoder.DecodeSequenceWithBitSequence(
     {})",
-            decode_func(element_type, namespace, encoding).indent()
+            decode_func(element_type, namespace, encoding).indent(),
         )
     } else {
         match element_type.concrete_type() {
@@ -294,7 +294,7 @@ decoder.DecodeSequenceWithBitSequence(
                 write!(
                     code,
                     "decoder.DecodeSequence<{}>()",
-                    element_type.cs_type_string(namespace, TypeContext::Decode, true)
+                    element_type.cs_type_string(namespace, TypeContext::Decode, true),
                 )
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
@@ -302,7 +302,7 @@ decoder.DecodeSequenceWithBitSequence(
                     write!(
                         code,
                         "decoder.DecodeSequence<{}>()",
-                        element_type.cs_type_string(namespace, TypeContext::Decode, true)
+                        element_type.cs_type_string(namespace, TypeContext::Decode, true),
                     )
                 } else {
                     write!(
@@ -313,7 +313,7 @@ decoder.DecodeSequence(
                         enum_type = element_type.cs_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
                             &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
-                            namespace
+                            namespace,
                         ),
                         name = enum_def.cs_identifier(Some(Case::Pascal)),
                         underlying_type = enum_def.get_underlying_cs_type(),
@@ -326,7 +326,7 @@ decoder.DecodeSequence(
                     "\
 decoder.DecodeSequence(
     {})",
-                    decode_func(element_type, namespace, encoding).indent()
+                    decode_func(element_type, namespace, encoding).indent(),
                 )
             }
         }
@@ -357,7 +357,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
             if type_ref.is_optional {
                 format!(
                     "(ref SliceDecoder decoder) => decoder.DecodeNullableClass<{}>()",
-                    type_ref.cs_type_string(namespace, TypeContext::Decode, true)
+                    type_ref.cs_type_string(namespace, TypeContext::Decode, true),
                 )
             } else {
                 format!("(ref SliceDecoder decoder) => decoder.DecodeClass<{type_name}>()")
@@ -367,7 +367,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
             // Primitive::AnyClass is handled above by is_class_type branch
             format!(
                 "(ref SliceDecoder decoder) => decoder.Decode{}()",
-                primitive_ref.type_suffix()
+                primitive_ref.type_suffix(),
             )
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -375,7 +375,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 "\
 (ref SliceDecoder decoder) =>
     {}",
-                decode_sequence(sequence_ref, namespace, encoding).indent()
+                decode_sequence(sequence_ref, namespace, encoding).indent(),
             )
         }
         TypeRefs::Dictionary(dictionary_ref) => {
@@ -383,7 +383,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 "\
 (ref SliceDecoder decoder) =>
     {}",
-                decode_dictionary(dictionary_ref, namespace, encoding).indent()
+                decode_dictionary(dictionary_ref, namespace, encoding).indent(),
             )
         }
         TypeRefs::Enum(enum_ref) => {
@@ -391,7 +391,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = enum_ref.cs_identifier(Some(Case::Pascal))
+                name = enum_ref.cs_identifier(Some(Case::Pascal)),
             )
         }
         TypeRefs::Struct(_) | TypeRefs::Exception(_) => {
@@ -402,7 +402,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = custom_type_ref.cs_identifier(Some(Case::Pascal))
+                name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
             )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
@@ -459,7 +459,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
                 operation.encoding,
-            )
+            ),
         )
     }
 
@@ -479,7 +479,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 &member.parameter_name_with_prefix("sliceP_"),
                 false, // no tag end marker for operations
                 operation.encoding
-            )
+            ),
         )
     }
 

@@ -59,9 +59,8 @@ impl Visitor for ExceptionVisitor<'_> {
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
             exception_class_builder.add_block(
                 format!(
-                    "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
+                    "public static{}readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;",
                     if has_base { " new " } else { " " },
-                    exception_name
                 )
                 .into(),
             );
@@ -101,7 +100,7 @@ impl Visitor for ExceptionVisitor<'_> {
                                 "\
 {}
 ConvertToUnhandled = true;",
-                                initialize_non_nullable_fields(&members, FieldType::Exception)
+                                initialize_non_nullable_fields(&members, FieldType::Exception),
                             )
                             .into()
                         })
@@ -111,7 +110,7 @@ ConvertToUnhandled = true;",
 {}
 decoder.SkipTagged(useTagEndMarker: true);
 ConvertToUnhandled = true;",
-                                decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2,)
+                                decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2,),
                             )
                             .into()
                         })

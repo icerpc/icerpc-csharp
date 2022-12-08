@@ -76,7 +76,7 @@ impl ParameterSliceExt for [&Parameter] {
                 self.iter()
                     .map(|m| m.parameter_name_with_prefix(prefix))
                     .collect::<Vec<String>>()
-                    .join(", ")
+                    .join(", "),
             ),
         }
     }
@@ -92,7 +92,7 @@ impl ParameterSliceExt for [&Parameter] {
                         + " "
                         + &m.field_name(FieldType::NonMangled))
                     .collect::<Vec<String>>()
-                    .join(", ")
+                    .join(", "),
             ),
         }
     }

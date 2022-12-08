@@ -43,7 +43,7 @@ impl Visitor for ProxyVisitor<'_> {
 {}"#,
             interface_def.cs_identifier(None),
             interface_def.interface_name(),
-            doc_comment_message(interface_def)
+            doc_comment_message(interface_def),
         );
 
         let mut code = CodeBlock::default();
@@ -81,7 +81,6 @@ public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#,
                                interface_name = interface_def.cs_identifier(None),
-                               proxy_impl = proxy_impl
             ).into());
 
         if interface_def.supported_encodings().supports(&Encoding::Slice1) {
@@ -218,13 +217,12 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument(format!("{encoding}.CreateSizeZeroPayload()"));
     } else {
         invocation_builder.add_argument(format!(
-            "Request.{}({}, encodeOptions: EncodeOptions)",
-            operation_name,
+            "Request.{operation_name}({}, encodeOptions: EncodeOptions)",
             parameters
                 .iter()
                 .map(|p| p.parameter_name())
                 .collect::<Vec<_>>()
-                .join(", ")
+                .join(", "),
         ));
     }
 
@@ -240,9 +238,8 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
             _ => {
                 invocation_builder.add_argument(
                     FunctionCallBuilder::new(&format!(
-                        "{}.ToPipeReader<{}>",
-                        stream_parameter_name,
-                        stream_type.cs_type_string(namespace, TypeContext::Encode, false)
+                        "{stream_parameter_name}.ToPipeReader<{}>",
+                        stream_type.cs_type_string(namespace, TypeContext::Encode, false),
                     ))
                     .use_semi_colon(false)
                     .add_argument(
@@ -302,8 +299,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
         format!(
             "(({base_proxy_impl})this).{async_name}({operation_params})",
             base_proxy_impl = operation.parent().unwrap().proxy_implementation_name(),
-            async_name = async_name,
-            operation_params = operation_params.join(", ")
+            operation_params = operation_params.join(", "),
         )
         .into(),
     );
@@ -393,7 +389,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             "returns",
             &format!(
                 "The payload encoded with <see cref=\"{}\" />.",
-                operation.encoding.to_cs_encoding()
+                operation.encoding.to_cs_encoding(),
             ),
         );
 
@@ -419,7 +415,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         "summary",
         &format!(
             r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}Proxy" />."#,
-            interface_def.interface_name()));
+            interface_def.interface_name(),
+        ),
+    );
 
     for operation in operations {
         let members = operation.return_members();
@@ -435,7 +433,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         } else {
             format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::Decode, false)
+                members.to_tuple_type(namespace, TypeContext::Decode, false),
             )
         };
 
@@ -453,12 +451,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let comment_content = if members.is_empty() {
             format!(
                 r#"The <see cref="ResponseDecodeFunc" /> for operation {}."#,
-                operation.cs_identifier(None)
+                operation.cs_identifier(None),
             )
         } else {
             format!(
                 r#"The <see cref="ResponseDecodeFunc{{T}}" /> for operation {}."#,
-                operation.cs_identifier(None)
+                operation.cs_identifier(None),
             )
         };
         builder.add_comment("summary", &comment_content);
@@ -500,7 +498,7 @@ await response.DecodeVoidReturnValueAsync(
     cancellationToken).ConfigureAwait(false);
 ",
                 encoding = operation.encoding.to_cs_encoding(),
-                exception_decode_func = exception_decode_func(operation)
+                exception_decode_func = exception_decode_func(operation),
             );
         } else {
             writeln!(
@@ -518,7 +516,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 encoding = operation.encoding.to_cs_encoding(),
                 return_value_decode_func = return_value_decode_func(operation).indent(),
-                exception_decode_func = exception_decode_func(operation)
+                exception_decode_func = exception_decode_func(operation),
             );
         }
 
@@ -527,7 +525,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
                 writeln!(
                     code,
                     "var {} = response.DetachPayload();",
-                    stream_member.parameter_name_with_prefix("sliceP_")
+                    stream_member.parameter_name_with_prefix("sliceP_"),
                 )
             }
             _ => writeln!(
@@ -537,14 +535,14 @@ var payloadContinuation = response.DetachPayload();
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                 stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, false)
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, false),
             ),
         }
 
         writeln!(
             code,
             "return {};",
-            operation.return_members().to_argument_tuple("sliceP_")
+            operation.return_members().to_argument_tuple("sliceP_"),
         );
     } else if return_void {
         writeln!(
@@ -560,7 +558,7 @@ response.DecodeVoidReturnValueAsync(
 ",
             encoding = operation.encoding.to_cs_encoding(),
             exception_decode_func = exception_decode_func(operation),
-            default_activator = default_activator(operation.encoding)
+            default_activator = default_activator(operation.encoding),
         );
     } else {
         writeln!(
@@ -578,7 +576,7 @@ response.DecodeReturnValueAsync(
             encoding = operation.encoding.to_cs_encoding(),
             return_value_decode_func = return_value_decode_func(operation).indent(),
             exception_decode_func = exception_decode_func(operation),
-            default_activator = default_activator(operation.encoding)
+            default_activator = default_activator(operation.encoding),
         );
     }
     code
@@ -589,7 +587,7 @@ fn exception_decode_func(operation: &Operation) -> String {
         Throws::Specific(exception) if operation.encoding != Encoding::Slice1 => {
             format!(
                 "(ref SliceDecoder decoder, string? message) => new {}(ref decoder, message)",
-                exception.escape_scoped_identifier(&operation.namespace())
+                exception.escape_scoped_identifier(&operation.namespace()),
             )
         }
         _ => "null".to_owned(),
@@ -611,7 +609,7 @@ fn return_value_decode_func(operation: &Operation) -> CodeBlock {
 {{
     {decode}
 }}",
-            decode = decode_operation(operation, false).indent()
+            decode = decode_operation(operation, false).indent(),
         )
         .into()
     }

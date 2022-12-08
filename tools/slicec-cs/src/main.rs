@@ -145,7 +145,7 @@ using IceRpc.Slice;
 
 [assembly:IceRpc.Slice.Slice("{file}.slice")]"#,
         version = env!("CARGO_PKG_VERSION"),
-        file = slice_file.filename
+        file = slice_file.filename,
     )
     .into()
 }

@@ -71,12 +71,11 @@ immediately encodes the return value of operation {operation_name}."#
             constructor_builder.set_body(
                 format!(
                     "Payload = Response.{operation_name}({args}, features.Get<ISliceFeature>()?.EncodeOptions)",
-                    operation_name = operation_name,
                     args = parameters
                         .iter()
                         .map(|p| p.parameter_name())
                         .collect::<Vec<_>>()
-                        .join(", ")
+                        .join(", "),
                 )
                 .into(),
             );

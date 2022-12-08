@@ -30,7 +30,7 @@ impl OperationExt for Operation {
         format!(
             "{}.{}EncodedResult",
             self.parent().unwrap().interface_name(),
-            self.escape_identifier()
+            self.escape_identifier(),
         )
     }
 
@@ -76,7 +76,7 @@ fn operation_return_type(operation: &Operation, is_dispatch: bool, context: Type
                 "({} EncodedResult, {} {})",
                 operation.encoded_result_struct(),
                 stream_member.cs_type_string(&ns, context, false),
-                stream_member.field_name(FieldType::NonMangled)
+                stream_member.field_name(FieldType::NonMangled),
             )
         } else {
             operation.encoded_result_struct()
