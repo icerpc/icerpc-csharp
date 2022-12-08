@@ -56,8 +56,12 @@ public sealed class RetryInterceptorTests
         Assert.That(attempts, Is.EqualTo(2));
 
         Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc.Logger.LoggerInterceptor"));
-        Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
-        TestLoggerEntry entry = loggerFactory.Logger!.Entries[1];
+
+        TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
+        // The first entry doesn't correspond to a retry and has an empty scope
+        Assert.That(entry.Scope, Is.Empty);
+
+        entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
         Assert.That(entry.Scope["Attempt"], Is.EqualTo(2));
         Assert.That(entry.Scope["MaxAttempts"], Is.EqualTo(2));
         Assert.That(entry.LogLevel, Is.EqualTo(LogLevel.Information));

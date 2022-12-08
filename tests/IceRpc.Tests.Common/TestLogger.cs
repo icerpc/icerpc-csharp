@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
 
 namespace IceRpc.Tests.Common;
 
@@ -18,7 +19,7 @@ public class TestLogger : ILogger
 
     public Dictionary<string, object?> CurrentScope { get; internal set; } = new();
 
-    public List<TestLoggerEntry> Entries = new();
+    public Channel<TestLoggerEntry> Entries = Channel.CreateUnbounded<TestLoggerEntry>();
 
     public TestLogger(string category) => Category = category;
 
@@ -29,7 +30,7 @@ public class TestLogger : ILogger
         Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
-        Entries.Add(new(
+        Entries.Writer.TryWrite(new(
             logLevel,
             eventId,
             new Dictionary<string, object?>(

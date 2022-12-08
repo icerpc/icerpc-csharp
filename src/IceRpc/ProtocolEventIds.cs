@@ -17,9 +17,6 @@ public enum ProtocolEventIds
     /// <summary>The connection connect attempt failed.</summary>
     ConnectionConnectFailed,
 
-    /// <summary>A client connection has been created.</summary>
-    ConnectionCreated,
-
     /// <summary>A connection has been terminated because a failure.</summary>
     ConnectionFailed,
 
