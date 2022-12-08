@@ -793,11 +793,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             throw new InvalidOperationException(
                                 "A payload writer interceptor is not allowed to return a canceled flush result.");
                         }
+                        payloadContinuation.Complete();
                         success = true;
                     }
                     catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                     {
                         // Expected when the connection is shut down.
+                        // TODO: correct error code?
+                        payloadContinuation.Complete(new IceRpcException(IceRpcError.OperationAborted));
                     }
                     catch (IceRpcException exception) when (
                         exception.IceRpcError is IceRpcError.ConnectionAborted or
@@ -808,16 +811,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // OperationAborted is expected when the local application disposes the connection.
                         // TruncatedData is expected when the payloadContinuation comes from an incoming IceRPC payload
                         // and the peer's Output is completed with an exception.
+                        payloadContinuation.Complete(exception);
                     }
                     catch (Exception exception)
                     {
-                        _faultedTaskAction(exception);
+                        // _faultedTaskAction(exception);
+                        payloadContinuation.Complete(exception);
                         throw;
                     }
                     finally
                     {
                         streamOutput.CompleteOutput(success);
-                        payloadContinuation.Complete();
                     }
                 },
                 CancellationToken.None);
