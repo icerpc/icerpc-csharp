@@ -803,11 +803,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         responseCompletionSource.SetResult(replyFrameReader);
                         completeFrameReader = false;
                     }
-                    else
-                    {
-                        // The response request ID is unknown, this is either a bogus response or a response for a
-                        // request that was already discarded.
-                    }
+                    // else the request ID carried by the response is bogus or corresponds to a request that was
+                    // previously discarded (for example, because its deadline expired).
                 }
             }
             finally

@@ -215,18 +215,23 @@ public sealed class IceProtocolConnectionTests
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
     /// and doesn't interfere with other request and responses being send over the same connection.</summary>
     [Test]
-    public async Task Response_received_after_the_request_has_been_discarded_are_ignored()
+    public async Task Response_received_for_discarded_request_is_ignored()
     {
         // Arrange
-        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        using var dispatchSemaphore = new SemaphoreSlim(0);
+        var responsePayload = new Pipe();
+        await responsePayload.Writer.WriteAsync(new byte[200]);
+        responsePayload.Writer.Complete();
+        var payloadDecorator = new PayloadPipeReaderDecorator(responsePayload.Reader);
+        var dispatchTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var invokeTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         int dispatchCount = 0;
         var dispatcher = new InlineDispatcher(
             async (request, cancellationToken) =>
             {
                 if (dispatchCount++ == 0)
                 {
-                    await dispatchSemaphore.WaitAsync(cancellationToken);
+                    dispatchTcs.TrySetResult();
+                    await invokeTcs.Task;
                     return new OutgoingResponse(request)
                     {
                         Payload = payloadDecorator
@@ -245,29 +250,22 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var cts = new CancellationTokenSource();
 
         // Act/Assert
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
-        Assert.That(
-            async () => await sut.Client.InvokeAsync(request1, cts.Token),
-            Throws.InstanceOf<OperationCanceledException>());
-        dispatchSemaphore.Release();
-        // Ensure the response to the first request is send after the request was discarded and
-        // before we process the second request.
-        await payloadDecorator.Completed;
-        Assert.That(
-            async () =>
-            {
-                var response = await sut.Client.InvokeAsync(request2, default);
-                ReadResult readResult = default;
-                do
-                {
-                    readResult = await response.Payload.ReadAsync(default);
-                    response.Payload.AdvanceTo(readResult.Buffer.End);
-                }
-                while (!readResult.IsCompleted && !readResult.IsCanceled);
-            },
-            Throws.Nothing);
+        var invokeTask = sut.Client.InvokeAsync(request1, cts.Token);
+        await dispatchTcs.Task;
+        cts.Cancel();
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        // Let the dispatch continue after the invocation was discarded
+        invokeTcs.TrySetResult();
+        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+
+        var response = await sut.Client.InvokeAsync(request2, default);
+        // with ice, the payload is fully available at this point
+        bool ok = response.Payload.TryRead(out ReadResult readResult);
+        Assert.That(ok, Is.True);
+        Assert.That(readResult.IsCompleted, Is.True);
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>
