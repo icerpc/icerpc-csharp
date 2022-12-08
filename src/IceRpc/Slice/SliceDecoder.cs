@@ -24,7 +24,7 @@ public ref partial struct SliceDecoder
     /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
     public long Consumed => _reader.Consumed;
 
-    private const string EndOfBufferMessage = "attempting to decode past the end of the Slice decoder buffer";
+    private const string EndOfBufferMessage = "Attempting to decode past the end of the Slice decoder buffer.";
 
     private static readonly IActivator _defaultActivator =
         ActivatorFactory.Instance.Get(typeof(SliceDecoder).Assembly);
@@ -82,14 +82,14 @@ public ref partial struct SliceDecoder
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                 throw new ArgumentException(
-                    $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1",
+                    $"The {nameof(maxCollectionAllocation)} argument must be greater than or equal to -1.",
                     nameof(maxCollectionAllocation)));
 
         _activator = activator;
         _classContext = default;
         _currentDepth = 0;
         _maxDepth = maxDepth >= 1 ? maxDepth :
-            throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0", nameof(maxDepth));
+            throw new ArgumentException($"The {nameof(maxDepth)} argument must be greater than 0.", nameof(maxDepth));
 
         _reader = new SequenceReader<byte>(buffer);
     }
@@ -196,7 +196,7 @@ public ref partial struct SliceDecoder
                     // The two exceptions that can be thrown by GetString are ArgumentException and
                     // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
                     // throw an InvalidDataException.
-                    throw new InvalidDataException("invalid UTF-8 string", exception);
+                    throw new InvalidDataException("Invalid UTF-8 string.", exception);
                 }
             }
             else
@@ -215,7 +215,7 @@ public ref partial struct SliceDecoder
                     // The two exceptions that can be thrown by GetString are ArgumentException and
                     // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
                     // throw an InvalidDataException.
-                    throw new InvalidDataException("invalid UTF-8 string", exception);
+                    throw new InvalidDataException("Invalid UTF-8 string.", exception);
                 }
             }
 
@@ -261,7 +261,7 @@ public ref partial struct SliceDecoder
         }
         catch (OverflowException ex)
         {
-            throw new InvalidDataException("varint32 value is out of range", ex);
+            throw new InvalidDataException("The value is out of the varint32 accepted range.", ex);
         }
     }
 
@@ -286,7 +286,7 @@ public ref partial struct SliceDecoder
         }
         catch (OverflowException ex)
         {
-            throw new InvalidDataException("varuint62 value is out of range", ex);
+            throw new InvalidDataException("The value is out of the varuint62 accepted range.", ex);
         }
     }
 
@@ -304,7 +304,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"decoding a nullable Proxy with {Encoding} requires a bit sequence");
+            throw new InvalidOperationException($"Decoding a nullable Proxy with {Encoding} requires a bit sequence.");
         }
         string path = this.DecodeIdentityPath();
         return path != "/" ? CreateProxy<TProxy>(DecodeServiceAddress(path)) : null;
@@ -319,7 +319,7 @@ public ref partial struct SliceDecoder
         {
             string path = this.DecodeIdentityPath();
             return path != "/" ? CreateProxy<TProxy>(DecodeServiceAddress(path)) :
-                throw new InvalidDataException("decoded null for a non-nullable proxy");
+                throw new InvalidDataException("Decoded null for a non-nullable proxy.");
         }
         else
         {
@@ -339,7 +339,7 @@ public ref partial struct SliceDecoder
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException("received invalid service address", ex);
+                throw new InvalidDataException("Received an invalid service address.", ex);
             }
 
             return CreateProxy<TProxy>(serviceAddress);
@@ -379,7 +379,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding == SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException("Slice1 encoded tags must be decoded with tag formats");
+            throw new InvalidOperationException("Slice1 encoded tags must be decoded with tag formats.");
         }
 
         int requestedTag = tag;
@@ -424,7 +424,7 @@ public ref partial struct SliceDecoder
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
+            throw new InvalidOperationException("Tag formats can only be used with the Slice1 encoding.");
         }
 
         if (DecodeTagHeader(tag, tagFormat, useTagEndMarker))
@@ -452,14 +452,14 @@ public ref partial struct SliceDecoder
     {
         if (Encoding == SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException("cannot create a bit sequence reader with Slice1");
+            throw new InvalidOperationException("Cannot create a bit sequence reader using the Slice1 encoding.");
         }
 
         if (bitSequenceSize <= 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(bitSequenceSize),
-                "bitSequenceSize must be greater than 0");
+                $"The {nameof(bitSequenceSize)} argument must be greater than 0.");
         }
 
         int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
@@ -493,13 +493,13 @@ public ref partial struct SliceDecoder
             if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
             {
                 throw new ArgumentException(
-                    $"{nameof(useTagEndMarker)} must be true when decoding a class/exception data members",
+                    $"The {nameof(useTagEndMarker)} argument must be true when decoding a class/exception data members.",
                     nameof(useTagEndMarker));
             }
             else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
             {
                 throw new ArgumentException(
-                    $"{nameof(useTagEndMarker)} must be false when decoding parameters",
+                    $"The {nameof(useTagEndMarker)} argument must be false when decoding parameters.",
                     nameof(useTagEndMarker));
             }
 
@@ -583,7 +583,7 @@ public ref partial struct SliceDecoder
 
         if (!_reader.End)
         {
-            throw new InvalidDataException($"{_reader.Remaining} bytes remaining in the buffer");
+            throw new InvalidDataException($"There are {_reader.Remaining} bytes remaining in the buffer.");
         }
     }
 
@@ -601,7 +601,7 @@ public ref partial struct SliceDecoder
         if (_currentCollectionAllocation > _maxCollectionAllocation)
         {
             throw new InvalidDataException(
-                $"decoding exceeds max collection allocation of '{_maxCollectionAllocation}'");
+                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
         }
     }
 
@@ -625,7 +625,7 @@ public ref partial struct SliceDecoder
         // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
         if (count * 2 > _reader.Remaining)
         {
-            throw new InvalidDataException("too many fields");
+            throw new InvalidDataException("Too many fields.");
         }
 
         var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
@@ -636,7 +636,7 @@ public ref partial struct SliceDecoder
             int valueSize = DecodeSize();
             if (valueSize > _reader.Remaining)
             {
-                throw new InvalidDataException($"the value of field '{key}' extends beyond the end of the buffer");
+                throw new InvalidDataException($"The value of field '{key}' extends beyond the end of the buffer.");
             }
             ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
             _reader.Advance(valueSize);
@@ -679,7 +679,7 @@ public ref partial struct SliceDecoder
                 {
                     if (size < 0)
                     {
-                        throw new InvalidDataException($"decoded invalid size: {size}");
+                        throw new InvalidDataException($"Decoded invalid size: {size}.");
                     }
                     return true;
                 }
@@ -698,7 +698,7 @@ public ref partial struct SliceDecoder
                 }
                 catch (OverflowException ex)
                 {
-                    throw new InvalidDataException("cannot decode size larger than int.MaxValue", ex);
+                    throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", ex);
                 }
             }
             else
@@ -806,13 +806,13 @@ public ref partial struct SliceDecoder
         int size = DecodeInt32();
         if (size < 6)
         {
-            throw new InvalidDataException($"the Slice1 encapsulation's size ({size}) is too small");
+            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too small.");
         }
 
         if (size - 4 > _reader.Remaining)
         {
             throw new InvalidDataException(
-                $"the encapsulation's size ({size}) extends beyond the end of the buffer");
+                $"The encapsulation's size ({size}) extends beyond the end of the buffer.");
         }
 
         // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
@@ -843,7 +843,7 @@ public ref partial struct SliceDecoder
                         if (serverAddress.Value.Protocol != protocol)
                         {
                             throw new InvalidDataException(
-                                $"expected server address for {protocol} but received '{serverAddress.Value}'");
+                                $"Expected {protocol} server address but received '{serverAddress.Value}'.");
                         }
                         break;
 
@@ -889,7 +889,7 @@ public ref partial struct SliceDecoder
                 if (serverAddress.Value.Protocol != protocol)
                 {
                     throw new InvalidDataException(
-                        $"expected {protocol} server address but received '{serverAddress.Value}'");
+                        $"Expected {protocol} server address but received '{serverAddress.Value}'.");
                 }
             }
 
@@ -899,7 +899,7 @@ public ref partial struct SliceDecoder
                 if (_reader.Consumed != oldPos + size)
                 {
                     throw new InvalidDataException(
-                        $"{oldPos + size - _reader.Consumed} bytes left in server address encapsulation");
+                        $"There are {oldPos + size - _reader.Consumed} bytes left in server address encapsulation.");
                 }
             }
         }
@@ -907,7 +907,7 @@ public ref partial struct SliceDecoder
         if (serverAddress is null)
         {
             throw new InvalidDataException(
-                $"cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
+                $"Cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
         }
 
         return serverAddress.Value;
@@ -920,13 +920,13 @@ public ref partial struct SliceDecoder
         if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
         {
             throw new ArgumentException(
-                $"{nameof(useTagEndMarker)} must be true when decoding a class/exception data members",
+                $"The {nameof(useTagEndMarker)} argument must be true when decoding the data members of a class or exception.",
                 nameof(useTagEndMarker));
         }
         else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
         {
             throw new ArgumentException(
-                $"{nameof(useTagEndMarker)} must be false when decoding parameters",
+                $"The {nameof(useTagEndMarker)} argument must be false when decoding parameters.",
                 nameof(useTagEndMarker));
         }
 
@@ -983,7 +983,7 @@ public ref partial struct SliceDecoder
 
                 if (format != expectedFormat)
                 {
-                    throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
+                    throw new InvalidDataException($"Invalid tagged parameter '{tag}': unexpected format.");
                 }
                 return true;
             }
@@ -1015,12 +1015,12 @@ public ref partial struct SliceDecoder
 
         if (protocolMajor == 0)
         {
-            throw new InvalidDataException("received service address with protocol set to 0");
+            throw new InvalidDataException("Received service address with protocol set to 0.");
         }
         if (protocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"received service address with invalid protocolMinor value: {protocolMinor}");
+                $"Received service address with invalid protocolMinor value: {protocolMinor}.");
         }
 
         int count = DecodeSize();
@@ -1059,7 +1059,7 @@ public ref partial struct SliceDecoder
         {
             if (!protocol.HasFragment && fragment.Length > 0)
             {
-                throw new InvalidDataException($"unexpected fragment in {protocol} service address");
+                throw new InvalidDataException($"Unexpected fragment in {protocol} service address.");
             }
 
             return new ServiceAddress(
@@ -1076,7 +1076,7 @@ public ref partial struct SliceDecoder
         }
         catch (Exception ex)
         {
-            throw new InvalidDataException("received invalid service address", ex);
+            throw new InvalidDataException("Received invalid service address.", ex);
         }
     }
 
@@ -1108,13 +1108,13 @@ public ref partial struct SliceDecoder
                 int size = DecodeInt32();
                 if (size < 0)
                 {
-                    throw new InvalidDataException($"decoded invalid size: {size}");
+                    throw new InvalidDataException($"Decoded invalid size: {size}.");
                 }
                 Skip(size);
                 break;
             default:
                 throw new InvalidDataException(
-                    $"cannot skip tagged parameter or data member with tag format '{format}'");
+                    $"Cannot skip tagged parameter or data member with tag format '{format}'.");
         }
     }
 }

@@ -21,11 +21,11 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
     {
         if (count < 0)
         {
-            throw new ArgumentException($"{nameof(count)} can't be negative", nameof(count));
+            throw new ArgumentException($"The {nameof(count)} cannot be negative.", nameof(count));
         }
         if (count > _available.Length)
         {
-            throw new InvalidOperationException("can't advance past the end of the underlying buffer");
+            throw new InvalidOperationException("Cannot advance past the end of the underlying buffer.");
         }
         _written += count;
         _available = _initialBuffer[_written..];
@@ -44,7 +44,7 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
         if (sizeHint > _available.Length)
         {
             throw new ArgumentException(
-                $"requested at least {sizeHint} bytes from {nameof(MemoryBufferWriter)} when only {_available.Length} bytes are available",
+                $"Requested {sizeHint} bytes from {nameof(MemoryBufferWriter)} but only {_available.Length} bytes are available.",
                 nameof(sizeHint));
         }
         return _available;
@@ -59,7 +59,7 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException($"{nameof(buffer)} can't be empty", nameof(buffer));
+            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
         }
         _initialBuffer = buffer;
         _available = _initialBuffer;

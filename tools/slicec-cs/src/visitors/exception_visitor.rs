@@ -31,7 +31,7 @@ impl Visitor for ExceptionVisitor<'_> {
 
         let access = exception_def.access_modifier();
 
-        let mut exception_class_builder = ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
+        let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
 
         exception_class_builder
             .add_comment("summary", doc_comment_message(exception_def))
@@ -253,7 +253,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
         let member_name = member.field_name(FieldType::Exception);
         let parameter_name = member.parameter_name();
 
-        writeln!(ctor_body, "this.{} = {};", member_name, parameter_name);
+        writeln!(ctor_body, "this.{member_name} = {parameter_name};");
     }
 
     ctor_builder.set_body(ctor_body);

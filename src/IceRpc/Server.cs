@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Security;
 
@@ -289,11 +288,11 @@ public sealed class Server : IAsyncDisposable
 
             if (shutdownCancellationToken.IsCancellationRequested)
             {
-                throw new InvalidOperationException($"server '{this}' is shut down or shutting down");
+                throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
             if (_listener is not null)
             {
-                throw new InvalidOperationException($"server '{this}' is already listening");
+                throw new InvalidOperationException($"Server '{this}' is already listening.");
             }
 
             listener = _listenerFactory();

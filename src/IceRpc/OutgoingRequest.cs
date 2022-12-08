@@ -46,7 +46,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     public OutgoingRequest(ServiceAddress serviceAddress)
         : base(serviceAddress.Protocol ??
             throw new ArgumentException(
-                "cannot create an outgoing request with a relative service address",
+                "Cannot create an outgoing request with a relative service address.",
                 nameof(serviceAddress))) =>
         ServiceAddress = serviceAddress;
 

@@ -29,8 +29,7 @@ pub fn encode_data_members(
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceWriter = encoder.GetBitSequenceWriter({});",
-            bit_sequence_size
+            "var bitSequenceWriter = encoder.GetBitSequenceWriter({bit_sequence_size});",
         );
     }
 
@@ -72,64 +71,34 @@ fn encode_type(
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
-            format!(
-                "{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);",
-                encoder_param = encoder_param,
-                param = param
-            )
+            format!("{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);")
         }
         _ if type_ref.is_class_type() => {
             assert!(encoding == Encoding::Slice1);
             if type_ref.is_optional {
-                format!(
-                    "{encoder_param}.EncodeNullableClass({param});",
-                    encoder_param = encoder_param,
-                    param = param
-                )
+                format!("{encoder_param}.EncodeNullableClass({param});")
             } else {
-                format!(
-                    "{encoder_param}.EncodeClass({param});",
-                    encoder_param = encoder_param,
-                    param = param
-                )
+                format!("{encoder_param}.EncodeClass({param});")
             }
         }
         concrete_typeref => {
             let value = if type_ref.is_optional && type_ref.is_value_type() {
-                format!("{}.Value", param)
+                format!("{param}.Value")
             } else {
                 param.to_owned()
             };
             let encode_type = match concrete_typeref {
                 TypeRefs::Primitive(primitive_ref) => {
-                    format!(
-                        "{encoder_param}.Encode{type_suffix}({value});",
-                        encoder_param = encoder_param,
-                        type_suffix = primitive_ref.type_suffix(),
-                        value = value
-                    )
+                    let type_suffix = primitive_ref.type_suffix();
+                    format!("{encoder_param}.Encode{type_suffix}({value});")
                 }
-                TypeRefs::Struct(_) => {
-                    format!(
-                        "{value}.Encode(ref {encoder_param});",
-                        value = value,
-                        encoder_param = encoder_param,
-                    )
-                }
-                TypeRefs::Exception(_) => format!(
-                    "{param}.Encode(ref {encoder_param});",
-                    param = param,
-                    encoder_param = encoder_param
-                ),
+                TypeRefs::Struct(_) => format!("{value}.Encode(ref {encoder_param});"),
+                TypeRefs::Exception(_) => format!("{param}.Encode(ref {encoder_param});"),
                 TypeRefs::CustomType(custom_type_ref) => {
-                    format!(
-                        "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
-                        encoder_extensions_class =
-                            custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
-                        identifier = custom_type_ref.cs_identifier(None),
-                        encoder_param = encoder_param,
-                        value = value
-                    )
+                    let encoder_extensions_class =
+                        custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+                    let identifier = custom_type_ref.cs_identifier(None);
+                    format!("{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});")
                 }
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
@@ -141,21 +110,13 @@ fn encode_type(
                         encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding)
                     )
                 }
-                TypeRefs::Interface(_) => {
-                    format!(
-                        "{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);",
-                        encoder_param = encoder_param,
-                        value = value
-                    )
+                TypeRefs::Interface(_) => format!("{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);"),
+                TypeRefs::Enum(enum_ref) => {
+                    let encoder_extensions_class =
+                        enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+                    let name = enum_ref.cs_identifier(Some(Case::Pascal));
+                    format!("{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});")
                 }
-                TypeRefs::Enum(enum_ref) => format!(
-                    "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
-                    encoder_extensions_class =
-                        enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace),
-                    name = enum_ref.cs_identifier(Some(Case::Pascal)),
-                    param = value,
-                    encoder_param = encoder_param
-                ),
                 _ => panic!("class and proxy types are handled in the outer match"),
             };
 
@@ -179,7 +140,7 @@ if ({param} != null)
                             if sequence_ref.has_fixed_size_numeric_elements()
                                 && !sequence_ref.has_attribute(false, match_cs_generic)
                                 && type_context == TypeContext::Encode =>
-                            format!("{}.Span", param),
+                            format!("{param}.Span"),
                         _ => param.to_owned(),
                     },
                     encode_type = encode_type,
@@ -216,7 +177,7 @@ fn encode_tagged_type(
     );
 
     let value = if data_type.is_value_type() {
-        format!("{}.Value", param)
+        format!("{param}.Value")
     } else {
         param.to_owned()
     };
@@ -233,9 +194,9 @@ fn encode_tagged_type(
         }
         Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
             if primitive_def.is_unsigned_numeric() {
-                (Some(format!("SliceEncoder.GetVarUInt62EncodedSize({})", value)), None)
+                (Some(format!("SliceEncoder.GetVarUInt62EncodedSize({value})")), None)
             } else {
-                (Some(format!("SliceEncoder.GetVarInt62EncodedSize({})", value)), None)
+                (Some(format!("SliceEncoder.GetVarInt62EncodedSize({value})")), None)
             }
         }
         Types::Struct(struct_def) if struct_def.is_fixed_size() => (Some(struct_def.min_wire_size().to_string()), None),
@@ -276,11 +237,10 @@ fn encode_tagged_type(
         Types::Dictionary(dictionary_def)
             if dictionary_def.key_type.is_fixed_size() && dictionary_def.value_type.is_fixed_size() =>
         {
+            let min_wire_size = dictionary_def.key_type.min_wire_size() + dictionary_def.value_type.min_wire_size();
             (
                 Some(format!(
-                    "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
-                    encoder_param = encoder_param,
-                    min_wire_size = dictionary_def.key_type.min_wire_size() + dictionary_def.value_type.min_wire_size()
+                    "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_"
                 )),
                 Some(value.clone()),
             )
@@ -290,17 +250,13 @@ fn encode_tagged_type(
 
     let unwrapped_name = member.parameter_name() + "_";
     let null_check = if read_only_memory {
-        format!("{}.Span != null", param)
+        format!("{param}.Span != null")
     } else {
-        format!(
-            "{param} is {unwrapped_type} {unwrapped_name}",
-            param = param,
-            unwrapped_type = data_type.cs_type_string(namespace, type_context, true),
-            unwrapped_name = &unwrapped_name
-        )
+        let unwrapped_type = data_type.cs_type_string(namespace, type_context, true);
+        format!("{param} is {unwrapped_type} {unwrapped_name}")
     };
 
-    let encode_tagged_call = FunctionCallBuilder::new(&format!("{}.EncodeTagged", encoder_param))
+    let encode_tagged_call = FunctionCallBuilder::new(&format!("{encoder_param}.EncodeTagged"))
         .add_argument(tag.to_string())
         .add_argument_if(
             encoding == Encoding::Slice1 && data_type.tag_format() != Some(TagFormat::VSize),
@@ -324,7 +280,7 @@ if ({null_check})
         encode_tagged = {
             let mut code = CodeBlock::default();
             if let Some(count) = count_value {
-                code.writeln(&format!("int count_ = {}.Count();", count));
+                code.writeln(&format!("int count_ = {count}.Count();"));
             }
             code.writeln(&encode_tagged_call);
             code
@@ -416,14 +372,11 @@ pub fn encode_action(
                 write!(
                     code,
                     "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress)",
-                    value_type = value_type,
                 );
             } else {
                 write!(
                     code,
                     "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeServiceAddress({value}.ServiceAddress)",
-                    value_type = value_type,
-                    value = value
                 );
             }
         }
@@ -432,44 +385,34 @@ pub fn encode_action(
             if is_optional {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeNullableClass(value)",
-                    value_type
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableClass(value)",
                 );
             } else {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeClass(value)",
-                    value_type
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeClass(value)",
                 );
             }
         }
-        TypeRefs::Primitive(primitive_ref) => {
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{builtin_type}({value})",
-                value_type = value_type,
-                builtin_type = primitive_ref.type_suffix(),
-                value = value
-            )
-        }
+        TypeRefs::Primitive(primitive_ref) => write!(
+            code,
+            "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{}({value})",
+            primitive_ref.type_suffix()
+        ),
         TypeRefs::Enum(enum_ref) => {
+            let encoder_extensions_class =
+                enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+            let name = enum_ref.cs_identifier(Some(Case::Pascal));
             write!(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})",
-                value_type = value_type,
-                encoder_extensions_class = enum_ref.escape_scoped_identifier_with_suffix(
-                    "SliceEncoderExtensions",
-                    namespace),
-                name = enum_ref.cs_identifier(Some(Case::Pascal)),
-                value = value
             )
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}",
-                value_type = value_type,
-                encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
+                "(ref SliceEncoder encoder, {value_type} value) => {}",
+                encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding),
             );
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -482,31 +425,21 @@ pub fn encode_action(
                 encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding)
             )
         }
-        TypeRefs::Struct(_) => {
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
-                value_type = value_type,
-                value = value,
-            );
-        }
-        TypeRefs::Exception(_) => {
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
-                value_type = value_type,
-                value = value
-            )
-        }
+        TypeRefs::Struct(_) => write!(
+            code,
+            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
+        ),
+        TypeRefs::Exception(_) => write!(
+            code,
+            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
+        ),
         TypeRefs::CustomType(custom_type_ref) => {
+            let encoder_extensions_class =
+                custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+            let identifier = custom_type_ref.cs_identifier(None);
             write!(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
-                value_type = value_type,
-                encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_suffix(
-                    "SliceEncoderExtensions",
-                    namespace),
-                identifier = custom_type_ref.cs_identifier(None)
             )
         }
     }
@@ -536,8 +469,6 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
         writeln!(
             code,
             "var bitSequenceWriter = {encoder_param}.GetBitSequenceWriter({bit_sequence_size});",
-            encoder_param = encoder_param,
-            bit_sequence_size = bit_sequence_size
         );
     }
 

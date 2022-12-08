@@ -29,11 +29,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
-    private readonly Action<Exception> _dispatchPanicAction;
     private readonly SemaphoreSlim? _dispatchSemaphore;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
     private readonly int _maxFrameSize;
@@ -59,7 +59,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
-        _dispatchPanicAction = options.DispatchPanicAction;
+        _faultedTaskAction = options.FaultedTaskAction;
         _maxFrameSize = options.MaxIceFrameSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -202,7 +202,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
             {
                 throw new InvalidDataException(
-                    $"Received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
+                    $"Received ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
             }
             if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
             {
@@ -394,7 +394,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             if (!frameReader.TryRead(out ReadResult readResult))
             {
-                throw new InvalidDataException($"Received empty response frame for request #{requestId}.");
+                throw new InvalidDataException($"Received empty response frame for request with id '{requestId}'.");
             }
 
             Debug.Assert(readResult.IsCompleted);
@@ -466,7 +466,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 if (buffer.Length < headerSize)
                 {
-                    throw new InvalidDataException($"Received invalid frame header for request #{requestId}.");
+                    throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
                 }
 
                 EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
@@ -725,7 +725,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             if (prologue.CompressionStatus == 2)
             {
-                throw new NotSupportedException("Cannot decompress Ice frame.");
+                throw new NotSupportedException("The ice protocol compression is not supported by IceRpc.");
             }
 
             // Then process the frame based on its type.
@@ -736,7 +736,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
-                            $"Unexpected data for {nameof(IceFrameType.CloseConnection)}.");
+                            $"Received {nameof(IceFrameType.CloseConnection)} frame with unexpected data.");
                     }
                     return;
                 }
@@ -765,7 +765,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (prologue.FrameSize != IceDefinitions.PrologueSize)
                     {
                         throw new InvalidDataException(
-                            $"Unexpected data for {nameof(IceFrameType.ValidateConnection)}.");
+                            $"Received {nameof(IceFrameType.ValidateConnection)} frame with unexpected data.");
                     }
                     break;
                 }
@@ -795,7 +795,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // Read and decode request ID
                 if (!replyFrameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                 {
-                    throw new InvalidDataException("Received invalid response request ID.");
+                    throw new InvalidDataException("Received a response with an invalid request ID.");
                 }
 
                 ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
@@ -815,7 +815,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     else
                     {
-                        throw new InvalidDataException("Received ice Reply for unknown invocation.");
+                        throw new InvalidDataException("Received an ice response for an unknown request.");
                     }
                 }
             }
@@ -848,7 +848,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 if (!requestFrameReader.TryRead(out ReadResult readResult))
                 {
-                    throw new InvalidDataException("Received invalid request frame.");
+                    throw new InvalidDataException("Received an invalid request frame.");
                 }
 
                 Debug.Assert(readResult.IsCompleted);
@@ -938,7 +938,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        _dispatchPanicAction(exception);
+                        _faultedTaskAction(exception);
+                        throw;
                     }
                 },
                 CancellationToken.None);
@@ -964,7 +965,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     if (response != request.Response)
                     {
                         throw new InvalidOperationException(
-                            "the dispatcher did not return the last response created for this request");
+                            "The dispatcher did not return the last response created for this request.");
                     }
                 }
                 catch when (request.IsOneway)
@@ -977,7 +978,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     response = new OutgoingResponse(
                         request,
                         StatusCode.UnhandledException,
-                        "dispatch canceled");
+                        "The dispatch was canceled.");
                 }
                 catch (Exception exception)
                 {

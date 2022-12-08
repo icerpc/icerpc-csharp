@@ -77,7 +77,7 @@ public sealed class IncomingResponse : IncomingFrame
         if (request.Protocol != connectionContext.ServerAddress.Protocol)
         {
             throw new ArgumentException(
-                "the protocol of the request does not match the protocol of the connection context",
+                "The protocol of the request does not match the protocol of the connection context.",
                 nameof(request));
         }
 
@@ -86,14 +86,14 @@ public sealed class IncomingResponse : IncomingFrame
             if (errorMessage is not null)
             {
                 throw new ArgumentException(
-                    $"{nameof(errorMessage)} must be null when {nameof(statusCode)} is {nameof(StatusCode.Success)}",
+                    $"The {nameof(errorMessage)} argument must be null when {nameof(statusCode)} is {nameof(StatusCode.Success)}.",
                     nameof(errorMessage));
             }
         }
         else if (errorMessage is null)
         {
             throw new ArgumentException(
-                $"{nameof(errorMessage)} must be non-null when {nameof(statusCode)} is greater than {nameof(StatusCode.Success)}",
+                $"The {nameof(errorMessage)} argument must be non-null when {nameof(statusCode)} is greater than {nameof(StatusCode.Success)}.",
                 nameof(errorMessage));
         }
 

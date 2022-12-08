@@ -48,7 +48,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_connectTask is not null)
             {
-                throw new InvalidOperationException("unexpected second call to ConnectAsync");
+                throw new InvalidOperationException("The ConnectAsync operation can be called only once.");
             }
             else if (_disposeTask is not null)
             {
@@ -109,7 +109,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                                 IceRpcError.ConnectionClosed,
                                 "The connection establishment timeout out.");
                             throw new TimeoutException(
-                                $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+                                $"The connection establishment timed out after {_connectTimeout.TotalSeconds}s.");
                         }
                     }
                 }
@@ -138,9 +138,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.IceRpcError, exception);
                 }
             }
-            catch (Exception exception)
+            catch
             {
-                _shutdownCompleteSource.TrySetException(ConnectionClosedException ?? exception);
+                Debug.Assert(ConnectionClosedException is not null);
+                _shutdownCompleteSource.TrySetException(ConnectionClosedException);
                 throw;
             }
         }
@@ -215,7 +216,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         if (request.Protocol != ServerAddress.Protocol)
         {
             throw new InvalidOperationException(
-                $"cannot send {request.Protocol} request on {ServerAddress.Protocol} connection");
+                $"Cannot send {request.Protocol} request on {ServerAddress.Protocol} connection.");
         }
 
         lock (_mutex)
@@ -231,7 +232,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                throw new InvalidOperationException("cannot call InvokeAsync before calling ConnectAsync");
+                throw new InvalidOperationException("Cannot call InvokeAsync before calling ConnectAsync.");
             }
         }
 
@@ -245,7 +246,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
         else
         {
-            throw new InvalidOperationException("cannot call InvokeAsync while connecting a client connection");
+            throw new InvalidOperationException("Cannot call InvokeAsync while connecting a client connection.");
         }
 
         async Task<IncomingResponse> PerformInvokeAsync()
@@ -272,7 +273,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_connectTask is null)
             {
-                throw new InvalidOperationException("cannot call ShutdownAsync before calling ConnectAsync");
+                throw new InvalidOperationException("Cannot call ShutdownAsync before calling ConnectAsync.");
             }
 
             ConnectionClosedException = new(IceRpcError.ConnectionClosed, "The connection was shut down.");
@@ -329,7 +330,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 if (CheckIfIdle())
                 {
                     InitiateShutdown(
-                        $"The connection was closed because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                        $"The connection was closed because it was idle for over {_idleTimeout.TotalSeconds}s.");
                 }
             });
         IsServer = isServer;
@@ -425,7 +426,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 Debug.Assert(operationCanceledException.CancellationToken == cts.Token);
                 exception = new TimeoutException(
-                    $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+                    $"The connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s.");
             }
 
             _connectCts.Cancel();

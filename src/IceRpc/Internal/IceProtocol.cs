@@ -26,14 +26,14 @@ internal sealed class IceProtocol : Protocol
         {
             if (firstSlash != workingPath.LastIndexOf('/'))
             {
-                throw new FormatException($"too many slashes in path '{uriPath}'");
+                throw new FormatException($"Too many slashes in path '{uriPath}'.");
             }
             escapedName = workingPath[(firstSlash + 1)..];
         }
 
         if (escapedName.Length == 0)
         {
-            throw new FormatException($"invalid empty identity name in path '{uriPath}'");
+            throw new FormatException($"Invalid empty identity name in path '{uriPath}'.");
         }
     }
 
@@ -47,12 +47,12 @@ internal sealed class IceProtocol : Protocol
             {
                 if (value.Length == 0)
                 {
-                    throw new FormatException("the value of the adapter-id parameter cannot be empty");
+                    throw new FormatException("The value of the adapter-id parameter cannot be empty.");
                 }
             }
             else
             {
-                throw new FormatException($"'{name}' is not a valid ice service address parameter");
+                throw new FormatException($"Invalid ice service address parameter name '{name}'.");
             }
         }
     }

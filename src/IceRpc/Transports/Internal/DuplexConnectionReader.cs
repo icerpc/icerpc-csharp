@@ -146,7 +146,7 @@ internal class DuplexConnectionReader : IDisposable
                     {
                         // The peer gracefully shut down the connection but returned less data than expected, it's
                         // considered as an error.
-                        throw new InvalidDataException("received less data than expected");
+                        throw new InvalidDataException("Received less data than expected.");
                     }
                 }
                 while (byteCount > 0);
@@ -254,7 +254,7 @@ internal class DuplexConnectionReader : IDisposable
                     {
                         // The peer gracefully shut down the connection but returned less data than expected, it's
                         // considered as an error.
-                        throw new InvalidDataException("received less data than expected");
+                        throw new InvalidDataException("Received less data than expected.");
                     }
                 }
             }

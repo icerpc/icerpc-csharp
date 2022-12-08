@@ -23,8 +23,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly Action<Exception> _dispatchPanicAction;
     private readonly SemaphoreSlim? _dispatchSemaphore;
+    private readonly Action<Exception> _faultedTaskAction;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
 
@@ -58,7 +58,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
-        _dispatchPanicAction = options.DispatchPanicAction;
+        _faultedTaskAction = options.FaultedTaskAction;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -324,7 +324,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     catch (Exception exception)
                                     {
                                         // not expected
-                                        _dispatchPanicAction(exception);
+                                        _faultedTaskAction(exception);
+                                        throw;
                                     }
                                     finally
                                     {
@@ -388,7 +389,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         if (request.ServiceAddress.Fragment.Length > 0)
         {
-            throw new NotSupportedException("the icerpc protocol does not support fragments");
+            throw new NotSupportedException("The icerpc protocol does not support fragments.");
         }
 
         var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
@@ -493,7 +494,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("received icerpc response with empty header");
+                throw new InvalidDataException("Received an icerpc response with an empty header.");
             }
 
             (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
@@ -605,8 +606,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 goAwayFrame.Encode,
                 cancellationToken).ConfigureAwait(false);
 
-            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown
-            // has been initiated by the remote peer.
+            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown was
+            // initiated by the peer.
             IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
 
@@ -638,9 +639,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Close the control stream to notify the peer that on our side, all the streams completed and that it
             // can close the transport connection whenever it likes.
             // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
-            // abortive closure and from our point of view, it's ok for the remote peer to close the transport
-            // connection. We don't close the transport connection immediately as this would kill the streams in the
-            // remote peer and we want to give the remote peer a chance to complete its shutdown gracefully.
+            // abortive closure and from our point of view, it's ok for the peer to close the transport connection. We
+            // don't close the transport connection immediately as this would kill the streams in the peer and we want
+            // to give the peer a chance to complete its shutdown gracefully.
             _controlStream!.Output.Complete();
         }
 
@@ -657,7 +658,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (!readResult.IsCompleted || !readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("received bytes on the control stream after the GoAway frame");
+                throw new InvalidDataException("Received bytes on the control stream after receiving the GoAway frame.");
             }
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosedByPeer)
@@ -729,7 +730,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     /// <summary>Sends the payload and payload continuation of an outgoing frame, and takes ownership of streamOutput.
     /// </summary>
-    private static async ValueTask SendPayloadAsync(
+    private async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         PipeWriter streamOutput,
         Task streamOutputClosed,
@@ -756,7 +757,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             else if (flushResult.IsCanceled)
             {
                 throw new InvalidOperationException(
-                    "a payload writer is not allowed to return a canceled flush result");
+                    "A payload writer interceptor is not allowed to return a canceled flush result.");
             }
         }
         catch
@@ -780,6 +781,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _ = Task.Run(
                 async () =>
                 {
+                    bool success = false;
                     try
                     {
                         // When we send an outgoing request, the cancellation token is invocationCts.Token. The
@@ -796,16 +798,32 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         if (flushResult.IsCanceled)
                         {
                             throw new InvalidOperationException(
-                                "a payload writer interceptor is not allowed to return a canceled flush result");
+                                "A payload writer interceptor is not allowed to return a canceled flush result.");
                         }
-                        streamOutput.CompleteOutput(success: true);
+                        success = true;
                     }
-                    catch
+                    catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                     {
-                        streamOutput.CompleteOutput(success: false);
+                        // Expected when the connection is shut down.
+                    }
+                    catch (IceRpcException exception) when (
+                        exception.IceRpcError is IceRpcError.ConnectionAborted or
+                        IceRpcError.OperationAborted or
+                        IceRpcError.TruncatedData)
+                    {
+                        // ConnectionAborted is expected when the peer aborts the connection.
+                        // OperationAborted is expected when the local application disposes the connection.
+                        // TruncatedData is expected when the payloadContinuation comes from an incoming IceRPC payload
+                        // and the peer's Output is completed with an exception.
+                    }
+                    catch (Exception exception)
+                    {
+                        _faultedTaskAction(exception);
+                        throw;
                     }
                     finally
                     {
+                        streamOutput.CompleteOutput(success);
                         payloadContinuation.Complete();
                     }
                 },
@@ -900,7 +918,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             throw new IceRpcException(
                 IceRpcError.LimitExceeded,
-                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize})");
+                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize}).");
         }
     }
 
@@ -997,7 +1015,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 if (response != request.Response)
                 {
                     throw new InvalidOperationException(
-                        "the dispatcher did not return the last response created for this request");
+                        "The dispatcher did not return the last response created for this request.");
                 }
             }
             catch when (request.IsOneway)
@@ -1097,7 +1115,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (readResult.Buffer.IsEmpty)
             {
-                throw new InvalidDataException("invalid empty control frame");
+                throw new InvalidDataException("Received an invalid empty control frame.");
             }
 
             if (TryDecodeFrameType(readResult.Buffer, out IceRpcControlFrameType frameType, out long consumed))
@@ -1120,7 +1138,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 if (frameType != expectedFrameType)
                 {
                     throw new InvalidDataException(
-                       $"received frame type {frameType} but expected {expectedFrameType}");
+                       $"Received frame type {frameType} but expected {expectedFrameType}.");
                 }
                 consumed = decoder.Consumed;
                 return true;

@@ -33,13 +33,13 @@ public sealed record class ServiceAddress
             if (Protocol is null)
             {
                 throw new InvalidOperationException(
-                    $"cannot set {nameof(ServerAddress)} on a relative service address");
+                    $"Cannot set {nameof(ServerAddress)} on a relative service address.");
             }
 
             if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
             {
                 throw new ArgumentException(
-                    $"the {nameof(ServerAddress)} must use the service address's protocol: '{Protocol}'",
+                    $"The {nameof(ServerAddress)} must use the service address's protocol: '{Protocol}'.",
                     nameof(value));
             }
 
@@ -48,13 +48,13 @@ public sealed record class ServiceAddress
                 if (_params.Count > 0)
                 {
                     throw new InvalidOperationException(
-                        $"cannot set {nameof(ServerAddress)} on a service address with parameters");
+                        $"Cannot set {nameof(ServerAddress)} on a service address with parameters.");
                 }
             }
             else if (_altServerAddresses.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty");
+                    $"Cannot clear {nameof(ServerAddress)} when {nameof(AltServerAddresses)} is not empty.");
             }
             _serverAddress = value;
             OriginalUri = null;
@@ -74,7 +74,7 @@ public sealed record class ServiceAddress
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException("invalid path", nameof(Path), ex);
+                throw new ArgumentException("Invalid path.", nameof(value), ex);
             }
             _path = value;
             OriginalUri = null;
@@ -92,7 +92,7 @@ public sealed record class ServiceAddress
             if (Protocol is null)
             {
                 throw new InvalidOperationException(
-                    $"cannot set {nameof(AltServerAddresses)} on a relative service address");
+                    $"Cannot set {nameof(AltServerAddresses)} on a relative service address.");
             }
 
             if (value.Count > 0)
@@ -100,13 +100,13 @@ public sealed record class ServiceAddress
                 if (_serverAddress is null)
                 {
                     throw new InvalidOperationException(
-                        $"cannot set {nameof(AltServerAddresses)} when {nameof(ServerAddress)} is empty");
+                        $"Cannot set {nameof(AltServerAddresses)} when {nameof(ServerAddress)} is empty.");
                 }
 
                 if (value.Any(e => e.Protocol != Protocol))
                 {
                     throw new ArgumentException(
-                        $"the {nameof(AltServerAddresses)} server addresses must use the service address's protocol {Protocol}",
+                        $"The {nameof(AltServerAddresses)} server addresses must use the service address's protocol: '{Protocol}'.",
                         nameof(value));
                 }
             }
@@ -126,7 +126,7 @@ public sealed record class ServiceAddress
         {
             if (Protocol is null)
             {
-                throw new InvalidOperationException($"cannot set {nameof(Params)} on a relative service address");
+                throw new InvalidOperationException($"Cannot set {nameof(Params)} on a relative service address.");
             }
 
             try
@@ -136,13 +136,13 @@ public sealed record class ServiceAddress
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException("invalid parameters", nameof(Params), ex);
+                throw new ArgumentException("Invalid parameters.", nameof(value), ex);
             }
 
             if (_serverAddress is not null && value.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"cannot set {nameof(Params)} on a service address with a serverAddress");
+                    $"Cannot set {nameof(Params)} on a service address with a serverAddress.");
             }
 
             _params = value;
@@ -158,7 +158,7 @@ public sealed record class ServiceAddress
         {
             if (Protocol is null)
             {
-                throw new InvalidOperationException($"cannot set {nameof(Fragment)} on a relative service address");
+                throw new InvalidOperationException($"Cannot set {nameof(Fragment)} on a relative service address.");
             }
 
             try
@@ -167,12 +167,12 @@ public sealed record class ServiceAddress
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException("invalid fragment", nameof(Fragment), ex);
+                throw new ArgumentException("Invalid fragment.", nameof(value), ex);
             }
 
             if (!Protocol.HasFragment && value.Length > 0)
             {
-                throw new InvalidOperationException($"cannot set {Fragment} on an {Protocol} service address");
+                throw new InvalidOperationException($"Cannot set {Fragment} on an {Protocol} service address.");
             }
 
             _fragment = value;
@@ -204,7 +204,7 @@ public sealed record class ServiceAddress
         {
             Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol) ? protocol :
                 throw new ArgumentException(
-                    $"cannot create a service address with protocol '{uri.Scheme}'",
+                    $"Cannot create a service address with protocol '{uri.Scheme}'.",
                     nameof(uri));
 
             // The AbsolutePath is empty for a URI such as "icerpc:?foo=bar"
@@ -217,13 +217,13 @@ public sealed record class ServiceAddress
             }
             catch (FormatException exception)
             {
-                throw new ArgumentException($"invalid path in {Protocol} URI", nameof(uri), exception);
+                throw new ArgumentException($"Invalid path in {Protocol} URI.", nameof(uri), exception);
             }
 
             if (!Protocol.HasFragment && _fragment.Length > 0)
             {
                 throw new ArgumentException(
-                    $"cannot create an {Protocol} service address with a fragment",
+                    $"Cannot create an {Protocol} service address with a fragment.",
                     nameof(uri));
             }
 
@@ -234,7 +234,7 @@ public sealed record class ServiceAddress
             {
                 if (uri.UserInfo.Length > 0)
                 {
-                    throw new ArgumentException("cannot create a server address with a user info", nameof(uri));
+                    throw new ArgumentException("Cannot create a server address with a user info.", nameof(uri));
                 }
 
                 string host = uri.IdnHost;
@@ -267,14 +267,14 @@ public sealed record class ServiceAddress
                 if (!_path.StartsWith('/'))
                 {
                     throw new ArgumentException(
-                        $"invalid path in service address URI '{uri.OriginalString}'",
+                        $"Invalid path in service address URI '{uri.OriginalString}'.",
                         nameof(uri));
                 }
 
                 if (altServerValue is not null)
                 {
                     throw new ArgumentException(
-                        $"invalid alt-server parameter in URI '{uri.OriginalString}'",
+                        $"Invalid alt-server parameter in URI '{uri.OriginalString}'.",
                         nameof(uri));
                 }
 
@@ -284,7 +284,7 @@ public sealed record class ServiceAddress
                 }
                 catch (FormatException exception)
                 {
-                    throw new ArgumentException("invalid params in URI", nameof(uri), exception);
+                    throw new ArgumentException("Invalid parameters in URI.", nameof(uri), exception);
                 }
 
                 Params = queryParams;
@@ -302,7 +302,7 @@ public sealed record class ServiceAddress
             }
             catch (FormatException exception)
             {
-                throw new ArgumentException("invalid path in relative URI", nameof(uri), exception);
+                throw new ArgumentException("Invalid path in relative URI.", nameof(uri), exception);
             }
         }
 
@@ -450,11 +450,11 @@ public sealed record class ServiceAddress
         {
             if (!IsValidParamName(name))
             {
-                throw new FormatException($"invalid parameter name '{name}'");
+                throw new FormatException($"Invalid parameter name '{name}'.");
             }
             if (!IsValidParamValue(value))
             {
-                throw new FormatException($"invalid parameter value '{value}'");
+                throw new FormatException($"Invalid parameter value '{value}'.");
             }
         }
     }
@@ -470,8 +470,8 @@ public sealed record class ServiceAddress
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, "\"<>#?\\^`{|}"))
         {
             throw new FormatException(
-                $"invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, " +
-                "'%' or reserved characters other than '?' and '#'");
+                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, " +
+                "'%' or reserved characters other than '?' and '#'.");
         }
     }
 
@@ -510,7 +510,7 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, "\"<>\\^`{|}"))
         {
             throw new FormatException(
-                $"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                $"Invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'.");
         }
     }
 

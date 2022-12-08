@@ -14,7 +14,7 @@ public sealed record class TransportConnectionInformation
     /// <summary>Gets the network address of the remote end of the connection.</summary>
     public EndPoint RemoteNetworkAddress { get; }
 
-    /// <summary>Gets the certificate of the remote peer, if provided.</summary>
+    /// <summary>Gets the certificate of the peer, if provided.</summary>
     public X509Certificate? RemoteCertificate { get; }
 
     /// <summary>Constructs a new instance of <see cref="TransportConnectionInformation" />.</summary>

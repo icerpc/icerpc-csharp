@@ -16,5 +16,5 @@ public static class SliceEncodingExtensions
     public static PipeReader CreateSizeZeroPayload(this SliceEncoding encoding) =>
         encoding != SliceEncoding.Slice1 ? PipeReader.Create(_sizeZeroPayload) :
             throw new NotSupportedException(
-                $"{nameof(CreateSizeZeroPayload)} is only available for stream-capable Slice encodings");
+                $"{nameof(CreateSizeZeroPayload)} is only available for stream-capable Slice encodings.");
 }

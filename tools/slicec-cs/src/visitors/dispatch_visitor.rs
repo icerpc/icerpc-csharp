@@ -23,7 +23,7 @@ impl Visitor for DispatchVisitor<'_> {
         let bases = interface_def.base_interfaces();
         let interface_name = interface_def.interface_name();
         let access = interface_def.access_modifier();
-        let mut interface_builder = ContainerBuilder::new(&format!("{} partial interface", access), &interface_name);
+        let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &interface_name);
 
         let summary_comment = format!(
             r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />.
@@ -49,8 +49,7 @@ impl Visitor for DispatchVisitor<'_> {
                 format!(
                     "\
 private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({}).Assembly);",
-                    interface_name
+    SliceDecoder.GetActivator(typeof({interface_name}).Assembly);"
                 )
                 .into(),
             );
@@ -388,8 +387,7 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Featu
             writeln!(
                 check_and_decode,
                 "\
-await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);",
-                encoding
+await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);"
             );
         }
         [parameter] => {
@@ -405,7 +403,6 @@ await request.DecodeEmptyArgsAsync({}, cancellationToken).ConfigureAwait(false);
             writeln!(
                 check_and_decode,
                 "var args = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
-                async_operation_name = async_operation_name,
             )
         }
     };
@@ -496,9 +493,7 @@ return new IceRpc.OutgoingResponse(request)
         format!(
             "
 {check_and_decode}
-{dispatch_and_return}",
-            check_and_decode = check_and_decode,
-            dispatch_and_return = dispatch_and_return,
+{dispatch_and_return}"
         )
     } else {
         let exception_type = match &operation.throws {
@@ -543,7 +538,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     });
 
     match non_streamed_return_values.len() {
-        0 => format!("{encoding}.CreateSizeZeroPayload()", encoding = encoding),
+        0 => format!("{encoding}.CreateSizeZeroPayload()"),
         _ => format!(
             "Response.{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
             operation_name = operation.escape_identifier(),
