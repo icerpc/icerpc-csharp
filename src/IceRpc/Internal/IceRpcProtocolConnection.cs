@@ -195,7 +195,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    _dispatchPanicAction(exception);
+                    Debug.Assert(false, $"The read go away task completed due to an unhandled exception: {exception}");
                     throw;
                 }
             },
@@ -345,9 +345,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
                 }
+                catch (ObjectDisposedException exception)
+                {
+                    await CloseAsync("The connection was disposed.", exception).ConfigureAwait(false);
+                }
                 catch (Exception exception)
                 {
-                    _dispatchPanicAction(exception);
+                    Debug.Assert(false, $"The accept stream task completed due to an unhandled exception: {exception}");
                 }
             },
             CancellationToken.None);
@@ -357,7 +361,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Close the transport connection and cancel dispatches and invocations.
         await CloseAsync().ConfigureAwait(false);
 
         try
@@ -406,6 +409,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             stream = await _transportConnection.CreateStreamAsync(
                 bidirectional: !request.IsOneway,
                 invocationCancellationToken).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException exception)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
         catch
         {
@@ -522,16 +529,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Speedy-shutdown canceled the invocation.
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested);
             throw new IceRpcException(IceRpcError.OperationAborted);
-        }
-        catch (IceRpcException exception) when (
-            exception.IceRpcError is IceRpcError.LimitExceeded or IceRpcError.TruncatedData)
-        {
-            throw;
-        }
-        catch (IceRpcException exception) when (exception != ConnectionClosedException)
-        {
-            // The connection failed or was disposed.
-            throw new IceRpcException(IceRpcError.OperationAborted, exception);
         }
         finally
         {
@@ -669,9 +666,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         // We can now safely close the connection.
-        await _transportConnection.CloseAsync(
-            MultiplexedConnectionCloseError.NoError,
-            cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _transportConnection.CloseAsync(
+                MultiplexedConnectionCloseError.NoError,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException exception)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
+        }
 
         // We wait for the completion of the dispatches that we created.
         await _dispatchesCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -900,8 +904,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    /// <summary>Disposes the transport connection and cancels pending dispatches and invocations.</summary>
-    private async Task CloseAsync(string? message = null, IceRpcException? innerException = null)
+    /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
+    /// invocations.</summary>
+    private async Task CloseAsync(string? message = null, Exception? innerException = null)
     {
         // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.

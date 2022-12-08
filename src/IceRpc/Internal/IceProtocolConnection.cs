@@ -127,7 +127,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             catch (Exception exception)
             {
-                _dispatchPanicAction(exception);
+                Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
+                throw;
             }
 
             static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
@@ -233,9 +234,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     Close("The connection was lost.", exception);
                 }
+                catch (ObjectDisposedException exception)
+                {
+                    Close("The connection was disposed.", exception);
+                }
                 catch (Exception exception)
                 {
-                    _dispatchPanicAction(exception);
+                    Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
                 }
             },
             CancellationToken.None);
@@ -257,7 +262,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Close the connection.
         Close();
 
         // Wait for the read frames and ping tasks to complete.
@@ -346,7 +350,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 payloadWriter = request.GetPayloadWriter(payloadWriter);
 
-                // The writing of the request can only be canceled if the connection is disposed.
                 FlushResult flushResult = await payloadWriter.WriteAsync(
                     payload,
                     endStream: false,
@@ -420,11 +423,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // Speedy-shutdown canceled the invocation.
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested);
             throw new IceRpcException(IceRpcError.OperationAborted);
-        }
-        catch (IceRpcException exception) when (exception != ConnectionClosedException)
-        {
-            // The connection failed or was disposed.
-            throw new IceRpcException(IceRpcError.OperationAborted, exception);
         }
         finally
         {
@@ -676,7 +674,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
-    /// <summary>Disposes the transport connection and cancels pending dispatches and invocations.</summary>
+    /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
+    /// invocations.</summary>
     private void Close(string? message = null, Exception? innerException = null)
     {
         // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this

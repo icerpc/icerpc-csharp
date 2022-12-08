@@ -154,7 +154,7 @@ internal class DuplexConnectionReader : IDisposable
             catch (ObjectDisposedException exception)
             {
                 throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
+                    IceRpcError.OperationAborted,
                     "The read operation was aborted by the disposal of the duplex connection.",
                     exception);
             }
@@ -263,7 +263,7 @@ internal class DuplexConnectionReader : IDisposable
         catch (ObjectDisposedException exception)
         {
             throw new IceRpcException(
-                IceRpcError.ConnectionAborted,
+                IceRpcError.OperationAborted,
                 "The read operation was aborted by the disposal of the duplex connection.",
                 exception);
         }
