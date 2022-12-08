@@ -212,6 +212,61 @@ public sealed class IceProtocolConnectionTests
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed)); // TODO: not correct
     }
 
+    [Test]
+    public async Task Response_received_after_the_request_has_been_discard_are_ignored()
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        using var dispatchSemaphore = new SemaphoreSlim(0);
+        int dispatchCount = 0;
+        var dispatcher = new InlineDispatcher(
+            async (request, cancellationToken) =>
+            {
+                if (dispatchCount++ == 0)
+                {
+                    await dispatchSemaphore.WaitAsync(cancellationToken);
+                    return new OutgoingResponse(request)
+                    {
+                        Payload = payloadDecorator
+                    };
+                }
+                else
+                {
+                    return new OutgoingResponse(request) { Payload = EmptyPipeReader.Instance };
+                }
+
+            });
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act/Assert
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request1, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        dispatchSemaphore.Release();
+        // Ensure the response to the first request is send before we process the second request.
+        await payloadDecorator.Completed;
+        Assert.That(
+            async () =>
+            {
+                var response = await sut.Client.InvokeAsync(request2, default);
+                ReadResult readResult = default;
+                do
+                {
+                    readResult = await response.Payload.ReadAsync(default);
+                    response.Payload.AdvanceTo(readResult.Buffer.End);
+                }
+                while (!readResult.IsCompleted && !readResult.IsCanceled);
+            },
+            Throws.Nothing);
+    }
+
     private static string GetErrorMessage(string Message, Exception innerException) =>
         $"{Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
 

@@ -805,7 +805,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     else
                     {
-                        throw new InvalidDataException("Received an ice response for an unknown request.");
+                        // The response request ID is unknown, this is either a bogus response or a response for a
+                        // request that was already discarded.
                     }
                 }
             }
