@@ -18,11 +18,6 @@ internal sealed class FailurePipeReaderDecorator : PipeReader
 
     public override void Complete(Exception? exception = null)
     {
-        // TODO: this requires to fix the core to provide the reason of the request payload send failure with
-        // Complete(exception) rather than always call Complete() on the payload pipe reader. The failure reported here
-        // would either be from the sending or the reading of the payload. We could consider other strategies instead
-        // such as instead only report send failures though the PipeWriter.Complete method. Of course, this would
-        // require the interceptor to install a pipe writer decorator for this.
         if (exception is not null)
         {
             _failureAction(exception);
