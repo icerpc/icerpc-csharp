@@ -14,8 +14,6 @@ internal class QuicPipeReader : PipeReader
 {
     internal Task Closed { get; }
 
-    private readonly Action _completedCallback;
-
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
     private readonly PipeReader _pipeReader;
@@ -41,9 +39,6 @@ internal class QuicPipeReader : PipeReader
 
             // Tell the remote writer we're done reading. The error code is irrelevant.
             _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
-
-            // Notify the stream of the reader completion, which can trigger the stream disposal.
-            _completedCallback();
         }
     }
 
@@ -65,14 +60,9 @@ internal class QuicPipeReader : PipeReader
     // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
-    internal QuicPipeReader(
-        QuicStream stream,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        Action completedCallback)
+    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _stream = stream;
-        _completedCallback = completedCallback;
 
         _pipeReader = Create(
             _stream,

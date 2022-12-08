@@ -29,6 +29,11 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     public override void Complete(Exception? exception = null)
     {
+        if (_state.HasFlag(State.PipeReaderInUse))
+        {
+            throw new InvalidOperationException("Cannot call complete while {nameof(WriteAsync)} is in progress.");
+        }
+
         if (_state.TrySetFlag(State.Completed))
         {
             // If writes aren't marked as completed yet, abort stream writes. This will send a stream reset frame to

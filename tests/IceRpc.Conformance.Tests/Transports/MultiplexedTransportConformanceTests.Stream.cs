@@ -38,8 +38,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
         Assert.That(async () => await remoteStream.InputClosed, Throws.Nothing);
 
-        CompleteStream(localStream);
-        CompleteStream(remoteStream);
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
 
         async Task<int> ReadDataAsync()
         {
@@ -138,7 +138,7 @@ public abstract partial class MultiplexedTransportConformanceTests
             Throws.Nothing);
 
         // Complete the pipe readers/writers to complete the stream.
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     [Test]
@@ -166,7 +166,7 @@ public abstract partial class MultiplexedTransportConformanceTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
 
         // Complete the pipe readers/writers to complete the stream.
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>
@@ -288,7 +288,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         // Assert
         Assert.That(async () => await sut.LocalStream.OutputClosed, Throws.Nothing);
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Verifies we can read the properties of a stream after completing its Input and Output.</summary>
@@ -456,7 +456,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(readResult2.IsCanceled, Is.False);
         Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     [Test]
@@ -502,7 +502,7 @@ public abstract partial class MultiplexedTransportConformanceTests
             Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
         }
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Verifies that calling read with a canceled cancellation token fails with
@@ -552,8 +552,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
         Assert.That(async () => await remoteStream.InputClosed, Throws.Nothing);
 
-        CompleteStream(localStream);
-        CompleteStream(remoteStream);
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
     }
 
     [Test]
@@ -576,7 +576,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
         Assert.That(readResult.IsCompleted, Is.True);
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     [Test]
@@ -600,7 +600,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         FlushResult flushResult = await sut.RemoteStream.Output.WriteAsync(new byte[1]);
         Assert.That(flushResult.IsCompleted, Is.True);
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     [Test]
@@ -626,7 +626,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         FlushResult flushResult = await sut.RemoteStream.Output.FlushAsync();
         Assert.That(flushResult.IsCompleted, Is.True);
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     [Test]
@@ -657,7 +657,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Verifies that calling write with a canceled cancellation token fails with

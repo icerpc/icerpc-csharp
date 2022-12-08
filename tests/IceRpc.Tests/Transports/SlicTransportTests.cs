@@ -244,7 +244,13 @@ public class SlicTransportTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
 
-        CompleteStreams(localStream, remoteStream);
+        // Make sure the writeTask completes before completing the stream output.
+        ReadResult readResult = await remoteStream.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        Assert.That(readResult.IsCanceled, Is.False);
+        remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+        await writeTask;
+
+        await CompleteStreamsAsync(localStream, remoteStream);
     }
 
     [TestCase(32 * 1024)]
@@ -284,6 +290,14 @@ public class SlicTransportTests
         remoteStream2.Input.AdvanceTo(readResult.Buffer.End);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
+
+        // Make sure the writeTask completes before completing the stream output.
+        readResult = await remoteStream1.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        Assert.That(readResult.IsCanceled, Is.False);
+        remoteStream1.Input.AdvanceTo(readResult.Buffer.End);
+        await writeTask;
+
+        await CompleteStreamsAsync(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
     /// <summary>Verifies that canceling writes when the write is waiting to acquire the max stream semaphore correctly
@@ -302,7 +316,7 @@ public class SlicTransportTests
         Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
         await using IMultiplexedConnection serverConnection = await acceptTask;
 
-        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
+        await using IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
             bidirectional: true,
             default).ConfigureAwait(false);
         using var cts = new CancellationTokenSource();
@@ -347,17 +361,19 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
+
+        await CompleteStreamsAsync(localStream, remoteStream);
     }
 
-    private static void CompleteStreams(params IMultiplexedStream[] streams)
+    private static async Task CompleteStreamsAsync(params IMultiplexedStream[] streams)
     {
         foreach (IMultiplexedStream stream in streams)
         {
             stream.Output.Complete();
             stream.Input.Complete();
+            await stream.DisposeAsync();
         }
     }
-
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
         IMultiplexedConnection remoteConnection,
@@ -372,7 +388,6 @@ public class SlicTransportTests
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
         return (localStream, remoteStream);
     }
-
     private static async Task<IMultiplexedConnection> ConnectAndAcceptConnectionAsync(
         IListener<IMultiplexedConnection> listener,
         IMultiplexedConnection connection)

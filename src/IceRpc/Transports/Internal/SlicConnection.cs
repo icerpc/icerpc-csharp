@@ -368,7 +368,9 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             // TODO: Cache SlicStream and implement stream max count flow control here like Quic?
+#pragma warning disable CA2000 // The caller is responsible for disposing the stream.
             return new(new SlicStream(this, bidirectional, remote: false));
+#pragma warning restore CA2000
         }
     }
 
@@ -524,7 +526,7 @@ internal class SlicConnection : IMultiplexedConnection
         Debug.Assert(!source1.IsEmpty || endStream);
         if (_bidirectionalStreamSemaphore is null)
         {
-            throw new InvalidOperationException("Cannot send a stream before calling ConnectAsync.");
+            throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
         }
 
         do
@@ -903,7 +905,9 @@ internal class SlicConnection : IMultiplexedConnection
 
                         // Accept the new remote stream.
                         // TODO: Cache SliceMultiplexedStream
+#pragma warning disable CA2000 // The caller is responsible for disposing the stream.
                         stream = new SlicStream(this, isBidirectional, remote: true);
+#pragma warning restore CA2000
 
                         try
                         {
@@ -941,6 +945,7 @@ internal class SlicConnection : IMultiplexedConnection
                             {
                                 stream.Output.Complete();
                             }
+                            await stream.DisposeAsync().ConfigureAwait(false);
                             Debug.Assert(stream.IsShutdown);
                         }
                     }

@@ -37,8 +37,8 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         Assert.That(localStream.Id, Is.EqualTo(remoteStream.Id));
 
-        CompleteStream(remoteStream);
-        CompleteStream(localStream);
+        await CompleteStreamAsync(remoteStream);
+        await CompleteStreamAsync(localStream);
     }
 
     /// <summary>Verifies that accept stream calls can be canceled.</summary>
@@ -119,7 +119,7 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         Task<IMultiplexedStream> lastStreamTask = CreateLastStreamAsync();
         await Task.Delay(TimeSpan.FromMilliseconds(50));
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+        await using IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
         if (bidirectional)
         {
             serverStream.Output.Complete(new OperationCanceledException()); // exception does not matter
@@ -133,8 +133,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(isCompleted, Is.False);
         Assert.That(async () => await lastStreamTask, Throws.Nothing);
 
-        CompleteStreams(streams);
-        CompleteStream(await lastStreamTask);
+        await CompleteStreamsAsync(streams);
+        await CompleteStreamAsync(await lastStreamTask);
 
         async Task<IMultiplexedStream> CreateLastStreamAsync()
         {
@@ -566,7 +566,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await sut.LocalStream.InputClosed, Throws.InstanceOf<IceRpcException>());
         Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<IceRpcException>());
 
-        CompleteStreams(sut);
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
@@ -602,8 +602,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Input.ReadAsync());
         Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
 
-        CompleteStream(localStream);
-        CompleteStream(remoteStream);
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
     }
 
     [Test]
@@ -630,8 +630,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await remoteStream.InputClosed, Throws.TypeOf<IceRpcException>());
         Assert.That(async () => await remoteStream.OutputClosed, Throws.TypeOf<IceRpcException>());
 
-        CompleteStream(localStream);
-        CompleteStream(remoteStream);
+        await CompleteStreamAsync(localStream);
+        await CompleteStreamAsync(remoteStream);
     }
 
     /// <summary>Write data until the transport flow control start blocking, at this point we start a read task and
@@ -675,6 +675,9 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.Nothing);
         sut.LocalStream.Output.Complete();
         Assert.That(async () => await readTask, Throws.Nothing);
+
+        await sut.LocalStream.DisposeAsync();
+        await sut.RemoteStream.DisposeAsync();
 
         static async Task ReadAsync(IMultiplexedStream stream)
         {
@@ -732,7 +735,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         await Task.WhenAll(tasks);
         Assert.That(streamCountMax, Is.LessThanOrEqualTo(streamMaxCount));
 
-        CompleteStreams(streams);
+        await CompleteStreamsAsync(streams);
 
         async Task ClientReadWriteAsync()
         {
@@ -826,7 +829,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         await Task.WhenAll(tasks);
         Assert.That(streamCountMax, Is.LessThanOrEqualTo(streamMaxCount));
 
-        CompleteStreams(streams);
+        await CompleteStreamsAsync(streams);
 
         async Task ClientWriteAsync()
         {
@@ -922,13 +925,14 @@ public abstract partial class MultiplexedTransportConformanceTests
         return (localStream, remoteStream);
     }
 
-    private static void CompleteStreams((IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream) sut)
+    private static async Task CompleteStreamsAsync(
+        (IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream) sut)
     {
-        CompleteStream(sut.LocalStream);
-        CompleteStream(sut.RemoteStream);
+        await CompleteStreamAsync(sut.LocalStream);
+        await CompleteStreamAsync(sut.RemoteStream);
     }
 
-    private static void CompleteStream(IMultiplexedStream stream)
+    private static async Task CompleteStreamAsync(IMultiplexedStream stream)
     {
         if (stream.IsBidirectional)
         {
@@ -943,13 +947,14 @@ public abstract partial class MultiplexedTransportConformanceTests
         {
             stream.Output.Complete();
         }
+        await stream.DisposeAsync();
     }
 
-    private static void CompleteStreams(IEnumerable<IMultiplexedStream> streams)
+    private static async Task CompleteStreamsAsync(IEnumerable<IMultiplexedStream> streams)
     {
         foreach (IMultiplexedStream stream in streams)
         {
-            CompleteStream(stream);
+            await CompleteStreamAsync(stream);
         }
     }
 
