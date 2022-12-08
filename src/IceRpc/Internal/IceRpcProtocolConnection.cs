@@ -147,7 +147,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ConnectionClosedException = new IceRpcException(
                 IceRpcError.ConnectionClosed,
                 "The connection establishment failed because the server is busy.");
-
             throw;
         }
 
@@ -196,6 +195,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     Debug.Assert(false, $"The read go away task completed due to an unhandled exception: {exception}");
+                    await CloseAsync("The connection failed due to an unhandled exception.", exception)
+                        .ConfigureAwait(false);
                     throw;
                 }
             },
@@ -353,6 +354,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     Debug.Assert(false, $"The accept stream task completed due to an unhandled exception: {exception}");
+                    await CloseAsync("The connection failed due to an unhandled exception.", exception)
+                        .ConfigureAwait(false);
                 }
             },
             CancellationToken.None);
@@ -515,21 +518,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             streamInput = null; // response now owns the stream input
             return response;
         }
-        catch when (
-            invocationCts.IsCancellationRequested &&
-            !_dispatchesAndInvocationsCts.IsCancellationRequested &&
-            !cancellationToken.IsCancellationRequested)
-        {
-            // Canceled by shutdown
-            throw ConnectionClosedException!;
-        }
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Speedy-shutdown canceled the invocation.
-            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested);
-            throw new IceRpcException(IceRpcError.OperationAborted);
+            if (_dispatchesAndInvocationsCts.IsCancellationRequested)
+            {
+                // Speedy-shutdown canceled the invocation.
+                throw new IceRpcException(IceRpcError.OperationAborted);
+            }
+            else
+            {
+                // Shutdown canceled the invocation because the peer didn't dispatch it.
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
+            }
         }
         finally
         {
@@ -934,7 +937,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             ConnectionClosed(innerException is null ? null : ConnectionClosedException);
         }
 
-        // Dispose the transport connection. This will trigger the failure of pending tasks waiting on the transport.
+        // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
         // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.

@@ -345,10 +345,18 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
         CancellationToken cancellationToken);
 
-    private protected void ConnectionClosed(Exception? exception = null) =>
-        _ = exception is null ?
-            _shutdownCompleteSource.TrySetResult() :
+    private protected void ConnectionClosed(IceRpcException? exception = null)
+    {
+        if (exception is null)
+        {
+            _shutdownCompleteSource.TrySetResult();
+        }
+        else
+        {
+            Debug.Assert(exception.IceRpcError == IceRpcError.ConnectionClosed);
             _shutdownCompleteSource.TrySetException(exception);
+        }
+    }
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);

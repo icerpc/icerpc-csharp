@@ -128,7 +128,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             catch (Exception exception)
             {
                 Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
-                throw;
+                Close("The connection failed due to an unhandled exception.", exception);
             }
 
             static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
@@ -241,6 +241,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
+                    Close("The connection failed due to an unhandled exception.", exception);
                 }
             },
             CancellationToken.None);
@@ -605,8 +606,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            // The transport connection is disposed if the peer also sent a CloseConnection frame.
-            Debug.Assert(ConnectionClosedException.IceRpcError == IceRpcError.ConnectionClosed);
+            // Expected if the flush operation is aborted by connection closure.
         }
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
@@ -686,7 +686,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             ConnectionClosed(innerException is null ? null : ConnectionClosedException);
         }
 
-        // Dispose the transport connection. This will trigger the failure of pending tasks waiting on the transport.
+        // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
         _duplexConnection.Dispose();
 
         // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
