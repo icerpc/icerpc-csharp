@@ -402,7 +402,7 @@ internal class SlicStream : IMultiplexedStream
 
         async Task SendStreamLastFrameAsync()
         {
-            // First await the sending of previous stream consumed task to complete.
+            // First wait for the sending of the previous stream consumed task to complete.
             await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
 
             // Send the stream consumed frame.
