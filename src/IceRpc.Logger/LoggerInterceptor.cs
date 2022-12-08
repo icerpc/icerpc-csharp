@@ -11,15 +11,26 @@ namespace IceRpc.Logger;
 public class LoggerInterceptor : IInvoker
 {
     private readonly ILogger _logger;
+    private readonly Action<Exception>? _payloadSendFailureAction;
+    private readonly Action<Exception>? _payloadContinuationSendFailureAction;
     private readonly IInvoker _next;
 
     /// <summary>Constructs a logger interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="logger">The logger to log to.</param>
-    public LoggerInterceptor(IInvoker next, ILogger logger)
+    /// <param name="payloadSendFailureAction">An action called if the outgoing request payload send fails.</param>
+    /// <param name="payloadContinuationSendFailureAction">An action called if the outgoing request payload send
+    /// fails.</param>
+    public LoggerInterceptor(
+        IInvoker next,
+        ILogger logger,
+        Action<Exception>? payloadSendFailureAction = null,
+        Action<Exception>? payloadContinuationSendFailureAction = null)
     {
         _next = next;
         _logger = logger;
+        _payloadSendFailureAction = payloadSendFailureAction;
+        _payloadContinuationSendFailureAction = payloadContinuationSendFailureAction;
     }
 
     /// <inheritdoc/>
@@ -27,6 +38,20 @@ public class LoggerInterceptor : IInvoker
     {
         try
         {
+            if (_payloadSendFailureAction is not null)
+            {
+                request.Payload = new FailurePipeReaderDecorator(
+                    request.Payload,
+                    _payloadSendFailureAction);
+            }
+
+            if (request.PayloadContinuation is not null && _payloadContinuationSendFailureAction is not null)
+            {
+                request.PayloadContinuation = new FailurePipeReaderDecorator(
+                    request.PayloadContinuation,
+                    _payloadContinuationSendFailureAction);
+            }
+
             IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInvoke(
