@@ -212,8 +212,10 @@ public sealed class IceProtocolConnectionTests
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed)); // TODO: not correct
     }
 
+    /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
+    /// and doesn't interfere with other request and responses being send over the same connection.</summary>
     [Test]
-    public async Task Response_received_after_the_request_has_been_discard_are_ignored()
+    public async Task Response_received_after_the_request_has_been_discarded_are_ignored()
     {
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
