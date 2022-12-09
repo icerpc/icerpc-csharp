@@ -131,6 +131,7 @@ public class SessionService : Service, ISession
     public SessionService(SessionManager sessionManager) => _sessionManager = sessionManager;
 
     public ValueTask<ReadOnlyMemory<byte>> LoginAsync(
-        string name, IFeatureCollection features, CancellationToken cancellationToken)
-        => new(_sessionManager.CreateSession(name));
+        string name,
+        IFeatureCollection features, 
+        CancellationToken cancellationToken) => new(_sessionManager.CreateSession(name));
 }
