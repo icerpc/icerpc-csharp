@@ -50,6 +50,8 @@ internal class SlicConnection : IMultiplexedConnection
     private ulong _nextBidirectionalId;
     private ulong _nextUnidirectionalId;
     private readonly int _packetMaxSize;
+    private Task _pingTask = Task.CompletedTask;
+    private Task _pongTask = Task.CompletedTask;
     private Task? _readFramesTask;
     private Task? _closeTask;
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
@@ -395,6 +397,32 @@ internal class SlicConnection : IMultiplexedConnection
             _duplexConnectionReader.Dispose();
             _duplexConnectionWriter.Dispose();
 
+            try
+            {
+                await _pingTask.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the sending of the ping frame was pending.
+            }
+            catch (Exception exception)
+            {
+                Debug.Assert(false, $"The ping task completed with an unhandled exception: {exception}");
+            }
+
+            try
+            {
+                await _pongTask.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the sending of the pong frame was pending.
+            }
+            catch (Exception exception)
+            {
+                Debug.Assert(false, $"The pong task completed with an unhandled exception: {exception}");
+            }
+
             _tasksCts.Dispose();
         }
     }
@@ -429,7 +457,14 @@ internal class SlicConnection : IMultiplexedConnection
         if (!IsServer)
         {
             // Only client connections send ping frames when idle to keep the connection alive.
-            keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
+            keepAliveAction = () =>
+                {
+                    // Send a new ping frame if the previous frame was successfully sent.
+                    if (_pingTask.IsCompletedSuccessfully)
+                    {
+                        _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
+                    }
+                };
         }
 
         _duplexConnectionWriter = new DuplexConnectionWriter(
@@ -828,8 +863,11 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 case FrameType.Ping:
                 {
-                    // Send back a pong frame to let the peer know that we're still alive.
-                    ValueTask _ = SendFrameAsync(stream: null, FrameType.Pong, null, default);
+                    if (_pongTask.IsCompletedSuccessfully)
+                    {
+                        // Send back a pong frame.
+                        _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, default).AsTask();
+                    }
                     break;
                 }
                 case FrameType.Pong:
