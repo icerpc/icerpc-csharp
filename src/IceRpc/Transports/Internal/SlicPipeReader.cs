@@ -95,6 +95,12 @@ internal class SlicPipeReader : PipeReader
         // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
         // completed on the stream.
         _readResult = result;
+        if (result.Buffer.IsEmpty && result.IsCompleted)
+        {
+            // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
+            // stream count.
+            _stream.TrySetReadsClosed(exception: null);
+        }
         return result;
     }
 
