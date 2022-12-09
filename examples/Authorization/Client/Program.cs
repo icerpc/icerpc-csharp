@@ -40,5 +40,5 @@ Console.WriteLine(await helloProxy.SayHelloAsync());
 // Try to change the greeting again this time with the authentication token. Since we are logged in, this will succeed.
 await adminProxy.ChangeGreetingAsync("Bonjour");
 
-// Authenticated hello with new greeting
+// Authenticated hello with updated greeting
 Console.WriteLine(await helloProxy.SayHelloAsync());
