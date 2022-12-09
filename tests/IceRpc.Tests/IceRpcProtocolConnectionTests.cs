@@ -845,7 +845,7 @@ public sealed class IceRpcProtocolConnectionTests
                 }
             }));
 
-        Exception? dispatchTaskException = null;
+        var tcs = new TaskCompletionSource<Exception>();
 
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
@@ -854,7 +854,7 @@ public sealed class IceRpcProtocolConnectionTests
                 clientConnectionOptions: new ConnectionOptions { MaxIceRpcHeaderSize = 100 },
                 serverConnectionOptions: new ConnectionOptions
                 {
-                    FaultedTaskAction = exception => dispatchTaskException = exception
+                    FaultedTaskAction = tcs.SetResult
                 })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -866,7 +866,7 @@ public sealed class IceRpcProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(
-            dispatchTaskException,
+            async() => await tcs.Task,
             Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.LimitExceeded));
     }
 
