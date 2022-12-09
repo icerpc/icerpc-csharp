@@ -803,10 +803,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         responseCompletionSource.SetResult(replyFrameReader);
                         completeFrameReader = false;
                     }
-                    else
-                    {
-                        throw new InvalidDataException("Received an ice response for an unknown request.");
-                    }
+                    // else the request ID carried by the response is bogus or corresponds to a request that was
+                    // previously discarded (for example, because its deadline expired).
                 }
             }
             finally
