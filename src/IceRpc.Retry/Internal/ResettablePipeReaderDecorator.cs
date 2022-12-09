@@ -26,7 +26,9 @@ internal class ResettablePipeReaderDecorator : PipeReader
         {
             if (value)
             {
-                throw new ArgumentException($"cannot set {nameof(IsResettable)} to true", nameof(value));
+                throw new ArgumentException(
+                    $"The {nameof(IsResettable)} property cannot be set to true.",
+                    nameof(value));
             }
 
             if (_isResettable)
@@ -69,7 +71,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
         _isReadingInProgress = _isReadingInProgress ? false :
-            throw new InvalidOperationException("cannot call AdvanceTo before reading PipeReader");
+            throw new InvalidOperationException("Cannot call AdvanceTo before reading the PipeReader.");
 
         // All successful calls to ReadAsync/TryRead set _sequence.
         Debug.Assert(_sequence is not null);
@@ -135,7 +137,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
-            throw new InvalidOperationException("reading is already in progress");
+            throw new InvalidOperationException("Reading is already in progress.");
 
         ThrowIfCompleted();
 
@@ -157,7 +159,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
     public override bool TryRead(out ReadResult result)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
-            throw new InvalidOperationException("reading is already in progress");
+            throw new InvalidOperationException("Reading is already in progress.");
 
         ThrowIfCompleted();
 
@@ -186,7 +188,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         CancellationToken cancellationToken = default)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
-            throw new InvalidOperationException("reading is already in progress");
+            throw new InvalidOperationException("Reading is already in progress.");
 
         ThrowIfCompleted();
 
@@ -226,7 +228,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
             if (_isReadingInProgress)
             {
                 throw new InvalidOperationException(
-                    "cannot reset ResettablePipeReaderDecorator while reading is in progress");
+                    "The ResettablePipeReaderDecorator cannot be reset while reading is in progress.");
             }
 
             _consumed = null;
@@ -236,7 +238,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         }
         else
         {
-            throw new InvalidOperationException("cannot reset non-resettable ResettablePipeReaderDecorator");
+            throw new InvalidOperationException("Cannot reset non-resettable ResettablePipeReaderDecorator.");
         }
     }
 
@@ -268,7 +270,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         if (_isReaderCompleted)
         {
             _isResettable = false;
-            throw new InvalidOperationException("the pipe reader is completed");
+            throw new InvalidOperationException("The pipe reader is completed.");
         }
     }
 }

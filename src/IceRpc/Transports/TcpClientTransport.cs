@@ -67,7 +67,9 @@ public class TcpClientTransport : IDuplexClientTransport
             transport != TransportNames.Ssl) ||
             !CheckParams(serverAddress))
         {
-            throw new FormatException($"Cannot create a TCP connection to server address '{serverAddress}'.");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Tcp client transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         if (serverAddress.Transport is null)

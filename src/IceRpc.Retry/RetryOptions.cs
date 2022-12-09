@@ -16,7 +16,7 @@ public sealed record class RetryOptions
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(value),
-                    $"invalid value '{value}' for '{nameof(MaxAttempts)}', it must be greater than 0");
+                    $"Invalid value '{value}' for '{nameof(MaxAttempts)}', it must be greater than 0.");
             }
             _maxAttempts = value;
         }
@@ -34,7 +34,7 @@ public sealed record class RetryOptions
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(value),
-                    $"invalid value '{value}' for '{nameof(MaxPayloadSize)}' it must be greater than 0");
+                    $"Invalid value '{value}' for '{nameof(MaxPayloadSize)}' it must be greater than 0.");
             }
             _maxPayloadSize = value;
         }

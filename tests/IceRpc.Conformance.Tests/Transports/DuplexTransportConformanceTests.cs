@@ -334,7 +334,7 @@ public abstract class DuplexTransportConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(
+        Assert.Throws<ArgumentException>(
             () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null));
     }
 
@@ -347,7 +347,7 @@ public abstract class DuplexTransportConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.Throws<ArgumentException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
     }
 
     [Test]

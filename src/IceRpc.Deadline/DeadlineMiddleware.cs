@@ -33,7 +33,7 @@ public class DeadlineMiddleware : IDispatcher
 
             if (timeout <= TimeSpan.Zero)
             {
-                throw new DispatchException(StatusCode.DeadlineExpired, "the request deadline has expired");
+                throw new DispatchException(StatusCode.DeadlineExpired, "The request deadline has expired.");
             }
 
             request.Features = request.Features.With<IDeadlineFeature>(
@@ -56,7 +56,7 @@ public class DeadlineMiddleware : IDispatcher
             catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                throw new DispatchException(StatusCode.DeadlineExpired, "the request deadline has expired");
+                throw new DispatchException(StatusCode.DeadlineExpired, "The request deadline has expired.");
             }
         }
     }

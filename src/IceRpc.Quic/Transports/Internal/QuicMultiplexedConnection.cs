@@ -28,7 +28,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         if (_connection is null)
         {
-            throw new InvalidOperationException("the Quic connection is not connected");
+            throw new InvalidOperationException("The Quic connection is not connected.");
         }
 
         try
@@ -65,7 +65,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         if (_connection is null)
         {
-            throw new InvalidOperationException("the Quic connection is not connected");
+            throw new InvalidOperationException("The Quic connection is not connected.");
         }
 
         QuicStream stream;

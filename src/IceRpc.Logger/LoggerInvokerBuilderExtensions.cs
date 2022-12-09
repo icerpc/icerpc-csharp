@@ -17,5 +17,5 @@ public static class LoggerInvokerBuilderExtensions
         builder.ServiceProvider.GetService(typeof(ILogger<LoggerInterceptor>)) is ILogger logger ?
         builder.Use(next => new LoggerInterceptor(next, logger)) :
         throw new InvalidOperationException(
-            $"could not find service of type {nameof(ILogger<LoggerInterceptor>)} in service container");
+            $"Could not find service of type '{nameof(ILogger<LoggerInterceptor>)}' in the service container.");
 }

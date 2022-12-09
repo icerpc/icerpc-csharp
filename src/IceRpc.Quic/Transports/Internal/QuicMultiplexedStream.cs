@@ -15,8 +15,7 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     public ulong Id { get; }
 
     public PipeReader Input =>
-        _inputPipeReader ??
-        throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
+        _inputPipeReader ?? throw new InvalidOperationException("A local unidirectional stream has no Input.");
 
     public bool IsBidirectional { get; }
 
@@ -25,8 +24,7 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     public bool IsStarted => true;
 
     public PipeWriter Output =>
-        _outputPipeWriter ??
-        throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
+        _outputPipeWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
 
     public Task InputClosed => _inputPipeReader?.Closed ?? Task.CompletedTask;
 

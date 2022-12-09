@@ -80,7 +80,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Memory<byte> buffer = stream.Output.GetMemory();
         stream.Output.Advance(buffer.Length);
 
-        Assert.That(() => stream.Output.Complete(), Throws.TypeOf<NotSupportedException>());
+        Assert.That(() => stream.Output.Complete(), Throws.TypeOf<InvalidOperationException>());
 
         stream.Input.Complete();
     }

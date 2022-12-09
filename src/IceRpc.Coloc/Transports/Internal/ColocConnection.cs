@@ -138,7 +138,7 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         if (_state.HasFlag(State.ShuttingDown))
         {
-            throw new InvalidOperationException($"Writing is not allowed after the connection is shutdown.");
+            throw new InvalidOperationException("Writing is not allowed after the connection is shutdown.");
         }
         if (!_state.TrySetFlag(State.Writing))
         {
@@ -244,7 +244,7 @@ internal class ClientColocConnection : ColocConnection
         }
         if (_reader is not null)
         {
-            throw new InvalidOperationException($"Connection establishment can't be called twice.");
+            throw new InvalidOperationException("Connection establishment cannot be called twice.");
         }
 
         Debug.Assert(!_state.HasFlag(State.ShuttingDown));

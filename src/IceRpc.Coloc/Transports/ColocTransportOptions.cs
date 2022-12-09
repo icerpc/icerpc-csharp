@@ -11,7 +11,9 @@ public sealed record class ColocTransportOptions
     {
         get => _listenBacklog;
         set => _listenBacklog = value >= 1 ? value :
-            throw new ArgumentException($"{nameof(ListenBacklog)} can't be less than 1", nameof(value));
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                $"Invalid value '{value}' for {nameof(ListenBacklog)}, it cannot be less than 1.");
     }
 
     /// <summary>Gets or sets the number of bytes in the Coloc connection when <see cref="IDuplexConnection.WriteAsync"
@@ -21,7 +23,9 @@ public sealed record class ColocTransportOptions
     {
         get => _pauseWriterThreshold;
         set => _pauseWriterThreshold = value >= 1024 ? value :
-            throw new ArgumentException($"{nameof(PauseWriterThreshold)} can't be less than 1KB", nameof(value));
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                $"Invalid value '{value}' for {nameof(PauseWriterThreshold)}, it cannot be less than 1KB.");
     }
 
     /// <summary>Gets or sets the number of bytes in the Coloc connection when <see cref="IDuplexConnection.WriteAsync"
@@ -31,10 +35,11 @@ public sealed record class ColocTransportOptions
     {
         get => _resumeWriterThreshold;
         set => _resumeWriterThreshold =
-            value < 1024 ? throw new ArgumentException(
-                $"{nameof(ResumeWriterThreshold)} can't be less than 1KB", nameof(value)) :
+            value < 1024 ? throw new ArgumentOutOfRangeException(
+                nameof(value),
+                $"Invalid value '{value}' for {nameof(ResumeWriterThreshold)}, it cannot be less than 1KB.") :
             value > _pauseWriterThreshold ? throw new ArgumentException(
-                $"{nameof(ResumeWriterThreshold)} can't be greater than {nameof(PauseWriterThreshold)}",
+                $"The value of {nameof(ResumeWriterThreshold)} cannot be greater than the value of {nameof(PauseWriterThreshold)}.",
                 nameof(value)) :
             value;
     }

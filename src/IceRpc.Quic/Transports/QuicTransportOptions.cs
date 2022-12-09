@@ -14,7 +14,9 @@ public record class QuicTransportOptions
     {
         get => _idleTimeout;
         set => _idleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                $"Invalid value '{value}' for {nameof(IdleTimeout)}, it must be greater than 0.");
     }
 
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
@@ -41,7 +43,9 @@ public sealed record class QuicServerTransportOptions : QuicTransportOptions
     {
         get => _listenBacklog;
         set => _listenBacklog = value > 0 ? value :
-            throw new ArgumentException($"{nameof(ListenBacklog)} can't be less than 1", nameof(value));
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                $"Invalid value '{value}' for {nameof(ListenBacklog)}, it cannot be less than 1.");
     }
 
     private int _listenBacklog = 511;

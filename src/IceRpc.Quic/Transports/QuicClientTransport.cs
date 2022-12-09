@@ -41,7 +41,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
         if ((serverAddress.Transport is string transport && transport != Name) ||
             !CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a Quic connection to server address '{serverAddress}'");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Quic client transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         if (serverAddress.Transport is null)

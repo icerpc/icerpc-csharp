@@ -34,7 +34,9 @@ public class TcpServerTransport : IDuplexServerTransport
 
         if (serverAddress.Params.Count > 0)
         {
-            throw new FormatException($"cannot create a TCP listener for server address '{serverAddress}'");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Tcp server transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         if (serverAddress.Transport is not string transport)

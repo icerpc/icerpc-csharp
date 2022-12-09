@@ -16,5 +16,5 @@ public static class TelemetryDispatcherBuilderExtensions
         builder.ServiceProvider.GetService(typeof(ActivitySource)) is ActivitySource activitySource ?
         builder.Use(next => new TelemetryMiddleware(next, activitySource)) :
         throw new InvalidOperationException(
-            $"could not find service of type {nameof(ActivitySource)} in service container");
+            $"Could not find service of type '{nameof(ActivitySource)}' in the service container.");
 }

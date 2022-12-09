@@ -513,7 +513,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(() => clientTransport.CreateConnection(
+        Assert.Throws<ArgumentException>(() => clientTransport.CreateConnection(
             serverAddress,
             new MultiplexedConnectionOptions(),
             provider.GetService<SslClientAuthenticationOptions>()));
@@ -528,7 +528,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<FormatException>(() => serverTransport.Listen(
+        Assert.Throws<ArgumentException>(() => serverTransport.Listen(
             serverAddress,
             new MultiplexedConnectionOptions(),
             provider.GetService<SslServerAuthenticationOptions>()));
