@@ -9,7 +9,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"))
 var sessionData = new SessionData();
 
 var pipeline = new Pipeline();
-// Inserts the token into a request field
+// Add an interceptor to the invocation pipeline that inserts the token into a request field
 pipeline.Use(sessionData.Interceptor);
 pipeline.Into(connection);
 
