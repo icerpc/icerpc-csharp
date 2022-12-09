@@ -29,8 +29,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress) =>
-        serverAddress.Protocol == Protocol.IceRpc && serverAddress.Params.Count == 0;
+    public bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;
 
     /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
