@@ -459,9 +459,8 @@ internal class SlicConnection : IMultiplexedConnection
             // Only client connections send ping frames when idle to keep the connection alive.
             keepAliveAction = () =>
                 {
-                    // Send a new ping frame if the previous frame was successfully sent. We call Exception on the task
-                    // to ensure that the task exception is observed.
-                    if (_pingTask.IsCompleted && _pingTask.Exception is null)
+                    // Send a new ping frame if the previous frame was successfully sent.
+                    if (_pingTask.IsCompletedSuccessfully)
                     {
                         _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
                     }
@@ -864,11 +863,8 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 case FrameType.Ping:
                 {
-                    if (_pongTask.IsCompleted)
+                    if (_pongTask.IsCompletedSuccessfully)
                     {
-                        // Ensure that the previous pong frame send was successful.
-                        await _pongTask.ConfigureAwait(false);
-
                         // Send back a pong frame.
                         _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, default).AsTask();
                     }
