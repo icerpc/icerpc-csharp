@@ -95,7 +95,7 @@ public class SessionManager
         {
             if (request.Features.Get<ISessionFeature>() is null)
             {
-                throw new DispatchException(StatusCode.Unauthorized, "Not authorized");
+                throw new DispatchException(StatusCode.Unauthorized, "Not authorized.");
             }
             return next.DispatchAsync(request, cancellationToken);
         });
