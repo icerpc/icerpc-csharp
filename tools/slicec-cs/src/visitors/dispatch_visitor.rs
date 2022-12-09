@@ -244,6 +244,20 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
                 "await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
                 encoding = operation.encoding.to_cs_encoding(),
             );
+            match stream_member.data_type().concrete_type() {
+                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+                    writeln!(code, "return request.DetachPayload();");
+                }
+                _ => {
+                    writeln!(
+                        code,
+                        "\
+var payloadContinuation = request.DetachPayload();
+return {}",
+                        decode_operation_stream(stream_member, namespace, operation.encoding, true)
+                    )
+                }
+            }
         } else {
             writeln!(
                 code,
@@ -257,26 +271,27 @@ var {args} = await request.DecodeArgsAsync(
                 encoding = operation.encoding.to_cs_encoding(),
                 decode_func = request_decode_func(operation).indent(),
             );
-        }
-        match stream_member.data_type().concrete_type() {
-            Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
-                writeln!(
+            match stream_member.data_type().concrete_type() {
+                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+                    writeln!(
+                        code,
+                        "var {} = request.DetachPayload();",
+                        stream_member.parameter_name_with_prefix("sliceP_"),
+                    )
+                }
+                _ => writeln!(
                     code,
-                    "var {} = request.DetachPayload();",
-                    stream_member.parameter_name_with_prefix("sliceP_"),
-                )
-            }
-            _ => writeln!(
-                code,
-                "\
+                    "\
 var payloadContinuation = request.DetachPayload();
 var {stream_parameter_name} = {decode_operation_stream}
 ",
-                stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, true),
-            ),
+                    stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
+                    decode_operation_stream =
+                        decode_operation_stream(stream_member, namespace, operation.encoding, true),
+                ),
+            }
+            writeln!(code, "return {};", operation.parameters().to_argument_tuple("sliceP_"));
         }
-        writeln!(code, "return {};", operation.parameters().to_argument_tuple("sliceP_"));
     } else {
         writeln!(
             code,
@@ -303,8 +318,6 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 
     let use_default_decode_func =
         parameters.len() == 1 && get_bit_sequence_size(&parameters) == 0 && parameters.first().unwrap().tag.is_none();
-
-    // TODO: simplify code for single stream param
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();
