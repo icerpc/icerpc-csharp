@@ -22,18 +22,17 @@ public sealed class LoggerMiddlewareTests
 
         // Assert
         Assert.That(loggerFactory.Logger, Is.Not.Null);
-        List<TestLoggerEntry> entries = loggerFactory.Logger!.Entries;
+        TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entries.Count, Is.EqualTo(1));
-        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
-        Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-        Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
-        Assert.That(entries[0].State["StatusCode"], Is.EqualTo(StatusCode.Success));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
+        Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
+        Assert.That(entry.State["Path"], Is.EqualTo("/path"));
+        Assert.That(entry.State["StatusCode"], Is.EqualTo(StatusCode.Success));
         Assert.That(
-            entries[0].State["LocalNetworkAddress"],
+            entry.State["LocalNetworkAddress"],
             Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));
         Assert.That(
-            entries[0].State["RemoteNetworkAddress"],
+            entry.State["RemoteNetworkAddress"],
             Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
 
     }
@@ -57,12 +56,11 @@ public sealed class LoggerMiddlewareTests
 
         Assert.That(loggerFactory.Logger, Is.Not.Null);
 
-        List<TestLoggerEntry> entries = loggerFactory.Logger!.Entries;
+        TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entries.Count, Is.EqualTo(1));
-        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchException));
-        Assert.That(entries[0].State["Path"], Is.EqualTo("/path"));
-        Assert.That(entries[0].State["Operation"], Is.EqualTo("doIt"));
-        Assert.That(entries[0].Exception, Is.InstanceOf<InvalidOperationException>());
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchException));
+        Assert.That(entry.State["Path"], Is.EqualTo("/path"));
+        Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
+        Assert.That(entry.Exception, Is.InstanceOf<InvalidOperationException>());
     }
 }

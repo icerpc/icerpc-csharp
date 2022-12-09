@@ -539,6 +539,7 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync()
         {
+            _logger.LogStopAcceptingConnections(ServerAddress);
             return _decoratee.DisposeAsync();
         }
 
