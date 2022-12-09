@@ -34,7 +34,6 @@ public class SessionTokenComparer : IEqualityComparer<byte[]>
 }
 
 /// <summary> SessionManger holds the map known session tokens to names.
-/// NOTE: this class is for demonstrative purposes and should not be used in a production environment
 /// </summary>
 public class SessionManager
 {

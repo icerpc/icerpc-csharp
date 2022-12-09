@@ -16,8 +16,8 @@ public class HelloAdminService : Service, IHelloAdmin
     public HelloAdminService(HelloService helloService) => _helloService = helloService;
 
     public ValueTask ChangeGreetingAsync(
-        string greeting, IFeatureCollection
-        features,
+        string greeting,
+        IFeatureCollection features,
         CancellationToken cancellationToken)
     {
         _helloService.Greeting = greeting;
