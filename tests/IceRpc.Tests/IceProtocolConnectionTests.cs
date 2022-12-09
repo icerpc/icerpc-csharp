@@ -180,7 +180,7 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
 
     [Test]
@@ -207,9 +207,43 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         var exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Client.InvokeAsync(request, default));
-        Assert.That(exception, Is.Not.Null); // TODO: which error should we get here?
+        Assert.That(exception, Is.Not.Null);
         exception = Assert.ThrowsAsync<IceRpcException>(async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed)); // TODO: not correct
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+    }
+
+    /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
+    /// and doesn't interfere with other request and responses being send over the same connection.</summary>
+    [Test]
+    public async Task Response_received_for_discarded_request_is_ignored()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(new byte[200], holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var cts = new CancellationTokenSource();
+
+        // Act/Assert
+        var invokeTask = sut.Client.InvokeAsync(request1, cts.Token);
+        await dispatcher.DispatchStart;
+        cts.Cancel();
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        // Let the dispatch continue after the invocation was discarded
+        dispatcher.ReleaseDispatch();
+
+        Assert.That(dispatcher.ResponsePayload, Is.Not.Null);
+        Assert.That(async () => await dispatcher.ResponsePayload!.Completed, Throws.Nothing);
+
+        var response = await sut.Client.InvokeAsync(request2, default);
+        // with ice, the payload is fully available at this point
+        bool ok = response.Payload.TryRead(out ReadResult readResult);
+        Assert.That(ok, Is.True);
+        Assert.That(readResult.IsCompleted, Is.True);
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>

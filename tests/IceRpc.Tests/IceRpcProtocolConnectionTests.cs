@@ -496,7 +496,7 @@ public sealed class IceRpcProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
@@ -996,13 +996,14 @@ public sealed class IceRpcProtocolConnectionTests
         internal HoldOperation HoldOperation { get; private set; }
 
         private readonly IMultiplexedConnection _decoratee;
+        private readonly TaskCompletionSource _disposeTcs = new();
 
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
         {
             var stream = new HoldMultiplexedStream(this, await _decoratee.AcceptStreamAsync(cancellationToken));
             if (HoldOperation.HasFlag(HoldOperation.AcceptStream))
             {
-                await Task.Delay(-1, cancellationToken);
+                await _disposeTcs.Task;
             }
             return stream;
         }
@@ -1017,7 +1018,11 @@ public sealed class IceRpcProtocolConnectionTests
                 this,
                 await _decoratee.CreateStreamAsync(bidirectional, cancellationToken).ConfigureAwait(false));
 
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            await _decoratee.DisposeAsync();
+            _disposeTcs.TrySetResult();
+        }
 
         public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
             _decoratee.CloseAsync(closeError, cancellationToken);

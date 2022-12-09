@@ -1,11 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
+using System.IO.Pipelines;
+
 namespace IceRpc.Tests.Common;
 
 public sealed class TestDispatcher : IDispatcher, IDisposable
 {
     public Task DispatchComplete => _completeTaskCompletionSource.Task;
     public Task<IncomingRequest> DispatchStart => _startTaskCompletionSource.Task;
+
+    /// <summary>A payload pipe reader decorator that represents the last response send by this dispatcher.
+    /// </summary>
+    public PayloadPipeReaderDecorator? ResponsePayload { get; set; }
 
     private readonly TaskCompletionSource _completeTaskCompletionSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -14,14 +21,40 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
     private readonly TaskCompletionSource<IncomingRequest> _startTaskCompletionSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private readonly byte[]? _responsePayload;
+    private readonly int _holdDispatchCount;
+    private int _dispatchCount;
+
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
+        PipeReader responsePayload;
+        if (_responsePayload is null)
+        {
+            responsePayload = EmptyPipeReader.Instance;
+        }
+        else
+        {
+            var pipe = new Pipe();
+            await pipe.Writer.WriteAsync(_responsePayload, cancellationToken);
+            pipe.Writer.Complete();
+            responsePayload = pipe.Reader;
+        }
+        ResponsePayload = new PayloadPipeReaderDecorator(responsePayload);
+
         _startTaskCompletionSource.TrySetResult(request);
         try
         {
-            await _hold.WaitAsync(cancellationToken);
+            if (_dispatchCount++ < _holdDispatchCount)
+            {
+                await _hold.WaitAsync(cancellationToken);
+            }
+
             _completeTaskCompletionSource.TrySetResult();
-            return new OutgoingResponse(request);
+
+            return new OutgoingResponse(request)
+            {
+                Payload = ResponsePayload
+            };
         }
         catch (Exception exception)
         {
@@ -40,4 +73,10 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
     }
 
     public int ReleaseDispatch() => _hold.Release();
+
+    public TestDispatcher(byte[]? responsePayload = null, int holdDispatchCount = 1)
+    {
+        _responsePayload = responsePayload;
+        _holdDispatchCount = holdDispatchCount;
+    }
 }

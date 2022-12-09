@@ -268,7 +268,7 @@ public sealed class ConnectionCacheTests
 
         private readonly IMultiplexedConnection _connection;
 
-        private readonly SemaphoreSlim _continueDisposeSemaphore = new(0);
+        private readonly TaskCompletionSource _continueDisposeTcs = new();
         private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
 
         public SlowDisposeConnection(IMultiplexedConnection connection) => _connection = connection;
@@ -288,13 +288,13 @@ public sealed class ConnectionCacheTests
         public async ValueTask DisposeAsync()
         {
             _waitDisposeSemaphore.Release();
-            await _continueDisposeSemaphore.WaitAsync().ConfigureAwait(false);
+            await _continueDisposeTcs.Task.ConfigureAwait(false);
             await _connection.DisposeAsync().ConfigureAwait(false);
         }
 
         public Task WaitForDisposeAsync(CancellationToken cancellationToken) =>
             _waitDisposeSemaphore.WaitAsync(cancellationToken);
 
-        public void ReleaseDispose() => _continueDisposeSemaphore.Release();
+        public void ReleaseDispose() => _continueDisposeTcs.SetResult();
     }
 }

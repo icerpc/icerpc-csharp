@@ -252,9 +252,7 @@ internal class SlicConnection : IMultiplexedConnection
                 catch (Exception exception)
                 {
                     // Unexpected exception.
-                    await CloseAsyncCore(new IceRpcException(
-                        (IceRpcError)IceRpcError.IceRpcError,
-                        exception)).ConfigureAwait(false);
+                    await CloseAsyncCore(new IceRpcException(IceRpcError.IceRpcError, exception)).ConfigureAwait(false);
                 }
                 finally
                 {
