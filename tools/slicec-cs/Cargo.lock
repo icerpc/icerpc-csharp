@@ -289,6 +289,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "in_definite"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a96851b632ffcf77665a475d5db144fbba96e41be0ac2b88fe0854869c0220e0"
+
+[[package]]
 name = "indexmap"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -710,6 +716,7 @@ dependencies = [
 name = "slicec-cs"
 version = "0.1.0"
 dependencies = [
+ "in_definite",
  "slicec",
 ]
 
