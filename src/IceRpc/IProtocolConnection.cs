@@ -15,8 +15,15 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is shut down or fails. The connection can be shut down
-    /// either by calling <see cref="ShutdownAsync" />, if it's idle or if it's shut down by the peer. </summary>
+    /// <summary>Gets a task that completes when the connection is shut down or fails. The connection shutdown is
+    /// initiated by any of the following events:
+    /// <list type="bullet">
+    /// <item><description>the application calls <see cref="ShutdownAsync" /> on the connection.</description></item>
+    /// <item><description>the connection shuts down itself because it remained idle for longer than its configured idle
+    /// timeout.</description></item>
+    /// <item><description>the peer shuts down the connection.</description></item>
+    /// </list>
+    /// </summary>
     /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
     /// the connection fails.</value>
     Task ShutdownComplete { get; }
