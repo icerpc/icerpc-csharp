@@ -2,19 +2,26 @@
 
 module AuthorizationExample;
 
+/// The authorization token
 typealias Token = sequence<uint8>;
 
 interface Session
 {
+    /// Create a new session and return the token.
+    /// @param name The user name.
+    /// @return The token.
     login(name: string) -> Token;
 }
 
-interface Admin
+interface HelloAdmin
 {
+    /// Change the greeting.
+    /// @param greeting The new greeting.
     changeGreeting(greeting: string);
 }
 
 interface Hello
 {
+    /// Get the greeting.
     sayHello() -> string;
 }

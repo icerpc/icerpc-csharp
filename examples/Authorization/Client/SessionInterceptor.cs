@@ -5,21 +5,13 @@ using System.Buffers;
 
 namespace AuthorizationExample;
 
-/// <summary>
-/// Stores the session data for the client and provides an interceptor that adds the session token to a request.
-/// </summary>
-public class SessionToken
-{
-    public byte[]? Data;
-}
-
 /// <summary>An interceptor that adds the session token to request.</summary>
 public class SessionInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    private readonly SessionToken _token;
+    private readonly byte[] _token;
 
-    public SessionInterceptor(IInvoker next, SessionToken token)
+    public SessionInterceptor(IInvoker next, byte[] token)
     {
         _next = next;
         _token = token;
@@ -29,11 +21,7 @@ public class SessionInterceptor : IInvoker
         OutgoingRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (_token.Data is byte[] token)
-        {
-            request.Fields = request.Fields.With(
-                (RequestFieldKey)100, new ReadOnlySequence<byte>(token));
-        }
+        request.Fields = request.Fields.With((RequestFieldKey)100, new ReadOnlySequence<byte>(_token));
         return _next.InvokeAsync(request, cancellationToken);
     }
 }

@@ -22,7 +22,6 @@ public struct SessionFeature : ISessionFeature
     public string Name { get; }
 
     public SessionFeature(string name) => Name = name;
-
 }
 
 /// <summary> A comparer for byte arrays.</summary>

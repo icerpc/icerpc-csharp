@@ -15,7 +15,7 @@ router.Route("/admin", adminRouter =>
 {
     // Requires the session feature to be present in the request's feature collection.
     adminRouter.Use((next) => new HasSessionMiddleware(next));
-    adminRouter.Map("/", new AdminService(helloService));
+    adminRouter.Map("/", new HelloAdminService(helloService));
 });
 
 router.Map("/session", new SessionService(sessionManager));
