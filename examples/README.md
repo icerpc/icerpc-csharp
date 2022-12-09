@@ -3,6 +3,11 @@
 This directory contains example applications for various IceRPC components. These examples have been provided to help
 get you started using a particular IceRPC feature or programming technique.
 
+## [Authorization](./Authorization/)
+
+The Authorization example shows how to use an authorization interceptor and middleware to authorize requests and
+use request features to store contextual information.
+
 ## [Compress](./Compress/)
 
 The Compress example shows how to use the deflate interceptor and middleware to compress and decompress the arguments
