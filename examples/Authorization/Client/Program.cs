@@ -18,7 +18,7 @@ IHelloProxy helloProxy = new HelloProxy(pipeline, new Uri("icerpc:/hello"));
 ISessionProxy sessionProxy = new SessionProxy(pipeline, new Uri("icerpc:/session"));
 IAdminProxy adminProxy = new AdminProxy(pipeline, new Uri("icerpc:/admin/"));
 
-// Un-authenticated hello; prints generic greeting
+// Unauthenticated hello; prints generic greeting
 Console.WriteLine(await helloProxy.SayHelloAsync());
 
 // Try to change the greeting. Since we're not logged in, this will fail.
