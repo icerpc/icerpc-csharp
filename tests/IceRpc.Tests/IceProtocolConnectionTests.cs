@@ -180,7 +180,7 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Client.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<NotSupportedException>());
+        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
 
     [Test]
