@@ -218,31 +218,7 @@ public sealed class IceProtocolConnectionTests
     public async Task Response_received_for_discarded_request_is_ignored()
     {
         // Arrange
-        var responsePayload = new Pipe();
-        await responsePayload.Writer.WriteAsync(new byte[200]);
-        responsePayload.Writer.Complete();
-        var payloadDecorator = new PayloadPipeReaderDecorator(responsePayload.Reader);
-        var dispatchTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var invokeTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        int dispatchCount = 0;
-        var dispatcher = new InlineDispatcher(
-            async (request, cancellationToken) =>
-            {
-                if (dispatchCount++ == 0)
-                {
-                    dispatchTcs.TrySetResult();
-                    await invokeTcs.Task;
-                    return new OutgoingResponse(request)
-                    {
-                        Payload = payloadDecorator
-                    };
-                }
-                else
-                {
-                    return new OutgoingResponse(request) { Payload = EmptyPipeReader.Instance };
-                }
-
-            });
+        using var dispatcher = new TestDispatcher(new byte[200], holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -254,12 +230,14 @@ public sealed class IceProtocolConnectionTests
 
         // Act/Assert
         var invokeTask = sut.Client.InvokeAsync(request1, cts.Token);
-        await dispatchTcs.Task;
+        await dispatcher.DispatchStart;
         cts.Cancel();
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
         // Let the dispatch continue after the invocation was discarded
-        invokeTcs.TrySetResult();
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        dispatcher.ReleaseDispatch();
+
+        Assert.That(dispatcher.ResponsePayload, Is.Not.Null);
+        Assert.That(async () => await dispatcher.ResponsePayload!.Completed, Throws.Nothing);
 
         var response = await sut.Client.InvokeAsync(request2, default);
         // with ice, the payload is fully available at this point
