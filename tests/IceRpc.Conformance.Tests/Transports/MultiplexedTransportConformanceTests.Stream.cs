@@ -270,7 +270,7 @@ public abstract partial class MultiplexedTransportConformanceTests
 
     [Test]
     public async Task Stream_local_output_closed_when_remote_input_is_completed(
-    [Values(false, true)] bool isBidirectional)
+        [Values(false, true)] bool isBidirectional)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -287,6 +287,73 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         // Assert
         Assert.That(async () => await sut.LocalStream.OutputClosed, Throws.Nothing);
+
+        await CompleteStreamsAsync(sut);
+    }
+
+    [Test]
+    public async Task Stream_local_output_closed_when_local_output_completed(
+        [Values(false, true)] bool isBidirectional)
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, isBidirectional);
+
+        // Act
+        sut.LocalStream.Output.Complete();
+
+        // Assert
+        Assert.That(async () => await sut.LocalStream.OutputClosed, Throws.Nothing);
+
+        await CompleteStreamsAsync(sut);
+    }
+
+    [Test]
+    public async Task Stream_local_input_closed_when_remote_output_is_completed()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, true);
+
+        // Act
+        sut.RemoteStream.Output.Complete();
+
+        // Assert
+        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.Nothing);
+
+        await CompleteStreamsAsync(sut);
+    }
+
+    [Test]
+    public async Task Stream_local_input_closed_when_local_input_completed()
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, true);
+
+        // Act
+        sut.LocalStream.Input.Complete();
+
+        // Assert
+        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.Nothing);
 
         await CompleteStreamsAsync(sut);
     }
