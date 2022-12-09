@@ -75,9 +75,6 @@ internal class SlicStream : IMultiplexedStream
 
     public async ValueTask DisposeAsync()
     {
-        Debug.Assert(ReadsCompleted, $"The stream read side must be closed prior to calling {nameof(DisposeAsync)}.");
-        Debug.Assert(WritesCompleted, $"The stream write side must be closed prior to calling {nameof(DisposeAsync)}.");
-
         try
         {
             await Task.WhenAll(
@@ -90,6 +87,11 @@ internal class SlicStream : IMultiplexedStream
         {
             Debug.Assert(false, $"Slic stream disposal failed due to an unhandled exception: {exception}");
         }
+
+        // Ensure reads and writes are completed. This must be checked after awaiting the tasks above since the reads
+        // or writes closed tasks might complete the reads or writes.
+        Debug.Assert(ReadsCompleted, $"The stream read side must be closed prior to calling {nameof(DisposeAsync)}.");
+        Debug.Assert(WritesCompleted, $"The stream write side must be closed prior to calling {nameof(DisposeAsync)}.");
     }
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
