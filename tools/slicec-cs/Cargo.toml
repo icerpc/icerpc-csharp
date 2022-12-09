@@ -10,6 +10,7 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
+in_definite = "0.2.5"
 # Uses the github repo when built locally, and Crates.io when published.
 slicec = { git = "ssh://git@github.com/zeroc-ice/icerpc", version = "0.1.0" }
 

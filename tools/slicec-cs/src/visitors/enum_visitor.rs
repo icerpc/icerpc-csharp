@@ -10,6 +10,8 @@ use slice::convert_case::{Case, Casing};
 use slice::grammar::*;
 use slice::visitor::Visitor;
 
+use in_definite;
+
 #[derive(Debug)]
 pub struct EnumVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
@@ -66,11 +68,12 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         ),
     );
 
-    // TODO add helper method to correctly use a or an, in the doc comments
     builder.add_comment(
         "summary",
         &format!(
-            r#"Provides an extension method for creating a <see cref="{escaped_identifier}" /> from a <see cref="{cs_type}" />"#
+            r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see cref="{cs_type}" />"#,
+            in_definite::get_a_or_an(&escaped_identifier),
+            in_definite::get_a_or_an(&cs_type),
         ),
     );
 
