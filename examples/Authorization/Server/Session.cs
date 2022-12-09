@@ -30,27 +30,8 @@ public struct SessionFeature : ISessionFeature
 /// <summary> A comparer for byte arrays.</summary>
 public class SessionTokenComparer : IEqualityComparer<byte[]>
 {
-    public bool Equals(byte[]? x, byte[]? y)
-    {
-        if (x is null || y is null)
-        {
-            return false;
-        }
-
-        if (x.Length != y.Length)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < x.Length; i++)
-        {
-            if (x[i] != y[i])
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+    public bool Equals(byte[]? x, byte[]? y) =>
+        ReferenceEquals(x, y) || (x is not null && y is not null && x.SequenceEqual(y));
 
     public int GetHashCode([DisallowNull] byte[] bytes) => BitConverter.ToInt32(bytes);
 }
