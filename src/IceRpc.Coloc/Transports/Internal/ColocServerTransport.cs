@@ -22,7 +22,7 @@ internal class ColocServerTransport : IDuplexServerTransport
     {
         if (serverAuthenticationOptions is not null)
         {
-            throw new NotSupportedException("The Coloc server transport doesn't support SSL.");
+            throw new NotSupportedException("The Coloc server transport does not support SSL.");
         }
 
         if (!ColocTransport.CheckParams(serverAddress))

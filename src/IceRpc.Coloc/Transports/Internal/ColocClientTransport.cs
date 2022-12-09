@@ -26,7 +26,7 @@ internal class ColocClientTransport : IDuplexClientTransport
     {
         if (clientAuthenticationOptions is not null)
         {
-            throw new NotSupportedException("The Coloc client transport doesn't support SSL.");
+            throw new NotSupportedException("The Coloc client transport does not support SSL.");
         }
 
         if (!CheckParams(serverAddress))

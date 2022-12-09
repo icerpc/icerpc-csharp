@@ -199,7 +199,7 @@ public class TcpTransportTests
         var address = new ServerAddress(Protocol.IceRpc) { Host = "foo" };
 
         // Act/Assert
-        Assert.Throws<NotSupportedException>(() => CreateTcpListener(address));
+        Assert.Throws<ArgumentException>(() => CreateTcpListener(address));
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with

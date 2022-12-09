@@ -51,12 +51,12 @@ public class TelemetryInterceptor : IInvoker
         if (activity.IdFormat != ActivityIdFormat.W3C)
         {
             throw new NotSupportedException(
-                $"The activity id format '{activity.IdFormat}' is not supported, the only supported activity id format is 'W3C'.");
+                $"The activity ID format '{activity.IdFormat}' is not supported, the only supported activity ID format is 'W3C'.");
         }
 
         if (activity.Id is null)
         {
-            throw new ArgumentException("The activity id property cannot be null.", nameof(activity));
+            throw new ArgumentException("The activity ID property cannot be null.", nameof(activity.Id));
         }
 
         // The activity context is written to the field value, as if it has the following Slice definition

@@ -33,7 +33,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                     return serviceAddress.Protocol == Protocol.Ice && serviceAddress.ServerAddress is not null ?
                         serviceAddress :
                         throw new InvalidDataException(
-                            $"The locator returned an invalid service address '{serviceAddress}', when looking up an adapter by Id.");
+                            $"The locator returned invalid service address '{serviceAddress}' when looking up an adapter by ID.");
                 }
                 else
                 {
@@ -60,7 +60,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
                         (serviceAddress.ServerAddress is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
                             serviceAddress :
                             throw new InvalidDataException(
-                                $"The locator returned an invalid service address '{serviceAddress}', when looking up an object by Id");
+                                $"The locator returned invalid service address '{serviceAddress}' when looking up an object by ID.");
                 }
                 else
                 {

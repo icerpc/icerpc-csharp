@@ -35,7 +35,8 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         {
             if (exception is null && _pipe.Writer.UnflushedBytes > 0)
             {
-                throw new NotSupportedException($"Cannot complete {nameof(QuicPipeWriter)} because it contains unflushed bytes.");
+                throw new InvalidOperationException(
+                    $"Completing a {nameof(QuicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
             }
 
             _isCompleted = true;

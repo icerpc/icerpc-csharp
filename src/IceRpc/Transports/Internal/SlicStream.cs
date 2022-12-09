@@ -32,8 +32,7 @@ internal class SlicStream : IMultiplexedStream
     }
 
     public PipeReader Input =>
-        _inputPipeReader ??
-        throw new InvalidOperationException($"Cannot get the {nameof(Input)} of an unidirectional local stream.");
+        _inputPipeReader ?? throw new InvalidOperationException("A local unidirectional stream has no Input.");
 
     /// <inheritdoc/>
     public bool IsBidirectional { get; }
@@ -45,8 +44,7 @@ internal class SlicStream : IMultiplexedStream
     public bool IsStarted => Thread.VolatileRead(ref _id) != ulong.MaxValue;
 
     public PipeWriter Output =>
-        _outputPipeWriter ??
-        throw new InvalidOperationException($"Cannot get the {nameof(Output)} of an unidirectional remote stream.");
+        _outputPipeWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
 
     public Task InputClosed => _readsClosedCompletionSource.Task;
 
