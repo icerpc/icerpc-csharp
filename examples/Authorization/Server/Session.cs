@@ -100,9 +100,7 @@ public class SessionManager
     }
 }
 
-/// <summary>
-/// The implementation of the <see cref="ISession" /> interface.
-/// </summary>
+/// <summary>The implementation of the <see cref="ISession" /> interface.</summary>
 public class SessionService : Service, ISession
 {
     private readonly SessionManager _sessionManager;
