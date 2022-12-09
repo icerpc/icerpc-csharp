@@ -8,18 +8,32 @@ namespace AuthorizationExample;
 /// <summary>
 /// Stores the session data for the client and provides an interceptor that adds the session token to a request.
 /// </summary>
-public class SessionData
+public class SessionToken
 {
-    public byte[]? Token { get; set; }
+    public byte[]? Data;
+}
 
-    public Func<IInvoker, IInvoker> Interceptor =>
-        next => new InlineInvoker((request, cancellationToken) =>
+/// <summary>An interceptor that adds the session token to request.</summary>
+public class SessionInterceptor : IInvoker
+{
+    private readonly IInvoker _next;
+    private readonly SessionToken _token;
+
+    public SessionInterceptor(IInvoker next, SessionToken token)
+    {
+        _next = next;
+        _token = token;
+    }
+
+    public Task<IncomingResponse> InvokeAsync(
+        OutgoingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (_token.Data is byte[] token)
         {
-            if (Token is not null)
-            {
-                request.Fields = request.Fields.With(
-                    (RequestFieldKey)100, new ReadOnlySequence<byte>(Token));
-            }
-            return next.InvokeAsync(request, cancellationToken);
-        });
+            request.Fields = request.Fields.With(
+                (RequestFieldKey)100, new ReadOnlySequence<byte>(token));
+        }
+        return _next.InvokeAsync(request, cancellationToken);
+    }
 }

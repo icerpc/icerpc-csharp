@@ -59,42 +59,51 @@ public class SessionManager
     /// <param name="token">The session token</param>
     /// <returns>The name</returns>
     public string? GetName(byte[] token) => _sessions.TryGetValue(token, out string? name) ? name : null;
+}
 
-    /// <summary>
-    /// Creates a dispatcher that loads the session token from the request and stores the name in the request features.
-    /// </summary>
-    /// <param name="next">The next invoker</param>
-    /// <returns>A new dispatcher.</returns>
-    public IDispatcher LoadSession(IDispatcher next)
+/// <summary>
+/// Middleware that loads the session token from the request and adds the session feature to the request's
+/// feature collection. </summary>
+public class LoadSessionMiddleware : IDispatcher
+{
+    private readonly IDispatcher _next;
+    private readonly SessionManager _sessionManager;
+
+    public LoadSessionMiddleware(IDispatcher next, SessionManager sessionManager)
     {
-        return new InlineDispatcher((request, cancellationToken) =>
-        {
-            if (request.Fields.TryGetValue((RequestFieldKey)100, out ReadOnlySequence<byte> value))
-            {
-                byte[] token = value.ToArray();
-                if (GetName(token) is string name)
-                {
-                    request.Features = request.Features.With<ISessionFeature>(new SessionFeature(name));
-                }
-            }
-            return next.DispatchAsync(request, cancellationToken);
-        });
+        _next = next;
+        _sessionManager = sessionManager;
     }
 
-    /// <summary>Creates a dispatcher that checks if the request has a session feature. If it does not, it throws a
-    /// <see cref="DispatchException" /> with a `<see cref="StatusCode.Unauthorized" />` status code.</summary>
-    /// <param name="next">The next invoker.</param>
-    /// <returns>A new dispatcher.</returns>
-    public static IDispatcher HasSession(IDispatcher next)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        return new InlineDispatcher((request, cancellationToken) =>
+        if (request.Fields.TryGetValue((RequestFieldKey)100, out ReadOnlySequence<byte> value))
         {
-            if (request.Features.Get<ISessionFeature>() is null)
+            byte[] token = value.ToArray();
+            if (_sessionManager.GetName(token) is string name)
             {
-                throw new DispatchException(StatusCode.Unauthorized, "Not authorized.");
+                request.Features = request.Features.With<ISessionFeature>(new SessionFeature(name));
             }
-            return next.DispatchAsync(request, cancellationToken);
-        });
+        }
+        return _next.DispatchAsync(request, cancellationToken);
+    }
+}
+
+/// <summary>
+/// Middleware that checks if the request has a session feature. If not, it throws a <see cref="DispatchException" />
+/// </summary>
+public class HasSessionMiddleware : IDispatcher
+{
+    private readonly IDispatcher _next;
+
+    public HasSessionMiddleware(IDispatcher next) => _next = next;
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Features.Get<ISessionFeature>() is null)
+        {
+            throw new DispatchException(StatusCode.Unauthorized, "Not authorized.");
+        }
+        return _next.DispatchAsync(request, cancellationToken);
     }
 }
 
@@ -107,6 +116,6 @@ public class SessionService : Service, ISession
 
     public ValueTask<ReadOnlyMemory<byte>> LoginAsync(
         string name,
-        IFeatureCollection features, 
+        IFeatureCollection features,
         CancellationToken cancellationToken) => new(_sessionManager.CreateSession(name));
 }

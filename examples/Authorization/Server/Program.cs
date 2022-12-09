@@ -9,12 +9,12 @@ var sessionManager = new SessionManager();
 var router = new Router();
 
 // Loads the session token from the request and adds the session feature to the request's feature collection
-router.Use(sessionManager.LoadSession);
+router.Use((next) => new LoadSessionMiddleware(next, sessionManager));
 
 router.Route("/admin", adminRouter =>
 {
     // Requires the session feature to be present in the request's feature collection.
-    adminRouter.Use(SessionManager.HasSession);
+    adminRouter.Use((next) => new HasSessionMiddleware(next));
     adminRouter.Map("/", new AdminService(helloService));
 });
 

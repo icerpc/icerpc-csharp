@@ -6,11 +6,11 @@ using IceRpc;
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
 // Stores the session token
-var sessionData = new SessionData();
+var sessionToken = new SessionToken();
 
 var pipeline = new Pipeline();
 // Add an interceptor to the invocation pipeline that inserts the token into a request field
-pipeline.Use(sessionData.Interceptor);
+pipeline.Use(next => new SessionInterceptor(next, sessionToken));
 pipeline.Into(connection);
 
 // Establish a connection to the server that uses the invocation pipe
@@ -32,7 +32,7 @@ catch (DispatchException ex) when (ex.StatusCode == StatusCode.Unauthorized)
 }
 
 // Login and store the token
-sessionData.Token = await sessionProxy.LoginAsync("friend");
+sessionToken.Data = await sessionProxy.LoginAsync("friend");
 
 // Authenticated hello; prints personalized greeting
 Console.WriteLine(await helloProxy.SayHelloAsync());
