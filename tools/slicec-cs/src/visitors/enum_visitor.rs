@@ -8,9 +8,8 @@ use slice::code_block::CodeBlock;
 
 use slice::convert_case::{Case, Casing};
 use slice::grammar::*;
+use slice::in_definite;
 use slice::visitor::Visitor;
-
-use in_definite;
 
 #[derive(Debug)]
 pub struct EnumVisitor<'a> {
