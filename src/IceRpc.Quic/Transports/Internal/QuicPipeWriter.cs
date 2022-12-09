@@ -14,7 +14,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
     internal Task Closed { get; }
 
-    private readonly Action _completedCallback;
     private bool _isCompleted;
     private readonly int _minSegmentSize;
 
@@ -54,9 +53,6 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
-
-            // Notify the stream of the writer completion.
-            _completedCallback();
         }
     }
 
@@ -179,15 +175,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal QuicPipeWriter(
-        QuicStream stream,
-        MemoryPool<byte> pool,
-        int minSegmentSize,
-        Action completedCallback)
+    internal QuicPipeWriter(QuicStream stream, MemoryPool<byte> pool, int minSegmentSize)
     {
         _stream = stream;
         _minSegmentSize = minSegmentSize;
-        _completedCallback = completedCallback;
 
         // Create a pipe that never pauses on flush or write. The QuicPipeWriter will pause the flush or write if the
         // Quic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to avoid

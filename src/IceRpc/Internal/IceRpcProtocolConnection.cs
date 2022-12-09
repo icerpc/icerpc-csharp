@@ -289,6 +289,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                             {
                                 stream.Output.CompleteOutput(success: false);
                             }
+                            await stream.DisposeAsync().ConfigureAwait(false);
                             return;
                         }
                         else
@@ -380,6 +381,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
         await _dispatchesCompleted.Task.ConfigureAwait(false);
 
+        if (_controlStream is not null)
+        {
+            // It's safe to complete the output since write operations have been completed by the connection disposal.
+            _controlStream.Output.Complete();
+            await _controlStream.DisposeAsync().ConfigureAwait(false);
+        }
+        if (_remoteControlStream is not null)
+        {
+            // It's safe to complete the input since read operations have been completed by the connection disposal.
+            _remoteControlStream.Input.Complete();
+            await _remoteControlStream.DisposeAsync().ConfigureAwait(false);
+        }
+
         _dispatchesAndInvocationsCts.Dispose();
         _dispatchSemaphore?.Dispose();
     }
@@ -450,6 +464,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             stream.Output.CompleteOutput(success: false);
             streamInput?.Complete();
+            await stream.DisposeAsync().ConfigureAwait(false);
             throw;
         }
 
@@ -1200,6 +1215,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch
         {
             // Ignore the reason of the Input/Output closure.
+        }
+        finally
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
         }
 
         lock (_mutex)

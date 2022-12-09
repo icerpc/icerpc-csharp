@@ -34,6 +34,9 @@ internal class QuicMultiplexedStream : IMultiplexedStream
 
     private readonly QuicPipeReader? _inputPipeReader;
     private readonly QuicPipeWriter? _outputPipeWriter;
+    private readonly QuicStream _stream;
+
+    public ValueTask DisposeAsync() => _stream.DisposeAsync();
 
     internal QuicMultiplexedStream(
         QuicStream stream,
@@ -45,38 +48,8 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         IsRemote = isRemote;
         IsBidirectional = stream.Type == QuicStreamType.Bidirectional;
 
-        int streamRefCount = 0;
-
-        if (stream.CanRead)
-        {
-            streamRefCount++;
-
-            _inputPipeReader = new QuicPipeReader(
-                stream,
-                pool,
-                minSegmentSize,
-                OnCompleted);
-        }
-
-        if (stream.CanWrite)
-        {
-            streamRefCount++;
-
-            _outputPipeWriter = new QuicPipeWriter(
-                stream,
-                pool,
-                minSegmentSize,
-                OnCompleted);
-        }
-
-        void OnCompleted()
-        {
-            if (Interlocked.Decrement(ref streamRefCount) == 0)
-            {
-                // The callback is called from the pipe reader/writer non-async Complete method so we just initiate the
-                // stream disposal and it will eventually complete in the background.
-                _ = stream.DisposeAsync().AsTask();
-            }
-        }
+        _stream = stream;
+        _inputPipeReader = stream.CanRead ? new QuicPipeReader(stream, pool, minSegmentSize) : null;
+        _outputPipeWriter = stream.CanWrite ? new QuicPipeWriter(stream, pool, minSegmentSize) : null;
     }
 }

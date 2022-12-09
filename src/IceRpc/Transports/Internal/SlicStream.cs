@@ -62,12 +62,37 @@ internal class SlicStream : IMultiplexedStream
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
     private readonly SlicPipeWriter? _outputPipeWriter;
+    private readonly TaskCompletionSource _readsClosedCompletionSource = new();
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
-    private readonly TaskCompletionSource _readsClosedCompletionSource = new();
-    private readonly TaskCompletionSource _writesClosedCompletionSource = new();
+    private Task? _sendReadsClosedFrameTask;
+    private Task? _sendStreamConsumedFrameTask;
+    private Task? _sendUnidirectionalStreamReleaseFrameTask;
+    private Task? _sendWritesClosedFrameTask;
     private int _state;
+    private readonly TaskCompletionSource _writesClosedCompletionSource = new();
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await Task.WhenAll(
+                _sendReadsClosedFrameTask ?? Task.CompletedTask,
+                _sendWritesClosedFrameTask ?? Task.CompletedTask,
+                _sendStreamConsumedFrameTask ?? Task.CompletedTask,
+                _sendUnidirectionalStreamReleaseFrameTask ?? Task.CompletedTask).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            Debug.Assert(false, $"Slic stream disposal failed due to an unhandled exception: {exception}");
+        }
+
+        // Ensure reads and writes are completed. This must be checked after awaiting the tasks above since the reads
+        // or writes closed tasks might complete the reads or writes.
+        Debug.Assert(ReadsCompleted, $"The stream read side must be closed prior to calling {nameof(DisposeAsync)}.");
+        Debug.Assert(WritesCompleted, $"The stream write side must be closed prior to calling {nameof(DisposeAsync)}.");
+    }
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -128,7 +153,9 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (IsBidirectional && !ReadsCompleted)
         {
-            _ = SendStopSendingFrameAndCompleteReadsAsync();
+            // SlicPipeReader.Complete guarantees that AbortRead is called at most once.
+            Debug.Assert(_sendReadsClosedFrameTask is null);
+            _sendReadsClosedFrameTask = SendStopSendingFrameAndCompleteReadsAsync();
         }
 
         async Task SendStopSendingFrameAndCompleteReadsAsync()
@@ -148,9 +175,9 @@ internal class SlicStream : IMultiplexedStream
                     new StreamStopSendingBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore.
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
 
             if (!IsRemote)
@@ -171,7 +198,9 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (!WritesCompleted)
         {
-            _ = SendResetFrameAndCompleteWritesAsync();
+            // SlicPipeWriter.Complete guarantees that AbortRead is called at most once.
+            Debug.Assert(_sendWritesClosedFrameTask is null);
+            _sendWritesClosedFrameTask = SendResetFrameAndCompleteWritesAsync();
         }
 
         async Task SendResetFrameAndCompleteWritesAsync()
@@ -191,9 +220,9 @@ internal class SlicStream : IMultiplexedStream
                     new StreamResetBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore.
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
 
             if (!IsRemote)
@@ -217,10 +246,12 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteUnidirectionalStreamReads()
     {
+        // SlicPipeReader.Complete guarantees that AbortRead is called at most once.
+        Debug.Assert(_sendUnidirectionalStreamReleaseFrameTask is null);
+
         // Notify the peer that reads are completed. The connection will release the unidirectional stream semaphore
         // and allow opening a new unidirectional stream if the maximum unidirectional count was reached.
-
-        _ = SendUnidirectionalStreamReleaseAsync();
+        _sendUnidirectionalStreamReleaseFrameTask = SendUnidirectionalStreamReleaseAsync();
 
         async Task SendUnidirectionalStreamReleaseAsync()
         {
@@ -236,9 +267,9 @@ internal class SlicStream : IMultiplexedStream
                     encode: null,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
         }
     }
@@ -252,7 +283,9 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (!WritesCompleted)
         {
-            _ = SendStreamLastFrameAsync();
+            // SlicPipeWriter.Complete guarantees that AbortRead is called at most once.
+            Debug.Assert(_sendWritesClosedFrameTask is null);
+            _sendWritesClosedFrameTask = SendStreamLastFrameAsync();
         }
 
         async Task SendStreamLastFrameAsync()
@@ -266,9 +299,9 @@ internal class SlicStream : IMultiplexedStream
                     endStream: true,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore.
+                // Ignore connection failures. Other exception will be caught by DisposeAsync.
             }
         }
     }
@@ -368,12 +401,31 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken) =>
         _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
 
-    internal void SendStreamConsumed(int size) =>
-        _ = _connection.SendFrameAsync(
-            stream: this,
-            FrameType.StreamConsumed,
-            new StreamConsumedBody((ulong)size).Encode,
-            CancellationToken.None).AsTask();
+    internal void SendStreamConsumed(int size)
+    {
+        Task previousSendStreamConsumedFrameTask = _sendStreamConsumedFrameTask ?? Task.CompletedTask;
+        _sendStreamConsumedFrameTask = SendStreamLastFrameAsync();
+
+        async Task SendStreamLastFrameAsync()
+        {
+            try
+            {
+                // First wait for the sending of the previous stream consumed task to complete.
+                await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
+
+                // Send the stream consumed frame.
+                await _connection.SendFrameAsync(
+                    stream: this,
+                    FrameType.StreamConsumed,
+                    new StreamConsumedBody((ulong)size).Encode,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
+            }
+        }
+    }
 
     internal bool TrySetReadsClosed(Exception? exception)
     {
