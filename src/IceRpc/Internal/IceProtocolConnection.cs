@@ -44,7 +44,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly IcePayloadPipeWriter _payloadWriter;
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
-    private readonly CancellationTokenSource _tasksCts = new();
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _twowayInvocations = new();
@@ -84,9 +83,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 lock (_mutex)
                 {
-                    if (_pingTask.IsCompleted && !_tasksCts.IsCancellationRequested)
+                    if (_pingTask.IsCompletedSuccessfully)
                     {
-                        _pingTask = PingAsync(_tasksCts.Token);
+                        _pingTask = PingAsync(CancellationToken.None);
                     }
                 }
             });
@@ -94,7 +93,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             duplexConnection,
             _memoryPool,
             _minSegmentSize,
-            connectionLostAction: ConnectionClosed);
+            connectionLostAction: exception => Close("The connection was lost.", exception));
 
         _payloadWriter = new IcePayloadPipeWriter(_duplexConnectionWriter);
 
@@ -122,9 +121,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _writeSemaphore.Release();
                 }
             }
-            catch
+            catch (IceRpcException exception)
             {
-                // Connection disposed.
+                Close("The connection was lost.", exception);
+            }
+            catch (Exception exception)
+            {
+                Close("The connection failed due to an unhandled exception.", exception);
+                Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
+                throw;
             }
 
             static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
@@ -213,23 +218,32 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync(_tasksCts.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed once the CloseConnection frame is received.
                     Close("The connection was closed by the peer.");
-
-                    // Notify the ConnectionClosed callback that the connection is now closed.
-                    ConnectionClosed();
+                }
+                catch (InvalidDataException exception)
+                {
+                    Close("Invalid data was received from the peer.", exception);
+                }
+                catch (NotSupportedException exception)
+                {
+                    Close("Frame with unsupported feature was received from the peer.", exception);
+                }
+                catch (IceRpcException exception)
+                {
+                    Close("The connection was lost.", exception);
+                }
+                catch (ObjectDisposedException exception)
+                {
+                    Close("The connection was disposed.", exception);
                 }
                 catch (Exception exception)
                 {
-                    // Notify the ConnectionClosed callback if the connection is not already closed.
-                    if (ConnectionClosedException is null)
-                    {
-                        ConnectionClosed(exception);
-                    }
-
-                    Close("The connection was lost.", exception);
+                    Close("The connection failed due to an unhandled exception.", exception);
+                    Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
+                    throw;
                 }
             },
             CancellationToken.None);
@@ -251,7 +265,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Close the transport connection and cancel dispatches and invocations.
         Close();
 
         // Wait for the read frames and ping tasks to complete.
@@ -267,7 +280,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _duplexConnectionReader.Dispose();
         _duplexConnectionWriter.Dispose();
 
-        _tasksCts.Dispose();
         _dispatchesAndInvocationsCts.Dispose();
         _dispatchSemaphore?.Dispose();
     }
@@ -341,11 +353,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 payloadWriter = request.GetPayloadWriter(payloadWriter);
 
-                // The writing of the request can only be canceled if the connection is disposed.
                 FlushResult flushResult = await payloadWriter.WriteAsync(
                     payload,
                     endStream: false,
-                    _tasksCts.Token).ConfigureAwait(false);
+                    CancellationToken.None).ConfigureAwait(false);
 
                 // If a payload writer decorator returns a canceled or completed flush result, we have to throw
                 // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
@@ -412,9 +423,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested || _tasksCts.IsCancellationRequested);
-
-            // The connection is being disposed.
+            // Speedy-shutdown canceled the invocation.
+            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested);
             throw new IceRpcException(IceRpcError.OperationAborted);
         }
         finally
@@ -598,8 +608,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            // The transport connection is disposed if the peer also sent a CloseConnection frame.
-            Debug.Assert(ConnectionClosedException!.IceRpcError == IceRpcError.ConnectionClosed);
+            // Expected if the flush operation is aborted by connection closure.
         }
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
@@ -667,19 +676,27 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
-    /// <summary>Closes the transport connection and cancels pending dispatches and invocations.</summary>
-    private void Close(string? message = null, Exception? innerException = null)
+    /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
+    /// invocations.</summary>
+    private void Close(string? message = null, Exception? exception = null)
     {
-        ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
+        // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
+        // case the connection shutdown or disposal is responsible for calling the connection closed callback.
+        if (ConnectionClosedException is null)
+        {
+            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            var rpcException = exception as IceRpcException;
+            if (exception is not null && rpcException is null)
+            {
+                rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
+            }
+            ConnectionClosed(rpcException);
+        }
 
-        // Cancel tasks that rely on the transport to ensure that no more calls on the transport are pending before
-        // calling Dispose.
-        _tasksCts.Cancel();
-
-        // Dispose the transport connection. This will abort the transport connection if it wasn't shutdown first.
+        // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
         _duplexConnection.Dispose();
 
-        // Cancel dispatches and invocations that might still be in progress.
+        // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
         CancelDispatchesAndInvocations();
 
         // Make sure to unblock ShutdownAsync if it's waiting for the connection closure.

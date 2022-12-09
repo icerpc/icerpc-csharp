@@ -470,7 +470,7 @@ public sealed class ProtocolConnectionTests
         // Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
