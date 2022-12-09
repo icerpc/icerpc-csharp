@@ -207,9 +207,9 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         var exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Client.InvokeAsync(request, default));
-        Assert.That(exception, Is.Not.Null); // TODO: which error should we get here?
+        Assert.That(exception, Is.Not.Null);
         exception = Assert.ThrowsAsync<IceRpcException>(async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed)); // TODO: not correct
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>

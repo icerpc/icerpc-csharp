@@ -194,9 +194,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    Debug.Assert(false, $"The read go away task completed due to an unhandled exception: {exception}");
                     await CloseAsync("The connection failed due to an unhandled exception.", exception)
                         .ConfigureAwait(false);
+                    Debug.Assert(false, $"The read go away task completed due to an unhandled exception: {exception}");
                     throw;
                 }
             },
@@ -353,9 +353,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    Debug.Assert(false, $"The accept stream task completed due to an unhandled exception: {exception}");
                     await CloseAsync("The connection failed due to an unhandled exception.", exception)
                         .ConfigureAwait(false);
+                    Debug.Assert(false, $"The accept stream task completed due to an unhandled exception: {exception}");
+                    throw;
                 }
             },
             CancellationToken.None);
@@ -416,7 +417,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (ObjectDisposedException exception)
         {
-            throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
+            throw new IceRpcException(IceRpcError.OperationAborted, exception);
         }
         catch
         {
@@ -678,7 +679,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (ObjectDisposedException exception)
         {
-            throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
+            throw new IceRpcException(IceRpcError.OperationAborted, exception);
         }
 
         // We wait for the completion of the dispatches that we created.
@@ -927,14 +928,19 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
     /// invocations.</summary>
-    private async Task CloseAsync(string? message = null, Exception? innerException = null)
+    private async Task CloseAsync(string? message = null, Exception? exception = null)
     {
         // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.
         if (ConnectionClosedException is null)
         {
-            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
-            ConnectionClosed(innerException is null ? null : ConnectionClosedException);
+            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            var rpcException = exception as IceRpcException;
+            if (exception is not null && rpcException is null)
+            {
+                rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
+            }
+            ConnectionClosed(rpcException);
         }
 
         // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.

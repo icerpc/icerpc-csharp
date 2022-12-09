@@ -127,8 +127,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             catch (Exception exception)
             {
-                Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
                 Close("The connection failed due to an unhandled exception.", exception);
+                Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
+                throw;
             }
 
             static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
@@ -240,8 +241,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
                     Close("The connection failed due to an unhandled exception.", exception);
+                    Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
+                    throw;
                 }
             },
             CancellationToken.None);
@@ -676,14 +678,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
     /// invocations.</summary>
-    private void Close(string? message = null, Exception? innerException = null)
+    private void Close(string? message = null, Exception? exception = null)
     {
         // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.
         if (ConnectionClosedException is null)
         {
-            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, innerException);
-            ConnectionClosed(innerException is null ? null : ConnectionClosedException);
+            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            var rpcException = exception as IceRpcException;
+            if (exception is not null && rpcException is null)
+            {
+                rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
+            }
+            ConnectionClosed(rpcException);
         }
 
         // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
