@@ -10,11 +10,15 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
+/// <summary>
+/// A feature that stores a user's name
+/// </summary>
 public interface ISessionFeature
 {
     string Name { get; }
 }
 
+/// <summary> The implementation of <see cref="ISessionFeature" /></summary>
 public struct SessionFeature : ISessionFeature
 {
     public string Name { get; }
@@ -23,6 +27,7 @@ public struct SessionFeature : ISessionFeature
 
 }
 
+/// <summary> A comparer for byte arrays.</summary>
 public class SessionTokenComparer : IEqualityComparer<byte[]>
 {
     public bool Equals(byte[]? x, byte[]? y)
@@ -50,19 +55,37 @@ public class SessionTokenComparer : IEqualityComparer<byte[]>
     public int GetHashCode([DisallowNull] byte[] bytes) => BitConverter.ToInt32(bytes);
 }
 
+/// <summary> SessionManger holds the map known session tokens to names.
+/// NOTE: this class is for demonstrative purposes and should not be used in a production environment
+/// </summary>
 public class SessionManager
 {
     private readonly ConcurrentDictionary<byte[], string> _sessions = new(new SessionTokenComparer());
 
+    /// <summary>
+    /// Create a new session token and store the name associated with it.
+    /// </summary>
+    /// <param name="name">The given name.</param>
+    /// <returns>A new session token.</returns>
     public byte[] CreateSession(string name)
     {
-        byte[] bytes = RandomNumberGenerator.GetBytes(128);
-        _sessions[bytes] = name;
-        return bytes;
+        byte[] token = RandomNumberGenerator.GetBytes(128);
+        _sessions[token] = name;
+        return token;
     }
 
-    public string? GetName(byte[] bytes) => _sessions.TryGetValue(bytes, out string? name) ? name : null;
+    /// <summary>
+    /// Gets the name associated with the given session token.
+    /// </summary>
+    /// <param name="token">The session token</param>
+    /// <returns>The name</returns>
+    public string? GetName(byte[] token) => _sessions.TryGetValue(token, out string? name) ? name : null;
 
+    /// <summary>
+    /// Creates a dispatcher that loads the session token from the request and stores the name in the request features.
+    /// </summary>
+    /// <param name="next">The next invoker</param>
+    /// <returns>A new dispatcher.</returns>
     public IDispatcher LoadSession(IDispatcher next)
     {
         return new InlineDispatcher((request, cancellationToken) =>
@@ -79,6 +102,12 @@ public class SessionManager
         });
     }
 
+    /// <summary>
+    /// Creates a dispatcher that checks if the request has a session feature. If it does not, it throws a
+    /// <see cref="DispatchException" /> with a `<see cref="StatusCode.Unauthorized" />` status code.
+    /// </summary>
+    /// <param name="next">The next invoker</param>
+    /// <returns>A new dispatcher.</returns>
     public static IDispatcher HasSession(IDispatcher next)
     {
         return new InlineDispatcher((request, cancellationToken) =>
@@ -92,6 +121,9 @@ public class SessionManager
     }
 }
 
+/// <summary>
+/// The implementation of the <see cref="ISession" /> interface.
+/// </summary>
 public class SessionService : Service, ISession
 {
     private readonly SessionManager _sessionManager;
