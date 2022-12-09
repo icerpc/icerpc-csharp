@@ -383,11 +383,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (_controlStream is not null)
         {
+            // It's safe to complete the output since write operations have been completed by the connection disposal.
             _controlStream.Output.Complete();
             await _controlStream.DisposeAsync().ConfigureAwait(false);
         }
         if (_remoteControlStream is not null)
         {
+            // It's safe to complete the input since read operations have been completed by the connection disposal.
             _remoteControlStream.Input.Complete();
             await _remoteControlStream.DisposeAsync().ConfigureAwait(false);
         }
