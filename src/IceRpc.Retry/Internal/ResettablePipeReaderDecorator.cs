@@ -228,7 +228,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
             if (_isReadingInProgress)
             {
                 throw new InvalidOperationException(
-                    "the ResettablePipeReaderDecorator cannot be reset while reading is in progress.");
+                    "The ResettablePipeReaderDecorator cannot be reset while reading is in progress.");
             }
 
             _consumed = null;
