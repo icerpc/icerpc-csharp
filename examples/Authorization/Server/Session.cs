@@ -10,9 +10,7 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-/// <summary>
-/// A feature that stores a user's name
-/// </summary>
+/// <summary>A feature that stores a user's name.</summary>
 public interface ISessionFeature
 {
     string Name { get; }
