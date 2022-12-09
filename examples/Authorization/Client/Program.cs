@@ -13,6 +13,7 @@ var pipeline = new Pipeline();
 pipeline.Use(sessionData.Interceptor);
 pipeline.Into(connection);
 
+// Establish a connection to the server that uses the invocation pipe
 IHelloProxy helloProxy = new HelloProxy(pipeline, new Uri("icerpc:/hello"));
 ISessionProxy sessionProxy = new SessionProxy(pipeline, new Uri("icerpc:/session"));
 IAdminProxy adminProxy = new AdminProxy(pipeline, new Uri("icerpc:/admin/"));
