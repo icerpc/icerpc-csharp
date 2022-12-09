@@ -83,11 +83,9 @@ public class SessionManager
         });
     }
 
-    /// <summary>
-    /// Creates a dispatcher that checks if the request has a session feature. If it does not, it throws a
-    /// <see cref="DispatchException" /> with a `<see cref="StatusCode.Unauthorized" />` status code.
-    /// </summary>
-    /// <param name="next">The next invoker</param>
+    /// <summary>Creates a dispatcher that checks if the request has a session feature. If it does not, it throws a
+    /// <see cref="DispatchException" /> with a `<see cref="StatusCode.Unauthorized" />` status code.</summary>
+    /// <param name="next">The next invoker.</param>
     /// <returns>A new dispatcher.</returns>
     public static IDispatcher HasSession(IDispatcher next)
     {
