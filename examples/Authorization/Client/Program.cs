@@ -37,7 +37,7 @@ sessionData.Token = await sessionProxy.LoginAsync("friend");
 // Authenticated hello; prints personalized greeting
 Console.WriteLine(await helloProxy.SayHelloAsync());
 
-// Try again with the authentication token
+// Try to change the greeting again this time with the authentication token. Since we are logged in, this will succeed.
 await adminProxy.ChangeGreetingAsync("Bonjour");
 
 // Authenticated hello with new greeting
