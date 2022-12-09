@@ -83,10 +83,6 @@ internal class SlicStream : IMultiplexedStream
                 _sendStreamConsumedFrameTask ?? Task.CompletedTask,
                 _sendUnidirectionalStreamReleaseFrameTask ?? Task.CompletedTask).ConfigureAwait(false);
         }
-        catch (IceRpcException)
-        {
-            // At this point, we can just ignore failures to send these frames.
-        }
         catch (Exception exception)
         {
             Debug.Assert(false, $"Slic stream disposal failed due to an unhandled exception: {exception}");
@@ -152,6 +148,7 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (IsBidirectional && !ReadsCompleted)
         {
+            // SlicPipeReader.Complete guarantees that AbortRead is called at most once.
             Debug.Assert(_sendReadsClosedFrameTask is null);
             _sendReadsClosedFrameTask = SendStopSendingFrameAndCompleteReadsAsync();
         }
@@ -173,9 +170,9 @@ internal class SlicStream : IMultiplexedStream
                     new StreamStopSendingBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore.
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
 
             if (!IsRemote)
@@ -196,6 +193,7 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (!WritesCompleted)
         {
+            // SlicPipeWriter.Complete guarantees that AbortRead is called at most once.
             Debug.Assert(_sendWritesClosedFrameTask is null);
             _sendWritesClosedFrameTask = SendResetFrameAndCompleteWritesAsync();
         }
@@ -217,9 +215,9 @@ internal class SlicStream : IMultiplexedStream
                     new StreamResetBody(applicationErrorCode: 0).Encode,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore.
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
 
             if (!IsRemote)
@@ -243,9 +241,11 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteUnidirectionalStreamReads()
     {
+        // SlicPipeReader.Complete guarantees that AbortRead is called at most once.
+        Debug.Assert(_sendUnidirectionalStreamReleaseFrameTask is null);
+
         // Notify the peer that reads are completed. The connection will release the unidirectional stream semaphore
         // and allow opening a new unidirectional stream if the maximum unidirectional count was reached.
-        Debug.Assert(_sendUnidirectionalStreamReleaseFrameTask is null);
         _sendUnidirectionalStreamReleaseFrameTask = SendUnidirectionalStreamReleaseAsync();
 
         async Task SendUnidirectionalStreamReleaseAsync()
@@ -262,9 +262,9 @@ internal class SlicStream : IMultiplexedStream
                     encode: null,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
         }
     }
@@ -278,6 +278,7 @@ internal class SlicStream : IMultiplexedStream
         }
         else if (!WritesCompleted)
         {
+            // SlicPipeWriter.Complete guarantees that AbortRead is called at most once.
             Debug.Assert(_sendWritesClosedFrameTask is null);
             _sendWritesClosedFrameTask = SendStreamLastFrameAsync();
         }
@@ -293,9 +294,9 @@ internal class SlicStream : IMultiplexedStream
                     endStream: true,
                     default).ConfigureAwait(false);
             }
-            catch
+            catch (IceRpcException)
             {
-                // Ignore.
+                // Ignore connection failures. Other exception will be caught by DisposeAsync.
             }
         }
     }
@@ -402,15 +403,22 @@ internal class SlicStream : IMultiplexedStream
 
         async Task SendStreamLastFrameAsync()
         {
-            // First wait for the sending of the previous stream consumed task to complete.
-            await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
+            try
+            {
+                // First wait for the sending of the previous stream consumed task to complete.
+                await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
 
-            // Send the stream consumed frame.
-            await _connection.SendFrameAsync(
-                stream: this,
-                FrameType.StreamConsumed,
-                new StreamConsumedBody((ulong)size).Encode,
-                CancellationToken.None).ConfigureAwait(false);
+                // Send the stream consumed frame.
+                await _connection.SendFrameAsync(
+                    stream: this,
+                    FrameType.StreamConsumed,
+                    new StreamConsumedBody((ulong)size).Encode,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
+            }
         }
     }
 

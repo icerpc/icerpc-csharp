@@ -394,6 +394,12 @@ internal class SlicConnection : IMultiplexedConnection
                 await _readFramesTask.ConfigureAwait(false);
             }
 
+            // Dispose the streams that might still be queued on the channel.
+            while (_acceptStreamChannel.Reader.TryRead(out IMultiplexedStream? stream))
+            {
+                await stream.DisposeAsync().ConfigureAwait(false);
+            }
+
             // Dispose the transport connection and the reader/writer.
             _duplexConnection.Dispose();
             _duplexConnectionReader.Dispose();
@@ -905,7 +911,9 @@ internal class SlicConnection : IMultiplexedConnection
 
                         // Accept the new remote stream.
                         // TODO: Cache SliceMultiplexedStream
-#pragma warning disable CA2000 // The caller is responsible for disposing the stream.
+#pragma warning disable CA2000
+                        // The stream is queued on the channel reader. The caller of AcceptStreamAsync is responsible
+                        // for disposing the stream
                         stream = new SlicStream(this, isBidirectional, remote: true);
 #pragma warning restore CA2000
 

@@ -383,10 +383,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (_controlStream is not null)
         {
+            _controlStream.Output.Complete();
             await _controlStream.DisposeAsync().ConfigureAwait(false);
         }
         if (_remoteControlStream is not null)
         {
+            _remoteControlStream.Input.Complete();
             await _remoteControlStream.DisposeAsync().ConfigureAwait(false);
         }
 

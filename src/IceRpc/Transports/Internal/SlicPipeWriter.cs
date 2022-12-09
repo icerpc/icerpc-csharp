@@ -31,7 +31,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         if (_state.HasFlag(State.PipeReaderInUse))
         {
-            throw new InvalidOperationException("Cannot call complete while {nameof(WriteAsync)} is in progress.");
+            throw new InvalidOperationException($"Cannot call complete while {nameof(WriteAsync)} is in progress.");
         }
 
         if (_state.TrySetFlag(State.Completed))
@@ -221,7 +221,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         /// <summary>Data is being read from the internal pipe reader.</summary>
         PipeReaderInUse = 2,
 
-        /// <summary>The internal pipe reader was completed either by <see cref="Abort" />.</summary>
+        /// <summary>The internal pipe reader was completed by <see cref="Abort" />.</summary>
         PipeReaderCompleted = 4
     }
 }
