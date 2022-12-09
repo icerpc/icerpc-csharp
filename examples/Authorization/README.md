@@ -17,15 +17,16 @@ First start the Server:
 dotnet run --project Server/Server.csproj
 ```
 
-In a separate window, start the Client
+In a separate window, start the Client:
 
 ```shell
 dotnet run --project Client/Client.csproj
 ```
 
-The client will first send a `SayHello` without a session token and the server will return `Hello, stranger!`.
-Next, the client will attempt to change the greeting but get an `Unauthorized` failure because the session
-token is missing.
+The client will first call `SayHello` without a session token and the server will return a generic greeting.
 
-After logging in, the client will now receive a personalized greeting when calling `SayHello` and will be able to change
-the greeting.
+Next, the client get an authentication token and use it to construct an authenticated pipeline. The client will
+then send call `SayHello` again using the authenticated pipeline and the server will return a personalized message.
+
+Finally, the client will call `ChangeGreeting` using the authenticated pipeline to change the greeting, then
+call `SayHello` again.
