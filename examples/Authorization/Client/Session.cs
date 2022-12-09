@@ -5,6 +5,9 @@ using System.Buffers;
 
 namespace AuthorizationExample;
 
+/// <summary>
+/// Stores the session data for the client and provides an interceptor that adds the session token to a request.
+/// </summary>
 public class SessionData
 {
     public byte[]? Token { get; set; }
