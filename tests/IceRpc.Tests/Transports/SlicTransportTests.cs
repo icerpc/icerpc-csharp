@@ -326,7 +326,9 @@ public class SlicTransportTests
         cts.Cancel();
 
         // Act/Assert
-        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+        Assert.That(async () => await task, Throws.InstanceOf<OperationCanceledException>());
+        clientStream.Input.Complete();
+        clientStream.Output.Complete();
     }
 
     [TestCase(64 * 1024, 32 * 1024)]

@@ -75,6 +75,9 @@ internal class SlicStream : IMultiplexedStream
 
     public async ValueTask DisposeAsync()
     {
+        Debug.Assert(ReadsCompleted, $"The stream read side must be closed prior to calling {nameof(DisposeAsync)}");
+        Debug.Assert(WritesCompleted, $"The stream write side must be closed prior to calling {nameof(DisposeAsync)}");
+
         try
         {
             await Task.WhenAll(
