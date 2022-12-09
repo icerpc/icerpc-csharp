@@ -22,12 +22,14 @@ internal class ColocServerTransport : IDuplexServerTransport
     {
         if (serverAuthenticationOptions is not null)
         {
-            throw new NotSupportedException("cannot create secure Coloc server");
+            throw new NotSupportedException("The Coloc server transport doesn't support SSL.");
         }
 
         if (!ColocTransport.CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a Coloc listener for server address '{serverAddress}'");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Coloc server transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         var listener = new ColocListener(

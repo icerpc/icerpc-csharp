@@ -62,12 +62,11 @@ public class TcpClientTransport : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if ((serverAddress.Transport is string transport &&
-            transport != TransportNames.Tcp &&
-            transport != TransportNames.Ssl) ||
-            !CheckParams(serverAddress))
+        if (!CheckParams(serverAddress))
         {
-            throw new FormatException($"Cannot create a TCP connection to server address '{serverAddress}'.");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Tcp client transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         if (serverAddress.Transport is null)

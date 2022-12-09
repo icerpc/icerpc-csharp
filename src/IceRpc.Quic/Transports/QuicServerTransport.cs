@@ -34,12 +34,16 @@ public class QuicServerTransport : IMultiplexedServerTransport
     {
         if (serverAddress.Params.Count > 0)
         {
-            throw new FormatException($"cannot create a Quic listener for server address '{serverAddress}'");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Quic server transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         if (serverAuthenticationOptions is null)
         {
-            throw new NotSupportedException("the Quic transport requires TLS server authentication options");
+            throw new ArgumentException(
+                "The Quic transport requires that the TLS server authentication options are set to a non null value.",
+                nameof(serverAuthenticationOptions));
         }
 
         if (serverAddress.Transport is null)

@@ -59,7 +59,7 @@ public class DeadlineInterceptor : IInvoker
 
         if (timeout is not null && timeout.Value <= TimeSpan.Zero)
         {
-            throw new TimeoutException("the request deadline has expired");
+            throw new TimeoutException("The request deadline has expired.");
         }
 
         if (deadline != DateTime.MaxValue)
@@ -86,7 +86,7 @@ public class DeadlineInterceptor : IInvoker
             catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                throw new TimeoutException("the request deadline has expired");
+                throw new TimeoutException("The request deadline has expired.");
             }
         }
     }

@@ -26,12 +26,14 @@ internal class ColocClientTransport : IDuplexClientTransport
     {
         if (clientAuthenticationOptions is not null)
         {
-            throw new NotSupportedException("cannot create a secure Coloc connection");
+            throw new NotSupportedException("The Coloc client transport doesn't support SSL.");
         }
 
         if (!CheckParams(serverAddress))
         {
-            throw new FormatException($"cannot create a Coloc connection to server address '{serverAddress}'");
+            throw new ArgumentException(
+                $"The server address contains parameters that are not valid for the Coloc client transport: '{serverAddress}'.",
+                nameof(serverAddress));
         }
 
         serverAddress = serverAddress with { Transport = Name };

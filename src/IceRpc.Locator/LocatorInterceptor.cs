@@ -186,7 +186,7 @@ public class LocatorLocationResolver : ILocationResolver
         if (options.Ttl != Timeout.InfiniteTimeSpan && options.RefreshThreshold >= options.Ttl)
         {
             throw new InvalidOperationException(
-                $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
+                $"The value of {nameof(options.RefreshThreshold)} must be smaller than the value of {nameof(options.Ttl)}.");
         }
 
         // Create and decorate server address cache (if caching enabled):

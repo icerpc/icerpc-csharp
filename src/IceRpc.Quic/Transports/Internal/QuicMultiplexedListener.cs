@@ -82,8 +82,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
-            throw new NotSupportedException(
-                $"serverAddress '{serverAddress}' cannot accept connections because it has a DNS name");
+            throw new NotSupportedException($"The listener server address '{serverAddress}' cannot use a DNS name.");
         }
 
         try

@@ -244,7 +244,7 @@ internal class ClientColocConnection : ColocConnection
         }
         if (_reader is not null)
         {
-            throw new InvalidOperationException($"Connection establishment can't be called twice.");
+            throw new InvalidOperationException($"Connection establishment cannot be called twice.");
         }
 
         Debug.Assert(!_state.HasFlag(State.ShuttingDown));

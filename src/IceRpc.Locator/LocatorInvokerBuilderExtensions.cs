@@ -16,5 +16,5 @@ public static class LocatorInvokerBuilderExtensions
         builder.ServiceProvider.GetService(typeof(LocatorLocationResolver)) is ILocationResolver locationResolver ?
         builder.Use(next => new LocatorInterceptor(next, locationResolver)) :
         throw new InvalidOperationException(
-            $"could not find service of type {nameof(LocatorLocationResolver)} in service container");
+            $"Could not find service of type '{nameof(LocatorLocationResolver)}' in the service container");
 }

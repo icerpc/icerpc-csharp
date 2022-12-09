@@ -30,9 +30,7 @@ public class CompressorInterceptor : IInvoker
         _next = next;
         if (compressionFormat != CompressionFormat.Brotli && compressionFormat != CompressionFormat.Deflate)
         {
-            throw new ArgumentException(
-                $"Compression format '{compressionFormat}' not supported",
-                nameof(compressionFormat));
+            throw new NotSupportedException($"The compression format '{compressionFormat}' is not supported.");
         }
         _compressionFormat = compressionFormat;
         _compressionLevel = compressionLevel;
