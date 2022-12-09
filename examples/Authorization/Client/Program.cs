@@ -17,10 +17,10 @@ var sessionProxy = new SessionProxy(connection, new Uri("icerpc:/session"));
 // Get an authentication token. The token is used to authenticate future requests.
 byte[] token = await sessionProxy.LoginAsync("friend");
 
-var authenticatedPipeline = new Pipeline();
 // Add an interceptor to the invocation pipeline that inserts the token into a request field
-authenticatedPipeline.Use(next => new SessionInterceptor(next, token));
-authenticatedPipeline.Into(connection);
+var authenticatedPipeline = new Pipeline()
+    .Use(next => new SessionInterceptor(next, token));
+    .Into(connection);
 
 // A `Hello` proxy that uses the authentication pipeline. When an authentication token is used, `SayHello`
 // will return a personalized greeting.
