@@ -242,7 +242,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
-                encoding = operation.encoding.to_cs_encoding()
+                encoding = operation.encoding.to_cs_encoding(),
             );
             match stream_member.data_type().concrete_type() {
                 Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
