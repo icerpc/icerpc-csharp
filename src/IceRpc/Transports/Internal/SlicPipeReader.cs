@@ -205,12 +205,6 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
-                if (dataSize == 0)
-                {
-                    // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
-                    // stream count.
-                    _stream.TrySetReadsClosed(exception: null);
-                }
                 _pipe.Writer.Complete();
             }
             else

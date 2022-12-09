@@ -330,6 +330,10 @@ public abstract partial class MultiplexedTransportConformanceTests
         // Act
         sut.RemoteStream.Output.Complete();
 
+        // The stream read side only completes once the data or EOS is consumed.
+        ReadResult result = await sut.LocalStream.Input.ReadAsync();
+        Assert.That(result.IsCompleted, Is.True);
+
         // Assert
         Assert.That(async () => await sut.LocalStream.InputClosed, Throws.Nothing);
 
