@@ -22,7 +22,7 @@ interface HelloAdmin
 
 interface Hello
 {
-    /// Get the greeting message.
+    /// Gets the greeting message.
     /// @return The greeting message.
     sayHello() -> string;
 }

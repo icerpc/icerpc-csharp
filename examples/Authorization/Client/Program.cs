@@ -26,7 +26,7 @@ Pipeline authenticatedPipeline = new Pipeline()
 // will return a personalized greeting.
 var helloProxy = new HelloProxy(authenticatedPipeline, new Uri("icerpc:/hello"));
 
-// A `HelloAdmin`that uses the authentication pipeline. An authentication token is needed to change the greeting.
+// A `HelloAdmin` proxy that uses the authentication pipeline. An authentication token is needed to change the greeting.
 var helloAdminProxy = new HelloAdminProxy(authenticatedPipeline, new Uri("icerpc:/helloAdmin/"));
 
 // Authenticated hello.
