@@ -6,21 +6,21 @@ using IceRpc.Slice;
 namespace AuthorizationExample;
 
 /// <summary>
-/// The implementation of the IHelloAdmin service. This service is used to change the greeting and requires callers to be
+/// The implementation of the IHelloAdmin interface. It is used to change the greeting and requires callers to be
 /// authenticated.
 /// </summary>
-public class HelloAdminService : Service, IHelloAdmin
+public class HelloAdmin : Service, IHelloAdmin
 {
-    private readonly HelloService _helloService;
+    private readonly Hello _hello;
 
-    public HelloAdminService(HelloService helloService) => _helloService = helloService;
+    public HelloAdmin(Hello hello) => _hello = hello;
 
     public ValueTask ChangeGreetingAsync(
         string greeting,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        _helloService.Greeting = greeting;
+        _hello.Greeting = greeting;
         return default;
     }
 }

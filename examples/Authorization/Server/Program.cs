@@ -3,27 +3,27 @@
 using AuthorizationExample;
 using IceRpc;
 
-var helloService = new HelloService();
-var sessionManager = new SessionManager();
+var hello = new Hello();
+var tokenStore = new TokenStore();
 
 var router = new Router();
 
 // Loads the session token from the request and adds the session feature to the request's feature collection
-router.Use((next) => new LoadSessionMiddleware(next, sessionManager));
+router.Use((next) => new LoadSessionMiddleware(next, tokenStore));
 
 router.Route("/helloAdmin", adminRouter =>
 {
     // Requires the session feature to be present in the request's feature collection.
     adminRouter.Use((next) => new HasSessionMiddleware(next));
-    adminRouter.Map("/", new HelloAdminService(helloService));
+    adminRouter.Map("/", new HelloAdmin(hello));
 });
 
-router.Map("/session", new SessionService(sessionManager));
-router.Map("/hello", helloService);
+router.Map("/sessionManager", new SessionManager(tokenStore));
+router.Map("/hello", hello);
 
 await using var server = new Server(router);
 
-// Destroy the server on Ctrl+C or Ctrl+Break
+// Shuts down the server on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;

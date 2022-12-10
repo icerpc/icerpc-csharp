@@ -11,11 +11,11 @@ var unauthenticatedHelloProxy = new HelloProxy(connection, new Uri("icerpc:/hell
 // Unauthenticated hello; prints generic greeting.
 Console.WriteLine(await unauthenticatedHelloProxy.SayHelloAsync());
 
-// A `Session` proxy that doesn't use any authentication. An authentication token is not need to login.
-var sessionProxy = new SessionProxy(connection, new Uri("icerpc:/session"));
+// A `SessionManager` proxy that doesn't use any authentication. Used to create new session tokens.
+var sessionManagerProxy = new SessionManagerProxy(connection, new Uri("icerpc:/sessionManager"));
 
 // Get an authentication token. The token is used to authenticate future requests.
-byte[] token = await sessionProxy.LoginAsync("friend");
+byte[] token = await sessionManagerProxy.CreateSessionAsync("friend");
 
 // Add an interceptor to the invocation pipeline that inserts the token into a request field.
 Pipeline authenticatedPipeline = new Pipeline()

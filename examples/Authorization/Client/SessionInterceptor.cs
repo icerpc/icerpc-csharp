@@ -5,13 +5,13 @@ using System.Buffers;
 
 namespace AuthorizationExample;
 
-/// <summary>An interceptor that adds the session token to request.</summary>
+/// <summary>An interceptor that adds the session token to each request.</summary>
 public class SessionInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    private readonly byte[] _token;
+    private readonly ReadOnlyMemory<byte> _token;
 
-    public SessionInterceptor(IInvoker next, byte[] token)
+    public SessionInterceptor(IInvoker next, ReadOnlyMemory<byte> token)
     {
         _next = next;
         _token = token;
