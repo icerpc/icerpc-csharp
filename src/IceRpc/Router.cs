@@ -164,14 +164,7 @@ public sealed class Router : IDispatcher
 
                         // Cut last segment
                         int lastSlashPos = prefix.LastIndexOf('/');
-                        if (lastSlashPos > 0)
-                        {
-                            prefix = NormalizePrefix(prefix[..lastSlashPos]);
-                        }
-                        else
-                        {
-                            prefix = "/";
-                        }
+                        prefix = lastSlashPos > 0 ? NormalizePrefix(prefix[..lastSlashPos]) : "/";
                         // and try again with the new shorter prefix
                     }
                     throw new DispatchException(StatusCode.InvalidData, "Too many segments in path.");
