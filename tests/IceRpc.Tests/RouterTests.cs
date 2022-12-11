@@ -204,7 +204,9 @@ public class RouterTests
     /// <param name="path">The path for the request.</param>
     /// <param name="subpath">The path for the dispatcher in the inner most router.</param>
     [TestCase("/foo", "/bar", "/foo/bar/abc", "/abc")]
+    [TestCase("/foo", "/bar/abc", "/foo/bar/abc", "/")]
     [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
+    [TestCase("/foo/", "/bar/abc/", "/foo/bar/abc", "/")]
     public async Task Router_with_middleware_and_nested_sub_routers(
         string prefix,
         string subPrefix,

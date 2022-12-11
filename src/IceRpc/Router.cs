@@ -131,29 +131,14 @@ public sealed class Router : IDispatcher
 
                 if (AbsolutePrefix.Length > 0)
                 {
-                    // Remove AbsolutePrefix from path
-
-                    if (path.StartsWith(AbsolutePrefix, StringComparison.Ordinal))
-                    {
-                        if (path.Length == AbsolutePrefix.Length)
-                        {
-                            // We consumed everything so there is nothing left to match.
-                            throw new DispatchException(StatusCode.ServiceNotFound);
-                        }
-                        else
-                        {
-                            path = path[AbsolutePrefix.Length..];
-                        }
-                    }
-                    else
-                    {
+                    // Remove AbsolutePrefix from path. AbsolutePrefix starts with a '/' but does typically not end with
+                    // one.
+                    path = path.StartsWith(AbsolutePrefix, StringComparison.Ordinal) ?
+                        (path.Length == AbsolutePrefix.Length ? "/" : path[AbsolutePrefix.Length..]) :
                         throw new InvalidOperationException(
                             $"Received request for path '{path}' in router mounted at '{AbsolutePrefix}'.");
-                    }
                 }
                 // else there is nothing to remove
-
-                Debug.Assert(path.Length > 0);
 
                 // First check for an exact match
                 if (_exactMatchRoutes.TryGetValue(path, out IDispatcher? dispatcher))
