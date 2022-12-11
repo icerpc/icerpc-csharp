@@ -131,7 +131,7 @@ public sealed class Router : IDispatcher
 
                 if (AbsolutePrefix.Length > 0)
                 {
-                    // Remove AbsolutePrefix from path. AbsolutePrefix starts with a '/' but does typically not end with
+                    // Remove AbsolutePrefix from path. AbsolutePrefix starts with a '/' but usually does not end with
                     // one.
                     path = path.StartsWith(AbsolutePrefix, StringComparison.Ordinal) ?
                         (path.Length == AbsolutePrefix.Length ? "/" : path[AbsolutePrefix.Length..]) :
