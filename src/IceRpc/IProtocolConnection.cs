@@ -18,10 +18,10 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets a task that completes when the connection is shut down or fails. The connection shutdown is
     /// initiated by any of the following events:
     /// <list type="bullet">
-    /// <item><description>the application calls <see cref="ShutdownAsync" /> on the connection.</description></item>
-    /// <item><description>the connection shuts down itself because it remained idle for longer than its configured idle
+    /// <item><description>The application calls <see cref="ShutdownAsync" /> on the connection.</description></item>
+    /// <item><description>The connection shuts down itself because it remained idle for longer than its configured idle
     /// timeout.</description></item>
-    /// <item><description>the peer shuts down the connection.</description></item>
+    /// <item><description>The peer shuts down the connection.</description></item>
     /// </list>
     /// </summary>
     /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
