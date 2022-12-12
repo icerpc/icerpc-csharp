@@ -21,8 +21,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _closedByPeer;
+    private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
     private int _dispatchCount;
@@ -221,7 +221,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
 
-                    // Setting _closedByPeer to true must be done before calling Close that will cancel invocations and
+                    // Setting _closedByPeer to true must be done before calling Close. Close cancels invocations and
                     // dispatches. Canceled invocations should not be aborted if the connection is gracefully closed.
                     _closedByPeer = true;
 
@@ -399,7 +399,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 frameReader = await responseCompletionSource.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
-            catch when (responseCompletionSource.Task.IsCompleted)
+            catch (OperationCanceledException) when (responseCompletionSource.Task.IsCompleted)
             {
                 // If the connection is closed, the WaitAsync might be canceled shortly after the response is received
                 // and before the task completion source continuation is run.
@@ -438,9 +438,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && ConnectionClosedException is not null);
             if (_closedByPeer)
             {
-                // Invocations canceled after the connection was gracefully closed are considered like invocations that
-                // were initiated on a closed connection. The peer didn't dispatch these invocations whose reply was not
-                // received before receiving the CloseConnection frame.
+                // Invocations canceled after the connection was gracefully closed are not aborted. The peer didn't
+                // dispatch these invocations since the CloseConnection frame was received.
                 throw ConnectionClosedException;
             }
             else
@@ -940,8 +939,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 if (exception == ConnectionClosedException)
                 {
                     // Don't throw if the connection is being shutdown. Throwing would trigger the connection closure
-                    // and prevent dispatches from completing and it would prevent the sending of the CloseConnection
-                    // frame.
+                    // and prevent dispatches from completing. It would also prevent the sending of the CloseConnection
+                    // frame once the dispatches complete.
                     return;
                 }
                 else

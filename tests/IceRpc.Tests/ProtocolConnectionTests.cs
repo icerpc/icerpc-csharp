@@ -1150,7 +1150,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
     /// Requests that are not dispatched by the server should complete with a ConnectionClosed error code.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    [Repeat(100)]
+    [Repeat(1000)]
     public async Task Shutdown_does_not_abort_requests_being_dispatched(Protocol protocol)
     {
         // Arrange
