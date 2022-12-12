@@ -23,7 +23,7 @@ public class SessionFeature : ISessionFeature
     public SessionFeature(string name) => Name = name;
 }
 
-/// <summary> A comparer for byte arrays.</summary>
+/// <summary>A comparer for byte arrays.</summary>
 public class TokenComparer : IEqualityComparer<byte[]>
 {
     public bool Equals(byte[]? x, byte[]? y) =>
