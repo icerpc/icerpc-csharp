@@ -5,4 +5,7 @@
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../SessionFieldKey.cs" Link="SessionFieldKey.cs" />
+  </ItemGroup>
 </Project>

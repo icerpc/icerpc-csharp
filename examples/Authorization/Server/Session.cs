@@ -76,7 +76,7 @@ public class LoadSessionMiddleware : IDispatcher
 
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Fields.TryGetValue((RequestFieldKey)100, out ReadOnlySequence<byte> value))
+        if (request.Fields.TryGetValue(SessionFieldKey.Value, out ReadOnlySequence<byte> value))
         {
             byte[] token = value.ToArray();
             if (_tokenStore.GetName(token) is string name)

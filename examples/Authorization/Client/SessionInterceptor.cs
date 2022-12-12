@@ -21,7 +21,7 @@ public class SessionInterceptor : IInvoker
         OutgoingRequest request,
         CancellationToken cancellationToken = default)
     {
-        request.Fields = request.Fields.With((RequestFieldKey)100, new ReadOnlySequence<byte>(_token));
+        request.Fields = request.Fields.With(SessionFieldKey.Value, new ReadOnlySequence<byte>(_token));
         return _next.InvokeAsync(request, cancellationToken);
     }
 }
