@@ -19,18 +19,15 @@ public class LocatorInterceptor : IInvoker
 {
     private readonly IInvoker _next;
     private readonly ILocationResolver _locationResolver;
-    private readonly ILogger _logger;
 
     /// <summary>Constructs a locator interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="locationResolver">The location resolver. It is usually a <see cref="LocatorLocationResolver" />.
     /// </param>
-    /// <param name="logger">The logger.</param>
-    public LocatorInterceptor(IInvoker next, ILocationResolver locationResolver, ILogger logger)
+    public LocatorInterceptor(IInvoker next, ILocationResolver locationResolver)
     {
         _next = next;
         _locationResolver = locationResolver;
-        _logger = logger;
     }
 
     /// <inheritdoc/>

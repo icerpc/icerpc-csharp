@@ -24,7 +24,11 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     });
 
 // Add the retry, locator, and logger interceptor to the pipeline
-pipeline = pipeline.UseRetry().UseLocator(locator).UseLogger(loggerFactory).Into(connectionCache);
+pipeline = pipeline
+    .UseRetry(new RetryOptions(), loggerFactory)
+    .UseLocator(locator, loggerFactory)
+    .UseLogger(loggerFactory)
+    .Into(connectionCache);
 
 // Interactive prompt to the user
 menu();
