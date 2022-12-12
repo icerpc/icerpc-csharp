@@ -140,7 +140,14 @@ internal class LogLocationResolverDecorator : ILocationResolver
         {
             (ServiceAddress? serviceAddress, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
-
+            if (serviceAddress is not null)
+            {
+                _logger.LogResolved(location.Kind, location, serviceAddress);
+            }
+            else
+            {
+                _logger.LogFailedToResolve(location.Kind, location);
+            }
             return (serviceAddress, fromCache);
         }
         catch (Exception exception)

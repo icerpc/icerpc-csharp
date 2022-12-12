@@ -6,9 +6,6 @@ namespace IceRpc.Locator;
 /// IServerAddressCache.</summary>
 public enum LocationEventId
 {
-    /// <summary>The location resolver is resolving a location.</summary>
-    Resolving,
-
     /// <summary>The location resolver resolved successfully a location.</summary>
     Resolved,
 

@@ -8,13 +8,6 @@ namespace IceRpc.Locator.Internal;
 internal static partial class LocatorLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)LocationEventId.Resolving,
-        EventName = nameof(LocationEventId.Resolving),
-        Level = LogLevel.Trace,
-        Message = "Resolving {LocationKind} {Location}")]
-    internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
-
-    [LoggerMessage(
         EventId = (int)LocationEventId.Resolved,
         EventName = nameof(LocationEventId.Resolved),
         Level = LogLevel.Debug,
