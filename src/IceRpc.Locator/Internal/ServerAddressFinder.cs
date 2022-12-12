@@ -87,8 +87,8 @@ internal class LogServerAddressFinderDecorator : IServerAddressFinder
 
     public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
-        // We don't log the exception here because we expect another decorator further up in chain to log this
-        // exception.
+        // We don't log any exceptions here because we expect another decorator further up in chain to log these
+        // exceptions.
         ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
         if (serviceAddress is not null)
         {

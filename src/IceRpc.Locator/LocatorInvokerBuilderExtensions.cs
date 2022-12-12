@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Locator;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Builder;
 

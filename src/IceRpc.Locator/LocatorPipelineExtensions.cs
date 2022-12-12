@@ -16,7 +16,7 @@ public static class LocatorPipelineExtensions
     /// <param name="locator">The locator proxy used for the resolutions.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator) =>
-        UseLocator(pipeline, new LocatorLocationResolver(locator, new LocatorOptions(), NullLogger.Instance));
+        UseLocator(pipeline, locator, NullLoggerFactory.Instance);
 
     /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator proxy.
     /// </summary>
