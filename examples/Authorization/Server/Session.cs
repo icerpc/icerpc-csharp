@@ -15,7 +15,7 @@ public interface ISessionFeature
     string Name { get; }
 }
 
-/// <summary> The implementation of <see cref="ISessionFeature" /></summary>
+/// <summary>The implementation of <see cref="ISessionFeature" />.</summary>
 public class SessionFeature : ISessionFeature
 {
     public string Name { get; }
