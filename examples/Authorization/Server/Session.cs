@@ -88,6 +88,7 @@ public class HasSessionMiddleware : IDispatcher
     private readonly IDispatcher _next;
 
     public HasSessionMiddleware(IDispatcher next) => _next = next;
+
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<ISessionFeature>() is null)
