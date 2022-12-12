@@ -94,6 +94,10 @@ internal class LogServerAddressFinderDecorator : IServerAddressFinder
         {
             _logger.LogFound(location.Kind, location, serviceAddress);
         }
+        else
+        {
+            _logger.LogFindFailed(location.Kind, location);
+        }
         return serviceAddress;
     }
 
