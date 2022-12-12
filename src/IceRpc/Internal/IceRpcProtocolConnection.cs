@@ -426,9 +426,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 bidirectional: !request.IsOneway,
                 invocationCancellationToken).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException exception)
+        catch (ObjectDisposedException)
         {
-            throw new IceRpcException(IceRpcError.OperationAborted, exception);
+            Debug.Assert(ConnectionClosedException is not null);
+            throw ConnectionClosedException;
         }
         catch
         {
