@@ -193,7 +193,11 @@ public class LocatorLocationResolver : ILocationResolver
 
         // Create and decorate server address cache (if caching enabled):
         IServerAddressCache? serverAddressCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
-            new LogServerAddressCacheDecorator(new ServerAddressCache(options.MaxCacheSize), logger) : null;
+            new ServerAddressCache(options.MaxCacheSize) : null;
+        if (serverAddressCache is not null && logger != NullLogger.Instance)
+        {
+            serverAddressCache = new LogServerAddressCacheDecorator(serverAddressCache, logger);
+        }
 
         // Create and decorate server address finder:
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(locator);
