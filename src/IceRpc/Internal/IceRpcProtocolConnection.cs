@@ -133,7 +133,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             await SendControlFrameAsync(
                 IceRpcControlFrameType.Settings,
                 settings.Encode,
-                MaxSettingsFrameBodySize,
                 cancellationToken).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol Settings frame
@@ -624,7 +623,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAway,
                 goAwayFrame.Encode,
-                MaxGoAwayFrameBodySize,
                 cancellationToken).ConfigureAwait(false);
 
             // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown was
@@ -1252,7 +1250,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction encodeAction,
-        int maxSize,
         CancellationToken cancellationToken)
     {
         PipeWriter output = _controlStream!.Output;
@@ -1269,12 +1266,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             int startPos = encoder.EncodedByteCount; // does not include the size
             encodeAction.Invoke(ref encoder);
             int frameSize = encoder.EncodedByteCount - startPos;
-            if (frameSize > maxSize)
-            {
-                throw new IceRpcException(
-                    IceRpcError.LimitExceeded,
-                    $"The frame size ({frameSize}) for an icerpc {frameType} frame is greater than its maximum allowed size ({maxSize}).");
-            }
             SliceEncoder.EncodeVarUInt62((uint)frameSize, sizePlaceholder);
         }
     }
