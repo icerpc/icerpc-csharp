@@ -5,8 +5,8 @@ get you started using a particular IceRPC feature or programming technique.
 
 ## [Authorization](./Authorization/)
 
-The Authorization example shows how to use an authorization interceptor and middleware to authorize requests and
-use request features to store contextual information.
+The Authorization example application illustrates how to create an authorization interceptor and middleware that can
+be used to authorize requests.
 
 ## [Compress](./Compress/)
 
