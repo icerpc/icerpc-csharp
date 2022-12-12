@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
@@ -78,29 +79,29 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
     internal LocatorServerAddressFinder(ILocatorProxy locator) => _locator = locator;
 }
 
-/// <summary>A decorator that adds event source logging to a server address finder.</summary>
+/// <summary>A decorator that adds logging to a server address finder.</summary>
 internal class LogServerAddressFinderDecorator : IServerAddressFinder
 {
     private readonly IServerAddressFinder _decoratee;
+    private readonly ILogger _logger;
 
     public async Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = null;
-
-        try
+        // We don't log the exception here because we expect another decorator further up in chain to log this
+        // exception.
+        ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
+        if (serviceAddress is not null)
         {
-            serviceAddress = await _decoratee.FindAsync(location, cancellationToken).ConfigureAwait(false);
-            return serviceAddress;
+            _logger.LogFound(location.Kind, location, serviceAddress);
         }
-        finally
-        {
-            // We don't log the exception here because we expect another decorator further up in chain to log this
-            // exception.
-            LocatorEventSource.Log.Find(location, serviceAddress);
-        }
+        return serviceAddress;
     }
 
-    internal LogServerAddressFinderDecorator(IServerAddressFinder decoratee) => _decoratee = decoratee;
+    internal LogServerAddressFinderDecorator(IServerAddressFinder decoratee, ILogger logger)
+    {
+        _decoratee = decoratee;
+        _logger = logger;
+    }
 }
 
 /// <summary>A decorator that updates its server address cache after a call to its decoratee (e.g. remote locator). It

@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
+
 namespace IceRpc.Locator.Internal;
 
 /// <summary>An implementation of <see cref="ILocationResolver" /> without a cache.</summary>
@@ -127,32 +129,30 @@ internal class LocationResolver : ILocationResolver
 internal class LogLocationResolverDecorator : ILocationResolver
 {
     private readonly ILocationResolver _decoratee;
+    private readonly ILogger _logger;
 
     public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken)
     {
-        LocatorEventSource.Log.ResolveStart(location);
-        ServiceAddress? serviceAddress = null;
-
         try
         {
-            (serviceAddress, bool fromCache) =
+            (ServiceAddress? serviceAddress, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
 
             return (serviceAddress, fromCache);
         }
         catch (Exception exception)
         {
-            LocatorEventSource.Log.ResolveFailure(location, exception);
+            _logger.LogFailedToResolve(location.Kind, location, exception);
             throw;
-        }
-        finally
-        {
-            LocatorEventSource.Log.ResolveStop(location, serviceAddress);
         }
     }
 
-    internal LogLocationResolverDecorator(ILocationResolver decoratee) => _decoratee = decoratee;
+    internal LogLocationResolverDecorator(ILocationResolver decoratee, ILogger logger)
+    {
+        _decoratee = decoratee;
+        _logger = logger;
+    }
 }

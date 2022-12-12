@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Locator;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Builder;
 
@@ -12,9 +13,20 @@ public static class LocatorInvokerBuilderExtensions
     /// <see cref="LocatorLocationResolver" /> service managed by the service provider.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
-    public static IInvokerBuilder UseLocator(this IInvokerBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(LocatorLocationResolver)) is ILocationResolver locationResolver ?
-        builder.Use(next => new LocatorInterceptor(next, locationResolver)) :
-        throw new InvalidOperationException(
-            $"Could not find service of type '{nameof(LocatorLocationResolver)}' in the service container");
+    public static IInvokerBuilder UseLocator(this IInvokerBuilder builder)
+    {
+        if (builder.ServiceProvider.GetService(typeof(LocatorLocationResolver)) is not ILocationResolver locationResolver)
+        {
+            throw new InvalidOperationException(
+                $"Could not find service of type '{nameof(LocatorLocationResolver)}' in the service container");
+        }
+
+        if (builder.ServiceProvider.GetService(typeof(ILogger<LocatorInterceptor>)) is not ILogger logger)
+        {
+            throw new InvalidOperationException(
+                $"Could not find service of type '{nameof(ILogger<LocatorInterceptor>)}' in the service container.");
+        }
+
+        return builder.Use(next => new LocatorInterceptor(next, locationResolver, logger));
+    }
 }

@@ -327,7 +327,6 @@ public sealed class ProtocolLoggerTests
 
         private readonly IListener<IMultiplexedConnection> _decoratee;
 
-
         public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
