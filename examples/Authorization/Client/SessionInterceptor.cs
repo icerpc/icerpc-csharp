@@ -5,7 +5,7 @@ using System.Buffers;
 
 namespace AuthorizationExample;
 
-/// <summary>An interceptor that that adds a field with the token to each request.</summary>
+/// <summary>An interceptor that adds a field with the authentication token to each request.</summary>
 public class SessionInterceptor : IInvoker
 {
     private readonly IInvoker _next;
