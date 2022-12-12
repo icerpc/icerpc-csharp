@@ -15,4 +15,4 @@ public static class LoggerRouterExtensions
     /// <returns>The router being configured.</returns>
     public static Router UseLogger(this Router router, ILogger logger) =>
         router.Use(next => new LoggerMiddleware(next, logger));
- }
+}
