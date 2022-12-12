@@ -27,7 +27,7 @@ Pipeline authenticatedPipeline = new Pipeline()
 var helloProxy = new HelloProxy(authenticatedPipeline, new Uri("icerpc:/hello"));
 
 // A `HelloAdmin` proxy that uses the authentication pipeline. An authentication token is needed to change the greeting.
-var helloAdminProxy = new HelloAdminProxy(authenticatedPipeline, new Uri("icerpc:/helloAdmin/"));
+var helloAdminProxy = new HelloAdminProxy(authenticatedPipeline, new Uri("icerpc:/helloAdmin"));
 
 // Authenticated hello.
 Console.WriteLine(await helloProxy.SayHelloAsync());

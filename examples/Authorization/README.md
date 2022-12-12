@@ -1,6 +1,7 @@
 # Authorization
 
-This example application illustrates how to use an authorization interceptor and middleware to authorize requests.
+This example application illustrates how to create an authorization interceptor and middleware that can be used
+to authorize requests.
 
 The server is configured with two middleware components: `LoadSession` and `HasSession`. The first middleware is
 responsible for loading the session from the request field and storing it in a corresponding `Feature`. The second
