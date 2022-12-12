@@ -19,7 +19,7 @@ public class SessionInterceptor : IInvoker
 
     public Task<IncomingResponse> InvokeAsync(
         OutgoingRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         request.Fields = request.Fields.With(SessionFieldKey.Value, new ReadOnlySequence<byte>(_token));
         return _next.InvokeAsync(request, cancellationToken);

@@ -33,15 +33,12 @@ public class TokenComparer : IEqualityComparer<byte[]>
     public int GetHashCode(byte[] bytes) => BitConverter.ToInt32(bytes);
 }
 
-/// <summary> SessionManger holds the session token to name map.
-/// </summary>
+/// <summary> SessionManger holds the session token to name map.</summary>
 public class TokenStore
 {
     private readonly ConcurrentDictionary<byte[], string> _sessions = new(new TokenComparer());
 
-    /// <summary>
-    /// Create a new session token and store the name associated with it.
-    /// </summary>
+    /// <summary>Create a new session token and store the name associated with it.</summary>
     /// <param name="name">The given name.</param>
     /// <returns>A new session token.</returns>
     public byte[] CreateToken(string name)
@@ -51,17 +48,14 @@ public class TokenStore
         return token;
     }
 
-    /// <summary>
-    /// Gets the name associated with the given session token.
-    /// </summary>
+    /// <summary>Gets the name associated with the given session token.</summary>
     /// <param name="token">The session token</param>
-    /// <returns>The name</returns>
+    /// <returns>The name.</returns>
     public string? GetName(byte[] token) => _sessions.TryGetValue(token, out string? name) ? name : null;
 }
 
-/// <summary>
-/// Middleware that loads the session token from the request and adds the session feature to the request's
-/// feature collection. </summary>
+/// <summary>Middleware that loads the session token from the request and adds the session feature to the request's
+/// feature collection.</summary>
 public class LoadSessionMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
@@ -88,9 +82,8 @@ public class LoadSessionMiddleware : IDispatcher
     }
 }
 
-/// <summary>
-/// Middleware that checks if the request has a session feature. If not, it throws a <see cref="DispatchException" />
-/// </summary>
+/// <summary>Middleware that checks if the request has a session feature. If not, it throws a
+/// <see cref="DispatchException" />.</summary>
 public class HasSessionMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
