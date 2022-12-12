@@ -24,25 +24,24 @@ public class SessionFeature : ISessionFeature
 }
 
 /// <summary>A comparer for byte arrays.</summary>
-public class TokenComparer : IEqualityComparer<byte[]>
+public class MemoryComparer : IEqualityComparer<ReadOnlyMemory<byte>>
 {
-    public bool Equals(byte[]? x, byte[]? y) =>
-        ReferenceEquals(x, y) || (x is not null && y is not null && x.SequenceEqual(y));
+    public bool Equals(ReadOnlyMemory<byte> x, ReadOnlyMemory<byte> y) => x.Span.SequenceEqual(y.Span);
 
-    public int GetHashCode(byte[] bytes) => BitConverter.ToInt32(bytes);
+    public int GetHashCode(ReadOnlyMemory<byte> bytes) => BitConverter.ToInt32(bytes.Span);
 }
 
 /// <summary>The TokenStore holds the session token to name map.</summary>
 public class TokenStore
 {
-    private readonly ConcurrentDictionary<byte[], string> _sessions = new(new TokenComparer());
+    private readonly ConcurrentDictionary<ReadOnlyMemory<byte>, string> _sessions = new(new MemoryComparer());
 
-    /// <summary>Create a new session token and store the name associated with it.</summary>
+    /// <summary>Creates a new session token and stores the name associated with it.</summary>
     /// <param name="name">The given name.</param>
     /// <returns>A new session token.</returns>
-    public byte[] CreateToken(string name)
+    public ReadOnlyMemory<byte> CreateToken(string name)
     {
-        byte[] token = RandomNumberGenerator.GetBytes(128);
+        ReadOnlyMemory<byte> token = RandomNumberGenerator.GetBytes(128);
         _sessions[token] = name;
         return token;
     }
@@ -50,7 +49,7 @@ public class TokenStore
     /// <summary>Gets the name associated with the given session token.</summary>
     /// <param name="token">The session token</param>
     /// <returns>The name.</returns>
-    public string? GetName(byte[] token) => _sessions.TryGetValue(token, out string? name) ? name : null;
+    public string? GetName(ReadOnlyMemory<byte> token) => _sessions.TryGetValue(token, out string? name) ? name : null;
 }
 
 /// <summary>Middleware that loads the session token from the request and adds the session feature to the request's
@@ -71,7 +70,7 @@ public class LoadSessionMiddleware : IDispatcher
     {
         if (request.Fields.TryGetValue(SessionFieldKey.Value, out ReadOnlySequence<byte> value))
         {
-            byte[] token = value.ToArray();
+            ReadOnlyMemory<byte> token = value.ToArray();
             if (_tokenStore.GetName(token) is string name)
             {
                 request.Features = request.Features.With<ISessionFeature>(new SessionFeature(name));
@@ -89,14 +88,9 @@ public class HasSessionMiddleware : IDispatcher
 
     public HasSessionMiddleware(IDispatcher next) => _next = next;
 
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
-    {
-        if (request.Features.Get<ISessionFeature>() is null)
-        {
-            throw new DispatchException(StatusCode.Unauthorized, "Not authorized.");
-        }
-        return _next.DispatchAsync(request, cancellationToken);
-    }
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken) =>
+        request.Features.Get<ISessionFeature>() is not null ? _next.DispatchAsync(request, cancellationToken) :
+        throw new DispatchException(StatusCode.Unauthorized, "Not authorized.");
 }
 
 /// <summary>The implementation of the <see cref="ISessionManager" /> interface.</summary>

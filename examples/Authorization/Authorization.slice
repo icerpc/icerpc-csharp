@@ -15,7 +15,7 @@ interface SessionManager
 
 interface HelloAdmin
 {
-    /// Changes the greeting.
+    /// Changes the greeting returned by the Hello service.
     /// @param greeting The new greeting.
     changeGreeting(greeting: string);
 }

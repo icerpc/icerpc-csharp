@@ -15,7 +15,7 @@ Console.WriteLine(await unauthenticatedHelloProxy.SayHelloAsync());
 var sessionManagerProxy = new SessionManagerProxy(connection, new Uri("icerpc:/sessionManager"));
 
 // Get an authentication token. The token is used to authenticate future requests.
-byte[] token = await sessionManagerProxy.CreateSessionAsync("friend");
+ReadOnlyMemory<byte> token = await sessionManagerProxy.CreateSessionAsync("friend");
 
 // Add an interceptor to the invocation pipeline that inserts the token into a request field.
 Pipeline authenticatedPipeline = new Pipeline().UseSession(token).Into(connection);
