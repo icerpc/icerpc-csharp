@@ -14,6 +14,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
+    private const int MaxGoAwayFrameBodySize = 16;
+    private const int MaxSettingsFrameBodySize = 1024;
+
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -164,7 +167,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     PipeReader input = _remoteControlStream!.Input;
                     ReadResult readResult = await input.ReadSegmentAsync(
                         SliceEncoding.Slice2,
-                        _maxLocalHeaderSize,
+                        MaxGoAwayFrameBodySize,
                         CancellationToken.None).ConfigureAwait(false);
 
                     // We don't call CancelPendingRead on _remoteControlStream.Input
@@ -1180,7 +1183,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         PipeReader input = _remoteControlStream!.Input;
         ReadResult readResult = await input.ReadSegmentAsync(
             SliceEncoding.Slice2,
-            _maxLocalHeaderSize,
+            MaxSettingsFrameBodySize,
             cancellationToken).ConfigureAwait(false);
 
         // We don't call CancelPendingRead on _remoteControlStream.Input
@@ -1262,9 +1265,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
             int startPos = encoder.EncodedByteCount; // does not include the size
             encodeAction.Invoke(ref encoder);
-            int headerSize = encoder.EncodedByteCount - startPos;
-            CheckPeerHeaderSize(headerSize);
-            SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
+            int frameSize = encoder.EncodedByteCount - startPos;
+            SliceEncoder.EncodeVarUInt62((uint)frameSize, sizePlaceholder);
         }
     }
 }
