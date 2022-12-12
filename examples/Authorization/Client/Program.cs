@@ -18,9 +18,7 @@ var sessionManagerProxy = new SessionManagerProxy(connection, new Uri("icerpc:/s
 byte[] token = await sessionManagerProxy.CreateSessionAsync("friend");
 
 // Add an interceptor to the invocation pipeline that inserts the token into a request field.
-Pipeline authenticatedPipeline = new Pipeline()
-    .Use(next => new SessionInterceptor(next, token))
-    .Into(connection);
+Pipeline authenticatedPipeline = new Pipeline().UseSession(token).Into(connection);
 
 // A `Hello` proxy that uses the authentication pipeline. When an authentication token is used, `SayHello`
 // will return a personalized greeting.

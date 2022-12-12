@@ -9,12 +9,12 @@ var tokenStore = new TokenStore();
 var router = new Router();
 
 // Loads the session token from the request and adds the session feature to the request's feature collection
-router.Use((next) => new LoadSessionMiddleware(next, tokenStore));
+router.UseLoadSession(tokenStore);
 
 router.Route("/helloAdmin", adminRouter =>
 {
     // Requires the session feature to be present in the request's feature collection.
-    adminRouter.Use((next) => new HasSessionMiddleware(next));
+    adminRouter.UseHasSession();
     adminRouter.Map("/", new HelloAdmin(hello));
 });
 

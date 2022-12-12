@@ -26,7 +26,7 @@ dotnet run --project Client/Client.csproj
 
 The client will first call `SayHello` without a session token and the server will return a generic greeting.
 
-Next, the client get an authentication token and use it to construct an authenticated pipeline. The client will
+Next, the client gets an authentication token and uses it to construct an authenticated pipeline. The client will
 then send call `SayHello` again using the authenticated pipeline and the server will return a personalized message.
 
 Finally, the client will call `ChangeGreeting` using the authenticated pipeline to change the greeting, then
