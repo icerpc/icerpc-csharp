@@ -32,7 +32,7 @@ public class TokenComparer : IEqualityComparer<byte[]>
     public int GetHashCode(byte[] bytes) => BitConverter.ToInt32(bytes);
 }
 
-/// <summary> SessionManger holds the session token to name map.</summary>
+/// <summary>The TokenStore holds the session token to name map.</summary>
 public class TokenStore
 {
     private readonly ConcurrentDictionary<byte[], string> _sessions = new(new TokenComparer());
