@@ -649,30 +649,18 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-<<<<<<< HEAD
-version = "1.0.149"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "256b9932320c590e707b94576e3cc1f7c9024d0ee6612dfbcf1cb106cbe8e055"
-=======
 version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e326c9ec8042f1b5da33252c8a37e9ffbd2c9bef0155215b6e6c80c790e05f91"
->>>>>>> b9a4079e (Pulled in changes from slicec.)
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-<<<<<<< HEAD
-version = "1.0.149"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4eae9b04cbffdfd550eb462ed33bc6a1b68c935127d008b27444d08380f94e4"
-=======
 version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42a3df25b0713732468deadad63ab9da1f1fd75a48a15024b50363f128db627e"
->>>>>>> b9a4079e (Pulled in changes from slicec.)
 dependencies = [
  "proc-macro2",
  "quote",
@@ -710,11 +698,7 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 [[package]]
 name = "slicec"
 version = "0.1.0"
-<<<<<<< HEAD
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#1c836f842b507d4a83515f71fdc6922d216444af"
-=======
 source = "git+ssh://git@github.com/zeroc-ice/icerpc#5e3153e955671e63d7387dd26cf2599cbc931fb3"
->>>>>>> b9a4079e (Pulled in changes from slicec.)
 dependencies = [
  "clap",
  "console",

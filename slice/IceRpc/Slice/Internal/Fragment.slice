@@ -9,5 +9,5 @@ module IceRpc::Slice::Internal;
 /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
 /// percent-escaped, the sequence element is not.
 
-[cs::type("string")]
+[cs::custom("string")]
 custom Fragment;

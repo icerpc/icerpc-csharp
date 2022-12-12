@@ -182,7 +182,7 @@ impl Visitor for CsValidator<'_> {
         if !custom_type.has_attribute(false, match_cs_custom) {
             Error::new(ErrorKind::MissingRequiredAttribute(cs_attributes::CUSTOM.to_owned()))
                 .set_span(custom_type.span())
-                .report(self.diagnostic_reporter);' to 'cs::custom'.)
+                .report(self.diagnostic_reporter);
         }
 
         for (attribute, span) in &cs_attributes(&custom_type.attributes(false)) {
