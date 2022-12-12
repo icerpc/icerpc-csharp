@@ -2,6 +2,7 @@
 
 using Demo;
 using IceRpc;
+using IceRpc.Logger;
 using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +25,11 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     });
 
 // Add the retry, locator, and logger interceptor to the pipeline
-pipeline = pipeline.UseRetry().UseLocator(locator).UseLogger(loggerFactory).Into(connectionCache);
+pipeline = pipeline
+    .UseRetry(new RetryOptions(), loggerFactory.CreateLogger<RetryInterceptor>())
+    .UseLocator(locator)
+    .UseLogger(loggerFactory.CreateLogger<LoggerInterceptor>())
+    .Into(connectionCache);
 
 // Interactive prompt to the user
 menu();

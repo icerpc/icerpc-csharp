@@ -2,8 +2,8 @@
 
 using Demo;
 using IceRpc;
+using IceRpc.Logger;
 using IceRpc.Retry;
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 
 if (args.Length < 1)
@@ -39,8 +39,8 @@ var pipeline = new Pipeline()
     .UseRetry(
         // Make up to 5 attempts before giving up
         new RetryOptions { MaxAttempts = 5 },
-        loggerFactory)
-    .UseLogger(loggerFactory)
+        loggerFactory.CreateLogger<RetryInterceptor>())
+    .UseLogger(loggerFactory.CreateLogger<LoggerInterceptor>())
     .Into(connectionCache);
 
 // We use a logger to ensure proper ordering of the messages on the console.

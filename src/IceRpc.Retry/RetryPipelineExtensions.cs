@@ -22,14 +22,13 @@ public static class RetryPipelineExtensions
     /// <param name="options">The options to configure the <see cref="RetryInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options) =>
-        pipeline.UseRetry(options, NullLoggerFactory.Instance);
+        pipeline.UseRetry(options, NullLogger.Instance);
 
     /// <summary>Adds a <see cref="RetryInterceptor" /> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="options">The options to configure the <see cref="RetryInterceptor" />.</param>
-    /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
-    /// <see cref="RetryInterceptor" />.</param>
+    /// <param name="logger">The logger.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options, ILoggerFactory loggerFactory) =>
-        pipeline.Use(next => new RetryInterceptor(next, options, loggerFactory.CreateLogger<RetryInterceptor>()));
+    public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options, ILogger logger) =>
+        pipeline.Use(next => new RetryInterceptor(next, options, logger));
 }
