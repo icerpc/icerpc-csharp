@@ -290,6 +290,7 @@ public sealed class ConnectionCacheTests
             _waitDisposeSemaphore.Release();
             await _continueDisposeTcs.Task.ConfigureAwait(false);
             await _connection.DisposeAsync().ConfigureAwait(false);
+            _waitDisposeSemaphore.Dispose();
         }
 
         public Task WaitForDisposeAsync(CancellationToken cancellationToken) =>

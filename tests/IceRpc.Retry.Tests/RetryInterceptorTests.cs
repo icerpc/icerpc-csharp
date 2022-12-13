@@ -296,7 +296,7 @@ public sealed class RetryInterceptorTests
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Unavailable));
-        Assert.That(serverAddresses.Count, Is.EqualTo(3));
+        Assert.That(serverAddresses, Has.Count.EqualTo(3));
         Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
         Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));
         Assert.That(serverAddresses[2], Is.EqualTo(serviceAddress.AltServerAddresses[1]));

@@ -115,7 +115,7 @@ public class LocatorServerAddressFinderTests
 
         _ = await serverAddressFinder.FindAsync(location, default);
 
-        Assert.That(serverAddressCache.Cache.Count, Is.EqualTo(1));
+        Assert.That(serverAddressCache.Cache, Has.Count.EqualTo(1));
         Assert.That(serverAddressCache.Cache.ContainsKey(location), Is.True);
         Assert.That(serverAddressCache.Cache[location], Is.EqualTo(expectedServiceAddress));
     }
@@ -197,7 +197,7 @@ public class LocatorServerAddressFinderTests
     private class FakeLocatorProxy : ILocatorProxy
     {
         private readonly ServiceProxy _service;
-        private bool _adapterId;
+        private readonly bool _adapterId;
 
         public FakeLocatorProxy(ServiceProxy service, bool adapterId)
         {

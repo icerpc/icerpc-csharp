@@ -63,6 +63,12 @@ dotnet_diagnostic.CA1819.severity = none
 # CA1847: Use char literal for a single character lookup
 dotnet_diagnostic.CA1847.severity = warning
 
+# CA1851: Possible multiple enumerations of 'IEnumerable' collection. Consider using an implementation that avoids multiple enumerations.
+dotnet_diagnostic.CA1851.severity = none
+
+# CA1855: Prefer 'Clear' over 'Fill'
+dotnet_diagnostic.CA1855.severity = warning
+
 # CA2000: Dispose objects before losing scope
 dotnet_diagnostic.CA2000.severity = warning
 
@@ -102,6 +108,9 @@ dotnet_code_quality.CA2208.api_surface = public
 
 # CA2211: Non-constant fields should not be visible
 dotnet_diagnostic.CA2211.severity = none
+
+# CA2213: Disposable fields should be disposed
+dotnet_diagnostic.CA2213.severity = warning
 
 # CA2227: Collection properties should be read only
 dotnet_diagnostic.CA2227.severity = none

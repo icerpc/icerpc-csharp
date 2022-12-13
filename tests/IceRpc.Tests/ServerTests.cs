@@ -419,6 +419,8 @@ public class ServerTests
                 await _delayDisposeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false); ;
             }
             await _connection.DisposeAsync();
+            _waitDisposeSemaphore.Dispose();
+            _delayDisposeSemaphore.Dispose();
         }
 
         public Task WaitForDisposeStart() => _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
