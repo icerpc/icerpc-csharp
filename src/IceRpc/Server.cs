@@ -530,6 +530,10 @@ public sealed class Server : IAsyncDisposable
                         _logger),
                     remoteNetworkAddress);
             }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                throw;
+            }
             catch (Exception exception)
             {
                 _logger.LogConnectionAcceptFailed(ServerAddress, exception);
