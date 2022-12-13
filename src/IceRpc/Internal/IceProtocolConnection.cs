@@ -377,13 +377,24 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 request.Payload.Complete();
             }
-            catch (IceRpcException exception) when (
-                exception.IceRpcError == IceRpcError.OperationAborted &&
-                _isClosedByPeer)
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
             {
-                // The transport connection was disposed while sending the request.
-                Debug.Assert(ConnectionClosedException is not null);
-                throw ConnectionClosedException;
+                lock (_mutex)
+                {
+                    if (_isClosedByPeer)
+                    {
+                        // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                        // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
+                        // The transport connection was disposed while sending the request.
+                        Debug.Assert(ConnectionClosedException is not null);
+                        throw ConnectionClosedException;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
             }
             finally
             {
@@ -439,14 +450,17 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // The invocation was cancel by speedy-shutdown or graceful closure by the peer.
+            // The request was canceled by speedy-shutdown or graceful closure by the peer.
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && ConnectionClosedException is not null);
             lock (_mutex)
             {
                 if (_isClosedByPeer)
                 {
+                    // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                    // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
                     // Invocations are not aborted if canceled after the graceful connection closure. The peer didn't
-                    // dispatch the invocation since the CloseConnection frame was received.
+                    // dispatch the request since the CloseConnection frame was received.
                     throw ConnectionClosedException;
                 }
                 else
