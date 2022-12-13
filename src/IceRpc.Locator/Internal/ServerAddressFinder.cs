@@ -5,6 +5,32 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
+/// <summary>This class contains ILogger extension methods used by <see cref="LogServerAddressFinderDecorator"/>.
+/// </summary>
+internal static partial class ServerAddressFinderLoggerExtensions
+{
+    [LoggerMessage(
+        EventId = (int)LocationEventId.FindFailed,
+        EventName = nameof(LocationEventId.FindFailed),
+        Level = LogLevel.Trace,
+        Message = "Failed to find {LocationKind} '{Location}'")]
+    internal static partial void LogFindFailed(
+        this ILogger logger,
+        string locationKind,
+        Location location);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventId.Found,
+        EventName = nameof(LocationEventId.Found),
+        Level = LogLevel.Trace,
+        Message = "Found {LocationKind} '{Location}' = '{ServiceAddress}'")]
+    internal static partial void LogFound(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        ServiceAddress serviceAddress);
+}
+
 /// <summary>A server address finder finds the server address(es) of a location. These server address(es) are carried
 /// by a dummy service address. When this dummy service address is not null, its ServerAddress property is guaranteed to
 /// be not null. Unlike <see cref="ILocationResolver" />, a server address finder does not provide cache-related
