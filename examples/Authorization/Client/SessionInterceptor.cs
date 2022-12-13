@@ -9,9 +9,9 @@ namespace AuthorizationExample;
 public class SessionInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    private readonly ReadOnlyMemory<byte> _token;
+    private readonly Guid _token;
 
-    public SessionInterceptor(IInvoker next, ReadOnlyMemory<byte> token)
+    public SessionInterceptor(IInvoker next, Guid token)
     {
         _next = next;
         _token = token;
@@ -21,7 +21,7 @@ public class SessionInterceptor : IInvoker
         OutgoingRequest request,
         CancellationToken cancellationToken)
     {
-        request.Fields = request.Fields.With(SessionFieldKey.Value, new ReadOnlySequence<byte>(_token));
+        request.Fields = request.Fields.With(SessionFieldKey.Value, new ReadOnlySequence<byte>(_token.ToByteArray()));
         return _next.InvokeAsync(request, cancellationToken);
     }
 }

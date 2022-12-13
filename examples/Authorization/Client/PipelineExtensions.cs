@@ -12,6 +12,6 @@ public static class PipelineExtensions
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="token">The session token.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseSession(this Pipeline pipeline, ReadOnlyMemory<byte> token) =>
+    public static Pipeline UseSession(this Pipeline pipeline, Guid token) =>
         pipeline.Use(next => new SessionInterceptor(next, token));
 }
