@@ -36,14 +36,14 @@ await using var connectionCache = new ConnectionCache();
 // Create an invocation pipeline with the retry and logger interceptors.
 Pipeline pipeline = new Pipeline()
     .UseRetry(
-        // Make up to 5 attempts before giving up
+        // Make up to 5 attempts before giving up.
         new RetryOptions { MaxAttempts = 5 },
         loggerFactory)
     .UseLogger(loggerFactory)
     .Into(connectionCache);
 
 // We use a logger to ensure proper ordering of the messages on the console.
-var logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
+ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 
 string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-server=127.0.0.1:10001";
 for (int i = 2; i < serverInstances; i++)

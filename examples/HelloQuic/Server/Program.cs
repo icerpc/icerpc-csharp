@@ -22,7 +22,7 @@ public static class Program
             },
             multiplexedServerTransport: new QuicServerTransport());
 
-        // Shuts down the server on Ctrl+C
+        // Shuts down the server on Ctrl+C.
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
             eventArgs.Cancel = true;

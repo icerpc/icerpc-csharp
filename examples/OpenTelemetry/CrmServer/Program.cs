@@ -10,11 +10,11 @@ using System.Diagnostics;
 // The activity source used by the telemetry middleware.
 using var activitySource = new ActivitySource("IceRpc");
 
-// Create a dispatch pipeline and add the telemetry middleware to it.
+// Add the telemetry middleware to the dispatch pipeline.
 Router router = new Router().UseTelemetry(activitySource);
 
-// Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRpc telemetry interceptor
-// and middleware, and to export the traces to the Zipkin service.
+// Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRPC telemetry middleware,
+// and to export the traces to the Zipkin service.
 using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddSource(activitySource.Name)
    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("CRM Server"))
@@ -25,7 +25,7 @@ router.Map<ICrm>(new Crm());
 
 await using var server = new Server(router, new Uri("icerpc://127.0.0.1:20001"));
 
-// Shuts down the server on Ctrl+C
+// Shuts down the server on Ctrl+C.
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;

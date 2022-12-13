@@ -5,7 +5,7 @@ using IceRpc;
 
 await using var server = new Server(new Downloader());
 
-// Shut down the server on Ctrl+C
+// Shuts down the server on Ctrl+C.
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
