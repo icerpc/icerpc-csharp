@@ -692,9 +692,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 MultiplexedConnectionCloseError.NoError,
                 cancellationToken).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException exception)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            throw new IceRpcException(IceRpcError.OperationAborted, exception);
+            // Expected if the peer closed the connection first and AcceptStreamAsync closed the connection.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Expected if the peer closed the connection first and AcceptStreamAsync closed the connection.
         }
 
         // We wait for the completion of the dispatches that we created.
