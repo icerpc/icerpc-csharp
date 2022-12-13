@@ -97,10 +97,7 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Compressor_middleware_lets_requests_with_unsupported_compression_format_pass_through()
     {
-        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-        {
-            return new(new OutgoingResponse(request));
-        });
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var sut = new CompressorMiddleware(dispatcher, CompressionFormat.Brotli);
         using IncomingRequest request = CreateRequestWitCompressionFormat((CompressionFormat)255);
         PipeReader requestPayload = request.Payload;

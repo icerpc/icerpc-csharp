@@ -699,7 +699,7 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         int streamCount = 0;
         int streamCountMax = 0;
-        object mutex = new object();
+        var mutex = new object();
 
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();
@@ -794,7 +794,7 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         int streamCount = 0;
         int streamCountMax = 0;
-        object mutex = new object();
+        var mutex = new object();
 
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();

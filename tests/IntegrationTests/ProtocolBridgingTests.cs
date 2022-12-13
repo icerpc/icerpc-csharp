@@ -112,7 +112,7 @@ public sealed class ProtocolBridgingTests
         }
     }
 
-    internal class ProtocolBridgingTest : Service, IProtocolBridgingTest
+    internal sealed class ProtocolBridgingTest : Service, IProtocolBridgingTest
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 

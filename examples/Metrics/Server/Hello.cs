@@ -7,8 +7,8 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
-    private volatile int _totalRequests = 0;
-    private bool _hasOutput = false;
+    private volatile int _totalRequests;
+    private bool _hasOutput;
 
     public ValueTask SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {

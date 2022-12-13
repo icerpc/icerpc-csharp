@@ -52,7 +52,7 @@ public class TestLogger : ILogger
         return new Scope(this);
     }
 
-    private class Scope : IDisposable
+    private sealed class Scope : IDisposable
     {
         private readonly TestLogger _logger;
 

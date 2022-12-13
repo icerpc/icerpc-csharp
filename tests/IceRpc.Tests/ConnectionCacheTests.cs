@@ -236,7 +236,7 @@ public sealed class ConnectionCacheTests
         await disposeTask;
     }
 
-    private class SlowDisposeClientTransport : IMultiplexedClientTransport
+    private sealed class SlowDisposeClientTransport : IMultiplexedClientTransport
     {
         public string Name => _transport.Name;
 
@@ -262,7 +262,7 @@ public sealed class ConnectionCacheTests
         }
     }
 
-    private class SlowDisposeConnection : IMultiplexedConnection
+    private sealed class SlowDisposeConnection : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _connection.ServerAddress;
 
@@ -290,6 +290,7 @@ public sealed class ConnectionCacheTests
             _waitDisposeSemaphore.Release();
             await _continueDisposeTcs.Task.ConfigureAwait(false);
             await _connection.DisposeAsync().ConfigureAwait(false);
+            _waitDisposeSemaphore.Dispose();
         }
 
         public Task WaitForDisposeAsync(CancellationToken cancellationToken) =>

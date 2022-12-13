@@ -34,10 +34,18 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         get => _response;
         set
         {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException(nameof(OutgoingRequest));
+            }
+
             _response?.Dispose();
             _response = value;
         }
     }
+
+    // OutgoingRequest is not thread-safe and should not receive a response after it is disposed.
+    private bool _isDisposed;
 
     private IncomingResponse? _response;
 
@@ -46,17 +54,21 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     public OutgoingRequest(ServiceAddress serviceAddress)
         : base(serviceAddress.Protocol ??
             throw new ArgumentException(
-                "Cannot create an outgoing request with a relative service address.",
+                "An outgoing request requires a service address with a protocol such as icerpc or ice.",
                 nameof(serviceAddress))) =>
         ServiceAddress = serviceAddress;
 
-    /// <summary>Disposes this outgoing request. This completes the payload and payload continuation of this request, and the
-    /// response associated with this request (if already received).</summary>
+    /// <summary>Disposes this outgoing request. This completes the payload and payload continuation of this request,
+    /// and the response associated with this request (if already received).</summary>
     public void Dispose()
     {
-        Payload.Complete();
-        PayloadContinuation?.Complete();
-        _response?.Dispose();
+        if (!_isDisposed)
+        {
+            _isDisposed = true;
+            Payload.Complete();
+            PayloadContinuation?.Complete();
+            _response?.Dispose();
+        }
     }
 
     /// <inheritdoc/>

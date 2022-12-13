@@ -150,10 +150,7 @@ public sealed class DispatcherBuilderTests
         {
         }
 
-        public Dep2(ICallTracker callTracker)
-        {
-            callTracker.Called();
-        }
+        public Dep2(ICallTracker callTracker) => callTracker.Called();
     }
 
     public interface IDep3
@@ -167,10 +164,7 @@ public sealed class DispatcherBuilderTests
         {
         }
 
-        public Dep3(ICallTracker callTracker)
-        {
-            callTracker.Called();
-        }
+        public Dep3(ICallTracker callTracker) => callTracker.Called();
     }
 
     public class UserMiddleware : IMiddleware<IUser>
@@ -215,10 +209,9 @@ public sealed class DispatcherBuilderTests
 
     public class CallTracker : ICallTracker
     {
-        public int Count => _count;
-        private int _count;
+        public int Count { get; private set; }
 
-        public void Called() => _count++;
+        public void Called() => Count++;
     }
 
     public interface IPathTracker

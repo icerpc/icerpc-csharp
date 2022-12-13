@@ -898,8 +898,7 @@ public sealed class ClassTests
             CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
+        Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 

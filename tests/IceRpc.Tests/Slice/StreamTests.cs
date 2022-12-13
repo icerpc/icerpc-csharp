@@ -385,7 +385,7 @@ public class StreamTests
         }
     }
 
-    private class WaitForCompletionPipeReaderDecorator : PipeReader
+    private sealed class WaitForCompletionPipeReaderDecorator : PipeReader
     {
         public Task Completed => _completionTcs.Task;
 

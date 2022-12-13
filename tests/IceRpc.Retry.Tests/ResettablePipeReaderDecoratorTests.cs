@@ -182,7 +182,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.End));
     }
 
-    private class MockPipeReader : PipeReader
+    private sealed class MockPipeReader : PipeReader
     {
         internal bool CompleteCalled { get; private set; }
         internal Exception? CompleteException { get; private set; }

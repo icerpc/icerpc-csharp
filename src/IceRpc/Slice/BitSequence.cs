@@ -62,7 +62,7 @@ public ref struct BitSequenceWriter
             if (_spanEnumerator.MoveNext())
             {
                 span = _spanEnumerator.Current;
-                span.Fill(0);
+                span.Clear();
 
                 _index = 0;
                 byteIndex = 0;
@@ -95,6 +95,6 @@ public ref struct BitSequenceWriter
         _spanEnumerator.MoveNext();
 
         // We fill the span with 0s, this way we only need to set bits, never unset them.
-        _spanEnumerator.Current.Fill(0);
+        _spanEnumerator.Current.Clear();
     }
 }
