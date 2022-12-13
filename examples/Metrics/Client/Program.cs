@@ -13,7 +13,7 @@ Console.WriteLine($"Sending {requestsPerSecond} requests per second...");
 
 using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
 
-// Cancel the client on Ctrl+C
+// Stop the client on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
