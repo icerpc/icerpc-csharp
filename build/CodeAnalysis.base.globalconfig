@@ -18,6 +18,9 @@ dotnet_diagnostic.CA1028.severity = none
 # CA1031: Do not catch general exception types
 dotnet_diagnostic.CA1031.severity = none
 
+# CA1043: Use Integral Or String Argument For Indexers
+dotnet_diagnostic.CA1043.severity = none
+
 # CA1032: Implement standard exception constructors
 dotnet_diagnostic.CA1032.severity = none
 
