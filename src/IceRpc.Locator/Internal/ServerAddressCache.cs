@@ -1,9 +1,47 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace IceRpc.Locator.Internal;
+
+/// <summary>This class contains ILogger extension methods used by <see cref="LogServerAddressCacheDecorator"/>.
+/// </summary>
+internal static partial class ServerAddressCacheLoggerExtensions
+{
+    [LoggerMessage(
+        EventId = (int)LocationEventId.FoundEntry,
+        EventName = nameof(LocationEventId.FoundEntry),
+        Level = LogLevel.Trace,
+        Message = "Found {LocationKind} '{Location}' = '{ServiceAddress}' in cache")]
+    internal static partial void LogFoundEntry(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        ServiceAddress serviceAddress);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventId.SetEntry,
+        EventName = nameof(LocationEventId.SetEntry),
+        Level = LogLevel.Trace,
+        Message = "Set {LocationKind} '{Location}' = '{ServiceAddress}' in cache")]
+    internal static partial void LogSetEntry(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        ServiceAddress serviceAddress);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventId.RemovedEntry,
+        EventName = nameof(LocationEventId.RemovedEntry),
+        Level = LogLevel.Trace,
+        Message = "Removed {LocationKind} '{Location}' from cache")]
+    internal static partial void LogRemovedEntry(
+        this ILogger logger,
+        string locationKind,
+        Location location);
+}
 
 /// <summary>A server address cache maintains a dictionary of location to server address(es), where the server
 /// addresses are held by a dummy service address. It also keeps track of the insertion time of each entry. It's
@@ -93,17 +131,18 @@ internal sealed class ServerAddressCache : IServerAddressCache
 internal class LogServerAddressCacheDecorator : IServerAddressCache
 {
     private readonly IServerAddressCache _decoratee;
+    private readonly ILogger _logger;
 
     public void Remove(Location location)
     {
         _decoratee.Remove(location);
-        LocatorEventSource.Log.RemoveCacheEntry(location);
+        _logger.LogRemovedEntry(location.Kind, location);
     }
 
     public void Set(Location location, ServiceAddress serviceAddress)
     {
         _decoratee.Set(location, serviceAddress);
-        LocatorEventSource.Log.SetCacheEntry(location, serviceAddress);
+        _logger.LogSetEntry(location.Kind, location, serviceAddress);
     }
 
     public bool TryGetValue(
@@ -112,15 +151,18 @@ internal class LogServerAddressCacheDecorator : IServerAddressCache
     {
         if (_decoratee.TryGetValue(location, out value))
         {
-            LocatorEventSource.Log.FindCacheEntry(location, value.ServiceAddress);
+            _logger.LogFoundEntry(location.Kind, location, value.ServiceAddress);
             return true;
         }
         else
         {
-            LocatorEventSource.Log.FindCacheEntry(location, null);
             return false;
         }
     }
 
-    internal LogServerAddressCacheDecorator(IServerAddressCache decoratee) => _decoratee = decoratee;
+    internal LogServerAddressCacheDecorator(IServerAddressCache decoratee, ILogger logger)
+    {
+        _decoratee = decoratee;
+        _logger = logger;
+    }
 }

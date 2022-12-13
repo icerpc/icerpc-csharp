@@ -2,6 +2,8 @@
 
 using IceRpc.Features;
 using IceRpc.Locator.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -179,10 +181,10 @@ public class LocatorLocationResolver : ILocationResolver
     /// <summary>Constructs a locator location resolver.</summary>
     /// <param name="locator">The locator proxy.</param>
     /// <param name="options">The locator options.</param>
-    public LocatorLocationResolver(ILocatorProxy locator, LocatorOptions options)
+    /// <param name="logger">The logger.</param>
+    public LocatorLocationResolver(ILocatorProxy locator, LocatorOptions options, ILogger logger)
     {
         // This is the composition root of this locator location resolver.
-
         if (options.Ttl != Timeout.InfiniteTimeSpan && options.RefreshThreshold >= options.Ttl)
         {
             throw new InvalidOperationException(
@@ -191,11 +193,18 @@ public class LocatorLocationResolver : ILocationResolver
 
         // Create and decorate server address cache (if caching enabled):
         IServerAddressCache? serverAddressCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
-            new LogServerAddressCacheDecorator(new ServerAddressCache(options.MaxCacheSize)) : null;
+            new ServerAddressCache(options.MaxCacheSize) : null;
+        if (serverAddressCache is not null && logger != NullLogger.Instance)
+        {
+            serverAddressCache = new LogServerAddressCacheDecorator(serverAddressCache, logger);
+        }
 
         // Create and decorate server address finder:
-        IServerAddressFinder serverAddressFinder =
-            new LogServerAddressFinderDecorator(new LocatorServerAddressFinder(locator));
+        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(locator);
+        if (logger != NullLogger.Instance)
+        {
+            serverAddressFinder = new LogServerAddressFinderDecorator(serverAddressFinder, logger);
+        }
 
         if (serverAddressCache is not null)
         {
@@ -203,19 +212,24 @@ public class LocatorLocationResolver : ILocationResolver
         }
         serverAddressFinder = new CoalesceServerAddressFinderDecorator(serverAddressFinder);
 
-        _locationResolver = new LogLocationResolverDecorator(
-                serverAddressCache is null ? new CacheLessLocationResolver(serverAddressFinder) :
-                    new LocationResolver(
-                        serverAddressFinder,
-                        serverAddressCache,
-                        options.Background,
-                        options.RefreshThreshold,
-                        options.Ttl));
+        _locationResolver = serverAddressCache is null ?
+            new CacheLessLocationResolver(serverAddressFinder) :
+            new LocationResolver(
+                serverAddressFinder,
+                serverAddressCache,
+                options.Background,
+                options.RefreshThreshold,
+                options.Ttl);
+        if (logger != NullLogger.Instance)
+        {
+            _locationResolver = new LogLocationResolverDecorator(_locationResolver, logger);
+        }
     }
 
     /// <inheritdoc/>
     public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancellationToken) => _locationResolver.ResolveAsync(location, refreshCache, cancellationToken);
+        CancellationToken cancellationToken) =>
+        _locationResolver.ResolveAsync(location, refreshCache, cancellationToken);
 }

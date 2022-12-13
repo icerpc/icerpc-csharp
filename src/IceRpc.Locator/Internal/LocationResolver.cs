@@ -1,6 +1,34 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
+
 namespace IceRpc.Locator.Internal;
+
+/// <summary>This class contains ILogger extension methods used by <see cref="LogLocationResolverDecorator"/>.</summary>
+internal static partial class LocatorLoggerExtensions
+{
+    [LoggerMessage(
+        EventId = (int)LocationEventId.Resolved,
+        EventName = nameof(LocationEventId.Resolved),
+        Level = LogLevel.Debug,
+        Message = "Resolved {LocationKind} '{Location}' = '{ServiceAddress}'")]
+    internal static partial void LogResolved(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        ServiceAddress serviceAddress);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventId.FailedToResolve,
+        EventName = nameof(LocationEventId.FailedToResolve),
+        Level = LogLevel.Debug,
+        Message = "Failed to resolve {LocationKind} '{Location}'")]
+    internal static partial void LogFailedToResolve(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        Exception? exception = null);
+}
 
 /// <summary>An implementation of <see cref="ILocationResolver" /> without a cache.</summary>
 internal class CacheLessLocationResolver : ILocationResolver
@@ -127,32 +155,37 @@ internal class LocationResolver : ILocationResolver
 internal class LogLocationResolverDecorator : ILocationResolver
 {
     private readonly ILocationResolver _decoratee;
+    private readonly ILogger _logger;
 
     public async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancellationToken)
     {
-        LocatorEventSource.Log.ResolveStart(location);
-        ServiceAddress? serviceAddress = null;
-
         try
         {
-            (serviceAddress, bool fromCache) =
+            (ServiceAddress? serviceAddress, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancellationToken).ConfigureAwait(false);
-
+            if (serviceAddress is not null)
+            {
+                _logger.LogResolved(location.Kind, location, serviceAddress);
+            }
+            else
+            {
+                _logger.LogFailedToResolve(location.Kind, location);
+            }
             return (serviceAddress, fromCache);
         }
         catch (Exception exception)
         {
-            LocatorEventSource.Log.ResolveFailure(location, exception);
+            _logger.LogFailedToResolve(location.Kind, location, exception);
             throw;
-        }
-        finally
-        {
-            LocatorEventSource.Log.ResolveStop(location, serviceAddress);
         }
     }
 
-    internal LogLocationResolverDecorator(ILocationResolver decoratee) => _decoratee = decoratee;
+    internal LogLocationResolverDecorator(ILocationResolver decoratee, ILogger logger)
+    {
+        _decoratee = decoratee;
+        _logger = logger;
+    }
 }
