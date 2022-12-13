@@ -633,9 +633,9 @@ public class OperationTests
             CancellationToken cancellationToken) => new(ServiceProxy.FromPath("/hello"));
     }
 
-    private class MyDerivedOperationsA : MyOperationsA { }
+    private sealed class MyDerivedOperationsA : MyOperationsA { }
 
-    private class MyTaggedOperations : Service, IMyTaggedOperations
+    private sealed class MyTaggedOperations : Service, IMyTaggedOperations
     {
         internal int X { get; set; }
         internal int? Y { get; set; }
@@ -650,7 +650,7 @@ public class OperationTests
         }
     }
 
-    private class MyTaggedOperationsReadOnlyMemoryParams : Service, IMyTaggedOperationsReadOnlyMemoryParams
+    private sealed class MyTaggedOperationsReadOnlyMemoryParams : Service, IMyTaggedOperationsReadOnlyMemoryParams
     {
         internal int[] X { get; set; } = Array.Empty<int>();
         internal int[]? Y { get; set; }

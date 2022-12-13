@@ -129,7 +129,7 @@ public class LocationResolverTests
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(1));
     }
 
-    private class MockServerAddressFinder : IServerAddressFinder
+    private sealed class MockServerAddressFinder : IServerAddressFinder
     {
         public int Calls { get; private set; }
 
@@ -151,7 +151,7 @@ public class LocationResolverTests
         }
     }
 
-    private class MockServerAddressCache : IServerAddressCache
+    private sealed class MockServerAddressCache : IServerAddressCache
     {
         public List<Location> Removed { get; } = new List<Location>();
 

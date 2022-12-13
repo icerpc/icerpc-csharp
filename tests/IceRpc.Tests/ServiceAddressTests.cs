@@ -634,13 +634,13 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.Protocol, Is.Null);
     }
 
-    private class ReceiveProxyTest : Service, IReceiveProxyTest
+    private sealed class ReceiveProxyTest : Service, IReceiveProxyTest
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
     }
 
-    private class SendProxyTest : Service, ISendProxyTest
+    private sealed class SendProxyTest : Service, ISendProxyTest
     {
         public SendProxyTestProxy? ReceivedProxy { get; private set; }
 
