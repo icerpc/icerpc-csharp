@@ -57,14 +57,18 @@ public static class Program
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
-    private class ServerHostedService : IHostedService, IAsyncDisposable
+    public class ServerHostedService : IHostedService, IAsyncDisposable
     {
         // The IceRPC server to accept connections from IceRPC clients.
         private readonly Server _server;
 
         public ServerHostedService(Server server) => _server = server;
 
-        public ValueTask DisposeAsync() => _server.DisposeAsync();
+        public ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+            return _server.DisposeAsync();
+        }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {

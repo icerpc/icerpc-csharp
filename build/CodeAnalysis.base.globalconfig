@@ -60,9 +60,6 @@ dotnet_diagnostic.CA1720.severity = none
 # CA1724: Type names should not match namespaces
 dotnet_diagnostic.CA1724.severity = none
 
-# CA1725: Parameter names should match base declaration
-dotnet_diagnostic.CA1725.severity = warning
-
 # CA1819: Properties should not return arrays
 dotnet_diagnostic.CA1819.severity = none
 
@@ -73,10 +70,7 @@ dotnet_diagnostic.CA1847.severity = warning
 dotnet_diagnostic.CA1851.severity = none
 
 # CA1852: Seal internal types
-dotnet_diagnostic.CA1852.severity = warning
-
-# CA1855: Prefer 'Clear' over 'Fill'
-dotnet_diagnostic.CA1855.severity = warning
+dotnet_diagnostic.CA1852.severity = none
 
 # CA2000: Dispose objects before losing scope
 dotnet_diagnostic.CA2000.severity = warning
@@ -117,9 +111,6 @@ dotnet_code_quality.CA2208.api_surface = public
 
 # CA2211: Non-constant fields should not be visible
 dotnet_diagnostic.CA2211.severity = none
-
-# CA2213: Disposable fields should be disposed
-dotnet_diagnostic.CA2213.severity = warning
 
 # CA2227: Collection properties should be read only
 dotnet_diagnostic.CA2227.severity = none
@@ -162,9 +153,6 @@ dotnet_diagnostic.CA5350.severity = warning
 
 # CA5351: Do Not Use Broken Cryptographic Algorithms
 dotnet_diagnostic.CA5351.severity = warning
-
-# CA5359: Do Not Disable Certificate Validation
-dotnet_diagnostic.CA5359.severity = warning
 
 # SA1000: Spacing around keywords
 dotnet_diagnostic.SA1000.severity = warning
