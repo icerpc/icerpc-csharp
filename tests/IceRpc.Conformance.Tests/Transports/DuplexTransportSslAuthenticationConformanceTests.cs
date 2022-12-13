@@ -59,6 +59,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
     public async Task Ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
     {
         // Arrange
+
         await using ServiceProvider provider = CreateServiceCollection()
             .AddSingleton(
                 new SslServerAuthenticationOptions
@@ -74,7 +75,9 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                     {
                         new X509Certificate2("../../../certs/client.p12", "password")
                     },
+#pragma warning disable CA5359 // Do Not Disable Certificate Validation, certificate validation is not required for these tests. 
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+#pragma warning restore CA5359 // Do Not Disable Certificate Validation
                 })
             .BuildServiceProvider(validateScopes: true);
 

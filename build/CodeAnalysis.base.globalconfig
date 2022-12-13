@@ -160,6 +160,9 @@ dotnet_diagnostic.CA5350.severity = warning
 # CA5351: Do Not Use Broken Cryptographic Algorithms
 dotnet_diagnostic.CA5351.severity = warning
 
+# CA5359: Do Not Disable Certificate Validation
+dotnet_diagnostic.CA5359.severity = warning
+
 # SA1000: Spacing around keywords
 dotnet_diagnostic.SA1000.severity = warning
 
