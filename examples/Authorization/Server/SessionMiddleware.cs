@@ -2,7 +2,6 @@
 
 using IceRpc;
 using IceRpc.Features;
-using IceRpc.Slice;
 using System.Buffers;
 
 namespace AuthorizationExample;

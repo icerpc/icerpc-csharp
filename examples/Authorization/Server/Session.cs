@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc;
 using IceRpc.Features;
 using IceRpc.Slice;
-using System.Buffers;
 using System.Collections.Concurrent;
 
 namespace AuthorizationExample;
@@ -32,6 +30,7 @@ public class TokenStore
     /// <returns>A new session token.</returns>
     public Guid CreateToken(string name)
     {
+        // Guid are not cryptographically secure, but for this example it's sufficient.
         var token = Guid.NewGuid();
         _sessions[token] = name;
         return token;
