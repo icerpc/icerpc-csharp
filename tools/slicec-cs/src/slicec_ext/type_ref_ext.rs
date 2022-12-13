@@ -3,7 +3,7 @@
 use super::entity_ext::EntityExt;
 use super::interface_ext::InterfaceExt;
 use super::primitive_ext::PrimitiveExt;
-use crate::cs_attributes::{match_cs_generic, match_cs_type};
+use crate::cs_attributes::{match_cs_custom, match_cs_generic};
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::TypeContext;
@@ -27,7 +27,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 
     fn cs_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
         let type_str = match &self.concrete_typeref() {
-            TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute(false, match_cs_type) {
+            TypeRefs::Struct(struct_ref) => match struct_ref.definition().get_attribute(false, match_cs_custom) {
                 Some(name) => name,
                 None => struct_ref.escape_scoped_identifier(namespace),
             },
@@ -37,7 +37,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_implementation_name(namespace),
             TypeRefs::CustomType(custom_type_ref) => custom_type_ref
                 .definition()
-                .get_attribute(false, match_cs_type)
+                .get_attribute(false, match_cs_custom)
                 .unwrap(),
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
