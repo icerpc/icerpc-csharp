@@ -35,4 +35,7 @@ unchecked enum StatusCode : varuint62
 
     /// The dispatch detected the expiration of the request's deadline.
     DeadlineExpired,
+
+    /// The caller is not authorized to access the requested resource.
+    Unauthorized,
 }
