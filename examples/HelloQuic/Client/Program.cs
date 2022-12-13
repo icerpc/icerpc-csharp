@@ -12,7 +12,7 @@ namespace Demo;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class Program
 {
-    static async Task Main(string[] args)
+    public static async Task Main()
     {
         using var rootCA = new X509Certificate2("../../certs/cacert.der");
         var clientAuthenticationOptions = new SslClientAuthenticationOptions

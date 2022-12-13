@@ -3,7 +3,6 @@
 using Demo;
 using IceRpc;
 using IceRpc.Retry;
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 
 if (args.Length < 1)
@@ -35,7 +34,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 await using var connectionCache = new ConnectionCache();
 
 // Create an invocation pipeline with the retry and logger interceptors.
-var pipeline = new Pipeline()
+Pipeline pipeline = new Pipeline()
     .UseRetry(
         // Make up to 5 attempts before giving up
         new RetryOptions { MaxAttempts = 5 },

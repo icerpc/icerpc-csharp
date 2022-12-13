@@ -1,7 +1,6 @@
 # Secure
 
-Secure is an example application showing how to make an asynchronous invocation and wait for the reply using a
-secure TLS connection.
+This example application illustrates how to configure the client and server to use SSL secured connections.
 
 For build instructions check the top-level [README.md](../../README.md).
 

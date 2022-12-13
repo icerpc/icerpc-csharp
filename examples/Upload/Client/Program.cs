@@ -8,16 +8,15 @@ using System.IO.Pipelines;
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 var uploader = new UploaderProxy(connection);
 
-// Create a FileStream for the image to be uploaded. This stream will be disposed by IceRPC when it completes the
-// `PipeReader`.
-var image = new FileStream("Client/images/Earth.png", FileMode.Open);
-
 Console.WriteLine("Uploading image of the Earth...");
 
-// Wrap the FileStream in a PipeReader.
-var reader = PipeReader.Create(image);
+// Create a pipe reader wrapping the image we want to upload, the pipe reader takes owner ship of the
+// file stream and disposes it once it is completed by the IceRPC runtime.
+var reader = PipeReader.Create(new FileStream("Client/images/Earth.png", FileMode.Open));
 
 // Begin streaming the data to the server.
+// TODO I find this misleading, the completion of `UploadImageAsync` doesn't ensure that the server finish reading
+// the stream argument.
 // The IceRpc runtime will automatically complete the PipeReader for the client once the await returns.
 await uploader.UploadImageAsync(reader);
 

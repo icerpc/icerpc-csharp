@@ -11,9 +11,9 @@ IHelloProxy hello = new HelloProxy(connection);
 double requestsPerSecond = 20;
 Console.WriteLine($"Sending {requestsPerSecond} requests per second...");
 
-// Cancel the client on Ctrl+C or Ctrl+Break
 using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(1 / requestsPerSecond));
 
+// Cancel the client on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;

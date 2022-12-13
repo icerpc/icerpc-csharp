@@ -5,22 +5,18 @@ using IceRpc;
 
 using var cts = new CancellationTokenSource();
 
-// Adding compressor middleware to the router
+// Setup the dispatch router with the compressor middleware
 Router router = new Router().UseCompressor(CompressionFormat.Brotli);
 router.Map<IHello>(new Hello());
 
 await using var server = new Server(router);
 
-// Shuts down the server on Ctrl+C or Ctrl+Break
+// Shuts down the server on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
     _ = server.ShutdownAsync();
 };
 
-// Start the server
 server.Listen();
-
-Console.WriteLine("Server is waiting for connections...");
-
 await server.ShutdownComplete;

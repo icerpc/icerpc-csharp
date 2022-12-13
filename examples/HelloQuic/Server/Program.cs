@@ -12,7 +12,7 @@ namespace Demo;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class Program
 {
-    static async Task Main()
+    public static async Task Main()
     {
         await using var server = new Server(
             new Hello(),

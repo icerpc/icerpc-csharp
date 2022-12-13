@@ -1,6 +1,6 @@
 # HelloQuic
 
-HelloQuic illustrates how to use the QUIC multiplexed transport.
+This example application illustrates how to use the QUIC multiplexed transport.
 
 For build instructions check the top-level [README.md](../../README.md).
 

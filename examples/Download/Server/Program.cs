@@ -5,14 +5,12 @@ using IceRpc;
 
 await using var server = new Server(new Downloader());
 
-// Shut down the server on Ctrl+C or Ctrl+Break
+// Shut down the server on Ctrl+C
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
     _ = server.ShutdownAsync();
 };
 
-Console.WriteLine("Server is waiting for connections...");
 server.Listen();
-
 await server.ShutdownComplete;

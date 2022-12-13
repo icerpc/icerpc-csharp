@@ -10,30 +10,18 @@ var numberStreamProxy = new NumberStreamProxy(connection);
 
 // Continues to stream data until either the client or server are shut down
 Console.WriteLine("Client is streaming data...");
-try
-{
-    foreach (int index in Enumerable.Range(0, 3))
-    {
-        // A `default` cancellation token is passed into `GetDataAsync` since IceRpc will override the token via the
-        // `[EnumeratorCancellation]` attribute
-        await numberStreamProxy.StreamDataAsync(GetDataAsync(index * 10, default));
-    }
-}
-catch (OperationCanceledException exception)
-{
-    Console.WriteLine($"Operation Canceled Exception: {exception.Message}");
-}
+await numberStreamProxy.StreamDataAsync(GetDataAsync(default));
 Console.WriteLine("Client has finished streaming data.");
 
 // Continuously generates data to be streamed
 
-// This method has a `CancellationToken` parameter, which uses the `[EnumeratorCancellation]` attribute. IceRpc will
-// automatically override the `CancellationToken` via this attribute when the server cancels the stream.
-static async IAsyncEnumerable<int> GetDataAsync(int n, [EnumeratorCancellation] CancellationToken cancellationToken)
+// The EnumeratorCancellation attribute allows user of the returned async enumerable to specify the cancellation token
+// used by this method. The IceRPC runtime will provide a cancellation token that gets canceled when the stream used to
+// transmit the async enumerable is canceled.
+static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 {
-    // If the service or server cancels the stream it is important to prevent GetDataAsync from leaking. When the
-    // cancellation token is canceled, `Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);` will throw an
-    // OperationCanceledException that can be used to break from the while loop.
+    // If the stream is canceled it is important to prevent GetDataAsync from leaking, we  
+    int n = 0;
     while (true)
     {
         yield return n++;
@@ -43,6 +31,7 @@ static async IAsyncEnumerable<int> GetDataAsync(int n, [EnumeratorCancellation] 
         }
         catch (OperationCanceledException)
         {
+            // TODO this is never executed, is this a bug?
             Console.WriteLine("The operation has been canceled by the server.");
             yield break;
         }
