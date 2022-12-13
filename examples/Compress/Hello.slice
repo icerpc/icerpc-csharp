@@ -4,7 +4,7 @@ module Demo;
 
 interface Hello
 {
-    // The compress attribute is used to instruct the Slice engine that the compress feature should be added to
+    // The compress attribute is used to instruct the Slice engine to add the compress feature to the request features
     // when invoking this operation using the generated service proxy. Here we pass the Args and Return arguments
     // to specify that we want to use compression for both the arguments and its return value.
     [compress(Args, Return)] sayHello(name: string) -> string;
