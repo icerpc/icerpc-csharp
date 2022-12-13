@@ -21,7 +21,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    private bool _closedByPeer;
     private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
@@ -37,6 +36,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
+    private bool _isClosedByPeer;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
@@ -221,9 +221,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
 
-                    // Setting _closedByPeer to true must be done before calling Close. Close cancels invocations and
+                    // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations and
                     // dispatches. Canceled invocations should not be aborted if the connection is gracefully closed.
-                    _closedByPeer = true;
+                    lock (_mutex)
+                    {
+                        _isClosedByPeer = true;
+                    }
 
                     // The peer expects the connection to be closed once the CloseConnection frame is received.
                     Close("The connection was closed by the peer.");
@@ -374,7 +377,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 request.Payload.Complete();
             }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+            catch (IceRpcException exception) when (
+                exception.IceRpcError == IceRpcError.OperationAborted &&
+                _isClosedByPeer)
             {
                 // The transport connection was disposed while sending the request.
                 Debug.Assert(ConnectionClosedException is not null);
@@ -436,15 +441,18 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             // The invocation was cancel by speedy-shutdown or graceful closure by the peer.
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && ConnectionClosedException is not null);
-            if (_closedByPeer)
+            lock (_mutex)
             {
-                // Invocations canceled after the connection was gracefully closed are not aborted. The peer didn't
-                // dispatch these invocations since the CloseConnection frame was received.
-                throw ConnectionClosedException;
-            }
-            else
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted);
+                if (_isClosedByPeer)
+                {
+                    // Invocations are not aborted if canceled after the graceful connection closure. The peer didn't
+                    // dispatch the invocation since the CloseConnection frame was received.
+                    throw ConnectionClosedException;
+                }
+                else
+                {
+                    throw new IceRpcException(IceRpcError.OperationAborted);
+                }
             }
         }
         finally
