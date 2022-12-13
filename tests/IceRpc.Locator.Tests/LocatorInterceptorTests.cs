@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
