@@ -104,16 +104,15 @@ impl Visitor for CsValidator<'_> {
         for (attribute, span) in &cs_attributes(&module_def.attributes(false)) {
             match attribute {
                 CsAttributeKind::Namespace { .. } => {}
-                CsAttributeKind::Identifier { .. } => Error::new(ErrorKind::InvalidAttribute(
-                    cs_attributes::IDENTIFIER.to_owned(),
-                    "module".to_owned(),
-                ))
-                .set_span(span)
-                .add_note(
-                    format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
-                    None,
-                )
-                .report(self.diagnostic_reporter),
+                CsAttributeKind::Identifier { .. } => {
+                    Error::new(ErrorKind::UnexpectedAttribute(cs_attributes::IDENTIFIER.to_owned()))
+                        .set_span(span)
+                        .add_note(
+                            format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
+                            None,
+                        )
+                        .report(self.diagnostic_reporter)
+                }
                 CsAttributeKind::Internal => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
