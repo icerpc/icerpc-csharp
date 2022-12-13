@@ -12,7 +12,7 @@ namespace Demo;
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class Program
 {
-    static async Task Main()
+    public static async Task Main()
     {
         await using var server = new Server(
             new Hello(),
@@ -22,7 +22,7 @@ public static class Program
             },
             multiplexedServerTransport: new QuicServerTransport());
 
-        // Shuts down the server on Ctrl+C
+        // Shuts down the server on Ctrl+C.
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
             eventArgs.Cancel = true;

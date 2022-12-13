@@ -13,7 +13,7 @@ var pipeline = new Pipeline();
 // Create a locator proxy with the invocation pipeline as its invoker.
 var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
 
-// Create a hello proxy with the invocation pipeline as as its invoker. Note that this proxy has no server address.
+// Create a hello proxy with the invocation pipeline as its invoker. Note that this proxy has no server address.
 var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
 // Create a logger factory that logs to the console.
@@ -23,7 +23,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
     });
 
-// Add the retry, locator, and logger interceptor to the pipeline
+// Add the retry, locator, and logger interceptors to the pipeline
 pipeline = pipeline
     .UseRetry(new RetryOptions(), loggerFactory)
     .UseLocator(locator, loggerFactory)

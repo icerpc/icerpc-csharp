@@ -2,8 +2,6 @@
 
 using IceRpc;
 using IceRpc.Builder;
-using IceRpc.Logger;
-using IceRpc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -78,7 +76,7 @@ public static class Program
         }
 
         public Task StopAsync(CancellationToken cancellationToken) =>
-            // Shutdown the IceRPC server when the hosted service is stopped.
+            // Shuts down the IceRPC server when the hosted service is stopped.
             _server.ShutdownAsync(cancellationToken);
     }
 }

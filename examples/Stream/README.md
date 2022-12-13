@@ -1,6 +1,6 @@
 # Stream
 
-This example application illustrates streaming data from a client to a server.
+This example application illustrates how to stream data from a client to a server.
 
 For build instructions check the top-level [README.md](../../README.md).
 

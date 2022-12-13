@@ -11,10 +11,10 @@ var downloader = new DownloaderProxy(connection);
 // Receive the stream from the server.
 PipeReader image = await downloader.DownloadImageAsync();
 
-// The stream returned by AsStream completes `image` when it's disposed.
+// The stream returned by AsStream completes the 'image' pipe reader when it's disposed.
 using Stream imageStream = image.AsStream();
 
-// Create the file, or overwrite if the file exists.
+// Create the file, or overwrite the file if it already exists.
 using FileStream fs = File.Create("Client/downloads/downloaded_earth.png");
 
 // Copy the image stream to the file stream.

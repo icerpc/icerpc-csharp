@@ -20,7 +20,7 @@ var serverAddress = new ServerAddress(new Uri($"icerpc://127.0.0.1:{10000 + numb
 
 await using var server = new Server(new Hello(number), serverAddress);
 
-// Shuts down the server on Ctrl+C
+// Shuts down the server on Ctrl+C.
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;

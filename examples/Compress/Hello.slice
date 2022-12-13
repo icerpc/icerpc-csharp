@@ -4,8 +4,8 @@ module Demo;
 
 interface Hello
 {
-    // The Deflate interceptor compresses the payload of a request when this request carries the compress feature, and
-    // the Deflate middleware compresses the payload of a response when the corresponding incoming request carries the
-    // compress feature.
+    // The compress attribute is used to instruct the Slice engine that the compress feature should be added to the
+    // request features. Here we pass the Args and Return arguments to specify that we want to use compression for the
+    // operation's argument and its return value.
     [compress(Args, Return)] sayHello(name: string) -> string;
 }
