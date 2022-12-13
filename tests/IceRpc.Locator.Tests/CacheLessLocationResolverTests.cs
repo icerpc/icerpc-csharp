@@ -44,7 +44,7 @@ public class CacheLessLocationResolverTests
         Assert.That(fromCache, Is.False);
     }
 
-    private class FakeServerAddressFinder : IServerAddressFinder
+    private sealed class FakeServerAddressFinder : IServerAddressFinder
     {
         private readonly ServiceAddress _serviceAddress;
 

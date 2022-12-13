@@ -300,7 +300,7 @@ public sealed class ProtocolLoggerTests
 
     // A multiplexed server transport decorators that wraps the listeners it creates with a listener
     // that creates multiplexed connections that will fail during connect.
-    internal class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
+    internal sealed class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
     {
         public string Name => _decoratee.Name;
 
@@ -321,7 +321,7 @@ public sealed class ProtocolLoggerTests
 
     // A multiplexed listener decorator that wraps the connections it creates with a connection decorator
     // that will fail to connect
-    private class ConnectFailMultiplexedConnectionListenerDecorator : IListener<IMultiplexedConnection>
+    private sealed class ConnectFailMultiplexedConnectionListenerDecorator : IListener<IMultiplexedConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -342,7 +342,7 @@ public sealed class ProtocolLoggerTests
     }
 
     // A multiplexed connection decorator that always fail to connect
-    private class ConnectFailMultiplexedConnectionDecorator : IMultiplexedConnection
+    private sealed class ConnectFailMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 

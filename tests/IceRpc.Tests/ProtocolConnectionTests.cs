@@ -1201,7 +1201,7 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    private class DelayPipeReader : PipeReader
+    private sealed class DelayPipeReader : PipeReader
     {
         public override void AdvanceTo(SequencePosition consumed)
         {
@@ -1232,7 +1232,7 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    private class DelayPipeWriter : PipeWriter
+    private sealed class DelayPipeWriter : PipeWriter
     {
         private readonly PipeWriter _decoratee;
 

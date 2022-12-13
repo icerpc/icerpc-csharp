@@ -31,8 +31,10 @@ public static class AsyncEnumerableExtensions
 
     private class AsyncEnumerablePipeReader<T> : PipeReader, IDisposable
     {
+#pragma warning disable CA2213 // Disposed by Complete
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
         private readonly CancellationTokenSource _cts = new();
+#pragma warning restore CA2213
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
         private readonly bool _useSegments;

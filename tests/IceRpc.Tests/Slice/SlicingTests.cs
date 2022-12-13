@@ -96,7 +96,7 @@ public class SlicingTests
 
     /// <summary>An activator that delegates to another activator except for the Sliced type IDs, for which it
     /// returns null instances. This allows testing class and exception slicing.</summary>
-    private class SlicingActivator : IActivator
+    private sealed class SlicingActivator : IActivator
     {
         private readonly IActivator _decoratee;
         private readonly ImmutableList<string> _slicedTypeIds;

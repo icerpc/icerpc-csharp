@@ -115,7 +115,7 @@ public class LocatorServerAddressFinderTests
 
         _ = await serverAddressFinder.FindAsync(location, default);
 
-        Assert.That(serverAddressCache.Cache.Count, Is.EqualTo(1));
+        Assert.That(serverAddressCache.Cache, Has.Count.EqualTo(1));
         Assert.That(serverAddressCache.Cache.ContainsKey(location), Is.True);
         Assert.That(serverAddressCache.Cache[location], Is.EqualTo(expectedServiceAddress));
     }
@@ -165,7 +165,7 @@ public class LocatorServerAddressFinderTests
         Assert.That(p1, Is.EqualTo(p3));
     }
 
-    private class BlockingServerAddressFinder : IServerAddressFinder, IDisposable
+    private sealed class BlockingServerAddressFinder : IServerAddressFinder, IDisposable
     {
         internal int Count;
 
@@ -184,7 +184,7 @@ public class LocatorServerAddressFinderTests
         }
     }
 
-    private class ServerAddressCache : IServerAddressCache
+    private sealed class ServerAddressCache : IServerAddressCache
     {
         public Dictionary<Location, ServiceAddress> Cache { get; } = new();
 
@@ -194,10 +194,10 @@ public class LocatorServerAddressFinderTests
             throw new NotImplementedException();
     }
 
-    private class FakeLocatorProxy : ILocatorProxy
+    private sealed class FakeLocatorProxy : ILocatorProxy
     {
         private readonly ServiceProxy _service;
-        private bool _adapterId;
+        private readonly bool _adapterId;
 
         public FakeLocatorProxy(ServiceProxy service, bool adapterId)
         {
@@ -215,7 +215,7 @@ public class LocatorServerAddressFinderTests
             throw new NotImplementedException();
     }
 
-    private class NotFoundLocatorProxy : ILocatorProxy
+    private sealed class NotFoundLocatorProxy : ILocatorProxy
     {
         public Task<ServiceProxy?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
             throw new AdapterNotFoundException();

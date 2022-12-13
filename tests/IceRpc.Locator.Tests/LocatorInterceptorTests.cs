@@ -115,7 +115,7 @@ public class LocatorInterceptorTests
     }
 
     // A mock location resolver that remember if it was called
-    private class NotCalledLocationResolver : ILocationResolver
+    private sealed class NotCalledLocationResolver : ILocationResolver
     {
         public bool Called { get; set; }
 
@@ -130,7 +130,7 @@ public class LocatorInterceptorTests
     }
 
     // A mock location resolver that remember if it was called
-    private class MockLocationResolver : ILocationResolver
+    private sealed class MockLocationResolver : ILocationResolver
     {
         private readonly ServiceAddress _serviceAddress;
         private readonly bool _adapterId;
@@ -148,12 +148,12 @@ public class LocatorInterceptorTests
     }
 
     // A mock location resolver that return cached and non cached server addresses depending on the refreshCache parameter
-    private class MockCachedLocationResolver : ILocationResolver
+    private sealed class MockCachedLocationResolver : ILocationResolver
     {
         /// <summary><see langword="true" /> if the last call asked to refresh the cache otherwise,
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
-        private readonly ServiceAddress _serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
+        private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
 
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,
@@ -166,12 +166,12 @@ public class LocatorInterceptorTests
     }
 
     // A mock location resolver that always return non cached server addresses
-    private class MockNonCachedLocationResolver : ILocationResolver
+    private sealed class MockNonCachedLocationResolver : ILocationResolver
     {
         /// <summary><see langword="true" /> if the last call asked to refresh the cache otherwise,
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
-        private readonly ServiceAddress _serviceAddress = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
+        private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
 
         public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
             Location location,

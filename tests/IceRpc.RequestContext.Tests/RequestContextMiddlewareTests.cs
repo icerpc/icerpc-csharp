@@ -44,7 +44,7 @@ public sealed class RequestContextMiddlewareTests
         Assert.That(decoded, Is.Not.Null);
         Assert.That(decoded, Is.EqualTo(context));
 
-        PipeReader EncodeContextField(Dictionary<string, string> context)
+        static PipeReader EncodeContextField(Dictionary<string, string> context)
         {
             var pipe = new Pipe();
             var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);

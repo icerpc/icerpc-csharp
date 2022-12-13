@@ -30,7 +30,7 @@ public class TestMemoryPool : MemoryPool<byte>
 
     public TestMemoryPool(int maxBufferSize) => MaxBufferSize = maxBufferSize;
 
-    private class MemoryOwner : IMemoryOwner<byte>
+    private sealed class MemoryOwner : IMemoryOwner<byte>
     {
         public Memory<byte> Memory { get; }
 

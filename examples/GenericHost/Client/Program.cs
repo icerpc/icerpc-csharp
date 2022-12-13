@@ -62,7 +62,7 @@ public static class Program
             });
 
     /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
-    private class ClientHostedService : BackgroundService
+    public class ClientHostedService : BackgroundService
     {
         // The host application lifetime is used to stop the .NET Generic Host.
         private readonly IHostApplicationLifetime _applicationLifetime;
@@ -82,13 +82,13 @@ public static class Program
             _hello = hello;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             try
             {
-                string greeting = await _hello.SayHelloAsync(Environment.UserName, cancellationToken: cancellationToken);
+                string greeting = await _hello.SayHelloAsync(Environment.UserName, cancellationToken: stoppingToken);
                 Console.WriteLine(greeting);
-                await _connection.ShutdownAsync(cancellationToken);
+                await _connection.ShutdownAsync(stoppingToken);
             }
             catch (Exception exception)
             {
