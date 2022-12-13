@@ -15,6 +15,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     public override ServerAddress ServerAddress => _transportConnection.ServerAddress;
 
     private Task? _acceptRequestsTask;
+    private readonly CancellationTokenSource _acceptStreamCts = new();
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
@@ -213,14 +214,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // If _dispatcher is null, this call will block indefinitely until the connection is closed
                         // because the multiplexed connection MaxUnidirectionalStreams and MaxBidirectionalStreams
                         // options don't allow this peer to accept streams.
-                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(CancellationToken.None)
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_acceptStreamCts.Token)
                             .ConfigureAwait(false);
 
                         bool done = false;
                         CancellationToken cancellationToken = default;
                         lock (_mutex)
                         {
-                            if (ConnectionClosedException is null)
+                            if (_acceptStreamCts.IsCancellationRequested)
+                            {
+                                done = true;
+                            }
+                            else
                             {
                                 // The multiplexed connection guarantees that the IDs of accepted streams of a given
                                 // type have ever increasing values.
@@ -276,14 +281,25 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                                 _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
                             }
-                            else
-                            {
-                                done = true;
-                            }
                         }
 
                         if (done)
                         {
+                            try
+                            {
+                                // Wait for the stream reads and writes closure before completing the stream input or
+                                // output. Completing them before would trigger the sending of a reset frame which would
+                                // result in an IceRpc.TruncatedData failure on the peer.
+                                // TODO: One issue with waiting for the connection closure here is that streams will
+                                // continue being accepted by the transport and won't be closed until all the dispatches
+                                // and invocations from this connection are done which is not good.
+                                await Task.WhenAll(stream.InputClosed, stream.OutputClosed).ConfigureAwait(false);
+                            }
+                            catch (IceRpcException exception) when (
+                                exception.IceRpcError == IceRpcError.ConnectionAborted)
+                            {
+                            }
+
                             stream.Input.Complete();
                             if (stream.IsBidirectional)
                             {
@@ -341,6 +357,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         }
                     }
                 }
+                catch (OperationCanceledException exception) when (
+                    exception.CancellationToken == _acceptStreamCts.Token)
+                {
+                }
                 catch (IceRpcException exception)
                 {
                     await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
@@ -395,6 +415,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         _dispatchesAndInvocationsCts.Dispose();
+        _acceptStreamCts.Dispose();
         _dispatchSemaphore?.Dispose();
     }
 
@@ -594,6 +615,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
     {
+        // Ensure no more streams are accepted. Once canceled, we have the guarantee that
+        // _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are immutable.
+        _acceptStreamCts.Cancel();
+
         // If the connection is connected, exchange go away frames with the peer.
 
         IceRpcGoAway goAwayFrame;
