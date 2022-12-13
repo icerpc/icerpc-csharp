@@ -66,8 +66,11 @@ dotnet_diagnostic.CA1819.severity = none
 # CA1847: Use char literal for a single character lookup
 dotnet_diagnostic.CA1847.severity = warning
 
-# CA1851: Possible multiple enumerations of 'IEnumerable' collection. Consider using an implementation that avoids multiple enumerations.
+# CA1851: Possible multiple enumerations of 'IEnumerable' collection
 dotnet_diagnostic.CA1851.severity = none
+
+# CA1852: Seal internal types
+dotnet_diagnostic.CA1852.severity = warning
 
 # CA1855: Prefer 'Clear' over 'Fill'
 dotnet_diagnostic.CA1855.severity = warning
