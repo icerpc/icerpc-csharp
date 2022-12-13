@@ -16,21 +16,22 @@ public static class LocatorPipelineExtensions
     /// <param name="locator">The locator proxy used for the resolutions.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator) =>
-        UseLocator(pipeline, locator, NullLogger.Instance);
+        UseLocator(pipeline, locator, NullLoggerFactory.Instance);
 
     /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator proxy.
     /// </summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="locator">The locator proxy used for the resolutions.</param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
+    /// <see cref="LocatorInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator, ILogger logger) =>
+    public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator, ILoggerFactory loggerFactory) =>
         UseLocator(
             pipeline,
             new LocatorLocationResolver(
                 locator,
                 new LocatorOptions(),
-                logger));
+                loggerFactory.CreateLogger<LocatorInterceptor>()));
 
     /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
