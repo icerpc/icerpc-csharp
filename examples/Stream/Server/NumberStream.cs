@@ -16,8 +16,8 @@ public class NumberStream : Service, INumberStream
         uint count = 0;
         await foreach (int number in numbers.WithCancellation(cts.Token))
         {
-            // After receiving 10 numbers, cancel the token which will propagate the cancellation to the client
-            // async enumerable.
+            // After receiving 10 numbers, cancel the token to propagate the cancellation to the client async
+            // enumerable.
             if (count == 10)
             {
                 cts.Cancel();

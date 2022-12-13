@@ -20,7 +20,8 @@ Console.WriteLine("Client has finished streaming data.");
 // transmit the async enumerable is canceled.
 static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 {
-    // If the stream is canceled it is important to prevent GetDataAsync from leaking, we  
+    // If the stream is canceled it is important to prevent GetDataAsync from leaking, we terminate the loop
+    // once the cancellationToken is canceled.
     int n = 0;
     while (true)
     {

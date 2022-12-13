@@ -5,7 +5,7 @@ using IceRpc;
 
 using var cts = new CancellationTokenSource();
 
-// Setup the dispatch router with the compressor middleware
+// Add the compressor middleware to the dispatch pipeline.
 Router router = new Router().UseCompressor(CompressionFormat.Brotli);
 router.Map<IHello>(new Hello());
 

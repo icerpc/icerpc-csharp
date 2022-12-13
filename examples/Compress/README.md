@@ -1,7 +1,7 @@
 # Compress
 
-This example application illustrates how to use the compress middleware and the compress interceptor to compress the
-arguments and return value for an invocation.
+This example application illustrates how to use the compress interceptor and middleware to
+transparently compress and decompress requests and responses.
 
 For build instructions check the top-level [README.md](../../README.md).
 

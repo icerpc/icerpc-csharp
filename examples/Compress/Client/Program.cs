@@ -6,7 +6,7 @@ using IceRpc;
 // Establish the connection to the server
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
-// Setup the invocation pipeline with the compressor interceptor
+// Add the compressor interceptor to the invocation pipeline.
 IInvoker pipeline = new Pipeline().UseCompressor(CompressionFormat.Brotli).Into(connection);
 
 // Create the proxy using the invocation pipeline
