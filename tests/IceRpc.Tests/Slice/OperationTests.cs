@@ -571,10 +571,10 @@ public class OperationTests
             CancellationToken cancellationToken) => default;
 
         public ValueTask OpWithSpecialParameterNamesAsync(
-            int cancellationToken,
+            int cancel,
             int features,
             IFeatureCollection features_,
-            CancellationToken cancellationToken_) => default;
+            CancellationToken cancellationToken) => default;
 
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             IFeatureCollection features,
