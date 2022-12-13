@@ -59,7 +59,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
 
     private readonly string _fragment = "";
 
-    // IncomingRequest is not thread-safe and should not receive a response after it is disposed.
+    // IncomingRequest is not thread-safe and does not accept a response after it is disposed.
     private bool _isDisposed;
 
     private OutgoingResponse? _response;
