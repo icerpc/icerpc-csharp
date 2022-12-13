@@ -59,7 +59,6 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
     public async Task Ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
     {
         // Arrange
-
         await using ServiceProvider provider = CreateServiceCollection()
             .AddSingleton(
                 new SslServerAuthenticationOptions
