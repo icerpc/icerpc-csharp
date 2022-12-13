@@ -9,8 +9,8 @@ namespace IceRpc.Internal;
 internal static partial class ProtocolLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionAccepted,
-        EventName = nameof(ProtocolEventIds.ConnectionAccepted),
+        EventId = (int)ProtocolEventId.ConnectionAccepted,
+        EventName = nameof(ProtocolEventId.ConnectionAccepted),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' accepted connection from '{RemoteNetworkAddress}'")]
     internal static partial void LogConnectionAccepted(
@@ -19,8 +19,8 @@ internal static partial class ProtocolLoggerExtensions
         EndPoint remoteNetworkAddress);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionAcceptFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionAcceptFailed),
+        EventId = (int)ProtocolEventId.ConnectionAcceptFailed,
+        EventName = nameof(ProtocolEventId.ConnectionAcceptFailed),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' failed to accept a new connection")]
     internal static partial void LogConnectionAcceptFailed(
@@ -29,8 +29,8 @@ internal static partial class ProtocolLoggerExtensions
         Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionConnected,
-        EventName = nameof(ProtocolEventIds.ConnectionConnected),
+        EventId = (int)ProtocolEventId.ConnectionConnected,
+        EventName = nameof(ProtocolEventId.ConnectionConnected),
         Level = LogLevel.Trace,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' connected")]
     internal static partial void LogConnectionConnected(
@@ -53,8 +53,8 @@ internal static partial class ProtocolLoggerExtensions
     // Multiple logging methods are using same event id.
 #pragma warning disable SYSLIB1006
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
+        EventId = (int)ProtocolEventId.ConnectionConnectFailed,
+        EventName = nameof(ProtocolEventId.ConnectionConnectFailed),
         Level = LogLevel.Trace,
         Message = "Client|Server connection connect to '{ServerAddress}' failed")]
     internal static partial void LogConnectionConnectFailed(
@@ -63,8 +63,8 @@ internal static partial class ProtocolLoggerExtensions
         Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
+        EventId = (int)ProtocolEventId.ConnectionConnectFailed,
+        EventName = nameof(ProtocolEventId.ConnectionConnectFailed),
         Level = LogLevel.Trace,
         Message = "Server|Client connection connect from '{ServerAddress}' to '{RemoteNetworkAddress}' failed")]
     internal static partial void LogConnectionConnectFailed(
@@ -75,8 +75,8 @@ internal static partial class ProtocolLoggerExtensions
 #pragma warning restore SYSLIB1006
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionFailed),
+        EventId = (int)ProtocolEventId.ConnectionFailed,
+        EventName = nameof(ProtocolEventId.ConnectionFailed),
         Level = LogLevel.Trace,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed")]
     internal static partial void LogConnectionFailed(
@@ -100,8 +100,8 @@ internal static partial class ProtocolLoggerExtensions
             exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionShutdown,
-        EventName = nameof(ProtocolEventIds.ConnectionShutdown),
+        EventId = (int)ProtocolEventId.ConnectionShutdown,
+        EventName = nameof(ProtocolEventId.ConnectionShutdown),
         Level = LogLevel.Trace,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' shutdown")]
     internal static partial void LogConnectionShutdown(
@@ -122,15 +122,15 @@ internal static partial class ProtocolLoggerExtensions
             remoteNetworkAddress);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.StartAcceptingConnections,
-        EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
+        EventId = (int)ProtocolEventId.StartAcceptingConnections,
+        EventName = nameof(ProtocolEventId.StartAcceptingConnections),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' start accepting connections")]
     internal static partial void LogStartAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.StopAcceptingConnections,
-        EventName = nameof(ProtocolEventIds.StopAcceptingConnections),
+        EventId = (int)ProtocolEventId.StopAcceptingConnections,
+        EventName = nameof(ProtocolEventId.StopAcceptingConnections),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' stop accepting connections")]
     internal static partial void LogStopAcceptingConnections(this ILogger logger, ServerAddress serverAddress);

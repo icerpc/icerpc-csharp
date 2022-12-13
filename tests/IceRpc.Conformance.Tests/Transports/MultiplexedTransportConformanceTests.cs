@@ -3,6 +3,8 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
@@ -531,7 +533,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.Throws<ArgumentException>(() => serverTransport.Listen(
             serverAddress,
             new MultiplexedConnectionOptions(),
-            provider.GetService<SslServerAuthenticationOptions>()));
+            provider.GetService<SslServerAuthenticationOptions>(),
+            provider.GetService<ILogger>() ?? NullLogger.Instance));
     }
 
     [Test]
@@ -870,7 +873,8 @@ public abstract partial class MultiplexedTransportConformanceTests
             () => serverTransport.Listen(
                 listener.ServerAddress,
                 new MultiplexedConnectionOptions(),
-                provider.GetService<SslServerAuthenticationOptions>()));
+                provider.GetService<SslServerAuthenticationOptions>(),
+                provider.GetService<ILogger>() ?? NullLogger.Instance));
         // BUGFIX with Quic this throws an internal error https://github.com/dotnet/runtime/issues/78573
         Assert.That(
             exception!.IceRpcError,

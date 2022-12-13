@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net.Security;
 
@@ -18,7 +19,8 @@ internal class ColocServerTransport : IDuplexServerTransport
     public IListener<IDuplexConnection> Listen(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger)
     {
         if (serverAuthenticationOptions is not null)
         {

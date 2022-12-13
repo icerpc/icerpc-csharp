@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Security;
@@ -46,18 +47,18 @@ public sealed class ProtocolLoggerTests
         Assert.That(serverLoggerFactory.Logger, Is.Not.Null);
         TestLoggerEntry entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.StartAcceptingConnections));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.StartAcceptingConnections));
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
 
         entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionAccepted));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.ConnectionAccepted));
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
         Assert.That(
             entry.State["RemoteNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.LocalNetworkAddress.ToString()));
 
         entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnected));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.ConnectionConnected));
         Assert.That(entry.State["Kind"], Is.EqualTo("Server|Client"));
         Assert.That(
             entry.State["LocalNetworkAddress"]?.ToString(),
@@ -69,7 +70,7 @@ public sealed class ProtocolLoggerTests
         Assert.That(clientLoggerFactory.Logger, Is.Not.Null);
         entry = await clientLoggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnected));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.ConnectionConnected));
         Assert.That(entry.State["Kind"], Is.EqualTo("Client|Server"));
         Assert.That(
             entry.State["LocalNetworkAddress"],
@@ -110,16 +111,16 @@ public sealed class ProtocolLoggerTests
         {
             entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId != (int)ProtocolEventIds.ConnectionConnectFailed);
+        while (entry.EventId != (int)ProtocolEventId.ConnectionConnectFailed);
 
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnectFailed));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.ConnectionConnectFailed));
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
         Assert.That(entry.Exception, Is.InstanceOf<InvalidOperationException>());
 
         Assert.That(clientLoggerFactory.Logger, Is.Not.Null);
         entry = await clientLoggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnectFailed));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.ConnectionConnectFailed));
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
         Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>());
     }
@@ -172,7 +173,7 @@ public sealed class ProtocolLoggerTests
         {
             entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId != (int)ProtocolEventIds.ConnectionFailed);
+        while (entry.EventId != (int)ProtocolEventId.ConnectionFailed);
 
         Assert.That(entry, Is.Not.Null);
         Assert.That(entry.State["Kind"], Is.EqualTo("Server|Client"));
@@ -188,7 +189,7 @@ public sealed class ProtocolLoggerTests
         {
             entry = await clientLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId != (int)ProtocolEventIds.ConnectionFailed);
+        while (entry.EventId != (int)ProtocolEventId.ConnectionFailed);
 
         Assert.That(entry.State["Kind"], Is.EqualTo("Client|Server"));
         Assert.That(
@@ -221,11 +222,11 @@ public sealed class ProtocolLoggerTests
         Assert.That(loggerFactory.Logger, Is.Not.Null);
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.StartAcceptingConnections));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.StartAcceptingConnections));
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
 
         entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.StopAcceptingConnections));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.StopAcceptingConnections));
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
     }
 
@@ -270,7 +271,7 @@ public sealed class ProtocolLoggerTests
         {
             entry = await serverLoggerFactory.Logger.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId.Id != (int)ProtocolEventIds.ConnectionShutdown);
+        while (entry.EventId.Id != (int)ProtocolEventId.ConnectionShutdown);
 
         Assert.That(entry.State["Kind"], Is.EqualTo("Server|Client"));
         Assert.That(
@@ -287,8 +288,8 @@ public sealed class ProtocolLoggerTests
         {
             entry = await clientLoggerFactory.Logger.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId.Id != (int)ProtocolEventIds.ConnectionShutdown);
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionShutdown));
+        while (entry.EventId.Id != (int)ProtocolEventId.ConnectionShutdown);
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventId.ConnectionShutdown));
         Assert.That(entry.State["Kind"], Is.EqualTo("Client|Server"));
         Assert.That(
             entry.State["LocalNetworkAddress"],
@@ -311,10 +312,11 @@ public sealed class ProtocolLoggerTests
         public IListener<IMultiplexedConnection> Listen(
             ServerAddress serverAddress,
             MultiplexedConnectionOptions options,
-            SslServerAuthenticationOptions? serverAuthenticationOptions)
+            SslServerAuthenticationOptions? serverAuthenticationOptions,
+            ILogger logger)
         {
             IListener<IMultiplexedConnection> listener =
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions, logger);
             return new ConnectFailMultiplexedConnectionListenerDecorator(listener);
         }
     }

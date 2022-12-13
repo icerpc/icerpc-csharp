@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Net;
 using System.Net.Security;
@@ -13,6 +15,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     public ServerAddress ServerAddress { get; }
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
+    private readonly ILogger _logger;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
@@ -41,9 +44,10 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             {
                 throw new IceRpcException(IceRpcError.OperationAborted, exception);
             }
-            catch (SocketException)
+            catch (SocketException exception)
             {
                 // If the connection was reset while in the backlog, retry.
+                _logger.LogTcpConnectionAcceptFailed(ServerAddress, exception);
             }
         }
     }
@@ -58,7 +62,8 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? authenticationOptions,
-        TcpServerTransportOptions tcpOptions)
+        TcpServerTransportOptions tcpOptions,
+        ILogger logger)
     {
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
@@ -69,6 +74,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
         _authenticationOptions = authenticationOptions?.Clone();
         _minSegmentSize = options.MinSegmentSize;
+        _logger = logger;
         _pool = options.Pool;
 
         if (_authenticationOptions is not null && _authenticationOptions.ApplicationProtocols is null)

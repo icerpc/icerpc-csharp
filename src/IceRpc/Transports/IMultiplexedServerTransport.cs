@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
 namespace IceRpc.Transports;
@@ -17,9 +18,11 @@ public interface IMultiplexedServerTransport
     /// <param name="serverAddress">The server address of the listener.</param>
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
+    /// <param name="logger">The logger.</param>
     /// <returns>The new listener.</returns>
     IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions);
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger);
 }

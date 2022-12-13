@@ -4,6 +4,7 @@ using IceRpc.Builder;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -56,7 +57,8 @@ public static class ServiceCollectionExtensions
                 provider.GetRequiredService<IDuplexServerTransport>().Listen(
                     new ServerAddress(serverAddressUri),
                     provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
-                    provider.GetService<SslServerAuthenticationOptions>()))
+                    provider.GetService<SslServerAuthenticationOptions>(),
+                    provider.GetService<ILogger>() ?? NullLogger.Instance))
             .AddSingleton(provider =>
                 provider.GetRequiredService<IDuplexClientTransport>().CreateConnection(
                     provider.GetRequiredService<IListener<IDuplexConnection>>().ServerAddress,
@@ -72,7 +74,8 @@ public static class ServiceCollectionExtensions
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(serverAddressUri),
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
-                    provider.GetService<SslServerAuthenticationOptions>()))
+                    provider.GetService<SslServerAuthenticationOptions>(),
+                    provider.GetService<ILogger>() ?? NullLogger.Instance))
             .AddSingleton(provider =>
                 provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
                     provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,

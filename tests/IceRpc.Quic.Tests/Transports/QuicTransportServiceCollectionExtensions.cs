@@ -4,6 +4,8 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
 
@@ -22,7 +24,8 @@ public static class QuicTransportServiceCollectionExtensions
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetRequiredService<SslServerAuthenticationOptions>()))
+                    provider.GetRequiredService<SslServerAuthenticationOptions>(),
+                    provider.GetRequiredService<ILogger>() ?? NullLogger.Instance))
             .AddSingleton(provider =>
                 (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
                     provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,

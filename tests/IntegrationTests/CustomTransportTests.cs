@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Net.Security;
 
@@ -51,7 +52,8 @@ public class CustomServerTransport : IMultiplexedServerTransport
     public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger)
     {
         if (serverAddress.Transport is string transport && transport != "tcp" && transport != "custom")
         {
@@ -64,7 +66,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
             Transport = "tcp"
         };
 
-        return _transport.Listen(serverAddress, options, serverAuthenticationOptions);
+        return _transport.Listen(serverAddress, options, serverAuthenticationOptions, logger);
     }
 }
 

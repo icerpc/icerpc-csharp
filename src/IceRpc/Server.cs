@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Security;
 
@@ -99,7 +100,8 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool,
                     },
-                    options.ServerAuthenticationOptions);
+                    options.ServerAuthenticationOptions,
+                    logger ?? NullLogger.Instance);
                 listener = new IceConnectorListener(transportListener, options.ConnectionOptions);
             }
             else
@@ -114,7 +116,8 @@ public sealed class Server : IAsyncDisposable
                         MinSegmentSize = options.ConnectionOptions.MinSegmentSize,
                         Pool = options.ConnectionOptions.Pool
                     },
-                    options.ServerAuthenticationOptions);
+                    options.ServerAuthenticationOptions,
+                    logger ?? NullLogger.Instance);
                 listener = new IceRpcConnectorListener(transportListener, options.ConnectionOptions);
             }
 

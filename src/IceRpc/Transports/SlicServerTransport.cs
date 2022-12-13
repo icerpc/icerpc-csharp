@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
 namespace IceRpc.Transports;
@@ -34,7 +35,8 @@ public class SlicServerTransport : IMultiplexedServerTransport
     public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger) =>
         new SlicListener(
             _duplexServerTransport.Listen(
                 serverAddress,
@@ -43,7 +45,8 @@ public class SlicServerTransport : IMultiplexedServerTransport
                     MinSegmentSize = options.MinSegmentSize,
                     Pool = options.Pool
                 },
-                serverAuthenticationOptions),
+                serverAuthenticationOptions,
+                logger),
             options,
             _slicTransportOptions);
 }

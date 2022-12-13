@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Net;
@@ -244,7 +245,11 @@ public abstract class DuplexTransportConformanceTests
 
         // Act/Assert
         IceRpcException? exception = Assert.Throws<IceRpcException>(
-            () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null));
+            () => serverTransport.Listen(
+                listener.ServerAddress,
+                new DuplexConnectionOptions(),
+                null,
+                NullLogger.Instance));
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.AddressInUse));
     }
 
@@ -347,7 +352,12 @@ public abstract class DuplexTransportConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<ArgumentException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.Throws<ArgumentException>(
+            () => serverTransport.Listen(
+                serverAddress,
+                new DuplexConnectionOptions(),
+                null,
+                NullLogger.Instance));
     }
 
     [Test]

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Quic;
@@ -16,6 +17,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     public ServerAddress ServerAddress { get; }
 
     private readonly QuicListener _listener;
+    private readonly ILogger _logger;
     private readonly MultiplexedConnectionOptions _options;
     private readonly QuicServerConnectionOptions _quicServerOptions;
 
@@ -40,15 +42,15 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 // TODO rework depending on the resolution of:
                 // - https://github.com/dotnet/runtime/issues/78096
             }
-            catch (QuicException)
+            catch (QuicException exception)
             {
                 // There was a problem establishing the connection.
-                // TODO Log this exception
+                _logger.LogQuicConnectionAcceptFailed(ServerAddress, exception);
             }
-            catch (AuthenticationException)
+            catch (AuthenticationException exception)
             {
                 // The connection was rejected due to an authentication exception.
-                // TODO Log this exception
+                _logger.LogQuicConnectionAcceptFailed(ServerAddress, exception);
             }
         }
         return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
@@ -60,7 +62,8 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         QuicServerTransportOptions quicTransportOptions,
-        SslServerAuthenticationOptions authenticationOptions)
+        SslServerAuthenticationOptions authenticationOptions,
+        ILogger logger)
     {
         _options = options;
 
@@ -69,6 +72,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         {
             new SslApplicationProtocol(serverAddress.Protocol.Name)
         };
+        _logger = logger;
 
         _quicServerOptions = new QuicServerConnectionOptions
         {

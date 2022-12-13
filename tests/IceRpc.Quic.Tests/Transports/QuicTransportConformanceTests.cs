@@ -3,6 +3,8 @@
 using IceRpc.Conformance.Tests;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Net.Quic;
@@ -38,7 +40,8 @@ public class QuicTransportConformanceTests : MultiplexedTransportConformanceTest
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetRequiredService<SslServerAuthenticationOptions>()))
+                    provider.GetRequiredService<SslServerAuthenticationOptions>(),
+                    provider.GetRequiredService<ILogger>() ?? NullLogger.Instance))
             .AddSingleton(provider =>
                 new SslClientAuthenticationOptions
                 {

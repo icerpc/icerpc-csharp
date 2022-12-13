@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
 namespace IceRpc.Transports;
@@ -30,7 +31,8 @@ public class QuicServerTransport : IMultiplexedServerTransport
     public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger)
     {
         if (serverAddress.Params.Count > 0)
         {
@@ -51,6 +53,6 @@ public class QuicServerTransport : IMultiplexedServerTransport
             serverAddress = serverAddress with { Transport = Name };
         }
 
-        return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
+        return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions, logger);
     }
 }

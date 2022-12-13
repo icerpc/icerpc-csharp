@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
 using System.Diagnostics;
@@ -928,9 +929,10 @@ public sealed class IceRpcProtocolConnectionTests
         public IListener<IMultiplexedConnection> Listen(
             ServerAddress serverAddress,
             MultiplexedConnectionOptions options,
-            SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+            SslServerAuthenticationOptions? serverAuthenticationOptions,
+            ILogger logger) =>
             _listener = new HoldMultiplexedListener(
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions));
+                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions, logger));
 
         internal HoldMultiplexedServerTransport(IMultiplexedServerTransport decoratee) => _decoratee = decoratee;
 

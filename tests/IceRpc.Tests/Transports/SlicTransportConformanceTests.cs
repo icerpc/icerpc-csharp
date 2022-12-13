@@ -4,6 +4,8 @@ using IceRpc.Conformance.Tests;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Net.Security;
@@ -30,7 +32,8 @@ public class SlicTransportConformanceTests : MultiplexedTransportConformanceTest
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
                     new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()));
+                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>(),
+                    provider.GetService<ILogger>() ?? NullLogger.Instance));
 
         services.AddOptions<SlicTransportOptions>("client");
         services.AddOptions<SlicTransportOptions>("server");

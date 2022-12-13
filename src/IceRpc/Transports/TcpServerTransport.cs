@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
 namespace IceRpc.Transports;
@@ -27,7 +28,8 @@ public class TcpServerTransport : IDuplexServerTransport
     public IListener<IDuplexConnection> Listen(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger)
     {
         // This is the composition root of the tcp server transport, where we install log decorators when logging
         // is enabled.
@@ -50,6 +52,6 @@ public class TcpServerTransport : IDuplexServerTransport
                 $"The {nameof(serverAuthenticationOptions)} argument cannot be null when using the ssl transport.");
         }
 
-        return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);
+        return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options, logger);
     }
 }

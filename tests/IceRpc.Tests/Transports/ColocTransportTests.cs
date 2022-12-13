@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports;
@@ -17,7 +18,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -50,7 +52,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
 
         // Fill the pending connection queue.
         var connections = new List<(IDuplexConnection, Task)>();
@@ -87,7 +90,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -112,7 +116,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -135,7 +140,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -156,7 +162,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -184,7 +191,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -207,7 +215,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -238,7 +247,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -269,7 +279,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -296,7 +307,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),
@@ -319,7 +331,8 @@ public class ColocTransportTests
         await using IListener<IDuplexConnection> listener = colocTransport.ServerTransport.Listen(
             serverAddress,
             new DuplexConnectionOptions(),
-            null);
+            null,
+            NullLogger.Instance);
         using IDuplexConnection clientConnection = colocTransport.ClientTransport.CreateConnection(
             serverAddress,
             new DuplexConnectionOptions(),

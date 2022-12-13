@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Security;
@@ -328,7 +329,8 @@ public class TcpTransportTests
         return serverTransport.Listen(
             serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "::1", Port = 0 },
             new DuplexConnectionOptions(),
-            authenticationOptions);
+            authenticationOptions,
+            NullLogger.Instance);
     }
 
     private static TcpClientConnection CreateTcpClientConnection(

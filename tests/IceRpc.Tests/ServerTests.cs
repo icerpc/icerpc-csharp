@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Security;
@@ -275,8 +276,9 @@ public class ServerTests
         public IListener<IDuplexConnection> Listen(
             ServerAddress serverAddress,
             DuplexConnectionOptions options,
-            SslServerAuthenticationOptions? serverAuthenticationOptions) =>
-            new HoldListener(_serverTransport.Listen(serverAddress, options, serverAuthenticationOptions));
+            SslServerAuthenticationOptions? serverAuthenticationOptions,
+            ILogger logger) =>
+            new HoldListener(_serverTransport.Listen(serverAddress, options, serverAuthenticationOptions, logger));
 
         internal HoldServerTransport(IDuplexServerTransport serverTransport) => _serverTransport = serverTransport;
     }
@@ -348,10 +350,11 @@ public class ServerTests
         public IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
-        SslServerAuthenticationOptions? serverAuthenticationOptions)
+        SslServerAuthenticationOptions? serverAuthenticationOptions,
+        ILogger logger)
         {
             Listener = new DelayDisposeConnectionListener(
-                _serverTransport.Listen(serverAddress, options, serverAuthenticationOptions));
+                _serverTransport.Listen(serverAddress, options, serverAuthenticationOptions, logger));
             return Listener;
         }
     }
