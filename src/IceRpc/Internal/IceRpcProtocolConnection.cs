@@ -149,7 +149,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ServerBusy)
         {
             NoConnectionException = new IceRpcException(
-                IceRpcError.ConnectionClosed,
+                IceRpcError.NoConnection,
                 "The connection establishment failed because the server is busy.");
             throw;
         }
@@ -1110,7 +1110,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.
         if (NoConnectionException is null)
         {
-            NoConnectionException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            NoConnectionException = new IceRpcException(IceRpcError.NoConnection, message, exception);
             var rpcException = exception as IceRpcException;
             if (exception is not null && rpcException is null)
             {

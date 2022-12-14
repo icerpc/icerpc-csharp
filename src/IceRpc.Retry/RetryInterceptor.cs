@@ -109,7 +109,7 @@ public class RetryInterceptor : IInvoker
                         else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
                                  !decorator.IsRead ||
                                  (exception is IceRpcException iceRpcException &&
-                                    iceRpcException.IceRpcError == IceRpcError.ConnectionClosed))
+                                    iceRpcException.IceRpcError == IceRpcError.NoConnection))
                         {
                             tryAgain = true;
                         }

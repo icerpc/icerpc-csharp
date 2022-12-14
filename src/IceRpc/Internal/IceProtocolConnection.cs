@@ -726,7 +726,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.
         if (NoConnectionException is null)
         {
-            NoConnectionException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            NoConnectionException = new IceRpcException(IceRpcError.NoConnection, message, exception);
             var rpcException = exception as IceRpcException;
             if (exception is not null && rpcException is null)
             {

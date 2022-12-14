@@ -15,11 +15,6 @@ public enum IceRpcError
     /// such as an intermediary router going down.</summary>
     ConnectionAborted,
 
-    /// <summary>The connection was closed prior to the current call. This error typically occurs when an invoker such
-    /// as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached connection that was just
-    /// closed but not yet unregistered from the cache.</summary>
-    ConnectionClosed,
-
     /// <summary>The peer closed the connection without reporting any error.</summary>
     ConnectionClosedByPeer,
 
@@ -33,7 +28,8 @@ public enum IceRpcError
     /// during connection establishment.</summary>
     LimitExceeded,
 
-    /// <summary>An invoker failed to send a request because it could not establish or locate a connection.</summary>
+    /// <summary>An invoker failed to send a request because it could not establish or locate a connection, or because
+    /// the connection it found was closed.</summary>
     NoConnection,
 
     /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource

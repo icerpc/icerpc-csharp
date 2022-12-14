@@ -32,7 +32,7 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                throw new IceRpcException(IceRpcError.ConnectionClosed);
+                throw new IceRpcException(IceRpcError.NoConnection);
             }
             else
             {
@@ -185,7 +185,7 @@ public sealed class RetryInterceptorTests
                 }
                 while (!readResult.IsCompleted && !readResult.IsCanceled);
 
-                throw new IceRpcException(IceRpcError.ConnectionClosed);
+                throw new IceRpcException(IceRpcError.NoConnection);
             }
             else
             {
