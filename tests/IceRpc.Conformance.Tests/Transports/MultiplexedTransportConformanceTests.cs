@@ -131,7 +131,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verifies that disabling the idle timeout doesn't abort the clientConnection if it's idle.</summary>
+    /// <summary>Verifies that disabling the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
     public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
     {
@@ -168,7 +168,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
-    /// <summary>Verifies that setting the idle timeout doesn't abort the clientConnection if it's idle.</summary>
+    /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
     public async Task Connection_with_idle_timeout_is_not_aborted_when_idle(
         [Values(true, false)] bool serverIdleTimeout)
@@ -270,8 +270,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<IceRpcException>());
     }
 
-    /// <summary>Verifies that disposing the clientConnection aborts the streams.</summary>
-    /// <param name="disposeServer">Whether to dispose the server clientConnection or the client clientConnection.
+    /// <summary>Verifies that disposing the connection aborts the streams.</summary>
+    /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
     /// </param>
     [Test]
     public async Task Disposing_the_connection_aborts_the_streams([Values(true, false)] bool disposeServer)
@@ -381,7 +381,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verifies that clientConnection cannot exceed the bidirectional stream max count.</summary>
+    /// <summary>Verifies that connection cannot exceed the bidirectional stream max count.</summary>
     [Test]
     public async Task Max_bidirectional_stream_stress_test()
     {
