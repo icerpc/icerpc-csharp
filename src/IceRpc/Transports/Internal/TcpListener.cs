@@ -33,7 +33,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         }
         catch (SocketException exception)
         {
-            throw new IceRpcError(exception.ErrorCode.ToIceRpcError(), exception);
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 
