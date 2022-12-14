@@ -29,7 +29,7 @@ public class QuicTransportTests
     }
 
     [Test]
-    public async Task Listener_accepts_fails_after_client_certificate_validation_callback_rejects_the_connection()
+    public async Task Listener_accept_fails_after_client_certificate_validation_callback_rejects_the_connection()
     {
         // Arrange
         int connectionNum = 0;
