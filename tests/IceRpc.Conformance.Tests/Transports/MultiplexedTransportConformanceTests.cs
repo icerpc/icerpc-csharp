@@ -51,13 +51,9 @@ public abstract partial class MultiplexedTransportConformanceTests
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using IMultiplexedStream clientStream =
-            await clientConnection.CreateStreamAsync(bidirectional: true, default);
-        await clientStream.Output.WriteAsync(new byte[10]);
-        await using IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-
         using var cts = new CancellationTokenSource();
         ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(cts.Token);
+        await Task.Delay(10); // give a few ms for acceptTask to start
 
         // Act
         cts.Cancel();
@@ -65,17 +61,14 @@ public abstract partial class MultiplexedTransportConformanceTests
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
 
-        await using IMultiplexedStream clientStream2 =
-            await clientConnection.CreateStreamAsync(bidirectional: true, default);
-        await clientStream2.Output.WriteAsync(new byte[100_000]);
-
-        // Cleanup
-        clientStream.Input.Complete();
-        clientStream.Output.Complete();
-        clientStream2.Input.Complete();
-        clientStream2.Output.Complete();
-        serverStream.Input.Complete();
-        serverStream.Output.Complete();
+        // We also verify we can still create new streams. This shows that canceling AcceptAsync does not "abort" new
+        // streams and is a transient cancellation (not obvious with QUIC).
+        Assert.That(
+            async () =>
+            {
+                await using var streams = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+            },
+            Throws.Nothing);
     }
 
     /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
