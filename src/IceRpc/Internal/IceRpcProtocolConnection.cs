@@ -694,11 +694,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            // Expected if the peer closed the connection first and the accept request task closed the connection.
+            // Expected if the peer closed the connection first and the accept request loop closed the transport
+            // connection.
         }
         catch (ObjectDisposedException)
         {
-            // Expected if the peer closed the connection first and the accept request task closed the connection.
+            // Expected if the peer closed the connection first and the accept request loop closed the transport
+            // connection.
         }
 
         // We wait for the completion of the dispatches that we created.
