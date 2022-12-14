@@ -319,7 +319,8 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         // Wait for the termination of the close and read frames tasks.
-        await Task.WhenAll(_closeTask, _readFramesTask).ConfigureAwait(false);
+        await _readFramesTask.ConfigureAwait(false);
+        await _closeTask.ConfigureAwait(false);
 
         async Task PerformCloseAsync()
         {
@@ -373,10 +374,8 @@ internal class SlicConnection : IMultiplexedConnection
             _unidirectionalStreamSemaphore!;
         await streamCountSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
 
-        // TODO: Cache SlicStream and implement stream max count flow control here like Quic?
-#pragma warning disable CA2000 // The caller is responsible for disposing the stream.
+        // TODO: Cache SlicStream
         return new SlicStream(this, bidirectional, remote: false);
-#pragma warning restore CA2000
     }
 
     public ValueTask DisposeAsync()
@@ -518,10 +517,9 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal void ReleaseStream(SlicStream stream)
     {
-        if (stream.IsStarted)
-        {
-            _streams.Remove(stream.Id, out SlicStream? _);
-        }
+        Debug.Assert(stream.IsStarted);
+
+        _streams.Remove(stream.Id, out SlicStream? _);
 
         if (stream.IsRemote)
         {
@@ -534,18 +532,11 @@ internal class SlicConnection : IMultiplexedConnection
                 Interlocked.Decrement(ref _unidirectionalStreamCount);
             }
         }
-        else
+        else if (stream.IsBidirectional)
         {
-            if (stream.IsBidirectional)
-            {
-                _bidirectionalStreamSemaphore!.Release();
-            }
-            else
-            {
-                // The unidirectional stream semaphore will be released once the UnidirectionalStreamReleased frame is
-                // received.
-            }
+            _bidirectionalStreamSemaphore!.Release();
         }
+        // The unidirectional stream semaphore will be released once the UnidirectionalStreamReleased frame is received.
     }
 
     internal async ValueTask SendFrameAsync(
