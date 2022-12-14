@@ -83,7 +83,7 @@ internal class SlicStream : IMultiplexedStream
         }
         catch (Exception exception)
         {
-            Debug.Assert(false, $"Slic stream disposal failed due to an unhandled exception: {exception}");
+            Debug.Fail($"Slic stream disposal failed due to an unhandled exception: {exception}");
         }
 
         // Ensure reads and writes are completed. This must be checked after awaiting the tasks above since the reads

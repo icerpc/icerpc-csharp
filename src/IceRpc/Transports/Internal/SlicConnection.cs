@@ -415,7 +415,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (Exception exception)
             {
-                Debug.Assert(false, $"The ping task completed with an unhandled exception: {exception}");
+                Debug.Fail($"The ping task completed with an unhandled exception: {exception}");
             }
 
             try
@@ -428,7 +428,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (Exception exception)
             {
-                Debug.Assert(false, $"The pong task completed with an unhandled exception: {exception}");
+                Debug.Fail($"The pong task completed with an unhandled exception: {exception}");
             }
 
             _tasksCts.Dispose();
