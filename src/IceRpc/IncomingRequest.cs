@@ -46,16 +46,21 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
         get => _response;
         set
         {
-            if (_response is not null)
+            if (_isDisposed)
             {
-                _response.Payload.Complete();
-                _response.PayloadContinuation?.Complete();
+                throw new ObjectDisposedException(nameof(IncomingRequest));
             }
+
+            _response?.Payload.Complete();
+            _response?.PayloadContinuation?.Complete();
             _response = value;
         }
     }
 
     private readonly string _fragment = "";
+
+    // IncomingRequest is not thread-safe and does not accept a response after it is disposed.
+    private bool _isDisposed;
 
     private OutgoingResponse? _response;
 
@@ -70,11 +75,12 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     /// response associated with this request (if set).</summary>
     public void Dispose()
     {
-        Payload.Complete();
-        if (_response is not null)
+        if (!_isDisposed)
         {
-            _response.Payload.Complete();
-            _response.PayloadContinuation?.Complete();
+            _isDisposed = true;
+            Payload.Complete();
+            _response?.Payload.Complete();
+            _response?.PayloadContinuation?.Complete();
         }
     }
 

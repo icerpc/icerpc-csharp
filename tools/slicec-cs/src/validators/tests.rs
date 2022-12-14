@@ -104,9 +104,8 @@ fn identifier_attribute_invalid_on_modules() {
         .unwrap_err()
         .diagnostic_reporter;
     // Assert
-    let expected = [Error::new(ErrorKind::InvalidAttribute(
+    let expected = [Error::new(ErrorKind::UnexpectedAttribute(
         cs_attributes::IDENTIFIER.to_owned(),
-        "module".to_owned(),
     ))];
     std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));

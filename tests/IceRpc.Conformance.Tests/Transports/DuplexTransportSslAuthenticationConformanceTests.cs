@@ -74,7 +74,9 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                     {
                         new X509Certificate2("../../../certs/client.p12", "password")
                     },
+#pragma warning disable CA5359 // Do Not Disable Certificate Validation, certificate validation is not required for these tests. 
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
+#pragma warning restore CA5359 // Do Not Disable Certificate Validation
                 })
             .BuildServiceProvider(validateScopes: true);
 

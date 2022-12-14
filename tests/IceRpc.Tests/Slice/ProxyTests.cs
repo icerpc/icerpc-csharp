@@ -142,7 +142,7 @@ public class ProxyTests
     {
     }
 
-    private class MyDerivedInterface : MyBaseInterface, IMyDerivedInterface
+    private sealed class MyDerivedInterface : MyBaseInterface, IMyDerivedInterface
     {
     }
 }

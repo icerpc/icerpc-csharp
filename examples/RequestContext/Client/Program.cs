@@ -8,7 +8,7 @@ using IceRpc.RequestContext;
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
 // Add the request context interceptor to the invocation pipeline.
-var pipeline = new Pipeline().UseRequestContext().Into(connection);
+Pipeline pipeline = new Pipeline().UseRequestContext().Into(connection);
 
 var hello = new HelloProxy(pipeline);
 

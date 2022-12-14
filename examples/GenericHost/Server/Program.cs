@@ -2,8 +2,6 @@
 
 using IceRpc;
 using IceRpc.Builder;
-using IceRpc.Logger;
-using IceRpc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -57,14 +55,18 @@ public static class Program
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
-    private class ServerHostedService : IHostedService, IAsyncDisposable
+    public class ServerHostedService : IHostedService, IAsyncDisposable
     {
         // The IceRPC server to accept connections from IceRPC clients.
         private readonly Server _server;
 
         public ServerHostedService(Server server) => _server = server;
 
-        public ValueTask DisposeAsync() => _server.DisposeAsync();
+        public ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+            return _server.DisposeAsync();
+        }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -74,7 +76,7 @@ public static class Program
         }
 
         public Task StopAsync(CancellationToken cancellationToken) =>
-            // Shutdown the IceRPC server when the hosted service is stopped.
+            // Shuts down the IceRPC server when the hosted service is stopped.
             _server.ShutdownAsync(cancellationToken);
     }
 }

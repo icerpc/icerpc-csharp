@@ -5,6 +5,7 @@ resilient to failures.
 
 The server is configured to randomly fail, and the interceptor will automatically retry failed invocations up to the
 configured max attempts. If the interceptor reaches the max attempts, it gives up on retrying and reports the failure.
+
 If the status code of the response is `Unavailable`, the current server address is excluded from subsequent attempts
 and the client only retries when additional server addresses are configured.
 

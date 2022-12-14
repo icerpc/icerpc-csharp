@@ -9,7 +9,7 @@ router.Map<IHello>(new Hello());
 
 await using var server = new Server(router);
 
-// Shuts down the server on Ctrl+C
+// Shuts down the server on Ctrl+C.
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;

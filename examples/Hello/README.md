@@ -1,6 +1,7 @@
 # Hello
 
-Hello illustrates how to make an asynchronous invocation and wait for the reply.
+The canonical "Hello World" example implemented using IceRPC. It illustrates how to make an invocation and wait for
+the reply.
 
 For build instructions check the top-level [README.md](../../README.md).
 

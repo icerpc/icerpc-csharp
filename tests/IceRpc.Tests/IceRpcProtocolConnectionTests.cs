@@ -1071,7 +1071,7 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    private class HoldPipeWriter : PipeWriter
+    private sealed class HoldPipeWriter : PipeWriter
     {
         private readonly HoldMultiplexedStream _stream;
         private readonly PipeWriter _decoratee;
@@ -1113,7 +1113,7 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    private class HoldPipeReader : PipeReader
+    private sealed class HoldPipeReader : PipeReader
     {
         private byte[] _initialData;
 

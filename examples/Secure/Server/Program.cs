@@ -13,7 +13,7 @@ var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 
 await using var server = new Server(new Hello(), serverAuthenticationOptions);
 
-// Shuts down the server on Ctrl+C
+// Shuts down the server on Ctrl+C.
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;

@@ -18,6 +18,9 @@ dotnet_diagnostic.CA1028.severity = none
 # CA1031: Do not catch general exception types
 dotnet_diagnostic.CA1031.severity = none
 
+# CA1043: Use Integral Or String Argument For Indexers
+dotnet_diagnostic.CA1043.severity = none
+
 # CA1032: Implement standard exception constructors
 dotnet_diagnostic.CA1032.severity = none
 
@@ -62,6 +65,12 @@ dotnet_diagnostic.CA1819.severity = none
 
 # CA1847: Use char literal for a single character lookup
 dotnet_diagnostic.CA1847.severity = warning
+
+# CA1851: Possible multiple enumerations of 'IEnumerable' collection
+dotnet_diagnostic.CA1851.severity = none
+
+# CA1852: Seal internal types
+dotnet_diagnostic.CA1852.severity = none
 
 # CA2000: Dispose objects before losing scope
 dotnet_diagnostic.CA2000.severity = warning

@@ -266,7 +266,7 @@ public class ServerTests
         await disposeTask;
     }
 
-    private class HoldServerTransport : IDuplexServerTransport
+    private sealed class HoldServerTransport : IDuplexServerTransport
     {
         public string Name => _serverTransport.Name;
 
@@ -281,7 +281,7 @@ public class ServerTests
         internal HoldServerTransport(IDuplexServerTransport serverTransport) => _serverTransport = serverTransport;
     }
 
-    private class HoldListener : IListener<IDuplexConnection>
+    private sealed class HoldListener : IListener<IDuplexConnection>
     {
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
@@ -308,7 +308,7 @@ public class ServerTests
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
     }
 
-    private class HoldServerConnection : IDuplexConnection
+    private sealed class HoldServerConnection : IDuplexConnection
     {
         public ServerAddress ServerAddress => _connection.ServerAddress;
 
@@ -334,7 +334,7 @@ public class ServerTests
         internal HoldServerConnection(IDuplexConnection connection) => _connection = connection;
     }
 
-    private class DelayDisposeMultiplexServerTransport : IMultiplexedServerTransport
+    private sealed class DelayDisposeMultiplexServerTransport : IMultiplexedServerTransport
     {
         public string Name => _serverTransport.Name;
 
@@ -356,7 +356,7 @@ public class ServerTests
         }
     }
 
-    private class DelayDisposeConnectionListener : IListener<IMultiplexedConnection>
+    private sealed class DelayDisposeConnectionListener : IListener<IMultiplexedConnection>
     {
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
@@ -381,7 +381,7 @@ public class ServerTests
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
     }
 
-    private class DelayDisposeMultiplexedConnection : IMultiplexedConnection
+    private sealed class DelayDisposeMultiplexedConnection : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _connection.ServerAddress;
 
@@ -419,6 +419,8 @@ public class ServerTests
                 await _delayDisposeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false); ;
             }
             await _connection.DisposeAsync();
+            _waitDisposeSemaphore.Dispose();
+            _delayDisposeSemaphore.Dispose();
         }
 
         public Task WaitForDisposeStart() => _waitDisposeSemaphore.WaitAsync(CancellationToken.None);

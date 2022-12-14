@@ -98,14 +98,14 @@ public static class ProtocolServiceCollectionExtensions
 
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also ensures
 /// the connections are correctly disposed.</summary>
-internal class ClientServerProtocolConnection : IAsyncDisposable
+internal sealed class ClientServerProtocolConnection : IAsyncDisposable
 {
     public IProtocolConnection Client { get; }
 
     public IProtocolConnection Server
     {
         get => _server ?? throw new InvalidOperationException("server connection not initialized");
-        private protected set => _server = value;
+        private set => _server = value;
     }
 
     private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
