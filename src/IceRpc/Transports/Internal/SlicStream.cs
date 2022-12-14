@@ -73,20 +73,6 @@ internal class SlicStream : IMultiplexedStream
 
     public async ValueTask DisposeAsync()
     {
-        // Abort reads and writes if reads and writes are not closed and ensure that the input pipe reader and output
-        // pipe writer operations fail with OperationAborted.
-        var abortException = new IceRpcException(IceRpcError.OperationAborted);
-        if (!_state.HasFlag(State.ReadsCompleted))
-        {
-            AbortRead();
-            _inputPipeReader?.Abort(abortException);
-        }
-        if (!_state.HasFlag(State.WritesCompleted))
-        {
-            AbortWrite();
-            _outputPipeWriter?.Abort(abortException);
-        }
-
         try
         {
             await Task.WhenAll(
@@ -98,6 +84,20 @@ internal class SlicStream : IMultiplexedStream
         catch (Exception exception)
         {
             Debug.Fail($"Slic stream disposal failed due to an unhandled exception: {exception}");
+        }
+
+        // Abort reads and writes if reads and writes are not closed and ensure that the input pipe reader and output
+        // pipe writer operations fail with OperationAborted.
+        var abortException = new IceRpcException(IceRpcError.OperationAborted);
+        if (!ReadsCompleted)
+        {
+            AbortRead();
+            _inputPipeReader?.Abort(abortException);
+        }
+        if (!WritesCompleted)
+        {
+            AbortWrite();
+            _outputPipeWriter?.Abort(abortException);
         }
     }
 

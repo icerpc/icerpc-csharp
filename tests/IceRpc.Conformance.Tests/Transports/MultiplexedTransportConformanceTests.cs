@@ -315,7 +315,8 @@ public abstract partial class MultiplexedTransportConformanceTests
                 }
             });
 
-        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code.
+        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code
+        // when calling DisposeAsync on the connection. Fixing #2225 would allow Slic to behave the same as Slic here.
         Assert.That(
             exception!.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionClosedByPeer).Or.EqualTo(IceRpcError.ConnectionAborted));

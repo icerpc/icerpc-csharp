@@ -38,7 +38,14 @@ internal class QuicPipeReader : PipeReader
             _pipeReader.Complete(exception);
 
             // Tell the remote writer we're done reading. The error code is irrelevant.
-            _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
+            try
+            {
+                _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream has been disposed.
+            }
         }
     }
 
@@ -51,6 +58,11 @@ internal class QuicPipeReader : PipeReader
         catch (QuicException exception)
         {
             throw exception.ToIceRpcException();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Expected if the stream has been disposed.
+            throw new IceRpcException(IceRpcError.OperationAborted);
         }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
@@ -83,6 +95,11 @@ internal class QuicPipeReader : PipeReader
             catch (QuicException exception)
             {
                 throw exception.ToIceRpcException();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream has been disposed.
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
             // we don't wrap other exceptions
         }

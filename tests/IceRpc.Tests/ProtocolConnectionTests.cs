@@ -470,7 +470,12 @@ public sealed class ProtocolConnectionTests
         // Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+
+        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code
+        // when calling DisposeAsync on the connection. Fixing #2225 would allow Slic to behave the same as Slic here.
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionClosedByPeer).Or.EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
