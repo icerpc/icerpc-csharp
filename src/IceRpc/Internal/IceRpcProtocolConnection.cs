@@ -18,6 +18,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private const int MaxSettingsFrameBodySize = 1024;
 
     private Task? _acceptRequestsTask;
+    private readonly CancellationTokenSource _acceptStreamCts = new();
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
@@ -216,133 +217,117 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // If _dispatcher is null, this call will block indefinitely until the connection is closed
                         // because the multiplexed connection MaxUnidirectionalStreams and MaxBidirectionalStreams
                         // options don't allow this peer to accept streams.
-                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(CancellationToken.None)
+                        IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(_acceptStreamCts.Token)
                             .ConfigureAwait(false);
 
-                        bool done = false;
                         CancellationToken cancellationToken = default;
                         lock (_mutex)
                         {
-                            if (ConnectionClosedException is null)
+                            // The multiplexed connection guarantees that the IDs of accepted streams of a given
+                            // type have ever increasing values.
+
+                            if (stream.IsBidirectional)
                             {
-                                // The multiplexed connection guarantees that the IDs of accepted streams of a given
-                                // type have ever increasing values.
-
-                                if (stream.IsBidirectional)
-                                {
-                                    _lastRemoteBidirectionalStreamId = stream.Id;
-                                }
-                                else
-                                {
-                                    _lastRemoteUnidirectionalStreamId = stream.Id;
-                                }
-
-                                ++_dispatchCount;
-
-                                if (++_streamCount == 1)
-                                {
-                                    // We were idle, we no longer are.
-                                    DisableIdleCheck();
-                                }
-
-                                var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(
-                                    _dispatchesAndInvocationsCts.Token);
-                                cancellationToken = dispatchCts.Token;
-
-                                if (stream.IsBidirectional)
-                                {
-                                    // If the peer is no longer interested in the response of the dispatch, we cancel
-                                    // the dispatch.
-                                    _ = CancelDispatchOnOutputClosedAsync();
-
-                                    async Task CancelDispatchOnOutputClosedAsync()
-                                    {
-                                        try
-                                        {
-                                            await stream.OutputClosed.ConfigureAwait(false);
-                                        }
-                                        catch
-                                        {
-                                            // Ignore the reason of the writes close.
-                                        }
-
-                                        try
-                                        {
-                                            dispatchCts.Cancel();
-                                        }
-                                        catch (ObjectDisposedException)
-                                        {
-                                            // Expected if already disposed.
-                                        }
-                                    }
-                                }
-
-                                _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
+                                _lastRemoteBidirectionalStreamId = stream.Id;
                             }
                             else
                             {
-                                done = true;
+                                _lastRemoteUnidirectionalStreamId = stream.Id;
                             }
-                        }
 
-                        if (done)
-                        {
-                            stream.Input.Complete();
+                            ++_dispatchCount;
+
+                            if (++_streamCount == 1)
+                            {
+                                // We were idle, we no longer are.
+                                DisableIdleCheck();
+                            }
+
+                            var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(
+                                _dispatchesAndInvocationsCts.Token);
+                            cancellationToken = dispatchCts.Token;
+
                             if (stream.IsBidirectional)
                             {
-                                stream.Output.CompleteOutput(success: false);
-                            }
-                            await stream.DisposeAsync().ConfigureAwait(false);
-                            return;
-                        }
-                        else
-                        {
-                            _ = Task.Run(
-                                async () =>
+                                // If the peer is no longer interested in the response of the dispatch, we cancel
+                                // the dispatch.
+                                _ = CancelDispatchOnOutputClosedAsync();
+
+                                async Task CancelDispatchOnOutputClosedAsync()
                                 {
                                     try
                                     {
-                                        await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
+                                        await stream.OutputClosed.ConfigureAwait(false);
                                     }
-                                    catch (IceRpcException exception) when (
-                                        exception.IceRpcError is
-                                            IceRpcError.OperationAborted or
-                                            IceRpcError.TruncatedData)
+                                    catch
                                     {
-                                        // OperationAborted is expected when the connection is disposed (and aborted)
-                                        // while we're receiving a request header or sending a response.
-                                        // TruncatedData is expected when reading a request header. It can also be
-                                        // thrown when reading a response payload tied to an incoming IceRPC payload.
+                                        // Ignore the reason of the writes close.
                                     }
-                                    catch (InvalidDataException)
+
+                                    try
                                     {
-                                        // This occurs when we can't decode the request header.
+                                        dispatchCts.Cancel();
                                     }
-                                    catch (OperationCanceledException exception) when (
-                                        exception.CancellationToken == cancellationToken)
+                                    catch (ObjectDisposedException)
                                     {
-                                        // This occurs during shutdown.
+                                        // Expected if already disposed.
                                     }
-                                    catch (Exception exception)
+                                }
+                            }
+
+                            _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
+                        }
+
+                        _ = Task.Run(
+                            async () =>
+                            {
+                                try
+                                {
+                                    await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
+                                }
+                                catch (IceRpcException exception) when (
+                                    exception.IceRpcError is
+                                        IceRpcError.OperationAborted or
+                                        IceRpcError.TruncatedData)
+                                {
+                                    // OperationAborted is expected when the connection is disposed (and aborted)
+                                    // while we're receiving a request header or sending a response.
+                                    // TruncatedData is expected when reading a request header. It can also be
+                                    // thrown when reading a response payload tied to an incoming IceRPC payload.
+                                }
+                                catch (InvalidDataException)
+                                {
+                                    // This occurs when we can't decode the request header.
+                                }
+                                catch (OperationCanceledException exception) when (
+                                    exception.CancellationToken == cancellationToken)
+                                {
+                                    // This occurs during shutdown.
+                                }
+                                catch (Exception exception)
+                                {
+                                    // not expected
+                                    _faultedTaskAction(exception);
+                                    throw;
+                                }
+                                finally
+                                {
+                                    lock (_mutex)
                                     {
-                                        // not expected
-                                        _faultedTaskAction(exception);
-                                        throw;
-                                    }
-                                    finally
-                                    {
-                                        lock (_mutex)
+                                        if (--_dispatchCount == 0 && ConnectionClosedException is not null)
                                         {
-                                            if (--_dispatchCount == 0 && ConnectionClosedException is not null)
-                                            {
-                                                _ = _dispatchesCompleted.TrySetResult();
-                                            }
+                                            _ = _dispatchesCompleted.TrySetResult();
                                         }
                                     }
-                                },
-                                CancellationToken.None);
-                        }
+                                }
+                            },
+                            CancellationToken.None);
                     }
+                }
+                catch (OperationCanceledException exception) when (
+                    exception.CancellationToken == _acceptStreamCts.Token)
+                {
+                    // Expected if the connection is being shutdown.
                 }
                 catch (IceRpcException exception)
                 {
@@ -398,6 +383,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
 
         _dispatchesAndInvocationsCts.Dispose();
+        _acceptStreamCts.Dispose();
         _dispatchSemaphore?.Dispose();
     }
 
@@ -429,9 +415,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 bidirectional: !request.IsOneway,
                 invocationCancellationToken).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException exception)
+        catch (ObjectDisposedException)
         {
-            throw new IceRpcException(IceRpcError.OperationAborted, exception);
+            Debug.Assert(ConnectionClosedException is not null);
+            throw ConnectionClosedException;
         }
         catch
         {
@@ -540,12 +527,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (_dispatchesAndInvocationsCts.IsCancellationRequested)
             {
-                // Speedy-shutdown canceled the invocation.
+                // Speedy-shutdown canceled the request.
                 throw new IceRpcException(IceRpcError.OperationAborted);
             }
             else
             {
-                // Shutdown canceled the invocation because the peer didn't dispatch it.
+                // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
+                // Shutdown canceled the request because the peer didn't dispatch it.
                 Debug.Assert(ConnectionClosedException is not null);
                 throw ConnectionClosedException;
             }
@@ -596,6 +586,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
     {
+        // Ensure no more streams are accepted. Once canceled, we have the guarantee that
+        // _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are immutable.
+        Debug.Assert(_acceptRequestsTask is not null);
+        _acceptStreamCts.Cancel();
+        await _acceptRequestsTask.ConfigureAwait(false);
+
         // If the connection is connected, exchange go away frames with the peer.
 
         IceRpcGoAway goAwayFrame;

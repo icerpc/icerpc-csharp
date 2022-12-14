@@ -36,6 +36,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
+    private bool _isClosedByPeer;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
@@ -220,6 +221,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
 
+                    // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations and
+                    // dispatches. Canceled invocations should not be aborted if the connection is gracefully closed.
+                    lock (_mutex)
+                    {
+                        _isClosedByPeer = true;
+                    }
+
                     // The peer expects the connection to be closed once the CloseConnection frame is received.
                     DisposeTransport("The connection was closed by the peer.");
                 }
@@ -369,6 +377,25 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                 request.Payload.Complete();
             }
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+            {
+                lock (_mutex)
+                {
+                    if (_isClosedByPeer)
+                    {
+                        // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                        // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
+                        // The transport connection was disposed while sending the request.
+                        Debug.Assert(ConnectionClosedException is not null);
+                        throw ConnectionClosedException;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
             finally
             {
                 payloadWriter.Complete();
@@ -390,8 +417,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             catch (OperationCanceledException) when (responseCompletionSource.Task.IsCompleted)
             {
-                // The WaitAsync might be canceled shortly after the response is received and before the task completion
-                // source continuation is run.
+                // If the connection is closed, the WaitAsync might be canceled shortly after the response is received
+                // and before the task completion source continuation is run.
                 frameReader = await responseCompletionSource.Task.ConfigureAwait(false);
             }
 
@@ -423,9 +450,24 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Speedy-shutdown canceled the invocation.
-            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested);
-            throw new IceRpcException(IceRpcError.OperationAborted);
+            // The request was canceled by speedy-shutdown or graceful closure by the peer.
+            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && ConnectionClosedException is not null);
+            lock (_mutex)
+            {
+                if (_isClosedByPeer)
+                {
+                    // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                    // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
+                    // Invocations are not aborted if canceled after the graceful connection closure. The peer didn't
+                    // dispatch the request since the CloseConnection frame was received.
+                    throw ConnectionClosedException;
+                }
+                else
+                {
+                    throw new IceRpcException(IceRpcError.OperationAborted);
+                }
+            }
         }
         finally
         {
@@ -912,11 +954,21 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     ++_dispatchCount;
                 }
             }
-            catch
+            catch (Exception exception)
             {
                 requestFrameReader.Complete();
                 contextReader?.Complete();
-                throw;
+                if (exception == ConnectionClosedException)
+                {
+                    // Don't throw if the connection is being shutdown. Throwing would trigger the connection closure
+                    // and prevent dispatches from completing. It would also prevent the sending of the CloseConnection
+                    // frame once the dispatches complete.
+                    return;
+                }
+                else
+                {
+                    throw;
+                }
             }
 
             // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
