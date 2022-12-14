@@ -50,7 +50,7 @@ internal class QuicPipeReader : PipeReader
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The read operation failed.");
         }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
