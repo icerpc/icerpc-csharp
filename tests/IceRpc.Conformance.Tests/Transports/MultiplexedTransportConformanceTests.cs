@@ -544,6 +544,28 @@ public abstract partial class MultiplexedTransportConformanceTests
             provider.GetService<SslServerAuthenticationOptions>()));
     }
 
+    /// <summary>Verifies we can dispose a stream without calling Complete on its Input or Output.</summary>
+    [Test]
+    public async Task Dispose_stream_without_complete()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        await using IMultiplexedConnection serverConnection =
+        await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        await clientStream.Output.WriteAsync(_oneBytePayload);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await clientStream.DisposeAsync();
+        await serverStream.DisposeAsync();
+    }
+
     [Test]
     [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
     [TestCase(100)]

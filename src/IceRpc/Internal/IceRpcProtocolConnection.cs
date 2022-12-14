@@ -980,8 +980,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            // We always need to complete streamOutput when an exception is thrown. For example, we
-            // received an invalid request header that we could not decode.
+            // We always need to complete streamOutput when an exception is thrown. For example, we received an invalid
+            // request header that we could not decode.
             streamOutput?.CompleteOutput(success: false);
             streamInput?.Complete();
             throw;
