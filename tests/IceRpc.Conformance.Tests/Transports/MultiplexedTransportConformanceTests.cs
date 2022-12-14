@@ -17,300 +17,6 @@ public abstract partial class MultiplexedTransportConformanceTests
 {
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
-    /// <summary>Verifies that both peers can initiate and accept streams.</summary>
-    /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
-    [Test]
-    public async Task Accept_a_stream([Values(true, false)] bool serverInitiated)
-    {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        await using LocalAndRemoteStreams sut = await CreateAndAcceptStreamAsync(
-            serverInitiated ? serverConnection : clientConnection,
-            serverInitiated ? clientConnection : serverConnection);
-
-        Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
-    }
-
-    /// <summary>Verifies that accept stream calls can be canceled.</summary>
-    [Test]
-    public async Task Accept_stream_cancellation()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        using var cts = new CancellationTokenSource();
-        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(cts.Token);
-
-        // Act
-        cts.Cancel();
-
-        // Assert
-        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
-    [Test]
-    public async Task Accepting_a_stream_fails_after_close()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection =
-            provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
-
-        // Act
-        await clientConnection.CloseAsync((MultiplexedConnectionCloseError)2, CancellationToken.None);
-
-        // Assert
-        IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreams)!;
-        Assert.That(ex.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-    }
-
-    /// <summary>Verifies that after reaching the stream max count, new streams are not accepted until a
-    /// stream is closed.</summary>
-    /// <param name="streamMaxCount">The max stream count limit to use for the test.</param>
-    /// <param name="bidirectional">Whether to test with bidirectional or unidirectional streams.</param>
-    [Test]
-    public async Task After_reach_max_stream_count_completing_a_stream_allows_accepting_a_new_one(
-       [Values(1, 1024)] int streamMaxCount,
-       [Values(true, false)] bool bidirectional)
-    {
-        // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        if (bidirectional)
-        {
-            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = streamMaxCount);
-        }
-        else
-        {
-            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxUnidirectionalStreams = streamMaxCount);
-        }
-        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        List<IMultiplexedStream> streams = await CreateStreamsAsync(streamMaxCount, bidirectional);
-
-        Task<IMultiplexedStream> lastStreamTask = CreateLastStreamAsync();
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
-        await using IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-        if (bidirectional)
-        {
-            serverStream.Output.Complete(new OperationCanceledException()); // exception does not matter
-        }
-        bool isCompleted = lastStreamTask.IsCompleted;
-
-        // Act
-        serverStream.Input.Complete();
-
-        // Assert
-        Assert.That(isCompleted, Is.False);
-        Assert.That(async () => await lastStreamTask, Throws.Nothing);
-
-        await CleanupStreamsAsync(streams.ToArray());
-        await CleanupStreamsAsync(await lastStreamTask);
-
-        async Task<IMultiplexedStream> CreateLastStreamAsync()
-        {
-            ValueTask<IMultiplexedStream> lastStreamTask = clientConnection.CreateStreamAsync(bidirectional, default);
-            IMultiplexedStream lastStream;
-            if (lastStreamTask.IsCompleted)
-            {
-                // With Slic the stream creation always completes even if the max stream count is reached. The stream
-                // count is only checked on the first write.
-                // TODO: Fix Slic implementation to block on CreateStreamAsync
-                lastStream = lastStreamTask.Result;
-                await lastStream.Output.WriteAsync(_oneBytePayload, default);
-            }
-            else
-            {
-                lastStream = await lastStreamTask;
-            }
-            return lastStream;
-        }
-
-        async Task<List<IMultiplexedStream>> CreateStreamsAsync(int count, bool bidirectional)
-        {
-            var streams = new List<IMultiplexedStream>();
-            for (int i = 0; i < count; i++)
-            {
-                IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
-                    bidirectional,
-                    default).ConfigureAwait(false);
-                streams.Add(stream);
-                await stream.Output.WriteAsync(_oneBytePayload, default);
-            }
-            return streams;
-        }
-    }
-
-    [Test]
-    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        var acceptTask = listener.AcceptAsync(default);
-
-        // Act
-        await listener.DisposeAsync();
-
-        // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
-    }
-
-    [Test]
-    public async Task Call_accept_on_the_listener_and_then_cancel_the_cancellation_source_fails_with_operation_canceled_exception()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        using var cancellationSource = new CancellationTokenSource();
-
-        var acceptTask = listener.AcceptAsync(cancellationSource.Token);
-
-        // Act
-        cancellationSource.Cancel();
-
-        // Assert
-        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
-    }
-
-    [Test]
-    public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await listener.DisposeAsync();
-
-        // Act/Assert
-        Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
-    }
-
-    [Test]
-    public async Task Call_accept_with_canceled_cancellation_token_fails_with_operation_canceled()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        // Act / Assert
-        Assert.That(
-            async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
-            Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verify streams cannot be created after closing down the connection.</summary>
-    /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
-    /// </param>
-    [Test]
-    public async Task Cannot_create_streams_with_a_closed_connection(
-        [Values(true, false)] bool closeServerConnection)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        IMultiplexedConnection closeConnection =
-            closeServerConnection ? serverConnection : clientConnection;
-        IMultiplexedConnection peerConnection =
-            closeServerConnection ? clientConnection : serverConnection;
-
-        await closeConnection.CloseAsync((MultiplexedConnectionCloseError)5, CancellationToken.None);
-
-        IceRpcException? exception;
-
-        // Act/Assert
-        exception = Assert.ThrowsAsync<IceRpcException>(
-            () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-
-        exception = Assert.ThrowsAsync<IceRpcException>(
-            () => peerConnection.CreateStreamAsync(true, default).AsTask());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-    }
-
-    /// <summary>Verify streams cannot be created after disposing the connection.</summary>
-    /// <param name="disposeServerConnection">Whether to dispose the server connection or the client connection.
-    /// </param>
-    [Test]
-    public async Task Cannot_create_streams_with_a_disposed_connection(
-        [Values(true, false)] bool disposeServerConnection)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        IMultiplexedConnection disposedConnection = disposeServerConnection ? serverConnection : clientConnection;
-        IMultiplexedConnection peerConnection = disposeServerConnection ? clientConnection : serverConnection;
-        IMultiplexedStream peerStream = await peerConnection.CreateStreamAsync(true, default).ConfigureAwait(false);
-        await peerStream.Output.WriteAsync(_oneBytePayload); // Make sure the stream is started before DisposeAsync
-
-        // Act
-        await disposedConnection.DisposeAsync();
-
-        // Assert
-
-        IceRpcException? exception;
-
-        Assert.ThrowsAsync<ObjectDisposedException>(() => disposedConnection.CreateStreamAsync(true, default).AsTask());
-
-        exception = Assert.ThrowsAsync<IceRpcException>(async () =>
-            {
-                // It can take few writes for the peer to detect the connection closure.
-                while (true)
-                {
-                    FlushResult result = await peerStream.Output.WriteAsync(_oneBytePayload);
-                    if (result.IsCompleted)
-                    {
-                        return;
-                    }
-                    await Task.Delay(TimeSpan.FromMilliseconds(20));
-                }
-            });
-
-        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code.
-        Assert.That(
-            exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionClosedByPeer).Or.EqualTo(IceRpcError.ConnectionAborted));
-    }
-
     [Test]
     public async Task Close_connection()
     {
@@ -425,7 +131,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verifies that disabling the idle timeout doesn't abort the connection if it's idle.</summary>
+    /// <summary>Verifies that disabling the idle timeout doesn't abort the clientConnection if it's idle.</summary>
     [Test]
     public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
     {
@@ -462,7 +168,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
-    /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
+    /// <summary>Verifies that setting the idle timeout doesn't abort the clientConnection if it's idle.</summary>
     [Test]
     public async Task Connection_with_idle_timeout_is_not_aborted_when_idle(
         [Values(true, false)] bool serverIdleTimeout)
@@ -564,8 +270,8 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<IceRpcException>());
     }
 
-    /// <summary>Verifies that disposing the connection aborts the streams.</summary>
-    /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
+    /// <summary>Verifies that disposing the clientConnection aborts the streams.</summary>
+    /// <param name="disposeServer">Whether to dispose the server clientConnection or the client clientConnection.
     /// </param>
     [Test]
     public async Task Disposing_the_connection_aborts_the_streams([Values(true, false)] bool disposeServer)
@@ -675,7 +381,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verifies that connection cannot exceed the bidirectional stream max count.</summary>
+    /// <summary>Verifies that clientConnection cannot exceed the bidirectional stream max count.</summary>
     [Test]
     public async Task Max_bidirectional_stream_stress_test()
     {
@@ -770,7 +476,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verifies that connection cannot exceed the unidirectional stream max count.</summary>
+    /// <summary>Verifies that clientConnection cannot exceed the unidirectional stream max count.</summary>
     [Test]
     public async Task Max_unidirectional_stream_stress_test()
     {
