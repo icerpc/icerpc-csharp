@@ -29,26 +29,15 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
                 break;
             }
-            catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
-            {
-                // Listener was disposed while the accept operation was in progress.
-                throw new IceRpcException(IceRpcError.OperationAborted, exception);
-            }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
                 // WORKAROUND QuicListener TLS handshake internal timeout.
                 // TODO rework depending on the resolution of:
                 // - https://github.com/dotnet/runtime/issues/78096
             }
-            catch (QuicException)
+            catch (QuicException exception)
             {
-                // There was a problem establishing the connection.
-                // TODO Log this exception
-            }
-            catch (AuthenticationException)
-            {
-                // The connection was rejected due to an authentication exception.
-                // TODO Log this exception
+                throw exception.ToIceRpcException();
             }
         }
         return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);

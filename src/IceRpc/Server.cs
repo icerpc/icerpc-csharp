@@ -3,8 +3,10 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc;
 
@@ -40,6 +42,8 @@ public sealed class Server : IAsyncDisposable
 
     private Task? _listenTask;
 
+    private ILogger _logger;
+
     private readonly int _maxConnections;
 
     private readonly int _maxPendingConnections;
@@ -74,6 +78,7 @@ public sealed class Server : IAsyncDisposable
         _serverAddress = options.ServerAddress;
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
+        _logger = logger ?? NullLogger.Instance;
         _maxConnections = options.MaxConnections;
         _maxPendingConnections = options.MaxPendingConnections;
 
@@ -310,33 +315,53 @@ public sealed class Server : IAsyncDisposable
                 while (true)
                 {
                     await pendingConnectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
-                    (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
-                        .ConfigureAwait(false);
-
-                    // We don't wait for the connection to be activated or shutdown. This could take a while for some
-                    // transports such as TLS based transports where the handshake requires few round trips between the
-                    // client and server. Waiting could also cause a security issue if the client doesn't respond to the
-                    // connection initialization as we wouldn't be able to accept new connections in the meantime. The
-                    // call will eventually timeout if the ConnectTimeout expires.
-                    _ = Task.Run(
-                        async () =>
+                    while (true)
+                    {
+                        try
                         {
-                            try
-                            {
-                                await ConnectAsync(connector).ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                // Ignore connection establishment failure.
-                            }
-                            finally
-                            {
-                                // The connection dispose will dispose the transport connection if it has not been
-                                // adopted by the protocol connection.
-                                await connector.DisposeAsync().ConfigureAwait(false);
-                                pendingConnectionSemaphore.Release();
-                            }
-                        });
+                            (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
+                                .ConfigureAwait(false);
+
+                            // We don't wait for the connection to be activated or shutdown. This could take a while
+                            // for some transports such as TLS based transports where the handshake requires few round
+                            // trips between the client and server. Waiting could also cause a security issue if the
+                            // client doesn't respond to the connection initialization as we wouldn't be able to accept
+                            // new connections in the meantime. The call will eventually timeout if the ConnectTimeout
+                            // expires.
+                            _ = Task.Run(
+                                async () =>
+                                {
+                                    try
+                                    {
+                                        await ConnectAsync(connector).ConfigureAwait(false);
+                                    }
+                                    catch
+                                    {
+                                        // Ignore connection establishment failure.
+                                    }
+                                    finally
+                                    {
+                                        // The connection dispose will dispose the transport connection if it has not been
+                                        // adopted by the protocol connection.
+                                        await connector.DisposeAsync().ConfigureAwait(false);
+                                        pendingConnectionSemaphore.Release();
+                                    }
+                                });
+                        }
+                        catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.OperationAborted)
+                        {
+                            // IceRpcException with an error code other than OperationAborted indicates a problem with
+                            // the connection being accepted. We log the error and try to accept a new connection.
+                            _logger.LogConnectionAcceptFailed(ServerAddress, exception);
+                        }
+                        catch (AuthenticationException exception)
+                        {
+                            // Transports such as Quic do the SSL handshake when the connection is accepted, this can
+                            // throw AuthenticationException if the SSL handshake fails. We log the error and try to
+                            // accept a new connection.
+                            _logger.LogConnectionAcceptFailed(ServerAddress, exception);
+                        }
+                    }
                 }
             }
             catch (ObjectDisposedException)
