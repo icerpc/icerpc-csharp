@@ -586,8 +586,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
     {
-        // Ensure no more streams are accepted. Once canceled, we have the guarantee that
-        // _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are immutable.
+        // Once _acceptRequestsTask completes, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId
+        // are immutable.
         Debug.Assert(_acceptRequestsTask is not null);
         _acceptStreamCts.Cancel();
         await _acceptRequestsTask.ConfigureAwait(false);

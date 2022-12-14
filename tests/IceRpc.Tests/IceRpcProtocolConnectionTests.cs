@@ -347,6 +347,7 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    [Ignore("see issue #2307")]
     public async Task Not_dispatched_twoway_request_gets_connection_exception_on_server_connection_shutdown()
     {
         // Arrange

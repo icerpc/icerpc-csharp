@@ -150,6 +150,7 @@ public class ServerTests
     }
 
     [Test]
+    [Ignore("see issue #2295")]
     public async Task Connection_accepted_when_max_connections_is_reached_then_decremented()
     {
         // Arrange
