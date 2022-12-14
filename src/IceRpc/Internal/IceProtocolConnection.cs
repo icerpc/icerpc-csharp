@@ -93,7 +93,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             duplexConnection,
             _memoryPool,
             _minSegmentSize,
-            connectionLostAction: exception => Close("The connection was lost.", exception));
+            connectionLostAction: exception => DisposeTransport("The connection was lost.", exception));
 
         _payloadWriter = new IcePayloadPipeWriter(_duplexConnectionWriter);
 
@@ -123,11 +123,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
             catch (IceRpcException exception)
             {
-                Close("The connection was lost.", exception);
+                DisposeTransport("The connection was lost.", exception);
             }
             catch (Exception exception)
             {
-                Close("The connection failed due to an unhandled exception.", exception);
+                DisposeTransport("The connection failed due to an unhandled exception.", exception);
                 Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
                 throw;
             }
@@ -221,27 +221,27 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed once the CloseConnection frame is received.
-                    Close("The connection was closed by the peer.");
+                    DisposeTransport("The connection was closed by the peer.");
                 }
                 catch (InvalidDataException exception)
                 {
-                    Close("Invalid data was received from the peer.", exception);
+                    DisposeTransport("Invalid data was received from the peer.", exception);
                 }
                 catch (NotSupportedException exception)
                 {
-                    Close("Frame with unsupported feature was received from the peer.", exception);
+                    DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
                 }
                 catch (IceRpcException exception)
                 {
-                    Close("The connection was lost.", exception);
+                    DisposeTransport("The connection was lost.", exception);
                 }
                 catch (ObjectDisposedException exception)
                 {
-                    Close("The connection was disposed.", exception);
+                    DisposeTransport("The connection was disposed.", exception);
                 }
                 catch (Exception exception)
                 {
-                    Close("The connection failed due to an unhandled exception.", exception);
+                    DisposeTransport("The connection failed due to an unhandled exception.", exception);
                     Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
                     throw;
                 }
@@ -265,7 +265,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        Close();
+        DisposeTransport();
 
         // Wait for the read frames and ping tasks to complete.
         await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
@@ -676,9 +676,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
-    /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
-    /// invocations.</summary>
-    private void Close(string? message = null, Exception? exception = null)
+    /// <summary>Marks the protocol connection as closed, disposes the transport connection and cancels pending
+    /// dispatches and invocations.</summary>
+    private void DisposeTransport(string? message = null, Exception? exception = null)
     {
         // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.

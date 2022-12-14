@@ -161,9 +161,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            ConnectionClosedException = new(
-                IceRpcError.ConnectionClosed,
-                "The connection was disposed.");
+            ConnectionClosedException = new(IceRpcError.ConnectionClosed, "The connection was disposed.");
 
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();

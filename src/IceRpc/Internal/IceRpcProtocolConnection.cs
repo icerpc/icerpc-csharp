@@ -192,12 +192,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (IceRpcException exception)
                 {
-                    await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
+                    await DisposeTransportAsync("The connection was lost.", exception).ConfigureAwait(false);
                     throw;
                 }
                 catch (Exception exception)
                 {
-                    await CloseAsync("The connection failed due to an unhandled exception.", exception)
+                    await DisposeTransportAsync("The connection failed due to an unhandled exception.", exception)
                         .ConfigureAwait(false);
                     Debug.Assert(false, $"The read go away task completed due to an unhandled exception: {exception}");
                     throw;
@@ -346,15 +346,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
                 catch (IceRpcException exception)
                 {
-                    await CloseAsync("The connection was lost.", exception).ConfigureAwait(false);
+                    await DisposeTransportAsync("The connection was lost.", exception).ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException exception)
                 {
-                    await CloseAsync("The connection was disposed.", exception).ConfigureAwait(false);
+                    await DisposeTransportAsync("The connection was disposed.", exception).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    await CloseAsync("The connection failed due to an unhandled exception.", exception)
+                    await DisposeTransportAsync("The connection failed due to an unhandled exception.", exception)
                         .ConfigureAwait(false);
                     Debug.Assert(false, $"The accept stream task completed due to an unhandled exception: {exception}");
                     throw;
@@ -367,7 +367,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        await CloseAsync().ConfigureAwait(false);
+        await DisposeTransportAsync().ConfigureAwait(false);
 
         try
         {
@@ -692,9 +692,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 MultiplexedConnectionCloseError.NoError,
                 cancellationToken).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException exception)
+        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            throw new IceRpcException(IceRpcError.OperationAborted, exception);
+            // Expected if the peer closed the connection first and the accept request loop closed the transport
+            // connection.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Expected if the peer closed the connection first and the accept request loop closed the transport
+            // connection.
         }
 
         // We wait for the completion of the dispatches that we created.
@@ -941,30 +947,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    /// <summary>Closes the protocol connection. It closes the transport connection and cancels pending dispatches and
-    /// invocations.</summary>
-    private async Task CloseAsync(string? message = null, Exception? exception = null)
-    {
-        // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
-        // case the connection shutdown or disposal is responsible for calling the connection closed callback.
-        if (ConnectionClosedException is null)
-        {
-            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
-            var rpcException = exception as IceRpcException;
-            if (exception is not null && rpcException is null)
-            {
-                rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
-            }
-            ConnectionClosed(rpcException);
-        }
-
-        // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
-        await _transportConnection.DisposeAsync().ConfigureAwait(false);
-
-        // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
-        CancelDispatchesAndInvocations();
-    }
-
     private async Task DispatchRequestAsync(IMultiplexedStream stream, CancellationToken cancellationToken)
     {
         PipeReader? fieldsPipeReader = null;
@@ -1122,6 +1104,30 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             return (header, fields, pipeReader);
         }
+    }
+
+    /// <summary>Marks the protocol connection as closed, disposes the transport connection and cancels pending
+    /// dispatches and invocations.</summary>
+    private async Task DisposeTransportAsync(string? message = null, Exception? exception = null)
+    {
+        // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
+        // case the connection shutdown or disposal is responsible for calling the connection closed callback.
+        if (ConnectionClosedException is null)
+        {
+            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            var rpcException = exception as IceRpcException;
+            if (exception is not null && rpcException is null)
+            {
+                rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
+            }
+            ConnectionClosed(rpcException);
+        }
+
+        // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
+        await _transportConnection.DisposeAsync().ConfigureAwait(false);
+
+        // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
+        CancelDispatchesAndInvocations();
     }
 
     private async ValueTask ReceiveControlFrameHeaderAsync(
