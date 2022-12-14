@@ -226,6 +226,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (NoConnectionException is not null)
             {
+                // Note: it's critical to throw this exception synchronously.
                 throw NoConnectionException;
             }
             else if (_connectTask is null)

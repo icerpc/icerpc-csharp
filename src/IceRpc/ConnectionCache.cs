@@ -143,55 +143,56 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IProtocolConnection? connection = null;
         ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
 
-        if (_preferExistingConnection)
-        {
-            lock (_mutex)
-            {
-                connection = GetActiveConnection(mainServerAddress);
-                if (connection is null)
-                {
-                    for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
-                    {
-                        ServerAddress altServerAddress = serverAddressFeature.AltServerAddresses[i];
-                        connection = GetActiveConnection(altServerAddress);
-                        if (connection is not null)
-                        {
-                            // This altServerAddress becomes the main server address, and the existing main server
-                            // address becomes the first alt server address.
-                            serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
-                                .RemoveAt(i)
-                                .Insert(0, mainServerAddress);
-                            serverAddressFeature.ServerAddress = altServerAddress;
-
-                            break; // foreach
-                        }
-                    }
-                }
-            }
-
-            IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
-                _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ? connection : null;
-        }
-
-        if (connection is not null)
+        // We retry forever when InvokeAsync (or ConnectAsync) throws an IceRpcException(NoConnection). This exception
+        // is (should be) thrown synchronously by the protocol connection.
+        while (true)
         {
             try
             {
-                return connection.InvokeAsync(request, cancellationToken);
+                if (_preferExistingConnection)
+                {
+                    lock (_mutex)
+                    {
+                        connection = GetActiveConnection(mainServerAddress);
+                        if (connection is null)
+                        {
+                            for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
+                            {
+                                ServerAddress altServerAddress = serverAddressFeature.AltServerAddresses[i];
+                                connection = GetActiveConnection(altServerAddress);
+                                if (connection is not null)
+                                {
+                                    // This altServerAddress becomes the main server address, and the existing main server
+                                    // address becomes the first alt server address.
+                                    serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
+                                        .RemoveAt(i)
+                                        .Insert(0, mainServerAddress);
+                                    serverAddressFeature.ServerAddress = altServerAddress;
+
+                                    break; // foreach
+                                }
+                            }
+                        }
+                    }
+
+                    IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
+                        _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ?
+                            connection : null;
+                }
+
+                return connection is null ? PerformInvokeAsync() : connection.InvokeAsync(request, cancellationToken);
             }
             catch (ObjectDisposedException exception) when (
                 exception.InnerException is IceRpcException innerException &&
                 innerException.IceRpcError == IceRpcError.NoConnection)
             {
                 // This can occasionally happen if we find a connection that was just closed and then automatically
-                // disposed by this connection cache.
-                // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
-                throw ExceptionUtil.Throw(innerException);
+                // disposed by this connection cache. This exception is thrown synchronously by connection.InvokeAsync.
             }
-        }
-        else
-        {
-            return PerformInvokeAsync();
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
+            {
+                // Same as a above, except DisposeAsync was not called yet on this closed connection.
+            }
         }
 
         async Task<IncomingResponse> PerformInvokeAsync()
@@ -202,6 +203,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             catch (Exception exception)
             {
+                // TODO: rework this code. We should not keep going on any exception.
+
                 List<Exception>? exceptionList = null;
 
                 for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
@@ -239,19 +242,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
             }
 
-            try
-            {
-                return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException exception) when (
-                exception.InnerException is IceRpcException innerException &&
-                innerException.IceRpcError == IceRpcError.NoConnection)
-            {
-                // This can occasionally happen if we find a connection that was just closed and then automatically
-                // disposed by this connection cache.
-                // TODO: Should we retry? https://github.com/zeroc-ice/icerpc-csharp/issues/1724#issuecomment-1235609102
-                throw ExceptionUtil.Throw(innerException);
-            }
+            return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 

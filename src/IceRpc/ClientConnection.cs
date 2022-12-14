@@ -26,11 +26,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The connection parameter represents the previous connection, if any.
     private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
 
-    private readonly object _mutex = new();
+    private bool _isClosed;
+    private bool _isDisposed;
 
-    // When true, we retry once when _connection is closed, i.e. a call on _connection throws an IceRpcException
-    // with a ConnectionClosed error or ObjectDisposedException.
-    private bool _retryOnClosed = true;
+    // Protects _connection, _isClosed and _isDisposed.
+    private readonly object _mutex = new();
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -75,10 +75,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask);
             }
 
-            connection = new ConnectProtocolConnectionDecorator(connection);
-            _ = RefreshOnClosedAsync(connection);
-
-            return connection;
+            return new ConnectProtocolConnectionDecorator(connection);
 
             static async Task CleanupAsync(IProtocolConnection connection)
             {
@@ -92,24 +89,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     // ignore
                 }
                 await connection.DisposeAsync().ConfigureAwait(false);
-            }
-
-            async Task RefreshOnClosedAsync(IProtocolConnection connection)
-            {
-                try
-                {
-                    await connection.ShutdownComplete.ConfigureAwait(false);
-                }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
-                {
-                    // expected, call refresh below
-                }
-                catch
-                {
-                    return; // don't refresh
-                }
-
-                _ = RefreshConnection(connection);
             }
         };
 
@@ -171,39 +150,52 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" />if the connection establishment failed.</description>
     /// </item>
-    /// <item><description><see cref="ObjectDisposedException" />if this connection is disposed.</description></item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" />if this connection attempt or a previous attempt exceeded
     /// <see cref="ConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
+    /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
-        // Keep a reference to the connection we're trying to connect to.
-        IProtocolConnection connection = _connection;
+        lock (_mutex)
+        {
+            ThrowIfDisposed();
+            return PerformConnectAsync(_connection);
+        }
 
-        try
+        async Task<TransportConnectionInformation> PerformConnectAsync(IProtocolConnection initialConnection)
         {
-            return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            if (RefreshConnection(connection) is IProtocolConnection newConnection)
+            IProtocolConnection? connection = initialConnection;
+            do
             {
-                // Try again once with the new connection
-                return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException exception) when (
+                    exception.InnerException is IceRpcException innerException &&
+                    innerException.IceRpcError == IceRpcError.NoConnection)
+                {
+                    // This can occasionally happen if connection that was just closed and disposed by this
+                    // ClientConnection.
+                    // While this exception is usually thrown synchronously by IProtocolConnection.ConnectAsync, the
+                    // ConnectProtocolConnectionDecorator can make this throwing asynchronous.
+                }
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
+                {
+                    // Same as a above, except DisposeAsync was not called yet on this closed connection.
+                }
+                // let other exceptions through
+
+                connection = RefreshConnection(connection);
             }
-            throw;
-        }
-        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
-        {
-            if (RefreshConnection(connection) is IProtocolConnection newConnection)
-            {
-                // Try again once with the new connection
-                return await newConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-            }
-            throw;
+            while (connection is not null);
+
+            throw new IceRpcException(
+                IceRpcError.OperationAborted,
+                "ConnectAsync was aborted by a call to ShutdownAsync or DisposeAsync.");
         }
     }
 
@@ -212,14 +204,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            _retryOnClosed = false;
+            _isClosed = true;
+            _isDisposed = true;
+            return _connection.DisposeAsync();
         }
-
-        return _connection.DisposeAsync();
     }
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
+    public Task<IncomingResponse> InvokeAsync(
+        OutgoingRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
@@ -232,10 +226,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             CheckRequestServerAddresses(mainServerAddress, request.ServiceAddress.AltServerAddresses);
         }
+        // It's ok if the request has no server address at all.
 
-        // If the request has no server address at all, we let it through.
-
-        return PerformInvokeAsync();
+        lock (_mutex)
+        {
+            ThrowIfDisposed();
+            return PerformInvokeAsync(_connection);
+        }
 
         void CheckRequestServerAddresses(
             ServerAddress mainServerAddress,
@@ -255,35 +252,40 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             throw new InvalidOperationException(
-                $"none of the server addresses of the request matches this connection's server address: {ServerAddress}");
+                $"None of the server addresses of the request matches this connection's server address: {ServerAddress}");
         }
 
-        async Task<IncomingResponse> PerformInvokeAsync()
+        async Task<IncomingResponse> PerformInvokeAsync(IProtocolConnection initialConnection)
         {
-            IProtocolConnection connection = _connection;
+            IProtocolConnection? connection = initialConnection;
+            do
+            {
+                try
+                {
+                    return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException exception) when (
+                    exception.InnerException is IceRpcException innerException &&
+                    innerException.IceRpcError == IceRpcError.NoConnection)
+                {
+                    // This can occasionally happen if connection that was just closed and disposed by this
+                    // ClientConnection.
+                    // While this exception is usually thrown synchronously by IProtocolConnection.InvokeAsync, the
+                    // ConnectProtocolConnectionDecorator can make this throwing asynchronous.
+                }
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
+                {
+                    // Same as a above, except DisposeAsync was not called yet on this closed connection.
+                }
+                // let other exceptions through
 
-            try
-            {
-                return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+                connection = RefreshConnection(connection);
             }
-            catch (ObjectDisposedException)
-            {
-                if (RefreshConnection(connection) is IProtocolConnection newConnection)
-                {
-                    // try again once with the new connection
-                    return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-                }
-                throw;
-            }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
-            {
-                if (RefreshConnection(connection) is IProtocolConnection newConnection)
-                {
-                    // try again once with the new connection
-                    return await newConnection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
-                }
-                throw;
-            }
+            while (connection is not null);
+
+            throw new IceRpcException(
+                IceRpcError.OperationAborted,
+                "InvokeAsync was aborted by a call to ShutdownAsync or DisposeAsync.");
         }
     }
 
@@ -307,11 +309,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
+
         lock (_mutex)
         {
-            _retryOnClosed = false;
+            _isClosed = true;
+            return _connection.ShutdownAsync(cancellationToken);
         }
-        return _connection.ShutdownAsync(cancellationToken);
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
@@ -324,7 +328,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             // We only create a new connection and assign it to _connection if it matches the connection we just tried.
             // If it's another connection, another thread has already called RefreshConnection.
-            if (_retryOnClosed)
+            if (!_isClosed)
             {
                 if (connection == _connection)
                 {
@@ -335,6 +339,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
 
         return newConnection;
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+        }
     }
 
     // A decorator that awaits a cleanup task (= previous connection cleanup) in ConnectAsync and DisposeAsync.
