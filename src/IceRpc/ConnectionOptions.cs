@@ -139,7 +139,7 @@ public record class ConnectionOptions
 
     private const int IceMinFrameSize = 256;
     private static readonly Action<Exception> _defaultFaultedTaskAction =
-        exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
+        exception => Debug.Assert(false, $"IceRpc task completed due to an unhandled exception: {exception}");
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
