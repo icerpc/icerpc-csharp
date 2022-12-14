@@ -476,7 +476,7 @@ public abstract partial class MultiplexedTransportConformanceTests
         }
     }
 
-    /// <summary>Verifies that clientConnection cannot exceed the unidirectional stream max count.</summary>
+    /// <summary>Verifies that connection cannot exceed the unidirectional stream max count.</summary>
     [Test]
     public async Task Max_unidirectional_stream_stress_test()
     {
