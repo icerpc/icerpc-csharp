@@ -530,6 +530,19 @@ public sealed class Server : IAsyncDisposable
                         _logger),
                     remoteNetworkAddress);
             }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                throw;
+            }
+            catch (ObjectDisposedException)
+            {
+                throw;
+            }
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+            {
+                // Listener was disposed while the accept operation was in progress.
+                throw;
+            }
             catch (Exception exception)
             {
                 _logger.LogConnectionAcceptFailed(ServerAddress, exception);

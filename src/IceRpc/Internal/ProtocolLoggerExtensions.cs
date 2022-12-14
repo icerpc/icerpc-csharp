@@ -125,13 +125,13 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
         Level = LogLevel.Trace,
-        Message = "Listener '{ServerAddress}' start accepting connections")]
+        Message = "Listener '{ServerAddress}' has started accepting connections")]
     internal static partial void LogStartAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StopAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StopAcceptingConnections),
         Level = LogLevel.Trace,
-        Message = "Listener '{ServerAddress}' stop accepting connections")]
+        Message = "Listener '{ServerAddress}' has stopped accepting connections")]
     internal static partial void LogStopAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 }
