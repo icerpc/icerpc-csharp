@@ -247,7 +247,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
                 {
-                    // Same as a above, except DisposeAsync was not called yet on this closed connection.
+                    // Same as above, except DisposeAsync was not called yet on this closed connection.
                 }
             }
         }

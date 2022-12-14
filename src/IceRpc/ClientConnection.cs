@@ -185,7 +185,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
                 {
-                    // Same as a above, except DisposeAsync was not called yet on this closed connection.
+                    // Same as above, except DisposeAsync was not called yet on this closed connection.
                 }
                 // let other exceptions through
 
@@ -275,7 +275,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
                 {
-                    // Same as a above, except DisposeAsync was not called yet on this closed connection.
+                    // Same as above, except DisposeAsync was not called yet on this closed connection.
                 }
                 // let other exceptions through
 
