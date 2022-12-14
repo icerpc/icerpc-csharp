@@ -43,7 +43,7 @@ public interface IMultiplexedConnection : IAsyncDisposable
     /// <returns>A task that completes once the connection is closed.</returns>
     Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken);
 
-    /// <summary>Creates a local stream. The creation might be delayed if the maximum number of unidirectional or
+    /// <summary>Creates a local stream. The creation will block if the maximum number of unidirectional or
     /// bidirectional streams prevents creating the new stream.</summary>
     /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream, <see langword="false"/>
     /// otherwise.</param>
