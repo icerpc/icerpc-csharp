@@ -53,7 +53,7 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         using var cts = new CancellationTokenSource();
         ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(cts.Token);
-        await Task.Delay(10); // give a few ms for acceptTask to start
+        await Task.Delay(TimeSpan.FromMilliseconds(10)); // give a few ms for acceptTask to start
 
         // Act
         cts.Cancel();
