@@ -61,9 +61,13 @@ public abstract partial class MultiplexedTransportConformanceTests
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
-    [Test]
-    public async Task Accepting_a_stream_fails_after_close()
+    /// <summary>Verifies that AcceptStream fails when the connection is closed.</summary>
+    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
+    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
+    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
+    public async Task Accept_stream_fails_on_close(
+        MultiplexedConnectionCloseError closeError,
+        IceRpcError expectedIceRpcError)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -78,11 +82,11 @@ public abstract partial class MultiplexedTransportConformanceTests
         Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
-        await clientConnection.CloseAsync((MultiplexedConnectionCloseError)2, CancellationToken.None);
+        await clientConnection.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
         IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreams)!;
-        Assert.That(ex.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(ex.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     /// <summary>Verifies that after reaching the stream max count, new streams are not accepted until a
@@ -114,7 +118,7 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         List<IMultiplexedStream> streams = await CreateStreamsAsync(streamMaxCount, bidirectional);
 
-        Task<IMultiplexedStream> lastStreamTask = CreateLastStreamAsync();
+        ValueTask<IMultiplexedStream> lastStreamTask = clientConnection.CreateStreamAsync(bidirectional, default);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         await using IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
         if (bidirectional)
@@ -132,25 +136,6 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         await CleanupStreamsAsync(streams.ToArray());
         await CleanupStreamsAsync(await lastStreamTask);
-
-        async Task<IMultiplexedStream> CreateLastStreamAsync()
-        {
-            ValueTask<IMultiplexedStream> lastStreamTask = clientConnection.CreateStreamAsync(bidirectional, default);
-            IMultiplexedStream lastStream;
-            if (lastStreamTask.IsCompleted)
-            {
-                // With Slic the stream creation always completes even if the max stream count is reached. The stream
-                // count is only checked on the first write.
-                // TODO: Fix Slic implementation to block on CreateStreamAsync
-                lastStream = lastStreamTask.Result;
-                await lastStream.Output.WriteAsync(_oneBytePayload, default);
-            }
-            else
-            {
-                lastStream = await lastStreamTask;
-            }
-            return lastStream;
-        }
 
         async Task<List<IMultiplexedStream>> CreateStreamsAsync(int count, bool bidirectional)
         {
@@ -227,11 +212,12 @@ public abstract partial class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
-    /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
-    /// </param>
-    [Test]
+    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
+    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
+    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
     public async Task Cannot_create_streams_with_a_closed_connection(
-        [Values(true, false)] bool closeServerConnection)
+        MultiplexedConnectionCloseError closeError,
+        IceRpcError expectedIceRpcError)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -242,23 +228,55 @@ public abstract partial class MultiplexedTransportConformanceTests
         await using IMultiplexedConnection serverConnection =
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        IMultiplexedConnection closeConnection =
-            closeServerConnection ? serverConnection : clientConnection;
-        IMultiplexedConnection peerConnection =
-            closeServerConnection ? clientConnection : serverConnection;
+        // Act
+        await serverConnection.CloseAsync(closeError, CancellationToken.None);
 
-        await closeConnection.CloseAsync((MultiplexedConnectionCloseError)5, CancellationToken.None);
-
+        // Assert
         IceRpcException? exception;
 
-        // Act/Assert
         exception = Assert.ThrowsAsync<IceRpcException>(
-            () => peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+            () => clientConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
+        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
 
         exception = Assert.ThrowsAsync<IceRpcException>(
-            () => peerConnection.CreateStreamAsync(true, default).AsTask());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+            () => clientConnection.CreateStreamAsync(true, default).AsTask());
+        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
+    }
+
+    /// <summary>Verify streams cannot be created after closing down the connection.</summary>
+    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
+    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
+    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
+    public async Task Pending_create_streams_fails_on_connection_close(
+        MultiplexedConnectionCloseError closeError,
+        IceRpcError expectedIceRpcError)
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        await using IMultiplexedStream stream1 = await clientConnection.CreateStreamAsync(true, default);
+        await stream1.Output.WriteAsync(_oneBytePayload, default); // Ensures the stream is started.
+
+        ValueTask<IMultiplexedStream> stream2CreateStreamTask = clientConnection.CreateStreamAsync(true, default);
+        await Task.Delay(100);
+        Assert.That(stream2CreateStreamTask.IsCompleted, Is.False);
+
+        // Act
+        await serverConnection.CloseAsync(closeError, CancellationToken.None);
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await stream2CreateStreamTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
+
+        await CleanupStreamsAsync(stream1);
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>

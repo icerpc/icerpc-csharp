@@ -300,37 +300,6 @@ public class SlicTransportTests
         await CompleteStreamsAsync(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
-    /// <summary>Verifies that canceling writes when the write is waiting to acquire the max stream semaphore correctly
-    /// raise OperationCanceledException.</summary>
-    [Test]
-    public async Task Stream_write_max_streams_semaphores_cancellation()
-    {
-        // Arrange
-        IServiceCollection serviceCollection = new ServiceCollection().AddSlicTest();
-        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.MaxBidirectionalStreams = 0);
-        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-
-        var clientConnection = provider.GetRequiredService<SlicConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        await using IMultiplexedConnection serverConnection = await acceptTask;
-
-        await using IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
-            bidirectional: true,
-            default).ConfigureAwait(false);
-        using var cts = new CancellationTokenSource();
-        ValueTask<FlushResult> task = clientStream.Output.WriteAsync(new byte[1], cts.Token);
-
-        // Act
-        cts.Cancel();
-
-        // Act/Assert
-        Assert.That(async () => await task, Throws.InstanceOf<OperationCanceledException>());
-        clientStream.Input.Complete();
-        clientStream.Output.Complete();
-    }
-
     [TestCase(64 * 1024, 32 * 1024)]
     [TestCase(1024 * 1024, 512 * 1024)]
     [TestCase(2048 * 1024, 512 * 1024)]

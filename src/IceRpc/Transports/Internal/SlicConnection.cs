@@ -318,10 +318,8 @@ internal class SlicConnection : IMultiplexedConnection
             _closeTask ??= PerformCloseAsync();
         }
 
-        await _closeTask.ConfigureAwait(false);
-
-        // Wait for the termination of the read frames task. The task is null if ConnectAsync wasn't called.
-        await _readFramesTask.ConfigureAwait(false);
+        // Wait for the termination of the close and read frames tasks.
+        await Task.WhenAll(_closeTask, _readFramesTask).ConfigureAwait(false);
 
         async Task PerformCloseAsync()
         {
@@ -349,7 +347,9 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
+    public async ValueTask<IMultiplexedStream> CreateStreamAsync(
+        bool bidirectional,
+        CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -366,12 +366,17 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw ExceptionUtil.Throw(_exception);
             }
-
-            // TODO: Cache SlicStream and implement stream max count flow control here like Quic?
-#pragma warning disable CA2000 // The caller is responsible for disposing the stream.
-            return new(new SlicStream(this, bidirectional, remote: false));
-#pragma warning restore CA2000
         }
+
+        AsyncSemaphore streamCountSemaphore = bidirectional ?
+            _bidirectionalStreamSemaphore! :
+            _unidirectionalStreamSemaphore!;
+        await streamCountSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+
+        // TODO: Cache SlicStream and implement stream max count flow control here like Quic?
+#pragma warning disable CA2000 // The caller is responsible for disposing the stream.
+        return new SlicStream(this, bidirectional, remote: false);
+#pragma warning restore CA2000
     }
 
     public ValueTask DisposeAsync()
@@ -513,9 +518,10 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal void ReleaseStream(SlicStream stream)
     {
-        Debug.Assert(stream.IsStarted);
-
-        _streams.TryRemove(stream.Id, out SlicStream? _);
+        if (stream.IsStarted)
+        {
+            _streams.Remove(stream.Id, out SlicStream? _);
+        }
 
         if (stream.IsRemote)
         {
@@ -528,9 +534,17 @@ internal class SlicConnection : IMultiplexedConnection
                 Interlocked.Decrement(ref _unidirectionalStreamCount);
             }
         }
-        else if (stream.IsBidirectional)
+        else
         {
-            _bidirectionalStreamSemaphore!.Release();
+            if (stream.IsBidirectional)
+            {
+                _bidirectionalStreamSemaphore!.Release();
+            }
+            else
+            {
+                // The unidirectional stream semaphore will be released once the UnidirectionalStreamReleased frame is
+                // received.
+            }
         }
     }
 
@@ -570,16 +584,6 @@ internal class SlicConnection : IMultiplexedConnection
 
         do
         {
-            // First, if the stream isn't started, we need to acquire the stream count semaphore. If there are more
-            // streams opened than the peer allows, this will block until a stream is shutdown.
-            if (!stream.IsStarted)
-            {
-                AsyncSemaphore streamCountSemaphore = stream.IsBidirectional ?
-                    _bidirectionalStreamSemaphore! :
-                    _unidirectionalStreamSemaphore!;
-                await streamCountSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
-            }
-
             // Next, ensure send credit is available. If not, this will block until the receiver allows sending
             // additional data.
             int sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
@@ -679,14 +683,15 @@ internal class SlicConnection : IMultiplexedConnection
             _exception = exception;
         }
 
+        // Unblock requests waiting on the semaphores first. This must be done before aborting started streams.
+        // Otherwise CreateStreamAsync calls waiting on the semaphores would succeed instead of failing.
+        _bidirectionalStreamSemaphore?.Complete(exception);
+        _unidirectionalStreamSemaphore?.Complete(exception);
+
         foreach (SlicStream stream in _streams.Values)
         {
             stream.Abort(exception);
         }
-
-        // Unblock requests waiting on the semaphores.
-        _bidirectionalStreamSemaphore?.Complete(exception);
-        _unidirectionalStreamSemaphore?.Complete(exception);
 
         await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
 
