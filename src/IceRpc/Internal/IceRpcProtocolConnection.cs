@@ -199,7 +199,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     await DisposeTransportAsync("The connection failed due to an unhandled exception.", exception)
                         .ConfigureAwait(false);
-                    Debug.Assert(false, $"The read go away task completed due to an unhandled exception: {exception}");
+                    Debug.Fail($"The read go away task completed due to an unhandled exception: {exception}");
                     throw;
                 }
             },
@@ -356,7 +356,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     await DisposeTransportAsync("The connection failed due to an unhandled exception.", exception)
                         .ConfigureAwait(false);
-                    Debug.Assert(false, $"The accept stream task completed due to an unhandled exception: {exception}");
+                    Debug.Fail($"The accept stream task completed due to an unhandled exception: {exception}");
                     throw;
                 }
             },

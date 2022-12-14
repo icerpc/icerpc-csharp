@@ -128,7 +128,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             catch (Exception exception)
             {
                 DisposeTransport("The connection failed due to an unhandled exception.", exception);
-                Debug.Assert(false, $"The ping task completed due to an unhandled exception: {exception}");
+                Debug.Fail($"The ping task completed due to an unhandled exception: {exception}");
                 throw;
             }
 
@@ -242,7 +242,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 catch (Exception exception)
                 {
                     DisposeTransport("The connection failed due to an unhandled exception.", exception);
-                    Debug.Assert(false, $"The read frames task completed due to an unhandled exception: {exception}");
+                    Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
                     throw;
                 }
             },
