@@ -140,109 +140,116 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             request.Features = request.Features.With(serverAddressFeature);
         }
 
-        IProtocolConnection? connection = null;
-        ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
+        return PerformInvokeAsync();
 
-        // We retry forever when InvokeAsync (or ConnectAsync) throws an IceRpcException(NoConnection). This exception
-        // is (should be) thrown synchronously by the protocol connection.
-        while (true)
+        async Task<IncomingResponse> PerformInvokeAsync()
         {
-            try
+            ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
+
+            // We retry forever when InvokeAsync (or ConnectAsync) throws an IceRpcException(NoConnection). This
+            // exception is usually thrown synchronously by InvokeAsync, however this throwing can be asynchronous when
+            // we first connect the connection.
+            while (true)
             {
-                if (_preferExistingConnection)
+                try
                 {
-                    lock (_mutex)
+                    IProtocolConnection? connection = null;
+
+                    if (_preferExistingConnection)
                     {
-                        connection = GetActiveConnection(mainServerAddress);
-                        if (connection is null)
+                        lock (_mutex)
                         {
+                            connection = GetActiveConnection(mainServerAddress);
+                            if (connection is null)
+                            {
+                                for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
+                                {
+                                    ServerAddress altServerAddress = serverAddressFeature.AltServerAddresses[i];
+                                    connection = GetActiveConnection(altServerAddress);
+                                    if (connection is not null)
+                                    {
+                                        // This altServerAddress becomes the main server address, and the existing main
+                                        // server address becomes the first alt server address.
+                                        serverAddressFeature.AltServerAddresses =
+                                            serverAddressFeature.AltServerAddresses
+                                                .RemoveAt(i)
+                                                .Insert(0, mainServerAddress);
+                                        serverAddressFeature.ServerAddress = altServerAddress;
+
+                                        break; // foreach
+                                    }
+                                }
+                            }
+                        }
+
+                        IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
+                            _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ?
+                                connection : null;
+                    }
+
+                    if (connection is null)
+                    {
+                        try
+                        {
+                            connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            // TODO: rework this code. We should not keep going on any exception.
+
+                            List<Exception>? exceptionList = null;
+
                             for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
                             {
-                                ServerAddress altServerAddress = serverAddressFeature.AltServerAddresses[i];
-                                connection = GetActiveConnection(altServerAddress);
-                                if (connection is not null)
-                                {
-                                    // This altServerAddress becomes the main server address, and the existing main server
-                                    // address becomes the first alt server address.
-                                    serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
-                                        .RemoveAt(i)
-                                        .Insert(0, mainServerAddress);
-                                    serverAddressFeature.ServerAddress = altServerAddress;
+                                // Rotate the server addresses before each new connection attempt: the first alt server
+                                // address becomes the main server address and the main server address becomes the last
+                                // alt server address.
+                                serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
+                                serverAddressFeature.AltServerAddresses =
+                                    serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
+                                mainServerAddress = serverAddressFeature.ServerAddress.Value;
 
-                                    break; // foreach
+                                try
+                                {
+                                    connection = await ConnectAsync(mainServerAddress, cancellationToken)
+                                        .ConfigureAwait(false);
+                                    break; // for
+                                }
+                                catch (Exception altEx)
+                                {
+                                    exceptionList ??= new List<Exception> { exception };
+                                    exceptionList.Add(altEx);
+                                    // and keep trying
+                                }
+                            }
+                            if (connection is null)
+                            {
+                                if (exceptionList is null)
+                                {
+                                    throw;
+                                }
+                                else
+                                {
+                                    throw new AggregateException(exceptionList);
                                 }
                             }
                         }
                     }
 
-                    IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
-                        _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ?
-                            connection : null;
+                    return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
                 }
-
-                return connection is null ? PerformInvokeAsync() : connection.InvokeAsync(request, cancellationToken);
-            }
-            catch (ObjectDisposedException exception) when (
-                exception.InnerException is IceRpcException innerException &&
-                innerException.IceRpcError == IceRpcError.NoConnection)
-            {
-                // This can occasionally happen if we find a connection that was just closed and then automatically
-                // disposed by this connection cache. This exception is thrown synchronously by connection.InvokeAsync.
-            }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
-            {
-                // Same as a above, except DisposeAsync was not called yet on this closed connection.
-            }
-        }
-
-        async Task<IncomingResponse> PerformInvokeAsync()
-        {
-            try
-            {
-                connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                // TODO: rework this code. We should not keep going on any exception.
-
-                List<Exception>? exceptionList = null;
-
-                for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
+                catch (ObjectDisposedException exception) when (
+                    exception.InnerException is IceRpcException innerException &&
+                    innerException.IceRpcError == IceRpcError.NoConnection)
                 {
-                    // Rotate the server addresses before each new connection attempt: the first alt server address
-                    // becomes the main server address and the main server address becomes the last alt server address.
-                    serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
-                    serverAddressFeature.AltServerAddresses =
-                        serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
-                    mainServerAddress = serverAddressFeature.ServerAddress.Value;
-
-                    try
-                    {
-                        connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
-                        break; // for
-                    }
-                    catch (Exception altEx)
-                    {
-                        exceptionList ??= new List<Exception> { exception };
-                        exceptionList.Add(altEx);
-                        // and keep trying
-                    }
+                    // This can occasionally happen if we find a connection that was just closed and then automatically
+                    // disposed by this connection cache.
                 }
-
-                if (connection is null)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
                 {
-                    if (exceptionList is null)
-                    {
-                        throw;
-                    }
-                    else
-                    {
-                        throw new AggregateException(exceptionList);
-                    }
+                    // Same as a above, except DisposeAsync was not called yet on this closed connection.
                 }
             }
-
-            return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 
