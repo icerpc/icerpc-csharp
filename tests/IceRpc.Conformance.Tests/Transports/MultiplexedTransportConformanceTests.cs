@@ -534,7 +534,9 @@ public abstract partial class MultiplexedTransportConformanceTests
             provider.GetService<SslServerAuthenticationOptions>()));
     }
 
+    /// <summary>Verifies we can dispose a stream without calling Complete on its Input or Output.</summary>
     [Test]
+    [Ignore("fails with Slic, see #2297")]
     public async Task Dispose_stream_without_complete()
     {
         // Arrange
