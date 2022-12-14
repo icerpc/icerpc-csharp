@@ -53,12 +53,22 @@ public abstract partial class MultiplexedTransportConformanceTests
 
         using var cts = new CancellationTokenSource();
         ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(cts.Token);
+        await Task.Delay(TimeSpan.FromMilliseconds(10)); // give a few ms for acceptTask to start
 
         // Act
         cts.Cancel();
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+
+        // We also verify we can still create new streams. This shows that canceling AcceptAsync does not "abort" new
+        // streams and is a transient cancellation (not obvious with QUIC).
+        Assert.That(
+            async () =>
+            {
+                await using var streams = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+            },
+            Throws.Nothing);
     }
 
     /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
