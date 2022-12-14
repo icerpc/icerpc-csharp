@@ -9,7 +9,7 @@ using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Demo;
+namespace GenericHostExample;
 
 public static class Program
 {

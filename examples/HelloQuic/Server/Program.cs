@@ -5,14 +5,14 @@ using IceRpc.Transports;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Demo;
+namespace HelloQuicExample;
 
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-public static class Program
+internal static class Program
 {
-    public static async Task Main()
+    internal static async Task Main()
     {
         await using var server = new Server(
             new Hello(),

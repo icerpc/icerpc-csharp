@@ -5,7 +5,7 @@ using IceRpc.Transports;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Demo;
+namespace HelloQuicExample;
 
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]

@@ -3,9 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace Demo;
+namespace StreamExample;
 
-public class NumberStream : Service, INumberStream
+internal class NumberStream : Service, INumberStream
 {
     public async ValueTask StreamDataAsync(
         IAsyncEnumerable<int> numbers,

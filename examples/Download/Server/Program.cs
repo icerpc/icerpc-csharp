@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
+using DownloadExample;
 using IceRpc;
 
 await using var server = new Server(new Downloader());

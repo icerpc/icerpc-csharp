@@ -3,9 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace Demo;
+namespace OpenTelemetryExample;
 
-public class Crm : Service, ICrm
+internal class Crm : Service, ICrm
 {
     private readonly List<string> _customers = new();
 

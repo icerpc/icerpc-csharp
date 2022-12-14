@@ -3,9 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace Demo;
+namespace GenericHostExample;
 
-public class Hello : Service, IHello
+internal class Hello : Service, IHello
 {
     public async ValueTask<string> SayHelloAsync(
         string name,

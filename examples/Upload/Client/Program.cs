@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
 using System.IO.Pipelines;
+using UploadExample;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));

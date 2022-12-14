@@ -8,13 +8,13 @@ namespace AuthorizationExample;
 
 /// <summary>Middleware that loads the session token from the request and adds the session feature to the request's
 /// feature collection.</summary>
-public class LoadSessionMiddleware : IDispatcher
+internal class LoadSessionMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
 
     private readonly TokenStore _tokenStore;
 
-    public LoadSessionMiddleware(IDispatcher next, TokenStore tokenStore)
+    internal LoadSessionMiddleware(IDispatcher next, TokenStore tokenStore)
     {
         _next = next;
         _tokenStore = tokenStore;
@@ -36,11 +36,11 @@ public class LoadSessionMiddleware : IDispatcher
 
 /// <summary>Middleware that checks if the request has a session feature. If not, it throws a
 /// <see cref="DispatchException" />.</summary>
-public class HasSessionMiddleware : IDispatcher
+internal class HasSessionMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
 
-    public HasSessionMiddleware(IDispatcher next) => _next = next;
+    internal HasSessionMiddleware(IDispatcher next) => _next = next;
 
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken) =>
         request.Features.Get<ISessionFeature>() is not null ? _next.DispatchAsync(request, cancellationToken) :

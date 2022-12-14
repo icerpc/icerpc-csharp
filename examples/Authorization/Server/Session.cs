@@ -13,7 +13,7 @@ public interface ISessionFeature
 }
 
 /// <summary>The implementation of <see cref="ISessionFeature" />.</summary>
-public class SessionFeature : ISessionFeature
+internal class SessionFeature : ISessionFeature
 {
     public string Name { get; }
 
@@ -21,14 +21,14 @@ public class SessionFeature : ISessionFeature
 }
 
 /// <summary>The TokenStore holds the session token to name map.</summary>
-public class TokenStore
+internal class TokenStore
 {
     private readonly ConcurrentDictionary<Guid, string> _sessions = new();
 
     /// <summary>Creates a new session token and stores the name associated with it.</summary>
     /// <param name="name">The given name.</param>
     /// <returns>A new session token.</returns>
-    public Guid CreateToken(string name)
+    internal Guid CreateToken(string name)
     {
         // Guid are not cryptographically secure, but for this example it's sufficient.
         var token = Guid.NewGuid();
@@ -39,15 +39,15 @@ public class TokenStore
     /// <summary>Gets the name associated with the given session token.</summary>
     /// <param name="token">The session token</param>
     /// <returns>The name.</returns>
-    public string? GetName(Guid token) => _sessions.TryGetValue(token, out string? name) ? name : null;
+    internal string? GetName(Guid token) => _sessions.TryGetValue(token, out string? name) ? name : null;
 }
 
 /// <summary>The implementation of the <see cref="ISessionManager" /> interface.</summary>
-public class SessionManager : Service, ISessionManager
+internal class SessionManager : Service, ISessionManager
 {
     private readonly TokenStore _tokenStore;
 
-    public SessionManager(TokenStore tokenStore) => _tokenStore = tokenStore;
+    internal SessionManager(TokenStore tokenStore) => _tokenStore = tokenStore;
 
     public ValueTask<ReadOnlyMemory<byte>> CreateSessionAsync(
         string name,

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
+using StreamExample;
 using System.Runtime.CompilerServices;
 
 // Establish the connection to the server

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
+using DownloadExample;
 using IceRpc;
 using System.IO.Pipelines;
 

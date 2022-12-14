@@ -4,9 +4,9 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using System.IO.Pipelines;
 
-namespace Demo;
+namespace UploadExample;
 
-public class Uploader : Service, IUploader
+internal class Uploader : Service, IUploader
 {
     public async ValueTask UploadImageAsync(
         PipeReader image,

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module Demo;
+module CompressExample;
 
 interface Hello
 {

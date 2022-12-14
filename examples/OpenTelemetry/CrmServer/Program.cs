@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using OpenTelemetryExample;
 using System.Diagnostics;
 
 // The activity source used by the telemetry middleware.

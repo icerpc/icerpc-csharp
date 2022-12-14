@@ -6,12 +6,12 @@ using System.Buffers;
 namespace AuthorizationExample;
 
 /// <summary>An interceptor that adds a field with the authentication token to each request.</summary>
-public class SessionInterceptor : IInvoker
+internal class SessionInterceptor : IInvoker
 {
     private readonly IInvoker _next;
     private readonly Guid _token;
 
-    public SessionInterceptor(IInvoker next, Guid token)
+    internal SessionInterceptor(IInvoker next, Guid token)
     {
         _next = next;
         _token = token;

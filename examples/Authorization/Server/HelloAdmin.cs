@@ -7,11 +7,11 @@ namespace AuthorizationExample;
 
 /// <summary>The implementation of the IHelloAdmin interface. It is used to change the greeting and requires callers
 /// to be authenticated.</summary>
-public class HelloAdmin : Service, IHelloAdmin
+internal class HelloAdmin : Service, IHelloAdmin
 {
     private readonly Hello _hello;
 
-    public HelloAdmin(Hello hello) => _hello = hello;
+    internal HelloAdmin(Hello hello) => _hello = hello;
 
     public ValueTask ChangeGreetingAsync(
         string greeting,
