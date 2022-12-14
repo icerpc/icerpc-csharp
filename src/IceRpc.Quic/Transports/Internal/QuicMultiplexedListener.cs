@@ -31,7 +31,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             }
             catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
             {
-                // Listener was disposed while accept was in progress.
+                // Listener was disposed while the accept operation was in progress.
                 throw new IceRpcException(IceRpcError.OperationAborted, exception);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)

@@ -39,6 +39,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             }
             catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
             {
+                // Listener was disposed while the accept operation was in progress.
                 throw new IceRpcException(IceRpcError.OperationAborted, exception);
             }
             catch (SocketException)

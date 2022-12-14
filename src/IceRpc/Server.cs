@@ -534,6 +534,15 @@ public sealed class Server : IAsyncDisposable
             {
                 throw;
             }
+            catch (ObjectDisposedException)
+            {
+                throw;
+            }
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+            {
+                // Listener was disposed while the accept operation was in progress.
+                throw;
+            }
             catch (Exception exception)
             {
                 _logger.LogConnectionAcceptFailed(ServerAddress, exception);
