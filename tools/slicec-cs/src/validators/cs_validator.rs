@@ -40,30 +40,34 @@ fn cs_attributes<'a>(attributes: &[&'a Attribute]) -> Vec<(&'a CsAttributeKind, 
 }
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    Error::new(ErrorKind::UnexpectedAttribute(attribute.directive().to_owned()))
-        .set_span(span)
-        .report(diagnostic_reporter);
+    Error::new(ErrorKind::UnexpectedAttribute {
+        attribute: attribute.directive().to_owned(),
+    })
+    .set_span(span)
+    .report(diagnostic_reporter);
 }
 
 fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     if operation.non_streamed_return_members().is_empty() {
-        Error::new(ErrorKind::UnexpectedAttribute(cs_attributes::ENCODED_RESULT.to_owned()))
-            .set_span(span)
-            .add_note(
-                if operation.streamed_return_member().is_some() {
-                    format!(
-                        "The '{}' attribute is not applicable to an operation that only returns a stream.",
-                        cs_attributes::ENCODED_RESULT,
-                    )
-                } else {
-                    format!(
-                        "The '{}' attribute is not applicable to an operation that does not return anything.",
-                        cs_attributes::ENCODED_RESULT,
-                    )
-                },
-                None,
-            )
-            .report(diagnostic_reporter);
+        Error::new(ErrorKind::UnexpectedAttribute {
+            attribute: cs_attributes::ENCODED_RESULT.to_owned(),
+        })
+        .set_span(span)
+        .add_note(
+            if operation.streamed_return_member().is_some() {
+                format!(
+                    "The '{}' attribute is not applicable to an operation that only returns a stream.",
+                    cs_attributes::ENCODED_RESULT,
+                )
+            } else {
+                format!(
+                    "The '{}' attribute is not applicable to an operation that does not return anything.",
+                    cs_attributes::ENCODED_RESULT,
+                )
+            },
+            None,
+        )
+        .report(diagnostic_reporter);
     }
 }
 
@@ -105,7 +109,8 @@ impl Visitor for CsValidator<'_> {
             match attribute {
                 CsAttributeKind::Namespace { .. } => {}
                 CsAttributeKind::Identifier { .. } => {
-                    Error::new(ErrorKind::UnexpectedAttribute(cs_attributes::IDENTIFIER.to_owned()))
+                    let attribute = cs_attributes::IDENTIFIER.to_owned();
+                    Error::new(ErrorKind::UnexpectedAttribute { attribute })
                         .set_span(span)
                         .add_note(
                             format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
@@ -179,9 +184,11 @@ impl Visitor for CsValidator<'_> {
         // We require 'cs::custom' on custom types to know how to encode/decode it.
 
         if !custom_type.has_attribute(false, match_cs_custom) {
-            Error::new(ErrorKind::MissingRequiredAttribute(cs_attributes::CUSTOM.to_owned()))
-                .set_span(custom_type.span())
-                .report(self.diagnostic_reporter);
+            Error::new(ErrorKind::MissingRequiredAttribute {
+                attribute: cs_attributes::CUSTOM.to_owned(),
+            })
+            .set_span(custom_type.span())
+            .report(self.diagnostic_reporter);
         }
 
         for (attribute, span) in &cs_attributes(&custom_type.attributes(false)) {
@@ -196,10 +203,10 @@ impl Visitor for CsValidator<'_> {
         for (attribute, ..) in &cs_attributes(&type_alias.attributes(false)) {
             match attribute {
                 CsAttributeKind::Identifier { .. } => Warning::new(
-                    WarningKind::InconsequentialUseOfAttribute(
-                        cs_attributes::IDENTIFIER.to_owned(),
-                        "typealias".to_owned(),
-                    ),
+                    WarningKind::InconsequentialUseOfAttribute {
+                        attribute: cs_attributes::IDENTIFIER.to_owned(),
+                        kind: "typealias".to_owned(),
+                    },
                     type_alias.span(),
                 )
                 .report(self.diagnostic_reporter, type_alias),

@@ -33,9 +33,8 @@ fn identifier_attribute_no_args() {
         .diagnostic_reporter;
 
     // Assert
-    let expected = [Error::new(ErrorKind::MissingRequiredArgument(
-        cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#,
-    ))];
+    let argument = cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#;
+    let expected = [Error::new(ErrorKind::MissingRequiredArgument { argument })];
     std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
 }
@@ -59,9 +58,9 @@ fn identifier_attribute_multiple_args() {
         .diagnostic_reporter;
 
     // Assert
-    let expected = [Error::new(ErrorKind::TooManyArguments(
-        cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#,
-    ))];
+    let expected = [Error::new(ErrorKind::TooManyArguments {
+        expected: cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#,
+    })];
     std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
 }
@@ -104,9 +103,8 @@ fn identifier_attribute_invalid_on_modules() {
         .unwrap_err()
         .diagnostic_reporter;
     // Assert
-    let expected = [Error::new(ErrorKind::UnexpectedAttribute(
-        cs_attributes::IDENTIFIER.to_owned(),
-    ))];
+    let attribute = cs_attributes::IDENTIFIER.to_owned();
+    let expected = [Error::new(ErrorKind::UnexpectedAttribute { attribute })];
     std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
 }
@@ -153,10 +151,10 @@ fn identifier_attribute_on_type_alias_fails() {
         .diagnostic_reporter;
 
     // Assert
-    let expected = [new_warning(WarningKind::InconsequentialUseOfAttribute(
-        cs_attributes::IDENTIFIER.to_owned(),
-        "typealias".to_owned(),
-    ))];
+    let expected = [new_warning(WarningKind::InconsequentialUseOfAttribute {
+        attribute: cs_attributes::IDENTIFIER.to_owned(),
+        kind: "typealias".to_owned(),
+    })];
     std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.to_string()));
 }

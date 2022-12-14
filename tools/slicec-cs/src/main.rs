@@ -116,8 +116,8 @@ fn try_main() -> CompilationResult {
 
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
-                    Err(err) => {
-                        Error::new(ErrorKind::IO(err)).report(&mut compilation_data.diagnostic_reporter);
+                    Err(error) => {
+                        Error::new(ErrorKind::IO { error }).report(&mut compilation_data.diagnostic_reporter);
                         continue;
                     }
                 }
