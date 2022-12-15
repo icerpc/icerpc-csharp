@@ -14,7 +14,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected bool IsServer { get; }
 
-    // Derived classes need to be able to set the connection closed exception with their mutex locked. We use an atomic
+    // Derived classes need to be able to set the "no connection exception" with their mutex locked. We use an atomic
     // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
     private protected IceRpcException? ConnectionClosedException
     {
@@ -52,8 +52,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_disposeTask is not null)
             {
-                Debug.Assert(ConnectionClosedException is not null);
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
             else if (ConnectionClosedException is not null)
             {

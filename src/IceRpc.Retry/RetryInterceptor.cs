@@ -106,10 +106,7 @@ public class RetryInterceptor : IInvoker
                             }
                             // else there is no replica to retry with
                         }
-                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
-                                 !decorator.IsRead ||
-                                 (exception is IceRpcException iceRpcException &&
-                                    iceRpcException.IceRpcError == IceRpcError.ConnectionClosed))
+                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) || !decorator.IsRead)
                         {
                             tryAgain = true;
                         }

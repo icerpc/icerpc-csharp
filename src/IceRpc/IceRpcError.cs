@@ -15,9 +15,7 @@ public enum IceRpcError
     /// such as an intermediary router going down.</summary>
     ConnectionAborted,
 
-    /// <summary>The connection was closed prior to the current call. This error typically occurs when an invoker such
-    /// as <see cref="ConnectionCache" /> calls <see cref="IInvoker.InvokeAsync" /> on a cached connection that was just
-    /// closed but not yet unregistered from the cache.</summary>
+    /// <summary>The connection is closed at the beginning of the call, but not yet disposed.</summary>
     ConnectionClosed,
 
     /// <summary>The peer closed the connection without reporting any error.</summary>
