@@ -13,8 +13,23 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportConformanceTests : MultiplexedTransportConformanceTests
 {
-    /// <summary>Creates the service collection used for Slic multiplexed transport conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection()
+    /// <summary>Creates the service collection used for Slic transport conformance testing.</summary>
+    protected override IServiceCollection CreateServiceCollection() =>
+        SlicTransportConformanceTestsServiceCollection.Create();
+}
+
+[Parallelizable(ParallelScope.All)]
+public class SlicListenerTransportConformanceTests : MultiplexedListenerTransportConformanceTests
+{
+    /// <summary>Creates the service collection used for Slic transport listener conformance testing.
+    /// </summary>
+    protected override IServiceCollection CreateServiceCollection() =>
+        SlicTransportConformanceTestsServiceCollection.Create();
+}
+
+internal static class SlicTransportConformanceTestsServiceCollection
+{
+    internal static IServiceCollection Create()
     {
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()

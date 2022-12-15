@@ -8,11 +8,25 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports;
 
-/// <summary>Conformance tests for the coloc duplex transport.</summary>
+/// <summary>Conformance tests for the coloc transport.</summary>
 [Parallelizable(ParallelScope.All)]
 public class ColocTransportConformanceTests : DuplexTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() =>
+        ColocTransportConformanceTestsServiceCollection.Create();
+}
+
+/// <summary>Conformance tests for the coloc transport listener.</summary>
+[Parallelizable(ParallelScope.All)]
+public class ColocListenerTransportConformanceTests : DuplexListenerTransportConformanceTests
+{
+    protected override IServiceCollection CreateServiceCollection() =>
+        ColocTransportConformanceTestsServiceCollection.Create();
+}
+
+internal static class ColocTransportConformanceTestsServiceCollection
+{
+    internal static IServiceCollection Create() =>
         new ServiceCollection()
             .AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/"))
             .AddColocTransport()

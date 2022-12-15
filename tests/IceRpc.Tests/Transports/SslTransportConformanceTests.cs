@@ -7,17 +7,32 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
 
-/// <summary>Conformance tests for the Ssl duplex transport.</summary>
+/// <summary>Conformance tests for the Ssl transport.</summary>
 [Parallelizable(ParallelScope.All)]
 public class SslTransportConformanceTests : TcpTransportConformanceTests
+{
+    protected override IServiceCollection CreateServiceCollection() =>
+        SslTransportConformanceTestsServiceCollection.Create();
+}
+
+/// <summary>Conformance tests for the Ssl transport listener.</summary>
+[Parallelizable(ParallelScope.All)]
+public class SslListenerTransportConformanceTests : TcpListenerTransportConformanceTests
+{
+    protected override IServiceCollection CreateServiceCollection() =>
+        SslTransportConformanceTestsServiceCollection.Create();
+}
+
+internal static class SslTransportConformanceTestsServiceCollection
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The transport conformance tests do not rely on certificate validation")]
-    protected override IServiceCollection CreateServiceCollection()
+
+    internal static IServiceCollection Create()
     {
-        var services = base.CreateServiceCollection();
+        var services = TcpTransportConformanceTestsServiceCollection.Create();
 
         services.AddSingleton(provider =>
             new SslClientAuthenticationOptions
@@ -29,7 +44,6 @@ public class SslTransportConformanceTests : TcpTransportConformanceTests
         {
             ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         });
-
         return services;
     }
 }

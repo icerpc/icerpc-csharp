@@ -8,8 +8,8 @@ namespace CompressExample;
 internal class Hello : Service, IHello
 {
     public ValueTask<string> SayHelloAsync(
-        string name, 
-        IFeatureCollection features, 
+        string name,
+        IFeatureCollection features,
         CancellationToken cancellationToken)
     {
         Console.WriteLine($"{name} says hello!");

@@ -18,7 +18,34 @@ namespace IceRpc.Tests.Transports;
 public class QuicTransportConformanceTests : MultiplexedTransportConformanceTests
 {
     [OneTimeSetUp]
-    public void FixtureSetUp()
+    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
+
+    /// <summary>Creates the service collection used for Quic multiplexed transports for conformance testing.</summary>
+    protected override IServiceCollection CreateServiceCollection() =>
+        QuicTransportConformanceTestsServiceCollection.Create();
+}
+
+[Parallelizable(ParallelScope.All)]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+public class QuicListenerTransportConformanceTests : MultiplexedListenerTransportConformanceTests
+{
+    [OneTimeSetUp]
+    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
+
+    /// <summary>Creates the service collection used for Quic listener multiplexed transports for conformance testing.
+    /// </summary>
+    protected override IServiceCollection CreateServiceCollection() =>
+        QuicTransportConformanceTestsServiceCollection.Create();
+}
+
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+internal static class QuicTransportConformanceTestsServiceCollection
+{
+    internal static void SetUp()
     {
         if (!QuicConnection.IsSupported)
         {
@@ -26,8 +53,7 @@ public class QuicTransportConformanceTests : MultiplexedTransportConformanceTest
         }
     }
 
-    /// <summary>Creates the service collection used for Quic multiplexed transports for conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection()
+    internal static IServiceCollection Create()
     {
         IServiceCollection services = new ServiceCollection()
             .AddSingleton<IMultiplexedServerTransport>(provider => new QuicServerTransport(
