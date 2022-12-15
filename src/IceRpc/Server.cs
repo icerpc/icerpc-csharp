@@ -314,12 +314,11 @@ public sealed class Server : IAsyncDisposable
                     (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
                         .ConfigureAwait(false);
 
-                    // We don't wait for the connection to be activated or shutdown. This could take a while
-                    // for some transports such as TLS based transports where the handshake requires few round
-                    // trips between the client and server. Waiting could also cause a security issue if the
-                    // client doesn't respond to the connection initialization as we wouldn't be able to accept
-                    // new connections in the meantime. The call will eventually timeout if the ConnectTimeout
-                    // expires.
+                    // We don't wait for the connection to be activated or shutdown. This could take a while for some
+                    // transports such as TLS based transports where the handshake requires few round trips between the
+                    // client and server. Waiting could also cause a security issue if the client doesn't respond to the
+                    // connection initialization as we wouldn't be able to accept new connections in the meantime. The
+                    // call will eventually timeout if the ConnectTimeout expires.
                     _ = Task.Run(
                         async () =>
                         {
@@ -329,7 +328,8 @@ public sealed class Server : IAsyncDisposable
                             }
                             catch
                             {
-                                // Ignore connection establishment failure.
+                                // Ignore connection establishment failure. This failures are log by the
+                                // LogConnectorDecorator
                             }
                             finally
                             {
