@@ -8,8 +8,12 @@ public enum ProtocolEventIds
     /// <summary>The protocol listener accepted a new connection.</summary>
     ConnectionAccepted,
 
-    /// <summary>The protocol listener failed to accept a new connection.</summary>
+    /// <summary>The protocol listener failed to accept a new connection. This is a fatal error.</summary>
     ConnectionAcceptFailed,
+
+    /// <summary>The protocol listener failed to accept a new connection but continues accepting more connections.
+    /// </summary>
+    ConnectionAcceptFailedAndContinue,
 
     /// <summary>The connection connect attempt succeed.</summary>
     ConnectionConnected,
