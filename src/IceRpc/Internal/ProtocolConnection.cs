@@ -52,8 +52,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             else if (_disposeTask is not null)
             {
-                Debug.Assert(ConnectionClosedException is not null);
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
             else if (ConnectionClosedException is not null)
             {

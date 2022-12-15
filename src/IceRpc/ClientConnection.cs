@@ -185,9 +185,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     return await connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (ObjectDisposedException exception) when (
-                    exception.InnerException is IceRpcException innerException &&
-                    innerException.IceRpcError == IceRpcError.ConnectionClosed)
+                catch (ObjectDisposedException)
                 {
                     // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
@@ -271,9 +269,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
                 }
-                catch (ObjectDisposedException exception) when (
-                    exception.InnerException is IceRpcException innerException &&
-                    innerException.IceRpcError == IceRpcError.ConnectionClosed)
+                catch (ObjectDisposedException)
                 {
                     // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.

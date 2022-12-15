@@ -238,9 +238,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                     return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
                 }
-                catch (ObjectDisposedException exception) when (
-                    exception.InnerException is IceRpcException innerException &&
-                    innerException.IceRpcError == IceRpcError.ConnectionClosed)
+                catch (ObjectDisposedException)
                 {
                     // This can occasionally happen if we find a connection that was just closed and then automatically
                     // disposed by this connection cache.
