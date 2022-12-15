@@ -6,9 +6,11 @@ namespace IceRpc.Transports.Internal;
 
 internal static class SocketExceptionExtensions
 {
-    /// <summary>Converts a socket error into a <see cref="IceRpcError" />.</summary>
-    internal static IceRpcError ToIceRpcError(this SocketError socketError) =>
-        socketError switch
+    /// <summary>Converts a SocketException into an <see cref="IceRpcException" />.</summary>
+    internal static IceRpcException ToIceRpcException(this SocketException exception, string? message = null, Exception? innerException = null)
+    {
+        innerException ??= exception;
+        IceRpcError errorCode = exception.SocketErrorCode switch
         {
             SocketError.AddressAlreadyInUse => IceRpcError.AddressInUse,
             SocketError.ConnectionAborted => IceRpcError.ConnectionAborted,
@@ -21,4 +23,6 @@ internal static class SocketExceptionExtensions
             SocketError.OperationAborted => IceRpcError.OperationAborted,
             _ => IceRpcError.IceRpcError
         };
+        return new IceRpcException(errorCode, message, innerException);
+    }
 }

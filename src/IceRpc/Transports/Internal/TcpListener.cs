@@ -110,7 +110,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         catch (SocketException exception)
         {
             _socket.Dispose();
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
+            throw exception.ToIceRpcException("The bind operation failed.");
         }
         catch
         {

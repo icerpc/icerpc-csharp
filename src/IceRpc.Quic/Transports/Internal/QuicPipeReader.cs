@@ -57,7 +57,7 @@ internal class QuicPipeReader : PipeReader
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The read operation failed.");
         }
         catch (ObjectDisposedException)
         {

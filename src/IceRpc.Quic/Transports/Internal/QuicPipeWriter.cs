@@ -154,7 +154,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The write operation failed.");
         }
         // We don't wrap other exceptions
 

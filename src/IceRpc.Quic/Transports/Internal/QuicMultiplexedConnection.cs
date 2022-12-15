@@ -38,7 +38,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The accept operation failed.");
         }
     }
 
@@ -55,7 +55,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The close operation failed.");
         }
     }
 
@@ -77,7 +77,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The stream creation failed.");
         }
 
         return new QuicMultiplexedStream(
@@ -108,7 +108,7 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException();
+            throw exception.ToIceRpcException("The connect operation failed.");
         }
 
         return new TransportConnectionInformation(

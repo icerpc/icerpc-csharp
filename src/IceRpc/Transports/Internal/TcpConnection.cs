@@ -79,13 +79,11 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception)
         {
-            throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
-                new IceRpcException(IceRpcError.IceRpcError, exception);
+            throw exception.ToIceRpcException("The read operation failed.");
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
+            throw exception.ToIceRpcException("The read operation failed.");
         }
 
         return received;
@@ -208,13 +206,11 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception)
         {
-            throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
-                new IceRpcException(IceRpcError.IceRpcError, exception);
+            throw exception.ToIceRpcException("The write operation failed.");
         }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
+            throw exception.ToIceRpcException("The write operation failed.");
         }
     }
 
@@ -266,28 +262,19 @@ internal class TcpClientConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-        }
-        catch (IOException exception)
-        {
-            throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
-                new IceRpcException(IceRpcError.IceRpcError, exception);
-        }
-        catch (SocketException exception)
-        {
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
-        }
 
-        try
-        {
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
+        catch (IOException exception)
+        {
+            throw exception.ToIceRpcException("The connect operation failed.");
+        }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
+            throw exception.ToIceRpcException("The connect operation failed.");
         }
     }
 
@@ -332,7 +319,7 @@ internal class TcpClientConnection : TcpConnection
         catch (SocketException exception)
         {
             Socket.Dispose();
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
+            throw exception.ToIceRpcException("The bind operation failed.");
         }
         catch
         {
@@ -368,28 +355,19 @@ internal class TcpServerConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-        }
-        catch (IOException exception)
-        {
-            throw exception.InnerException is SocketException socketException ?
-                new IceRpcException(socketException.SocketErrorCode.ToIceRpcError(), exception) :
-                new IceRpcException(IceRpcError.IceRpcError, exception);
-        }
-        catch (SocketException exception)
-        {
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
-        }
 
-        try
-        {
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
+        catch (IOException exception)
+        {
+            throw exception.ToIceRpcException("The connect operation failed.");
+        }
         catch (SocketException exception)
         {
-            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
+            throw exception.ToIceRpcException("The connect operation failed.");
         }
     }
 
