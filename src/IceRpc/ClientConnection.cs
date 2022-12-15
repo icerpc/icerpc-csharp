@@ -30,6 +30,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     throw new ObjectDisposedException($"{typeof(ClientConnection)}");
                 }
+                else if (_isClosed)
+                {
+                    throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
+                }
                 return _connection;
             }
         }
@@ -330,11 +334,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
+        IProtocolConnection connection;
         lock (_mutex)
         {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+            }
+
             _isClosed = true;
+            connection = _connection;
         }
-        return CurrentProtocolConnection.ShutdownAsync(cancellationToken);
+        return connection.ShutdownAsync(cancellationToken);
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
