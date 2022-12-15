@@ -189,10 +189,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     exception.InnerException is IceRpcException innerException &&
                     innerException.IceRpcError == IceRpcError.NoConnection)
                 {
-                    // This can occasionally happen if connection that was just closed and disposed by this
+                    // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
-                    // While this exception is usually thrown synchronously by IProtocolConnection.ConnectAsync, the
-                    // ConnectProtocolConnectionDecorator can make this throwing asynchronous.
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
                 {
@@ -206,7 +204,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             throw new IceRpcException(
                 IceRpcError.OperationAborted,
-                "ConnectAsync was aborted by a call to ShutdownAsync or DisposeAsync.");
+                "The connect operation was aborted by the shutdown or disposal of the connection.");
         }
     }
 
@@ -261,7 +259,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             throw new InvalidOperationException(
-                $"None of the server addresses of the request matches this connection's server address: {ServerAddress}");
+                $"None of the request's server addresses matches this connection's server address: {ServerAddress}");
         }
 
         async Task<IncomingResponse> PerformInvokeAsync(IProtocolConnection initialConnection)
@@ -277,10 +275,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     exception.InnerException is IceRpcException innerException &&
                     innerException.IceRpcError == IceRpcError.NoConnection)
                 {
-                    // This can occasionally happen if connection that was just closed and disposed by this
+                    // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
-                    // While this exception is usually thrown synchronously by IProtocolConnection.InvokeAsync, the
-                    // ConnectProtocolConnectionDecorator can make this throwing asynchronous.
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
                 {
