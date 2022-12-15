@@ -179,6 +179,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         async Task<TransportConnectionInformation> PerformConnectAsync(IProtocolConnection initialConnection)
         {
             IProtocolConnection? connection = initialConnection;
+            IceRpcException? connectionClosedException;
             do
             {
                 try
@@ -187,12 +188,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
+                    connectionClosedException = null;
                     // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // Same as above, except DisposeAsync was not called yet on this closed connection.
+                    connectionClosedException = exception;
                 }
                 // let other exceptions through
 
@@ -200,9 +203,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             while (connection is not null);
 
-            throw new IceRpcException(
-                IceRpcError.OperationAborted,
-                "The connect operation was aborted by the shutdown or disposal of the connection.");
+            if (connectionClosedException is null)
+            {
+                throw new IceRpcException(
+                    IceRpcError.OperationAborted,
+                    "The connect operation was aborted by the disposal of the client connection");
+            }
+            else
+            {
+                throw ExceptionUtil.Throw(connectionClosedException);
+            }
         }
     }
 
@@ -263,6 +273,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         async Task<IncomingResponse> PerformInvokeAsync(IProtocolConnection initialConnection)
         {
             IProtocolConnection? connection = initialConnection;
+            IceRpcException? connectionClosedException;
             do
             {
                 try
@@ -273,10 +284,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
+                    connectionClosedException = null;
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // Same as above, except DisposeAsync was not called yet on this closed connection.
+                    connectionClosedException = exception;
                 }
                 // let other exceptions through
 
@@ -284,9 +297,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             while (connection is not null);
 
-            throw new IceRpcException(
-                IceRpcError.OperationAborted,
-                "The invocation was aborted by the shutdown or the disposal of the connection.");
+            if (connectionClosedException is null)
+            {
+                throw new IceRpcException(
+                    IceRpcError.OperationAborted,
+                    "The invocation was aborted by the disposal of the connection.");
+            }
+            else
+            {
+                throw ExceptionUtil.Throw(connectionClosedException);
+            }
         }
     }
 
