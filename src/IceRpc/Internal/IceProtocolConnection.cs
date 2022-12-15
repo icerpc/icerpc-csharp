@@ -86,7 +86,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (_pingTask.IsCompletedSuccessfully)
                     {
-                        _pingTask = PingAsync(CancellationToken.None);
+                        _pingTask = PingAsync();
                     }
                 }
             });
@@ -98,7 +98,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         _payloadWriter = new IcePayloadPipeWriter(_duplexConnectionWriter);
 
-        async Task PingAsync(CancellationToken cancellationToken)
+        async Task PingAsync()
         {
             Debug.Assert(_duplexConnectionWriter is not null);
 
@@ -107,11 +107,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             try
             {
-                await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
                 try
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await _duplexConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
