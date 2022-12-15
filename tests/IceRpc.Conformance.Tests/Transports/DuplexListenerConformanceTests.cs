@@ -2,8 +2,10 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Net;
+using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
 
@@ -88,6 +90,80 @@ public abstract class DuplexListenerConformanceTests
         Assert.That(
             async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
             Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that connect fails if the listener is disposed.</summary>
+    [Test]
+    public async Task Connect_fails_if_listener_is_disposed()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+
+        // A duplex transport listener might use a backlog to accept client connections (e.g.: TCP). So we need to
+        // create and establish client connections until a connection establishment blocks to test cancellation.
+        Task<TransportConnectionInformation> connectTask;
+        IDuplexConnection clientConnection;
+        while (true)
+        {
+            IDuplexConnection? connection = clientTransport.CreateConnection(
+                listener.ServerAddress,
+                provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
+            try
+            {
+                connectTask = connection.ConnectAsync(default);
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                if (connectTask.IsCompleted)
+                {
+                    await connectTask;
+                }
+                else
+                {
+                    clientConnection = connection;
+                    connection = null;
+                    break;
+                }
+            }
+            finally
+            {
+                connection?.Dispose();
+            }
+        }
+
+        // Act
+        await listener.DisposeAsync();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
+        clientConnection.Dispose();
+    }
+
+    [Test]
+    public async Task Listen_twice_on_the_same_address_fails_with_a_transport_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
+
+        // Act/Assert
+        IceRpcException? exception = Assert.Throws<IceRpcException>(
+            () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.AddressInUse));
+    }
+
+    [Test]
+    public async Task Listener_server_address_transport_property_is_set()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var transport = provider.GetRequiredService<IDuplexClientTransport>().Name;
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+
+        // Act/Assert
+        Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
     /// <summary>Creates the service collection used for the duplex listener transport conformance tests.</summary>

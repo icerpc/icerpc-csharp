@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
-using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal;
 
