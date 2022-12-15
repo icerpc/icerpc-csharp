@@ -932,7 +932,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     catch (OperationCanceledException)
                     {
                         Debug.Assert(ConnectionClosedException is not null);
-                        return; // we're shutting down: we discard this request without dispatching it
+                        // and return below
                     }
                 }
 
@@ -940,7 +940,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (ConnectionClosedException is not null)
                     {
-                        return; // we're shutting down: we discard this request without dispatching it
+                        // We're shutting down and we discard this request before any processing.
+                        // For a graceful shutdown, we want the invocation in the peer to throw an
+                        // IceRpcException(OperationCanceledByShutdown) (meaning no dispatch at all), not a
+                        // DispatchException (which means at least part of the dispatch executed).
+                        return;
                     }
 
                     if (_invocationCount == 0 && _dispatchCount == 0)
@@ -1022,7 +1026,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     response = new OutgoingResponse(
                         request,
                         StatusCode.UnhandledException,
-                        "The dispatch was canceled.");
+                        "The dispatch was canceled by the closure of the connection.");
                 }
                 catch (Exception exception)
                 {

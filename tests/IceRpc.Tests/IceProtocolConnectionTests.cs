@@ -112,7 +112,7 @@ public sealed class IceProtocolConnectionTests
         IncomingResponse response = await invokeTask;
 
         // Assert
-        Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled."));
+        Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
     }
 
