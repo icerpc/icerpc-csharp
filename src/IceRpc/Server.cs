@@ -122,7 +122,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             listener = new MetricsConnectorListenerDecorator(listener);
-            listener = new AcceptFailureConnectorListenerDecorator(listener, logger ?? NullLogger.Instance);
+            listener = new LogAndRetryConnectorListenerDecorator(listener, logger ?? NullLogger.Instance);
             return listener;
         };
     }
@@ -516,7 +516,7 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" /> and retries
     /// accepts failures that represent a problem with the peer connection being accepted.</summary>
-    private class AcceptFailureConnectorListenerDecorator : IConnectorListener
+    private class LogAndRetryConnectorListenerDecorator : IConnectorListener
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -527,7 +527,7 @@ public sealed class Server : IAsyncDisposable
         {
             IConnector? connector = null;
             EndPoint? remoteNetworkAddress = null;
-            while (!cancellationToken.IsCancellationRequested)
+            while (true)
             {
                 try
                 {
@@ -536,30 +536,11 @@ public sealed class Server : IAsyncDisposable
                     _logger.LogConnectionAccepted(ServerAddress, remoteNetworkAddress);
                     break;
                 }
-                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-                {
-                    // Do not log this exception. The AcceptAsync call can fail with OperationCanceledException during
-                    // shutdown once the shutdown cancellation token is canceled.
-                    throw;
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Do not log this exception. The AcceptAsync call can fail with ObjectDisposedException during
-                    // shutdown once the listener is disposed.
-                    throw;
-                }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-                {
-                    // Do not log this exception. The AcceptAsync call can fail with OperationAborted during
-                    // shutdown if it is accepting a connection while the listener is disposed.
-                    throw;
-                }
-                catch (IceRpcException exception)
+                catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.OperationAborted)
                 {
                     // IceRpcException with an error code other than OperationAborted indicates a problem with
                     // the connection being accepted. We log the error and try to accept a new connection.
                     _logger.LogConnectionAcceptFailed(ServerAddress, exception);
-                    continue;
                 }
                 catch (AuthenticationException exception)
                 {
@@ -567,15 +548,12 @@ public sealed class Server : IAsyncDisposable
                     // throw AuthenticationException if the SSL handshake fails. We log the error and try to
                     // accept a new connection.
                     _logger.LogConnectionAcceptFailed(ServerAddress, exception);
-                    continue;
                 }
-                catch (Exception exception)
-                {
-                    _logger.LogConnectionAcceptFailed(ServerAddress, exception);
-                    throw;
-                }
+                // let other exceptions through
+
+                cancellationToken.ThrowIfCancellationRequested();
             }
-            cancellationToken.ThrowIfCancellationRequested();
+
             Debug.Assert(connector != null);
             Debug.Assert(remoteNetworkAddress != null);
             return (
@@ -589,7 +567,7 @@ public sealed class Server : IAsyncDisposable
             return _decoratee.DisposeAsync();
         }
 
-        internal AcceptFailureConnectorListenerDecorator(IConnectorListener decoratee, ILogger logger)
+        internal LogAndRetryConnectorListenerDecorator(IConnectorListener decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;
