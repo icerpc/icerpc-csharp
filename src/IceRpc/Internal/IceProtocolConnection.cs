@@ -219,7 +219,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
+                    await ReadFramesAsync().ConfigureAwait(false);
 
                     // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations and
                     // dispatches. Canceled invocations should not be aborted if the connection is gracefully closed.
@@ -671,8 +671,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         int size,
         DuplexConnectionReader transportConnectionReader,
         MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        CancellationToken cancellationToken)
+        int minimumSegmentSize)
     {
         var pipe = new Pipe(new PipeOptions(
             pool: pool,
@@ -685,7 +684,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             await transportConnectionReader.FillBufferWriterAsync(
                 pipe.Writer,
                 size,
-                cancellationToken).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
         }
         catch
         {
@@ -746,14 +745,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     }
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    private async ValueTask ReadFramesAsync(CancellationToken cancellationToken)
+    private async ValueTask ReadFramesAsync()
     {
         while (true)
         {
             ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
                 IceDefinitions.PrologueSize,
-                cancellationToken).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
 
             // First decode and check the prologue.
 
@@ -800,8 +798,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         prologue.FrameSize - IceDefinitions.PrologueSize,
                         _duplexConnectionReader,
                         _memoryPool,
-                        _minSegmentSize,
-                        cancellationToken).ConfigureAwait(false);
+                        _minSegmentSize).ConfigureAwait(false);
                     batchRequestReader.Complete();
                     break;
 
@@ -834,8 +831,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 replyFrameSize - IceDefinitions.PrologueSize,
                 _duplexConnectionReader,
                 _memoryPool,
-                _minSegmentSize,
-                cancellationToken).ConfigureAwait(false);
+                _minSegmentSize).ConfigureAwait(false);
 
             bool completeFrameReader = true;
 
@@ -882,8 +878,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 requestFrameSize - IceDefinitions.PrologueSize,
                 _duplexConnectionReader,
                 _memoryPool,
-                _minSegmentSize,
-                cancellationToken).ConfigureAwait(false);
+                _minSegmentSize).ConfigureAwait(false);
 
             // Decode its header.
             int requestId;
@@ -1004,15 +999,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
                 OutgoingResponse? response = null;
+                CancellationToken cancellationToken = _dispatchesAndInvocationsCts.Token;
                 try
                 {
                     // The dispatcher can complete the incoming request payload to release its memory as soon as
                     // possible.
                     try
                     {
-                        response = await _dispatcher.DispatchAsync(
-                            request,
-                            _dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                        response = await _dispatcher.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -1029,8 +1023,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     // ignored since we're not returning anything
                 }
-                catch (OperationCanceledException exception) when
-                    (exception.CancellationToken == _dispatchesAndInvocationsCts.Token)
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                 {
                     response = new OutgoingResponse(
                         request,
@@ -1097,9 +1090,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     int payloadSize = checked((int)payload.Length);
 
-                    // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue
-                    // to serialize the writing of frames.
-                    await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                    // Wait for writing of other frames to complete. The semaphore is used to serialize the writing of
+                    // frames.
+                    // We pass CancellationToken.None and not cancellationToken because we want to send the response
+                    // even when we're shutting down and cancellationToken is canceled. This can't take forever since
+                    // the closure of the transport connection causes the holder of this semaphore to fail and
+                    // release it.
+                    await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
                     acquiredSemaphore = true;
 
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
@@ -1110,7 +1107,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     FlushResult flushResult = await payloadWriter.WriteAsync(
                         payload,
                         endStream: false,
-                        cancellationToken).ConfigureAwait(false);
+                        CancellationToken.None).ConfigureAwait(false);
 
                     // If a payload writer decorator returns a canceled or completed flush result, we have to throw
                     // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a
@@ -1120,11 +1117,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw new NotSupportedException(
                             "A payload writer must not return a completed or canceled FlushResult with the ice protocol.");
                     }
-                }
-                catch (OperationCanceledException exception) when (
-                    exception.CancellationToken == cancellationToken)
-                {
-                    // expected
                 }
                 finally
                 {
