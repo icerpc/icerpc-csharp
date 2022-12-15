@@ -44,7 +44,7 @@ public static class Program
                         };
                     });
 
-                services.AddSingleton<IHello>(new Hello());
+                services.AddSingleton<IHello, Hello>();
 
                 // Add a server and configure the dispatcher using a dispatcher builder
                 services.AddIceRpcServer(
