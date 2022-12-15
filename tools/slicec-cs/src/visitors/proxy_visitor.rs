@@ -245,7 +245,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
                     .add_argument(
                         encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
                     )
-                    .add_argument(!stream_type.is_fixed_size())
+                    .add_argument(stream_type.fixed_wire_size().is_none())
                     .add_argument(encoding)
                     .add_argument("this.EncodeOptions")
                     .build(),
@@ -600,7 +600,10 @@ fn return_value_decode_func(operation: &Operation) -> CodeBlock {
     let members = operation.non_streamed_return_members();
     assert!(!members.is_empty());
 
-    if members.len() == 1 && get_bit_sequence_size(&members) == 0 && members.first().unwrap().tag.is_none() {
+    if members.len() == 1
+        && get_bit_sequence_size(operation.encoding, &members) == 0
+        && members.first().unwrap().tag.is_none()
+    {
         decode_func(members.first().unwrap().data_type(), namespace, operation.encoding)
     } else {
         format!(

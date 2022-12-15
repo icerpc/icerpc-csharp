@@ -20,11 +20,7 @@ pub fn decode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let bit_sequence_size = if encoding == Encoding::Slice1 {
-        0
-    } else {
-        get_bit_sequence_size(members)
-    };
+    let bit_sequence_size = get_bit_sequence_size(encoding, members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -169,7 +165,8 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, 
         );
     }
 
-    if encoding != Encoding::Slice1 && value_type.is_bit_sequence_encodable() {
+    // Use a bit sequence if encoding is not Slice1 and the value type is optional
+    if encoding != Encoding::Slice1 && value_type.is_optional {
         format!(
             "\
 decoder.DecodeDictionaryWithBitSequence(
@@ -213,7 +210,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
 
     if generic_attribute.is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.is_fixed_size() => {
+            Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.fixed_wire_size().is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
                 Some(format!(
@@ -245,7 +242,7 @@ decoder.DecodeSequence(
                 }
             }
             _ => {
-                if encoding != Encoding::Slice1 && element_type.is_bit_sequence_encodable() {
+                if encoding != Encoding::Slice1 && element_type.is_optional {
                     write!(
                         code,
                         "\
@@ -280,7 +277,7 @@ new {}(
                 CodeBlock::from(arg).indent(),
             );
         }
-    } else if encoding != Encoding::Slice1 && element_type.is_bit_sequence_encodable() {
+    } else if encoding != Encoding::Slice1 && element_type.is_optional {
         write!(
             code,
             "\
@@ -290,7 +287,7 @@ decoder.DecodeSequenceWithBitSequence(
         )
     } else {
         match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.is_fixed_size() => {
+            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() => {
                 write!(
                     code,
                     "decoder.DecodeSequence<{}>()",
@@ -431,11 +428,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 
     let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
 
-    let bit_sequence_size = if operation.encoding == Encoding::Slice1 {
-        0
-    } else {
-        get_bit_sequence_size(&non_streamed_members)
-    };
+    let bit_sequence_size = get_bit_sequence_size(operation.encoding, &non_streamed_members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -497,6 +490,7 @@ pub fn decode_operation_stream(
     let cs_encoding = encoding.to_cs_encoding();
     let param_type = stream_member.data_type();
     let param_type_str = param_type.cs_type_string(namespace, TypeContext::Decode, false);
+    let fixed_wire_size = param_type.fixed_wire_size();
 
     match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
@@ -506,10 +500,10 @@ pub fn decode_operation_stream(
             .arguments_on_newline(true)
             .add_argument(cs_encoding)
             .add_argument(decode_func(param_type, namespace, encoding).indent())
-            .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())
-            .add_argument_unless(dispatch || param_type.is_fixed_size(), "sender")
+            .add_argument_if(fixed_wire_size.is_some(), || fixed_wire_size.unwrap().to_string())
+            .add_argument_unless(dispatch || fixed_wire_size.is_some(), "sender")
             .add_argument_unless(
-                param_type.is_fixed_size(),
+                fixed_wire_size.is_some(),
                 "sliceFeature: request.Features.Get<IceRpc.Slice.ISliceFeature>()",
             )
             .build(),

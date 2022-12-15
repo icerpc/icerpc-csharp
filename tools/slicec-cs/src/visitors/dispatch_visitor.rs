@@ -316,8 +316,9 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
     let parameters = operation.non_streamed_parameters();
     assert!(!parameters.is_empty());
 
-    let use_default_decode_func =
-        parameters.len() == 1 && get_bit_sequence_size(&parameters) == 0 && parameters.first().unwrap().tag.is_none();
+    let use_default_decode_func = parameters.len() == 1
+        && get_bit_sequence_size(operation.encoding, &parameters) == 0
+        && parameters.first().unwrap().tag.is_none();
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();
@@ -579,7 +580,7 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
     {encode_options})",
                     encode_action =
                         encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
-                    use_segments = !stream_type.is_fixed_size(),
+                    use_segments = stream_type.fixed_wire_size().is_none(),
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
                 )
                 .into(),

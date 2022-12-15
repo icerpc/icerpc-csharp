@@ -20,11 +20,7 @@ pub fn encode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let bit_sequence_size = if encoding == Encoding::Slice1 {
-        0
-    } else {
-        get_bit_sequence_size(&required_members)
-    };
+    let bit_sequence_size = get_bit_sequence_size(encoding, &required_members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -184,62 +180,56 @@ fn encode_tagged_type(
     // For types with a known size, we provide a size parameter with the size of the tagged
     // param/member:
     let (size_parameter, count_value) = match data_type.concrete_type() {
-        Types::Primitive(primitive_def) if primitive_def.is_fixed_size() => {
-            if encoding == Encoding::Slice1 {
-                (None, None)
-            } else {
-                (Some(primitive_def.min_wire_size().to_string()), None)
-            }
-        }
-        Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
-            if primitive_def.is_unsigned_numeric() {
+        Types::Primitive(primitive_def) => match primitive_def {
+            Primitive::VarInt32 | Primitive::VarInt62 => {
                 (Some(format!("SliceEncoder.GetVarUInt62EncodedSize({value})")), None)
-            } else {
-                (Some(format!("SliceEncoder.GetVarInt62EncodedSize({value})")), None)
             }
-        }
-        Types::Struct(struct_def) if struct_def.is_fixed_size() => (Some(struct_def.min_wire_size().to_string()), None),
-        Types::Exception(exception_def) if exception_def.is_fixed_size() => {
-            (Some(exception_def.min_wire_size().to_string()), None)
-        }
-        Types::Enum(enum_def) => {
-            if let Some(underlying) = &enum_def.underlying {
-                (Some(underlying.min_wire_size().to_string()), None)
+            Primitive::VarUInt32 | Primitive::VarUInt62 => {
+                (Some(format!("SliceEncoder.GetVarUInt62EncodedSize({value})")), None)
+            }
+            _ if encoding == Encoding::Slice1 => (None, None),
+            _ => (primitive_def.fixed_wire_size().map(|s| s.to_string()), None),
+        },
+        Types::Struct(struct_def) => (struct_def.fixed_wire_size().map(|s| s.to_string()), None),
+        Types::Exception(exception_def) => (exception_def.fixed_wire_size().map(|s| s.to_string()), None),
+        Types::Enum(enum_def) => (enum_def.fixed_wire_size().map(|s| s.to_string()), None),
+        Types::Sequence(sequence_def) => {
+            if let Some(element_size) = sequence_def.element_type.fixed_wire_size() {
+                if element_size == 1 {
+                    (None, None)
+                } else if read_only_memory {
+                    (
+                        Some(format!(
+                            "{encoder_param}.GetSizeLength({value}.Length) + {element_size} * {value}.Length",
+                        )),
+                        None,
+                    )
+                } else {
+                    (
+                        Some(format!(
+                            "{encoder_param}.GetSizeLength(count_) + {element_size} * count_",
+                        )),
+                        Some(value.clone()),
+                    )
+                }
             } else {
                 (None, None)
             }
         }
-        Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() => {
-            if sequence_def.element_type.is_fixed_size() && sequence_def.element_type.min_wire_size() == 1 {
-                (None, None)
-            } else if read_only_memory {
+
+        Types::Dictionary(dictionary_def) => {
+            if let (Some(key_size), Some(value_size)) = (
+                dictionary_def.key_type.fixed_wire_size(),
+                dictionary_def.value_type.fixed_wire_size(),
+            ) {
+                let size = key_size + value_size;
                 (
-                    Some(format!(
-                        "{encoder_param}.GetSizeLength({value}.Length) + {min_wire_size} * {value}.Length",
-                        min_wire_size = sequence_def.element_type.min_wire_size(),
-                    )),
-                    None,
-                )
-            } else {
-                (
-                    Some(format!(
-                        "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
-                        min_wire_size = sequence_def.element_type.min_wire_size(),
-                    )),
+                    Some(format!("{encoder_param}.GetSizeLength(count_) + ({size}) * count_",)),
                     Some(value.clone()),
                 )
+            } else {
+                (None, None)
             }
-        }
-        Types::Dictionary(dictionary_def)
-            if dictionary_def.key_type.is_fixed_size() && dictionary_def.value_type.is_fixed_size() =>
-        {
-            let min_wire_size = dictionary_def.key_type.min_wire_size() + dictionary_def.value_type.min_wire_size();
-            (
-                Some(format!(
-                    "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_"
-                )),
-                Some(value.clone()),
-            )
         }
         _ => (None, None),
     };
@@ -307,7 +297,7 @@ fn encode_sequence(
 {encoder_param}.EncodeSequence{with_bit_sequence}(
     {value},
     {encode_action})",
-            with_bit_sequence = if encoding != Encoding::Slice1 && element_type.is_bit_sequence_encodable() {
+            with_bit_sequence = if encoding != Encoding::Slice1 && element_type.is_optional {
                 "WithBitSequence"
             } else {
                 ""
@@ -333,7 +323,7 @@ fn encode_dictionary(
     {param},
     {encode_key},
     {encode_value})",
-        method = if encoding != Encoding::Slice1 && value_type.is_bit_sequence_encodable() {
+        method = if encoding != Encoding::Slice1 && value_type.is_optional {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
@@ -453,11 +443,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
 
     let (required_members, tagged_members) = get_sorted_members(&members);
 
-    let bit_sequence_size = if operation.encoding == Encoding::Slice1 {
-        0
-    } else {
-        get_bit_sequence_size(&members)
-    };
+    let bit_sequence_size = get_bit_sequence_size(operation.encoding, &members);
 
     if bit_sequence_size > 0 {
         writeln!(
