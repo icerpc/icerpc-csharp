@@ -17,7 +17,7 @@ public class ColocConnectionConformanceTests : DuplexConnectionConformanceTests
 
 /// <summary>Conformance tests for the coloc transport listener.</summary>
 [Parallelizable(ParallelScope.All)]
-public class ColocListenerConformanceTests : DuplexListenerTransportConformanceTests
+public class ColocListenerConformanceTests : DuplexListenerConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseColoc();
 }

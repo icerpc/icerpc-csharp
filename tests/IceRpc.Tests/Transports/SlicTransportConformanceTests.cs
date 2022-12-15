@@ -18,7 +18,7 @@ public class SlicConnectionConformanceTests : MultiplexedConnectionConformanceTe
 }
 
 [Parallelizable(ParallelScope.All)]
-public class SlicListenerConformanceTests : MultiplexedListenerTransportConformanceTests
+public class SlicListenerConformanceTests : MultiplexedListenerConformanceTests
 {
     /// <summary>Creates the service collection used for Slic transport listener conformance testing.
     /// </summary>

@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Transports;
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-public class QuicTransportConformanceTests : MultiplexedConnectionConformanceTests
+public class QuiConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     [OneTimeSetUp]
     public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
@@ -28,7 +28,7 @@ public class QuicTransportConformanceTests : MultiplexedConnectionConformanceTes
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-public class QuicListenerTransportConformanceTests : MultiplexedListenerTransportConformanceTests
+public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
 {
     [OneTimeSetUp]
     public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();

@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the multiplexed transports.</summary>
-public abstract class MultiplexedListenerTransportConformanceTests
+public abstract class MultiplexedListenerConformanceTests
 {
     [Test]
     public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()

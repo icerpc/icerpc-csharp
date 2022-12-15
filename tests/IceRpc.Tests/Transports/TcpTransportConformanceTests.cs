@@ -17,7 +17,7 @@ public class TcpConnectionConformanceTests : DuplexConnectionConformanceTests
 
 /// <summary>Conformance tests for the tcp transport listener.</summary>
 [Parallelizable(ParallelScope.All)]
-public class TcpListenerConformanceTests : DuplexListenerTransportConformanceTests
+public class TcpListenerConformanceTests : DuplexListenerConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseTcp();
 }

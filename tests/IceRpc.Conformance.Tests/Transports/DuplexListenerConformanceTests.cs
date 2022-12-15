@@ -8,7 +8,7 @@ using System.Net;
 namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the duplex transports.</summary>
-public abstract class DuplexListenerTransportConformanceTests
+public abstract class DuplexListenerConformanceTests
 {
     [Test]
     public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
