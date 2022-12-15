@@ -290,7 +290,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             throw new IceRpcException(
                 IceRpcError.OperationAborted,
-                "InvokeAsync was aborted by a call to ShutdownAsync or DisposeAsync.");
+                "The invocation was aborted by the shutdown or the disposal of the connection.");
         }
     }
 
