@@ -885,6 +885,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             IceRequestHeader requestHeader;
             PipeReader? contextReader = null;
             IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
+            Task? dispatchTask = null;
 
             try
             {
@@ -931,7 +932,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     catch (OperationCanceledException)
                     {
                         Debug.Assert(ConnectionClosedException is not null);
-                        throw ConnectionClosedException;
+                        return; // we're shutting down: we discard this request without dispatching it
                     }
                 }
 
@@ -939,7 +940,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (ConnectionClosedException is not null)
                     {
-                        throw ConnectionClosedException;
+                        return; // we're shutting down: we discard this request without dispatching it
                     }
 
                     if (_invocationCount == 0 && _dispatchCount == 0)
@@ -948,53 +949,46 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     ++_dispatchCount;
                 }
-            }
-            catch (Exception exception)
-            {
-                requestFrameReader.Complete();
-                contextReader?.Complete();
-                if (exception == ConnectionClosedException)
-                {
-                    // Don't throw if the connection is being shutdown. Throwing would trigger the connection closure
-                    // and prevent dispatches from completing. It would also prevent the sending of the CloseConnection
-                    // frame once the dispatches complete.
-                    return;
-                }
-                else
-                {
-                    throw;
-                }
-            }
 
-            // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
-            // cleanup the dispatch if DisposeAsync is called.
-            _ = Task.Run(
-                async () =>
+                // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
+                // cleanup the dispatch if DisposeAsync is called.
+                // dispatchTask takes ownership of the requestFrameReader and contextReader.
+                dispatchTask = Task.Run(
+                    async () =>
+                    {
+                        using var request = new IncomingRequest(_connectionContext!)
+                        {
+                            Fields = fields,
+                            Fragment = requestHeader.Fragment,
+                            IsOneway = requestId == 0,
+                            Operation = requestHeader.Operation,
+                            Path = requestHeader.Path,
+                            Payload = requestFrameReader,
+                        };
+                        try
+                        {
+                            await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
+                        }
+                        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                        {
+                            // This can occur when the connection is disposed while we're sending a response.
+                        }
+                        catch (Exception exception)
+                        {
+                            _faultedTaskAction(exception);
+                            throw;
+                        }
+                    },
+                    CancellationToken.None);
+            }
+            finally
+            {
+                if (dispatchTask is null)
                 {
-                    using var request = new IncomingRequest(_connectionContext!)
-                    {
-                        Fields = fields,
-                        Fragment = requestHeader.Fragment,
-                        IsOneway = requestId == 0,
-                        Operation = requestHeader.Operation,
-                        Path = requestHeader.Path,
-                        Payload = requestFrameReader,
-                    };
-                    try
-                    {
-                        await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
-                    }
-                    catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-                    {
-                        // This can occur when the connection is disposed while we're sending a response.
-                    }
-                    catch (Exception exception)
-                    {
-                        _faultedTaskAction(exception);
-                        throw;
-                    }
-                },
-                CancellationToken.None);
+                    requestFrameReader.Complete();
+                    contextReader?.Complete();
+                }
+            }
 
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
