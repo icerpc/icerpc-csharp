@@ -20,6 +20,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
+    private IProtocolConnection CurrentProtocolConnection
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                if (_isDisposed)
+                {
+                    throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+                }
+                return _connection;
+            }
+        }
+    }
+
     // The underlying protocol connection
     private IProtocolConnection _connection;
 
@@ -159,11 +174,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
-        lock (_mutex)
-        {
-            ThrowIfDisposed();
-            return PerformConnectAsync(_connection);
-        }
+        return PerformConnectAsync(CurrentProtocolConnection);
 
         async Task<TransportConnectionInformation> PerformConnectAsync(IProtocolConnection initialConnection)
         {
@@ -202,12 +213,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
     {
+        IProtocolConnection connection;
         lock (_mutex)
         {
             _isClosed = true;
             _isDisposed = true;
-            return _connection.DisposeAsync();
+            connection = _connection;
         }
+        return connection.DisposeAsync();
     }
 
     /// <inheritdoc/>
@@ -228,11 +241,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         // It's ok if the request has no server address at all.
 
-        lock (_mutex)
-        {
-            ThrowIfDisposed();
-            return PerformInvokeAsync(_connection);
-        }
+        return PerformInvokeAsync(CurrentProtocolConnection);
 
         void CheckRequestServerAddresses(
             ServerAddress mainServerAddress,
@@ -309,13 +318,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
-
         lock (_mutex)
         {
             _isClosed = true;
-            return _connection.ShutdownAsync(cancellationToken);
         }
+        return CurrentProtocolConnection.ShutdownAsync(cancellationToken);
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection, or null if ClientConnection is no longer
@@ -339,14 +346,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
 
         return newConnection;
-    }
-
-    private void ThrowIfDisposed()
-    {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-        }
     }
 
     // A decorator that awaits a cleanup task (= previous connection cleanup) in ConnectAsync and DisposeAsync.
