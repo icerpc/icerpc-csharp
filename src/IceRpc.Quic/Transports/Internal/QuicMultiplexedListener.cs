@@ -21,37 +21,26 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
     public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        QuicConnection connection;
-        while (true)
+        try
         {
-            try
-            {
-                connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
-                break;
-            }
-            catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted)
-            {
-                // Listener was disposed while the accept operation was in progress.
-                throw new IceRpcException(IceRpcError.OperationAborted, exception);
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-            {
-                // WORKAROUND QuicListener TLS handshake internal timeout.
-                // TODO rework depending on the resolution of:
-                // - https://github.com/dotnet/runtime/issues/78096
-            }
-            catch (QuicException)
-            {
-                // There was a problem establishing the connection.
-                // TODO Log this exception
-            }
-            catch (AuthenticationException)
-            {
-                // The connection was rejected due to an authentication exception.
-                // TODO Log this exception
-            }
+            QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
+            return (
+                new QuicMultiplexedServerConnection(ServerAddress, connection, _options),
+                connection.RemoteEndPoint);
         }
-        return (new QuicMultiplexedServerConnection(ServerAddress, connection, _options), connection.RemoteEndPoint);
+        catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+        {
+            // WORKAROUND QuicListener TLS handshake internal timeout.
+            // TODO rework depending on the resolution of:
+            // - https://github.com/dotnet/runtime/issues/78096
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                "The QuicListener failed due to TLS handshake internal timeout.");
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
     }
 
     public ValueTask DisposeAsync() => _listener.DisposeAsync();

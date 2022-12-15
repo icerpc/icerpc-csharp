@@ -19,33 +19,21 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        while (true)
+        try
         {
-            try
-            {
-                Socket acceptedSocket = await _socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
+            Socket acceptedSocket = await _socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
-                var tcpConnection = new TcpServerConnection(
-                    ServerAddress,
-                    acceptedSocket,
-                    _authenticationOptions,
-                    _pool,
-                    _minSegmentSize);
-                return (tcpConnection, acceptedSocket.RemoteEndPoint!);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (SocketException exception) when (exception.SocketErrorCode == SocketError.OperationAborted)
-            {
-                // Listener was disposed while the accept operation was in progress.
-                throw new IceRpcException(IceRpcError.OperationAborted, exception);
-            }
-            catch (SocketException)
-            {
-                // If the connection was reset while in the backlog, retry.
-            }
+            var tcpConnection = new TcpServerConnection(
+                ServerAddress,
+                acceptedSocket,
+                _authenticationOptions,
+                _pool,
+                _minSegmentSize);
+            return (tcpConnection, acceptedSocket.RemoteEndPoint!);
+        }
+        catch (SocketException exception)
+        {
+            throw new IceRpcException(exception.SocketErrorCode.ToIceRpcError(), exception);
         }
     }
 

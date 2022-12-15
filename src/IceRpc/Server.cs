@@ -3,8 +3,11 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc;
 
@@ -119,10 +122,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             listener = new MetricsConnectorListenerDecorator(listener);
-            if (logger is not null)
-            {
-                listener = new LogConnectorListenerDecorator(listener, logger);
-            }
+            listener = new AcceptFailureConnectorListenerDecorator(listener, logger ?? NullLogger.Instance);
             return listener;
         };
     }
@@ -307,9 +307,10 @@ public sealed class Server : IAsyncDisposable
                     _maxPendingConnections,
                     _maxPendingConnections);
 
-                while (true)
+                while (!shutdownCancellationToken.IsCancellationRequested)
                 {
                     await pendingConnectionSemaphore.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+
                     (IConnector connector, _) = await listener.AcceptAsync(shutdownCancellationToken)
                         .ConfigureAwait(false);
 
@@ -327,7 +328,8 @@ public sealed class Server : IAsyncDisposable
                             }
                             catch
                             {
-                                // Ignore connection establishment failure.
+                                // Ignore connection establishment failure. This failures are logged by the
+                                // LogConnectorDecorator
                             }
                             finally
                             {
@@ -348,6 +350,11 @@ public sealed class Server : IAsyncDisposable
             {
                 // The AcceptAsync call can fail with OperationCanceledException during shutdown once the shutdown
                 // cancellation token is canceled.
+            }
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+            {
+                // The AcceptAsync call can fail with OperationAborted during shutdown if it is accepting a connection
+                // while the listener is disposed.
             }
             catch (Exception exception)
             {
@@ -507,8 +514,9 @@ public sealed class Server : IAsyncDisposable
     /// <inheritdoc/>
     public override string ToString() => ServerAddress.ToString();
 
-    /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" />.</summary>
-    private class LogConnectorListenerDecorator : IConnectorListener
+    /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" /> and retries
+    /// accepts failures that represent a problem with the peer connection being accepted.</summary>
+    private class AcceptFailureConnectorListenerDecorator : IConnectorListener
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -517,37 +525,62 @@ public sealed class Server : IAsyncDisposable
 
         public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
         {
-            try
+            IConnector? connector = null;
+            EndPoint? remoteNetworkAddress = null;
+            while (!cancellationToken.IsCancellationRequested)
             {
-                (IConnector connector, EndPoint remoteNetworkAddress) =
-                    await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                _logger.LogConnectionAccepted(ServerAddress, remoteNetworkAddress);
-                return (
-                    new LogConnectorDecorator(
-                        connector,
-                        ServerAddress,
-                        remoteNetworkAddress,
-                        _logger),
-                    remoteNetworkAddress);
+                try
+                {
+                    (connector, remoteNetworkAddress) = await _decoratee.AcceptAsync(cancellationToken)
+                        .ConfigureAwait(false);
+                    _logger.LogConnectionAccepted(ServerAddress, remoteNetworkAddress);
+                    break;
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+                {
+                    // Do not log this exception. The AcceptAsync call can fail with OperationCanceledException during
+                    // shutdown once the shutdown cancellation token is canceled.
+                    throw;
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Do not log this exception. The AcceptAsync call can fail with ObjectDisposedException during
+                    // shutdown once the listener is disposed.
+                    throw;
+                }
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                {
+                    // Do not log this exception. The AcceptAsync call can fail with OperationAborted during
+                    // shutdown if it is accepting a connection while the listener is disposed.
+                    throw;
+                }
+                catch (IceRpcException exception)
+                {
+                    // IceRpcException with an error code other than OperationAborted indicates a problem with
+                    // the connection being accepted. We log the error and try to accept a new connection.
+                    _logger.LogConnectionAcceptFailed(ServerAddress, exception);
+                    continue;
+                }
+                catch (AuthenticationException exception)
+                {
+                    // Transports such as Quic do the SSL handshake when the connection is accepted, this can
+                    // throw AuthenticationException if the SSL handshake fails. We log the error and try to
+                    // accept a new connection.
+                    _logger.LogConnectionAcceptFailed(ServerAddress, exception);
+                    continue;
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogConnectionAcceptFailed(ServerAddress, exception);
+                    throw;
+                }
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-            {
-                throw;
-            }
-            catch (ObjectDisposedException)
-            {
-                throw;
-            }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-            {
-                // Listener was disposed while the accept operation was in progress.
-                throw;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogConnectionAcceptFailed(ServerAddress, exception);
-                throw;
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(connector != null);
+            Debug.Assert(remoteNetworkAddress != null);
+            return (
+                new LogConnectorDecorator(connector, ServerAddress, remoteNetworkAddress, _logger),
+                remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync()
@@ -556,7 +589,7 @@ public sealed class Server : IAsyncDisposable
             return _decoratee.DisposeAsync();
         }
 
-        internal LogConnectorListenerDecorator(IConnectorListener decoratee, ILogger logger)
+        internal AcceptFailureConnectorListenerDecorator(IConnectorListener decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;

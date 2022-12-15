@@ -29,7 +29,7 @@ public class QuicTransportTests
     }
 
     [Test]
-    public async Task Listener_accepts_new_connection_after_client_certificate_validation_callback_rejects_the_connection()
+    public async Task Listener_accept_fails_after_client_certificate_validation_callback_rejects_the_connection()
     {
         // Arrange
         int connectionNum = 0;
@@ -42,17 +42,15 @@ public class QuicTransportTests
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
-        QuicMultiplexedConnection connection1 = CreateClientConnection();
-        QuicMultiplexedConnection connection2 = CreateClientConnection();
+        QuicMultiplexedConnection connection = CreateClientConnection();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
         // Act
         var acceptTask = listener.AcceptAsync(default);
 
         // Assert
-        Assert.That(async () => await connection1.ConnectAsync(default), Throws.TypeOf<AuthenticationException>());
-        Assert.That(async () => await connection2.ConnectAsync(default), Throws.Nothing);
-        Assert.That(async () => await acceptTask, Throws.Nothing);
+        Assert.That(async () => await connection.ConnectAsync(default), Throws.TypeOf<AuthenticationException>());
+        Assert.That(async () => await acceptTask, Throws.TypeOf<AuthenticationException>());
 
         QuicMultiplexedConnection CreateClientConnection() =>
             (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
