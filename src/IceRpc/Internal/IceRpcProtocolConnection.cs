@@ -76,7 +76,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override void CancelDispatchesAndInvocations()
     {
-        Debug.Assert(NoConnectionException is not null);
+        Debug.Assert(ConnectionClosedException is not null);
 
         if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
@@ -148,8 +148,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ServerBusy)
         {
-            NoConnectionException = new IceRpcException(
-                IceRpcError.NoConnection,
+            ConnectionClosedException = new IceRpcException(
+                IceRpcError.ConnectionClosed,
                 "The connection establishment failed because the server is busy.");
             throw;
         }
@@ -314,7 +314,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 {
                                     lock (_mutex)
                                     {
-                                        if (--_dispatchCount == 0 && NoConnectionException is not null)
+                                        if (--_dispatchCount == 0 && ConnectionClosedException is not null)
                                         {
                                             _ = _dispatchesCompleted.TrySetResult();
                                         }
@@ -417,8 +417,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch (ObjectDisposedException)
         {
-            Debug.Assert(NoConnectionException is not null);
-            throw NoConnectionException;
+            Debug.Assert(ConnectionClosedException is not null);
+            throw ConnectionClosedException;
         }
         catch
         {
@@ -431,12 +431,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             lock (_mutex)
             {
-                if (NoConnectionException is not null)
+                if (ConnectionClosedException is not null)
                 {
                     // Don't process the invocation if the connection is in the process of shutting down or it's already
                     // closed.
                     invocationCts.Dispose();
-                    throw NoConnectionException;
+                    throw ConnectionClosedException;
                 }
 
                 if (++_streamCount == 1)
@@ -488,7 +488,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             lock (_mutex)
             {
-                if (NoConnectionException is null)
+                if (ConnectionClosedException is null)
                 {
                     // We received a response, it's no longer a pending invocation.
                     _ = _pendingInvocations.Remove(stream);
@@ -536,8 +536,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
 
                 // Shutdown canceled the request because the peer didn't dispatch it.
-                Debug.Assert(NoConnectionException is not null);
-                throw NoConnectionException;
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
             }
         }
         finally
@@ -597,7 +597,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
         {
-            Debug.Assert(NoConnectionException is not null);
+            Debug.Assert(ConnectionClosedException is not null);
             if (_streamCount == 0)
             {
                 _streamsClosed.TrySetResult();
@@ -1108,9 +1108,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.
-        if (NoConnectionException is null)
+        if (ConnectionClosedException is null)
         {
-            NoConnectionException = new IceRpcException(IceRpcError.NoConnection, message, exception);
+            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
             var rpcException = exception as IceRpcException;
             if (exception is not null && rpcException is null)
             {
@@ -1228,14 +1228,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && NoConnectionException is null)
+            if (!stream.IsRemote && ConnectionClosedException is null)
             {
                 _ = _pendingInvocations.Remove(stream);
             }
 
             if (--_streamCount == 0)
             {
-                if (NoConnectionException is null)
+                if (ConnectionClosedException is null)
                 {
                     EnableIdleCheck();
                 }

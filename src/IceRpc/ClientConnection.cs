@@ -187,12 +187,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException exception) when (
                     exception.InnerException is IceRpcException innerException &&
-                    innerException.IceRpcError == IceRpcError.NoConnection)
+                    innerException.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // Same as above, except DisposeAsync was not called yet on this closed connection.
                 }
@@ -273,12 +273,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException exception) when (
                     exception.InnerException is IceRpcException innerException &&
-                    innerException.IceRpcError == IceRpcError.NoConnection)
+                    innerException.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // This can occasionally happen if the connection was just closed and disposed by this
                     // ClientConnection.
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.NoConnection)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
                     // Same as above, except DisposeAsync was not called yet on this closed connection.
                 }
