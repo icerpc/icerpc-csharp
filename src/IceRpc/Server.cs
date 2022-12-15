@@ -328,7 +328,7 @@ public sealed class Server : IAsyncDisposable
                             }
                             catch
                             {
-                                // Ignore connection establishment failure. This failures are log by the
+                                // Ignore connection establishment failure. This failures are logged by the
                                 // LogConnectorDecorator
                             }
                             finally
