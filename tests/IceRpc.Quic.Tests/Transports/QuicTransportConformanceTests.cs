@@ -15,10 +15,35 @@ namespace IceRpc.Tests.Transports;
 [System.Runtime.Versioning.SupportedOSPlatform("macOS")]
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-public class QuicTransportConformanceTests : MultiplexedTransportConformanceTests
+public class QuiConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     [OneTimeSetUp]
-    public void FixtureSetUp()
+    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
+
+    /// <summary>Creates the service collection used for Quic multiplexed transports for conformance testing.</summary>
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
+}
+
+[Parallelizable(ParallelScope.All)]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
+{
+    [OneTimeSetUp]
+    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
+
+    /// <summary>Creates the service collection used for Quic listener multiplexed transports for conformance testing.
+    /// </summary>
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
+}
+
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+internal static class QuicTransportConformanceTestsServiceCollection
+{
+    internal static void SetUp()
     {
         if (!QuicConnection.IsSupported)
         {
@@ -26,10 +51,9 @@ public class QuicTransportConformanceTests : MultiplexedTransportConformanceTest
         }
     }
 
-    /// <summary>Creates the service collection used for Quic multiplexed transports for conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection()
+    internal static IServiceCollection UseQuic(this IServiceCollection serviceCollection)
     {
-        IServiceCollection services = new ServiceCollection()
+        IServiceCollection services = serviceCollection
             .AddSingleton<IMultiplexedServerTransport>(provider => new QuicServerTransport(
                 provider.GetRequiredService<IOptions<QuicServerTransportOptions>>().Value))
             .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport(
