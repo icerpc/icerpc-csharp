@@ -6,9 +6,9 @@ using IceRpc.Slice;
 namespace AuthorizationExample;
 
 /// <summary>The implementation of the IHello service.</summary>
-public class Hello : Service, IHello
+internal class Hello : Service, IHello
 {
-    public string Greeting { get; internal set; } = "Hello";
+    internal string Greeting { get; set; } = "Hello";
 
     public ValueTask<string> SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {

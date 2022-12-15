@@ -5,13 +5,13 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using System.Security.Cryptography;
 
-namespace Demo;
+namespace RetryExample;
 
-public class Hello : Service, IHello
+internal class Hello : Service, IHello
 {
     private readonly int _serverNumber;
 
-    public Hello(int serverNumber) => _serverNumber = serverNumber;
+    internal Hello(int serverNumber) => _serverNumber = serverNumber;
 
     public ValueTask<string> SayHelloAsync(
         string name,

@@ -3,13 +3,13 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace Demo;
+namespace OpenTelemetryExample;
 
-public class Hello : Service, IHello
+internal class Hello : Service, IHello
 {
     private readonly ICrmProxy _crm;
 
-    public Hello(ICrmProxy crm) => _crm = crm;
+    internal Hello(ICrmProxy crm) => _crm = crm;
 
     public async ValueTask<string> SayHelloAsync(
         string name,

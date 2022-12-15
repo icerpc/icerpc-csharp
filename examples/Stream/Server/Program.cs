@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
+using StreamExample;
 
 using var cts = new CancellationTokenSource();
 await using var server = new Server(new NumberStream());

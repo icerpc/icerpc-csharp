@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
+using HelloExample;
 using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));

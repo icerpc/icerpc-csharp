@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
+using HelloSecureExample;
 using IceRpc;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;

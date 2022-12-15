@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
+using MetricsExample;
 using IceRpc;
 
 // Establish the connection to the server

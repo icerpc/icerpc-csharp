@@ -4,9 +4,9 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using System.IO.Pipelines;
 
-namespace Demo;
+namespace DownloadExample;
 
-public class Downloader : Service, IDownloader
+internal class Downloader : Service, IDownloader
 {
     public ValueTask<PipeReader> DownloadImageAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {

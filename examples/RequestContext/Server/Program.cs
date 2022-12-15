@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
+using RequestContextExample;
 
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router().UseRequestContext();

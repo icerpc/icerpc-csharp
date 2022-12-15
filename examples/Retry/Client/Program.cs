@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
 using IceRpc;
 using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
+using RetryExample;
 
 if (args.Length < 1)
 {

@@ -3,9 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace Demo;
+namespace MetricsExample;
 
-public class Hello : Service, IHello
+internal class Hello : Service, IHello
 {
     private volatile int _totalRequests;
     private bool _hasOutput;

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Demo;
+using CompressExample;
 using IceRpc;
 
 // Add the compressor middleware to the dispatch pipeline.
