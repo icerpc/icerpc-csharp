@@ -86,10 +86,19 @@ internal class SlicStream : IMultiplexedStream
             Debug.Fail($"Slic stream disposal failed due to an unhandled exception: {exception}");
         }
 
-        // Ensure reads and writes are completed. This must be checked after awaiting the tasks above since the reads
-        // or writes closed tasks might complete the reads or writes.
-        Debug.Assert(ReadsCompleted, $"The stream read side must be closed prior to calling {nameof(DisposeAsync)}.");
-        Debug.Assert(WritesCompleted, $"The stream write side must be closed prior to calling {nameof(DisposeAsync)}.");
+        // Abort reads and writes if reads and writes are not closed and ensure that the input pipe reader and output
+        // pipe writer operations fail with OperationAborted.
+        var abortException = new IceRpcException(IceRpcError.OperationAborted);
+        if (!ReadsCompleted)
+        {
+            AbortRead();
+            _inputPipeReader?.Abort(abortException);
+        }
+        if (!WritesCompleted)
+        {
+            AbortWrite();
+            _outputPipeWriter?.Abort(abortException);
+        }
     }
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)

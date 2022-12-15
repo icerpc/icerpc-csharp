@@ -40,16 +40,23 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
             _isCompleted = true;
 
-            if (exception is null)
+            try
             {
-                // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
-                // buffered for send on the Quic stream and aborting the stream would discard this data.
-                _stream.CompleteWrites();
+                if (exception is null)
+                {
+                    // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
+                    // buffered for send on the Quic stream and aborting the stream would discard this data.
+                    _stream.CompleteWrites();
+                }
+                else
+                {
+                    // The error code is irrelevant.
+                    _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
+                }
             }
-            else
+            catch (ObjectDisposedException)
             {
-                // The error code is irrelevant.
-                _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
+                // Expected if the stream has been disposed.
             }
 
             _pipe.Writer.Complete();
@@ -151,27 +158,36 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
         // We don't wrap other exceptions
 
-        ValueTask WriteSequenceAsync(
+        async ValueTask WriteSequenceAsync(
             ReadOnlySequence<byte> sequence,
             bool completeWrites,
             CancellationToken cancellationToken)
         {
-            return sequence.IsSingleSegment ?
-                _stream.WriteAsync(sequence.First, completeWrites, cancellationToken) : PerformWriteSequenceAsync();
-
-            async ValueTask PerformWriteSequenceAsync()
+            try
             {
-                var enumerator = sequence.GetEnumerator();
-                bool hasMore = enumerator.MoveNext();
-                Debug.Assert(hasMore);
-                do
+                if (sequence.IsSingleSegment)
                 {
-                    ReadOnlyMemory<byte> buffer = enumerator.Current;
-                    hasMore = enumerator.MoveNext();
-                    await _stream.WriteAsync(buffer, completeWrites: completeWrites && !hasMore, cancellationToken)
-                        .ConfigureAwait(false);
+                    await _stream.WriteAsync(sequence.First, completeWrites, cancellationToken).ConfigureAwait(false);
                 }
-                while (hasMore);
+                else
+                {
+                    var enumerator = sequence.GetEnumerator();
+                    bool hasMore = enumerator.MoveNext();
+                    Debug.Assert(hasMore);
+                    do
+                    {
+                        ReadOnlyMemory<byte> buffer = enumerator.Current;
+                        hasMore = enumerator.MoveNext();
+                        await _stream.WriteAsync(buffer, completeWrites: completeWrites && !hasMore, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    while (hasMore);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream has been disposed.
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
         }
     }
@@ -205,6 +221,11 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             catch (QuicException exception)
             {
                 throw exception.ToIceRpcException();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream has been disposed.
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
             // we don't wrap other exceptions
         }

@@ -34,7 +34,17 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     private readonly QuicPipeWriter? _outputPipeWriter;
     private readonly QuicStream _stream;
 
-    public ValueTask DisposeAsync() => _stream.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        if (!_stream.WritesClosed.IsCompleted)
+        {
+            // Abort writes before calling DisposeAsync to prevent DisposeAsync from completing writes gracefully (as if
+            // CompleteWrites was called).
+            _stream.Abort(QuicAbortDirection.Write, 0);
+        }
+
+        await _stream.DisposeAsync().ConfigureAwait(false);
+    }
 
     internal QuicMultiplexedStream(
         QuicStream stream,

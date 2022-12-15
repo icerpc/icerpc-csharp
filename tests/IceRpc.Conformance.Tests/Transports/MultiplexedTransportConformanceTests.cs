@@ -333,7 +333,8 @@ public abstract partial class MultiplexedTransportConformanceTests
                 }
             });
 
-        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code.
+        // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code
+        // when calling DisposeAsync on the connection. Fixing #2225 would allow Slic to behave the same as Slic here.
         Assert.That(
             exception!.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionClosedByPeer).Or.EqualTo(IceRpcError.ConnectionAborted));
@@ -560,6 +561,28 @@ public abstract partial class MultiplexedTransportConformanceTests
             serverAddress,
             new MultiplexedConnectionOptions(),
             provider.GetService<SslServerAuthenticationOptions>()));
+    }
+
+    /// <summary>Verifies we can dispose a stream without calling Complete on its Input or Output.</summary>
+    [Test]
+    public async Task Dispose_stream_without_complete()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        await using IMultiplexedConnection serverConnection =
+        await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        await clientStream.Output.WriteAsync(_oneBytePayload);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await clientStream.DisposeAsync();
+        await serverStream.DisposeAsync();
     }
 
     [Test]

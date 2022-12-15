@@ -159,6 +159,36 @@ public abstract partial class MultiplexedTransportConformanceTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
+    [Test]
+    public async Task Stream_dispose_abort_reads()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        ValueTask<ReadResult> localStreamReadTask = sut.LocalStream.Input.ReadAsync(default);
+        ValueTask<ReadResult> remoteStreamReadTask = sut.RemoteStream.Input.ReadAsync(default);
+
+        // Act
+        await sut.LocalStream.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await localStreamReadTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+
+        Assert.That(
+            async () => await remoteStreamReadTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+    }
+
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>
     /// <param name="delay">Number of milliseconds to delay the read and write operation.</param>
     /// <param name="streamCount">The number of streams to create.</param>
