@@ -11,27 +11,25 @@ using System.Net.Security;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(ParallelScope.All)]
-public class SlicTransportConformanceTests : MultiplexedTransportConformanceTests
+public class SlicConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     /// <summary>Creates the service collection used for Slic transport conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() =>
-        SlicTransportConformanceTestsServiceCollection.Create();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseSlic();
 }
 
 [Parallelizable(ParallelScope.All)]
-public class SlicListenerTransportConformanceTests : MultiplexedListenerTransportConformanceTests
+public class SlicListenerConformanceTests : MultiplexedListenerTransportConformanceTests
 {
     /// <summary>Creates the service collection used for Slic transport listener conformance testing.
     /// </summary>
-    protected override IServiceCollection CreateServiceCollection() =>
-        SlicTransportConformanceTestsServiceCollection.Create();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseSlic();
 }
 
 internal static class SlicTransportConformanceTestsServiceCollection
 {
-    internal static IServiceCollection Create()
+    internal static IServiceCollection UseSlic(this IServiceCollection serviceCollection)
     {
-        IServiceCollection services = new ServiceCollection()
+        IServiceCollection services = serviceCollection
             .AddColocTransport()
             .AddSingleton<IMultiplexedServerTransport>(
                 provider => new SlicServerTransport(

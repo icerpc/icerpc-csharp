@@ -10,7 +10,7 @@ using System.Net.Security;
 namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the duplex transports.</summary>
-public abstract class DuplexTransportConformanceTests
+public abstract class DuplexConnectionConformanceTests
 {
     /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
     [Test]

@@ -9,7 +9,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the multiplexed transports streams.</summary>
-public abstract partial class MultiplexedTransportConformanceTests
+public abstract partial class MultiplexedConnectionConformanceTests
 {
     /// <summary>Ensures that completing the stream output after writing data doesn't discard the data. A successful
     /// write doesn't imply that the data is actually sent by the underlying transport. The completion of the stream

@@ -13,7 +13,7 @@ using System.Security.Authentication;
 namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the multiplexed transports.</summary>
-public abstract partial class MultiplexedTransportConformanceTests
+public abstract partial class MultiplexedConnectionConformanceTests
 {
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 

@@ -9,18 +9,16 @@ namespace IceRpc.Tests.Transports;
 
 /// <summary>Conformance tests for the Ssl transport.</summary>
 [Parallelizable(ParallelScope.All)]
-public class SslTransportConformanceTests : TcpTransportConformanceTests
+public class SslConnectionConformanceTests : TcpConnectionConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection() =>
-        SslTransportConformanceTestsServiceCollection.Create();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseSsl();
 }
 
 /// <summary>Conformance tests for the Ssl transport listener.</summary>
 [Parallelizable(ParallelScope.All)]
-public class SslListenerTransportConformanceTests : TcpListenerTransportConformanceTests
+public class SslListenerConformanceTests : TcpListenerConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection() =>
-        SslTransportConformanceTestsServiceCollection.Create();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseSsl();
 }
 
 internal static class SslTransportConformanceTestsServiceCollection
@@ -30,9 +28,9 @@ internal static class SslTransportConformanceTestsServiceCollection
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The transport conformance tests do not rely on certificate validation")]
 
-    internal static IServiceCollection Create()
+    internal static IServiceCollection UseSsl(this IServiceCollection serviceCollection)
     {
-        var services = TcpTransportConformanceTestsServiceCollection.Create();
+        var services = serviceCollection.UseTcp();
 
         services.AddSingleton(provider =>
             new SslClientAuthenticationOptions
