@@ -8,9 +8,6 @@ using System.Net.Security;
 namespace IceRpc.Transports;
 
 /// <summary>Implements <see cref="IMultiplexedClientTransport"/> using Quic.</summary>
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>

@@ -1,6 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Quic.Tests")]
+
+// We need these attributes because the .NET QUIC APIs have the same.
+[assembly: SupportedOSPlatform("macOS")]
+[assembly: SupportedOSPlatform("linux")]
+[assembly: SupportedOSPlatform("windows")]

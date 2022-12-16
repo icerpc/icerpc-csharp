@@ -7,9 +7,6 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Internal;
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
     internal Task Closed { get; }

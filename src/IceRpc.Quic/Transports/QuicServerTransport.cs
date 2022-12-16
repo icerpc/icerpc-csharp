@@ -6,9 +6,6 @@ using System.Net.Security;
 namespace IceRpc.Transports;
 
 /// <summary>Implements <see cref="IMultiplexedServerTransport"/> using Quic.</summary>
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
