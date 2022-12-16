@@ -267,6 +267,24 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             ConnectionClosedException ??= new(IceRpcError.ConnectionClosed, "The connection was shut down.");
 
+            if (_shutdownTask is null && _shutdownCompleteSource.Task.IsFaulted)
+            {
+                // The connection was aborted by the peer or the transport, but not yet shut down.
+
+                Exception? shutdownException = null;
+                _shutdownCompleteSource.Task.Exception!.Handle(
+                    exception =>
+                    {
+                        shutdownException = exception;
+                        return true;
+                    });
+
+                Debug.Assert(shutdownException is not null);
+
+                _shutdownTask = Task.FromException(shutdownException);
+                throw shutdownException;
+            }
+
             // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancellationToken.IsCancellationRequested)
