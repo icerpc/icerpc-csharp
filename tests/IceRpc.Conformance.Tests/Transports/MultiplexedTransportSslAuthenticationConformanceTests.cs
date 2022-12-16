@@ -36,22 +36,16 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 
         // Start the TLS handshake.
         Task clientConnectTask = clientConnection.ConnectAsync(default);
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
         Task? serverConnectTask = null;
         try
         {
             // We accept two behaviors here:
             // - the listener can internally kill the connection if it's not valid (e.g.: Quic behavior)
             // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
-            (var serverConnection, _) = await listener.AcceptAsync(cts.Token);
+            (var serverConnection, _) = await listener.AcceptAsync(default);
             serverConnectTask = serverConnection.ConnectAsync(default);
         }
         catch (AuthenticationException)
-        {
-            // Expected with Quic
-            serverConnectTask = null;
-        }
-        catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
         {
             // Expected with Quic
             serverConnectTask = null;
