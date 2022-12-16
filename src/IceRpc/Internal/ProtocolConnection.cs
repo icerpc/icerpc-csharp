@@ -277,7 +277,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
                 else if (cancellationToken.IsCancellationRequested)
                 {
-                    var exception = new IceRpcException(IceRpcError.OperationAborted);
+                    var exception = new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The connection shutdown was canceled.");
                     _shutdownTask = Task.FromException(exception);
                     _ = _shutdownCompleteSource.TrySetException(exception);
                 }
@@ -286,12 +288,13 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     _shutdownTask = CreateShutdownTask();
                 }
             }
-        }
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            _shutdownCts.Cancel();
-            cancellationToken.ThrowIfCancellationRequested();
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Cancel any outstanding concurrent shutdown.
+                _shutdownCts.Cancel();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
         }
 
         return PerformWaitForShutdownAsync();
