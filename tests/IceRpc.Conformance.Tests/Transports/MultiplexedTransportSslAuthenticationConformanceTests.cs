@@ -16,7 +16,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
-        Justification = "The client doesn't need to validate the server certificate for this test")]
+        Justification = "The server doesn't need to validate the client certificate for this test")]
     [Test]
     public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
     {
