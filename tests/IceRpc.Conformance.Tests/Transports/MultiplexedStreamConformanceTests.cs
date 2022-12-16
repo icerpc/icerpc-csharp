@@ -9,8 +9,10 @@ using System.IO.Pipelines;
 namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the multiplexed transports streams.</summary>
-public abstract partial class MultiplexedConnectionConformanceTests
+public abstract class MultiplexedStreamConformanceTests
 {
+    private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
+
     /// <summary>Ensures that completing the stream output after writing data doesn't discard the data. A successful
     /// write doesn't imply that the data is actually sent by the underlying transport. The completion of the stream
     /// output should make sure that this data buffered by the underlying transport is not discarded.</summary>
@@ -23,9 +25,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         byte[] buffer = new byte[512 * 1024];
 
@@ -72,7 +76,7 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
         IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
             bidirectional: true,
             default).ConfigureAwait(false);
@@ -110,9 +114,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         // Act
         sut.RemoteStream.Input.Complete(new ArgumentException()); // can be any exception
@@ -144,9 +150,10 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut =
+            await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
         sut.LocalStream.Output.Complete(new OperationCanceledException()); // can be any exception
@@ -169,9 +176,10 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut =
+            await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         ValueTask<ReadResult> localStreamReadTask = sut.LocalStream.Input.ReadAsync(default);
         ValueTask<ReadResult> remoteStreamReadTask = sut.RemoteStream.Input.ReadAsync(default);
@@ -208,13 +216,15 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         var streams = new LocalAndRemoteStreams[streamCount];
 
         for (int i = 0; i < streamCount; ++i)
         {
-            streams[i] = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+            streams[i] = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+                clientConnection,
+                serverConnection);
         }
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
@@ -300,9 +310,12 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, isBidirectional);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection, 
+            isBidirectional);
 
         // Act
         sut.RemoteStream.Input.Complete();
@@ -321,9 +334,12 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, isBidirectional);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection,
+            isBidirectional);
 
         // Act
         sut.LocalStream.Output.Complete();
@@ -341,9 +357,12 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, true);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection,
+            true);
 
         // Act
         sut.RemoteStream.Output.Complete();
@@ -365,9 +384,12 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, true);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection,
+            true);
 
         // Act
         sut.LocalStream.Input.Complete();
@@ -387,9 +409,13 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(
+                listener, 
+                clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         // Act
         sut.LocalStream.Output.Complete();
@@ -428,7 +454,7 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
             bidirectional: true,
@@ -459,9 +485,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection, 
+            serverConnection);
         sut.RemoteStream.Output.Complete();
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
@@ -522,9 +550,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         await sut.RemoteStream.Output.WriteAsync(_oneBytePayload);
 
@@ -552,9 +582,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         // Act
         ValueTask<ReadResult> readTask = sut.LocalStream.Input.ReadAsync();
@@ -598,7 +630,7 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
             bidirectional: true,
@@ -619,9 +651,12 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection, isBidirectional);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection, 
+            serverConnection, 
+            isBidirectional);
 
         // Act
         sut.LocalStream.Output.Complete();
@@ -642,9 +677,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         // Act
         sut.LocalStream.Output.Complete();
@@ -663,9 +700,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         // Act
         sut.LocalStream.Input.Complete();
@@ -685,9 +724,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
         Memory<byte> _ = sut.RemoteStream.Output.GetMemory();
         sut.RemoteStream.Output.Advance(1);
 
@@ -710,9 +751,11 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        await using var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+        await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection, 
+            serverConnection);
 
         // Act
         await sut.LocalStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty);
@@ -741,7 +784,7 @@ public abstract partial class MultiplexedConnectionConformanceTests
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
-            await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(
             bidirectional: true,
@@ -755,4 +798,7 @@ public abstract partial class MultiplexedConnectionConformanceTests
         // Assert
         Assert.CatchAsync<OperationCanceledException>(async () => await task);
     }
+
+    /// <summary>Creates the service collection used for multiplexed listener conformance tests.</summary>
+    protected abstract IServiceCollection CreateServiceCollection();
 }

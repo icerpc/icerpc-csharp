@@ -177,6 +177,6 @@ public abstract class MultiplexedListenerConformanceTests
         Assert.That(listener.ServerAddress.Transport, Is.EqualTo(transport));
     }
 
-    /// <summary>Creates the service collection used for multiplexed listener transport conformance tests.</summary>
+    /// <summary>Creates the service collection used for multiplexed listener conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 }
