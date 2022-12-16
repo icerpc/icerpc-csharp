@@ -43,9 +43,9 @@ public abstract class MultiplexedListenerConformanceTests
             {
                 await using IMultiplexedConnection serverConnection = (await acceptTask).Connection;
                 await serverConnection.ConnectAsync(default);
+                await clientConnectTask;
             },
             Throws.Nothing);
-        Assert.That(async () => await clientConnectTask, Throws.Nothing);
     }
 
     [Test]
