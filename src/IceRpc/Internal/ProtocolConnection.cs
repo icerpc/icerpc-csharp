@@ -56,6 +56,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
 
             // The connection can be closed only if disposed (and we check _disposedTask above).
+            Debug.Assert(_shutdownTask is null);
             Debug.Assert(ConnectionClosedException is null);
 
             _connectTask = PerformConnectAsync();
@@ -260,46 +261,37 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
-            else if (_connectTask is null)
+            else if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
                 throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
             }
 
             ConnectionClosedException ??= new(IceRpcError.ConnectionClosed, "The connection was shut down.");
 
-            if (_shutdownTask is null && _shutdownCompleteSource.Task.IsFaulted)
+            if (_shutdownTask is null)
             {
-                // The connection was aborted by the peer or the transport, but not yet shut down.
-
-                Exception? shutdownException = null;
-                _shutdownCompleteSource.Task.Exception!.Handle(
-                    exception =>
-                    {
-                        shutdownException = exception;
-                        return true;
-                    });
-
-                Debug.Assert(shutdownException is not null);
-
-                _shutdownTask = Task.FromException(shutdownException);
-                throw shutdownException;
+                if (_shutdownCompleteSource.Task.IsFaulted)
+                {
+                    // The connection was aborted by the peer or the transport, but not yet shut down.
+                    _shutdownTask = _shutdownCompleteSource.Task;
+                }
+                else if (cancellationToken.IsCancellationRequested)
+                {
+                    var exception = new IceRpcException(IceRpcError.OperationAborted);
+                    _shutdownTask = Task.FromException(exception);
+                    _ = _shutdownCompleteSource.TrySetException(exception);
+                }
+                else
+                {
+                    _shutdownTask = CreateShutdownTask();
+                }
             }
+        }
 
-            // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the connection
-            // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
-            if (cancellationToken.IsCancellationRequested)
-            {
-                var exception = new IceRpcException(IceRpcError.OperationAborted);
-                _shutdownTask ??= Task.FromException(exception);
-                _ = _shutdownCompleteSource.TrySetException(exception);
-                _connectCts.Cancel();
-                _shutdownCts.Cancel();
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            else
-            {
-                _shutdownTask ??= CreateShutdownTask();
-            }
+        if (cancellationToken.IsCancellationRequested)
+        {
+            _shutdownCts.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         return PerformWaitForShutdownAsync();
