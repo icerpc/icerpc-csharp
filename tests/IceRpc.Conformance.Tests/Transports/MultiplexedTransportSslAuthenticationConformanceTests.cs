@@ -13,6 +13,10 @@ namespace IceRpc.Conformance.Tests;
 /// implementation. It also checks some basic expected behavior from the SSL implementation.</summary>
 public abstract class MultiplexedTransportSslAuthenticationConformanceTests
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "The client doesn't need to validate the server certificate for this test")]
     [Test]
     public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
     {
@@ -21,6 +25,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
             .AddSingleton(
                 new SslServerAuthenticationOptions
                 {
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
                     ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
                 })
             .AddSingleton(
@@ -72,7 +77,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
-        Justification = "Certificate validation is not required for this test")]
+        Justification = "The client doesn't need to validate the server certificate for this test")]
     [Test]
     public async Task Ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
     {
