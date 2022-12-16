@@ -9,10 +9,11 @@
         <PackageIcon>logo.png</PackageIcon>
         <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
         <Description>IceRPC C#/.NET SDK.</Description>
-        <EnablePreviewFeatures>True</EnablePreviewFeatures>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC</PackageTags>
+        <!-- Properties for .NET QUIC -->
+        <EnablePreviewFeatures>True</EnablePreviewFeatures>
     </PropertyGroup>
     <ItemGroup>
       <SupportedPlatform Include="linux" />

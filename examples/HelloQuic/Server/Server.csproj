@@ -3,6 +3,9 @@
   <PropertyGroup>
     <!-- Enable preview features to use the QUIC transport -->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <TargetFramework>net7.0-linux</TargetFramework>
+    <TargetFramework>net7.0-macos</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="../Hello.slice" />

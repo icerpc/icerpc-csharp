@@ -6,9 +6,6 @@ using System.Net.Quic;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The Quic multiplexed connection implements an <see cref="IMultiplexedConnection" />.</summary>
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 {
     public ServerAddress ServerAddress { get; }
@@ -90,9 +87,6 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     public ValueTask DisposeAsync() => _connection?.DisposeAsync() ?? default;
 }
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
 {
     private readonly QuicClientConnectionOptions _quicClientConnectionOptions;
@@ -124,9 +118,6 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
         : base(serverAddress, options) => _quicClientConnectionOptions = quicOptions;
 }
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicMultiplexedServerConnection : QuicMultiplexedConnection
 {
     public override Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>

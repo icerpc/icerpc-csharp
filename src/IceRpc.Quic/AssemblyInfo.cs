@@ -7,6 +7,6 @@ using System.Runtime.Versioning;
 [assembly: InternalsVisibleTo("IceRpc.Quic.Tests")]
 
 // We need these attributes because the .NET QUIC APIs have the same.
-[assembly: SupportedOSPlatform("macOS")]
 [assembly: SupportedOSPlatform("linux")]
+[assembly: SupportedOSPlatform("macOS")]
 [assembly: SupportedOSPlatform("windows")]
