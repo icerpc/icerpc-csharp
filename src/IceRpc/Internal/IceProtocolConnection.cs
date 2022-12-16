@@ -940,10 +940,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     if (ConnectionClosedException is not null)
                     {
-                        // We're shutting down and we discard this request before any processing.
-                        // For a graceful shutdown, we want the invocation in the peer to throw an
-                        // IceRpcException(OperationCanceledByShutdown) (meaning no dispatch at all), not a
-                        // DispatchException (which means at least part of the dispatch executed).
+                        // We're shutting down and we discard this request before any processing. For a graceful
+                        // shutdown, we want the invocation in the peer to throw an IceRpcException(
+                        // OperationCanceledByShutdown) (meaning no dispatch at all), not a DispatchException (which
+                        //  means at least part of the dispatch executed).
                         return;
                     }
 
@@ -972,10 +972,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         try
                         {
                             await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
-                        }
-                        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-                        {
-                            // This can occur when the connection is disposed while we're sending a response.
                         }
                         catch (Exception exception)
                         {
@@ -1098,22 +1094,28 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     acquiredSemaphore = true;
 
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
-
                     payloadWriter = response.GetPayloadWriter(payloadWriter);
 
-                    // Write the payload and complete the source.
-                    FlushResult flushResult = await payloadWriter.WriteAsync(
-                        payload,
-                        endStream: false,
-                        CancellationToken.None).ConfigureAwait(false);
-
-                    // If a payload writer decorator returns a canceled or completed flush result, we have to throw
-                    // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a
-                    // bogus payload to be sent over the connection.
-                    if (flushResult.IsCanceled || flushResult.IsCompleted)
+                    try
                     {
-                        throw new NotSupportedException(
-                            "A payload writer must not return a completed or canceled FlushResult with the ice protocol.");
+                        // Write the payload and complete the source.
+                        FlushResult flushResult = await payloadWriter.WriteAsync(
+                            payload,
+                            endStream: false,
+                            CancellationToken.None).ConfigureAwait(false);
+
+                        // If a payload writer decorator returns a canceled or completed flush result, we have to throw
+                        // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a
+                        // bogus payload to be sent over the connection.
+                        if (flushResult.IsCanceled || flushResult.IsCompleted)
+                        {
+                            throw new NotSupportedException(
+                                "A payload writer must not return a completed or canceled FlushResult with the ice protocol.");
+                        }
+                    }
+                    catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                    {
+                        // The transport connection was disposed, which is ok.
                     }
                 }
                 finally
