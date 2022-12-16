@@ -16,11 +16,6 @@
         <EnablePreviewFeatures>True</EnablePreviewFeatures>
     </PropertyGroup>
     <ItemGroup>
-      <SupportedPlatform Include="linux" />
-      <SupportedPlatform Include="macOS" />
-      <SupportedPlatform Include="windows" />
-    </ItemGroup>
-    <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
           <PrivateAssets>all</PrivateAssets>
