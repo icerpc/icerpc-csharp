@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -519,7 +520,7 @@ public sealed class Server : IAsyncDisposable
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
         private readonly IConnectorListener _decoratee;
-        private readonly ILogger? _logger;
+        private readonly ILogger _logger;
 
         public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
         {
@@ -530,7 +531,7 @@ public sealed class Server : IAsyncDisposable
                     (IConnector connector, EndPoint remoteNetworkAddress) =
                         await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
-                    if (_logger is null)
+                    if (_logger == NullLogger.Instance)
                     {
                         return (connector, remoteNetworkAddress);
                     }
@@ -553,7 +554,7 @@ public sealed class Server : IAsyncDisposable
 
                     // IceRpcException with an error code other than OperationAborted indicates a problem with
                     // the connection being accepted. We log the error and try to accept a new connection.
-                    _logger?.LogConnectionAcceptFailedAndContinue(ServerAddress, exception);
+                    _logger.LogConnectionAcceptFailedAndContinue(ServerAddress, exception);
                     // and continue
                 }
                 catch (AuthenticationException exception)
@@ -561,7 +562,7 @@ public sealed class Server : IAsyncDisposable
                     // Transports such as Quic do the SSL handshake when the connection is accepted, this can
                     // throw AuthenticationException if the SSL handshake fails. We log the error and try to
                     // accept a new connection.
-                    _logger?.LogConnectionAcceptFailedAndContinue(ServerAddress, exception);
+                    _logger.LogConnectionAcceptFailedAndContinue(ServerAddress, exception);
                     // and continue
                 }
                 catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
@@ -578,7 +579,7 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch (Exception exception)
                 {
-                    _logger?.LogConnectionAcceptFailed(ServerAddress, exception);
+                    _logger.LogConnectionAcceptFailed(ServerAddress, exception);
                     throw;
                 }
 
@@ -596,8 +597,8 @@ public sealed class Server : IAsyncDisposable
         internal LogAndRetryConnectorListenerDecorator(IConnectorListener decoratee, ILogger? logger)
         {
             _decoratee = decoratee;
-            _logger = logger;
-            _logger?.LogStartAcceptingConnections(ServerAddress);
+            _logger = logger ?? NullLogger.Instance;
+            _logger.LogStartAcceptingConnections(ServerAddress);
         }
     }
 
