@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -53,7 +52,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             multiplexedClientTransport,
             logger);
 
-        _connectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(_connectionFactory);
         _preferExistingConnection = options.PreferExistingConnection;
     }
 

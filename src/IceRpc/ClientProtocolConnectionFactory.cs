@@ -72,6 +72,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <see cref="IInvoker.InvokeAsync" />.</remarks>
     public IProtocolConnection CreateConnection(ServerAddress serverAddress)
     {
+#pragma warning disable CA2000
         IProtocolConnection connection =
             serverAddress.Protocol == Protocol.Ice ?
                 new IceProtocolConnection(
@@ -88,6 +89,9 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                         _clientAuthenticationOptions),
                     transportConnectionInformation: null,
                     _connectionOptions);
+#pragma warning restore CA2000
+
+        connection = new MetricsProtocolConnectionDecorator(connection);
 
         return _logger == NullLogger.Instance ? connection :
             new LogProtocolConnectionDecorator(connection, remoteNetworkAddress: null, _logger);
