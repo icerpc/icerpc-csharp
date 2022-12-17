@@ -58,7 +58,7 @@ public sealed class ProtocolLoggerTests
 
         entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnected));
-        Assert.That(entry.State["Kind"], Is.EqualTo("Server|Client"));
+        Assert.That(entry.State["Kind"], Is.EqualTo("Server"));
         Assert.That(
             entry.State["LocalNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress.ToString()));
@@ -70,7 +70,7 @@ public sealed class ProtocolLoggerTests
         entry = await clientLoggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnected));
-        Assert.That(entry.State["Kind"], Is.EqualTo("Client|Server"));
+        Assert.That(entry.State["Kind"], Is.EqualTo("Client"));
         Assert.That(
             entry.State["LocalNetworkAddress"],
             Is.EqualTo(clientConnectionInformation.LocalNetworkAddress));
@@ -175,7 +175,7 @@ public sealed class ProtocolLoggerTests
         while (entry.EventId != (int)ProtocolEventIds.ConnectionFailed);
 
         Assert.That(entry, Is.Not.Null);
-        Assert.That(entry.State["Kind"], Is.EqualTo("Server|Client"));
+        Assert.That(entry.State["Kind"], Is.EqualTo("Server"));
         Assert.That(entry.State["LocalNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress.ToString()));
         Assert.That(
@@ -190,7 +190,7 @@ public sealed class ProtocolLoggerTests
         }
         while (entry.EventId != (int)ProtocolEventIds.ConnectionFailed);
 
-        Assert.That(entry.State["Kind"], Is.EqualTo("Client|Server"));
+        Assert.That(entry.State["Kind"], Is.EqualTo("Client"));
         Assert.That(
             entry.State["LocalNetworkAddress"],
             Is.EqualTo(clientConnectionInformation.LocalNetworkAddress));
@@ -272,7 +272,7 @@ public sealed class ProtocolLoggerTests
         }
         while (entry.EventId.Id != (int)ProtocolEventIds.ConnectionShutdown);
 
-        Assert.That(entry.State["Kind"], Is.EqualTo("Server|Client"));
+        Assert.That(entry.State["Kind"], Is.EqualTo("Server"));
         Assert.That(
             entry.State["LocalNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress.ToString()));
@@ -289,7 +289,7 @@ public sealed class ProtocolLoggerTests
         }
         while (entry.EventId.Id != (int)ProtocolEventIds.ConnectionShutdown);
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionShutdown));
-        Assert.That(entry.State["Kind"], Is.EqualTo("Client|Server"));
+        Assert.That(entry.State["Kind"], Is.EqualTo("Client"));
         Assert.That(
             entry.State["LocalNetworkAddress"],
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
