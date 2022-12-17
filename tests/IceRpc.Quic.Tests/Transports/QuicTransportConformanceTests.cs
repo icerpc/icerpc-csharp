@@ -20,7 +20,20 @@ public class QuiConnectionConformanceTests : MultiplexedConnectionConformanceTes
     [OneTimeSetUp]
     public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
 
-    /// <summary>Creates the service collection used for Quic multiplexed transports for conformance testing.</summary>
+    /// <summary>Creates the service collection used for Quic connection conformance testing.</summary>
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
+}
+
+[Parallelizable(ParallelScope.All)]
+[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
+{
+    [OneTimeSetUp]
+    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
+
+    /// <summary>Creates the service collection used for Quic stream conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
 }
 
@@ -33,8 +46,7 @@ public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
     [OneTimeSetUp]
     public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
 
-    /// <summary>Creates the service collection used for Quic listener multiplexed transports for conformance testing.
-    /// </summary>
+    /// <summary>Creates the service collection used for Quic listener conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
 }
 
