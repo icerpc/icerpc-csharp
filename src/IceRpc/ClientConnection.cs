@@ -71,16 +71,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
-            multiplexedClientTransport);
+            multiplexedClientTransport,
+            logger);
 
         protocolConnectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(protocolConnectionFactory);
-
-        if (logger is not null)
-        {
-            protocolConnectionFactory = new LogClientProtocolConnectionFactoryDecorator(
-                protocolConnectionFactory,
-                logger);
-        }
 
         _connectionFactory = previousConnection =>
         {

@@ -47,17 +47,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         ILogger? logger = null)
     {
         _connectionFactory = new ClientProtocolConnectionFactory(
-                options.ConnectionOptions,
-                options.ClientAuthenticationOptions,
-                duplexClientTransport,
-                multiplexedClientTransport);
+            options.ConnectionOptions,
+            options.ClientAuthenticationOptions,
+            duplexClientTransport,
+            multiplexedClientTransport,
+            logger);
 
         _connectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(_connectionFactory);
-
-        if (logger is not null)
-        {
-            _connectionFactory = new LogClientProtocolConnectionFactoryDecorator(_connectionFactory, logger);
-        }
         _preferExistingConnection = options.PreferExistingConnection;
     }
 
