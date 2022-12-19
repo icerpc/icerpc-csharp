@@ -340,19 +340,6 @@ public class SlicTransportTests
     {
         foreach (IMultiplexedStream stream in streams)
         {
-            if (stream.IsBidirectional)
-            {
-                stream.Output.Complete();
-                stream.Input.Complete();
-            }
-            else if (stream.IsRemote)
-            {
-                stream.Input.Complete();
-            }
-            else
-            {
-                stream.Output.Complete();
-            }
             await stream.DisposeAsync();
         }
     }
