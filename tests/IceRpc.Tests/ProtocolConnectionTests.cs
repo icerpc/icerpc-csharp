@@ -270,7 +270,7 @@ public sealed class ProtocolConnectionTests
         await sut.Client.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.Client.ShutdownComplete, Throws.Nothing);
+        Assert.That(await sut.Client.ShutdownComplete, Is.Null);
     }
 
     /// <summary>Verifies that ShutdownComplete completes when idle.</summary>
@@ -311,7 +311,7 @@ public sealed class ProtocolConnectionTests
 
         async Task<TimeSpan> WaitForShutdownAsync(IProtocolConnection connection)
         {
-            await connection.ShutdownComplete;
+            _ = await connection.ShutdownComplete;
             return TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime;
         }
     }
@@ -374,7 +374,7 @@ public sealed class ProtocolConnectionTests
 
         async Task<long> WaitForShutdownCompleteAsync(IProtocolConnection connection)
         {
-            await connection.ShutdownComplete;
+            _ = await connection.ShutdownComplete;
             return Environment.TickCount64 - startTime;
         }
     }
@@ -437,7 +437,7 @@ public sealed class ProtocolConnectionTests
 
         async Task<long> WaitForShutdownCompleteAsync(IProtocolConnection connection)
         {
-            await connection.ShutdownComplete;
+            _ = await connection.ShutdownComplete;
             return Environment.TickCount64 - startTime;
         }
     }
@@ -467,15 +467,13 @@ public sealed class ProtocolConnectionTests
         // Act
         await sut.Client.DisposeAsync();
 
-        // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await sut.Server.ShutdownComplete);
-
         // TODO: we get ConnectionClosedByPeer with Quic because it sends a Close frame with the default (0) error code
         // when calling DisposeAsync on the connection. Fixing #2225 would allow Slic to behave the same as Slic here.
         Assert.That(
-            exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionClosedByPeer).Or.EqualTo(IceRpcError.ConnectionAborted));
+            await sut.Server.ShutdownComplete,
+            Is.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionClosedByPeer)
+                .Or.With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that a ConnectAsync failure completes ShutdownComplete.</summary>
@@ -489,15 +487,16 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
         Task connectTask = sut.Client.ConnectAsync(default);
+        await Task.Delay(TimeSpan.FromMilliseconds(10)); // give a few ms for the task to start
 
         // Act
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the ConnectAsync failure.
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await sut.Client.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+        Assert.That(
+            await sut.Client.ShutdownComplete,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>

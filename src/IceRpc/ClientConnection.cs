@@ -89,15 +89,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             static async Task CleanupAsync(IProtocolConnection connection)
             {
-                try
-                {
-                    // For example, wait for the shutdown initiated by the peer to complete successfully.
-                    await connection.ShutdownComplete.ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignore
-                }
+                // For example, wait for the shutdown initiated by the peer to complete successfully.
+                _ = await connection.ShutdownComplete.ConfigureAwait(false);
                 await connection.DisposeAsync().ConfigureAwait(false);
             }
         };
@@ -341,7 +334,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task<Exception?> ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly Task _cleanupTask;
 
@@ -391,7 +384,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task<Exception?> ShutdownComplete => _decoratee.ShutdownComplete;
 
         private Task<TransportConnectionInformation>? _connectTask;
 
@@ -414,6 +407,15 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     return _connectTask;
                 }
             }
+
+            if (_connectTask.IsFaulted)
+            {
+                throw new IceRpcException(
+                    IceRpcError.ConnectionClosed,
+                    "A previous attempt to establish the client connection failed.");
+            }
+            // else we wait for the concurrent ConnectAsync call.
+
             return PerformWaitForConnectAsync();
 
             async Task<TransportConnectionInformation> PerformConnectAsync()
@@ -439,10 +441,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch
                 {
-                    // ShutdownComplete throws an IceRpcException.
-                    await ShutdownComplete.ConfigureAwait(false);
-                    Debug.Assert(false); // the line above always throws
-                    throw;
+                    // ShutdownComplete returns a non-null exception
+                    // TODO: why not just let the _connectTask exception through?
+                    Exception? exception = await ShutdownComplete.ConfigureAwait(false);
+                    throw exception!;
                 }
             }
         }

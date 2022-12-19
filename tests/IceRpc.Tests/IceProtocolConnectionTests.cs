@@ -205,11 +205,13 @@ public sealed class IceProtocolConnectionTests
         };
 
         // Act/Assert
-        var exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await sut.Client.InvokeAsync(request, default));
-        Assert.That(exception, Is.Not.Null);
-        exception = Assert.ThrowsAsync<IceRpcException>(async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request, default),
+            Throws.InstanceOf<IceRpcException>());
+
+        Assert.That(
+            async () => await sut.Server.ShutdownComplete,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,

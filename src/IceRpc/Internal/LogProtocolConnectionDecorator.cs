@@ -11,7 +11,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    public Task ShutdownComplete => _decoratee.ShutdownComplete;
+    public Task<Exception?> ShutdownComplete => _decoratee.ShutdownComplete;
 
     private bool IsServer => _remoteNetworkAddress is not null;
 
@@ -86,22 +86,21 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 TransportConnectionInformation connectionInformation)
             {
                 // We only log a shutdown message after ConnectAsync completed successfully.
-                try
-                {
-                    await ShutdownComplete.ConfigureAwait(false);
 
-                    _logger.LogConnectionShutdown(
-                        IsServer,
-                        connectionInformation.LocalNetworkAddress,
-                        connectionInformation.RemoteNetworkAddress);
-                }
-                catch (Exception exception)
+                if (await ShutdownComplete.ConfigureAwait(false) is Exception exception)
                 {
                     _logger.LogConnectionFailed(
                         IsServer,
                         connectionInformation.LocalNetworkAddress,
                         connectionInformation.RemoteNetworkAddress,
                         exception);
+                }
+                else
+                {
+                    _logger.LogConnectionShutdown(
+                        IsServer,
+                        connectionInformation.LocalNetworkAddress,
+                        connectionInformation.RemoteNetworkAddress);
                 }
             }
         }

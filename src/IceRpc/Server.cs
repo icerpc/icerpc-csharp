@@ -416,17 +416,13 @@ public sealed class Server : IAsyncDisposable
         {
             try
             {
-                await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                _ = await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
             {
                 // The server is being shut down or disposed and server's DisposeAsync is responsible to DisposeAsync
                 // this connection.
                 return;
-            }
-            catch
-            {
-                // ignore and continue: the connection was aborted
             }
 
             lock (_mutex)
@@ -718,7 +714,7 @@ public sealed class Server : IAsyncDisposable
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task<Exception?> ShutdownComplete => _decoratee.ShutdownComplete;
 
         private readonly IProtocolConnection _decoratee;
         private readonly Task _shutdownTask;
@@ -766,11 +762,7 @@ public sealed class Server : IAsyncDisposable
             // This task executes once per decorated connection.
             async Task ShutdownAsync()
             {
-                try
-                {
-                    await ShutdownComplete.ConfigureAwait(false);
-                }
-                catch
+                if (await ShutdownComplete.ConfigureAwait(false) is not null)
                 {
                     ServerMetrics.Instance.ConnectionFailure();
                 }

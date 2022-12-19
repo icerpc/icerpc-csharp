@@ -10,7 +10,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 {
     public abstract ServerAddress ServerAddress { get; }
 
-    public Task ShutdownComplete => _shutdownCompleteSource.Task;
+    public Task<Exception?> ShutdownComplete => _shutdownCompleteSource.Task;
 
     private protected bool IsServer { get; }
 
@@ -35,7 +35,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
 
-    private readonly TaskCompletionSource _shutdownCompleteSource =
+    private readonly TaskCompletionSource<Exception?> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _shutdownCts = new();
@@ -135,10 +135,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.IceRpcError, exception);
                 }
             }
-            catch
+            catch (Exception exception)
             {
-                Debug.Assert(ConnectionClosedException is not null);
-                _shutdownCompleteSource.TrySetException(ConnectionClosedException);
+                _ = _shutdownCompleteSource.TrySetResult(exception);
                 throw;
             }
         }
@@ -167,7 +166,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             if (_connectTask is null)
             {
-                _ = _shutdownCompleteSource.TrySetResult(); // disposing non-connected connection
+                _shutdownCompleteSource.SetResult(null); // disposing non-connected connection
             }
             else
             {
@@ -270,10 +269,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             if (_shutdownTask is null)
             {
-                if (_shutdownCompleteSource.Task.IsFaulted)
+                if (_shutdownCompleteSource.Task.IsCompletedSuccessfully)
                 {
                     // The connection was aborted by the peer or the transport, but not yet shut down.
-                    _shutdownTask = _shutdownCompleteSource.Task;
+                    _shutdownTask = Task.FromException(_shutdownCompleteSource.Task.Result!);
                 }
                 else if (cancellationToken.IsCancellationRequested)
                 {
@@ -285,7 +284,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                         IceRpcError.OperationAborted,
                         "The connection shutdown was canceled.");
                     _shutdownTask = Task.FromException(exception);
-                    _ = _shutdownCompleteSource.TrySetException(exception);
+                    _shutdownCompleteSource.TrySetResult(exception);
                 }
                 else
                 {
@@ -349,9 +348,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         CancellationToken cancellationToken);
 
     private protected void ConnectionClosed(IceRpcException? exception = null) =>
-        _ = exception is null ?
-            _shutdownCompleteSource.TrySetResult() :
-            _shutdownCompleteSource.TrySetException(exception);
+        _shutdownCompleteSource.TrySetResult(exception);
 
     private protected void DisableIdleCheck() =>
         _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -414,7 +411,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Wait for shutdown to complete.
             await ShutdownAsyncCore(cts.Token).ConfigureAwait(false);
 
-            _shutdownCompleteSource.SetResult();
+            _shutdownCompleteSource.SetResult(null);
         }
         catch (OperationCanceledException operationCanceledException)
         {
@@ -433,20 +430,20 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
 
             _connectCts.Cancel();
-            _ = _shutdownCompleteSource.TrySetException(exception);
+            _ = _shutdownCompleteSource.TrySetResult(exception);
             throw exception;
         }
         catch (IceRpcException exception)
         {
             _connectCts.Cancel();
-            _ = _shutdownCompleteSource.TrySetException(exception);
+            _ = _shutdownCompleteSource.TrySetResult(exception);
             throw;
         }
         catch (Exception exception)
         {
             _connectCts.Cancel();
             var newException = new IceRpcException(IceRpcError.IceRpcError, exception);
-            _ = _shutdownCompleteSource.TrySetException(newException);
+            _ = _shutdownCompleteSource.TrySetResult(newException);
             throw newException;
         }
     }

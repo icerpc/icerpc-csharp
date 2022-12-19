@@ -9,7 +9,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    public Task ShutdownComplete => _decoratee.ShutdownComplete;
+    public Task<Exception?> ShutdownComplete => _decoratee.ShutdownComplete;
 
     private readonly IProtocolConnection _decoratee;
     private readonly Task _shutdownAsync;
@@ -52,11 +52,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         // This task executes exactly once per decorated connection.
         async Task ShutdownAsync()
         {
-            try
-            {
-                await ShutdownComplete.ConfigureAwait(false);
-            }
-            catch (Exception)
+            if (await ShutdownComplete.ConfigureAwait(false) is not null)
             {
                 ClientMetrics.Instance.ConnectionFailure();
             }

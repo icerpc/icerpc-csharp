@@ -15,7 +15,7 @@ public sealed class FakeConnectionContext : IConnectionContext
 
     public ServerAddress ServerAddress { get; }
 
-    public Task ShutdownComplete => _shutdownCompletionSource.Task;
+    public Task<Exception?> ShutdownComplete => _shutdownCompletionSource.Task;
 
     public TransportConnectionInformation TransportConnectionInformation =>
         new(IPEndPoint.Parse(LocalAddress), IPEndPoint.Parse(RemoteAddress), null);
@@ -23,7 +23,7 @@ public sealed class FakeConnectionContext : IConnectionContext
     private const string LocalAddress = "192.168.7.7:10000";
     private const string RemoteAddress = "10.10.10.10:11000";
 
-    private readonly TaskCompletionSource _shutdownCompletionSource = new(); // never completed
+    private readonly TaskCompletionSource<Exception?> _shutdownCompletionSource = new(); // never completed
 
     public static IConnectionContext FromProtocol(Protocol protocol) =>
         protocol == Protocol.Ice ? Ice :

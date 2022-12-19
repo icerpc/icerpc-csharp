@@ -15,18 +15,21 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is shut down or fails. The connection shutdown is
-    /// initiated by any of the following events:
+    /// <summary>Gets a task that completes when the underlying transport connection is closed or the underlying
+    /// transport connection cannot be established.</summary>
+    /// <value>A task that completes successfully with a null exception when this connection is shut down gracefully
+    /// or disposed before a call to <see cref="ConnectAsync" />. When this connection is aborted, this task completes
+    /// successfully with the exception that caused the abort. This task is never faulted.</value>
+    /// <remarks>The graceful shutdown of the connection is initiated by any of the following events:
     /// <list type="bullet">
     /// <item><description>The application calls <see cref="ShutdownAsync" /> on the connection.</description></item>
     /// <item><description>The connection shuts down itself because it remained idle for longer than its configured idle
     /// timeout.</description></item>
     /// <item><description>The peer shuts down the connection.</description></item>
     /// </list>
-    /// </summary>
-    /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
-    /// the connection fails.</value>
-    Task ShutdownComplete { get; }
+    /// </remarks>
+    // TODO: rename property to 'Closed'.
+    Task<Exception?> ShutdownComplete { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

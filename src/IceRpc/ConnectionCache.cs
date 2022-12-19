@@ -381,17 +381,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             try
             {
-                await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                _ = await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
             {
                 // The connection cache is being shut down or disposed and cache's DisposeAsync is responsible to
                 // DisposeAsync this connection.
                 return;
-            }
-            catch
-            {
-                // ignore and continue: the connection was aborted
             }
 
             lock (_mutex)

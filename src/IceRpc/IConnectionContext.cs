@@ -15,10 +15,12 @@ public interface IConnectionContext
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is shut down or aborted.</summary>
-    /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
-    /// the connection is aborted.</value>
-    Task ShutdownComplete { get; }
+    /// <summary>Gets a task that completes when the underlying transport connection is closed.</summary>
+    /// <value>A task that completes successfully with a null exception when the connection is shut down gracefully.
+    /// When this connection is aborted, this task completes successfully with the exception that caused the abort.
+    /// This task is never faulted.</value>
+    // TODO: rename property
+    Task<Exception?> ShutdownComplete { get; }
 
     /// <summary>Gets the transport connection information.</summary>
     TransportConnectionInformation TransportConnectionInformation { get; }
