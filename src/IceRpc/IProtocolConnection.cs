@@ -43,7 +43,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
+    Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gracefully shuts down the connection. The shutdown waits for pending invocations and dispatches to
     /// complete. For a speedier graceful shutdown, call <see cref="IAsyncDisposable.DisposeAsync" /> instead. It will
@@ -60,6 +60,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the connection was not connected successfully prior to
+    /// call.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <remarks>If shutdown is canceled, the protocol connection transitions to a faulted state and the disposal of the
     /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
