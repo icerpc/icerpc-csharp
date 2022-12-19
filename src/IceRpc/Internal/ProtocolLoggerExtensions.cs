@@ -56,7 +56,7 @@ internal static partial class ProtocolLoggerExtensions
         EndPoint remoteNetworkAddress) =>
         LogConnectionConnected(
             logger,
-            isServer ? "Server|Client" : "Client|Server",
+            isServer ? "Server" : "Client",
             localNetworkAddress,
             remoteNetworkAddress);
 
@@ -66,7 +66,7 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
         Level = LogLevel.Trace,
-        Message = "Client|Server connection connect to '{ServerAddress}' failed")]
+        Message = "Client connection failed to connect to '{ServerAddress}'")]
     internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
         ServerAddress serverAddress,
@@ -76,7 +76,7 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
         Level = LogLevel.Trace,
-        Message = "Server|Client connection connect from '{ServerAddress}' to '{RemoteNetworkAddress}' failed")]
+        Message = "Server connection failed to connect from '{ServerAddress}' to '{RemoteNetworkAddress}'")]
     internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
         ServerAddress serverAddress,
@@ -104,7 +104,7 @@ internal static partial class ProtocolLoggerExtensions
         Exception exception) =>
         LogConnectionFailed(
             logger,
-            isServer ? "Server|Client" : "Client|Server",
+            isServer ? "Server" : "Client",
             localNetworkAddress,
             remoteNetworkAddress,
             exception);
@@ -127,7 +127,7 @@ internal static partial class ProtocolLoggerExtensions
         EndPoint remoteNetworkAddress) =>
         LogConnectionShutdown(
             logger,
-            isServer ? "Server|Client" : "Client|Server",
+            isServer ? "Server" : "Client",
             localNetworkAddress,
             remoteNetworkAddress);
 

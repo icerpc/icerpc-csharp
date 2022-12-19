@@ -625,10 +625,10 @@ public sealed class Server : IAsyncDisposable
 
         public IProtocolConnection CreateProtocolConnection(
             TransportConnectionInformation transportConnectionInformation) =>
-                new LogProtocolConnectionDecorator(
-                    _decoratee.CreateProtocolConnection(transportConnectionInformation),
-                    _remoteNetworkAddress,
-                    _logger);
+            new LogProtocolConnectionDecorator(
+                _decoratee.CreateProtocolConnection(transportConnectionInformation),
+                _remoteNetworkAddress,
+                _logger);
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
@@ -645,85 +645,6 @@ public sealed class Server : IAsyncDisposable
             _logger = logger;
             _serverAddress = serverAddress;
             _remoteNetworkAddress = remoteNetworkAddress;
-        }
-    }
-
-    /// <summary>Provides a decorator that adds logging to the <see cref="IProtocolConnection" />.</summary>
-    private class LogProtocolConnectionDecorator : IProtocolConnection
-    {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
-
-        private readonly IProtocolConnection _decoratee;
-        private readonly ILogger _logger;
-        private readonly Task _logShutdownTask;
-        private EndPoint? _localNetworkAddress;
-        private readonly EndPoint _remoteNetworkAddress;
-
-        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                _localNetworkAddress = result.LocalNetworkAddress;
-                _logger.LogConnectionConnected(isServer: true, _localNetworkAddress, _remoteNetworkAddress);
-                return result;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
-                throw;
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-            await _logShutdownTask.ConfigureAwait(false);
-        }
-
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
-            _decoratee.InvokeAsync(request, cancellationToken);
-
-        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(cancellationToken);
-
-        internal LogProtocolConnectionDecorator(
-            IProtocolConnection decoratee,
-            EndPoint remoteNetworkAddress,
-            ILogger logger)
-        {
-            _decoratee = decoratee;
-            _logger = logger;
-            _remoteNetworkAddress = remoteNetworkAddress;
-
-            _logShutdownTask = LogShutdownAsync();
-
-            // This task executes once per decorated connection.
-            async Task LogShutdownAsync()
-            {
-                try
-                {
-                    await ShutdownComplete.ConfigureAwait(false);
-                    if (_localNetworkAddress is not null)
-                    {
-                        _logger.LogConnectionShutdown(isServer: true, _localNetworkAddress, remoteNetworkAddress);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    if (_localNetworkAddress is not null)
-                    {
-                        _logger.LogConnectionFailed(
-                            isServer: true,
-                            _localNetworkAddress,
-                            remoteNetworkAddress,
-                            exception);
-                    }
-                }
-            }
         }
     }
 

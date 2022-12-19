@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
@@ -71,16 +70,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
-            multiplexedClientTransport);
-
-        protocolConnectionFactory = new MetricsClientProtocolConnectionFactoryDecorator(protocolConnectionFactory);
-
-        if (logger is not null)
-        {
-            protocolConnectionFactory = new LogClientProtocolConnectionFactoryDecorator(
-                protocolConnectionFactory,
-                logger);
-        }
+            multiplexedClientTransport,
+            logger);
 
         _connectionFactory = previousConnection =>
         {
