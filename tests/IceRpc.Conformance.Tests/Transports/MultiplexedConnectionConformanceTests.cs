@@ -163,6 +163,129 @@ public abstract class MultiplexedConnectionConformanceTests
         }
     }
 
+    [Test]
+    public async Task After_reach_max_stream_count_end_of_stream_allows_accepting_a_new_one(
+        [Values(true, false)] bool bidirectional)
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        if (bidirectional)
+        {
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+        }
+        else
+        {
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxUnidirectionalStreams = 1);
+        }
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional, default);
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+        ValueTask<IMultiplexedStream> stream2Task = clientConnection.CreateStreamAsync(bidirectional, default);
+
+        await using IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        ReadResult readResult = await serverStream1.Input.ReadAsync();
+        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+
+        if (bidirectional)
+        {
+            serverStream1.Output.Complete();
+            // Reading is necessary for InputClosed to complete.
+            readResult = await clientStream1.Input.ReadAsync();
+            await clientStream1.InputClosed;
+            clientStream1.Input.AdvanceTo(readResult.Buffer.End);
+            clientStream1.Input.Complete();
+        }
+
+        // Act
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+        clientStream1.Output.Complete();
+
+        // Assert
+
+        // Reading is necessary to trigger the closing of reads for serverStream1 and allow a new stream to be accepted.
+        readResult = await serverStream1.Input.ReadAsync();
+        if (!readResult.IsCompleted)
+        {
+            serverStream1.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+            // The end of stream is sent in a separate stream frame. Depending on timeout, the Input pipe reader might
+            // process the two frame separately so a second read is needed to get the end of stream.
+            readResult = await serverStream1.Input.ReadAsync();
+            Assert.That(readResult.IsCompleted, Is.True);
+        }
+        Assert.That(async () => await stream2Task, Throws.Nothing);
+        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+
+        await MultiplexedConformanceTestsHelper.CleanupStreamsAsync(clientStream1, serverStream1);
+        await MultiplexedConformanceTestsHelper.CleanupStreamsAsync(await stream2Task);
+    }
+
+    [Test]
+    public async Task Call_accept_and_dispose_on_listener_fails_with_operations_aborted()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        var acceptTask = listener.AcceptAsync(default);
+
+        // Act
+        await listener.DisposeAsync();
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
+    }
+
+    [Test]
+    public async Task Call_accept_on_the_listener_and_then_cancel_the_cancellation_source_fails_with_operation_canceled_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        using var cancellationSource = new CancellationTokenSource();
+
+        var acceptTask = listener.AcceptAsync(cancellationSource.Token);
+
+        // Act
+        cancellationSource.Cancel();
+
+        // Assert
+        Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task Call_accept_on_a_disposed_listener_fails_with_object_disposed_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await listener.DisposeAsync();
+
+        // Act/Assert
+        Assert.That(async () => await listener.AcceptAsync(default), Throws.TypeOf<ObjectDisposedException>());
+    }
+
+    [Test]
+    public async Task Call_accept_with_canceled_cancellation_token_fails_with_operation_canceled()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        // Act / Assert
+        Assert.That(
+            async () => await listener.AcceptAsync(new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]

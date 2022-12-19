@@ -29,11 +29,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     public override void Complete(Exception? exception = null)
     {
-        if (_state.HasFlag(State.PipeReaderInUse))
-        {
-            throw new InvalidOperationException($"Cannot call complete while {nameof(WriteAsync)} is in progress.");
-        }
-
         if (_state.TrySetFlag(State.Completed))
         {
             // If writes aren't marked as completed yet, abort stream writes. This will send a stream reset frame to
@@ -83,13 +78,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         CheckIfCompleted();
 
-        if (_state.HasFlag(State.PipeReaderCompleted))
-        {
-            return _exception is null ?
-                new FlushResult(isCanceled: false, isCompleted: true) :
-                throw ExceptionUtil.Throw(_exception);
-        }
-
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
@@ -101,6 +89,13 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             if (!_state.TrySetFlag(State.PipeReaderInUse))
             {
                 throw new InvalidOperationException($"The {nameof(WriteAsync)} operation is not thread safe");
+            }
+
+            if (_state.HasFlag(State.PipeReaderCompleted))
+            {
+                return _exception is null ?
+                    new FlushResult(isCanceled: false, isCompleted: true) :
+                    throw ExceptionUtil.Throw(_exception);
             }
 
             if (_pipe.Writer.UnflushedBytes > 0)

@@ -38,12 +38,25 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     {
         if (!_stream.WritesClosed.IsCompleted)
         {
-            // Abort writes before calling DisposeAsync to prevent DisposeAsync from completing writes gracefully (as if
-            // CompleteWrites was called).
+            // Abort writes before calling DisposeAsync to prevent gracefully closing writes (as if CompleteWrites was
+            // called).
             _stream.Abort(QuicAbortDirection.Write, 0);
         }
 
+        bool inputCompleted = InputClosed.IsCompleted;
+        bool outputCompleted = OutputClosed.IsCompleted;
+
+        // Dispose of the stream before completing the input and output to ensure pending operations complete first.
         await _stream.DisposeAsync().ConfigureAwait(false);
+
+        if (!inputCompleted)
+        {
+            _inputPipeReader?.Complete();
+        }
+        if (!outputCompleted)
+        {
+            _outputPipeWriter?.Complete();
+        }
     }
 
     internal QuicMultiplexedStream(

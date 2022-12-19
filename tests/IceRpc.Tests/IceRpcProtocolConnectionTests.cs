@@ -891,7 +891,6 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act

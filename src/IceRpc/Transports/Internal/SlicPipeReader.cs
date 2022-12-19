@@ -41,14 +41,6 @@ internal class SlicPipeReader : PipeReader
             _examined = 0;
         }
 
-        // We don't use SequencePosition.Equals because equality does not guarantee that the two instances point to the
-        // same location in a ReadOnlySequence.
-        if (_readResult.IsCompleted &&
-            consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset)
-        {
-            _stream.TrySetReadsClosed(exception: null);
-        }
-
         _pipe.Reader.AdvanceTo(consumed, examined);
     }
 
@@ -58,17 +50,6 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            if (_readResult.IsCompleted)
-            {
-                // If the peer is no longer sending data, just mark reads as completed on the stream.
-                _stream.TrySetReadsClosed(exception: null);
-            }
-
-            if (!_stream.IsBidirectional)
-            {
-                _stream.CompleteUnidirectionalStreamReads();
-            }
-
             if (!_stream.ReadsCompleted)
             {
                 // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
@@ -91,16 +72,16 @@ internal class SlicPipeReader : PipeReader
             return GetReadResult();
         }
 
-        // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
-        // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
-        // completed on the stream.
+        // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got examined
+        // and consumed.
         _readResult = result;
-        if (result.Buffer.IsEmpty && result.IsCompleted)
+
+        // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
+        if (result.IsCompleted)
         {
-            // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
-            // stream count.
             _stream.TrySetReadsClosed(exception: null);
         }
+
         return result;
     }
 
@@ -116,14 +97,13 @@ internal class SlicPipeReader : PipeReader
                 return true;
             }
 
-            // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
-            // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
-            // completed on the stream.
+            // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got
+            // examined and consumed.
             _readResult = result;
-            if (result.Buffer.IsEmpty && result.IsCompleted)
+
+            // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
+            if (result.IsCompleted)
             {
-                // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
-                // stream count.
                 _stream.TrySetReadsClosed(exception: null);
             }
             return true;
@@ -184,7 +164,8 @@ internal class SlicPipeReader : PipeReader
 
         if (!_state.TrySetFlag(State.PipeWriterInUse))
         {
-            throw new InvalidOperationException($"The {nameof(ReceivedStreamFrameAsync)} operation is not thread safe.");
+            throw new InvalidOperationException(
+                $"The {nameof(ReceivedStreamFrameAsync)} operation is not thread safe.");
         }
 
         try

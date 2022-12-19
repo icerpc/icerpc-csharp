@@ -5,26 +5,12 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Conformance.Tests;
 
-
 internal static class MultiplexedConformanceTestsHelper
 {
     internal static async ValueTask CleanupStreamsAsync(params IMultiplexedStream[] streams)
     {
         foreach (IMultiplexedStream stream in streams)
         {
-            if (stream.IsBidirectional)
-            {
-                stream.Output.Complete();
-                stream.Input.Complete();
-            }
-            else if (stream.IsRemote)
-            {
-                stream.Input.Complete();
-            }
-            else
-            {
-                stream.Output.Complete();
-            }
             await stream.DisposeAsync();
         }
     }
@@ -71,8 +57,11 @@ internal readonly struct LocalAndRemoteStreams : IAsyncDisposable
 
     internal IMultiplexedStream RemoteStream { get; }
 
-    public ValueTask DisposeAsync() =>
-        MultiplexedConformanceTestsHelper.CleanupStreamsAsync(LocalStream, RemoteStream);
+    public async ValueTask DisposeAsync()
+    {
+        await LocalStream.DisposeAsync();
+        await RemoteStream.DisposeAsync();
+    }
 
     internal LocalAndRemoteStreams(IMultiplexedStream localStream, IMultiplexedStream remoteStream)
     {
