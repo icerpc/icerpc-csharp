@@ -277,6 +277,10 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
                 else if (cancellationToken.IsCancellationRequested)
                 {
+                    // If cancellation is requested, we cancel shutdown right away. This is useful to ensure that the
+                    // connection is always aborted by DisposeAsync after a call to ShutdownAsync(
+                    // new CancellationToken(true)).
+
                     var exception = new IceRpcException(
                         IceRpcError.OperationAborted,
                         "The connection shutdown was canceled.");
