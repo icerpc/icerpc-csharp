@@ -12,9 +12,6 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(ParallelScope.All)]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuiConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     [OneTimeSetUp]
@@ -38,9 +35,6 @@ public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
 }
 
 [Parallelizable(ParallelScope.All)]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
 {
     [OneTimeSetUp]
@@ -50,9 +44,6 @@ public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
 }
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal static class QuicTransportConformanceTestsServiceCollection
 {
     internal static void SetUp()

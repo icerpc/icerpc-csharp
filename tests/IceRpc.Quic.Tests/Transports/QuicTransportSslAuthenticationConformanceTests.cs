@@ -9,9 +9,6 @@ using System.Net.Quic;
 
 namespace IceRpc.Tests.Transports;
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportSslAuthenticationConformanceTests : MultiplexedTransportSslAuthenticationConformanceTests
 {
     [OneTimeSetUp]

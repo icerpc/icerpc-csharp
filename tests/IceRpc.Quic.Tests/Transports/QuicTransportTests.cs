@@ -13,9 +13,6 @@ using System.Security.Authentication;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(ParallelScope.All)]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicTransportTests
 {
     [OneTimeSetUp]

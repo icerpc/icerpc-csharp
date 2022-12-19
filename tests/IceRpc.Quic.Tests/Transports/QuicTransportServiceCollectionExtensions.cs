@@ -9,9 +9,6 @@ using System.Net.Security;
 
 namespace IceRpc.Tests.Transports;
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class QuicTransportServiceCollectionExtensions
 {
     public static IServiceCollection AddQuicTest(this IServiceCollection services)

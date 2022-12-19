@@ -7,9 +7,6 @@ using System.Net.Quic;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>The Quic multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicMultiplexedStream : IMultiplexedStream
 {
     public ulong Id { get; }

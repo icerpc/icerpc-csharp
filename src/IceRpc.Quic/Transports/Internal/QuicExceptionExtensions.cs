@@ -4,9 +4,6 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Internal;
 
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal static class QuicExceptionExtensions
 {
     /// <summary>Converts a <see cref="QuicException"/> into an <see cref="IceRpcException"/>.</summary>

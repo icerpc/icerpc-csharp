@@ -7,9 +7,6 @@ using System.Net.Quic;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>Implements a PipeReader over a QuicStream.</summary>
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
     internal Task Closed { get; }
