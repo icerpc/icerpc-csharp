@@ -23,5 +23,11 @@ public class AssertTraceListener : DefaultTraceListener
         }
     }
 
-    public static void Setup() => Trace.Listeners[0] = _instance;
+    public static void Setup()
+    {
+        Trace.Listeners[0] = _instance;
+
+        TaskScheduler.UnobservedTaskException +=
+            (_, eventArgs) => Assert.Fail($"Unobserved exception: {eventArgs.Exception}");
+    }
 }

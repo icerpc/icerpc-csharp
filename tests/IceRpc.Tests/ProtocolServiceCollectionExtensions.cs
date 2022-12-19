@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
 
 namespace IceRpc.Tests;
 
@@ -12,8 +13,15 @@ public static class ProtocolServiceCollectionExtensions
     public static IServiceCollection AddIceProtocolTest(
         this IServiceCollection services,
         ConnectionOptions clientConnectionOptions,
-        ConnectionOptions serverConnectionOptions) =>
-        services.AddSingleton(provider =>
+        ConnectionOptions serverConnectionOptions)
+    {
+        clientConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
+        clientConnectionOptions.FaultedTaskAction ??= ServiceCollectionExtensions.DefaultFaultedTaskAction;
+
+        serverConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
+        serverConnectionOptions.FaultedTaskAction ??= ServiceCollectionExtensions.DefaultFaultedTaskAction;
+
+        return services.AddSingleton(provider =>
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceProtocolConnection(
                     provider.GetRequiredService<IDuplexConnection>(),
@@ -34,12 +42,19 @@ public static class ProtocolServiceCollectionExtensions
                             serverConnectionOptions);
                     },
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
+    }
 
     public static IServiceCollection AddIceRpcProtocolTest(
         this IServiceCollection services,
         ConnectionOptions clientConnectionOptions,
         ConnectionOptions serverConnectionOptions)
     {
+        clientConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
+        clientConnectionOptions.FaultedTaskAction ??= ServiceCollectionExtensions.DefaultFaultedTaskAction;
+
+        serverConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
+        serverConnectionOptions.FaultedTaskAction ??= ServiceCollectionExtensions.DefaultFaultedTaskAction;
+
         services.AddSingleton(provider =>
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceRpcProtocolConnection(
@@ -74,8 +89,11 @@ public static class ProtocolServiceCollectionExtensions
     {
         clientConnectionOptions ??= new();
         clientConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
+        clientConnectionOptions.FaultedTaskAction ??= ServiceCollectionExtensions.DefaultFaultedTaskAction;
+
         serverConnectionOptions ??= new();
         serverConnectionOptions.Dispatcher ??= dispatcher ?? ServiceNotFoundDispatcher.Instance;
+        serverConnectionOptions.FaultedTaskAction ??= ServiceCollectionExtensions.DefaultFaultedTaskAction;
 
         if (protocol == Protocol.Ice)
         {

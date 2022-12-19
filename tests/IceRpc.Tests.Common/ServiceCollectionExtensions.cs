@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -12,6 +13,9 @@ namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {
+    public static readonly Action<Exception> DefaultFaultedTaskAction =
+        exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
+
     /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
     public static IServiceCollection AddClientServerColocTest(
         this IServiceCollection services,
@@ -117,8 +121,17 @@ public static class ServiceCollectionExtensions
             .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
             .AddIceRpcClientConnection();
 
-        services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
-        services.AddOptions<ClientConnectionOptions>().Configure(options => options.ServerAddress = serverAddress);
+        services.AddOptions<ServerOptions>().Configure(options =>
+        {
+            options.ConnectionOptions.FaultedTaskAction = DefaultFaultedTaskAction;
+            options.ServerAddress = serverAddress;
+        });
+
+        services.AddOptions<ClientConnectionOptions>().Configure(options =>
+        {
+            options.FaultedTaskAction = DefaultFaultedTaskAction;
+            options.ServerAddress = serverAddress;
+        });
 
         return services;
     }

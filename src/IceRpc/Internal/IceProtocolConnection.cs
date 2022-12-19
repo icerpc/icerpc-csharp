@@ -33,7 +33,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
-    private readonly Action<Exception> _faultedTaskAction;
+    private readonly Action<Exception>? _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
     private bool _isClosedByPeer;
@@ -973,10 +973,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         {
                             await DispatchRequestAsync(request, contextReader).ConfigureAwait(false);
                         }
-                        catch (Exception exception)
+                        catch (Exception exception) when (_faultedTaskAction is not null)
                         {
                             _faultedTaskAction(exception);
-                            throw;
                         }
                     },
                     CancellationToken.None);

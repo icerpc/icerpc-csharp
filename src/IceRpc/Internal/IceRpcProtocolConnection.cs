@@ -28,7 +28,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
-    private readonly Action<Exception> _faultedTaskAction;
+    private readonly Action<Exception>? _faultedTaskAction;
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
 
@@ -309,11 +309,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 {
                                     // This occurs during shutdown.
                                 }
-                                catch (Exception exception)
+                                catch (Exception exception) when (_faultedTaskAction is not null)
                                 {
                                     // not expected
                                     _faultedTaskAction(exception);
-                                    throw;
                                 }
                                 finally
                                 {
@@ -842,10 +841,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         // TruncatedData is expected when the payloadContinuation comes from an incoming IceRPC payload
                         // and the peer's Output is completed with an exception.
                     }
-                    catch (Exception exception)
+                    catch (Exception exception) when (_faultedTaskAction is not null)
                     {
                         _faultedTaskAction(exception);
-                        throw;
                     }
                     finally
                     {
