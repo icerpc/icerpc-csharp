@@ -61,6 +61,48 @@ public abstract class DuplexConnectionConformanceTests
         clientConnection.Dispose();
     }
 
+    [Test]
+    public async Task Connection_server_address_transport_property_is_set()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var transport = provider.GetRequiredService<IDuplexClientTransport>().Name;
+
+        // Act
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
+
+        // Assert
+        Assert.That(sut.ClientConnection.ServerAddress.Transport, Is.EqualTo(transport));
+        Assert.That(sut.ServerConnection.ServerAddress.Transport, Is.EqualTo(transport));
+    }
+
+    [Test]
+    public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+
+        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
+
+        // Act/Asserts
+        Assert.Throws<ArgumentException>(
+            () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null));
+    }
+
+    [Test]
+    public async Task Create_server_connection_with_unknown_server_address_parameter_fails_with_format_exception()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
+
+        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
+
+        // Act/Asserts
+        Assert.Throws<ArgumentException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+    }
+
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and
     /// ensure that this unblocks the pending write calls.</summary>
     [Test]
@@ -184,45 +226,93 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
+    public async Task Shutdown_connection()
     {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        await using ServiceProvider provider = CreateServiceCollection()
+            .BuildServiceProvider(validateScopes: true);
+        IDuplexConnection clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
 
-        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var clientConnectTask = clientConnection.ConnectAsync(CancellationToken.None);
+        (IDuplexConnection serverConnection, _) = await listener.AcceptAsync(CancellationToken.None);
+        await serverConnection.ConnectAsync(CancellationToken.None);
+        await clientConnectTask;
 
-        // Act/Asserts
-        Assert.Throws<ArgumentException>(
-            () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null));
+        // Act/Assert
+        Assert.That(
+            async () => await clientConnection.ShutdownAsync(CancellationToken.None),
+            Throws.Nothing);
+
+        Assert.That(
+            async () => await serverConnection.ShutdownAsync(CancellationToken.None),
+            Throws.Nothing);
     }
 
     [Test]
-    public async Task Create_server_connection_with_unknown_server_address_parameter_fails_with_format_exception()
+    public async Task Shutdown_connection_on_both_sides()
     {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var serverTransport = provider.GetRequiredService<IDuplexServerTransport>();
+        await using ServiceProvider provider = CreateServiceCollection()
+            .BuildServiceProvider(validateScopes: true);
+        IDuplexConnection clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
 
-        var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
+        var clientConnectTask = clientConnection.ConnectAsync(CancellationToken.None);
+        (IDuplexConnection serverConnection, _) = await listener.AcceptAsync(CancellationToken.None);
+        await serverConnection.ConnectAsync(CancellationToken.None);
+        await clientConnectTask;
 
-        // Act/Asserts
-        Assert.Throws<ArgumentException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+        // Act
+        var clientShutdownTask = clientConnection.ShutdownAsync(CancellationToken.None);
+        var serverShutdownTask = serverConnection.ShutdownAsync(CancellationToken.None);
+
+        // Assert
+        Assert.That(async () => await clientShutdownTask, Throws.Nothing);
+        Assert.That(async () => await serverShutdownTask, Throws.Nothing);
     }
 
+    /// <summary>Verifies that we can write and read using the duplex connection.</summary>
     [Test]
-    public async Task Connection_server_address_transport_property_is_set()
+    public async Task Write_and_read_buffers(
+        [Values(
+            new int[] { 1 },
+            new int[] { 1024 },
+            new int[] { 32 * 1024 },
+            new int[] { 1024 * 1024 },
+            new int[] { 16, 32, 64, 128 },
+            new int[] { 3, 9, 15, 512 * 1024},
+            new int[] { 3, 512 * 1024})] int[] sizes)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var transport = provider.GetRequiredService<IDuplexClientTransport>().Name;
-
-        // Act
         using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
             provider.GetRequiredService<IListener<IDuplexConnection>>(),
             provider.GetRequiredService<IDuplexConnection>());
 
+        int size = sizes.Sum();
+        ReadOnlyMemory<byte>[] buffers =
+            sizes.Select(
+                n => (ReadOnlyMemory<byte>)Enumerable.Range(0, n).Select(i => (byte)(i % 255)).ToArray())
+            .ToArray();
+
+        // Act
+        ValueTask writeTask = sut.ClientConnection.WriteAsync(buffers, default);
+        Memory<byte> readBuffer = new byte[size];
+        int offset = 0;
+        while (offset < size)
+        {
+            offset += await sut.ServerConnection.ReadAsync(readBuffer[offset..], default);
+        }
+        await writeTask;
+
         // Assert
-        Assert.That(sut.ClientConnection.ServerAddress.Transport, Is.EqualTo(transport));
-        Assert.That(sut.ServerConnection.ServerAddress.Transport, Is.EqualTo(transport));
+        Assert.That(offset, Is.EqualTo(size));
+        offset = 0;
+        for (int i = 0; i < sizes.Length; ++i)
+        {
+            size = sizes[i];
+            Assert.That(readBuffer.Span.Slice(offset, size).SequenceEqual(buffers[i].Span), Is.True);
+            offset += size;
+        }
     }
 
     [Test]
@@ -275,6 +365,21 @@ public abstract class DuplexConnectionConformanceTests
         Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
+    [Test]
+    public async Task Write_fails_after_shutdown()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<IDuplexConnection>>(),
+            provider.GetRequiredService<IDuplexConnection>());
+        await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
+
+        // Act/Assert
+        Assert.CatchAsync<Exception>(async () =>
+            await sut.ServerConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] },
+            CancellationToken.None));
+    }
+
     /// <summary>Verifies that calling write fails with <see cref="IceRpcError.ConnectionAborted" />
     /// when the peer connection is disposed.</summary>
     [Test]
@@ -307,66 +412,6 @@ public abstract class DuplexConnectionConformanceTests
         }
 
         Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-    }
-
-    [Test]
-    public async Task Write_fails_after_shutdown()
-    {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<IDuplexConnection>>(),
-            provider.GetRequiredService<IDuplexConnection>());
-        await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
-
-        // Act/Assert
-        Assert.CatchAsync<Exception>(async () =>
-            await sut.ServerConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] },
-            CancellationToken.None));
-    }
-
-    /// <summary>Verifies that we can write and read using the duplex connection.</summary>
-    [Test]
-    public async Task Write_and_read_buffers(
-        [Values(
-            new int[] { 1 },
-            new int[] { 1024 },
-            new int[] { 32 * 1024 },
-            new int[] { 1024 * 1024 },
-            new int[] { 16, 32, 64, 128 },
-            new int[] { 3, 9, 15, 512 * 1024},
-            new int[] { 3, 512 * 1024})] int[] sizes)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<IDuplexConnection>>(),
-            provider.GetRequiredService<IDuplexConnection>());
-
-        int size = sizes.Sum();
-        ReadOnlyMemory<byte>[] buffers =
-            sizes.Select(
-                n => (ReadOnlyMemory<byte>)Enumerable.Range(0, n).Select(i => (byte)(i % 255)).ToArray())
-            .ToArray();
-
-        // Act
-        ValueTask writeTask = sut.ClientConnection.WriteAsync(buffers, default);
-        Memory<byte> readBuffer = new byte[size];
-        int offset = 0;
-        while (offset < size)
-        {
-            offset += await sut.ServerConnection.ReadAsync(readBuffer[offset..], default);
-        }
-        await writeTask;
-
-        // Assert
-        Assert.That(offset, Is.EqualTo(size));
-        offset = 0;
-        for (int i = 0; i < sizes.Length; ++i)
-        {
-            size = sizes[i];
-            Assert.That(readBuffer.Span.Slice(offset, size).SequenceEqual(buffers[i].Span), Is.True);
-            offset += size;
-        }
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>

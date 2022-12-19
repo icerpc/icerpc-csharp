@@ -195,42 +195,6 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
-    /// <summary>Verify streams cannot be created after closing down the connection.</summary>
-    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
-    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
-    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
-    public async Task Pending_create_streams_fails_on_connection_close(
-        MultiplexedConnectionCloseError closeError,
-        IceRpcError expectedIceRpcError)
-    {
-        // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = 1);
-        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        await using IMultiplexedStream stream1 = await clientConnection.CreateStreamAsync(true, default);
-        await stream1.Output.WriteAsync(_oneBytePayload, default); // Ensures the stream is started.
-
-        ValueTask<IMultiplexedStream> stream2CreateStreamTask = clientConnection.CreateStreamAsync(true, default);
-        await Task.Delay(100);
-        Assert.That(stream2CreateStreamTask.IsCompleted, Is.False);
-
-        // Act
-        await serverConnection.CloseAsync(closeError, CancellationToken.None);
-
-        // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await stream2CreateStreamTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
-
-        await MultiplexedConformanceTestsHelper.CleanupStreamsAsync(stream1);
-    }
-
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
     /// <param name="disposeServerConnection">Whether to dispose the server connection or the client connection.
     /// </param>
@@ -455,28 +419,6 @@ public abstract class MultiplexedConnectionConformanceTests
             serverAddress,
             new MultiplexedConnectionOptions(),
             provider.GetService<SslServerAuthenticationOptions>()));
-    }
-
-    /// <summary>Verifies we can dispose a stream without calling Complete on its Input or Output.</summary>
-    [Test]
-    public async Task Dispose_stream_without_complete()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        await using IMultiplexedConnection serverConnection =
-        await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
-        await clientStream.Output.WriteAsync(_oneBytePayload);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-
-        // Act
-        await clientStream.DisposeAsync();
-        await serverStream.DisposeAsync();
     }
 
     [Test]
@@ -808,6 +750,42 @@ public abstract class MultiplexedConnectionConformanceTests
 
             stream.Input.Complete();
         }
+    }
+
+    /// <summary>Verify streams cannot be created after closing down the connection.</summary>
+    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
+    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
+    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
+    public async Task Pending_create_streams_fails_on_connection_close(
+        MultiplexedConnectionCloseError closeError,
+        IceRpcError expectedIceRpcError)
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        await using IMultiplexedStream stream1 = await clientConnection.CreateStreamAsync(true, default);
+        await stream1.Output.WriteAsync(_oneBytePayload, default); // Ensures the stream is started.
+
+        ValueTask<IMultiplexedStream> stream2CreateStreamTask = clientConnection.CreateStreamAsync(true, default);
+        await Task.Delay(100);
+        Assert.That(stream2CreateStreamTask.IsCompleted, Is.False);
+
+        // Act
+        await serverConnection.CloseAsync(closeError, CancellationToken.None);
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await stream2CreateStreamTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
+
+        await MultiplexedConformanceTestsHelper.CleanupStreamsAsync(stream1);
     }
 
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>

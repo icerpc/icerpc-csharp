@@ -43,7 +43,8 @@ public static class ServiceCollectionExtensions
 
     /// <summary>Installs the coloc duplex transport.</summary>
     public static IServiceCollection AddColocTransport(this IServiceCollection services) => services
-        .AddSingleton<ColocTransport>()
+        .AddSingleton<ColocTransportOptions>()
+        .AddSingleton(provider => new ColocTransport(provider.GetRequiredService<ColocTransportOptions>()))
         .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
         .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
 

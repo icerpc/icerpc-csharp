@@ -104,6 +104,28 @@ public abstract class MultiplexedStreamConformanceTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
+    /// <summary>Verifies we can dispose a stream without calling Complete on its Input or Output.</summary>
+    [Test]
+    public async Task Dispose_stream_without_complete()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        await using IMultiplexedConnection serverConnection =
+        await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        await clientStream.Output.WriteAsync(_oneBytePayload);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await clientStream.DisposeAsync();
+        await serverStream.DisposeAsync();
+    }
+
     [Test]
     public async Task Stream_abort_read()
     {
