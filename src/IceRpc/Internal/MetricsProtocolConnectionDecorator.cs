@@ -4,7 +4,7 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides a log decorator for client protocol connections.</summary>
+/// <summary>Provides a log decorator for protocol connections.</summary>
 internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
