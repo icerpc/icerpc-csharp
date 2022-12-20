@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
     private readonly IDuplexConnection _connection;
-    private TimeSpan? _keepAlivePeriod;
+    private TimeSpan _keepAlivePeriod = Timeout.InfiniteTimeSpan;
     private readonly Timer? _keepAliveTimer;
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
@@ -113,7 +113,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
                 await task.ConfigureAwait(false);
             }
 
-            _keepAliveTimer?.Change(_keepAlivePeriod!.Value, Timeout.InfiniteTimeSpan);
+            _keepAliveTimer?.Change(_keepAlivePeriod, Timeout.InfiniteTimeSpan);
         }
         catch (ObjectDisposedException exception)
         {
