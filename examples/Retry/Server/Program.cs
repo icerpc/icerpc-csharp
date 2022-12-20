@@ -20,12 +20,14 @@ var serverAddress = new ServerAddress(new Uri($"icerpc://127.0.0.1:{10000 + numb
 
 await using var server = new Server(new Hello(number), serverAddress);
 
-// Shuts down the server on Ctrl+C.
+// Create a task completion source to keep running until Ctrl+C is pressed.
+var cancelKeyPressed = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    _ = server.ShutdownAsync();
+    _ = cancelKeyPressed.TrySetResult();
 };
 
 server.Listen();
-await server.ShutdownComplete;
+await cancelKeyPressed.Task;
+await server.ShutdownAsync();
