@@ -25,12 +25,14 @@ router.Map<ICrm>(new Crm());
 
 await using var server = new Server(router, new Uri("icerpc://127.0.0.1:20001"));
 
-// Shuts down the server on Ctrl+C.
+// Create a task completion source to keep running until Ctrl+C is pressed.
+var cancelKeyPressed = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    _ = server.ShutdownAsync();
+    _ = cancelKeyPressed.TrySetResult();
 };
 
 server.Listen();
-await server.ShutdownComplete;
+await cancelKeyPressed.Task;
+await server.ShutdownAsync();

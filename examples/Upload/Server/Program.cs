@@ -5,14 +5,14 @@ using UploadExample;
 
 await using var server = new Server(new Uploader());
 
-// Shuts down the server on Ctrl+C.
+// Create a task completion source to keep running until Ctrl+C is pressed.
+var cancelKeyPressed = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    _ = server.ShutdownAsync();
+    _ = cancelKeyPressed.TrySetResult();
 };
 
-Console.WriteLine("Server is waiting for connections...");
 server.Listen();
-
-await server.ShutdownComplete;
+await cancelKeyPressed.Task;
+await server.ShutdownAsync();

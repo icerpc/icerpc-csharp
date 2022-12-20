@@ -13,12 +13,14 @@ var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 
 await using var server = new Server(new Hello(), serverAuthenticationOptions);
 
-// Shuts down the server on Ctrl+C.
+// Create a task completion source to keep running until Ctrl+C is pressed.
+var cancelKeyPressed = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    _ = server.ShutdownAsync();
+    _ = cancelKeyPressed.TrySetResult();
 };
 
 server.Listen();
-await server.ShutdownComplete;
+await cancelKeyPressed.Task;
+await server.ShutdownAsync();
