@@ -20,11 +20,6 @@ public sealed class Server : IAsyncDisposable
     /// the actual port the server is listening on.</value>
     public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
 
-    /// <summary>Gets a task that completes when the server's shutdown is complete: see
-    /// <see cref="ShutdownAsync(CancellationToken)" /> This property can be retrieved before shutdown is initiated.
-    /// </summary>
-    public Task ShutdownComplete => _shutdownCompleteSource.Task;
-
     private int _backgroundConnectionDisposeCount;
 
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
@@ -50,9 +45,6 @@ public sealed class Server : IAsyncDisposable
     private readonly object _mutex = new();
 
     private readonly ServerAddress _serverAddress;
-
-    private readonly TaskCompletionSource _shutdownCompleteSource =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly CancellationTokenSource _shutdownCts = new();
 
@@ -248,8 +240,14 @@ public sealed class Server : IAsyncDisposable
 
         if (_listenTask is not null)
         {
-            // Wait for the listen task to complete
-            await _listenTask.ConfigureAwait(false);
+            try
+            {
+                await _listenTask.ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignored
+            }
         }
 
         if (_listenerDisposeTask is not null)
@@ -259,7 +257,7 @@ public sealed class Server : IAsyncDisposable
 
         await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())
             .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
-        _ = _shutdownCompleteSource.TrySetResult();
+
         _shutdownCts.Dispose();
     }
 
@@ -355,10 +353,7 @@ public sealed class Server : IAsyncDisposable
                 // The AcceptAsync call can fail with OperationAborted during shutdown if it is accepting a connection
                 // while the listener is disposed.
             }
-            catch (Exception exception)
-            {
-                _shutdownCompleteSource.TrySetException(exception);
-            }
+            // other exceptions thrown by listener.AcceptAsync are logged by listener via a log decorator
         });
 
         async Task ConnectAsync(IConnector connector)
@@ -464,50 +459,43 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
     /// existing connections.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes once the shutdown is complete.</returns>
+    /// <returns>A task that completes successfully once the shutdown is complete.</returns>
     public async Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        try
+        lock (_mutex)
         {
-            lock (_mutex)
+            // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            try
             {
-                // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
-                // does not change.
-                try
-                {
-                    _shutdownCts.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    throw new ObjectDisposedException($"{typeof(Server)}");
-                }
-
-                if (_listener is not null)
-                {
-                    // Stop accepting new connections by disposing of the listener.
-                    _listenerDisposeTask = _listener.DisposeAsync().AsTask();
-                    _listener = null;
-                }
+                _shutdownCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                throw new ObjectDisposedException($"{typeof(Server)}");
             }
 
-            if (_listenerDisposeTask is not null)
+            if (_listener is not null)
             {
-                await _listenerDisposeTask.ConfigureAwait(false);
+                // Stop accepting new connections by disposing of the listener.
+                _listenerDisposeTask = _listener.DisposeAsync().AsTask();
+                _listener = null;
             }
-
-            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
-                .ConfigureAwait(false);
-
-            // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
-            // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
-            // using Result or Wait()), ShutdownAsync will complete.
-            _ = _shutdownCompleteSource.TrySetResult();
         }
-        catch (Exception exception)
+
+        if (_listenTask is not null)
         {
-            _ = _shutdownCompleteSource.TrySetException(exception);
-            throw;
+            // The listen task should not throw any exception, but if it does, the application will get this exception
+            // when it calls ShutdownAsync.
+            await _listenTask.ConfigureAwait(false);
         }
+
+        if (_listenerDisposeTask is not null)
+        {
+            await _listenerDisposeTask.ConfigureAwait(false);
+        }
+
+        await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken))).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

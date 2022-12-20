@@ -33,18 +33,6 @@ public class ServerTests
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
 
-    /// <summary>Verifies that <see cref="Server.ShutdownComplete" /> task is completed after
-    /// <see cref="Server.ShutdownAsync(CancellationToken)" /> completed.</summary>
-    [Test]
-    public async Task The_shutdown_complete_task_is_completed_after_shutdown()
-    {
-        await using var server = new Server(ServiceNotFoundDispatcher.Instance);
-
-        await server.ShutdownAsync();
-
-        Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
-    }
-
     /// <summary>Verifies that Server.ServerAddress.Transport property is set.</summary>
     [Test]
     public async Task Server_server_address_transport_property_is_set([Values("ice", "icerpc")] string protocol)
