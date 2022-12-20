@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionReader : IDisposable
 {
     private readonly IDuplexConnection _connection;
-    private TimeSpan? _idleTimeout;
+    private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
     private TimeSpan _nextIdleTime;
@@ -203,8 +203,8 @@ internal class DuplexConnectionReader : IDisposable
             else
             {
                 // Postpone the idle timeout.
-                _idleTimeoutTimer.Change(_idleTimeout!.Value, Timeout.InfiniteTimeSpan);
-                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout.Value;
+                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
             }
         }
     }

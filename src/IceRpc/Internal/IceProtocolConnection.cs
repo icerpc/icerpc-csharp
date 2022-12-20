@@ -181,11 +181,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // This needs to be set before starting the read frames task below.
         _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-        // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
-        // messages requires the connection to be established.
-        _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
-        _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
-
         if (IsServer)
         {
             EncodeValidateConnectionFrame(_duplexConnectionWriter);
@@ -212,6 +207,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     $"Expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'.");
             }
         }
+
+        // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
+        // messages requires the connection to be established.
+        _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
+        _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
 
         _readFramesTask = Task.Run(
             async () =>

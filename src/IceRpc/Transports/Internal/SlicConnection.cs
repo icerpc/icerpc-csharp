@@ -50,6 +50,7 @@ internal class SlicConnection : IMultiplexedConnection
     private ulong _nextBidirectionalId;
     private ulong _nextUnidirectionalId;
     private readonly int _packetMaxSize;
+    private TimeSpan? _peerIdleTimeout;
     private Task _pingTask = Task.CompletedTask;
     private Task _pongTask = Task.CompletedTask;
     private Task? _readFramesTask;
@@ -101,11 +102,6 @@ internal class SlicConnection : IMultiplexedConnection
         // Connect the duplex connection.
         TransportConnectionInformation information = await _duplexConnection.ConnectAsync(cancellationToken)
             .ConfigureAwait(false);
-
-        // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
-        // messages requires the connection to be established.
-        _duplexConnectionReader.EnableAliveCheck(_localIdleTimeout);
-        _duplexConnectionWriter.EnableKeepAlive(_localIdleTimeout / 2);
 
         TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
         (FrameType FrameType, int FrameSize, ulong?)? header;
@@ -225,6 +221,14 @@ internal class SlicConnection : IMultiplexedConnection
                         $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
             }
         }
+
+        // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
+        // check are not expected until the Slic connection initialization completes. The idle timeout check uses the
+        // smallest idle timeout.
+        TimeSpan keepAliveTimeout = (_peerIdleTimeout ?? TimeSpan.MaxValue) < _localIdleTimeout ?
+            _peerIdleTimeout!.Value : _localIdleTimeout;
+        _duplexConnectionReader.EnableAliveCheck(keepAliveTimeout);
+        _duplexConnectionWriter.EnableKeepAlive(keepAliveTimeout / 2);
 
         // Start a task to read frames from the transport connection.
         _readFramesTask = Task.Run(
@@ -1159,8 +1163,6 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void SetParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
-        TimeSpan? peerIdleTimeout = null;
-
         foreach ((ParameterKey key, IList<byte> buffer) in parameters)
         {
             switch (key)
@@ -1179,7 +1181,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 case ParameterKey.IdleTimeout:
                 {
-                    peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeParamValue(buffer));
+                    _peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeParamValue(buffer));
                     break;
                 }
                 case ParameterKey.PacketMaxSize:
@@ -1217,13 +1219,6 @@ internal class SlicConnection : IMultiplexedConnection
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
                 $"The value '{PeerPacketMaxSize}' is not valid for the PacketMaxSize Slic connection parameter.");
-        }
-
-        // Use the smallest idle timeout.
-        if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
-        {
-            _duplexConnectionReader.EnableAliveCheck(peerIdleTimeoutValue);
-            _duplexConnectionWriter.EnableKeepAlive(peerIdleTimeoutValue / 2);
         }
 
         // all parameter values are currently integers in the range 0..Int32Max encoded as varuint62.
