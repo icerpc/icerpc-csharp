@@ -14,12 +14,6 @@ namespace IceRpc;
 /// corresponding responses.</summary>
 public sealed class Server : IAsyncDisposable
 {
-    /// <summary>Gets the server address of this server.</summary>
-    /// <value>The server address of this server. Its <see cref="ServerAddress.Transport" /> property is always
-    /// non-null. When the address's host is an IP address and the port is 0, <see cref="Listen" /> replaces the port by
-    /// the actual port the server is listening on.</value>
-    public ServerAddress ServerAddress => _listener?.ServerAddress ?? _serverAddress;
-
     private int _backgroundConnectionDisposeCount;
 
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
@@ -65,15 +59,16 @@ public sealed class Server : IAsyncDisposable
         {
             throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
-        _serverAddress = options.ServerAddress;
+
         duplexServerTransport ??= IDuplexServerTransport.Default;
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
         _maxConnections = options.MaxConnections;
         _maxPendingConnections = options.MaxPendingConnections;
 
+        _serverAddress = options.ServerAddress;
         if (_serverAddress.Transport is null)
         {
-            _serverAddress = ServerAddress with
+            _serverAddress = _serverAddress with
             {
                 Transport = _serverAddress.Protocol == Protocol.Ice ?
                     duplexServerTransport.Name : multiplexedServerTransport.Name
@@ -262,11 +257,14 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
-    /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or
-    /// shutting down.</exception>
+    /// <returns>The server address this server is listening on and that a client would connect to. This address is the
+    /// same as <see cref="ServerOptions.ServerAddress" /> except its <see cref="ServerAddress.Transport" /> property is
+    /// always non-null and its port number is never 0 when the host is an IP address.</returns>
     /// <exception cref="IceRpcException">Thrown when another server is already listening on the same server address.
     /// </exception>
-    public void Listen()
+    /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or shutting
+    /// down.</exception>
+    public ServerAddress Listen()
     {
         CancellationToken shutdownCancellationToken;
         IConnectorListener listener;
@@ -355,6 +353,8 @@ public sealed class Server : IAsyncDisposable
             }
             // other exceptions thrown by listener.AcceptAsync are logged by listener via a log decorator
         });
+
+        return listener.ServerAddress;
 
         async Task ConnectAsync(IConnector connector)
         {
@@ -499,7 +499,7 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public override string ToString() => ServerAddress.ToString();
+    public override string ToString() => _serverAddress.ToString();
 
     /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" /> and retries
     /// accepts failures that represent a problem with the peer connection being accepted.</summary>

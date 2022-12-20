@@ -33,19 +33,6 @@ public class ServerTests
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
 
-    /// <summary>Verifies that Server.ServerAddress.Transport property is set.</summary>
-    [Test]
-    public async Task Server_server_address_transport_property_is_set([Values("ice", "icerpc")] string protocol)
-    {
-        // Arrange/Act
-        await using var server = new Server(
-            ServiceNotFoundDispatcher.Instance,
-            new ServerAddress(Protocol.Parse(protocol)));
-
-        // Assert
-        Assert.That(server.ServerAddress.Transport, Is.Not.Null);
-    }
-
     [Test]
     public async Task Connection_refused_after_max_connections_is_reached()
     {
@@ -60,18 +47,18 @@ public class ServerTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             });
 
-        server.Listen();
+        ServerAddress serverAddress = server.Listen();
 
         await using var connection1 = new ClientConnection(
             new ClientConnectionOptions
             {
-                ServerAddress = server.ServerAddress,
+                ServerAddress = serverAddress,
             });
 
         await using var connection2 = new ClientConnection(
             new ClientConnectionOptions
             {
-                ServerAddress = server.ServerAddress,
+                ServerAddress = serverAddress,
             });
 
         await connection1.ConnectAsync();
@@ -98,11 +85,11 @@ public class ServerTests
            },
            multiplexedServerTransport: serverTransport);
 
-        server.Listen();
+        ServerAddress serverAddress = server.Listen();
 
         var clientConnectionOptions = new ClientConnectionOptions()
         {
-            ServerAddress = server.ServerAddress
+            ServerAddress = serverAddress
         };
 
         await using var clientConnection1 = new ClientConnection(
@@ -157,21 +144,21 @@ public class ServerTests
            },
            multiplexedServerTransport: serverTransport);
 
-        server.Listen();
+        ServerAddress serverAddress = server.Listen();
 
         // The listener is now available
         DelayDisposeConnectionListener serverListener = serverTransport.Listener!;
 
         await using var clientConnection1 = new ClientConnection(
-            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            new ClientConnectionOptions { ServerAddress = serverAddress },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         await using var clientConnection2 = new ClientConnection(
-            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            new ClientConnectionOptions { ServerAddress = serverAddress },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         await using var clientConnection3 = new ClientConnection(
-            new ClientConnectionOptions { ServerAddress = server.ServerAddress },
+            new ClientConnectionOptions { ServerAddress = serverAddress },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // No need to delay the disposal of any connections (the default behavior)
@@ -217,13 +204,13 @@ public class ServerTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
             });
 
-        server.Listen();
+        ServerAddress serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
            new ClientConnectionOptions
            {
                ShutdownTimeout = TimeSpan.FromMilliseconds(500),
-               ServerAddress = server.ServerAddress,
+               ServerAddress = serverAddress,
            });
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
