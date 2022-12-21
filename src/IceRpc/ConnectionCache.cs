@@ -100,10 +100,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// target service. It then looks for an active connection.
     /// The <see cref="ConnectionCacheOptions.PreferExistingConnection" /> property influences how the cache selects
     /// this active connection. If no active connection can be found, the cache creates a new connection to one of the
-    /// the request's server addresses from <see cref="IServerAddressFeature" /> feature. If the connection establishment
-    /// to <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful, the cache will try to establish a connection
-    /// to one of the <see cref="IServerAddressFeature.AltServerAddresses" /> addresses. Each connection attempt rotates
-    /// the server addresses of the server address feature, the main server address corresponding to the last attempt
+    /// the request's server addresses from the <see cref="IServerAddressFeature" /> feature. If the connection
+    /// establishment to <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful, the cache will try to
+    /// establish a connection to one of the <see cref="IServerAddressFeature.AltServerAddresses" /> addresses. Each
+    /// connection attempt rotates the server addresses of the server address feature, the main server address corresponding to the last attempt
     /// failure is appended at the end of <see cref="IServerAddressFeature.AltServerAddresses" /> and the first address
     /// from <see cref="IServerAddressFeature.AltServerAddresses" /> replaces
     /// <see cref="IServerAddressFeature.ServerAddress" />. If the cache cannot find an active connection and all
@@ -188,8 +188,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         {
                             connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
                         }
-                        catch (IceRpcException) when (serverAddressFeature.AltServerAddresses.Count > 0)
+                        catch (Exception) when (serverAddressFeature.AltServerAddresses.Count > 0)
                         {
+                            // TODO: rework this code. We should not keep going on any exception.
                             for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
                             {
                                 // Rotate the server addresses before each new connection attempt: the first alt server
@@ -206,7 +207,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                                         .ConfigureAwait(false);
                                     break; // for
                                 }
-                                catch (IceRpcException) when (i + 1 < serverAddressFeature.AltServerAddresses.Count)
+                                catch (Exception) when (i + 1 < serverAddressFeature.AltServerAddresses.Count)
                                 {
                                     // and keep trying unless this is the last alt server address.
                                 }
