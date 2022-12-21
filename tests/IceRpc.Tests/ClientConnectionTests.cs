@@ -30,10 +30,10 @@ public class ClientConnectionTests
             },
             multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
             duplexServerTransport: new TcpServerTransport());
-        server.Listen();
+        ServerAddress serverAddress = server.Listen();
 
         await using var connection = new ClientConnection(
-            new ClientConnectionOptions() { ServerAddress = server.ServerAddress },
+            new ClientConnectionOptions() { ServerAddress = serverAddress },
             duplexClientTransport: new TcpClientTransport(),
             multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
@@ -50,8 +50,7 @@ public class ClientConnectionTests
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
-        server.Listen();
-        ServerAddress serverAddress = server.ServerAddress;
+        ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();
@@ -69,8 +68,7 @@ public class ClientConnectionTests
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
-        server.Listen();
-        ServerAddress serverAddress = server.ServerAddress;
+        ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
 
@@ -98,8 +96,7 @@ public class ClientConnectionTests
     {
         // Arrange
         var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri($"{protocol.Name}://127.0.0.1:0"));
-        server.Listen();
-        ServerAddress serverAddress = server.ServerAddress;
+        ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();

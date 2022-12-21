@@ -84,12 +84,12 @@ public class CustomTransportTests
             },
             multiplexedServerTransport: new CustomServerTransport());
 
-        server.Listen();
+        ServerAddress serverAddress = server.Listen();
 
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                ServerAddress = server.ServerAddress
+                ServerAddress = serverAddress
             },
             multiplexedClientTransport: new CustomClientTransport());
 
@@ -111,16 +111,16 @@ public class CustomTransportTests
                 }
             },
                 multiplexedServerTransport: new CustomServerTransport());
-            server.Listen();
+            ServerAddress serverAddress = server.Listen();
 
             await using var connection1 = new ClientConnection(
                 new ClientConnectionOptions
                 {
                     // We add the custom server address here because listen updates the server address and the custom transport
                     // removes the parameter
-                    ServerAddress = server.ServerAddress with
+                    ServerAddress = serverAddress with
                     {
-                        Params = server.ServerAddress.Params.Add("custom-p", "bar")
+                        Params = serverAddress.Params.Add("custom-p", "bar")
                     }
                 },
                 multiplexedClientTransport: new CustomClientTransport());

@@ -25,10 +25,10 @@ public sealed class ProtocolLoggerTests
             serverAddress,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
-        server.Listen();
+        serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
-            server.ServerAddress,
+            serverAddress,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
@@ -47,11 +47,11 @@ public sealed class ProtocolLoggerTests
         TestLoggerEntry entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.StartAcceptingConnections));
-        Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
+        Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
 
         entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionAccepted));
-        Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
+        Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
         Assert.That(
             entry.State["RemoteNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.LocalNetworkAddress.ToString()));
@@ -93,10 +93,10 @@ public sealed class ProtocolLoggerTests
             multiplexedServerTransport: new ConnectFailMultiplexedServerTransportDecorator(
                 new SlicServerTransport(colocTransport.ServerTransport)),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
-        server.Listen();
+        serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
-            server.ServerAddress,
+            serverAddress,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
 
@@ -113,14 +113,14 @@ public sealed class ProtocolLoggerTests
         while (entry.EventId != (int)ProtocolEventIds.ConnectionConnectFailed);
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnectFailed));
-        Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
+        Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
         Assert.That(entry.Exception, Is.InstanceOf<InvalidOperationException>());
 
         Assert.That(clientLoggerFactory.Logger, Is.Not.Null);
         entry = await clientLoggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.ConnectionConnectFailed));
-        Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
+        Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
         Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>());
     }
 
@@ -138,10 +138,10 @@ public sealed class ProtocolLoggerTests
             serverAddress,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
-        server.Listen();
+        serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
-            server.ServerAddress,
+            serverAddress,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
@@ -214,7 +214,7 @@ public sealed class ProtocolLoggerTests
             logger: loggerFactory.CreateLogger("IceRpc"));
 
         // Act
-        server.Listen();
+        serverAddress = server.Listen();
         await server.DisposeAsync();
 
         // Assert
@@ -222,11 +222,11 @@ public sealed class ProtocolLoggerTests
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.StartAcceptingConnections));
-        Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
+        Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
 
         entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
         Assert.That(entry.EventId.Id, Is.EqualTo((int)ProtocolEventIds.StopAcceptingConnections));
-        Assert.That(entry.State["ServerAddress"], Is.EqualTo(server.ServerAddress));
+        Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
     }
 
     [Test]
@@ -243,10 +243,10 @@ public sealed class ProtocolLoggerTests
             serverAddress,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
-        server.Listen();
+        serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
-            server.ServerAddress,
+            serverAddress,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
 
