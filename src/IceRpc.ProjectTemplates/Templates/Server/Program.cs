@@ -1,4 +1,4 @@
-using Demo;
+using HelloExample;
 using IceRpc;
 
 await using var server = new Server(new Hello());
