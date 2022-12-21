@@ -203,6 +203,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
             _connectCts.Dispose();
             _shutdownCts.Dispose();
+
+            try
+            {
+                await ShutdownComplete.ConfigureAwait(false);
+            }
+            catch
+            {
+                // We await and catch ShutdownComplete to avoid the exception to end up as an unobserved exception.
+            }
         }
     }
 

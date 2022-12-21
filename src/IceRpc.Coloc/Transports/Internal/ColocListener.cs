@@ -74,9 +74,19 @@ internal class ColocListener : IListener<IDuplexConnection>
         _channel.Writer.Complete();
 
         // Complete all the queued client connection establishment requests with IceRpcError.ConnectionAborted.
-        while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader, CancellationToken) item))
+        while (_channel.Reader.TryRead(
+            out (TaskCompletionSource<PipeReader> Tcs, PipeReader, CancellationToken CancellationToken) item))
         {
-            item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionAborted));
+            if (item.CancellationToken.IsCancellationRequested)
+            {
+                // If the connection establishment has been canceled mark the task as canceled otherwise the
+                // exception would end up as an unobserved exception.
+                item.Tcs.SetCanceled();
+            }
+            else
+            {
+                item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionAborted));
+            }
         }
 
         _disposeCts.Dispose();
