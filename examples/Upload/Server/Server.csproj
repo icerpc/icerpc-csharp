@@ -4,5 +4,6 @@
     <SliceCompile Include="../Uploader.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
+    <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>

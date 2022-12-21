@@ -5,5 +5,6 @@
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="0.1.0-preview1" />
     <PackageReference Include="IceRpc.Metrics" Version="$(IceRpcVersion)" />
+    <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>
