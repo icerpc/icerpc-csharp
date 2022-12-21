@@ -90,13 +90,13 @@ public abstract class MultiplexedConnectionConformanceTests
         await using IMultiplexedConnection serverConnection =
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
-        Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
+        Task acceptStreamTask = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
         await clientConnection.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
-        IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreams)!;
+        IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask)!;
         Assert.That(ex.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 

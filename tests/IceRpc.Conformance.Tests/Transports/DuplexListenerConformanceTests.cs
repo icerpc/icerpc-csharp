@@ -34,15 +34,10 @@ public abstract class DuplexListenerConformanceTests
         var clientConnection = provider.GetRequiredService<IDuplexConnection>();
 
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
-        _ = clientConnection.ConnectAsync(default);
-
-        // Act/Assert
-        Assert.That(
-            async () =>
-            {
-                using IDuplexConnection _ = (await acceptTask).Connection;
-            },
-            Throws.Nothing);
+        var clientConnectTask = clientConnection.ConnectAsync(default);
+        using IDuplexConnection serverConnection = (await acceptTask).Connection;
+        var serverConnectTask = serverConnection.ConnectAsync(default);
+        await Task.WhenAll(clientConnectTask, serverConnectTask);
     }
 
     [Test]

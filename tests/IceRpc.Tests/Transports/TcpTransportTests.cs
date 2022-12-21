@@ -221,15 +221,16 @@ public class TcpTransportTests
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => false
                 });
 
-        Task<TransportConnectionInformation> connectTask =
-            clientConnection.ConnectAsync(cts.Token);
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(cts.Token);
 
-        IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
+        using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         cts.Cancel();
-        _ = serverConnection.ConnectAsync(CancellationToken.None);
+        var serverConnectTask = serverConnection.ConnectAsync(CancellationToken.None);
 
         // Act/Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await clientConnectTask, Throws.InstanceOf<OperationCanceledException>());
+        clientConnection.Dispose();
+        Assert.That(async () => await serverConnectTask, Throws.InstanceOf<IceRpcException>());
     }
 
     [Test]
@@ -310,13 +311,15 @@ public class TcpTransportTests
             listener.ServerAddress,
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 
-        Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
         Task<TransportConnectionInformation> serverConnectTask =
             serverConnection.ConnectAsync(new CancellationToken(canceled: true));
 
         // Act/Assert
         Assert.That(async () => await serverConnectTask, Throws.InstanceOf<OperationCanceledException>());
+        serverConnection.Dispose();
+        Assert.That(async () => await clientConnectTask, Throws.InstanceOf<IceRpcException>());
     }
 
     private static IListener<IDuplexConnection> CreateTcpListener(
