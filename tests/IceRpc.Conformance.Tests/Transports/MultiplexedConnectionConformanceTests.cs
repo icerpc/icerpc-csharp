@@ -491,6 +491,48 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
+    public async Task Disposing_the_server_connection_aborts_the_client_connection()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        // Act
+        await serverConnection.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => _ = await clientConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
+    [Test]
+    public async Task Disposing_the_client_connection_aborts_the_server_connection()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        // Act
+        await clientConnection.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => _ = await serverConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
+    [Test]
     public async Task Disposing_the_connection_closes_the_streams()
     {
         // Arrange
