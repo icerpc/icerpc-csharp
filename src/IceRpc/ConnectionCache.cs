@@ -100,13 +100,14 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// target service. It then looks for an active connection.
     /// The <see cref="ConnectionCacheOptions.PreferExistingConnection" /> property influences how the cache selects
     /// this active connection. If no active connection can be found, the cache creates a new connection to one of the
-    /// server address from the request <see cref="IServerAddressFeature" /> feature. If the connection establishment to
-    /// <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful, the cache will try to establish a connection
+    /// the request's server addresses from <see cref="IServerAddressFeature" /> feature. If the connection establishment
+    /// to <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful, the cache will try to establish a connection
     /// to one of the <see cref="IServerAddressFeature.AltServerAddresses" /> addresses. Each connection attempt rotates
     /// the server addresses of the server address feature, the main server address corresponding to the last attempt
     /// failure is appended at the end of <see cref="IServerAddressFeature.AltServerAddresses" /> and the first address
     /// from <see cref="IServerAddressFeature.AltServerAddresses" /> replaces
-    /// <see cref="IServerAddressFeature.ServerAddress" />.</summary>
+    /// <see cref="IServerAddressFeature.ServerAddress" />. If the cache cannot find an active connection and all
+    /// the attempts to establish a new connection fail, this method throws the exception from the last attempt.</summary>
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
@@ -170,7 +171,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                                                 .Insert(0, mainServerAddress);
                                         serverAddressFeature.ServerAddress = altServerAddress;
 
-                                        break; // foreach
+                                        break; // for
                                     }
                                 }
                             }
@@ -187,12 +188,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         {
                             connection = await ConnectAsync(mainServerAddress, cancellationToken).ConfigureAwait(false);
                         }
-                        catch (Exception exception)
+                        catch (IceRpcException) when (serverAddressFeature.AltServerAddresses.Count > 0)
                         {
-                            // TODO: rework this code. We should not keep going on any exception.
-
-                            List<Exception>? exceptionList = null;
-
                             for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
                             {
                                 // Rotate the server addresses before each new connection attempt: the first alt server
@@ -209,24 +206,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                                         .ConfigureAwait(false);
                                     break; // for
                                 }
-                                catch (Exception altEx)
+                                catch (IceRpcException) when (i + 1 < serverAddressFeature.AltServerAddresses.Count)
                                 {
-                                    exceptionList ??= new List<Exception> { exception };
-                                    exceptionList.Add(altEx);
-                                    // and keep trying
+                                    // and keep trying unless this is the last alt server address.
                                 }
                             }
-                            if (connection is null)
-                            {
-                                if (exceptionList is null)
-                                {
-                                    throw;
-                                }
-                                else
-                                {
-                                    throw new AggregateException(exceptionList);
-                                }
-                            }
+                            Debug.Assert(connection is not null);
                         }
                     }
 
