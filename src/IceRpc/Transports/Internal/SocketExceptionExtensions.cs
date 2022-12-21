@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal;
 internal static class SocketExceptionExtensions
 {
     /// <summary>Converts a SocketException into an <see cref="IceRpcException" />.</summary>
-    internal static IceRpcException ToIceRpcException(this SocketException exception, string? message = null, Exception? innerException = null)
+    internal static IceRpcException ToIceRpcException(this SocketException exception, Exception? innerException = null)
     {
         innerException ??= exception;
         IceRpcError errorCode = exception.SocketErrorCode switch
@@ -23,6 +23,7 @@ internal static class SocketExceptionExtensions
             SocketError.OperationAborted => IceRpcError.OperationAborted,
             _ => IceRpcError.IceRpcError
         };
-        return new IceRpcException(errorCode, message, innerException);
+
+        return new IceRpcException(errorCode, innerException);
     }
 }
