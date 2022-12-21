@@ -81,11 +81,11 @@ internal class ColocListener : IListener<IDuplexConnection>
             {
                 // If the connection establishment has been canceled mark the task as canceled otherwise the
                 // exception would end up as an unobserved exception.
-item.Tcs.SetCanceled(item.CancellationToken);
+                item.Tcs.SetCanceled(item.CancellationToken);
             }
             else
             {
-                item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionAborted));
+                item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionRefused));
             }
         }
 
