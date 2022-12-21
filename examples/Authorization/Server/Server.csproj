@@ -4,8 +4,7 @@
     <SliceCompile Include="../Authorization.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="../SessionFieldKey.cs" Link="SessionFieldKey.cs" />
+    <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>

@@ -24,15 +24,8 @@ using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
 router.Map<ICrm>(new Crm());
 
 await using var server = new Server(router, new Uri("icerpc://127.0.0.1:20001"));
-
-// Create a task completion source to keep running until Ctrl+C is pressed.
-var cancelKeyPressed = new TaskCompletionSource();
-Console.CancelKeyPress += (sender, eventArgs) =>
-{
-    eventArgs.Cancel = true;
-    _ = cancelKeyPressed.TrySetResult();
-};
-
 server.Listen();
-await cancelKeyPressed.Task;
+
+// Wait until the console receives a Ctrl+C.
+await CancelKeyPressed;
 await server.ShutdownAsync();

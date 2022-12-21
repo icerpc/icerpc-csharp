@@ -31,15 +31,8 @@ var proxy = new CrmProxy(pipeline);
 router.Map<IHello>(new Hello(proxy));
 
 await using var server = new Server(router);
-
-// Create a task completion source to keep running until Ctrl+C is pressed.
-var cancelKeyPressed = new TaskCompletionSource();
-Console.CancelKeyPress += (sender, eventArgs) =>
-{
-    eventArgs.Cancel = true;
-    _ = cancelKeyPressed.TrySetResult();
-};
-
 server.Listen();
-await cancelKeyPressed.Task;
+
+// Wait until the console receives a Ctrl+C.
+await CancelKeyPressed;
 await server.ShutdownAsync();
