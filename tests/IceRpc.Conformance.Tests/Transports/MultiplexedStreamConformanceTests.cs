@@ -34,12 +34,13 @@ public abstract class MultiplexedStreamConformanceTests
         byte[] buffer = new byte[512 * 1024];
 
         // Act
-        _ = WriteDataAsync();
+        var writeTask = WriteDataAsync();
 
         // Assert
         Assert.That(sut.RemoteStream.InputClosed.IsCompleted, Is.False);
         Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
         Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.Nothing);
+        Assert.That(async () => await writeTask, Throws.Nothing);
 
         async Task<int> ReadDataAsync()
         {
