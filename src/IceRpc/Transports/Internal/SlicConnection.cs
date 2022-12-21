@@ -1133,7 +1133,7 @@ internal class SlicConnection : IMultiplexedConnection
                         $"The connection was closed by the peer with error '{MultiplexedConnectionCloseError.Aborted}'."),
                 _ => new IceRpcException(
                     IceRpcError.ConnectionAborted,
-                    $"The connection was closed by the peer with an unknown application error code: '{errorCode}'.")
+                    $"The connection was closed by the peer with an unknown application error code: '{errorCode}'")
             };
 
             if (await CloseAsyncCore(exception).ConfigureAwait(false))
