@@ -57,7 +57,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 
         _quicServerOptions = new QuicServerConnectionOptions
         {
-            DefaultCloseErrorCode = 0,
+            DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             ServerAuthenticationOptions = authenticationOptions,
