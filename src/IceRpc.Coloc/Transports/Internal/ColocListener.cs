@@ -22,9 +22,7 @@ internal class ColocListener : IListener<IDuplexConnection>
     //   pipe reader is set as the result. ClientColocConnection.ConnectAsync waits on the task completion source task.
     // - the client connection pipe reader provided to the server connection when the server connection is created by
     //   AcceptAsync.
-    // - the cancellation token from the caller of ClientColocConnection.ConnectAsync. The client cancellation token is
-    //   used by AcceptAsync to check if the connection establishment request has been canceled.
-    private readonly Channel<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)> _channel;
+    private readonly Channel<(TaskCompletionSource<PipeReader>, PipeReader)> _channel;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
@@ -38,7 +36,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         {
             while (true)
             {
-                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader, _) =
+                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader) =
                     await _channel.Reader.ReadAsync(cts.Token).ConfigureAwait(false);
 
                 var serverPipe = new Pipe(_pipeOptions);
@@ -81,8 +79,7 @@ internal class ColocListener : IListener<IDuplexConnection>
 
         // Complete all the queued client connection establishment requests with IceRpcError.ConnectionRefused. Use
         // TrySetException in case the task has been already canceled.
-        while (_channel.Reader.TryRead(
-            out (TaskCompletionSource<PipeReader> Tcs, PipeReader, CancellationToken CancellationToken) item))
+        while (_channel.Reader.TryRead(out (TaskCompletionSource<PipeReader> Tcs, PipeReader) item))
         {
             item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
         }
