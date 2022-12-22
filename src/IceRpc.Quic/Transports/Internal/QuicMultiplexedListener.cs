@@ -91,7 +91,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         }
         catch (QuicException exception)
         {
-            throw exception.ToIceRpcException("The listener creation failed.");
+            throw exception.ToIceRpcException();
         }
     }
 }
