@@ -1024,6 +1024,7 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
         cts.Cancel();
+        Assert.That(async () => await connectTask, Throws.TypeOf<OperationCanceledException>());
     }
 
     /// <summary>Ensure that ShutdownAsync fails with InvalidOperationException if ConnectAsync timeouts.</summary>
