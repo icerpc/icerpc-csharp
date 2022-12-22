@@ -103,7 +103,7 @@ internal class ColocListener : IListener<IDuplexConnection>
             pauseWriterThreshold: colocTransportOptions.PauseWriterThreshold,
             resumeWriterThreshold: colocTransportOptions.ResumeWriterThreshold);
 
-        _channel = Channel.CreateBounded<(TaskCompletionSource<PipeReader>, PipeReader, CancellationToken)>(
+        _channel = Channel.CreateBounded<(TaskCompletionSource<PipeReader>, PipeReader)>(
             new BoundedChannelOptions(colocTransportOptions.ListenBacklog)
             {
                 SingleReader = true,
