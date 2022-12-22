@@ -19,10 +19,13 @@ internal static class QuicExceptionExtensions
                             new IceRpcException(IceRpcError.ConnectionClosedByPeer),
                         (long)MultiplexedConnectionCloseError.ServerBusy =>
                             new IceRpcException(IceRpcError.ServerBusy),
+                        (long)MultiplexedConnectionCloseError.Aborted =>
+                            new IceRpcException(
+                                IceRpcError.ConnectionAborted,
+                                $"The connection was closed by the peer with error '{MultiplexedConnectionCloseError.Aborted}'."),
                         _ => new IceRpcException(
-                            IceRpcError.ConnectionAborted,
-                            $"The connection was closed by the peer with an unknown application error code: '{applicationErrorCode}'",
-                            exception),
+                                IceRpcError.ConnectionAborted,
+                                $"The connection was aborted by the peer with an unknown application error code: '{applicationErrorCode}'"),
                     } :
                     new IceRpcException(IceRpcError.ConnectionAborted, exception), // TODO: does this ever happen?
             QuicError.ConnectionRefused => new IceRpcException(IceRpcError.ConnectionRefused, exception),
