@@ -103,12 +103,10 @@ internal class ColocListener : IListener<IDuplexConnection>
             pauseWriterThreshold: colocTransportOptions.PauseWriterThreshold,
             resumeWriterThreshold: colocTransportOptions.ResumeWriterThreshold);
 
+        // Create a bounded channel with a capacity that matches the listen backlog, and with
+        // the default concurrency settings that allow multiple reader and writers.
         _channel = Channel.CreateBounded<(TaskCompletionSource<PipeReader>, PipeReader)>(
-            new BoundedChannelOptions(colocTransportOptions.ListenBacklog)
-            {
-                SingleReader = true,
-                SingleWriter = true
-            });
+            new BoundedChannelOptions(colocTransportOptions.ListenBacklog));
     }
 
     /// <summary>Queue client connection establishment requests from the client.</summary>
