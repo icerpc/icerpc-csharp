@@ -328,7 +328,7 @@ public sealed class Server : IAsyncDisposable
                             }
                             finally
                             {
-                                // The connection dispose will dispose the transport connection if it has not been
+                                // The connector dispose will dispose the transport connection if it has not been
                                 // adopted by the protocol connection.
                                 await connector.DisposeAsync().ConfigureAwait(false);
                                 pendingConnectionSemaphore.Release();
@@ -379,12 +379,24 @@ public sealed class Server : IAsyncDisposable
 
             if (protocolConnection is not null)
             {
-                // Schedule removal after addition, outside mutex lock.
-                _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
+                try
+                {
+                    // Connect the protocol connection. Don't need to pass a cancellation token here ConnectAsync
+                    // creates one with the configured connection timeout.
+                    await protocolConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    lock (_mutex)
+                    {
+                        _connections.Remove(protocolConnection);
+                    }
+                    await protocolConnection.DisposeAsync().ConfigureAwait(false);
+                    throw;
+                }
 
-                // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates one with
-                // the configured connection timeout.
-                await protocolConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                // Schedule removal after successful ConnectAsync, outside mutex lock.
+                _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
             }
             else if (!shutdownCancellationToken.IsCancellationRequested)
             {
