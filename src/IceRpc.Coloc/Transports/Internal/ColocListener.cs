@@ -130,7 +130,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (_channel.Writer.TryWrite((tcs, clientPipeReader, cancellationToken)))
         {
-            cancellationToken.Register(() => tcs.SetCanceled(cancellationToken));
+            cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
             serverPipeReaderTask = tcs.Task;
             return true;
         }
