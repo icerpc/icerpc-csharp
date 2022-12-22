@@ -13,8 +13,8 @@ internal class QuicPipeReader : PipeReader
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
+    private readonly Action _completeCallback;
     private readonly PipeReader _pipeReader;
-    private readonly TaskCompletionSource _readsClosed = new();
     private readonly QuicStream _stream;
 
     // StreamPipeReader.AdvanceTo does not call the underlying stream and as a result does not throw any QuicException.
@@ -36,16 +36,9 @@ internal class QuicPipeReader : PipeReader
             _pipeReader.Complete(exception);
 
             // Tell the remote writer we're done reading. The error code is irrelevant.
-            try
-            {
-                _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the stream has been disposed.
-            }
+            _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
 
-            _readsClosed.TrySetResult();
+            _completeCallback();
         }
     }
 
@@ -53,35 +46,11 @@ internal class QuicPipeReader : PipeReader
     {
         try
         {
-            ReadResult readResult = await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (readResult.IsCompleted)
-            {
-                _readsClosed.TrySetResult();
-            }
-            return readResult;
+            return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
         {
-            _readsClosed.TrySetResult();
             throw exception.ToIceRpcException();
-        }
-        catch (ObjectDisposedException)
-        {
-            // The Quic stream can be disposed as soon as ReadsClosed fails. We still want ReadAsync to raise the reason
-            // of the ReadsClosed failure instead of OperationAborted. Otherwise, the caller wouldn't get the reason of
-            // the stream's reading side closure (ConnectionAborted, TruncatedData, ...).
-            try
-            {
-                await _stream.ReadsClosed.ConfigureAwait(false);
-            }
-            catch (QuicException exception)
-            {
-                _readsClosed.TrySetResult();
-                throw exception.ToIceRpcException();
-            }
-
-            _readsClosed.TrySetResult();
-            throw new IceRpcException(IceRpcError.OperationAborted);
         }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
@@ -91,10 +60,10 @@ internal class QuicPipeReader : PipeReader
     // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
-    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
+    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize, Action completeCallback)
     {
         _stream = stream;
-
+        _completeCallback = completeCallback;
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
@@ -106,11 +75,6 @@ internal class QuicPipeReader : PipeReader
             try
             {
                 await _stream.ReadsClosed.ConfigureAwait(false);
-
-                // See https://github.com/dotnet/runtime/issues/79818. We can't return immediately if reads are closed
-                // successfully. The Quic stream would be disposed too early, before all the stream buffered data is
-                // consumed. We wait on _readsClosed here to ensure the stream's buffered data is consumed by ReadAsync.
-                await _readsClosed.Task.ConfigureAwait(false);
             }
             catch
             {
