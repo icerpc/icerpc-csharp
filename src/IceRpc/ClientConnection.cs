@@ -196,7 +196,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         IProtocolConnection connection;
         lock (_mutex)
@@ -205,7 +205,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             _isDisposed = true;
             connection = _connection;
         }
-        return connection.DisposeAsync();
+        await connection.DisposeAsync().ConfigureAwait(false);
+
+        // Ensure that ShutdownComplete is awaited and exceptions are ignored, to avoid triggering the
+        // UnobservedTaskException event.
+        try
+        {
+            await connection.ShutdownComplete.ConfigureAwait(false);
+        }
+        catch
+        {
+        }
     }
 
     /// <inheritdoc/>

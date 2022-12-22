@@ -89,7 +89,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         IEnumerable<IProtocolConnection> allConnections = _pendingConnections.Values.Select(value => value.Connection)
             .Concat(_activeConnections.Values);
 
-        await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask())
+        await Task.WhenAll(
+            allConnections.Select(async connection =>
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+
+                // Ensure that ShutdownComplete is awaited and exceptions are ignored, to avoid triggering the
+                // UnobservedTaskException event.
+                try
+                {
+                    await connection.ShutdownComplete.ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            })
             .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
 
         _shutdownCts.Dispose();

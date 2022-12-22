@@ -14,12 +14,6 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class ProtocolConnectionTests
 {
-    public enum ConnectionType
-    {
-        Client,
-        Server
-    }
-
     private static IEnumerable<TestCaseData> ExceptionIsEncodedAsADispatchExceptionSource
     {
         get

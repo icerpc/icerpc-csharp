@@ -250,7 +250,20 @@ public sealed class Server : IAsyncDisposable
             await _listenerDisposeTask.ConfigureAwait(false);
         }
 
-        await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())
+        await Task.WhenAll(_connections.Select(
+            async connection =>
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+                // Ensure that ShutdownComplete is awaited and exceptions are ignored, to avoid triggering the
+                // UnobservedTaskException event.
+                try
+                {
+                    await connection.ShutdownComplete.ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            })
             .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
 
         _shutdownCts.Dispose();
