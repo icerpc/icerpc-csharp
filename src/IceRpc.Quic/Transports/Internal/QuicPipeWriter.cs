@@ -211,20 +211,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             {
                 await _stream.WritesClosed.ConfigureAwait(false);
             }
-            catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
+            catch
             {
-                // successful completion
+                // Ignore failures.
             }
-            catch (QuicException exception)
-            {
-                throw exception.ToIceRpcException();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the stream has been disposed.
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-            // we don't wrap other exceptions
         }
     }
 }

@@ -23,25 +23,15 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     public PipeWriter Output =>
         _outputPipeWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
 
-    public Task InputClosed => _inputPipeReader?.Closed ?? Task.CompletedTask;
+    public Task ReadsClosed => _inputPipeReader?.Closed ?? Task.CompletedTask;
 
-    public Task OutputClosed => _outputPipeWriter?.Closed ?? Task.CompletedTask;
+    public Task WritesClosed => _outputPipeWriter?.Closed ?? Task.CompletedTask;
 
     private readonly QuicPipeReader? _inputPipeReader;
     private readonly QuicPipeWriter? _outputPipeWriter;
     private readonly QuicStream _stream;
 
-    public async ValueTask DisposeAsync()
-    {
-        if (!_stream.WritesClosed.IsCompleted)
-        {
-            // Abort writes before calling DisposeAsync to prevent DisposeAsync from completing writes gracefully (as if
-            // CompleteWrites was called).
-            _stream.Abort(QuicAbortDirection.Write, 0);
-        }
-
-        await _stream.DisposeAsync().ConfigureAwait(false);
-    }
+    public ValueTask DisposeAsync() => _stream.DisposeAsync();
 
     internal QuicMultiplexedStream(
         QuicStream stream,

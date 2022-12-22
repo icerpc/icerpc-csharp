@@ -33,15 +33,15 @@ public interface IMultiplexedStream : IDuplexPipe, IAsyncDisposable
     /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
     /// <item><description>the implementation detects a network failure that prevents further reads on the underlying
     /// network stream.</description></item></list></summary>
-    Task InputClosed { get; }
+    Task ReadsClosed { get; }
 
     /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:
     /// <list type="bullet">
-    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on this stream's <see
+    /// <item><description><see cref="PipeWriter.Complete(Exception?)" /> is called on this stream's <see
     /// cref="IDuplexPipe.Output" />.</description></item>
     /// <item><description>the peer calls <see cref="PipeReader.Complete(Exception?)"/> on the stream's <see
     /// cref="IDuplexPipe.Input" />.</description></item>
     /// <item><description>the implementation detects a network failure that prevents further writes on the underlying
     /// network stream.</description></item></list></summary>
-    Task OutputClosed { get; }
+    Task WritesClosed { get; }
 }

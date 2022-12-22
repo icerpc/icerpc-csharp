@@ -164,6 +164,66 @@ public abstract class MultiplexedConnectionConformanceTests
         }
     }
 
+    [Test]
+    public async Task After_reach_max_stream_count_end_of_stream_allows_accepting_a_new_one(
+        [Values(true, false)] bool bidirectional)
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        if (bidirectional)
+        {
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+        }
+        else
+        {
+            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxUnidirectionalStreams = 1);
+        }
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional, default);
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+        ValueTask<IMultiplexedStream> stream2Task = clientConnection.CreateStreamAsync(bidirectional, default);
+
+        await using IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        ReadResult readResult = await serverStream1.Input.ReadAsync();
+        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+
+        if (bidirectional)
+        {
+            serverStream1.Output.Complete();
+            clientStream1.Input.Complete();
+        }
+
+        // Act
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+        clientStream1.Output.Complete();
+
+        // Assert
+
+        // Reading is necessary to trigger the closing of reads for serverStream1 and allow a new stream to be accepted.
+        readResult = await serverStream1.Input.ReadAsync();
+        if (!readResult.IsCompleted)
+        {
+            serverStream1.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+            // The end of stream is sent in a separate stream frame. Depending on timeout, the Input pipe reader might
+            // process the two frame separately so a second read is needed to get the end of stream.
+            readResult = await serverStream1.Input.ReadAsync();
+            Assert.That(readResult.IsCompleted, Is.True);
+        }
+        Assert.That(async () => await stream2Task, Throws.Nothing);
+        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+
+        await MultiplexedConformanceTestsHelper.CleanupStreamsAsync(clientStream1, serverStream1);
+        await MultiplexedConformanceTestsHelper.CleanupStreamsAsync(await stream2Task);
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
@@ -423,38 +483,6 @@ public abstract class MultiplexedConnectionConformanceTests
             provider.GetService<SslServerAuthenticationOptions>()));
     }
 
-    [Test]
-    [Ignore("fails with Quic, see https://github.com/dotnet/runtime/issues/77216")]
-    [TestCase(100)]
-    [TestCase(512 * 1024)]
-    public async Task Disposing_the_server_connection_completes_ReadsClosed_on_streams(int payloadSize)
-    {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        await using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection,
-            serverConnection);
-
-        var payload = new ReadOnlySequence<byte>(new byte[payloadSize]);
-        _ = sut.LocalStream.Output.WriteAsync(payload, endStream: true, CancellationToken.None).AsTask();
-        _ = sut.RemoteStream.Output.WriteAsync(payload, endStream: true, CancellationToken.None).AsTask();
-
-        await Task.Delay(100); // Ensures that the EOS is received by the remote stream.
-
-        // Act
-        await serverConnection.DisposeAsync();
-
-        // Assert
-        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.InstanceOf<IceRpcException>());
-        Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.InstanceOf<IceRpcException>());
-    }
-
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
     /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
     /// </param>
@@ -484,7 +512,8 @@ public abstract class MultiplexedConnectionConformanceTests
         // Assert
 
         Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Input.ReadAsync());
-        Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
+        Assert.ThrowsAsync<IceRpcException>(
+            async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
         Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Input.ReadAsync());
         Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
@@ -552,10 +581,10 @@ public abstract class MultiplexedConnectionConformanceTests
         await serverConnection.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.LocalStream.InputClosed, Throws.TypeOf<IceRpcException>());
-        Assert.That(async () => await sut.LocalStream.OutputClosed, Throws.TypeOf<IceRpcException>());
-        Assert.That(async () => await sut.RemoteStream.InputClosed, Throws.TypeOf<IceRpcException>());
-        Assert.That(async () => await sut.RemoteStream.OutputClosed, Throws.TypeOf<IceRpcException>());
+        Assert.That(async () => await sut.RemoteStream.WritesClosed, Throws.Nothing);
+        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.Nothing);
+        Assert.That(async () => await sut.LocalStream.WritesClosed, Throws.Nothing);
+        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
     /// <summary>Write data until the transport flow control start blocking, at this point we start a read task and

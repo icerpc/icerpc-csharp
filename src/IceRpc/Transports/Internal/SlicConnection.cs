@@ -642,7 +642,7 @@ internal class SlicConnection : IMultiplexedConnection
                     // At this point writes are considered completed on the stream. It's important to call this
                     // before sending the last packet to avoid a race condition where the peer could start a new
                     // stream before the Slic connection stream count is decreased.
-                    stream.TrySetWritesClosed(exception: null);
+                    stream.TrySetWritesClosed();
                 }
 
                 // Write the stream frame.
@@ -990,7 +990,7 @@ internal class SlicConnection : IMultiplexedConnection
                                 stream.Output.Complete();
                             }
                             await stream.DisposeAsync().ConfigureAwait(false);
-                            Debug.Assert(stream.IsShutdown);
+                            Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
                         }
                     }
 

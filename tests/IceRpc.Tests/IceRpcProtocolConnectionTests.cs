@@ -891,7 +891,6 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
@@ -1047,13 +1046,13 @@ public sealed class IceRpcProtocolConnectionTests
 
         public PipeWriter Output => _output ?? _decoratee.Output;
 
-        public Task InputClosed => _decoratee.InputClosed;
-
-        public Task OutputClosed => _decoratee.OutputClosed;
-
         public HoldOperation HoldOperation =>
             // Don't hold operations for the icerpc control stream
             (IsBidirectional || !IsStarted || Id >= 4) ? _connection.HoldOperation : HoldOperation.None;
+
+        public Task ReadsClosed => _decoratee.ReadsClosed;
+
+        public Task WritesClosed => _decoratee.WritesClosed;
 
         private readonly HoldMultiplexedConnection _connection;
         private readonly IMultiplexedStream _decoratee;

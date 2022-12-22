@@ -5,7 +5,6 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Conformance.Tests;
 
-
 internal static class MultiplexedConformanceTestsHelper
 {
     internal static async ValueTask CleanupStreamsAsync(params IMultiplexedStream[] streams)
