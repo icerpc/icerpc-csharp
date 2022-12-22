@@ -112,7 +112,7 @@ public abstract class MultiplexedListenerConformanceTests
         // Assert
 
         // If using Quic and the listener is disposed during the ssl handshake this can fail
-        // with AuthenticationException otherwise it fails with TransportException.
+        // with AuthenticationException otherwise it fails with IceRpcException.
         Assert.That(
             async () => await connectTask,
             Throws.InstanceOf<IceRpcException>().Or.TypeOf<AuthenticationException>());
