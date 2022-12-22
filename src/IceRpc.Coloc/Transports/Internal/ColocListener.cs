@@ -38,7 +38,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         {
             while (true)
             {
-                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader, CancellationToken _) =
+                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader, _) =
                     await _channel.Reader.ReadAsync(cts.Token).ConfigureAwait(false);
 
                 var serverPipe = new Pipe(_pipeOptions);
@@ -50,7 +50,12 @@ internal class ColocListener : IListener<IDuplexConnection>
                         clientPipeReader);
                     return (serverConnection, _networkAddress);
                 }
-                // Else the client connection establishment was canceled.
+                else
+                {
+                    // The client connection establishment was canceled.
+                    serverPipe.Writer.Complete();
+                    serverPipe.Reader.Complete();
+                }
             }
         }
         catch (OperationCanceledException)
@@ -112,24 +117,20 @@ internal class ColocListener : IListener<IDuplexConnection>
     /// <summary>Queue client connection establishment requests from the client.</summary>
     /// <param name="clientPipeReader">A <see cref="PipeReader"/> for reading from the client connection.</param>
     /// <param name="cancellationToken">>A cancellation token that receives the cancellation requests.</param>
-    /// <param name="serverPipeReaderTask">A <see cref="PipeReader"/> for reading from the server connection.</param>
+    /// <param name="serverPipeReaderTask">A task that returns a <see cref="PipeReader"/> for reading from the server
+    /// connection.</param>
     /// <returns>Returns true if the connection establishment request has been queue otherwise, false.</returns>
     internal bool TryQueueConnect(
         PipeReader clientPipeReader,
         CancellationToken cancellationToken,
         [NotNullWhen(true)] out Task<PipeReader>? serverPipeReaderTask)
     {
-        if (_disposeCts.IsCancellationRequested)
-        {
-            throw new IceRpcException(IceRpcError.ConnectionRefused);
-        }
-
         // Create a tcs that is completed by AcceptAsync when accepts the corresponding connection, at which point
         // the client side connect operation will complete.
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (_channel.Writer.TryWrite((tcs, clientPipeReader, cancellationToken)))
         {
-            cancellationToken.Register(tcs.SetCanceled);
+            cancellationToken.Register(() => tcs.SetCanceled(cancellationToken));
             serverPipeReaderTask = tcs.Task;
             return true;
         }
