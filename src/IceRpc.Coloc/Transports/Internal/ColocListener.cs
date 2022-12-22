@@ -38,18 +38,19 @@ internal class ColocListener : IListener<IDuplexConnection>
         {
             while (true)
             {
-                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader, CancellationToken clientConnectCancellationToken) =
+                (TaskCompletionSource<PipeReader> tcs, PipeReader clientPipeReader, CancellationToken _) =
                     await _channel.Reader.ReadAsync(cts.Token).ConfigureAwait(false);
-                if (clientConnectCancellationToken.IsCancellationRequested)
-                {
-                    // The client connection establishment was canceled.
-                    continue;
-                }
 
                 var serverPipe = new Pipe(_pipeOptions);
-                var serverConnection = new ServerColocConnection(ServerAddress, serverPipe.Writer, clientPipeReader);
-                tcs.SetResult(serverPipe.Reader);
-                return (serverConnection, _networkAddress);
+                if (tcs.TrySetResult(serverPipe.Reader))
+                {
+                    var serverConnection = new ServerColocConnection(
+                        ServerAddress,
+                        serverPipe.Writer,
+                        clientPipeReader);
+                    return (serverConnection, _networkAddress);
+                }
+                // Else the client connection establishment was canceled.
             }
         }
         catch (OperationCanceledException)
@@ -73,20 +74,12 @@ internal class ColocListener : IListener<IDuplexConnection>
         // Ensure no more client connection establishment request is queued.
         _channel.Writer.Complete();
 
-        // Complete all the queued client connection establishment requests with IceRpcError.ConnectionAborted.
+        // Complete all the queued client connection establishment requests with IceRpcError.ConnectionRefused. Use
+        // TrySetException in case the task has been already canceled.
         while (_channel.Reader.TryRead(
             out (TaskCompletionSource<PipeReader> Tcs, PipeReader, CancellationToken CancellationToken) item))
         {
-            if (item.CancellationToken.IsCancellationRequested)
-            {
-                // If the connection establishment has been canceled mark the task as canceled otherwise the
-                // exception would end up as an unobserved exception.
-                item.Tcs.SetCanceled(item.CancellationToken);
-            }
-            else
-            {
-                item.Tcs.SetException(new IceRpcException(IceRpcError.ConnectionRefused));
-            }
+            item.Tcs.TrySetException(new IceRpcException(IceRpcError.ConnectionRefused));
         }
 
         _disposeCts.Dispose();
@@ -116,14 +109,27 @@ internal class ColocListener : IListener<IDuplexConnection>
             });
     }
 
-    internal bool TryQueueConnectAsync(
+    /// <summary>Queue client connection establishment requests from the client.</summary>
+    /// <param name="clientPipeReader">A <see cref="PipeReader"/> for reading from the client connection.</param>
+    /// <param name="cancellationToken">>A cancellation token that receives the cancellation requests.</param>
+    /// <param name="serverPipeReaderTask">A <see cref="PipeReader"/> for reading from the server connection.</param>
+    /// <returns>Returns true if the connection establishment request has been queue otherwise, false.</returns>
+    internal bool TryQueueConnect(
         PipeReader clientPipeReader,
         CancellationToken cancellationToken,
         [NotNullWhen(true)] out Task<PipeReader>? serverPipeReaderTask)
     {
+        if (_disposeCts.IsCancellationRequested)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionRefused);
+        }
+
+        // Create a tcs that is completed by AcceptAsync when accepts the corresponding connection, at which point
+        // the client side connect operation will complete.
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (_channel.Writer.TryWrite((tcs, clientPipeReader, cancellationToken)))
         {
+            cancellationToken.Register(tcs.SetCanceled);
             serverPipeReaderTask = tcs.Task;
             return true;
         }
