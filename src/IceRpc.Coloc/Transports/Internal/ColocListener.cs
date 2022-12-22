@@ -123,7 +123,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         // Create a tcs that is completed by AcceptAsync when accepts the corresponding connection, at which point
         // the client side connect operation will complete.
         var tcs = new TaskCompletionSource<PipeReader>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (_channel.Writer.TryWrite((tcs, clientPipeReader, cancellationToken)))
+        if (_channel.Writer.TryWrite((tcs, clientPipeReader)))
         {
             cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
             serverPipeReaderTask = tcs.Task;
