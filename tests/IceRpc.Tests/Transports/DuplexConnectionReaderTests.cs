@@ -32,13 +32,13 @@ public class DuplexConnectionReaderTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         var tcs = new TaskCompletionSource<TimeSpan>();
         using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
             connectionLostAction: _ => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 
         // Act
@@ -65,13 +65,13 @@ public class DuplexConnectionReaderTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         var tcs = new TaskCompletionSource<TimeSpan>();
         using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
             connectionLostAction: _ => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to defer the idle timeout
