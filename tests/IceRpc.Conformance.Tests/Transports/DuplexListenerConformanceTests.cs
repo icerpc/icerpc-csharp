@@ -131,7 +131,13 @@ public abstract class DuplexListenerConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
+        IceRpcException exception = Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
+
+        // If using Ssl and the listener is disposed during the ssl handshake this fails with ConnectionAborted error
+        // otherwise it fails with ConnectionRefused.
+        Assert.That(
+            exception.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionRefused).Or.EqualTo(IceRpcError.ConnectionAborted));
         clientConnection.Dispose();
     }
 
