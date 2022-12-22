@@ -47,7 +47,7 @@ internal class ColocClientTransport : IDuplexClientTransport
         return new ClientColocConnection(serverAddress, localPipe, ConnectAsync);
 
         // The client connection connect operation calls this method to queue a connection establishment request with
-        // the listener, the returned task is completed once the listener accepts the connection establishment request.
+        // the listener. The returned task is completed once the listener accepts the connection establishment request.
         Task<PipeReader> ConnectAsync(PipeReader clientPipeReader, CancellationToken cancellationToken)
         {
             if (_listeners.TryGetValue(serverAddress, out ColocListener? listener) &&
