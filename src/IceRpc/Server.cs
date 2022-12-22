@@ -389,7 +389,10 @@ public sealed class Server : IAsyncDisposable
                 {
                     lock (_mutex)
                     {
-                        _connections.Remove(protocolConnection);
+                        if (!shutdownCancellationToken.IsCancellationRequested)
+                        {
+                            _ = _connections.Remove(protocolConnection);
+                        }
                     }
                     await protocolConnection.DisposeAsync().ConfigureAwait(false);
                     throw;
