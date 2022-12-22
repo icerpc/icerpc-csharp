@@ -33,7 +33,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         }
         catch (SocketException exception)
         {
-            throw exception.ToIceRpcException("The accept operation failed.");
+            throw exception.ToIceRpcException();
         }
     }
 
@@ -98,7 +98,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         catch (SocketException exception)
         {
             _socket.Dispose();
-            throw exception.ToIceRpcException("The bind operation failed.");
+            throw exception.ToIceRpcException();
         }
         catch
         {

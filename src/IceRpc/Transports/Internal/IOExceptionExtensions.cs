@@ -7,8 +7,8 @@ namespace IceRpc.Transports.Internal;
 internal static class IOExceptionExtensions
 {
     /// <summary>Converts an IOException into an <see cref="IceRpcException" />.</summary>
-    internal static IceRpcException ToIceRpcException(this IOException exception, string? message = null) =>
+    internal static IceRpcException ToIceRpcException(this IOException exception) =>
         exception.InnerException is SocketException socketException ?
-            socketException.ToIceRpcException(message, exception) :
-            new IceRpcException(IceRpcError.IceRpcError, message, exception);
+            socketException.ToIceRpcException(exception) :
+            new IceRpcException(IceRpcError.IceRpcError, exception);
 }

@@ -79,11 +79,11 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception)
         {
-            throw exception.ToIceRpcException("The read operation failed.");
+            throw exception.ToIceRpcException();
         }
         catch (SocketException exception)
         {
-            throw exception.ToIceRpcException("The read operation failed.");
+            throw exception.ToIceRpcException();
         }
 
         return received;
@@ -206,11 +206,11 @@ internal abstract class TcpConnection : IDuplexConnection
         }
         catch (IOException exception)
         {
-            throw exception.ToIceRpcException("The write operation failed.");
+            throw exception.ToIceRpcException();
         }
         catch (SocketException exception)
         {
-            throw exception.ToIceRpcException("The write operation failed.");
+            throw exception.ToIceRpcException();
         }
     }
 
@@ -270,11 +270,11 @@ internal class TcpClientConnection : TcpConnection
         }
         catch (IOException exception)
         {
-            throw exception.ToIceRpcException("The connect operation failed.");
+            throw exception.ToIceRpcException();
         }
         catch (SocketException exception)
         {
-            throw exception.ToIceRpcException("The connect operation failed.");
+            throw exception.ToIceRpcException();
         }
     }
 
@@ -319,7 +319,7 @@ internal class TcpClientConnection : TcpConnection
         catch (SocketException exception)
         {
             Socket.Dispose();
-            throw exception.ToIceRpcException("The bind operation failed.");
+            throw exception.ToIceRpcException();
         }
         catch
         {
@@ -363,11 +363,11 @@ internal class TcpServerConnection : TcpConnection
         }
         catch (IOException exception)
         {
-            throw exception.ToIceRpcException("The connect operation failed.");
+            throw exception.ToIceRpcException();
         }
         catch (SocketException exception)
         {
-            throw exception.ToIceRpcException("The connect operation failed.");
+            throw exception.ToIceRpcException();
         }
     }
 
