@@ -32,19 +32,20 @@ public class DuplexConnectionReaderTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
+        var tcs = new TaskCompletionSource<TimeSpan>();
         using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+            connectionLostAction: _ => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        var abortCalledTime = await tcs.Task;
 
         // Assert
-        Assert.That(abortCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(abortCalledTime - startTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
     }
 
     [Test]
@@ -64,12 +65,13 @@ public class DuplexConnectionReaderTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
+        var tcs = new TaskCompletionSource<TimeSpan>();
         using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+            connectionLostAction: _ => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to defer the idle timeout
@@ -78,9 +80,9 @@ public class DuplexConnectionReaderTests
         reader.AdvanceTo(buffer.End);
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        TimeSpan abortCalledTime = await tcs.Task;
 
         // Assert
-        Assert.That(abortCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(250)));
+        Assert.That(abortCalledTime - startTime, Is.GreaterThan(TimeSpan.FromMilliseconds(250)));
     }
 }
