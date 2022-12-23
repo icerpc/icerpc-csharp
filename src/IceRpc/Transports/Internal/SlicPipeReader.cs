@@ -231,10 +231,6 @@ internal class SlicPipeReader : PipeReader
             // pipe reader.
             throw new InvalidOperationException("Reading is not allowed once the reader is completed.");
         }
-        else if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            throw new IceRpcException(IceRpcError.ConnectionAborted);
-        }
     }
 
     private ReadResult GetReadResult()
