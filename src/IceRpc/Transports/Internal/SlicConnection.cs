@@ -405,7 +405,19 @@ internal class SlicConnection : IMultiplexedConnection
             // Dispose the streams that might still be queued on the channel.
             while (_acceptStreamChannel.Reader.TryRead(out IMultiplexedStream? stream))
             {
-                await stream.DisposeAsync().ConfigureAwait(false);
+                if (stream.IsBidirectional)
+                {
+                    stream.Output.Complete();
+                    stream.Input.Complete();
+                }
+                else if (stream.IsRemote)
+                {
+                    stream.Input.Complete();
+                }
+                else
+                {
+                    stream.Output.Complete();
+                }
             }
 
             // Dispose the transport connection and the reader/writer.
@@ -989,7 +1001,6 @@ internal class SlicConnection : IMultiplexedConnection
                             {
                                 stream.Output.Complete();
                             }
-                            await stream.DisposeAsync().ConfigureAwait(false);
                             Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
                         }
                     }

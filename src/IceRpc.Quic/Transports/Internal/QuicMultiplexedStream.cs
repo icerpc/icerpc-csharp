@@ -31,11 +31,6 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     private readonly QuicPipeWriter? _outputPipeWriter;
     private readonly QuicStream _stream;
 
-    // Disposing of the Quic stream here doesn't work because of some issues with the completion of the ReadsClosed and
-    // WritesClosed tasks. Instead the stream is disposed when the output and input are completed. See
-    // https://github.com/dotnet/runtime/issues/79818 and https://github.com/dotnet/runtime/issues/79911
-    public ValueTask DisposeAsync() => default;
-
     internal QuicMultiplexedStream(
         QuicStream stream,
         bool isRemote,

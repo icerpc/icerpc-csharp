@@ -62,28 +62,9 @@ internal class SlicStream : IMultiplexedStream
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
-    private Task? _sendReadsClosedFrameTask;
     private Task? _sendStreamConsumedFrameTask;
-    private Task? _sendUnidirectionalStreamReleaseFrameTask;
-    private Task? _sendWritesClosedFrameTask;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            await Task.WhenAll(
-                _sendReadsClosedFrameTask ?? Task.CompletedTask,
-                _sendWritesClosedFrameTask ?? Task.CompletedTask,
-                _sendStreamConsumedFrameTask ?? Task.CompletedTask,
-                _sendUnidirectionalStreamReleaseFrameTask ?? Task.CompletedTask).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            Debug.Fail($"Slic stream disposal failed due to an unhandled exception: {exception}");
-        }
-    }
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -142,8 +123,7 @@ internal class SlicStream : IMultiplexedStream
             if (IsStarted && IsBidirectional)
             {
                 // SlicPipeReader.Complete guarantees that AbortRead is called at most once.
-                Debug.Assert(_sendReadsClosedFrameTask is null);
-                _sendReadsClosedFrameTask = SendStopSendingFrameAndCompleteReadsAsync();
+                _ = SendStopSendingFrameAndCompleteReadsAsync();
             }
             else
             {
@@ -189,8 +169,7 @@ internal class SlicStream : IMultiplexedStream
             if (IsStarted)
             {
                 // SlicPipeWriter.Complete guarantees that AbortWrite is called at most once.
-                Debug.Assert(_sendWritesClosedFrameTask is null);
-                _sendWritesClosedFrameTask = SendResetFrameAndCompleteWritesAsync();
+                _ = SendResetFrameAndCompleteWritesAsync();
             }
             else
             {
@@ -246,8 +225,7 @@ internal class SlicStream : IMultiplexedStream
             if (IsStarted)
             {
                 // SlicPipeWriter.Complete guarantees that AbortRead is called at most once.
-                Debug.Assert(_sendWritesClosedFrameTask is null);
-                _sendWritesClosedFrameTask = SendStreamLastFrameAsync();
+                _ = SendStreamLastFrameAsync();
             }
             else
             {
@@ -426,11 +404,11 @@ internal class SlicStream : IMultiplexedStream
 
     private void CompleteUnidirectionalStreamReads()
     {
-        Debug.Assert(ReadsCompleted && _sendUnidirectionalStreamReleaseFrameTask is null);
+        Debug.Assert(ReadsCompleted);
 
         // Notify the peer that reads are completed. The connection will release the unidirectional stream semaphore
         // and allow opening a new unidirectional stream if the maximum unidirectional count was reached.
-        _sendUnidirectionalStreamReleaseFrameTask = SendUnidirectionalStreamReleaseAsync();
+        _ = SendUnidirectionalStreamReleaseAsync();
 
         async Task SendUnidirectionalStreamReleaseAsync()
         {

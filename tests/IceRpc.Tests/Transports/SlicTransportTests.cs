@@ -250,7 +250,7 @@ public class SlicTransportTests
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
         await writeTask;
 
-        await CompleteStreamsAsync(localStream, remoteStream);
+        CompleteStreams(localStream, remoteStream);
     }
 
     [TestCase(32 * 1024)]
@@ -297,7 +297,7 @@ public class SlicTransportTests
         remoteStream1.Input.AdvanceTo(readResult.Buffer.End);
         await writeTask;
 
-        await CompleteStreamsAsync(localStream1, remoteStream1, localStream2, remoteStream2);
+        CompleteStreams(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
     [TestCase(64 * 1024, 32 * 1024)]
@@ -333,16 +333,15 @@ public class SlicTransportTests
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
 
-        await CompleteStreamsAsync(localStream, remoteStream);
+        CompleteStreams(localStream, remoteStream);
     }
 
-    private static async Task CompleteStreamsAsync(params IMultiplexedStream[] streams)
+    private static void CompleteStreams(params IMultiplexedStream[] streams)
     {
         foreach (IMultiplexedStream stream in streams)
         {
             stream.Output.Complete();
             stream.Input.Complete();
-            await stream.DisposeAsync();
         }
     }
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(

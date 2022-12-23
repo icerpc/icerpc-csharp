@@ -7,7 +7,7 @@ namespace IceRpc.Conformance.Tests;
 
 internal static class MultiplexedConformanceTestsHelper
 {
-    internal static async ValueTask CleanupStreamsAsync(params IMultiplexedStream[] streams)
+    internal static void CleanupStreams(params IMultiplexedStream[] streams)
     {
         foreach (IMultiplexedStream stream in streams)
         {
@@ -24,7 +24,6 @@ internal static class MultiplexedConformanceTestsHelper
             {
                 stream.Output.Complete();
             }
-            await stream.DisposeAsync();
         }
     }
 
@@ -64,14 +63,13 @@ internal static class MultiplexedConformanceTestsHelper
     }
 }
 
-internal readonly struct LocalAndRemoteStreams : IAsyncDisposable
+internal readonly struct LocalAndRemoteStreams : IDisposable
 {
     internal IMultiplexedStream LocalStream { get; }
 
     internal IMultiplexedStream RemoteStream { get; }
 
-    public ValueTask DisposeAsync() =>
-        MultiplexedConformanceTestsHelper.CleanupStreamsAsync(LocalStream, RemoteStream);
+    public void Dispose() => MultiplexedConformanceTestsHelper.CleanupStreams(LocalStream, RemoteStream);
 
     internal LocalAndRemoteStreams(IMultiplexedStream localStream, IMultiplexedStream remoteStream)
     {
