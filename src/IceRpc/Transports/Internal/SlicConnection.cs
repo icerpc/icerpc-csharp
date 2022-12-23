@@ -402,7 +402,7 @@ internal class SlicConnection : IMultiplexedConnection
                 await _readFramesTask.ConfigureAwait(false);
             }
 
-            // Dispose the streams that might still be queued on the channel.
+            // Clean-up the streams that might still be queued on the channel.
             while (_acceptStreamChannel.Reader.TryRead(out IMultiplexedStream? stream))
             {
                 if (stream.IsBidirectional)

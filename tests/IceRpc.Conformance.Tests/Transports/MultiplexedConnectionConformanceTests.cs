@@ -170,16 +170,11 @@ public abstract class MultiplexedConnectionConformanceTests
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        if (bidirectional)
-        {
             serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = 1);
-        }
-        else
-        {
-            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxUnidirectionalStreams = 1);
-        }
+                bidirectional ?
+                    options => options.MaxBidirectionalStreams = 1 :
+                    options => options.MaxUnidirectionalStreams = 1);
+
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
@@ -205,6 +200,8 @@ public abstract class MultiplexedConnectionConformanceTests
         clientStream1.Output.Complete();
 
         // Assert
+
+        Assert.That(stream2Task.IsCompleted, Is.False);
 
         // Reading is necessary to trigger the closing of reads for serverStream1 and allow a new stream to be accepted.
         readResult = await serverStream1.Input.ReadAsync();

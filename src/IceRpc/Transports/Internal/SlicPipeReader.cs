@@ -141,6 +141,8 @@ internal class SlicPipeReader : PipeReader
             writerScheduler: PipeScheduler.Inline));
     }
 
+    /// <summary>Aborts reads.</summary>
+    /// <param name="exception">The exception raised by ReadAsync.</param>
     internal void Abort(IceRpcException? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);

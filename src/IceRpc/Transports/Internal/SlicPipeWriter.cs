@@ -179,6 +179,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             writerScheduler: PipeScheduler.Inline));
     }
 
+    /// <summary>Aborts writes.</summary>
+    /// <param name="exception">The exception raised by <see cref="PipeWriter.WriteAsync" /> or <see cref="FlushAsync"
+    /// />.</param>
     internal void Abort(IceRpcException? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);

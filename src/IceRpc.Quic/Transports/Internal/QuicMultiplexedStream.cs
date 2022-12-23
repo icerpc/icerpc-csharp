@@ -44,12 +44,12 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         int streamCount = stream.CanRead && stream.CanWrite ? 2 : 1;
 
         _stream = stream;
-        _inputPipeReader = stream.CanRead ? new QuicPipeReader(stream, pool, minSegmentSize, DisposeStream) : null;
-        _outputPipeWriter = stream.CanWrite ? new QuicPipeWriter(stream, pool, minSegmentSize, DisposeStream) : null;
+        _inputPipeReader = stream.CanRead ? new QuicPipeReader(stream, pool, minSegmentSize, ReleaseStream) : null;
+        _outputPipeWriter = stream.CanWrite ? new QuicPipeWriter(stream, pool, minSegmentSize, ReleaseStream) : null;
 
-        void DisposeStream()
+        void ReleaseStream()
         {
-            if (--streamCount == 0)
+            if (Interlocked.Decrement(ref streamCount) == 0)
             {
                 _ = _stream.DisposeAsync().AsTask();
             }
