@@ -78,9 +78,7 @@ public abstract class MultiplexedStreamConformanceTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
-            bidirectional: true,
-            default).ConfigureAwait(false);
+        IMultiplexedStream stream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
 
         Memory<byte> buffer = stream.Output.GetMemory();
         stream.Output.Advance(buffer.Length);
@@ -337,7 +335,7 @@ public abstract class MultiplexedStreamConformanceTests
 
         await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
             clientConnection,
-            serverConnection, 
+            serverConnection,
             isBidirectional);
 
         // Act
@@ -433,7 +431,7 @@ public abstract class MultiplexedStreamConformanceTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(
-                listener, 
+                listener,
                 clientConnection);
 
         await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
@@ -511,7 +509,7 @@ public abstract class MultiplexedStreamConformanceTests
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection, 
+            clientConnection,
             serverConnection);
         sut.RemoteStream.Output.Complete();
 
@@ -677,8 +675,8 @@ public abstract class MultiplexedStreamConformanceTests
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection, 
-            serverConnection, 
+            clientConnection,
+            serverConnection,
             isBidirectional);
 
         // Act
@@ -777,7 +775,7 @@ public abstract class MultiplexedStreamConformanceTests
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         await using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection, 
+            clientConnection,
             serverConnection);
 
         // Act

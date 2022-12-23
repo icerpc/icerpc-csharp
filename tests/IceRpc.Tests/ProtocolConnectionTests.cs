@@ -196,7 +196,7 @@ public sealed class ProtocolConnectionTests
         // Arrange
 
         var protocol = Protocol.Parse(protocolString);
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
@@ -535,7 +535,7 @@ public sealed class ProtocolConnectionTests
     public async Task Dispose_cancels_dispatches(Protocol protocol)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -574,7 +574,7 @@ public sealed class ProtocolConnectionTests
     public async Task Dispose_aborts_pending_invocations(Protocol protocol)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
@@ -1050,7 +1050,7 @@ public sealed class ProtocolConnectionTests
     public async Task Shutdown_timeout(Protocol protocol, bool closeClientSide)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
 
         IServiceCollection services = new ServiceCollection();
         if (closeClientSide)
@@ -1094,7 +1094,7 @@ public sealed class ProtocolConnectionTests
         bool closeClientSide)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)

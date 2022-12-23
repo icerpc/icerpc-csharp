@@ -91,7 +91,7 @@ public sealed class IceProtocolConnectionTests
     public async Task Disposing_server_connection_triggers_dispatch_exception([Values(false, true)] bool shutdown)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -218,7 +218,7 @@ public sealed class IceProtocolConnectionTests
     public async Task Response_received_for_discarded_request_is_ignored()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher(new byte[200], holdDispatchCount: 1);
+        await using var dispatcher = new TestDispatcher(new byte[200], holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);

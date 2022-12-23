@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Common;
 
-public sealed class TestDispatcher : IDispatcher, IDisposable
+public sealed class TestDispatcher : IDispatcher, IAsyncDisposable
 {
     public Task DispatchComplete => _completeTaskCompletionSource.Task;
     public Task<IncomingRequest> DispatchStart => _startTaskCompletionSource.Task;
@@ -63,12 +63,22 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (_hold.CurrentCount > 0)
         {
             _hold.Release(_hold.CurrentCount);
         }
+
+        try
+        {
+            await _completeTaskCompletionSource.Task.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Expected. Prevent unobserved task exception.
+        }
+
         _hold.Dispose();
     }
 

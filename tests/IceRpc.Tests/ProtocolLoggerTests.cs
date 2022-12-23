@@ -131,7 +131,7 @@ public sealed class ProtocolLoggerTests
         var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
-        using var dispatcher = new TestDispatcher();
+        await using var dispatcher = new TestDispatcher();
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             dispatcher,
