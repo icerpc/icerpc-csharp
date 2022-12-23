@@ -36,8 +36,7 @@ public class DeadlineMiddleware : IDispatcher
                 throw new DispatchException(StatusCode.DeadlineExpired, "The request deadline has expired.");
             }
 
-            request.Features = request.Features.With<IDeadlineFeature>(
-                new DeadlineFeature(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value)));
+            request.Features = request.Features.With<IDeadlineFeature>(new DeadlineFeature(deadline));
         }
 
         return timeout is null ? _next.DispatchAsync(request, cancellationToken) : PerformDispatchAsync(timeout.Value);
