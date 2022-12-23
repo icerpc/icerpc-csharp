@@ -2,7 +2,7 @@
 
 namespace IceRpc.Retry;
 
-/// <summary>Options class to configure <see cref="RetryInterceptor" />.</summary>
+/// <summary>A property bag used to configure a <see cref="RetryInterceptor" />.</summary>
 public sealed record class RetryOptions
 {
     /// <summary>Gets or sets the maximum number of attempts for retrying a request.</summary>
@@ -22,9 +22,13 @@ public sealed record class RetryOptions
         }
     }
 
-    /// <summary>Gets or sets the maximum size of the request payload in bytes. Requests with a larger payload or
-    /// a payload continuation are not retryable.</summary>
-    /// <value>The maximum payload size in bytes. The default value is 1 MB.</value>
+    /// <summary>Gets or sets the maximum size of the request payload in bytes for which retries would be considered.
+    /// Requests with a larger payload or a payload continuation are never retried.</summary>
+    /// <value>The maximum request payload size in bytes for which retries will be attempted. The default value is 1 MB.
+    /// </value>
+    /// <remarks>The ability to retry depends on keeping the request payload around until a successful response has been
+    /// received or retries are no longer possible, this setting affects the working memory that the application will
+    /// consume.</remarks>
     public int MaxPayloadSize
     {
         get => _maxPayloadSize;

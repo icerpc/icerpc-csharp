@@ -8,8 +8,8 @@ namespace IceRpc.Telemetry;
 
 /// <summary>A middleware that starts an <see cref="Activity" /> per request, following OpenTelemetry conventions. The
 /// middleware restores the parent invocation activity from the request <see cref="RequestFieldKey.TraceContext" />
-/// field before starting the dispatch activity. The activities are only created for requests using the icerpc
-/// protocol.</summary>
+/// field before starting the dispatch activity. The activities are only created for requests using a protocol that
+/// supports request fields like icerpc.</summary>
 /// <seealso cref="TelemetryInterceptor" />
 public class TelemetryMiddleware : IDispatcher
 {

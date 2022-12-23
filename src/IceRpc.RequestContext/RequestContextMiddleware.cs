@@ -6,7 +6,8 @@ using System.Buffers;
 
 namespace IceRpc.RequestContext;
 
-/// <summary>A middleware that decodes the request context field into a request context feature.</summary>
+/// <summary>A middleware that decodes the request context field into a request context feature. When using the ice
+/// protocol which doesn't support request fields the request context is decoded from the request header.</summary>
 public class RequestContextMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;

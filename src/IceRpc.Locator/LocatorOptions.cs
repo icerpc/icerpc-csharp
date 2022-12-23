@@ -2,7 +2,7 @@
 
 namespace IceRpc.Locator;
 
-/// <summary>An options class for configuring a <see cref="LocatorLocationResolver" />.</summary>
+/// <summary>A property bag used to configure a <see cref="LocatorLocationResolver" />.</summary>
 public sealed record class LocatorOptions
 {
     /// <summary>Gets or sets a value indicating whether or not the locator must enable background lookups.</summary>
@@ -12,12 +12,12 @@ public sealed record class LocatorOptions
     public bool Background { get; set; }
 
     /// <summary>Gets or sets the maximum size of the cache.</summary>
-    /// <value>The maximum size of the cache. 0 means no cache. The default is 100.</value>
+    /// <value>The maximum size of the cache. 0 means no cache. The default value is 100.</value>
     public int MaxCacheSize { get; set; } = 100;
 
     /// <summary>Gets or sets the refresh threshold. When the age of a cache entry is less than or equal to this
     /// value, it's considered up to date and won't be updated even when the caller requests a refresh.</summary>
-    /// <value>The refresh threshold. The default is 1 second.</value>
+    /// <value>The refresh threshold. The default value is 1 second.</value>
     public TimeSpan RefreshThreshold { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>Gets or sets the time-to-live. This is the time period after which a cache entry is considered
