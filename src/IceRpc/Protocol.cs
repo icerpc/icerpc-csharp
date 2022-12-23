@@ -18,25 +18,27 @@ public class Protocol
     /// <summary>Gets the default port for this protocol.</summary>
     public ushort DefaultPort { get; }
 
-    /// <summary>Gets a value indicating whether or not this protocol supports fields.</summary>
-    /// <returns><see langword="true" /> if the protocol supports fields; otherwise, <see langword="false" />.</returns>
-    public bool HasFields { get; }
-
-    /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
-    /// <returns><see langword="true" /> if the protocol supports fragments; otherwise, <see langword="false" />.
+    /// <summary>Gets a value indicating whether or not this protocol supports arbitrary application-defined fields in
+    /// request and response headers.</summary>
+    /// <returns><see langword="true" /> if the protocol supports arbitrary fields; otherwise, <see langword="false" />.
     /// </returns>
-    public bool HasFragment { get; }
+    public bool HasFields { get; }
 
     /// <summary>Gets the name of this protocol.</summary>
     public string Name { get; }
 
+    /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
+    internal byte ByteValue { get; }
+
+    /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
+    /// <returns><see langword="true" /> if the protocol supports fragments; otherwise, <see langword="false" />.
+    /// </returns>
+    internal bool HasFragment { get; }
+
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
     /// <returns><see langword="true" /> if the protocol supports payload continuations; otherwise,
     /// <see langword="false" />.</returns>
-    public bool SupportsPayloadContinuation { get; }
-
-    /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
-    internal byte ByteValue { get; }
+    internal bool SupportsPayloadContinuation { get; }
 
     /// <summary>Parses a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
