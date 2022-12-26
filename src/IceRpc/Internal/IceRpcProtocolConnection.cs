@@ -248,44 +248,37 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 DisableIdleCheck();
                             }
 
-                            var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(
-                                _dispatchesAndInvocationsCts.Token);
-                            cancellationToken = dispatchCts.Token;
-
-                            if (stream.IsBidirectional)
-                            {
-                                // If the peer is no longer interested in the response of the dispatch, we cancel
-                                // the dispatch.
-                                _ = CancelDispatchOnOutputClosedAsync();
-
-                                async Task CancelDispatchOnOutputClosedAsync()
-                                {
-                                    try
-                                    {
-                                        await stream.OutputClosed.ConfigureAwait(false);
-                                    }
-                                    catch
-                                    {
-                                        // Ignore the reason of the writes close.
-                                    }
-
-                                    try
-                                    {
-                                        dispatchCts.Cancel();
-                                    }
-                                    catch (ObjectDisposedException)
-                                    {
-                                        // Expected if already disposed.
-                                    }
-                                }
-                            }
-
-                            _ = UnregisterOnInputAndOutputClosedAsync(stream, dispatchCts);
+                            _ = UnregisterOnInputAndOutputCompletedAsync(stream);
                         }
 
                         _ = Task.Run(
                             async () =>
                             {
+                                using var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(
+                                    _dispatchesAndInvocationsCts.Token);
+                                cancellationToken = dispatchCts.Token;
+
+                                if (stream.IsBidirectional)
+                                {
+                                    // If the peer is no longer interested in the response of the dispatch, we cancel
+                                    // the dispatch.
+                                    _ = CancelDispatchOnWritesClosedAsync();
+
+                                    async Task CancelDispatchOnWritesClosedAsync()
+                                    {
+                                        await stream.WritesClosed.ConfigureAwait(false);
+
+                                        try
+                                        {
+                                            dispatchCts.Cancel();
+                                        }
+                                        catch (ObjectDisposedException)
+                                        {
+                                            // Expected if already disposed.
+                                        }
+                                    }
+                                }
+
                                 try
                                 {
                                     await DispatchRequestAsync(stream, cancellationToken).ConfigureAwait(false);
@@ -378,13 +371,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             // It's safe to complete the output since write operations have been completed by the connection disposal.
             _controlStream.Output.Complete();
-            await _controlStream.DisposeAsync().ConfigureAwait(false);
         }
         if (_remoteControlStream is not null)
         {
             // It's safe to complete the input since read operations have been completed by the connection disposal.
             _remoteControlStream.Input.Complete();
-            await _remoteControlStream.DisposeAsync().ConfigureAwait(false);
         }
 
         _dispatchesAndInvocationsCts.Dispose();
@@ -401,7 +392,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             throw new NotSupportedException("The icerpc protocol does not support fragments.");
         }
 
-        var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
+        var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
+            _dispatchesAndInvocationsCts.Token);
         CancellationToken invocationCancellationToken = invocationCts.Token;
 
         // We unregister this cancellationToken when this async method completes (it completes successfully when we
@@ -412,35 +404,31 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             cts => ((CancellationTokenSource)cts!).Cancel(),
             invocationCts);
 
-        IMultiplexedStream? stream;
+        IMultiplexedStream? stream = null;
+        PipeReader? streamInput = null;
         try
         {
             // Create the stream.
-            stream = await _transportConnection.CreateStreamAsync(
-                bidirectional: !request.IsOneway,
-                invocationCancellationToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            Debug.Assert(ConnectionClosedException is not null);
-            throw ConnectionClosedException;
-        }
-        catch
-        {
-            invocationCts.Dispose();
-            throw;
-        }
+            try
+            {
+                stream = await _transportConnection.CreateStreamAsync(
+                    bidirectional: !request.IsOneway,
+                    invocationCancellationToken).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                Debug.Assert(ConnectionClosedException is not null);
+                throw ConnectionClosedException;
+            }
 
-        PipeReader? streamInput = stream.IsBidirectional ? stream.Input : null;
-        try
-        {
+            streamInput = stream.IsBidirectional ? stream.Input : null;
+
             lock (_mutex)
             {
                 if (ConnectionClosedException is not null)
                 {
                     // Don't process the invocation if the connection is in the process of shutting down or it's already
                     // closed.
-                    invocationCts.Dispose();
                     throw ConnectionClosedException;
                 }
 
@@ -451,16 +439,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 // Keep track of the invocation cancellation token source for the shutdown logic.
                 _pendingInvocations.Add(stream, invocationCts);
+                invocationCts = null; // invocationCts is disposed by UnregisterOnInputAndOutputCompletedAsync
 
-                _ = UnregisterOnInputAndOutputClosedAsync(stream, invocationCts);
+                _ = UnregisterOnInputAndOutputCompletedAsync(stream);
             }
         }
         catch
         {
-            stream.Output.CompleteOutput(success: false);
-            streamInput?.Complete();
-            await stream.DisposeAsync().ConfigureAwait(false);
+            if (stream is not null)
+            {
+                stream.Output.CompleteOutput(success: false);
+                streamInput?.Complete();
+            }
             throw;
+        }
+        finally
+        {
+            invocationCts?.Dispose();
         }
 
         try
@@ -476,7 +471,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
 
             // SendPayloadAsync takes ownership of stream.Output
-            await SendPayloadAsync(request, stream.Output, stream.OutputClosed, invocationCancellationToken)
+            await SendPayloadAsync(request, stream.Output, stream.WritesClosed, invocationCancellationToken)
                 .ConfigureAwait(false);
 
             if (request.IsOneway)
@@ -490,15 +485,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
                 invocationCancellationToken).ConfigureAwait(false);
-
-            lock (_mutex)
-            {
-                if (ConnectionClosedException is null)
-                {
-                    // We received a response, it's no longer a pending invocation.
-                    _ = _pendingInvocations.Remove(stream);
-                }
-            }
 
             // Nothing cancels the stream input pipe reader.
             Debug.Assert(!readResult.IsCanceled);
@@ -759,7 +745,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private async ValueTask SendPayloadAsync(
         OutgoingFrame outgoingFrame,
         PipeWriter streamOutput,
-        Task streamOutputClosed,
+        Task streamWritesClosed,
         CancellationToken cancellationToken)
     {
         try
@@ -865,7 +851,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             // If the peer is no longer reading the payload, call Cancel on readCts.
-            Task cancelOnOutputClosedTask = CancelOnOutputClosedAsync(readCts);
+            Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
 
             FlushResult flushResult;
 
@@ -881,9 +867,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     catch (OperationCanceledException exception) when (exception.CancellationToken == readCts.Token)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        Debug.Assert(streamOutputClosed.IsCompleted);
+                        Debug.Assert(streamWritesClosed.IsCompleted);
 
-                        // This either throws the OutputClosed exception or returns a completed FlushResult.
+                        // This either throws the WritesClosed exception or returns a completed FlushResult.
                         return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                     }
                     // we let other exceptions thrown by ReadAsync (including possibly an OperationCanceledException
@@ -917,16 +903,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             finally
             {
                 readCts.Cancel();
-                await cancelOnOutputClosedTask.ConfigureAwait(false);
+                await cancelOnWritesClosedTask.ConfigureAwait(false);
             }
 
             return flushResult;
 
-            async Task CancelOnOutputClosedAsync(CancellationTokenSource readCts)
+            async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
             {
                 try
                 {
-                    await streamOutputClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
+                    await streamWritesClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -1065,7 +1051,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             EncodeHeader();
 
             // SendPayloadAsync takes ownership of streamOutput
-            await SendPayloadAsync(response, streamOutput, stream.OutputClosed, cancellationToken)
+            await SendPayloadAsync(response, streamOutput, stream.WritesClosed, cancellationToken)
                 .ConfigureAwait(false);
 
             void EncodeHeader()
@@ -1216,26 +1202,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async Task UnregisterOnInputAndOutputClosedAsync(IMultiplexedStream stream, CancellationTokenSource cts)
+    private async Task UnregisterOnInputAndOutputCompletedAsync(IMultiplexedStream stream)
     {
-        try
-        {
-            await Task.WhenAll(stream.InputClosed, stream.OutputClosed).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore the reason of the Input/Output closure.
-        }
-        finally
-        {
-            await stream.DisposeAsync().ConfigureAwait(false);
-        }
+        // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
+        await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
 
         lock (_mutex)
         {
             if (!stream.IsRemote && ConnectionClosedException is null)
             {
-                _ = _pendingInvocations.Remove(stream);
+                if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
+                {
+                    cts.Dispose();
+                }
+                else
+                {
+                    Debug.Assert(false);
+                }
             }
 
             if (--_streamCount == 0)
@@ -1249,8 +1232,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     _streamsClosed.TrySetResult();
                 }
             }
-
-            cts.Dispose();
         }
     }
 
