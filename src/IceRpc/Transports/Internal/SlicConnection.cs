@@ -402,10 +402,22 @@ internal class SlicConnection : IMultiplexedConnection
                 await _readFramesTask.ConfigureAwait(false);
             }
 
-            // Dispose the streams that might still be queued on the channel.
+            // Clean-up the streams that might still be queued on the channel.
             while (_acceptStreamChannel.Reader.TryRead(out IMultiplexedStream? stream))
             {
-                await stream.DisposeAsync().ConfigureAwait(false);
+                if (stream.IsBidirectional)
+                {
+                    stream.Output.Complete();
+                    stream.Input.Complete();
+                }
+                else if (stream.IsRemote)
+                {
+                    stream.Input.Complete();
+                }
+                else
+                {
+                    stream.Output.Complete();
+                }
             }
 
             // Dispose the transport connection and the reader/writer.
@@ -642,7 +654,7 @@ internal class SlicConnection : IMultiplexedConnection
                     // At this point writes are considered completed on the stream. It's important to call this
                     // before sending the last packet to avoid a race condition where the peer could start a new
                     // stream before the Slic connection stream count is decreased.
-                    stream.TrySetWritesClosed(exception: null);
+                    stream.TrySetWritesClosed();
                 }
 
                 // Write the stream frame.
@@ -989,8 +1001,7 @@ internal class SlicConnection : IMultiplexedConnection
                             {
                                 stream.Output.Complete();
                             }
-                            await stream.DisposeAsync().ConfigureAwait(false);
-                            Debug.Assert(stream.IsShutdown);
+                            Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
                         }
                     }
 

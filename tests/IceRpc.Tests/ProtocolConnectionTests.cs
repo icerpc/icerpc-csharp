@@ -1103,7 +1103,7 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(protocol));
-        Task invokeTask = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
@@ -1115,6 +1115,10 @@ public sealed class ProtocolConnectionTests
         dispatcher.ReleaseDispatch();
 
         Assert.That(async () => await invokeTask, Throws.Nothing);
+
+        // Complete the response, shutdown could hang otherwise if the response stream reading side is not closed.
+        (await invokeTask).Payload.Complete();
+
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 

@@ -12,6 +12,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     internal Task Closed { get; }
 
     private bool _isCompleted;
+    private Action _completeCallback;
     private readonly int _minSegmentSize;
 
     // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
@@ -37,24 +38,19 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
             _isCompleted = true;
 
-            try
+            if (exception is null)
             {
-                if (exception is null)
-                {
-                    // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
-                    // buffered for send on the Quic stream and aborting the stream would discard this data.
-                    _stream.CompleteWrites();
-                }
-                else
-                {
-                    // The error code is irrelevant.
-                    _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
-                }
+                // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
+                // buffered for send on the Quic stream and aborting the stream would discard this data.
+                _stream.CompleteWrites();
             }
-            catch (ObjectDisposedException)
+            else
             {
-                // Expected if the stream has been disposed.
+                // The error code is irrelevant.
+                _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
             }
+
+            _completeCallback();
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
@@ -160,39 +156,32 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             bool completeWrites,
             CancellationToken cancellationToken)
         {
-            try
+            if (sequence.IsSingleSegment)
             {
-                if (sequence.IsSingleSegment)
-                {
-                    await _stream.WriteAsync(sequence.First, completeWrites, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    var enumerator = sequence.GetEnumerator();
-                    bool hasMore = enumerator.MoveNext();
-                    Debug.Assert(hasMore);
-                    do
-                    {
-                        ReadOnlyMemory<byte> buffer = enumerator.Current;
-                        hasMore = enumerator.MoveNext();
-                        await _stream.WriteAsync(buffer, completeWrites: completeWrites && !hasMore, cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                    while (hasMore);
-                }
+                await _stream.WriteAsync(sequence.First, completeWrites, cancellationToken).ConfigureAwait(false);
             }
-            catch (ObjectDisposedException)
+            else
             {
-                // Expected if the stream has been disposed.
-                throw new IceRpcException(IceRpcError.OperationAborted);
+                var enumerator = sequence.GetEnumerator();
+                bool hasMore = enumerator.MoveNext();
+                Debug.Assert(hasMore);
+                do
+                {
+                    ReadOnlyMemory<byte> buffer = enumerator.Current;
+                    hasMore = enumerator.MoveNext();
+                    await _stream.WriteAsync(buffer, completeWrites: completeWrites && !hasMore, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                while (hasMore);
             }
         }
     }
 
-    internal QuicPipeWriter(QuicStream stream, MemoryPool<byte> pool, int minSegmentSize)
+    internal QuicPipeWriter(QuicStream stream, MemoryPool<byte> pool, int minSegmentSize, Action completeCallback)
     {
         _stream = stream;
         _minSegmentSize = minSegmentSize;
+        _completeCallback = completeCallback;
 
         // Create a pipe that never pauses on flush or write. The QuicPipeWriter will pause the flush or write if the
         // Quic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to avoid
@@ -211,20 +200,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             {
                 await _stream.WritesClosed.ConfigureAwait(false);
             }
-            catch (QuicException exception) when (exception.QuicError == QuicError.StreamAborted)
+            catch
             {
-                // successful completion
+                // Ignore failures.
             }
-            catch (QuicException exception)
-            {
-                throw exception.ToIceRpcException();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the stream has been disposed.
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-            // we don't wrap other exceptions
         }
     }
 }

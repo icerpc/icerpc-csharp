@@ -13,6 +13,7 @@ internal class QuicPipeReader : PipeReader
 
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
+    private readonly Action _completeCallback;
     private readonly PipeReader _pipeReader;
     private readonly QuicStream _stream;
 
@@ -35,14 +36,9 @@ internal class QuicPipeReader : PipeReader
             _pipeReader.Complete(exception);
 
             // Tell the remote writer we're done reading. The error code is irrelevant.
-            try
-            {
-                _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the stream has been disposed.
-            }
+            _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
+
+            _completeCallback();
         }
     }
 
@@ -56,11 +52,6 @@ internal class QuicPipeReader : PipeReader
         {
             throw exception.ToIceRpcException();
         }
-        catch (ObjectDisposedException)
-        {
-            // Expected if the stream has been disposed.
-            throw new IceRpcException(IceRpcError.OperationAborted);
-        }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
     }
@@ -69,10 +60,10 @@ internal class QuicPipeReader : PipeReader
     // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
-    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
+    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize, Action completeCallback)
     {
         _stream = stream;
-
+        _completeCallback = completeCallback;
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
@@ -85,20 +76,10 @@ internal class QuicPipeReader : PipeReader
             {
                 await _stream.ReadsClosed.ConfigureAwait(false);
             }
-            catch (QuicException exception) when (exception.QuicError == QuicError.OperationAborted && _isCompleted)
+            catch
             {
-                // Ignore exception: this occurs when we call Complete(null) on this pipe reader.
+                // Ignore
             }
-            catch (QuicException exception)
-            {
-                throw exception.ToIceRpcException();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the stream has been disposed.
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-            // we don't wrap other exceptions
         }
     }
 }
