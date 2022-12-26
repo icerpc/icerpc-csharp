@@ -367,7 +367,7 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (IceRpcException)
             {
-                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
+                // Ignore connection failures.
             }
         }
     }
@@ -422,7 +422,7 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (IceRpcException)
             {
-                // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
+                // Ignore connection failures.
             }
         }
     }
