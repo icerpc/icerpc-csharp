@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection" />.</summary>
+/// <summary>Extension methods for setting up IceRPC services in an <see cref="IServiceCollection" />.</summary>
 public static class IceRpcServiceCollectionExtensions
 {
     /// <summary>Adds a <see cref="ClientConnection" /> and <see cref="IInvoker" /> singleton to this service

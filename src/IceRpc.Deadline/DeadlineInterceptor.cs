@@ -4,18 +4,20 @@ using IceRpc.Slice;
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline interceptor adds a deadline to requests without a deadline feature and encodes the deadline
-/// field. When the deadline expires, the invocation is canceled and the interceptor throws
-/// <see cref="TimeoutException" />. When used in conjunction with the retry interceptor it is important to install this
-/// interceptor before the retry interceptor to ensure that the deadline is computed once per invocation and not once
-/// for each retry.</summary>
+/// <summary>The deadline interceptor provides a mechanism to set a request deadline. If the request doesn't carry
+/// a deadline feature, a deadline will be computed based on the configured default timeout otherwise the deadline
+/// from the <see cref="IDeadlineFeature"/> feature is used, the deadline is then encoded as a request field. When
+/// the deadline expires, the invocation is canceled and the interceptor throws <see cref="TimeoutException" />.
+/// </summary>
 /// <remarks>The dispatch of a oneway request cannot be canceled since the invocation typically completes before this
-/// dispatch starts; as a result, for a oneway request, the deadline must enforced by the
+/// dispatch starts; as a result, for a oneway request, the deadline must be enforced by the
 /// <see cref="DeadlineMiddleware"/>.</remarks>
 /// <remarks>If the server installs a <see cref="DeadlineMiddleware"/>, this deadline middleware decodes the deadline
 /// and enforces it. In the unlikely event the middleware detects the expiration of the deadline before this
 /// interceptor, the invocation will fail with a <see cref="DispatchException"/> carrying the status code
 /// <see cref="StatusCode.DeadlineExpired"/>.</remarks>
+/// <remarks>The deadline interceptor must be installed before any interceptors than run more than once per request
+/// like the retry interceptor, to avoid computing multiple deadlines per requests.</remarks>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;

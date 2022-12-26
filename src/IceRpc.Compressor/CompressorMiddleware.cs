@@ -9,8 +9,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Compressor;
 
-/// <summary>A middleware that applies compression to the payload of a response depending on the
-/// <see cref="ICompressFeature" /> feature.</summary>
+/// <summary>A middleware that decompresses the request payload when it is compressed with a supported format and
+/// applies compression to the payload of a response depending on the <see cref="ICompressFeature" /> feature. This
+/// middleware supports the <see cref="CompressionFormat.Deflate"/> and <see cref="CompressionFormat.Brotli"/>
+/// compression formats.</summary>
 public class CompressorMiddleware : IDispatcher
 {
     private readonly CompressionFormat _compressionFormat;

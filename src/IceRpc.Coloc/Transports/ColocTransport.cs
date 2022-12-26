@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 
 namespace IceRpc.Transports;
 
-/// <summary>The Coloc transport class provides a client and server transport that can be used for in-process
+/// <summary>The Coloc transport class provides a client and server duplex transport that can be used for in-process
 /// communications.</summary>
 public sealed class ColocTransport
 {

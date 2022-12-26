@@ -11,8 +11,7 @@ public static class TelemetryRouterExtensions
 {
     /// <summary>Adds a <see cref="TelemetryMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
-    /// <param name="activitySource">If set to a non null object the <see cref="ActivitySource" /> is used to start the
-    /// request and response activities.</param>
+    /// <param name="activitySource">The <see cref="ActivitySource" /> is used to start the request activity.</param>
     /// <returns>The router being configured.</returns>
     public static Router UseTelemetry(this Router router, ActivitySource activitySource) =>
         router.Use(next => new TelemetryMiddleware(next, activitySource));

@@ -5,9 +5,7 @@ using System.Net;
 
 namespace IceRpc.Logger;
 
-/// <summary>A middleware that logs request and response messages to an <see cref="ILogger" />. When used in conjunction
-/// with the telemetry middleware, install the logger middleware after the telemetry middleware, this way the logger
-/// includes the scopes created by the telemetry activities.</summary>
+/// <summary>A middleware that writes a log entry to an <see cref="ILogger" /> for each dispatch.</summary>
 public class LoggerMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
@@ -60,8 +58,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerInterceptorEventId.Invoke,
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
-        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and " +
-            "received {StatusCode} response")]
+        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received {StatusCode} response")]
     internal static partial void LogDispatch(
         this ILogger logger,
         string path,

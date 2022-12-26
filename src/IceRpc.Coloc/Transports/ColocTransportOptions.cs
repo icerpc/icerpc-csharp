@@ -6,7 +6,7 @@ namespace IceRpc.Transports;
 public sealed record class ColocTransportOptions
 {
     /// <summary>Gets or sets the maximum length of the pending connections queue.</summary>
-    /// <value>The maximum queue length.</value>
+    /// <value>The maximum queue length, the default value is 511. The value cannot be less than 1.</value>
     public int ListenBacklog
     {
         get => _listenBacklog;
@@ -18,7 +18,7 @@ public sealed record class ColocTransportOptions
 
     /// <summary>Gets or sets the number of bytes in the Coloc connection when <see cref="IDuplexConnection.WriteAsync"
     /// /> starts blocking.</summary>
-    /// <value>The pause writer threshold.</value>
+    /// <value>The pause writer threshold, the default value is 64KB. The value cannot be less than 1KB.</value>
     public int PauseWriterThreshold
     {
         get => _pauseWriterThreshold;
@@ -30,7 +30,8 @@ public sealed record class ColocTransportOptions
 
     /// <summary>Gets or sets the number of bytes in the Coloc connection when <see cref="IDuplexConnection.WriteAsync"
     /// /> stops blocking.</summary>
-    /// <value>The resume writer threshold.</value>
+    /// <value>The resume writer threshold, the default value is 32KB. The value cannot be less than 1KB and cannot be
+    /// greater than the <see cref="PauseWriterThreshold"/> value.</value>
     public int ResumeWriterThreshold
     {
         get => _resumeWriterThreshold;
