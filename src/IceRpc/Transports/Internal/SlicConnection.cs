@@ -436,7 +436,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     await _writeStreamFrameTask.ConfigureAwait(false);
                 }
-                catch (System.Exception)
+                catch (IceRpcException)
                 {
                     // Expected if the write was pending.
                 }
@@ -684,7 +684,7 @@ internal class SlicConnection : IMultiplexedConnection
                     stream.TrySetWritesClosed(exception: null);
                 }
 
-                // Make sure the last write stream frame completed successfully.
+                // Make sure the previous stream frame write completed successfully.
                 await _writeStreamFrameTask.ConfigureAwait(false);
 
                 EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);

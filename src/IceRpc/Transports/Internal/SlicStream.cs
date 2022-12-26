@@ -186,6 +186,11 @@ internal class SlicStream : IMultiplexedStream
             {
                 // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Sending of Slic stream stop sending frame due to an unhandled exception: {exception}");
+                throw;
+            }
 
             if (!IsRemote)
             {
@@ -230,6 +235,11 @@ internal class SlicStream : IMultiplexedStream
             catch (IceRpcException)
             {
                 // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Sending of Slic stream reset frame failed due to an unhandled exception: {exception}");
+                throw;
             }
 
             if (!IsRemote)
@@ -278,6 +288,11 @@ internal class SlicStream : IMultiplexedStream
             {
                 // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
             }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Sending of Slic stream reset frame failed due to an unhandled exception: {exception}");
+                throw;
+            }
         }
     }
 
@@ -309,6 +324,11 @@ internal class SlicStream : IMultiplexedStream
             catch (IceRpcException)
             {
                 // Ignore connection failures. Other exception will be caught by DisposeAsync.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Sending of Slic stream last frame failed due to an unhandled exception: {exception}");
+                throw;
             }
         }
     }
@@ -430,6 +450,11 @@ internal class SlicStream : IMultiplexedStream
             catch (IceRpcException)
             {
                 // Ignore connection failures. Other exceptions will be caught by DisposeAsync.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Sending of Slic stream consumed frame failed due to an unhandled exception: {exception}");
+                throw;
             }
         }
     }
