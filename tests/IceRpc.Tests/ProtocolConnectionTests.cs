@@ -554,7 +554,7 @@ public sealed class ProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
 
         try
         {

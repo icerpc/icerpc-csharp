@@ -190,8 +190,8 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that canceling the invocation while sending the request payload, completes the incoming
