@@ -5,7 +5,7 @@ using System.Net;
 
 namespace IceRpc.Logger;
 
-/// <summary>An interceptor that logs invocation to an <see cref="ILogger" />.</summary>
+/// <summary>An interceptor that writes a log entry to an <see cref="ILogger" /> for each invocation.</summary>
 public class LoggerInterceptor : IInvoker
 {
     private readonly ILogger _logger;
@@ -50,8 +50,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventId = (int)LoggerInterceptorEventId.Invoke,
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
-        Message = "Sent {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and "
-            + "received {StatusCode} response")]
+        Message = "Sent {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received {StatusCode} response")]
     internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
