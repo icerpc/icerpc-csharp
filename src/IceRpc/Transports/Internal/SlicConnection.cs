@@ -435,45 +435,38 @@ internal class SlicConnection : IMultiplexedConnection
 
             try
             {
-                try
-                {
-                    await _acceptStreamChannel.Reader.Completion.ConfigureAwait(false);
-                }
-                catch (IceRpcException)
-                {
-                    // Ignore, the completion property is only awaited to avoid an unobserved task exception.
-                }
-
-                try
-                {
-                    await _writeStreamFrameTask.ConfigureAwait(false);
-                }
-                catch (IceRpcException)
-                {
-                    // Expected if the write was pending.
-                }
-
-                try
-                {
-                    await _pingTask.ConfigureAwait(false);
-                }
-                catch (IceRpcException)
-                {
-                    // Expected if the sending of the ping frame was pending.
-                }
-
-                try
-                {
-                    await _pongTask.ConfigureAwait(false);
-                }
-                catch (IceRpcException)
-                {
-                    // Expected if the sending of the pong frame was pending.
-                }
+                await _acceptStreamChannel.Reader.Completion.ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch (IceRpcException)
             {
-                Debug.Fail($"A dispose task completed with an unhandled exception: {exception}");
+                // Ignore, the completion property is only awaited to avoid an unobserved task exception.
+            }
+
+            try
+            {
+                await _writeStreamFrameTask.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the write was pending.
+            }
+
+            try
+            {
+                await _pingTask.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the sending of the ping frame was pending.
+            }
+
+            try
+            {
+                await _pongTask.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the sending of the pong frame was pending.
             }
 
             _tasksCts.Dispose();

@@ -28,6 +28,6 @@ public sealed class SetUpFixture
     private static void HandleUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         // TODO: enable once all UTE are fixed.
-        // Assert.Fail($"Unobserved task exception {sender}\n: {e.Exception.InnerException}");
+        Assert.Fail($"Unobserved task exception {sender}\n: {e.Exception.InnerException}");
     }
 }

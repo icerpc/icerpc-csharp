@@ -152,9 +152,10 @@ public sealed class IceRpcProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
+        Task? shutdownTask = null;
         if (shutdown)
         {
-            _ = sut.Server.ShutdownAsync();
+            shutdownTask = sut.Server.ShutdownAsync();
         }
         await sut.Server.DisposeAsync();
 
@@ -162,6 +163,11 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        if (shutdownTask is not null)
+        {
+            await shutdownTask;
+        }
     }
 
     [Test]

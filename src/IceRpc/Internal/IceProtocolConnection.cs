@@ -976,7 +976,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         catch (Exception exception)
                         {
                             _faultedTaskAction(exception);
-                            throw;
                         }
                     },
                     CancellationToken.None);

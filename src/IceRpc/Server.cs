@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -331,7 +332,10 @@ public sealed class Server : IAsyncDisposable
                                 // The connection dispose will dispose the transport connection if it has not been
                                 // adopted by the protocol connection.
                                 await connector.DisposeAsync().ConfigureAwait(false);
-                                pendingConnectionSemaphore.Release();
+                                if (!shutdownCancellationToken.IsCancellationRequested)
+                                {
+                                    pendingConnectionSemaphore.Release();
+                                }
                             }
                         });
                 }

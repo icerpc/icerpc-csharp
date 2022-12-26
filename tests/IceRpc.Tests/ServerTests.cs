@@ -102,9 +102,10 @@ public class ServerTests
            clientConnectionOptions,
            multiplexedClientTransport: clientTransport);
 
-        Task<TransportConnectionInformation> connectTask1 = clientConnection1.ConnectAsync();
-        Task<TransportConnectionInformation> connectTask2 = clientConnection2.ConnectAsync();
-        Task<TransportConnectionInformation> connectTask3 = clientConnection3.ConnectAsync();
+        using CancellationTokenSource connectCts = new();
+        Task<TransportConnectionInformation> connectTask1 = clientConnection1.ConnectAsync(connectCts.Token);
+        Task<TransportConnectionInformation> connectTask2 = clientConnection2.ConnectAsync(connectCts.Token);
+        Task<TransportConnectionInformation> connectTask3 = clientConnection3.ConnectAsync(connectCts.Token);
 
         // Act
         var completedConnectTask = await Task.WhenAny(connectTask1, connectTask2, connectTask3);
@@ -117,11 +118,15 @@ public class ServerTests
         {
             IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
             Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
+            connectCts.Cancel();
         }
         finally
         {
             await server.DisposeAsync();
         }
+
+        // Cleanup.
+        Assert.That(() => Task.WhenAll(connectTask1, connectTask2, connectTask3), Throws.InstanceOf<IceRpcException>());
     }
 
     [Test]
@@ -240,6 +245,9 @@ public class ServerTests
         // Release the dispatch semaphore, allowing the background connection dispose to complete.
         dispatchSemaphore.Release();
         await disposeTask;
+
+        // Prevent unobserved task exception.
+        Assert.That(async() => await invokeTask, Throws.InstanceOf<IceRpcException>());
     }
 
     private sealed class HoldServerTransport : IDuplexServerTransport

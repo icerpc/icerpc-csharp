@@ -103,9 +103,10 @@ public sealed class IceProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
+        Task? shutdownTask = null;
         if (shutdown)
         {
-            _ = sut.Server.ShutdownAsync();
+            shutdownTask = sut.Server.ShutdownAsync();
         }
         await sut.Server.DisposeAsync();
 
@@ -114,6 +115,11 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+
+        if (shutdownTask is not null)
+        {
+            await shutdownTask;
+        }
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
