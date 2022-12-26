@@ -10,8 +10,8 @@ using System.IO.Pipelines;
 namespace IceRpc.Compressor;
 
 /// <summary>An interceptor that applies compression to the payload of a request depending on the
-/// <see cref="ICompressFeature" /> feature, and decompress the response payload when it is compressed with a supported
-/// format. This interceptor supports the <see cref="CompressionFormat.Deflate"/>, and the
+/// <see cref="ICompressFeature" /> feature, and decompresses the response payload when it is compressed with a
+/// supported format. This interceptor supports the <see cref="CompressionFormat.Deflate"/> and
 /// <see cref="CompressionFormat.Brotli"/> compression formats.</summary>
 public class CompressorInterceptor : IInvoker
 {

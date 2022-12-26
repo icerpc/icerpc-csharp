@@ -4,8 +4,7 @@ using IceRpc.Slice;
 
 namespace IceRpc.RequestContext;
 
-/// <summary>An interceptor that encodes the request context into a request field. When using the ice protocol which
-/// doesn't support request fields the request context is encoded in the request header.</summary>
+/// <summary>An interceptor that encodes the request context into a request field.</summary>
 public class RequestContextInterceptor : IInvoker
 {
     private readonly IInvoker _next;
