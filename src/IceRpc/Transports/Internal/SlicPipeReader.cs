@@ -83,7 +83,7 @@ internal class SlicPipeReader : PipeReader
         // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
         if (result.IsCompleted)
         {
-            _stream.TrySetReadsClosed();
+            _stream.CompleteReads();
         }
 
         return result;
@@ -114,7 +114,7 @@ internal class SlicPipeReader : PipeReader
             // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
             if (result.IsCompleted)
             {
-                _stream.TrySetReadsClosed();
+                _stream.CompleteReads();
             }
             return true;
         }

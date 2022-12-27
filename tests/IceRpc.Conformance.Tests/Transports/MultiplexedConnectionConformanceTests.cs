@@ -198,6 +198,7 @@ public abstract class MultiplexedConnectionConformanceTests
         // Act
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
         clientStream1.Output.Complete();
+        await Task.Delay(50);
 
         // Assert
 

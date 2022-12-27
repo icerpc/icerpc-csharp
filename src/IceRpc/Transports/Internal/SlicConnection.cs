@@ -548,11 +548,7 @@ internal class SlicConnection : IMultiplexedConnection
                 Interlocked.Decrement(ref _unidirectionalStreamCount);
             }
         }
-        else if (stream.IsBidirectional)
-        {
-            _bidirectionalStreamSemaphore!.Release();
-        }
-        // The unidirectional stream semaphore will be released once the UnidirectionalStreamReleased frame is received.
+        // The stream semaphore will be released once the stream ReadsCompleted or StopSending frame is received.
     }
 
     internal async ValueTask SendFrameAsync(
@@ -1102,25 +1098,42 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         stream.ReceivedStopSendingFrame();
                     }
+
+                    // Release the bidirectional or unidirectional stream semaphore.
+                    if (streamId.Value % 4 < 2)
+                    {
+                        _bidirectionalStreamSemaphore!.Release();
+                    }
+                    else
+                    {
+                        _unidirectionalStreamSemaphore!.Release();
+                    }
                     break;
                 }
-                case FrameType.UnidirectionalStreamReleased:
+                case FrameType.StreamReadsCompleted:
                 {
                     Debug.Assert(streamId is not null);
                     if (dataSize > 0)
                     {
                         throw new IceRpcException(
                             IceRpcError.IceRpcError,
-                            "Received invalid Slic unidirectional stream released frame, frame too large.");
+                            "Received invalid Slic stream reads closed frame, frame too large.");
                     }
 
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedUnidirectionalStreamReleasedFrame();
+                        stream.ReceivedReadsCompletedFrame();
                     }
 
-                    // Release the unidirectional stream semaphore for the unidirectional stream.
-                    _unidirectionalStreamSemaphore!.Release();
+                    // Release the bidirectional or unidirectional stream semaphore.
+                    if (streamId.Value % 4 < 2)
+                    {
+                        _bidirectionalStreamSemaphore!.Release();
+                    }
+                    else
+                    {
+                        _unidirectionalStreamSemaphore!.Release();
+                    }
                     break;
                 }
                 default:
