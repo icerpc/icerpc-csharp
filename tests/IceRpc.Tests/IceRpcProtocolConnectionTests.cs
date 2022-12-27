@@ -1058,6 +1058,10 @@ public sealed class IceRpcProtocolConnectionTests
         private readonly IMultiplexedStream _decoratee;
         private readonly HoldPipeWriter? _output;
 
+        public void Dispose()
+        {
+        }
+
         internal HoldMultiplexedStream(HoldMultiplexedConnection connection, IMultiplexedStream decoratee)
         {
             _connection = connection;

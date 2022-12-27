@@ -367,16 +367,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport connection.
         await _dispatchesCompleted.Task.ConfigureAwait(false);
 
-        if (_controlStream is not null)
-        {
-            // It's safe to complete the output since write operations have been completed by the connection disposal.
-            _controlStream.Output.Complete();
-        }
-        if (_remoteControlStream is not null)
-        {
-            // It's safe to complete the input since read operations have been completed by the connection disposal.
-            _remoteControlStream.Input.Complete();
-        }
+        // It's safe to complete the output since write operations have been completed by the connection disposal.
+        _controlStream?.Output.Complete();
+        // It's safe to complete the input since read operations have been completed by the connection disposal.
+        _remoteControlStream?.Input.Complete();
 
         _dispatchesAndInvocationsCts.Dispose();
         _acceptStreamCts.Dispose();
@@ -1206,6 +1200,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+        stream.Dispose();
 
         lock (_mutex)
         {

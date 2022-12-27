@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -61,10 +60,12 @@ internal class SlicStream : IMultiplexedStream
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-    private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private Task? _sendStreamConsumedFrameTask;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void Dispose() => _sendCreditSemaphore.Dispose();
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -214,7 +215,7 @@ internal class SlicStream : IMultiplexedStream
         // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
         // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
         // additional data and _sendCredit can be used to figure out the size of the next packet to send.
-        await _sendCreditSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         return _sendCredit;
     }
 
@@ -276,7 +277,7 @@ internal class SlicStream : IMultiplexedStream
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
         {
-            Debug.Assert(_sendCreditSemaphore.Count == 0);
+            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
             _sendCreditSemaphore.Release();
         }
         else if (newValue > _connection.PeerPauseWriterThreshold)

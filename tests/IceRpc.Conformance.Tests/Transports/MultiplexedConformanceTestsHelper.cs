@@ -24,6 +24,7 @@ internal static class MultiplexedConformanceTestsHelper
             {
                 stream.Output.Complete();
             }
+            stream.Dispose();
         }
     }
 
