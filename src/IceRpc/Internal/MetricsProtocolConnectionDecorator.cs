@@ -7,9 +7,11 @@ namespace IceRpc.Internal;
 /// <summary>Provides a log decorator for protocol connections.</summary>
 internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
+    public Task<Exception?> Closed => _decoratee.Closed;
+
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    public Task ShutdownComplete => _decoratee.ShutdownComplete;
+    public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
     private readonly IProtocolConnection _decoratee;
     private readonly Task _shutdownAsync;
@@ -52,11 +54,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         // This task executes exactly once per decorated connection.
         async Task ShutdownAsync()
         {
-            try
-            {
-                await ShutdownComplete.ConfigureAwait(false);
-            }
-            catch (Exception)
+            if (await Closed.ConfigureAwait(false) is not null)
             {
                 ClientMetrics.Instance.ConnectionFailure();
             }

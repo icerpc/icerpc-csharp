@@ -21,11 +21,11 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<IProtocolConnection> _connections = new();
 
-    private IConnectorListener? _listener;
+    private readonly TimeSpan _connectTimeout;
 
-    // We keep this task to await the completion of listener's DisposeAsync when making concurrent calls to
-    // ShutdownAsync and/or DisposeAsync.
-    private Task? _listenerDisposeTask;
+    private Task? _disposeTask;
+
+    private IConnectorListener? _listener;
 
     private readonly Func<IConnectorListener> _listenerFactory;
 
@@ -41,6 +41,10 @@ public sealed class Server : IAsyncDisposable
     private readonly ServerAddress _serverAddress;
 
     private readonly CancellationTokenSource _shutdownCts = new();
+
+    private Task? _shutdownTask;
+
+    private readonly TimeSpan _shutdownTimeout;
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
@@ -64,6 +68,9 @@ public sealed class Server : IAsyncDisposable
         multiplexedServerTransport ??= IMultiplexedServerTransport.Default;
         _maxConnections = options.MaxConnections;
         _maxPendingConnections = options.MaxPendingConnections;
+
+        _connectTimeout = options.ConnectionOptions.ConnectTimeout;
+        _shutdownTimeout = options.ConnectionOptions.ShutdownTimeout;
 
         _serverAddress = options.ServerAddress;
         if (_serverAddress.Transport is null)
@@ -204,56 +211,69 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         lock (_mutex)
         {
-            // We always cancel _shutdownCts with _mutex locked. This way _shutdownCts.Token does not change when
-            // _mutex is locked.
-            try
+            if (_disposeTask is null)
             {
                 _shutdownCts.Cancel();
+                if (_backgroundConnectionDisposeCount == 0)
+                {
+                    // There is no outstanding background dispose.
+                    _ = _backgroundConnectionDisposeTcs.TrySetResult();
+                }
+                _disposeTask = PerformDisposeAsync();
             }
-            catch (ObjectDisposedException)
-            {
-                // already disposed by a previous or concurrent call.
-            }
+            return new(_disposeTask);
+        }
 
-            if (_backgroundConnectionDisposeCount == 0)
-            {
-                // There is no outstanding background dispose.
-                _ = _backgroundConnectionDisposeTcs.TrySetResult();
-            }
+        async Task PerformDisposeAsync()
+        {
+            await Task.Yield(); // exit mutex lock
+
+            // _listener, _listenTask etc are read-only when _disposeTask is not null.
 
             if (_listener is not null)
             {
-                // Stop accepting new connections by disposing of the listener.
-                _listenerDisposeTask = _listener.DisposeAsync().AsTask();
-                _listener = null;
+                await _listener.DisposeAsync().ConfigureAwait(false);
             }
-        }
 
-        if (_listenTask is not null)
-        {
+            if (_listenTask is not null)
+            {
+                try
+                {
+                    await _listenTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+
             try
             {
-                await _listenTask.ConfigureAwait(false);
+                if (_shutdownTask is not null)
+                {
+                    await _shutdownTask.ConfigureAwait(false);
+                }
+                else
+                {
+                    // Uses shutdown timeout
+                    await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync()))
+                        .ConfigureAwait(false);
+                }
             }
             catch
             {
-                // ignored
+                // ignore shutdown exceptions
             }
+
+            await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask())
+                .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
+
+            _shutdownCts.Dispose();
         }
-
-        if (_listenerDisposeTask is not null)
-        {
-            await _listenerDisposeTask.ConfigureAwait(false);
-        }
-
-        await Task.WhenAll(_connections.Select(c => c.DisposeAsync().AsTask())
-            .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
-
-        _shutdownCts.Dispose();
     }
 
     /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
@@ -272,16 +292,11 @@ public sealed class Server : IAsyncDisposable
         // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
         {
-            try
-            {
-                shutdownCancellationToken = _shutdownCts.Token;
-            }
-            catch (ObjectDisposedException)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
-
-            if (shutdownCancellationToken.IsCancellationRequested)
+            if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
@@ -290,6 +305,7 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"Server '{this}' is already listening.");
             }
 
+            shutdownCancellationToken = _shutdownCts.Token;
             listener = _listenerFactory();
             _listener = listener;
         }
@@ -364,21 +380,29 @@ public sealed class Server : IAsyncDisposable
 
         async Task ConnectAsync(IConnector connector)
         {
+            using var cts = new CancellationTokenSource(_connectTimeout);
+
+            using CancellationTokenRegistration tokenRegistration =
+                shutdownCancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), cts);
+
             // Connect the transport connection first.
             TransportConnectionInformation transportConnectionInformation =
-                await connector.ConnectTransportConnectionAsync(shutdownCancellationToken).ConfigureAwait(false);
+                await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
 
             // Create the protocol connection if the server is not being shutdown and if the max connection count is not
             // reached.
             IProtocolConnection? protocolConnection = null;
             lock (_mutex)
             {
-                if (!shutdownCancellationToken.IsCancellationRequested &&
-                    (_maxConnections == 0 || _connections.Count < _maxConnections))
+                if (!cts.IsCancellationRequested && (_maxConnections == 0 || _connections.Count < _maxConnections))
                 {
                     // The protocol connection adopts the transport connection from the connector and it's not
                     // responsible for disposing of it.
                     protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
+                    protocolConnection = new ShutdownTimeoutProtocolConnectionDecorator(
+                        protocolConnection,
+                        _shutdownTimeout);
+
                     _connections.Add(protocolConnection);
                 }
             }
@@ -388,11 +412,10 @@ public sealed class Server : IAsyncDisposable
                 // Schedule removal after addition, outside mutex lock.
                 _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
 
-                // Connect the connection. Don't need to pass a cancellation token here ConnectAsync creates one with
-                // the configured connection timeout.
-                await protocolConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                // Connect the connection.
+                _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
             }
-            else if (!shutdownCancellationToken.IsCancellationRequested)
+            else if (!cts.IsCancellationRequested)
             {
                 // If the max connection count is reached, we refuse the transport connection. We don't pass a
                 // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the peer
@@ -406,6 +429,7 @@ public sealed class Server : IAsyncDisposable
                     // ignore and continue
                 }
             }
+            // else the transport-level connection establishment timed out or the server is shutting down.
             // The transport connection is disposed by the disposal of the connector if the protocol connection didn't
             // adopt it above.
         }
@@ -415,9 +439,12 @@ public sealed class Server : IAsyncDisposable
             IProtocolConnection connection,
             CancellationToken shutdownCancellationToken)
         {
+            bool shutdownRequested;
+
             try
             {
-                await connection.ShutdownComplete.WaitAsync(shutdownCancellationToken).ConfigureAwait(false);
+                shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed)
+                    .WaitAsync(shutdownCancellationToken).ConfigureAwait(false) == connection.ShutdownRequested;
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
             {
@@ -425,17 +452,13 @@ public sealed class Server : IAsyncDisposable
                 // this connection.
                 return;
             }
-            catch
-            {
-                // ignore and continue: the connection was aborted
-            }
 
             lock (_mutex)
             {
-                // shutdownCancellationToken.IsCancellationRequested remains the same when _mutex is locked.
                 if (shutdownCancellationToken.IsCancellationRequested)
                 {
-                    // Server.DisposeAsync is responsible to dispose this connection.
+                    // _connections is read-only and Server.ShutdownAsync/DisposeAsync is responsible to
+                    // shutdown/dispose this connection.
                     return;
                 }
                 else
@@ -445,18 +468,26 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            try
+            if (shutdownRequested)
             {
-                await connection.DisposeAsync().ConfigureAwait(false);
-            }
-            finally
-            {
-                lock (_mutex)
+                try
                 {
-                    if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
-                    {
-                        _backgroundConnectionDisposeTcs.SetResult();
-                    }
+                    // Use shutdown timeout via decorator.
+                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignore all shutdown exceptions
+                }
+            }
+
+            await connection.DisposeAsync().ConfigureAwait(false);
+
+            lock (_mutex)
+            {
+                if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
+                {
+                    _backgroundConnectionDisposeTcs.SetResult();
                 }
             }
         }
@@ -466,42 +497,60 @@ public sealed class Server : IAsyncDisposable
     /// existing connections.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully once the shutdown is complete.</returns>
-    public async Task ShutdownAsync(CancellationToken cancellationToken = default)
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
         {
-            // We always cancel _shutdownCts with _mutex lock. This way, when _mutex is locked, _shutdownCts.Token
-            // does not change.
-            try
-            {
-                _shutdownCts.Cancel();
-            }
-            catch (ObjectDisposedException)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
 
-            if (_listener is not null)
+            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            _shutdownCts.Cancel();
+
+            if (_shutdownTask is null)
             {
-                // Stop accepting new connections by disposing of the listener.
-                _listenerDisposeTask = _listener.DisposeAsync().AsTask();
+                _shutdownTask = PerformShutdownAsync(_listener);
                 _listener = null;
+                return _shutdownTask;
             }
         }
+        return WaitForShutdownAsync(_shutdownTask);
 
-        if (_listenTask is not null)
+        async Task PerformShutdownAsync(IAsyncDisposable? listener)
         {
-            // The listen task should not throw any exception, but if it does, the application will get this exception
-            // when it calls ShutdownAsync.
-            await _listenTask.ConfigureAwait(false);
+            await Task.Yield(); // exit mutex lock
+
+            if (listener is not null)
+            {
+                // The disposal of the listener will terminate the listenTask
+                await listener.DisposeAsync().ConfigureAwait(false);
+            }
+
+            if (_listenTask is not null)
+            {
+                await _listenTask.ConfigureAwait(false);
+            }
+
+            // TODO: we throw the first exception, which is not quite correct.
+            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
+                .ConfigureAwait(false);
         }
 
-        if (_listenerDisposeTask is not null)
+        async Task WaitForShutdownAsync(Task shutdownTask)
         {
-            await _listenerDisposeTask.ConfigureAwait(false);
+            try
+            {
+                await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new IceRpcException(IceRpcError.OperationAborted, "The server shutdown was canceled.");
+            }
         }
-
-        await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken))).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -710,9 +759,11 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.</summary>
     private class MetricsProtocolConnectionDecorator : IProtocolConnection
     {
+        public Task<Exception?> Closed => _decoratee.Closed;
+
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
         private readonly IProtocolConnection _decoratee;
         private readonly Task _shutdownTask;
@@ -760,11 +811,7 @@ public sealed class Server : IAsyncDisposable
             // This task executes once per decorated connection.
             async Task ShutdownAsync()
             {
-                try
-                {
-                    await ShutdownComplete.ConfigureAwait(false);
-                }
-                catch
+                if (await Closed.ConfigureAwait(false) is not null)
                 {
                     ServerMetrics.Instance.ConnectionFailure();
                 }

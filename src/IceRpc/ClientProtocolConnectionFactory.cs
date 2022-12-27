@@ -89,11 +89,19 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                         _clientAuthenticationOptions),
                     transportConnectionInformation: null,
                     _connectionOptions);
-#pragma warning restore CA2000
+
+        connection = new ConnectTimeoutProtocolConnectionDecorator(
+            connection,
+            _connectionOptions.ConnectTimeout);
+
+        connection = new ShutdownTimeoutProtocolConnectionDecorator(
+            connection,
+            _connectionOptions.ShutdownTimeout);
 
         connection = new MetricsProtocolConnectionDecorator(connection);
 
         return _logger == NullLogger.Instance ? connection :
             new LogProtocolConnectionDecorator(connection, remoteNetworkAddress: null, _logger);
+#pragma warning restore CA2000
     }
 }

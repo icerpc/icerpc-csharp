@@ -85,10 +85,10 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
-    /// <summary>Verifies that disposing a server connection causes the invocation to fail with a <see
+    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail with a <see
     /// cref="DispatchException" />.</summary>
     [Test]
-    public async Task Disposing_server_connection_triggers_dispatch_exception([Values(false, true)] bool shutdown)
+    public async Task Abortive_server_connection_shutdown_triggers_dispatch_exception()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -103,23 +103,19 @@ public sealed class IceProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        Task? shutdownTask = null;
-        if (shutdown)
+        try
         {
-            shutdownTask = sut.Server.ShutdownAsync();
+            await sut.Server.ShutdownAsync(new CancellationToken(canceled: true));
         }
-        await sut.Server.DisposeAsync();
+        catch (OperationCanceledException)
+        {
+        }
 
         IncomingResponse response = await invokeTask;
 
         // Assert
         Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-
-        if (shutdownTask is not null)
-        {
-            await shutdownTask;
-        }
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -214,8 +210,10 @@ public sealed class IceProtocolConnectionTests
         var exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Client.InvokeAsync(request, default));
         Assert.That(exception, Is.Not.Null);
-        exception = Assert.ThrowsAsync<IceRpcException>(async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+
+        Assert.That(
+            await sut.Server.Closed,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,

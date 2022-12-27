@@ -71,13 +71,13 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(10)); // TODO: temporary workaround for #2386
 
         try
         {
-            // Cancel shutdown and dispose to abort the connection.
-            await server.ShutdownAsync(new CancellationToken(true));
+            await server.ShutdownAsync(new CancellationToken(canceled: true));
         }
-        catch
+        catch (OperationCanceledException)
         {
         }
         await server.DisposeAsync();
@@ -99,6 +99,7 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(10)); // TODO: temporary workaround for #2386
         await server.DisposeAsync();
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
@@ -223,5 +224,29 @@ public class ClientConnectionTests
         Assert.That(
             async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies that disposing the client connection aborts an outstanding Connect.</summary>
+    [Test]
+    public async Task Dispose_aborts_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider =
+            new ServiceCollection()
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+
+        Task connectTask = connection.ConnectAsync(); // will hang until ConnectTimeout since we don't call Listen
+
+        // Act
+        await connection.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 }

@@ -86,10 +86,10 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
-    /// <summary>This test ensures that disposing the connection correctly aborts the incoming request underlying
-    /// stream.</summary>
+    /// <summary>Verifies that disposing a server connection aborts the incoming request underlying stream.
+    /// </summary>
     [Test]
-    public async Task Disposing_connection_aborts_non_completed_incoming_request_stream()
+    public async Task Dispose_server_connection_aborts_non_completed_incoming_request_stream()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -114,14 +114,6 @@ public sealed class IceRpcProtocolConnectionTests
         ReadResult readResult = await payload.ReadAtLeastAsync(10); // Read everything
         payload.AdvanceTo(readResult.Buffer.End);
 
-        try
-        {
-            await sut.Server.ShutdownAsync(new CancellationToken(true));
-        }
-        catch (OperationCanceledException)
-        {
-        }
-
         // Act
         await sut.Server.DisposeAsync();
 
@@ -133,11 +125,10 @@ public sealed class IceRpcProtocolConnectionTests
         pipe.Writer.Complete();
     }
 
-    /// <summary>Verifies that disposing a server connection causes the invocation to fail with <see
+    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail with <see
     /// cref="IceRpcError.TruncatedData" />.</summary>
     [Test]
-    public async Task Disposing_server_connection_triggers_payload_read_with_truncated_data(
-        [Values(false, true)] bool shutdown)
+    public async Task Abortive_server_connection_shutdown_triggers_payload_read_with_truncated_data()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -147,27 +138,24 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
-        Task? shutdownTask = null;
-        if (shutdown)
+        try
         {
-            shutdownTask = sut.Server.ShutdownAsync();
+            await sut.Server.ShutdownAsync(new CancellationToken(canceled: true));
         }
-        await sut.Server.DisposeAsync();
+        catch (OperationCanceledException)
+        {
+        }
 
         // Assert
         Assert.That(
             async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-
-        if (shutdownTask is not null)
-        {
-            await shutdownTask;
-        }
     }
 
     [Test]
@@ -373,6 +361,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client);
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
@@ -416,6 +405,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client);
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
@@ -909,6 +899,19 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
+    }
+
+    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
+    {
+        await connection.ShutdownRequested;
+        try
+        {
+            await connection.ShutdownAsync();
+        }
+        catch
+        {
+            // ignore all exceptions
+        }
     }
 
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException)

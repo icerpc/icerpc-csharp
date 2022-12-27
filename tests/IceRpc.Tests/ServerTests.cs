@@ -223,8 +223,8 @@ public class ServerTests
 
         try
         {
-            await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
-            await serverConnectionContext!.ShutdownComplete.ConfigureAwait(false);
+            await clientConnection.ShutdownAsync().ConfigureAwait(false);
+            await serverConnectionContext!.Closed.ConfigureAwait(false);
         }
         catch (TimeoutException)
         {

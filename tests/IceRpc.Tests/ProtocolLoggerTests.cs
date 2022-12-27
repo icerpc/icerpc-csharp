@@ -160,7 +160,6 @@ public sealed class ProtocolLoggerTests
         catch (OperationCanceledException)
         {
         }
-
         await clientConnection.DisposeAsync();
 
         // Assert

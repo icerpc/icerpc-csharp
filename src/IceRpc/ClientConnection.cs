@@ -29,7 +29,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     throw new ObjectDisposedException($"{typeof(ClientConnection)}");
                 }
-                else if (_isClosed)
+                if (_shutdownCts.IsCancellationRequested)
                 {
                     throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
                 }
@@ -44,11 +44,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The connection parameter represents the previous connection, if any.
     private readonly Func<IProtocolConnection?, IProtocolConnection> _connectionFactory;
 
-    private bool _isClosed;
     private bool _isDisposed;
 
-    // Protects _connection, _isClosed and _isDisposed.
+    // Protects _connection and _isDisposed.
     private readonly object _mutex = new();
+
+    private readonly CancellationTokenSource _shutdownCts = new();
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
@@ -77,29 +78,42 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             IProtocolConnection connection = protocolConnectionFactory.CreateConnection(serverAddress);
 
-            if (previousConnection is not null &&
-                CleanupAsync(previousConnection) is Task cleanupTask &&
-                !cleanupTask.IsCompleted)
+            if (previousConnection is not null)
             {
-                // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
-                connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask);
+                ValueTask valueTask = CleanupAsync(previousConnection);
+
+                if (!valueTask.IsCompleted)
+                {
+                    // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
+                    connection = new CleanupProtocolConnectionDecorator(connection, valueTask.AsTask());
+                }
             }
 
-            return new ConnectProtocolConnectionDecorator(connection);
+            connection = new ConnectProtocolConnectionDecorator(connection, _shutdownCts.Token);
+            _ = FulfillShutdownRequestAsync(connection);
 
-            static async Task CleanupAsync(IProtocolConnection connection)
+            return connection;
+
+            static async ValueTask CleanupAsync(IProtocolConnection connection)
             {
+                // We need to wait for Closed in case we've received a shutdown request for this connection but have not
+                // fulfilled it yet.
+                _ = await connection.Closed.ConfigureAwait(false);
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
+
+            static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
+            {
+                await connection.ShutdownRequested.ConfigureAwait(false);
                 try
                 {
-                    // For example, wait for the shutdown initiated by the peer to complete successfully.
-                    await connection.ShutdownComplete.ConfigureAwait(false);
+                    // Use shutdown timeout via decorator.
+                    await connection.ShutdownAsync().ConfigureAwait(false);
                 }
                 catch
                 {
-                    // ignore
+                    // ignore shutdown exceptions
                 }
-
-                await connection.DisposeAsync().ConfigureAwait(false);
             }
         };
 
@@ -189,7 +203,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     // Same as above, except DisposeAsync was not called yet on this closed connection.
                 }
-                // let other exceptions through
 
                 connection = RefreshConnection(connection);
             }
@@ -199,14 +212,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
     {
-        IProtocolConnection connection;
         lock (_mutex)
         {
-            _isClosed = true;
-            _isDisposed = true;
-            connection = _connection;
+            if (!_isDisposed)
+            {
+                _isDisposed = true;
+                _shutdownCts.Cancel();
+                _shutdownCts.Dispose();
+            }
         }
-        return connection.DisposeAsync();
+        return _connection.DisposeAsync();
     }
 
     /// <inheritdoc/>
@@ -275,8 +290,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Gracefully shuts down the connection. The shutdown waits for pending invocations and dispatches to
-    /// complete. For a speedier graceful shutdown, call <see cref="IAsyncDisposable.DisposeAsync" /> instead. It will
-    /// cancel pending invocations and dispatches.</summary>
+    /// complete. For a speedier graceful shutdown, call <see cref="DisposeAsync" /> instead. It will cancel pending
+    /// invocations and dispatches.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
@@ -290,8 +305,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    /// <remarks>If shutdown is canceled, the protocol connection transitions to a faulted state and the disposal of the
-    /// connection will abort the connection instead of performing a graceful speedy-shutdown.</remarks>
+    /// <remarks>This method can be called multiple times. Only the first <paramref name="cancellationToken" /> has an
+    /// effect on the underlying connection. If the first <paramref name="cancellationToken" /> is canceled, the
+    /// connection is aborted.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         IProtocolConnection connection;
@@ -302,9 +318,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 throw new ObjectDisposedException($"{typeof(ClientConnection)}");
             }
 
-            _isClosed = true;
+            _shutdownCts.Cancel();
             connection = _connection;
         }
+
         return connection.ShutdownAsync(cancellationToken);
     }
 
@@ -313,36 +330,33 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
+            if (_isDisposed)
+            {
+                throw new IceRpcException(IceRpcError.OperationAborted, "The client connection is disposed.");
+            }
+            if (_shutdownCts.IsCancellationRequested)
+            {
+                throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
+            }
+
             // We only create a new connection and assign it to _connection if it matches the connection we just tried.
             // If it's another connection, another thread has already called RefreshConnection.
-            if (_isClosed)
+            if (connection == _connection)
             {
-                if (_isDisposed)
-                {
-                    throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-                }
-                else
-                {
-                    throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
-                }
+                _connection = _connectionFactory(connection);
             }
-            else
-            {
-                if (connection == _connection)
-                {
-                    _connection = _connectionFactory(connection);
-                }
-                return _connection;
-            }
+            return _connection;
         }
     }
 
-    // A decorator that awaits a cleanup task (= previous connection cleanup) in ConnectAsync and DisposeAsync.
+    // A decorator that awaits a cleanup task (= previous connection dispose) in ConnectAsync and DisposeAsync.
     private class CleanupProtocolConnectionDecorator : IProtocolConnection
     {
+        public Task<Exception?> Closed => _decoratee.Closed;
+
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
         private readonly Task _cleanupTask;
 
@@ -354,7 +368,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             async Task<TransportConnectionInformation> PerformConnectAsync()
             {
-                await _cleanupTask.ConfigureAwait(false);
+                await _cleanupTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                 return await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -383,16 +397,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Provides a decorator for <see cref="IProtocolConnection" /> that ensures
-    /// <see cref="IInvoker.InvokeAsync" /> calls <see cref="IProtocolConnection.ConnectAsync" /> when the connection is
-    /// not connected yet. This decorator also allows multiple and concurrent calls to
-    /// <see cref="IProtocolConnection.ConnectAsync" />.</summary>
-    /// <seealso cref="ClientProtocolConnectionFactory.CreateConnection" />
+    /// <summary>Provides a decorator for <see cref="IProtocolConnection" /> that ensures <see cref="InvokeAsync" />
+    /// calls <see cref="ConnectAsync" /> when the connection is not connected yet. Its <see cref="DisposeAsync" /> also
+    /// performs a graceful shutdown if <see cref="ConnectAsync" /> was called and completed successfully. This
+    /// decorator allows multiple calls to <see cref="ConnectAsync" /> and <see cref="ShutdownAsync" />.</summary>
     private class ConnectProtocolConnectionDecorator : IProtocolConnection
     {
+        public Task<Exception?> Closed => _decoratee.Closed;
+
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownComplete => _decoratee.ShutdownComplete;
+        public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
         private Task<TransportConnectionInformation>? _connectTask;
 
@@ -405,6 +420,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         private readonly object _mutex = new();
 
+        // canceled when ClientConnection is shutting down.
+        private readonly CancellationToken _shutdownCancellationToken;
+
+        private Task? _shutdownTask;
+
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
         {
             lock (_mutex)
@@ -414,43 +434,94 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     _connectTask = PerformConnectAsync();
                     return _connectTask;
                 }
+                else if (_connectTask.IsFaulted)
+                {
+                    throw new IceRpcException(IceRpcError.ConnectionClosed);
+                }
             }
-            return PerformWaitForConnectAsync();
+            return WaitForConnectAsync(_connectTask);
 
             async Task<TransportConnectionInformation> PerformConnectAsync()
             {
-                await Task.Yield(); // exit mutex lock
+                await Task.Yield(); // exit mutex
 
-                TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                _isConnected = true;
-                return connectionInformation;
-            }
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    _shutdownCancellationToken);
 
-            async Task<TransportConnectionInformation> PerformWaitForConnectAsync()
-            {
-                // Only for second and subsequent attempts
+                TransportConnectionInformation connectionInfo;
                 try
                 {
-                    return await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    connectionInfo = await _decoratee.ConnectAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+                catch (OperationCanceledException)
                 {
-                    throw;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The connection establishment was canceled by the shutdown of the client connection.");
                 }
-                catch
+                _isConnected = true;
+                return connectionInfo;
+            }
+
+            // Wait for the first connect call to complete
+            async Task<TransportConnectionInformation> WaitForConnectAsync(
+                Task<TransportConnectionInformation> connectTask)
+            {
+                try
                 {
-                    // ShutdownComplete throws an IceRpcException.
-                    await ShutdownComplete.ConfigureAwait(false);
-                    Debug.Assert(false); // the line above always throws
-                    throw;
+                    return await connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The connection establishment was canceled.");
                 }
             }
         }
 
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            bool waitForShutdown = false;
 
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
+            lock (_mutex)
+            {
+                if (_connectTask is not null && _connectTask.IsCompletedSuccessfully)
+                {
+                    // Perform graceful shutdown
+                    _shutdownTask ??= PerformShutdownAsync();
+                    waitForShutdown = true;
+                }
+            }
+
+            if (waitForShutdown)
+            {
+                _ = await Closed.ConfigureAwait(false);
+            }
+
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+
+            async Task PerformShutdownAsync()
+            {
+                await Task.Yield(); // exit mutex
+
+                // Attempt a graceful shutdown and ignore any exception to avoid UTE.
+                try
+                {
+                    await _decoratee.ShutdownAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        public Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            CancellationToken cancellationToken = default)
         {
             return _isConnected ? _decoratee.InvokeAsync(request, cancellationToken) : PerformConnectInvokeAsync();
 
@@ -463,9 +534,45 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken = default)
+        {
+            lock (_mutex)
+            {
+                if (_shutdownTask is null)
+                {
+                    _shutdownTask = PerformShutdownAsync();
+                    return _shutdownTask;
+                }
+            }
+            return WaitForShutdownAsync(_shutdownTask);
 
-        internal ConnectProtocolConnectionDecorator(IProtocolConnection decoratee) => _decoratee = decoratee;
+            async Task PerformShutdownAsync()
+            {
+                await Task.Yield(); // exit mutex
+                await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            // Wait for the first shutdown call to complete.
+            async Task WaitForShutdownAsync(Task shutdownTask)
+            {
+                try
+                {
+                    await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw new IceRpcException(IceRpcError.OperationAborted, "The connection shutdown was canceled.");
+                }
+            }
+        }
+
+        internal ConnectProtocolConnectionDecorator(
+            IProtocolConnection decoratee,
+            CancellationToken shutdownCancellationToken)
+        {
+            _decoratee = decoratee;
+            _shutdownCancellationToken = shutdownCancellationToken;
+        }
     }
 }

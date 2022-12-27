@@ -18,7 +18,7 @@ public interface IConnectionContext
     /// <summary>Gets a task that completes when the connection is shut down or aborted.</summary>
     /// <value>A task that completes when the connection is successfully shut down. It completes with an exception when
     /// the connection is aborted.</value>
-    Task ShutdownComplete { get; }
+    Task<Exception?> Closed { get; }
 
     /// <summary>Gets the transport connection information.</summary>
     TransportConnectionInformation TransportConnectionInformation { get; }

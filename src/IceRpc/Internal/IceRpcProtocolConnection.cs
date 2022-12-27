@@ -517,7 +517,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             if (_dispatchesAndInvocationsCts.IsCancellationRequested)
             {
-                // Speedy-shutdown canceled the request.
+                // Abortive-shutdown canceled the request.
                 throw new IceRpcException(IceRpcError.OperationAborted);
             }
             else
@@ -610,7 +610,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 IceRpcControlFrameType.GoAway,
                 goAwayFrame.Encode,
                 cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // If we fail to send the GoAway frame, we are in an abortive closure and we close Output to allow the
+            // peer to continue if it's waiting for us.
+            _controlStream!.Output.CompleteOutput(success: false);
+            throw;
+        }
 
+        try
+        {
             // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown was
             // initiated by the peer.
             IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cancellationToken)
