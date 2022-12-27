@@ -228,18 +228,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         CancellationToken cancellationToken = default;
                         lock (_mutex)
                         {
-                            // The multiplexed connection guarantees that the IDs of accepted streams of a given
-                            // type have ever increasing values.
-
-                            if (stream.IsBidirectional)
-                            {
-                                _lastRemoteBidirectionalStreamId = stream.Id;
-                            }
-                            else
-                            {
-                                _lastRemoteUnidirectionalStreamId = stream.Id;
-                            }
-
                             ++_dispatchCount;
 
                             if (++_streamCount == 1)
@@ -994,6 +982,21 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                 {
                     await dispatchSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                // Set the Id of the last dispatched streams, the value should be always increasing, the streams with
+                // Id value lower than this are considered as not dispatch and the peer would be able to retry them.
+                if (stream.IsBidirectional)
+                {
+                    _lastRemoteBidirectionalStreamId = Math.Max(
+                        _lastRemoteBidirectionalStreamId ?? stream.Id,
+                        stream.Id);
+                }
+                else
+                {
+                    _lastRemoteUnidirectionalStreamId = Math.Max(
+                        _lastRemoteUnidirectionalStreamId ?? stream.Id,
+                        stream.Id);
                 }
 
                 try
