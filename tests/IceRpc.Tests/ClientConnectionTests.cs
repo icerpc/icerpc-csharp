@@ -139,7 +139,7 @@ public class ClientConnectionTests
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
     }
 
-    /// <summary>Verifies that ClientConnection can dispatch a request sent by the server as part of the client's first
+    /// <summary>Verifies that ClientConnection can dispatch a request sent by the server during the client's first
     /// request.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connection_can_dispatch_callbacks(Protocol protocol)
