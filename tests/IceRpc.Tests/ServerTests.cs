@@ -335,8 +335,6 @@ public class ServerTests
 
         public ServerAddress ServerAddress => _listener.ServerAddress;
 
-        private bool _isFirstConnection = true;
-
         private readonly IListener<IMultiplexedConnection> _listener;
 
         public DelayDisposeConnectionListener(IListener<IMultiplexedConnection> listener) => _listener = listener;
@@ -345,9 +343,8 @@ public class ServerTests
         AcceptAsync(CancellationToken cancellationToken)
         {
             (IMultiplexedConnection connection, EndPoint endpoint) = await _listener.AcceptAsync(cancellationToken);
-            if (_isFirstConnection)
+            if (FirstConnection is null)
             {
-                _isFirstConnection = false;
                 FirstConnection = new DelayDisposeMultiplexedConnection(connection);
                 return (FirstConnection, endpoint);
             }
@@ -381,8 +378,10 @@ public class ServerTests
         public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
             _decoratee.CloseAsync(closeError, cancellationToken);
 
-        public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
-            => _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(
+            bool bidirectional,
+            CancellationToken cancellationToken) =>
+            _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
 
         public ValueTask DisposeAsync()
         {
