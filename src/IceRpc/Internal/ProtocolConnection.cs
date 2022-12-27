@@ -18,9 +18,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     // Derived classes need to be able to set this exception with their mutex locked. We use an atomic
     // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
-    // TODO: surprisingly, ConnectionClosedException is not set when the connection is closed but when the connection
-    // is closed or shutting down. Likewise, IceRpcError.ConnectionClosed means the connection is closed or shutting
-    // down. That's unlike Closed which is completed when the connection is actually closed.
     private protected IceRpcException? ConnectionClosedException
     {
         get => Volatile.Read(ref _connectionClosedException);
@@ -317,8 +314,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 if (CheckIfIdle())
                 {
-                    InitiateShutdown(
-                        $"The connection was closed because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                    RequestShutdown(
+                        $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
                 }
             });
         IsServer = isServer;
@@ -344,15 +341,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private protected void EnableIdleCheck() =>
         _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
-    private protected void InitiateShutdown(string message)
+    private protected abstract Task<IncomingResponse> InvokeAsyncCore(
+        OutgoingRequest request,
+        CancellationToken cancellationToken);
+
+    private protected void RequestShutdown(string message)
     {
         ConnectionClosedException ??= new(IceRpcError.ConnectionClosed, message);
         _shutdownRequestedTcs.TrySetResult();
     }
-
-    private protected abstract Task<IncomingResponse> InvokeAsyncCore(
-        OutgoingRequest request,
-        CancellationToken cancellationToken);
 
     private protected abstract Task ShutdownAsyncCore(CancellationToken cancellationToken);
 }

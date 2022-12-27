@@ -186,8 +186,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         input.AdvanceTo(readResult.Buffer.End);
                     }
 
-                    // Initiate the shutdown.
-                    InitiateShutdown("The connection was closed because it received a GoAway frame from the peer.");
+                    RequestShutdown("The connection was shut down because it received a GoAway frame from the peer.");
 
                     return goAwayFrame;
                 }
