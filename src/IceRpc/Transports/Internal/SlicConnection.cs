@@ -508,21 +508,10 @@ internal class SlicConnection : IMultiplexedConnection
                     // Send a new ping frame if the previous frame was sent.
                     if (_pingTask.IsCompleted)
                     {
-                        try
-                        {
-                            // Make sure the previous task completed successfully.
-                            await _pingTask.ConfigureAwait(false);
+                        // Make sure the previous task completed successfully.
+                        await _pingTask.ConfigureAwait(false);
 
-                            _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, _tasksCts.Token).AsTask();
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Connection disposed.
-                        }
-                        catch (IceRpcException)
-                        {
-                            // Ignore, the connection was aborted.
-                        }
+                        _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, CancellationToken.None).AsTask();
                     }
                 };
         }
@@ -949,7 +938,7 @@ internal class SlicConnection : IMultiplexedConnection
                         await _pongTask.ConfigureAwait(false);
 
                         // Send back a pong frame.
-                        _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, _tasksCts.Token).AsTask();
+                        _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, CancellationToken.None).AsTask();
                     }
                     break;
                 }
