@@ -1238,6 +1238,7 @@ internal class SlicConnection : IMultiplexedConnection
                 case ParameterKey.MaxBidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
+                    // The max count must be greater than 0
                     _bidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
                     _peerMaxBidirectionalStreams = value;
                     break;
@@ -1245,6 +1246,7 @@ internal class SlicConnection : IMultiplexedConnection
                 case ParameterKey.MaxUnidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
+                    // The max count must be greater than 0
                     _unidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
                     _peerMaxUnidirectionalStreams = value;
                     break;
