@@ -383,14 +383,17 @@ public class ServerTests
         public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
             => _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
 
-        public async ValueTask DisposeAsync()
+        public ValueTask DisposeAsync()
         {
             // When Server calls DisposeAsync, the connection has been removed from the Server's connection set.
             _waitDisposeSemaphore.Release();
-            await _decoratee.DisposeAsync();
-            _waitDisposeSemaphore.Dispose();
+            return _decoratee.DisposeAsync();
         }
 
-        public Task WaitForDisposeStart() => _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
+        public async Task WaitForDisposeStart()
+        {
+            await _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
+            _waitDisposeSemaphore.Dispose();
+        }
     }
 }
