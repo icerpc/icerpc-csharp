@@ -19,25 +19,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     public ServerAddress ServerAddress => _connection.ServerAddress;
 
-    private IProtocolConnection CurrentProtocolConnection
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                if (_isDisposed)
-                {
-                    throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-                }
-                if (_shutdownCts.IsCancellationRequested)
-                {
-                    throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
-                }
-                return _connection;
-            }
-        }
-    }
-
     // The underlying protocol connection
     private IProtocolConnection _connection;
 
@@ -80,12 +61,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (previousConnection is not null)
             {
-                ValueTask valueTask = CleanupAsync(previousConnection);
+                ValueTask cleanupTask = CleanupAsync(previousConnection);
 
-                if (!valueTask.IsCompleted)
+                if (!cleanupTask.IsCompleted)
                 {
                     // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
-                    connection = new CleanupProtocolConnectionDecorator(connection, valueTask.AsTask());
+                    connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask.AsTask());
                 }
             }
 
@@ -184,7 +165,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
-        return PerformConnectAsync(CurrentProtocolConnection);
+        return PerformConnectAsync(GetCurrentProtocolConnection());
 
         async Task<TransportConnectionInformation> PerformConnectAsync(IProtocolConnection connection)
         {
@@ -242,7 +223,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         // It's ok if the request has no server address at all.
 
-        return PerformInvokeAsync(CurrentProtocolConnection);
+        return PerformInvokeAsync(GetCurrentProtocolConnection());
 
         void CheckRequestServerAddresses(
             ServerAddress mainServerAddress,
@@ -310,7 +291,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// connection is aborted.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        IProtocolConnection connection;
         lock (_mutex)
         {
             if (_isDisposed)
@@ -319,10 +299,26 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             _shutdownCts.Cancel();
-            connection = _connection;
         }
 
-        return connection.ShutdownAsync(cancellationToken);
+        // _connection is immutable once _shutdownCts is canceled.
+        return _connection.ShutdownAsync(cancellationToken);
+    }
+
+    private IProtocolConnection GetCurrentProtocolConnection()
+    {
+        lock (_mutex)
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+            }
+            if (_shutdownCts.IsCancellationRequested)
+            {
+                throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
+            }
+            return _connection;
+        }
     }
 
     /// <summary>Refreshes _connection and returns the latest _connection.</summary>
@@ -473,9 +469,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     return await connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
                     throw new IceRpcException(
                         IceRpcError.OperationAborted,
                         "The connection establishment was canceled.");
@@ -559,9 +554,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
                     throw new IceRpcException(IceRpcError.OperationAborted, "The connection shutdown was canceled.");
                 }
             }

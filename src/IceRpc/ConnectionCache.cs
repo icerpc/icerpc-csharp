@@ -260,7 +260,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(Server)}");
+                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
 
             // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
@@ -292,9 +292,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache shutdown was canceled.");
             }
         }

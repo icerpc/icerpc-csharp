@@ -545,9 +545,8 @@ public sealed class Server : IAsyncDisposable
             {
                 await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 throw new IceRpcException(IceRpcError.OperationAborted, "The server shutdown was canceled.");
             }
         }
