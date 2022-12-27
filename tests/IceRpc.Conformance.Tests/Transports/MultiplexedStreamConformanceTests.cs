@@ -76,9 +76,7 @@ public abstract class MultiplexedStreamConformanceTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
-            bidirectional: true,
-            default).ConfigureAwait(false);
+        IMultiplexedStream stream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
 
         Memory<byte> buffer = stream.Output.GetMemory();
         stream.Output.Advance(buffer.Length);

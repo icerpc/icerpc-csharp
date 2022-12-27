@@ -197,11 +197,12 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Act
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+        bool stream2TaskIsCompleted = stream2Task.IsCompleted;
         clientStream1.Output.Complete();
 
         // Assert
 
-        Assert.That(stream2Task.IsCompleted, Is.False);
+        Assert.That(stream2TaskIsCompleted, Is.False);
 
         // Reading is necessary to trigger the closing of reads for serverStream1 and allow a new stream to be accepted.
         readResult = await serverStream1.Input.ReadAsync();
@@ -318,6 +319,7 @@ public abstract class MultiplexedConnectionConformanceTests
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act/Assert
+
         Assert.That(async () => await clientConnection.CloseAsync(
             MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
@@ -406,6 +408,8 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Assert
         Assert.That(acceptTask.IsCompleted, Is.False);
+        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await acceptTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
@@ -448,6 +452,8 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Assert
         Assert.That(acceptTask.IsCompleted, Is.False);
+        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await acceptTask, Throws.InstanceOf<IceRpcException>());
     }
 
     [Test]

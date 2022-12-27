@@ -98,6 +98,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     // ignore
                 }
+
                 await connection.DisposeAsync().ConfigureAwait(false);
             }
         };

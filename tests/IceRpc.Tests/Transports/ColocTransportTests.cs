@@ -167,12 +167,15 @@ public class ColocTransportTests
         using IDuplexConnection serverConnection = (await serverConnectionTask).Connection;
 
         byte[] buffer = new byte[1];
+        var writeBuffer = new List<ReadOnlyMemory<byte>> { new byte[1] };
 
         // Act
         ValueTask<int> readTask = clientConnection.ReadAsync(buffer, default);
 
         // Assert
         Assert.That(async () => await clientConnection.ReadAsync(buffer, default), Throws.InvalidOperationException);
+        Assert.That(async () => await serverConnection.WriteAsync(writeBuffer, default), Throws.Nothing);
+        Assert.That(async () => await readTask, Is.EqualTo(1));
     }
 
     [Test]
@@ -223,6 +226,8 @@ public class ColocTransportTests
 
         // Assert
         Assert.That(() => clientConnection.WriteAsync(buffer, default), Throws.InstanceOf<InvalidOperationException>());
+        Assert.That(async () => await serverConnection.ReadAsync(new byte[4096], default), Is.EqualTo(4096));
+        Assert.That(async () => await writeTask, Throws.Nothing);
     }
 
     [Test]
@@ -254,6 +259,8 @@ public class ColocTransportTests
 
         // Assert
         Assert.That(() => clientConnection.ShutdownAsync(default), Throws.InstanceOf<InvalidOperationException>());
+        Assert.That(async () => await serverConnection.ReadAsync(new byte[4096], default), Is.EqualTo(4096));
+        Assert.That(async () => await writeTask, Throws.Nothing);
     }
 
     [Test]

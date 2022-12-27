@@ -152,9 +152,10 @@ public sealed class IceRpcProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
+        Task? shutdownTask = null;
         if (shutdown)
         {
-            _ = sut.Server.ShutdownAsync();
+            shutdownTask = sut.Server.ShutdownAsync();
         }
         await sut.Server.DisposeAsync();
 
@@ -162,6 +163,11 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        if (shutdownTask is not null)
+        {
+            await shutdownTask;
+        }
     }
 
     [Test]
@@ -184,8 +190,8 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that canceling the invocation while sending the request payload, completes the incoming

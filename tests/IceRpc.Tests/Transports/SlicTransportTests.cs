@@ -111,6 +111,7 @@ public class SlicTransportTests
         Assert.That(versionBody.Versions, Is.EqualTo(new ulong[] { 1 }));
 
         await multiplexedServerConnection.DisposeAsync();
+        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
 
         void EncodeInitializeFrame(IBufferWriter<byte> writer)
         {
