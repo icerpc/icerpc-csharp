@@ -171,7 +171,7 @@ public class ServerTests
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
         Assert.That(() => clientConnection1.ShutdownAsync(), Throws.Nothing);
-        await serverConnection1.WaitForDisposeStart();
+        await serverConnection1.WaitForDispose;
         Assert.That(() => clientConnection3.ConnectAsync(), Throws.Nothing);
     }
 
@@ -363,10 +363,11 @@ public class ServerTests
     private sealed class DelayDisposeMultiplexedConnection : IMultiplexedConnection
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public Task WaitForDispose => _waitForDisposeTcs.Task;
 
         private readonly IMultiplexedConnection _decoratee;
 
-        private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
+        private readonly TaskCompletionSource _waitForDisposeTcs = new();
 
         public DelayDisposeMultiplexedConnection(IMultiplexedConnection decoratee) =>
             _decoratee = decoratee;
@@ -386,14 +387,8 @@ public class ServerTests
         public ValueTask DisposeAsync()
         {
             // When Server calls DisposeAsync, the connection has been removed from the Server's connection set.
-            _waitDisposeSemaphore.Release();
+            _waitForDisposeTcs.SetResult();
             return _decoratee.DisposeAsync();
-        }
-
-        public async Task WaitForDisposeStart()
-        {
-            await _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
-            _waitDisposeSemaphore.Dispose();
         }
     }
 }
