@@ -331,6 +331,9 @@ public sealed class Server : IAsyncDisposable
                                 // The connection dispose will dispose the transport connection if it has not been
                                 // adopted by the protocol connection.
                                 await connector.DisposeAsync().ConfigureAwait(false);
+
+                                // The pending connection semaphore is disposed by the listen task completion once
+                                // shutdown is initiated.
                                 if (!shutdownCancellationToken.IsCancellationRequested)
                                 {
                                     pendingConnectionSemaphore.Release();
