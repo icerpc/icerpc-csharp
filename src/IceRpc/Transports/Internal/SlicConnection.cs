@@ -708,7 +708,10 @@ internal class SlicConnection : IMultiplexedConnection
             }
             finally
             {
-                _writeSemaphore.Release();
+                if (_writeSemaphore.CurrentCount < 1)
+                {
+                    _writeSemaphore.Release();
+                }
             }
         }
         while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
