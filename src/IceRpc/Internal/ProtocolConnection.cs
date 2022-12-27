@@ -189,36 +189,23 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 Debug.Assert(ConnectionClosedException is not null);
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
             }
-            else if (ConnectionClosedException is not null)
+            if (ConnectionClosedException is not null)
             {
                 throw ConnectionClosedException;
             }
-            else if (_connectTask is null)
+            if (_connectTask is null)
             {
-                throw new InvalidOperationException("Cannot call InvokeAsync before calling ConnectAsync.");
+                throw new InvalidOperationException("Cannot invoke on a connection before connecting it.");
             }
+            if (!IsServer && !_connectTask.IsCompletedSuccessfully)
+            {
+                throw new InvalidOperationException(
+                    "Cannot invoke on a client connection that is not fully established.");
+            }
+            // It's possible but rare to invoke on a server connection that is still connecting.
         }
 
-        if (_connectTask.IsCompleted)
-        {
-            return InvokeAsyncCore(request, cancellationToken);
-        }
-        else if (IsServer)
-        {
-            return PerformInvokeAsync();
-        }
-        else
-        {
-            throw new InvalidOperationException("Cannot call InvokeAsync while connecting a client connection.");
-        }
-
-        async Task<IncomingResponse> PerformInvokeAsync()
-        {
-            // It's possible to dispatch a request and expose its connection (invoker) before ConnectAsync completes;
-            // in this rare case, we wait for _connectTask to complete before calling InvokeAsyncCore.
-            _ = await _connectTask.ConfigureAwait(false);
-            return await InvokeAsyncCore(request, cancellationToken).ConfigureAwait(false);
-        }
+        return InvokeAsyncCore(request, cancellationToken);
     }
 
     public Task ShutdownAsync(CancellationToken cancellationToken = default)

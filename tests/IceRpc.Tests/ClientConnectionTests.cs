@@ -139,6 +139,45 @@ public class ClientConnectionTests
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
     }
 
+    /// <summary>Verifies that ClientConnection can dispatch a request sent by the server as part of the client's first
+    /// request.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Connection_can_dispatch_callbacks(Protocol protocol)
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource();
+
+        var callbackDispatcher = new InlineDispatcher(
+            (request, cancellationToken) =>
+            {
+                tcs.SetResult();
+                return new(new OutgoingResponse(request));
+            });
+
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(options => options.Dispatcher = callbackDispatcher);
+
+        await using ServiceProvider provider =
+            services.AddClientServerColocTest(
+                new InlineDispatcher(
+                async (incomingRequest, cancellationToken) =>
+                {
+                    using var outgoingRequest = new OutgoingRequest(new ServiceAddress(protocol));
+                    await incomingRequest.ConnectionContext.Invoker.InvokeAsync(outgoingRequest, cancellationToken);
+                    return new OutgoingResponse(incomingRequest);
+                }),
+                protocol)
+            .BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+
+        // Act
+        await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
+        await tcs.Task;
+    }
+
     /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Connection_server_address_transport_property_is_set(Protocol protocol)
