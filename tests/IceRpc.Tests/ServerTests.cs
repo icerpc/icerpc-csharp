@@ -388,6 +388,7 @@ public class ServerTests
             // When Server calls DisposeAsync, the connection has been removed from the Server's connection set.
             _waitDisposeSemaphore.Release();
             await _decoratee.DisposeAsync();
+            await _waitDisposeSemaphore.DisposeAsync();
         }
 
         public Task WaitForDisposeStart() => _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
