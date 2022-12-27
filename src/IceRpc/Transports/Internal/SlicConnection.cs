@@ -428,7 +428,6 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     stream.Output.Complete();
                 }
-                stream.Dispose();
             }
 
             // Dispose the transport connection and the reader/writer.
@@ -1015,13 +1014,8 @@ internal class SlicConnection : IMultiplexedConnection
                             Interlocked.Increment(ref _unidirectionalStreamCount);
                         }
 
-                        // Accept the new remote stream.
-                        // TODO: Cache SliceMultiplexedStream
-#pragma warning disable CA2000
-                        // The stream is queued on the channel reader. The caller of AcceptStreamAsync is responsible
-                        // for disposing the stream
+                        // TODO: Cache SliceStream
                         stream = new SlicStream(this, isBidirectional, remote: true);
-#pragma warning restore CA2000
 
                         try
                         {
@@ -1059,7 +1053,6 @@ internal class SlicConnection : IMultiplexedConnection
                             {
                                 stream.Output.Complete();
                             }
-                            stream.Dispose();
                             Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
                         }
                     }

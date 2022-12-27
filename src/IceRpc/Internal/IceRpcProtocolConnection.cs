@@ -1200,7 +1200,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
-        stream.Dispose();
 
         lock (_mutex)
         {

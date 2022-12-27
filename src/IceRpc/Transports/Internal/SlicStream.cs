@@ -9,6 +9,10 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
 /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The _sendCreditSemaphore is disposed in TrySetWritesClosed")]
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -64,8 +68,6 @@ internal class SlicStream : IMultiplexedStream
     private Task? _sendStreamConsumedFrameTask;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    public void Dispose() => _sendCreditSemaphore.Dispose();
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -395,6 +397,7 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.WritesCompleted))
         {
             _writesClosedTcs.TrySetResult();
+            _sendCreditSemaphore.Dispose();
             return true;
         }
         else

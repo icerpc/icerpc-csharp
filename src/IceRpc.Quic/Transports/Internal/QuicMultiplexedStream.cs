@@ -31,10 +31,6 @@ internal class QuicMultiplexedStream : IMultiplexedStream
     private readonly QuicPipeWriter? _outputPipeWriter;
     private readonly QuicStream _stream;
 
-    public void Dispose()
-    {
-    }
-
     internal QuicMultiplexedStream(
         QuicStream stream,
         bool isRemote,
