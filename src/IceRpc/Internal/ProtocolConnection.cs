@@ -199,6 +199,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             await DisposeAsyncCore().ConfigureAwait(false);
 
+            try
+            {
+                await ShutdownComplete.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Prevent unobserved task exception.
+            }
+
             // Clean up disposable resources.
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
             _connectCts.Dispose();

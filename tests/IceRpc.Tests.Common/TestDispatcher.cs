@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Common;
 
 public sealed class TestDispatcher : IDispatcher, IDisposable
 {
-    public Task DispatchComplete => _completeTaskCompletionSource.Task;
+    public Task<Exception?> DispatchComplete => _completeTaskCompletionSource.Task;
     public Task<IncomingRequest> DispatchStart => _startTaskCompletionSource.Task;
 
     /// <summary>A payload pipe reader decorator that represents the last response send by this dispatcher.
     /// </summary>
     public PayloadPipeReaderDecorator? ResponsePayload { get; set; }
 
-    private readonly TaskCompletionSource _completeTaskCompletionSource =
+    private readonly TaskCompletionSource<Exception?> _completeTaskCompletionSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SemaphoreSlim _hold = new(0);
@@ -49,7 +49,7 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
                 await _hold.WaitAsync(cancellationToken);
             }
 
-            _completeTaskCompletionSource.TrySetResult();
+            _completeTaskCompletionSource.TrySetResult(null);
 
             return new OutgoingResponse(request)
             {
@@ -58,7 +58,7 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
         }
         catch (Exception exception)
         {
-            _completeTaskCompletionSource.TrySetException(exception);
+            _completeTaskCompletionSource.TrySetResult(exception);
             throw;
         }
     }

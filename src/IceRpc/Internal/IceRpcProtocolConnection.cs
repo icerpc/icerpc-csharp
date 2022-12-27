@@ -306,7 +306,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 {
                                     // not expected
                                     _faultedTaskAction(exception);
-                                    throw;
                                 }
                                 finally
                                 {
@@ -825,7 +824,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     catch (Exception exception)
                     {
                         _faultedTaskAction(exception);
-                        throw;
                     }
                     finally
                     {
