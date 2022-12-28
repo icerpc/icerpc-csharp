@@ -268,7 +268,8 @@ public abstract class MultiplexedStreamConformanceTests
 
     [Test]
     public async Task Stream_local_writes_are_closed_when_remote_input_is_completed(
-        [Values(false, true)] bool isBidirectional)
+        [Values(false, true)] bool isBidirectional,
+        [Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -284,7 +285,7 @@ public abstract class MultiplexedStreamConformanceTests
             isBidirectional);
 
         // Act
-        sut.RemoteStream.Input.Complete();
+        sut.RemoteStream.Input.Complete(abort ? new Exception() : null);
 
         // Assert
         Assert.That(async () => await sut.LocalStream.WritesClosed, Throws.Nothing);
@@ -292,7 +293,8 @@ public abstract class MultiplexedStreamConformanceTests
 
     [Test]
     public async Task Stream_local_writes_are_closed_when_local_output_completed(
-        [Values(false, true)] bool isBidirectional)
+        [Values(false, true)] bool isBidirectional,
+        [Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -308,14 +310,14 @@ public abstract class MultiplexedStreamConformanceTests
             isBidirectional);
 
         // Act
-        sut.LocalStream.Output.Complete();
+        sut.LocalStream.Output.Complete(abort ? new Exception() : null);
 
         // Assert
         Assert.That(async () => await sut.LocalStream.WritesClosed, Throws.Nothing);
     }
 
     [Test]
-    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed()
+    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed([Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -331,18 +333,19 @@ public abstract class MultiplexedStreamConformanceTests
             true);
 
         // Act
-        sut.RemoteStream.Output.Complete();
-
-        // The stream read side only completes once the data or EOS is consumed.
-        ReadResult result = await sut.LocalStream.Input.ReadAsync();
-        Assert.That(result.IsCompleted, Is.True);
+        sut.RemoteStream.Output.Complete(abort ? new Exception() : null);
 
         // Assert
+        if (!abort)
+        {
+            // The stream read side only completes once the data or EOS is consumed.
+            _ = await sut.LocalStream.Input.ReadAsync();
+        }
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
     [Test]
-    public async Task Stream_local_reads_are_closed_when_local_input_completed()
+    public async Task Stream_local_reads_are_closed_when_local_input_completed([Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -358,7 +361,7 @@ public abstract class MultiplexedStreamConformanceTests
             true);
 
         // Act
-        sut.LocalStream.Input.Complete();
+        sut.LocalStream.Input.Complete(abort ? new Exception() : null);
 
         // Assert
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);

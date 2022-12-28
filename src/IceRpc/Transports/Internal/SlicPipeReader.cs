@@ -50,8 +50,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // Abort reads to send a stream stop sending frame to the peer to notify it shouldn't send additional data.
-            _stream.AbortRead();
+            // We don't use the application error code, it's irrelevant.
+            _stream.AbortRead(errorCode: 0ul);
 
             if (_state.TrySetFlag(State.PipeWriterCompleted))
             {
@@ -80,7 +80,8 @@ internal class SlicPipeReader : PipeReader
         // and consumed.
         _readResult = result;
 
-        // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
+        // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
+        // will send the StreamReadsCompleted to the peer and allow it to release the stream semaphore.
         if (result.IsCompleted)
         {
             _stream.CompleteReads();
@@ -111,7 +112,8 @@ internal class SlicPipeReader : PipeReader
             // examined and consumed.
             _readResult = result;
 
-            // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
+            // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
+            // This will send the StreamReadsCompleted to the peer and allow it to release the stream semaphore.
             if (result.IsCompleted)
             {
                 _stream.CompleteReads();

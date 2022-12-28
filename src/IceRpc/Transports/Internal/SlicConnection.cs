@@ -134,7 +134,6 @@ internal class SlicConnection : IMultiplexedConnection
                 // Unsupported version, try to negotiate another version by sending a Version frame with
                 // the Slic versions supported by this server.
                 await SendFrameAsync(
-                    stream: null,
                     FrameType.Version,
                     new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
                     cancellationToken).ConfigureAwait(false);
@@ -168,7 +167,6 @@ internal class SlicConnection : IMultiplexedConnection
 
             // Write back an InitializeAck frame.
             await SendFrameAsync(
-                stream: null,
                 FrameType.InitializeAck,
                 new InitializeAckBody(GetParameters()).Encode,
                 cancellationToken).ConfigureAwait(false);
@@ -179,7 +177,6 @@ internal class SlicConnection : IMultiplexedConnection
             var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
 
             await SendFrameAsync(
-                stream: null,
                 FrameType.Initialize,
                 (ref SliceEncoder encoder) =>
                 {
@@ -511,7 +508,7 @@ internal class SlicConnection : IMultiplexedConnection
                         // Make sure the previous task completed successfully.
                         await _pingTask.ConfigureAwait(false);
 
-                        _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, CancellationToken.None).AsTask();
+                        _pingTask = SendFrameAsync(FrameType.Ping, encode: null, CancellationToken.None).AsTask();
                     }
                 };
         }
@@ -569,11 +566,20 @@ internal class SlicConnection : IMultiplexedConnection
                 Interlocked.Decrement(ref _unidirectionalStreamCount);
             }
         }
-        // The stream semaphore will be released once the stream ReadsCompleted or StopSending frame is received.
+        else
+        {
+            if (stream.IsBidirectional)
+            {
+                _bidirectionalStreamSemaphore!.Release();
+            }
+            else
+            {
+                _unidirectionalStreamSemaphore!.Release();
+            }
+        }
     }
 
     internal async ValueTask SendFrameAsync(
-        SlicStream? stream,
         FrameType frameType,
         EncodeAction? encode,
         CancellationToken cancellationToken)
@@ -583,7 +589,45 @@ internal class SlicConnection : IMultiplexedConnection
         {
             await WriteFrameAsync(
                 frameType,
-                stream?.Id,
+                streamId: null,
+                encode,
+                cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeSemaphore.Release();
+        }
+    }
+
+    internal async ValueTask SendStreamFrameAsync(
+        SlicStream stream,
+        FrameType frameType,
+        EncodeAction? encode,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(frameType >= FrameType.StreamReset);
+
+        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Allocate stream ID if the stream isn't started. Thread-safety is provided by the write semaphore.
+            if (!stream.IsStarted)
+            {
+                if (stream.IsBidirectional)
+                {
+                    AddStream(_nextBidirectionalId, stream);
+                    _nextBidirectionalId += 4;
+                }
+                else
+                {
+                    AddStream(_nextUnidirectionalId, stream);
+                    _nextUnidirectionalId += 4;
+                }
+            }
+
+            await WriteFrameAsync(
+                frameType,
+                stream.Id,
                 encode,
                 cancellationToken).ConfigureAwait(false);
         }
@@ -601,6 +645,7 @@ internal class SlicConnection : IMultiplexedConnection
         CancellationToken cancellationToken)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
+
         if (_bidirectionalStreamSemaphore is null)
         {
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
@@ -665,14 +710,6 @@ internal class SlicConnection : IMultiplexedConnection
                 // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
                 // received before the send credit was updated.
                 stream.ConsumeSendCredit((int)(sendSource1.Length + sendSource2.Length));
-
-                if (lastStreamFrame)
-                {
-                    // At this point writes are considered completed on the stream. It's important to call this
-                    // before sending the last packet to avoid a race condition where the peer could start a new
-                    // stream before the Slic connection stream count is decreased.
-                    stream.TrySetWritesClosed();
-                }
 
                 // Make sure the previous stream frame write completed successfully.
                 await _writeStreamFrameTask.ConfigureAwait(false);
@@ -934,7 +971,7 @@ internal class SlicConnection : IMultiplexedConnection
                         await _pongTask.ConfigureAwait(false);
 
                         // Send back a pong frame.
-                        _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, CancellationToken.None).AsTask();
+                        _pongTask = SendFrameAsync(FrameType.Pong, encode: null, CancellationToken.None).AsTask();
                     }
                     break;
                 }
@@ -1122,7 +1159,13 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedResetFrame();
+                        stream.ReceivedWritesCompletedFrame(streamReset.ApplicationErrorCode);
+                    }
+                    else
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"Received Slic stream reset frame for unknown stream with ID: {streamId}");
                     }
                     break;
                 }
@@ -1148,17 +1191,13 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedStopSendingFrame();
-                    }
-
-                    // Release the bidirectional or unidirectional stream semaphore.
-                    if (streamId.Value % 4 < 2)
-                    {
-                        _bidirectionalStreamSemaphore!.Release();
+                        stream.ReceivedReadsCompletedFrame(streamStopSending.ApplicationErrorCode);
                     }
                     else
                     {
-                        _unidirectionalStreamSemaphore!.Release();
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"Received Slic stream stop sending frame for unknown stream with ID: {streamId}");
                     }
                     break;
                 }
@@ -1174,17 +1213,13 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedReadsCompletedFrame();
-                    }
-
-                    // Release the bidirectional or unidirectional stream semaphore.
-                    if (streamId.Value % 4 < 2)
-                    {
-                        _bidirectionalStreamSemaphore!.Release();
+                        stream.ReceivedReadsCompletedFrame(errorCode: null);
                     }
                     else
                     {
-                        _unidirectionalStreamSemaphore!.Release();
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"Received Slic stream reads completed frame for unknown stream with ID: {streamId}");
                     }
                     break;
                 }
@@ -1226,6 +1261,62 @@ internal class SlicConnection : IMultiplexedConnection
                     await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
+        }
+
+        SlicStream? GetStream(ulong streamId)
+        {
+            bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
+            bool isBidirectional = streamId % 4 < 2;
+
+            if (_streams.TryGetValue(streamId, out SlicStream? stream))
+            {
+                return stream;
+            }
+            else if (isRemote && !IsKnownRemoteStream(streamId, isBidirectional))
+            {
+                // Create a new stream if the remote stream is unknown.
+
+                if (isBidirectional)
+                {
+                    if (_bidirectionalStreamCount == _maxBidirectionalStreams)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"The maximum bidirectional stream count {_maxBidirectionalStreams} was reached.");
+                    }
+                    Interlocked.Increment(ref _bidirectionalStreamCount);
+                }
+                else
+                {
+                    if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached");
+                    }
+                    Interlocked.Increment(ref _unidirectionalStreamCount);
+                }
+
+                // Accept the new remote stream.
+                // TODO: Cache SliceMultiplexedStream
+                stream = new SlicStream(this, isBidirectional, remote: true);
+                try
+                {
+                    AddStream(streamId, stream);
+                    return stream;
+                }
+                catch
+                {
+                    stream.Input.Complete();
+                    if (isBidirectional)
+                    {
+                        stream.Output.Complete();
+                    }
+                    Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
+                }
+            }
+
+            return null;
         }
 
         bool IsKnownRemoteStream(ulong streamId, bool bidirectional)

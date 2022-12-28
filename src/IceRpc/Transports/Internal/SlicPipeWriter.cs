@@ -45,7 +45,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 }
                 else
                 {
-                    _stream.AbortWrite();
+                    // We don't use the application error code, it's irrelevant.
+                    _stream.AbortWrite(errorCode: 0ul);
                 }
             }
 
