@@ -741,6 +741,72 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
+    /// <summary>Ensures that the request payload writer is completed on valid request.</summary>
+    [Test]
+    public async Task PayloadWriter_completed_with_valid_request()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        request.Use(writer =>
+        {
+            var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+            payloadWriterSource.SetResult(payloadWriterDecorator);
+            return payloadWriterDecorator;
+        });
+
+        // Act
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+
+        // Cleanup
+        await responseTask;
+    }
+
+    /// <summary>Ensures that the request payload writer is completed on valid response.</summary>
+    [Test]
+    public async Task PayloadWriter_completed_with_valid_response()
+    {
+        // Arrange
+        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+        {
+            var response = new OutgoingResponse(request);
+            response.Use(writer =>
+            {
+                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                payloadWriterSource.SetResult(payloadWriterDecorator);
+                return payloadWriterDecorator;
+            });
+            return new(response);
+        });
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        // Act
+        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
+
+        // Cleanup
+        await responseTask;
+    }
+
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
     /// <remarks>This test only works with the icerpc protocol since it relies on reading the payload after the payload
     /// writer is created.</remarks>
