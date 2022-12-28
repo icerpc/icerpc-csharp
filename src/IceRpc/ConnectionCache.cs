@@ -95,30 +95,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
-            try
-            {
-                if (_shutdownTask is not null)
-                {
-                    await _shutdownTask.ConfigureAwait(false);
-                }
-                else
-                {
-                    // Use shutdown timeout via decorator
-                    await Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync()))
-                        .ConfigureAwait(false);
-                }
-            }
-            catch (IceRpcException)
-            {
-            }
-            catch (TimeoutException)
-            {
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Unexpected shutdown exception: {exception}");
-            }
-
             await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask())
                 .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
 
