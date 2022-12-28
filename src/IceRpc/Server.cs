@@ -251,24 +251,6 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            try
-            {
-                if (_shutdownTask is not null)
-                {
-                    await _shutdownTask.ConfigureAwait(false);
-                }
-                else
-                {
-                    // Uses shutdown timeout
-                    await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync()))
-                        .ConfigureAwait(false);
-                }
-            }
-            catch
-            {
-                // ignore shutdown exceptions
-            }
-
             await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask())
                 .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
 
@@ -535,8 +517,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             // TODO: we throw the first exception, which is not quite correct.
-            await Task.WhenAll(
-                _connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
+            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
                 .ConfigureAwait(false);
         }
 
