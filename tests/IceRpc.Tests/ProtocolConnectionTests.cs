@@ -215,18 +215,20 @@ public sealed class ProtocolConnectionTests
 
         // Wait for the first invocation to be dispatched.
         using var request1 = new OutgoingRequest(new ServiceAddress(protocol));
-        _ = sut.Client.InvokeAsync(request1);
+        Task invokeTask1 = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart;
 
         // Wait to make sure the second request is received and blocked on the
         // protocol connection's internal dispatch semaphore.
         using var request2 = new OutgoingRequest(new ServiceAddress(protocol));
-        _ = sut.Client.InvokeAsync(request2);
+        Task invokeTask2 = sut.Client.InvokeAsync(request2);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         // Act / Assert
         // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync will hang.
         await sut.Server.DisposeAsync();
+
+        Assert.That(() => Task.WhenAll(invokeTask1, invokeTask2), Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies that when a exception other than a DispatchException is thrown
@@ -552,7 +554,7 @@ public sealed class ProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
 
         try
         {

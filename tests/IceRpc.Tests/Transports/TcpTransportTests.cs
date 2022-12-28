@@ -247,11 +247,11 @@ public class TcpTransportTests
 
         Task<TransportConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
         IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
-        Task<TransportConnectionInformation> serverConnectTask =
-            serverConnection.ConnectAsync(cts.Token);
+        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(cts.Token);
 
         // Act
         var transportConnectionInformation = await connectTask;
+        await serverConnectTask;
 
         // Assert
         Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.TypeOf<IPEndPoint>());
@@ -277,11 +277,15 @@ public class TcpTransportTests
         await using IListener<IDuplexConnection> listener =
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
         using TcpClientConnection clientConnection =
-            CreateTcpClientConnection(listener.ServerAddress, authenticationOptions: DefaultSslClientAuthenticationOptions);
+            CreateTcpClientConnection(
+                listener.ServerAddress,
+                authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
-        await clientConnection.Socket.ConnectAsync(new DnsEndPoint(listener.ServerAddress.Host, listener.ServerAddress.Port));
+        await clientConnection.Socket.ConnectAsync(new DnsEndPoint(
+            listener.ServerAddress.Host,
+            listener.ServerAddress.Port));
         IDuplexConnection serverConnection = (await acceptTask).Connection;
         clientConnection.Dispose();
 
@@ -301,10 +305,7 @@ public class TcpTransportTests
             authenticationOptions: new SslServerAuthenticationOptions
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                {
-                    return false;
-                }
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => false
             });
 
         using TcpClientConnection clientConnection = CreateTcpClientConnection(

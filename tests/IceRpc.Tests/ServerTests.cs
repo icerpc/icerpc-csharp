@@ -102,9 +102,10 @@ public class ServerTests
            clientConnectionOptions,
            multiplexedClientTransport: clientTransport);
 
-        Task<TransportConnectionInformation> connectTask1 = clientConnection1.ConnectAsync();
-        Task<TransportConnectionInformation> connectTask2 = clientConnection2.ConnectAsync();
-        Task<TransportConnectionInformation> connectTask3 = clientConnection3.ConnectAsync();
+        using CancellationTokenSource connectCts = new();
+        Task<TransportConnectionInformation> connectTask1 = clientConnection1.ConnectAsync(connectCts.Token);
+        Task<TransportConnectionInformation> connectTask2 = clientConnection2.ConnectAsync(connectCts.Token);
+        Task<TransportConnectionInformation> connectTask3 = clientConnection3.ConnectAsync(connectCts.Token);
 
         // Act
         var completedConnectTask = await Task.WhenAny(connectTask1, connectTask2, connectTask3);
@@ -117,15 +118,18 @@ public class ServerTests
         {
             IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
             Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
+            connectCts.Cancel();
         }
         finally
         {
             await server.DisposeAsync();
         }
+
+        // Cleanup.
+        Assert.That(() => Task.WhenAll(connectTask1, connectTask2, connectTask3), Throws.InstanceOf<IceRpcException>());
     }
 
     [Test]
-    [Ignore("see issue #2295")]
     public async Task Connection_accepted_when_max_connections_is_reached_then_decremented()
     {
         // Arrange
@@ -161,11 +165,8 @@ public class ServerTests
             new ClientConnectionOptions { ServerAddress = serverAddress },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        // No need to delay the disposal of any connections (the default behavior)
-        serverListener.DelayDisposeNewConnections = false;
-
         await clientConnection1.ConnectAsync();
-        DelayDisposeMultiplexedConnection serverConnection1 = serverListener.LastConnection!;
+        DelayDisposeMultiplexedConnection serverConnection1 = serverListener.FirstConnection!;
 
         // Act/Assert
         Assert.That(
@@ -174,9 +175,9 @@ public class ServerTests
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
-        await clientConnection1.ShutdownAsync();
-        await serverConnection1.WaitForDisposeStart();
-        await clientConnection3.ConnectAsync();
+        Assert.That(() => clientConnection1.ShutdownAsync(), Throws.Nothing);
+        await serverConnection1.WaitForDispose;
+        Assert.That(() => clientConnection3.ConnectAsync(), Throws.Nothing);
     }
 
     [Test]
@@ -240,6 +241,9 @@ public class ServerTests
         // Release the dispatch semaphore, allowing the background connection dispose to complete.
         dispatchSemaphore.Release();
         await disposeTask;
+
+        // Prevent unobserved task exception.
+        Assert.That(async() => await invokeTask, Throws.InstanceOf<IceRpcException>());
     }
 
     private sealed class HoldServerTransport : IDuplexServerTransport
@@ -334,13 +338,10 @@ public class ServerTests
 
     private sealed class DelayDisposeConnectionListener : IListener<IMultiplexedConnection>
     {
+        // Gets the first connection created by this listener
+        public DelayDisposeMultiplexedConnection? FirstConnection { get; private set; }
+
         public ServerAddress ServerAddress => _listener.ServerAddress;
-
-        // Gets the last connection created by this listener
-        public DelayDisposeMultiplexedConnection? LastConnection { get; private set; }
-
-        // Sets whether to delay dispose of the next connection created by this listener
-        public bool DelayDisposeNewConnections { private get; set; } = true;
 
         private readonly IListener<IMultiplexedConnection> _listener;
 
@@ -350,8 +351,15 @@ public class ServerTests
         AcceptAsync(CancellationToken cancellationToken)
         {
             (IMultiplexedConnection connection, EndPoint endpoint) = await _listener.AcceptAsync(cancellationToken);
-            LastConnection = new DelayDisposeMultiplexedConnection(connection, DelayDisposeNewConnections);
-            return (LastConnection, endpoint);
+            if (FirstConnection is null)
+            {
+                FirstConnection = new DelayDisposeMultiplexedConnection(connection);
+                return (FirstConnection, endpoint);
+            }
+            else
+            {
+                return (connection, endpoint);
+            }
         }
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
@@ -359,48 +367,35 @@ public class ServerTests
 
     private sealed class DelayDisposeMultiplexedConnection : IMultiplexedConnection
     {
-        public ServerAddress ServerAddress => _connection.ServerAddress;
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+        public Task WaitForDispose => _waitForDisposeTcs.Task;
 
-        private readonly IMultiplexedConnection _connection;
+        private readonly IMultiplexedConnection _decoratee;
 
-        private readonly bool _delayDispose;
+        private readonly TaskCompletionSource _waitForDisposeTcs = new();
 
-        private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
-        private readonly SemaphoreSlim _delayDisposeSemaphore = new(0);
-
-        public DelayDisposeMultiplexedConnection(IMultiplexedConnection connection, bool delayDispose)
-        {
-            _connection = connection;
-            _delayDispose = delayDispose;
-        }
+        public DelayDisposeMultiplexedConnection(IMultiplexedConnection decoratee) =>
+            _decoratee = decoratee;
 
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
-            _connection.AcceptStreamAsync(cancellationToken);
+            _decoratee.AcceptStreamAsync(cancellationToken);
 
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
-            _connection.ConnectAsync(cancellationToken);
+            _decoratee.ConnectAsync(cancellationToken);
 
         public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
-            _connection.CloseAsync(closeError, cancellationToken);
+            _decoratee.CloseAsync(closeError, cancellationToken);
 
-        public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken)
-            => _connection.CreateStreamAsync(bidirectional, cancellationToken);
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(
+            bool bidirectional,
+            CancellationToken cancellationToken) =>
+            _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
 
-        public async ValueTask DisposeAsync()
+        public ValueTask DisposeAsync()
         {
-            _waitDisposeSemaphore.Release();
-
-            if (_delayDispose)
-            {
-                await _delayDisposeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false); ;
-            }
-            await _connection.DisposeAsync();
-            _waitDisposeSemaphore.Dispose();
-            _delayDisposeSemaphore.Dispose();
+            // When Server calls DisposeAsync, the connection has been removed from the Server's connection set.
+            _waitForDisposeTcs.SetResult();
+            return _decoratee.DisposeAsync();
         }
-
-        public Task WaitForDisposeStart() => _waitDisposeSemaphore.WaitAsync(CancellationToken.None);
-
-        public void ReleaseDispose() => _delayDisposeSemaphore.Release();
     }
 }

@@ -152,9 +152,10 @@ public sealed class IceRpcProtocolConnectionTests
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
         // Act
+        Task? shutdownTask = null;
         if (shutdown)
         {
-            _ = sut.Server.ShutdownAsync();
+            shutdownTask = sut.Server.ShutdownAsync();
         }
         await sut.Server.DisposeAsync();
 
@@ -162,6 +163,11 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        if (shutdownTask is not null)
+        {
+            await shutdownTask;
+        }
     }
 
     [Test]
@@ -184,8 +190,8 @@ public sealed class IceRpcProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-        Assert.That(async () => await dispatcher.DispatchComplete, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that canceling the invocation while sending the request payload, completes the incoming
@@ -347,7 +353,6 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    [Ignore("see issue #2307")]
     public async Task Not_dispatched_twoway_request_gets_connection_exception_on_server_connection_shutdown()
     {
         // Arrange
@@ -377,14 +382,16 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask2 = sut.Client.InvokeAsync(request2);
 
         // Act
-        _ = sut.Server.ShutdownAsync();
+        Task shutdownTask = sut.Server.ShutdownAsync();
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask2);
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
         dispatcher.ReleaseDispatch();
-        Assert.That(async () => await invokeTask, Throws.Nothing);
+        Assert.That(() => invokeTask, Throws.Nothing);
+        request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
+        Assert.That(() => shutdownTask, Throws.Nothing);
     }
 
     [Test]
@@ -418,14 +425,16 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask2 = sut.Client.InvokeAsync(request2);
 
         // Act
-        _ = sut.Server.ShutdownAsync();
+        Task shutdownTask = sut.Server.ShutdownAsync();
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask2);
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
         dispatcher.ReleaseDispatch();
-        Assert.That(async () => await invokeTask, Throws.Nothing);
+        Assert.That(() => invokeTask, Throws.Nothing);
+        request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
+        Assert.That(() => shutdownTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -996,14 +1005,13 @@ public sealed class IceRpcProtocolConnectionTests
         internal HoldOperation HoldOperation { get; private set; }
 
         private readonly IMultiplexedConnection _decoratee;
-        private readonly TaskCompletionSource _disposeTcs = new();
 
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
         {
             var stream = new HoldMultiplexedStream(this, await _decoratee.AcceptStreamAsync(cancellationToken));
             if (HoldOperation.HasFlag(HoldOperation.AcceptStream))
             {
-                await _disposeTcs.Task;
+                await Task.Delay(-1, cancellationToken);
             }
             return stream;
         }
@@ -1018,11 +1026,7 @@ public sealed class IceRpcProtocolConnectionTests
                 this,
                 await _decoratee.CreateStreamAsync(bidirectional, cancellationToken).ConfigureAwait(false));
 
-        public async ValueTask DisposeAsync()
-        {
-            await _decoratee.DisposeAsync();
-            _disposeTcs.TrySetResult();
-        }
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
         public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
             _decoratee.CloseAsync(closeError, cancellationToken);

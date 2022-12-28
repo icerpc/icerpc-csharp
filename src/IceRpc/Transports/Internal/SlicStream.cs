@@ -116,95 +116,9 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void AbortRead()
-    {
-        if (!ReadsCompleted)
-        {
-            if (IsStarted)
-            {
-                _ = SendStopSendingFrameAndCompleteReadsAsync();
-            }
-            else
-            {
-                TrySetReadsClosed();
-            }
-        }
+    internal void AbortRead(ulong applicationErrorCode) => CompleteOrAbortReads(applicationErrorCode);
 
-        async Task SendStopSendingFrameAndCompleteReadsAsync()
-        {
-            if (IsRemote)
-            {
-                // Complete reads before sending the stop sending frame to ensure the stream max count is decreased
-                // before the peer receives the frame.
-                TrySetReadsClosed();
-            }
-
-            try
-            {
-                await _connection.SendFrameAsync(
-                    stream: this,
-                    FrameType.StreamStopSending,
-                    new StreamStopSendingBody(applicationErrorCode: 0).Encode,
-                    default).ConfigureAwait(false);
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-
-            if (!IsRemote)
-            {
-                // Complete reads after sending the stop sending frame to ensure the peer's stream max count is
-                // decreased before it receives a frame for a new stream.
-                TrySetReadsClosed();
-            }
-        }
-    }
-
-    internal void AbortWrite()
-    {
-        if (!WritesCompleted)
-        {
-            if (IsStarted)
-            {
-                _ = SendResetFrameAndCompleteWritesAsync();
-            }
-            else
-            {
-                TrySetWritesClosed();
-            }
-        }
-
-        async Task SendResetFrameAndCompleteWritesAsync()
-        {
-            if (IsRemote)
-            {
-                // Complete writes before sending the reset frame to ensure the stream max count is decreased before
-                // the peer receives the frame.
-                TrySetWritesClosed();
-            }
-
-            try
-            {
-                await _connection.SendFrameAsync(
-                    stream: this,
-                    FrameType.StreamReset,
-                    new StreamResetBody(applicationErrorCode: 0).Encode,
-                    default).ConfigureAwait(false);
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-
-            if (!IsRemote)
-            {
-                // Complete writes after sending the reset frame to ensure the peer's stream max count is decreased
-                // before it receives a frame for a new stream.
-                TrySetWritesClosed();
-            }
-        }
-    }
+    internal void AbortWrite(ulong applicationErrorCode) => CompleteOrAbortWrites(applicationErrorCode);
 
     internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
     {
@@ -216,62 +130,9 @@ internal class SlicStream : IMultiplexedStream
         return _sendCredit;
     }
 
-    internal void CompleteReads()
-    {
-        if (IsRemote && TrySetReadsClosed())
-        {
-            _ = SendStreamReadsCompletedAsync();
-        }
+    internal void CompleteReads() => CompleteOrAbortReads(applicationErrorCode: null);
 
-        async Task SendStreamReadsCompletedAsync()
-        {
-            try
-            {
-                await _connection.SendFrameAsync(
-                    stream: this,
-                    FrameType.StreamReadsCompleted,
-                    encode: null,
-                    default).ConfigureAwait(false);
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-        }
-    }
-
-    internal void CompleteWrites()
-    {
-        if (!WritesCompleted)
-        {
-            if (IsStarted)
-            {
-                _ = SendStreamLastFrameAsync();
-            }
-            else
-            {
-                TrySetWritesClosed();
-            }
-        }
-
-        async Task SendStreamLastFrameAsync()
-        {
-            try
-            {
-                // SendStreamFrameAsync calls TrySetWritesClosed when appropriate.
-                await _connection.SendStreamFrameAsync(
-                    this,
-                    ReadOnlySequence<byte>.Empty,
-                    ReadOnlySequence<byte>.Empty,
-                    endStream: true,
-                    default).ConfigureAwait(false);
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-        }
-    }
+    internal void CompleteWrites() => CompleteOrAbortWrites(applicationErrorCode: null);
 
     internal void ConsumeSendCredit(int consumed)
     {
@@ -367,15 +228,25 @@ internal class SlicStream : IMultiplexedStream
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        CancellationToken cancellationToken) =>
-        _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        if (IsRemote)
+        {
+            // Complete writes before sending the reset or last stream frame to ensure the stream max count
+            // is decreased before the peer receives the frame.
+            TrySetWritesClosed();
+        }
+        // Writes will be completed when the peer's sends the stop sending or reads completed frame.
+
+        return _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+    }
 
     internal void SendStreamConsumed(int size)
     {
         Task previousSendStreamConsumedFrameTask = _sendStreamConsumedFrameTask ?? Task.CompletedTask;
-        _sendStreamConsumedFrameTask = SendStreamLastFrameAsync();
+        _sendStreamConsumedFrameTask = SendStreamConsumedFrameAsync();
 
-        async Task SendStreamLastFrameAsync()
+        async Task SendStreamConsumedFrameAsync()
         {
             try
             {
@@ -392,6 +263,116 @@ internal class SlicStream : IMultiplexedStream
             catch (IceRpcException)
             {
                 // Ignore connection failures.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Sending of Slic stream consumed frame failed due to an unhandled exception: {exception}");
+                throw;
+            }
+        }
+    }
+
+    internal void CompleteOrAbortReads(ulong? applicationErrorCode)
+    {
+        if (!ReadsCompleted)
+        {
+            if (IsRemote)
+            {
+                // Complete reads before sending the stop sending or reads completed frame to ensure the stream max
+                // count is decreased before the peer receives the frame.
+                TrySetReadsClosed();
+            }
+            // Reads will be completed when the peer's sends the reset or last stream frame.
+
+            if (IsStarted)
+            {
+                _ = SendCompleteReadsFrameAsync(applicationErrorCode);
+            }
+        }
+
+        async Task SendCompleteReadsFrameAsync(ulong? applicationErrorCode)
+        {
+            try
+            {
+                if (applicationErrorCode is null)
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamReadsCompleted,
+                        encode: null,
+                        default).ConfigureAwait(false);
+                }
+                else
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamStopSending,
+                        new StreamStopSendingBody(applicationErrorCode.Value).Encode,
+                        default).ConfigureAwait(false);
+                }
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail(
+                    $"Failed to send Slic stream complete reads frame due to an unhandled exception: {exception}");
+                throw;
+            }
+        }
+    }
+
+    internal void CompleteOrAbortWrites(ulong? applicationErrorCode)
+    {
+        if (!WritesCompleted)
+        {
+            if (IsRemote)
+            {
+                // Complete writes before sending the reset or last stream frame to ensure the stream max count
+                // is decreased before the peer receives the frame.
+                TrySetWritesClosed();
+            }
+            // Writes will be completed when the peer's sends the stop sending or reads completed frame.
+
+            if (IsStarted)
+            {
+                _ = SendCompleteWritesFrameAsync(applicationErrorCode);
+            }
+        }
+
+        async Task SendCompleteWritesFrameAsync(ulong? applicationErrorCode)
+        {
+            try
+            {
+                if (applicationErrorCode is null)
+                {
+                    await _connection.SendStreamFrameAsync(
+                        this,
+                        ReadOnlySequence<byte>.Empty,
+                        ReadOnlySequence<byte>.Empty,
+                        endStream: true,
+                        default).ConfigureAwait(false);
+                }
+                else
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamReset,
+                        new StreamResetBody(applicationErrorCode: 0).Encode,
+                        default).ConfigureAwait(false);
+                }
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail(
+                    $"Failed to send Slic stream complete writes frame due to an unhandled exception: {exception}");
+                throw;
             }
         }
     }

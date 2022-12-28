@@ -13,7 +13,6 @@ internal abstract class ColocConnection : IDuplexConnection
 
     private protected PipeReader? _reader;
     private protected int _state;
-
     private readonly PipeWriter _writer;
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -41,11 +40,6 @@ internal abstract class ColocConnection : IDuplexConnection
 
         try
         {
-            if (_state.HasFlag(State.Disposed))
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-
             ReadResult readResult = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
@@ -147,11 +141,6 @@ internal abstract class ColocConnection : IDuplexConnection
 
         try
         {
-            if (_state.HasFlag(State.Disposed))
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-
             foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
                 FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);

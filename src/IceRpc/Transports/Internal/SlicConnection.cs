@@ -50,7 +50,7 @@ internal class SlicConnection : IMultiplexedConnection
     private ulong _nextBidirectionalId;
     private ulong _nextUnidirectionalId;
     private readonly int _packetMaxSize;
-    private TimeSpan? _peerIdleTimeout;
+    private TimeSpan _peerIdleTimeout = Timeout.InfiniteTimeSpan;
     private Task _pingTask = Task.CompletedTask;
     private Task _pongTask = Task.CompletedTask;
     private Task? _readFramesTask;
@@ -59,6 +59,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly CancellationTokenSource _tasksCts = new();
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
+    private Task _writeStreamFrameTask = Task.CompletedTask;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
@@ -225,10 +226,14 @@ internal class SlicConnection : IMultiplexedConnection
         // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
         // check are not expected until the Slic connection initialization completes. The idle timeout check uses the
         // smallest idle timeout.
-        TimeSpan keepAliveTimeout = (_peerIdleTimeout ?? TimeSpan.MaxValue) < _localIdleTimeout ?
-            _peerIdleTimeout!.Value : _localIdleTimeout;
+        TimeSpan keepAliveTimeout =
+            _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
+            _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
+            _localIdleTimeout;
+
         _duplexConnectionReader.EnableAliveCheck(keepAliveTimeout);
-        _duplexConnectionWriter.EnableKeepAlive(keepAliveTimeout / 2);
+        _duplexConnectionWriter.EnableKeepAlive(
+            keepAliveTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : keepAliveTimeout / 2);
 
         // Start a task to read frames from the transport connection.
         _readFramesTask = Task.Run(
@@ -397,6 +402,9 @@ internal class SlicConnection : IMultiplexedConnection
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
 
+            // Ensure no more streams are queued
+            _acceptStreamChannel.Writer.TryComplete(new IceRpcException(IceRpcError.ConnectionAborted));
+
             if (_readFramesTask is not null)
             {
                 await _readFramesTask.ConfigureAwait(false);
@@ -427,15 +435,29 @@ internal class SlicConnection : IMultiplexedConnection
 
             try
             {
+                await _acceptStreamChannel.Reader.Completion.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Ignore, the completion property is only awaited to avoid an unobserved task exception.
+            }
+
+            try
+            {
+                await _writeStreamFrameTask.ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the write was pending.
+            }
+
+            try
+            {
                 await _pingTask.ConfigureAwait(false);
             }
             catch (IceRpcException)
             {
                 // Expected if the sending of the ping frame was pending.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"The ping task completed with an unhandled exception: {exception}");
             }
 
             try
@@ -445,10 +467,6 @@ internal class SlicConnection : IMultiplexedConnection
             catch (IceRpcException)
             {
                 // Expected if the sending of the pong frame was pending.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"The pong task completed with an unhandled exception: {exception}");
             }
 
             _tasksCts.Dispose();
@@ -485,12 +503,15 @@ internal class SlicConnection : IMultiplexedConnection
         if (!IsServer)
         {
             // Only client connections send ping frames when idle to keep the connection alive.
-            keepAliveAction = () =>
+            keepAliveAction = async () =>
                 {
-                    // Send a new ping frame if the previous frame was successfully sent.
-                    if (_pingTask.IsCompletedSuccessfully)
+                    // Send a new ping frame if the previous frame was sent.
+                    if (_pingTask.IsCompleted)
                     {
-                        _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
+                        // Make sure the previous task completed successfully.
+                        await _pingTask.ConfigureAwait(false);
+
+                        _pingTask = SendFrameAsync(stream: null, FrameType.Ping, null, CancellationToken.None).AsTask();
                     }
                 };
         }
@@ -592,6 +613,35 @@ internal class SlicConnection : IMultiplexedConnection
             int sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
             Debug.Assert(sendCredit > 0);
 
+            // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
+            int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+            ReadOnlySequence<byte> sendSource1;
+            ReadOnlySequence<byte> sendSource2;
+            if (!source1.IsEmpty)
+            {
+                int length = Math.Min((int)source1.Length, sendMaxSize);
+                sendSource1 = source1.Slice(0, length);
+                source1 = source1.Slice(length);
+            }
+            else
+            {
+                sendSource1 = ReadOnlySequence<byte>.Empty;
+            }
+
+            if (source1.IsEmpty && !source2.IsEmpty)
+            {
+                int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
+                sendSource2 = source2.Slice(0, length);
+                source2 = source2.Slice(length);
+            }
+            else
+            {
+                sendSource2 = ReadOnlySequence<byte>.Empty;
+            }
+
+            // If there's no data left to send and endStream is true, it's the last stream frame.
+            bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
+
             // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
             await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -611,35 +661,6 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                 }
 
-                // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
-                int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
-                ReadOnlySequence<byte> sendSource1;
-                ReadOnlySequence<byte> sendSource2;
-                if (!source1.IsEmpty)
-                {
-                    int length = Math.Min((int)source1.Length, sendMaxSize);
-                    sendSource1 = source1.Slice(0, length);
-                    source1 = source1.Slice(length);
-                }
-                else
-                {
-                    sendSource1 = ReadOnlySequence<byte>.Empty;
-                }
-
-                if (source1.IsEmpty && !source2.IsEmpty)
-                {
-                    int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
-                    sendSource2 = source2.Slice(0, length);
-                    source2 = source2.Slice(length);
-                }
-                else
-                {
-                    sendSource2 = ReadOnlySequence<byte>.Empty;
-                }
-
-                // If there's no data left to send and endStream is true, it's the last stream frame.
-                bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
-
                 // Notify the stream that we're consuming sendSize credit. It's important to call this before
                 // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
                 // received before the send credit was updated.
@@ -653,15 +674,36 @@ internal class SlicConnection : IMultiplexedConnection
                     stream.TrySetWritesClosed();
                 }
 
-                // Write the stream frame.
-                await WriteStreamFrameAsync(
-                    stream.Id,
-                    sendSource1,
-                    sendSource2,
-                    lastStreamFrame,
-                    _tasksCts.Token).AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
+                // Make sure the previous stream frame write completed successfully.
+                await _writeStreamFrameTask.ConfigureAwait(false);
+
+                EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
             }
-            catch (OperationCanceledException) when (_tasksCts.IsCancellationRequested)
+            catch
+            {
+                _writeSemaphore.Release();
+                throw;
+            }
+
+            // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream
+            // is canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to
+            // ensure exceptions from the WriteStreamFrameAsync task are always observed.
+
+            // WriteStreamFrameAsync is responsible for releasing the write semaphore.
+            _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
+            await _writeStreamFrameTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
+
+        return new FlushResult(isCanceled: false, isCompleted: false);
+
+        async Task WriteStreamFrameAsync(ReadOnlySequence<byte> source1, ReadOnlySequence<byte> source2)
+        {
+            try
+            {
+                await _duplexConnectionWriter.WriteAsync(source1, source2, _tasksCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
             {
                 throw new IceRpcException(IceRpcError.OperationAborted);
             }
@@ -670,9 +712,17 @@ internal class SlicConnection : IMultiplexedConnection
                 _writeSemaphore.Release();
             }
         }
-        while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
 
-        return new FlushResult(isCanceled: false, isCompleted: false);
+        void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
+        {
+            var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
+            encoder.EncodeFrameType(lastStreamFrame ? FrameType.StreamLast : FrameType.Stream);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encoder.EncodeVarUInt62(streamId);
+            SliceEncoder.EncodeVarUInt62(
+                (ulong)(encoder.EncodedByteCount - startPos + size), sizePlaceholder);
+        }
     }
 
     private async ValueTask<bool> CloseAsyncCore(IceRpcException exception)
@@ -879,10 +929,12 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 case FrameType.Ping:
                 {
-                    if (_pongTask.IsCompletedSuccessfully)
+                    if (_pongTask.IsCompleted)
                     {
+                        await _pongTask.ConfigureAwait(false);
+
                         // Send back a pong frame.
-                        _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, default).AsTask();
+                        _pongTask = SendFrameAsync(stream: null, FrameType.Pong, null, CancellationToken.None).AsTask();
                     }
                     break;
                 }
@@ -984,7 +1036,7 @@ internal class SlicConnection : IMultiplexedConnection
                                 {
                                     Debug.Assert(exception.InnerException is not null);
 
-                                    // The exception given to to ChannelWriter.Complete(Exception? exception) is the
+                                    // The exception given to ChannelWriter.Complete(Exception? exception) is the
                                     // InnerException.
                                     throw ExceptionUtil.Throw(exception.InnerException);
                                 }
@@ -1279,23 +1331,5 @@ internal class SlicConnection : IMultiplexedConnection
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
         return _duplexConnectionWriter.FlushAsync(cancellationToken);
-    }
-
-    private ValueTask WriteStreamFrameAsync(
-        ulong streamId,
-        ReadOnlySequence<byte> source1,
-        ReadOnlySequence<byte> source2,
-        bool endStream,
-        CancellationToken cancellationToken)
-    {
-        var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
-        encoder.EncodeFrameType(endStream ? FrameType.StreamLast : FrameType.Stream);
-        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-        int startPos = encoder.EncodedByteCount;
-        encoder.EncodeVarUInt62(streamId);
-        SliceEncoder.EncodeVarUInt62(
-            (ulong)(encoder.EncodedByteCount - startPos + source1.Length + source2.Length), sizePlaceholder);
-
-        return _duplexConnectionWriter.WriteAsync(source1, source2, cancellationToken);
     }
 }

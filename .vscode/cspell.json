@@ -17,6 +17,7 @@
     "decoratee",
     "ECONNRESET",
     "EPIPE",
+    "Finalizers",
     "globaltool",
     "icecertutils",
     "icerpc",
@@ -51,5 +52,9 @@
     "zeroc",
     "Zipkin"
   ],
-  "dictionaries": ["csharp", "softwareTerms", "en_US"]
+  "dictionaries": [
+    "csharp",
+    "softwareTerms",
+    "en_US"
+  ]
 }
