@@ -535,7 +535,8 @@ public sealed class Server : IAsyncDisposable
             }
 
             // TODO: we throw the first exception, which is not quite correct.
-            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
+            await Task.WhenAll(
+                _connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
                 .ConfigureAwait(false);
         }
 
@@ -798,8 +799,7 @@ public sealed class Server : IAsyncDisposable
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
 
         internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
         {

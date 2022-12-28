@@ -41,8 +41,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
         _decoratee.InvokeAsync(request, cancellationToken);
 
-    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-        _decoratee.ShutdownAsync(cancellationToken);
+    public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
 
     internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
     {

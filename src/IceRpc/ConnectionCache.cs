@@ -23,6 +23,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private readonly IClientProtocolConnectionFactory _connectionFactory;
 
+    private readonly TimeSpan _connectTimeout;
+
     private Task? _disposeTask;
 
     private readonly object _mutex = new();
@@ -55,6 +57,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             duplexClientTransport,
             multiplexedClientTransport,
             logger);
+
+        _connectTimeout = options.ConnectionOptions.ConnectTimeout;
 
         _preferExistingConnection = options.PreferExistingConnection;
     }
@@ -290,7 +294,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
-            await Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)))
+            await Task.WhenAll(
+                allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)))
                 .ConfigureAwait(false);
         }
 
@@ -354,9 +359,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             await Task.Yield(); // exit mutex lock
 
+            using var cts = new CancellationTokenSource(_connectTimeout);
+            using CancellationTokenRegistration tokenRegistration =
+                shutdownCancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), cts);
+
             try
             {
-                _ = await connection.ConnectAsync(shutdownCancellationToken).ConfigureAwait(false);
+                try
+                {
+                    _ = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!shutdownCancellationToken.IsCancellationRequested)
+                {
+                    throw new TimeoutException(
+                        $"The connection establishment timed out after {_connectTimeout.TotalSeconds} s.");
+                }
             }
             catch
             {

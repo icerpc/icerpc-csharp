@@ -46,6 +46,51 @@ public class ClientConnectionTests
     }
 
     [Test]
+    [Ignore("TODO: add server transport that hangs in Connect")]
+    public async Task Connect_times_out_after_connect_timeout()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        server.Listen();
+        ClientConnection sut = provider.GetRequiredService<ClientConnection>();
+
+        // Act/Assert
+        Assert.That(async() => await sut.ConnectAsync(), Throws.InstanceOf<TimeoutException>());
+    }
+
+    /*
+    /// <summary>Verifies that the ConnectTimeoutProtocolConnectionDecorator also supports regular connect
+    /// cancellation.</summary>
+    [Test]
+    public async Task Connect_timeout_decorator_supports_connect_cancellation()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection pair = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await using IProtocolConnection sut =
+            new ConnectTimeoutProtocolConnectionDecorator(pair.Client, TimeSpan.FromMilliseconds(300));
+
+        using var cts = new CancellationTokenSource();
+        Task connectTask = sut.ConnectAsync(cts.Token);
+        cts.Cancel();
+
+        // Act/Assert
+        Assert.That(async() => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+    */
+
+    [Test]
     public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange

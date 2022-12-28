@@ -67,7 +67,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask);
             }
 
-            connection = new ConnectProtocolConnectionDecorator(connection, _shutdownCts.Token);
+            connection = new ConnectProtocolConnectionDecorator(connection, options.ConnectTimeout, _shutdownCts.Token);
             _ = FulfillShutdownRequestAsync(connection);
 
             return connection;
@@ -390,8 +390,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ShutdownAsync(cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
 
         internal CleanupProtocolConnectionDecorator(IProtocolConnection decoratee, Task cleanupTask)
         {
@@ -413,6 +412,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
         private Task<TransportConnectionInformation>? _connectTask;
+
+        private readonly TimeSpan _connectTimeout;
 
         private readonly IProtocolConnection _decoratee;
 
@@ -452,6 +453,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     cancellationToken,
                     _shutdownCancellationToken);
 
+                cts.CancelAfter(_connectTimeout);
+
                 TransportConnectionInformation connectionInfo;
                 try
                 {
@@ -460,9 +463,15 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 catch (OperationCanceledException)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    throw new IceRpcException(
-                        IceRpcError.OperationAborted,
-                        "The connection establishment was canceled by the shutdown of the client connection.");
+
+                    if (_shutdownCancellationToken.IsCancellationRequested)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.OperationAborted,
+                            "The connection establishment was canceled by the shutdown of the client connection.");
+                    }
+                    throw new TimeoutException(
+                        $"The connection establishment timed out after {_connectTimeout.TotalSeconds} s.");
                 }
                 _isConnected = true;
                 return connectionInfo;
@@ -536,7 +545,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        public Task ShutdownAsync(CancellationToken cancellationToken = default)
+        public Task ShutdownAsync(CancellationToken cancellationToken)
         {
             lock (_mutex)
             {
@@ -570,9 +579,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         internal ConnectProtocolConnectionDecorator(
             IProtocolConnection decoratee,
+            TimeSpan connectTimeout,
             CancellationToken shutdownCancellationToken)
         {
             _decoratee = decoratee;
+            _connectTimeout = connectTimeout;
             _shutdownCancellationToken = shutdownCancellationToken;
         }
     }
