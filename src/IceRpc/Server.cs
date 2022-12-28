@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -381,10 +382,6 @@ public sealed class Server : IAsyncDisposable
                     // The protocol connection adopts the transport connection from the connector and it's not
                     // responsible for disposing of it.
                     protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
-                    protocolConnection = new ShutdownTimeoutProtocolConnectionDecorator(
-                        protocolConnection,
-                        _shutdownTimeout);
-
                     _connections.Add(protocolConnection);
                 }
             }
@@ -452,14 +449,23 @@ public sealed class Server : IAsyncDisposable
 
             if (shutdownRequested)
             {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
+                cts.CancelAfter(_shutdownTimeout);
+
                 try
                 {
-                    // Use shutdown timeout via decorator.
-                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch
+                catch (OperationCanceledException)
                 {
-                    // ignore all shutdown exceptions
+                }
+                catch (IceRpcException)
+                {
+                }
+                catch (Exception exception)
+                {
+                    Debug.Fail($"Unexpected connection shutdown exception: {exception}");
+                    throw;
                 }
             }
 
@@ -488,12 +494,12 @@ public sealed class Server : IAsyncDisposable
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
 
-            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
-            // does not change.
-            _shutdownCts.Cancel();
-
             if (_shutdownTask is null)
             {
+                // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+                // does not change.
+                _shutdownCts.Cancel();
+
                 _shutdownTask = PerformShutdownAsync(_listener);
                 _listener = null;
                 return _shutdownTask;
@@ -516,9 +522,20 @@ public sealed class Server : IAsyncDisposable
                 await _listenTask.ConfigureAwait(false);
             }
 
-            // TODO: we throw the first exception, which is not quite correct.
-            await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cancellationToken)))
-                .ConfigureAwait(false);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(_shutdownTimeout);
+
+            try
+            {
+                // Note: this throws the first exception, not all of them.
+                await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cts.Token)))
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new TimeoutException($"The server shutdown timed out after {_shutdownTimeout.TotalSeconds} s.");
+            }
         }
 
         async Task WaitForShutdownAsync(Task shutdownTask)
