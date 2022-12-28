@@ -10,6 +10,10 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
 /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The _sendCreditSemaphore is disposed by TrySetWritesClosed")]
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -61,7 +65,7 @@ internal class SlicStream : IMultiplexedStream
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-    private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private Task? _sendStreamConsumedFrameTask;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -224,7 +228,7 @@ internal class SlicStream : IMultiplexedStream
         // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
         // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
         // additional data and _sendCredit can be used to figure out the size of the next packet to send.
-        await _sendCreditSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         return _sendCredit;
     }
 
@@ -291,7 +295,7 @@ internal class SlicStream : IMultiplexedStream
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
         {
-            Debug.Assert(_sendCreditSemaphore.Count == 0);
+            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
             _sendCreditSemaphore.Release();
         }
         else if (newValue > _connection.PeerPauseWriterThreshold)
@@ -414,6 +418,7 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.WritesCompleted))
         {
             _writesClosedTcs.TrySetResult();
+            _sendCreditSemaphore.Dispose();
             return true;
         }
         else
