@@ -24,7 +24,7 @@ internal class ShutdownTimeoutProtocolConnectionDecorator : IProtocolConnection
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
         _decoratee.InvokeAsync(request, cancellationToken);
 
-    public async Task ShutdownAsync(CancellationToken cancellationToken = default)
+    public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
         using var cts = new CancellationTokenSource(_shutdownTimeout);
         using CancellationTokenRegistration tokenRegistration =

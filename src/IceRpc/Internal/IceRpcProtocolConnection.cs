@@ -613,7 +613,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch
         {
             // If we fail to send the GoAway frame, we are in an abortive closure and we close Output to allow the
-            // peer to continue if it's waiting for us.
+            // peer to continue if it's waiting for us. This could happen when the cancellation token is canceled.
             _controlStream!.Output.CompleteOutput(success: false);
             throw;
         }

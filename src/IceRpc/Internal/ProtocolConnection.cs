@@ -28,6 +28,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
         }
     }
 
+    private readonly TaskCompletionSource<Exception?> _closedTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private IceRpcException? _connectionClosedException;
     private Task<TransportConnectionInformation>? _connectTask;
     private Task? _disposeTask;
@@ -35,9 +38,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
     private bool _isShutDown;
     private readonly object _mutex = new();
-
-    private readonly TaskCompletionSource<Exception?> _closedTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     // The thread that completes this TCS can run the continuations.
     private readonly TaskCompletionSource _shutdownRequestedTcs = new();
@@ -231,7 +231,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)
             {
                 // The connection was aborted by the peer or the transport, but not yet shut down.
-                throw abortException;
+                throw ExceptionUtil.Throw(abortException);
             }
         }
 

@@ -351,7 +351,7 @@ public sealed class ProtocolConnectionTests
             using var request = new OutgoingRequest(new ServiceAddress(protocol))
             {
                 IsOneway = isOneway,
-                Payload = new DelayPipeReader() // adds 520ms delay
+                Payload = new DelayPipeReader(TimeSpan.FromMilliseconds(520))
             };
             _ = await sut.Client.InvokeAsync(request);
         }
@@ -405,7 +405,7 @@ public sealed class ProtocolConnectionTests
             {
                 IsOneway = isOneway,
             };
-            request.Use(writer => new DelayPipeWriter(writer));
+            request.Use(writer => new DelayPipeWriter(writer, TimeSpan.FromMilliseconds(520)));
             _ = await sut.Client.InvokeAsync(request);
         }
 
@@ -443,7 +443,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that a ConnectAsync failure completes Closed.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task ConnectAsync_failure_completes_shutdown_complete(Protocol protocol)
+    public async Task ConnectAsync_failure_completes_closed(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -562,7 +562,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
-   [Test, TestCaseSource(nameof(Protocols))]
+    [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_waits_for_connect_completion(Protocol protocol)
     {
         // Arrange
@@ -1150,6 +1150,8 @@ public sealed class ProtocolConnectionTests
 
     private sealed class DelayPipeReader : PipeReader
     {
+        private readonly TimeSpan _delay;
+
         public override void AdvanceTo(SequencePosition consumed)
         {
         }
@@ -1168,7 +1170,7 @@ public sealed class ProtocolConnectionTests
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(520, cancellationToken);
+            await Task.Delay(_delay, cancellationToken);
             return new ReadResult(new ReadOnlySequence<byte>(new byte[10]), isCanceled: false, isCompleted: true);
         }
 
@@ -1177,11 +1179,14 @@ public sealed class ProtocolConnectionTests
             result = new ReadResult();
             return false;
         }
+
+        internal DelayPipeReader(TimeSpan delay) => _delay = delay;
     }
 
     private sealed class DelayPipeWriter : PipeWriter
     {
         private readonly PipeWriter _decoratee;
+        private readonly TimeSpan _delay;
 
         public override void Advance(int bytes) => _decoratee.Advance(bytes);
 
@@ -1191,7 +1196,7 @@ public sealed class ProtocolConnectionTests
 
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(520, cancellationToken);
+            await Task.Delay(_delay, cancellationToken);
             return await _decoratee.FlushAsync(cancellationToken);
         }
 
@@ -1199,6 +1204,10 @@ public sealed class ProtocolConnectionTests
 
         public override Span<byte> GetSpan(int sizeHint) => _decoratee.GetSpan(sizeHint);
 
-        internal DelayPipeWriter(PipeWriter decoratee) => _decoratee = decoratee;
+        internal DelayPipeWriter(PipeWriter decoratee, TimeSpan delay)
+        {
+            _decoratee = decoratee;
+            _delay = delay;
+        }
     }
 }

@@ -145,14 +145,7 @@ public class ClientConnectionTests
     public async Task Connection_can_dispatch_callbacks(Protocol protocol)
     {
         // Arrange
-        var tcs = new TaskCompletionSource();
-
-        var callbackDispatcher = new InlineDispatcher(
-            (request, cancellationToken) =>
-            {
-                tcs.SetResult();
-                return new(new OutgoingResponse(request));
-            });
+        using var callbackDispatcher = new TestDispatcher(holdDispatchCount: 0);
 
         var services = new ServiceCollection();
         services.AddOptions<ClientConnectionOptions>().Configure(options => options.Dispatcher = callbackDispatcher);
@@ -175,7 +168,7 @@ public class ClientConnectionTests
 
         // Act
         await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
-        await tcs.Task;
+        await callbackDispatcher.DispatchStart;
     }
 
     /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>

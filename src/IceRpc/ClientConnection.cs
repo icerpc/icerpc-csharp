@@ -59,15 +59,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             IProtocolConnection connection = protocolConnectionFactory.CreateConnection(serverAddress);
 
-            if (previousConnection is not null)
+            if (previousConnection is not null &&
+                CleanupAsync(previousConnection) is Task cleanupTask &&
+                !cleanupTask.IsCompleted)
             {
-                ValueTask cleanupTask = CleanupAsync(previousConnection);
-
-                if (!cleanupTask.IsCompleted)
-                {
-                    // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
-                    connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask.AsTask());
-                }
+                // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
+                connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask);
             }
 
             connection = new ConnectProtocolConnectionDecorator(connection, _shutdownCts.Token);
@@ -75,7 +72,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             return connection;
 
-            static async ValueTask CleanupAsync(IProtocolConnection connection)
+            static async Task CleanupAsync(IProtocolConnection connection)
             {
                 // We need to wait for Closed in case we've received a shutdown request for this connection but have not
                 // fulfilled it yet.
@@ -91,9 +88,19 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     // Use shutdown timeout via decorator.
                     await connection.ShutdownAsync().ConfigureAwait(false);
                 }
-                catch
+                catch (IceRpcException)
                 {
-                    // ignore shutdown exceptions
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+                catch (TimeoutException)
+                {
+                }
+                catch (Exception exception)
+                {
+                    Debug.Fail($"Unexpected shutdown exception: {exception}");
+                    throw;
                 }
             }
         };

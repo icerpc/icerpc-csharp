@@ -86,6 +86,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         async Task PerformDisposeAsync()
         {
+            await Task.Yield(); // exit mutex lock
+
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
@@ -97,14 +99,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
                 else
                 {
-                    // Use shutdown timeout
+                    // Use shutdown timeout via decorator
                     await Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync()))
                         .ConfigureAwait(false);
                 }
             }
-            catch
+            catch (IceRpcException)
             {
-                // ignore all shutdown exceptions
+            }
+            catch (TimeoutException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Unexpected shutdown exception: {exception}");
             }
 
             await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask())
@@ -205,6 +213,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         try
                         {
+                            // TODO: this code generates a UTE
                             connection = await ConnectAsync(mainServerAddress).WaitAsync(cancellationToken)
                                 .ConfigureAwait(false);
                         }
@@ -263,12 +272,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
 
-            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
-            // does not change.
-            _shutdownCts.Cancel();
-
             if (_shutdownTask is null)
             {
+                // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+                // does not change.
+                _shutdownCts.Cancel();
                 _shutdownTask = PerformShutdownAsync();
                 return _shutdownTask;
             }
