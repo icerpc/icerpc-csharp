@@ -278,8 +278,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Gracefully shuts down the connection. The shutdown waits for pending invocations and dispatches to
-    /// complete. For a speedier graceful shutdown, call <see cref="DisposeAsync" /> instead. It will cancel pending
-    /// invocations and dispatches.</summary>
+    /// complete.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
@@ -400,9 +399,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Provides a decorator for <see cref="IProtocolConnection" /> that ensures <see cref="InvokeAsync" />
-    /// calls <see cref="ConnectAsync" /> when the connection is not connected yet. Its <see cref="DisposeAsync" /> also
-    /// performs a graceful shutdown if <see cref="ConnectAsync" /> was called and completed successfully. This
-    /// decorator allows multiple calls to <see cref="ConnectAsync" /> and <see cref="ShutdownAsync" />.</summary>
+    /// calls <see cref="ConnectAsync" /> when the connection is not connected yet. This decorator also implements the
+    /// ConnectTimeout and ShutdownTimeout and allows multiple calls to <see cref="ConnectAsync" /> and
+    /// <see cref="ShutdownAsync" />.</summary>
     private class ConnectProtocolConnectionDecorator : IProtocolConnection
     {
         public Task<Exception?> Closed => _decoratee.Closed;
@@ -494,41 +493,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        public async ValueTask DisposeAsync()
-        {
-            bool waitForShutdown = false;
-
-            lock (_mutex)
-            {
-                if (_connectTask is not null && _connectTask.IsCompletedSuccessfully)
-                {
-                    // Perform graceful shutdown
-                    _shutdownTask ??= PerformShutdownAsync();
-                    waitForShutdown = true;
-                }
-            }
-
-            if (waitForShutdown)
-            {
-                _ = await Closed.ConfigureAwait(false);
-            }
-
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-
-            async Task PerformShutdownAsync()
-            {
-                await Task.Yield(); // exit mutex
-
-                // Attempt a graceful shutdown and ignore any exception to avoid UTE.
-                try
-                {
-                    await _decoratee.ShutdownAsync().ConfigureAwait(false);
-                }
-                catch
-                {
-                }
-            }
-        }
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
         public Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
