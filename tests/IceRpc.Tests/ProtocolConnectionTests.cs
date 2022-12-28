@@ -389,7 +389,6 @@ public sealed class ProtocolConnectionTests
         bool isOneway)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
         // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
         // client transport connection to be closed because it's idle.
@@ -398,7 +397,17 @@ public sealed class ProtocolConnectionTests
             new ConnectionOptions
             {
                 IdleTimeout = idleTimeout,
-                Dispatcher = dispatcher
+                Dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+                {
+                    ReadResult result;
+                    do
+                    {
+                        result = await request.Payload.ReadAsync(cancellationToken);
+                        request.Payload.AdvanceTo(result.Buffer.End);
+                    }
+                    while (!result.IsCompleted && !result.IsCanceled);
+                    return new OutgoingResponse(request);
+                })
             };
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -411,8 +420,6 @@ public sealed class ProtocolConnectionTests
                 serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
-        long startTime = Environment.TickCount64;
-
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
@@ -422,10 +429,11 @@ public sealed class ProtocolConnectionTests
             Payload = pipe.Reader,
             IsOneway = isOneway
         };
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        long startTime = Environment.TickCount64;
         var invokeTask = sut.Client.InvokeAsync(request);
         await Task.Delay(TimeSpan.FromMilliseconds(550));
-        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
-        await pipe.Writer.CompleteAsync();
+        pipe.Writer.Complete();
         await invokeTask;
 
         // Act
