@@ -1010,9 +1010,9 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
     }
 
-    /// <summary>Verifies that ShutdownAsync implements correctly its cancellation token.</summary>
+    /// <summary>Verifies that the cancellation of a shutdown does not abort invocations.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
-    public async Task Shutdown_cancellation(Protocol protocol, bool closeClientSide)
+    public async Task Shutdown_cancellation_does_not_abort_invocations(Protocol protocol, bool closeClientSide)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
