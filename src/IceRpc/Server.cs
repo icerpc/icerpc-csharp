@@ -244,9 +244,9 @@ public sealed class Server : IAsyncDisposable
                 {
                     await _listenTask.ConfigureAwait(false);
                 }
-                catch
+                catch (Exception exception)
                 {
-                    // ignored
+                    Debug.Fail($"Unexpected listen exception: {exception}");
                 }
             }
 
@@ -361,10 +361,8 @@ public sealed class Server : IAsyncDisposable
 
         async Task ConnectAsync(IConnector connector)
         {
-            using var cts = new CancellationTokenSource(_connectTimeout);
-
-            using CancellationTokenRegistration tokenRegistration =
-                shutdownCancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), cts);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
+            cts.CancelAfter(_connectTimeout);
 
             // Connect the transport connection first.
             TransportConnectionInformation transportConnectionInformation =
