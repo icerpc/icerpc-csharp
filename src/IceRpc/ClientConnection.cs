@@ -64,6 +64,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 !cleanupTask.IsCompleted)
             {
                 // Add a decorator to wait for the cleanup of the previous connection in ConnectAsync/DisposeAsync.
+                // We wait for the previous connection's disposal in the new connection's ConnectAsync to avoid an
+                // unbounded stack of decorated connections.
                 connection = new CleanupProtocolConnectionDecorator(connection, cleanupTask);
             }
 
