@@ -85,13 +85,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 await connection.DisposeAsync().ConfigureAwait(false);
             }
 
-            static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
+            async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
             {
                 await connection.ShutdownRequested.ConfigureAwait(false);
                 try
                 {
                     // Use shutdown timeout via decorator.
                     await connection.ShutdownAsync().ConfigureAwait(false);
+
+                    // Make sure this connection is no longer the current connection (otherwise we can't dispose it
+                    // without breaking ClientConnection.ShutdownAsync).
+                    _ = RefreshConnection(connection);
                 }
                 catch (IceRpcException)
                 {
@@ -101,7 +105,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    return;
                 }
                 catch (Exception exception)
                 {
@@ -300,10 +303,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this connection is already shut down or shutting down.
+    /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    /// <remarks>This method can be called multiple times. Only the first <paramref name="cancellationToken" /> has an
-    /// effect on the underlying connection. If the first <paramref name="cancellationToken" /> is canceled, the
-    /// connection is aborted.</remarks>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
@@ -311,6 +313,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (_isDisposed)
             {
                 throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+            }
+            if (_shutdownCts.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("The client connection is already shut down or shutting down.");
             }
 
             _shutdownCts.Cancel();
@@ -523,6 +529,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         public Task ShutdownAsync(CancellationToken cancellationToken)
         {
+            // It is possible but unlikely to get multiple call to ShutdownAsync on the same protocol connection:
+            // one from ClientConnection.ShutdownAsync and another from FulfillShutdownRequestAsync.
             lock (_mutex)
             {
                 if (_shutdownTask is null)
