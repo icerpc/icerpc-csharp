@@ -899,6 +899,38 @@ public sealed class IceRpcProtocolConnectionTests
             Is.EqualTo(expectedValue));
     }
 
+    /// <summary>Verifies that a shutdown can be canceled when the server transport ShutdownAsync is hung.</summary>
+    [Test]
+    [Ignore("fix #2404 first")]
+    public async Task Shutdown_cancellation_with_hung_server_transport()
+    {
+        // Arrange
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddSingleton(colocTransport.ClientTransport) // overwrite
+            .AddSingleton<IDuplexServerTransport>(serverTransport)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        serverTransport.ReleaseConnect();
+        await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Server);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.Client.ShutdownAsync(cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+
+        // Cleanup
+        serverTransport.Release();
+    }
+
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
     {
         await connection.ShutdownRequested;

@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -244,6 +245,30 @@ public sealed class IceProtocolConnectionTests
         bool ok = response.Payload.TryRead(out ReadResult readResult);
         Assert.That(ok, Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
+    }
+
+    /// <summary>Verifies that a shutdown succeeds when the server transport ShutdownAsync is hung, since ice does
+    /// not call ShutdownAsync on the duplex connection.</summary>
+    [Test]
+    public async Task Shutdown_succeeds_with_hung_server_transport()
+    {
+        // Arrange
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
+            .AddSingleton(colocTransport.ClientTransport) // overwrite
+            .AddSingleton<IDuplexServerTransport>(serverTransport)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        serverTransport.ReleaseConnect();
+        await sut.ConnectAsync();
+
+        // Act/Assert
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Nothing);
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>
