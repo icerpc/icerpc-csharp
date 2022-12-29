@@ -37,8 +37,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private readonly CancellationTokenSource _shutdownCts = new();
 
-    private Task? _shutdownTask;
-
     private readonly TimeSpan _shutdownTimeout;
 
     /// <summary>Constructs a connection cache.</summary>
@@ -254,22 +252,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
-
-            if (_shutdownTask is null)
+            if (_shutdownCts.IsCancellationRequested)
             {
-                // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
-                // does not change.
-                _shutdownCts.Cancel();
-                _shutdownTask = PerformShutdownAsync();
-                return _shutdownTask;
+                throw new InvalidOperationException($"The connection cache is already shut down or shutting down.");
             }
+
+            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            _shutdownCts.Cancel();
         }
-        return WaitForShutdownAsync(_shutdownTask);
+
+        return PerformShutdownAsync();
 
         async Task PerformShutdownAsync()
         {
-            await Task.Yield(); // exit mutex lock
-
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
@@ -287,18 +283,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 cancellationToken.ThrowIfCancellationRequested();
                 throw new TimeoutException(
                     $"The connection cache shutdown timed out after {_shutdownTimeout.TotalSeconds} s.");
-            }
-        }
-
-        async Task WaitForShutdownAsync(Task shutdownTask)
-        {
-            try
-            {
-                await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache shutdown was canceled.");
             }
         }
     }
