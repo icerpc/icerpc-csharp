@@ -901,7 +901,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Verifies that a shutdown can be canceled when the server transport ShutdownAsync is hung.</summary>
     [Test]
-    [Ignore("fix #2404 first")]
+    [Ignore("See #2404")]
     public async Task Shutdown_cancellation_with_hung_server_transport()
     {
         // Arrange

@@ -354,7 +354,7 @@ public class ClientConnectionTests
     }
 
     [Test]
-    [Ignore("fix #2404 first")]
+    [Ignore("See #2404")]
     public async Task Shutdown_times_out_after_shutdown_timeout()
     {
         // Arrange
@@ -389,7 +389,7 @@ public class ClientConnectionTests
     }
 
     [Test]
-    [Ignore("fix #2404 first")]
+    [Ignore("See #2404")]
     public async Task Shutdown_can_be_canceled()
     {
         // Arrange
