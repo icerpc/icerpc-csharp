@@ -90,10 +90,6 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                     transportConnectionInformation: null,
                     _connectionOptions);
 
-        connection = new ShutdownTimeoutProtocolConnectionDecorator(
-            connection,
-            _connectionOptions.ShutdownTimeout);
-
         connection = new MetricsProtocolConnectionDecorator(connection);
 
         return _logger == NullLogger.Instance ? connection :

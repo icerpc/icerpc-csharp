@@ -39,6 +39,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private Task? _shutdownTask;
 
+    private readonly TimeSpan _shutdownTimeout;
+
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
@@ -59,6 +61,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             logger);
 
         _connectTimeout = options.ConnectionOptions.ConnectTimeout;
+        _shutdownTimeout = options.ConnectionOptions.ShutdownTimeout;
 
         _preferExistingConnection = options.PreferExistingConnection;
     }
@@ -270,9 +273,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
-            await Task.WhenAll(
-                allConnections.Select(connection => connection.ShutdownAsync(cancellationToken)))
-                .ConfigureAwait(false);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(_shutdownTimeout);
+
+            try
+            {
+                // Note: this throws the first exception, not all of them.
+                await Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync(cts.Token)))
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new TimeoutException(
+                    $"The connection cache shutdown timed out after {_shutdownTimeout.TotalSeconds} s.");
+            }
         }
 
         async Task WaitForShutdownAsync(Task shutdownTask)
@@ -429,14 +444,23 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             if (shutdownRequested)
             {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
+                cts.CancelAfter(_shutdownTimeout);
+
                 try
                 {
-                    // Use shutdown timeout via decorator.
-                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch
+                catch (OperationCanceledException)
                 {
-                    // ignore all shutdown exceptions
+                }
+                catch (IceRpcException)
+                {
+                }
+                catch (Exception exception)
+                {
+                    Debug.Fail($"Unexpected connection shutdown exception: {exception}");
+                    throw;
                 }
             }
 

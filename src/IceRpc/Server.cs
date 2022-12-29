@@ -43,8 +43,6 @@ public sealed class Server : IAsyncDisposable
 
     private readonly CancellationTokenSource _shutdownCts = new();
 
-    private Task? _shutdownTask;
-
     private readonly TimeSpan _shutdownTimeout;
 
     /// <summary>Constructs a server.</summary>
@@ -279,7 +277,7 @@ public sealed class Server : IAsyncDisposable
             {
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
-            if (_shutdownTask is not null)
+            if (_shutdownCts.IsCancellationRequested)
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
@@ -493,28 +491,25 @@ public sealed class Server : IAsyncDisposable
             {
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
-
-            if (_shutdownTask is null)
+            if (_shutdownCts.IsCancellationRequested)
             {
-                // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
-                // does not change.
-                _shutdownCts.Cancel();
-
-                _shutdownTask = PerformShutdownAsync(_listener);
-                _listener = null;
-                return _shutdownTask;
+                throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
+
+            // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+            // does not change.
+            _shutdownCts.Cancel();
         }
-        return WaitForShutdownAsync(_shutdownTask);
 
-        async Task PerformShutdownAsync(IAsyncDisposable? listener)
+        return PerformShutdownAsync();
+
+        async Task PerformShutdownAsync()
         {
-            await Task.Yield(); // exit mutex lock
-
-            if (listener is not null)
+            // _listener is immutable once _shutdownCts is canceled.
+            if (_listener is not null)
             {
                 // The disposal of the listener will terminate the listenTask
-                await listener.DisposeAsync().ConfigureAwait(false);
+                await _listener.DisposeAsync().ConfigureAwait(false);
             }
 
             if (_listenTask is not null)
@@ -535,18 +530,6 @@ public sealed class Server : IAsyncDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 throw new TimeoutException($"The server shutdown timed out after {_shutdownTimeout.TotalSeconds} s.");
-            }
-        }
-
-        async Task WaitForShutdownAsync(Task shutdownTask)
-        {
-            try
-            {
-                await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The server shutdown was canceled.");
             }
         }
     }
