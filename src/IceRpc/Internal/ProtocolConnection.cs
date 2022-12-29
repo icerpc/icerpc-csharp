@@ -235,16 +235,6 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
         }
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            // If the cancellation token is already canceled, we don't wait for _connectTask or call ShutdownAsyncCore
-            // at all. It's an abortive shutdown.
-            CancelDispatchesAndInvocations();
-            var exception = new IceRpcException(IceRpcError.OperationAborted, "The shutdown was canceled.");
-            _ = _closedTcs.TrySetResult(exception);
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
         return PerformShutdownAsync();
 
         async Task PerformShutdownAsync()

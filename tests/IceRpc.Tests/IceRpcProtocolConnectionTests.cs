@@ -138,24 +138,22 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
+        Task shutdownTask = sut.Server.ShutdownAsync();
 
         // Act
-        try
-        {
-            await sut.Server.ShutdownAsync(new CancellationToken(canceled: true));
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        await sut.Server.DisposeAsync();
 
         // Assert
         Assert.That(
             async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
     [Test]

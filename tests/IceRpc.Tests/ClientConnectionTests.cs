@@ -5,6 +5,8 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Security;
 
 namespace IceRpc.Tests;
 
@@ -46,16 +48,22 @@ public class ClientConnectionTests
     }
 
     [Test]
-    [Ignore("TODO: add server transport that hangs in Connect")]
     public async Task Connect_times_out_after_connect_timeout()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddOptions<ClientConnectionOptions>().Configure(
             options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -64,31 +72,44 @@ public class ClientConnectionTests
 
         // Act/Assert
         Assert.That(async() => await sut.ConnectAsync(), Throws.InstanceOf<TimeoutException>());
+
+        // Cleanup
+        serverTransport.Release();
     }
 
-    /*
-    /// <summary>Verifies that the ConnectTimeoutProtocolConnectionDecorator also supports regular connect
-    /// cancellation.</summary>
+    /// <summary>Verifies that ConnectAsync can be canceled via its cancellation token.</summary>
     [Test]
-    public async Task Connect_timeout_decorator_supports_connect_cancellation()
+    public async Task Connect_can_be_canceled()
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .BuildServiceProvider(validateScopes: true);
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
 
-        ClientServerProtocolConnection pair = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await using IProtocolConnection sut =
-            new ConnectTimeoutProtocolConnectionDecorator(pair.Client, TimeSpan.FromMilliseconds(300));
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
-        using var cts = new CancellationTokenSource();
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        server.Listen();
+        ClientConnection sut = provider.GetRequiredService<ClientConnection>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
         Task connectTask = sut.ConnectAsync(cts.Token);
-        cts.Cancel();
 
         // Act/Assert
         Assert.That(async() => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Cleanup
+        serverTransport.Release();
     }
-    */
 
     [Test]
     public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
@@ -116,17 +137,7 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
-        await Task.Delay(TimeSpan.FromMilliseconds(10)); // TODO: temporary workaround for #2386
-
-        try
-        {
-            await server.ShutdownAsync(new CancellationToken(canceled: true));
-        }
-        catch (OperationCanceledException)
-        {
-        }
         await server.DisposeAsync();
-
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
@@ -309,16 +320,28 @@ public class ClientConnectionTests
     public async Task Dispose_aborts_connect()
     {
         // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
         await using ServiceProvider provider =
-            new ServiceCollection()
+            services
                 .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
-        Task connectTask = connection.ConnectAsync(); // TODO: this does not hang, this test is bogus
-        // await Task.Delay(50);
+        server.Listen();
+
+        Task connectTask = connection.ConnectAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Act
         await connection.DisposeAsync();
@@ -327,49 +350,178 @@ public class ClientConnectionTests
         Assert.That(
             async () => await connectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+
+        // Cleanup
+        serverTransport.Release();
     }
 
-    /*
-    /// <summary>Verifies that the ShutdownTimeoutProtocolConnectionDecorator adds a shutdown timeout to ShutdownAsync.
-    /// </summary>
     [Test]
-    public async Task Shutdown_timeout_decorator_adds_shutdown_timeout()
+    [Ignore("fix #2404 first")]
+    public async Task Shutdown_times_out_after_shutdown_timeout()
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .BuildServiceProvider(validateScopes: true);
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
 
-        ClientServerProtocolConnection pair = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await pair.ConnectAsync();
-        await using IProtocolConnection sut =
-            new ShutdownTimeoutProtocolConnectionDecorator(pair.Client, TimeSpan.FromMilliseconds(300));
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+        server.Listen();
+        serverTransport.ReleaseConnect();
+        await connection.ConnectAsync();
+
+        Task shutdownTask = connection.ShutdownAsync();
 
         // Act/Assert
-        Assert.That(async() => await sut.ShutdownAsync(), Throws.InstanceOf<TimeoutException>());
+        Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
+
+        // Cleanup
+        serverTransport.Release();
     }
 
-    /// <summary>Verifies that the ShutdownTimeoutProtocolConnectionDecorator also supports regular shutdown
-    /// cancellation.</summary>
     [Test]
-    public async Task Shutdown_timeout_decorator_supports_shutdown_cancellation()
+    [Ignore("fix #2404 first")]
+    public async Task Shutdown_can_be_canceled()
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .BuildServiceProvider(validateScopes: true);
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
 
-        ClientServerProtocolConnection pair = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await pair.ConnectAsync();
-        await using IProtocolConnection sut =
-            new ShutdownTimeoutProtocolConnectionDecorator(pair.Client, TimeSpan.FromMilliseconds(300));
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
-        using var cts = new CancellationTokenSource();
-        Task shutdownTask = sut.ShutdownAsync(cts.Token);
-        cts.Cancel();
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+        server.Listen();
+        serverTransport.ReleaseConnect();
+        await connection.ConnectAsync();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Task shutdownTask = connection.ShutdownAsync(cts.Token);
 
         // Act/Assert
-        Assert.That(async() => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Cleanup
+        serverTransport.Release();
     }
-    */
+
+    /// <summary>A decorator for duplex server transport that holds any ConnectAsync and ShutdownAsync for connections
+    /// accepted by this transport.</summary>
+
+    internal class HoldDuplexServerTransportDecorator : IDuplexServerTransport
+    {
+        public string Name => _decoratee.Name;
+
+        private readonly IDuplexServerTransport _decoratee;
+        private readonly TaskCompletionSource _holdConnectTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _holdShutdownTcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public IListener<IDuplexConnection> Listen(
+            ServerAddress serverAddress,
+            DuplexConnectionOptions options,
+            SslServerAuthenticationOptions? serverAuthenticationOptions) =>
+            new HoldListenerDecorator(
+                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
+                _holdConnectTcs.Task,
+                _holdShutdownTcs.Task);
+
+        internal HoldDuplexServerTransportDecorator(IDuplexServerTransport decoratee) => _decoratee = decoratee;
+
+        internal void ReleaseConnect() => _holdConnectTcs.TrySetResult();
+
+        internal void ReleaseShutdown() => _holdShutdownTcs.TrySetResult();
+
+        internal void Release()
+        {
+            ReleaseConnect();
+            ReleaseShutdown();
+        }
+    }
+
+    private class HoldListenerDecorator : IListener<IDuplexConnection>
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IListener<IDuplexConnection> _decoratee;
+        private readonly Task _holdConnectTask;
+        private readonly Task _holdShutdownTask;
+
+        public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
+        {
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
+                await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
+            return (new HoldConnection(connection, _holdConnectTask, _holdShutdownTask), remoteNetworkAddress);
+        }
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal HoldListenerDecorator(
+            IListener<IDuplexConnection> decoratee,
+            Task holdConnectTask,
+            Task holdShutdownTask)
+        {
+            _decoratee = decoratee;
+            _holdConnectTask = holdConnectTask;
+            _holdShutdownTask = holdShutdownTask;
+        }
+    }
+
+    private class HoldConnection : IDuplexConnection
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IDuplexConnection _decoratee;
+        private readonly Task _holdConnectTask;
+        private readonly Task _holdShutdownTask;
+
+        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        {
+            await _holdConnectTask.WaitAsync(cancellationToken);
+            return await _decoratee.ConnectAsync(cancellationToken);
+        }
+
+        public void Dispose() => _decoratee.Dispose();
+
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+            _decoratee.ReadAsync(buffer, cancellationToken);
+
+        public async Task ShutdownAsync(CancellationToken cancellationToken)
+        {
+            await _holdShutdownTask.WaitAsync(cancellationToken);
+            await _decoratee.ShutdownAsync(cancellationToken);
+        }
+
+        public ValueTask WriteAsync(
+            IReadOnlyList<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancellationToken) => _decoratee.WriteAsync(buffers, cancellationToken);
+
+        internal HoldConnection(IDuplexConnection decoratee, Task holdConnectTask, Task holdShutdownTask)
+        {
+            _decoratee = decoratee;
+            _holdConnectTask = holdConnectTask;
+            _holdShutdownTask = holdShutdownTask;
+        }
+    }
 }

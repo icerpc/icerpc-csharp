@@ -153,13 +153,6 @@ public sealed class ProtocolLoggerTests
         var clientConnectionInformation = await clientConnection.ConnectAsync();
         var invokeTask = clientConnection.InvokeAsync(request, default);
         await dispatcher.DispatchStart;
-        try
-        {
-            await clientConnection.ShutdownAsync(new CancellationToken(canceled: true));
-        }
-        catch (OperationCanceledException)
-        {
-        }
         await clientConnection.DisposeAsync();
 
         // Assert

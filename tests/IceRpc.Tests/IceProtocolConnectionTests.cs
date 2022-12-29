@@ -101,21 +101,17 @@ public sealed class IceProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
+        Task shutdownTask = sut.Server.ShutdownAsync();
 
         // Act
-        try
-        {
-            await sut.Server.ShutdownAsync(new CancellationToken(canceled: true));
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        await sut.Server.DisposeAsync();
 
         IncomingResponse response = await invokeTask;
 
         // Assert
         Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
