@@ -17,6 +17,6 @@ public interface IListener<T> : IListener
 {
     /// <summary>Accepts a new connection.</summary>
     /// <returns>The accepted connection and the network address of the client.</returns>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(CancellationToken cancellationToken);
 }

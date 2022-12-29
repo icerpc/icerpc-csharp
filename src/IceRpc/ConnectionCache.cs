@@ -117,7 +117,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <see cref="IServerAddressFeature.ServerAddress" />. If the cache cannot find an active connection and all
     /// the attempts to establish a new connection fail, this method throws the exception from the last attempt.</summary>
     /// <param name="request">The outgoing request being sent.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {

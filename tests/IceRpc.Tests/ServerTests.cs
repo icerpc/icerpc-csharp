@@ -243,7 +243,7 @@ public class ServerTests
         await disposeTask;
 
         // Prevent unobserved task exception.
-        Assert.That(async() => await invokeTask, Throws.InstanceOf<IceRpcException>());
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<IceRpcException>());
     }
 
     private sealed class HoldServerTransport : IDuplexServerTransport
