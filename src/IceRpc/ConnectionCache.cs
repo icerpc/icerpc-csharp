@@ -404,12 +404,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed)
                     .WaitAsync(shutdownCancellationToken).ConfigureAwait(false) == connection.ShutdownRequested;
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
+            catch (OperationCanceledException)
             {
-                // The connection cache is being shut down or disposed and cache's DisposeAsync is responsible to
-                // DisposeAsync this connection.
-                return;
+                // The connection cache is being shut down or disposed. We handle it below after locking the mutex.
+                shutdownRequested = false;
             }
+            // no other exception can be thrown
 
             lock (_mutex)
             {
@@ -428,8 +428,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             if (shutdownRequested)
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
-                cts.CancelAfter(_shutdownTimeout);
+                using var cts = new CancellationTokenSource(_shutdownTimeout);
 
                 try
                 {

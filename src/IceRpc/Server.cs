@@ -421,11 +421,10 @@ public sealed class Server : IAsyncDisposable
                 shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed)
                     .WaitAsync(shutdownCancellationToken).ConfigureAwait(false) == connection.ShutdownRequested;
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == shutdownCancellationToken)
+            catch (OperationCanceledException)
             {
-                // The server is being shut down or disposed and server's DisposeAsync is responsible to DisposeAsync
-                // this connection.
-                return;
+                // The server is being shut down or disposed. We handle it below with the mutex locked.
+                shutdownRequested = false;
             }
 
             lock (_mutex)
@@ -445,8 +444,7 @@ public sealed class Server : IAsyncDisposable
 
             if (shutdownRequested)
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
-                cts.CancelAfter(_shutdownTimeout);
+                using var cts = new CancellationTokenSource(_shutdownTimeout);
 
                 try
                 {
