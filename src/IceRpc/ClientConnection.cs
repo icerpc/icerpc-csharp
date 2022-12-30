@@ -562,8 +562,33 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             await _decoratee.DisposeAsync().ConfigureAwait(false);
 
-            // _connectTask is readonly once _isDisposed is true.
-            _ = _connectTask?.Exception; // observe exception in case _connectTask is faulted.
+            // _connectTask is immutable once _isDisposed is true.
+
+            if (_connectTask is not null)
+            {
+                // It's possible but unlikely that _connectTask has not completed yet. We await it to observe its
+                // exception, if any.
+                try
+                {
+                    _ = await _connectTask.ConfigureAwait(false);
+                }
+                catch (IceRpcException)
+                {
+                    // expected
+                }
+                catch (OperationCanceledException)
+                {
+                    // expected
+                }
+                catch (TimeoutException)
+                {
+                    // expected
+                }
+                catch (Exception exception)
+                {
+                    Debug.Fail($"Unexpected connection connect exception: {exception}");
+                }
+            }
         }
 
         public Task<IncomingResponse> InvokeAsync(
