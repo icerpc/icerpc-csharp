@@ -474,6 +474,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         // immediately.
         private bool _isConnected;
 
+        private bool _isDisposed;
+
         private readonly object _mutex = new();
 
         // canceled when ClientConnection is shutting down.
@@ -483,6 +485,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             lock (_mutex)
             {
+                if (_isDisposed)
+                {
+                    throw new ObjectDisposedException($"{typeof(ConnectProtocolConnectionDecorator)}");
+                }
+
                 if (_connectTask is null)
                 {
                     _connectTask = PerformConnectAsync();
@@ -546,7 +553,18 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            lock (_mutex)
+            {
+                _isDisposed = true;
+            }
+
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+
+            // _connectTask is readonly once _isDisposed is true.
+            _ = _connectTask?.Exception; // observe exception in case _connectTask is faulted.
+        }
 
         public Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
