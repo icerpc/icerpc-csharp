@@ -148,12 +148,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    // This can occasionally happen if the connection was just closed and disposed by this
-                    // ClientConnection.
+                    // This can happen if a previous ConnectAsync failed and this failed connection was disposed.
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
-                    // Same as above, except DisposeAsync was not called yet on this closed connection.
+                    // Same as above except the connection is not disposed yet.
                 }
 
                 connection = RefreshConnection(connection);
@@ -227,12 +226,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    // This can occasionally happen if the connection was just closed and disposed by this
-                    // ClientConnection.
+                    // This can happen if a previous ConnectAsync or InvokeAsync failed and this failed connection was
+                    // disposed.
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
                 {
-                    // Same as above, except DisposeAsync was not called yet on this closed connection.
+                    // Same as above except the connection is not disposed yet.
                 }
                 // let other exceptions through
 
@@ -491,6 +490,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 else if (_connectTask.IsFaulted || _connectTask.IsCanceled)
                 {
+                    // If a previous ConnectAsync on this connection failed, we want this connection to be discarded
+                    // and replaced.
                     throw new IceRpcException(IceRpcError.ConnectionClosed);
                 }
             }
