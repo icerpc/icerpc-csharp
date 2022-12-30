@@ -326,12 +326,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     return;
                 }
 
-                if (shutdownRequested)
-                {
-                    // Make sure connection becomes ours only since we're going to shut it down and ShutdownAsync can
-                    // be called only once.
-                    _ = RefreshConnection(connection);
-                }
+                // Make sure connection becomes ours only since we're going to shut it down or dispose it (or both).
+                // A call to ClientConnection.ShutdownAsync that acquires mutex immediately after we release it should
+                // not see a _connection that is shut down or disposed.
+                _ = RefreshConnection(connection);
             }
         }
 
@@ -394,12 +392,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 _connection = _connectionFactory();
 
-                // We give it the cleanup task of the previous connection. ConnectAsync (and DisposeAsync if
-                // ConnectAsync is never called) first waits for this cleanup task to complete.
-                if (!_connectionCleanupTask.IsCompleted)
-                {
-                    _connection = new CleanupProtocolConnectionDecorator(_connection, _connectionCleanupTask);
-                }
+                // We create a decorator with the cleanup task of the previous connection. ConnectAsync (and
+                // DisposeAsync if ConnectAsync is never called) first waits for this cleanup task to complete.
+                // Since RefreshConnection is typically called by _connectionCleanupTask, the cleanup task is typically
+                // not completed at this point.
+                _connection = new CleanupProtocolConnectionDecorator(_connection, _connectionCleanupTask);
 
                 // Immediately create cleanup task for new connection.
                 _connectionCleanupTask = CreateConnectionCleanupTask(_connection, _shutdownCts.Token);
