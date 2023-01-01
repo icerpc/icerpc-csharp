@@ -231,7 +231,7 @@ public sealed class Server : IAsyncDisposable
         {
             await Task.Yield(); // exit mutex lock
 
-            // _listener, _listenTask etc are read-only when _disposeTask is not null.
+            // _listener, _listenTask etc are immutable when _disposeTask is not null.
 
             if (_listener is not null)
             {
@@ -289,9 +289,12 @@ public sealed class Server : IAsyncDisposable
             shutdownCancellationToken = _shutdownCts.Token;
             listener = _listenerFactory();
             _listener = listener;
+            _listenTask = Task.Run(ListenAsync);
         }
 
-        _listenTask = Task.Run(async () =>
+        return listener.ServerAddress;
+
+        async Task ListenAsync()
         {
             try
             {
@@ -355,121 +358,119 @@ public sealed class Server : IAsyncDisposable
                 // while the listener is disposed.
             }
             // other exceptions thrown by listener.AcceptAsync are logged by listener via a log decorator
-        });
 
-        return listener.ServerAddress;
-
-        async Task ConnectAsync(IConnector connector)
-        {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
-            cts.CancelAfter(_connectTimeout);
-
-            // Connect the transport connection first.
-            TransportConnectionInformation transportConnectionInformation =
-                await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
-
-            // Create the protocol connection if the server is not being shutdown and if the max connection count is not
-            // reached.
-            IProtocolConnection? protocolConnection = null;
-            lock (_mutex)
+            async Task ConnectAsync(IConnector connector)
             {
-                if (!cts.IsCancellationRequested && (_maxConnections == 0 || _connections.Count < _maxConnections))
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
+                cts.CancelAfter(_connectTimeout);
+
+                // Connect the transport connection first.
+                TransportConnectionInformation transportConnectionInformation =
+                    await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
+
+                // Create the protocol connection if the server is not being shutdown and if the max connection count is
+                // not reached.
+                IProtocolConnection? protocolConnection = null;
+                lock (_mutex)
                 {
-                    // The protocol connection adopts the transport connection from the connector and it's not
-                    // responsible for disposing of it.
-                    protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
-                    _connections.Add(protocolConnection);
+                    if (!cts.IsCancellationRequested && (_maxConnections == 0 || _connections.Count < _maxConnections))
+                    {
+                        // The protocol connection adopts the transport connection from the connector and it's not
+                        // responsible for disposing of it.
+                        protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
+                        _connections.Add(protocolConnection);
+                    }
                 }
-            }
 
-            if (protocolConnection is not null)
-            {
-                // Schedule removal after addition, outside mutex lock.
-                _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
-
-                // Connect the connection.
-                _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
-            }
-            else if (!cts.IsCancellationRequested)
-            {
-                // If the max connection count is reached, we refuse the transport connection. We don't pass a
-                // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the peer
-                // doesn't acknowledge the failure.
-                try
+                if (protocolConnection is not null)
                 {
-                    await connector.RefuseTransportConnectionAsync(CancellationToken.None).ConfigureAwait(false);
+                    // Schedule removal after addition, outside mutex lock.
+                    _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
+
+                    // Connect the connection.
+                    _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch
+                else if (!cts.IsCancellationRequested)
                 {
-                    // ignore and continue
+                    // If the max connection count is reached, we refuse the transport connection. We don't pass a
+                    // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the
+                    // peer doesn't acknowledge the failure.
+                    try
+                    {
+                        await connector.RefuseTransportConnectionAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // ignore and continue
+                    }
                 }
-            }
-            // else the transport-level connection establishment timed out or the server is shutting down.
-            // The transport connection is disposed by the disposal of the connector if the protocol connection didn't
-            // adopt it above.
-        }
-
-        // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(
-            IProtocolConnection connection,
-            CancellationToken shutdownCancellationToken)
-        {
-            bool shutdownRequested;
-
-            try
-            {
-                shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed)
-                    .WaitAsync(shutdownCancellationToken).ConfigureAwait(false) == connection.ShutdownRequested;
-            }
-            catch (OperationCanceledException)
-            {
-                // The server is being shut down or disposed. We handle it below with the mutex locked.
-                shutdownRequested = false;
+                // else the transport-level connection establishment timed out or the server is shutting down.
+                // The transport connection is disposed by the disposal of the connector if the protocol connection
+                // didn't adopt it above.
             }
 
-            lock (_mutex)
+            // Remove the connection from _connections once shutdown completes
+            async Task RemoveFromCollectionAsync(
+                IProtocolConnection connection,
+                CancellationToken shutdownCancellationToken)
             {
-                if (shutdownCancellationToken.IsCancellationRequested)
-                {
-                    // _connections is read-only and Server.ShutdownAsync/DisposeAsync is responsible to
-                    // shutdown/dispose this connection.
-                    return;
-                }
-                else
-                {
-                    _ = _connections.Remove(connection);
-                    _backgroundConnectionDisposeCount++;
-                }
-            }
-
-            if (shutdownRequested)
-            {
-                using var cts = new CancellationTokenSource(_shutdownTimeout);
+                bool shutdownRequested;
 
                 try
                 {
-                    await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
+                    shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed)
+                        .WaitAsync(shutdownCancellationToken).ConfigureAwait(false) == connection.ShutdownRequested;
                 }
                 catch (OperationCanceledException)
                 {
+                    // The server is being shut down or disposed. We handle it below with the mutex locked.
+                    shutdownRequested = false;
                 }
-                catch (IceRpcException)
-                {
-                }
-                catch (Exception exception)
-                {
-                    Debug.Fail($"Unexpected connection shutdown exception: {exception}");
-                    throw;
-                }
-            }
 
-            await connection.DisposeAsync().ConfigureAwait(false);
-
-            lock (_mutex)
-            {
-                if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
+                lock (_mutex)
                 {
-                    _backgroundConnectionDisposeTcs.SetResult();
+                    if (shutdownCancellationToken.IsCancellationRequested)
+                    {
+                        // _connections is immutable and Server.ShutdownAsync/DisposeAsync is responsible to
+                        // shutdown/dispose this connection.
+                        return;
+                    }
+                    else
+                    {
+                        _ = _connections.Remove(connection);
+                        _backgroundConnectionDisposeCount++;
+                    }
+                }
+
+                if (shutdownRequested)
+                {
+                    using var cts = new CancellationTokenSource(_shutdownTimeout);
+
+                    try
+                    {
+                        await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (IceRpcException)
+                    {
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.Fail($"Unexpected connection shutdown exception: {exception}");
+                        throw;
+                    }
+                }
+
+                await connection.DisposeAsync().ConfigureAwait(false);
+
+                lock (_mutex)
+                {
+                    if (--_backgroundConnectionDisposeCount == 0 && shutdownCancellationToken.IsCancellationRequested)
+                    {
+                        _backgroundConnectionDisposeTcs.SetResult();
+                    }
                 }
             }
         }
@@ -501,23 +502,23 @@ public sealed class Server : IAsyncDisposable
 
         async Task PerformShutdownAsync()
         {
-            // _listener is immutable once _shutdownCts is canceled.
-            if (_listener is not null)
-            {
-                // The disposal of the listener will terminate the listenTask
-                await _listener.DisposeAsync().ConfigureAwait(false);
-            }
-
-            if (_listenTask is not null)
-            {
-                await _listenTask.ConfigureAwait(false);
-            }
-
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(_shutdownTimeout);
 
             try
             {
+                // _listener and _listenTask immutable once _shutdownCts is canceled.
+                if (_listener is not null)
+                {
+                    // The disposal of the listener will terminate the listenTask
+                    await _listener.DisposeAsync().AsTask().WaitAsync(cts.Token).ConfigureAwait(false);
+                }
+
+                if (_listenTask is not null)
+                {
+                    await _listenTask.WaitAsync(cts.Token).ConfigureAwait(false);
+                }
+
                 // Note: this throws the first exception, not all of them.
                 await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cts.Token)))
                     .ConfigureAwait(false);
