@@ -8,6 +8,7 @@ namespace IceRpc;
 /// cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by <see cref="Server" />.
 /// Applications can use this interface to build their own custom client connection and connection cache classes.
 /// </summary>
+/// <seealso cref="ClientProtocolConnectionFactory" />
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets a task that completes when the connection is closed.</summary>
@@ -55,9 +56,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the connection was not connected successfully prior to
-    /// this call, or if this method is called more than once.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> was not called prior to this
+    /// call, or if this method is called more than once.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
-    /// <remarks>If cancellation token is canceled, the protocol connection is aborted.</remarks>
     Task ShutdownAsync(CancellationToken cancellationToken = default);
 }
