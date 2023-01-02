@@ -211,7 +211,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
-    /// and doesn't interfere with other request1 and responses being send over the same connection.</summary>
+    /// and doesn't interfere with other request and responses being send over the same connection.</summary>
     [Test]
     public async Task Response_received_for_discarded_request_is_ignored()
     {
