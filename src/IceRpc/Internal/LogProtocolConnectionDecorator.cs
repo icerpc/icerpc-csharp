@@ -20,16 +20,13 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     private readonly IProtocolConnection _decoratee;
 
     private readonly ILogger _logger;
+
     private volatile Task? _logShutdownTask;
+
     private readonly EndPoint? _remoteNetworkAddress;
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource<TransportConnectionInformation?>();
-
-        // If Connect is called and succeeds, we log the shutdown.
-        _logShutdownTask = LogShutdownAsync(tcs.Task);
-
         try
         {
             TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
@@ -40,13 +37,13 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 connectionInformation.LocalNetworkAddress,
                 connectionInformation.RemoteNetworkAddress);
 
-            tcs.SetResult(connectionInformation);
+            // We only log the shutdown or completion of the connection after a successful ConnectAsync.
+            _logShutdownTask = LogShutdownAsync(connectionInformation);
+
             return connectionInformation;
         }
         catch (Exception exception)
         {
-            _ = tcs.TrySetResult(null); // TrySetResult in case ConnectAsync is incorrectly called twice.
-
             if (_remoteNetworkAddress is null)
             {
                 _logger.LogConnectionConnectFailed(ServerAddress, exception);
@@ -58,26 +55,22 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             throw;
         }
 
-        async Task LogShutdownAsync(Task<TransportConnectionInformation?> task)
+        async Task LogShutdownAsync(TransportConnectionInformation connectionInformation)
         {
-            // We wait for ConnectAsync to complete and succeed (see above)
-            if (await task.ConfigureAwait(false) is TransportConnectionInformation connectionInformation)
+            if (await Closed.ConfigureAwait(false) is Exception exception)
             {
-                if (await Closed.ConfigureAwait(false) is Exception exception)
-                {
-                    _logger.LogConnectionFailed(
-                        IsServer,
-                        connectionInformation.LocalNetworkAddress,
-                        connectionInformation.RemoteNetworkAddress,
-                        exception);
-                }
-                else
-                {
-                    _logger.LogConnectionShutdown(
-                        IsServer,
-                        connectionInformation.LocalNetworkAddress,
-                        connectionInformation.RemoteNetworkAddress);
-                }
+                _logger.LogConnectionFailed(
+                    IsServer,
+                    connectionInformation.LocalNetworkAddress,
+                    connectionInformation.RemoteNetworkAddress,
+                    exception);
+            }
+            else
+            {
+                _logger.LogConnectionShutdown(
+                    IsServer,
+                    connectionInformation.LocalNetworkAddress,
+                    connectionInformation.RemoteNetworkAddress);
             }
         }
     }
@@ -88,7 +81,6 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
         if (_logShutdownTask is Task logShutdownTask)
         {
-            // When ConnectAsync is called, we log the ConnectFailure or Connect success + shutdown.
             await logShutdownTask.ConfigureAwait(false);
         }
     }
