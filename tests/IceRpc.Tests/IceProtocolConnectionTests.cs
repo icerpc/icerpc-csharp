@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -85,10 +86,10 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
-    /// <summary>Verifies that disposing a server connection causes the invocation to fail with a <see
+    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail with a <see
     /// cref="DispatchException" />.</summary>
     [Test]
-    public async Task Disposing_server_connection_triggers_dispatch_exception([Values(false, true)] bool shutdown)
+    public async Task Abortive_server_connection_shutdown_triggers_dispatch_exception()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -101,13 +102,9 @@ public sealed class IceProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
+        Task shutdownTask = sut.Server.ShutdownAsync();
 
         // Act
-        Task? shutdownTask = null;
-        if (shutdown)
-        {
-            shutdownTask = sut.Server.ShutdownAsync();
-        }
         await sut.Server.DisposeAsync();
 
         IncomingResponse response = await invokeTask;
@@ -115,11 +112,7 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-
-        if (shutdownTask is not null)
-        {
-            await shutdownTask;
-        }
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -173,8 +166,10 @@ public sealed class IceProtocolConnectionTests
         var exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await sut.Client.InvokeAsync(request, default));
         Assert.That(exception, Is.Not.Null);
-        exception = Assert.ThrowsAsync<IceRpcException>(async () => await sut.Server.ShutdownComplete);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+
+        Assert.That(
+            await sut.Server.Closed,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
@@ -209,6 +204,30 @@ public sealed class IceProtocolConnectionTests
         bool ok = response.Payload.TryRead(out ReadResult readResult);
         Assert.That(ok, Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
+    }
+
+    /// <summary>Verifies that a shutdown succeeds when the server transport ShutdownAsync is hung, since ice does
+    /// not call ShutdownAsync on the duplex connection.</summary>
+    [Test]
+    public async Task Shutdown_succeeds_with_hung_server_transport()
+    {
+        // Arrange
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
+            .AddSingleton(colocTransport.ClientTransport) // overwrite
+            .AddSingleton<IDuplexServerTransport>(serverTransport)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        serverTransport.ReleaseConnect();
+        await sut.ConnectAsync();
+
+        // Act/Assert
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Nothing);
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>

@@ -9,9 +9,11 @@ namespace IceRpc.Internal;
 /// <summary>Provides a decorator that adds logging to the <see cref="IProtocolConnection" />.</summary>
 internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
+    public Task<Exception?> Closed => _decoratee.Closed;
+
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    public Task ShutdownComplete => _decoratee.ShutdownComplete;
+    public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
     private bool IsServer => _remoteNetworkAddress is not null;
 
@@ -65,8 +67,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
         _decoratee.InvokeAsync(request, cancellationToken);
 
-    public Task ShutdownAsync(CancellationToken cancellationToken = default) =>
-        _decoratee.ShutdownAsync(cancellationToken);
+    public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
 
     internal LogProtocolConnectionDecorator(
         IProtocolConnection decoratee,
@@ -86,22 +87,20 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 TransportConnectionInformation connectionInformation)
             {
                 // We only log a shutdown message after ConnectAsync completed successfully.
-                try
-                {
-                    await ShutdownComplete.ConfigureAwait(false);
-
-                    _logger.LogConnectionShutdown(
-                        IsServer,
-                        connectionInformation.LocalNetworkAddress,
-                        connectionInformation.RemoteNetworkAddress);
-                }
-                catch (Exception exception)
+                if (await Closed.ConfigureAwait(false) is Exception exception)
                 {
                     _logger.LogConnectionFailed(
                         IsServer,
                         connectionInformation.LocalNetworkAddress,
                         connectionInformation.RemoteNetworkAddress,
                         exception);
+                }
+                else
+                {
+                    _logger.LogConnectionShutdown(
+                        IsServer,
+                        connectionInformation.LocalNetworkAddress,
+                        connectionInformation.RemoteNetworkAddress);
                 }
             }
         }
