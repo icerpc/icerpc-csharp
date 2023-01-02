@@ -471,7 +471,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
         Assert.That(
             await sut.Client.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionClosed));
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationRefused));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
@@ -609,7 +609,7 @@ public sealed class ProtocolConnectionTests
         // Act/Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
     }
 
     /// <summary>Ensures that the sending a request after dispose fails.</summary>
@@ -1037,7 +1037,7 @@ public sealed class ProtocolConnectionTests
         _ = FulfillShutdownRequestAsync(sut.Client);
 
         // Perform invocations on the server and shut it down. The invocations should fail with
-        // IceRpcException(IceRpcError.ConnectionClosed)
+        // IceRpcException(IceRpcError.OperationRefused)
         Task<List<Task>> performInvocationsTask = PerformInvocationsAsync();
         await Task.Delay(10);
 
@@ -1053,7 +1053,7 @@ public sealed class ProtocolConnectionTests
             }
             catch (IceRpcException exception)
             {
-                Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+                Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
             }
         }
 

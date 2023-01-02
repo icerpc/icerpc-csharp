@@ -15,9 +15,6 @@ public enum IceRpcError
     /// such as an intermediary router going down.</summary>
     ConnectionAborted,
 
-    /// <summary>The connection is closed at the beginning of the call, but not yet disposed.</summary>
-    ConnectionClosed,
-
     /// <summary>The peer closed the connection without reporting any error.</summary>
     ConnectionClosedByPeer,
 
@@ -34,9 +31,13 @@ public enum IceRpcError
     /// <summary>An invoker failed to send a request because it could not establish or locate a connection.</summary>
     NoConnection,
 
-    /// <summary>A call that was ongoing when the underlying resource (connection, stream) is aborted by the resource
-    /// disposal.</summary>
+    /// <summary>The operation was aborted because an underlying resource (connection, stream) was disposed while this
+    /// operation was running.</summary>
     OperationAborted,
+
+    /// <summary>The operation was refused because the target resource (for example a connection) is closed or shutting
+    /// down or no longer available prior to the start of this operation.</summary>
+    OperationRefused,
 
     /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
     /// </summary>
