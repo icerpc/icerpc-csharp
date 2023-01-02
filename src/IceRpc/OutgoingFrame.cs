@@ -22,7 +22,7 @@ public abstract class OutgoingFrame
         {
             _payloadContinuation = Protocol.SupportsPayloadContinuation || value is null ?
                 value : throw new NotSupportedException(
-                    $"The '{Protocol}' protocol does not support payload continuation'.");
+                    $"The '{Protocol}' protocol does not support payload continuation.");
         }
     }
 
@@ -41,7 +41,7 @@ public abstract class OutgoingFrame
         if (!Protocol.SupportsPayloadWriterInterceptors)
         {
             throw new NotSupportedException(
-                $"The '{Protocol}' protocol does not support payload writer interceptors'.");
+                $"The '{Protocol}' protocol does not support payload writer interceptors.");
         }
         _payloadWriterInterceptorStack ??= new();
         _payloadWriterInterceptorStack.Push(payloadWriterInterceptor);
