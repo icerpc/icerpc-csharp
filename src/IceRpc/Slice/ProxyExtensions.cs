@@ -12,7 +12,7 @@ namespace IceRpc.Slice;
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
-/// <param name="cancellationToken">The cancellation token.</param>
+/// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
 /// <returns>A value task that contains the return value or a <see cref="SliceException" /> when the status code of the
 /// response is <see cref="StatusCode.ApplicationError" />.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
@@ -25,7 +25,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
-/// <param name="cancellationToken">The cancellation token.</param>
+/// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
 /// <returns>A value task that contains a <see cref="SliceException" /> when the status code of the response is
 /// <see cref="StatusCode.ApplicationError" />.</returns>
 public delegate ValueTask ResponseDecodeFunc(
@@ -70,7 +70,7 @@ public static class ProxyExtensions
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is not
@@ -151,7 +151,7 @@ public static class ProxyExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="oneway">When <see langword="true" />, the request is sent oneway and an empty response is returned
     /// immediately after sending the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is

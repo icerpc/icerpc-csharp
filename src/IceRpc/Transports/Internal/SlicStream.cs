@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -10,6 +9,10 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
 /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The _sendCreditSemaphore is disposed by TrySetState when read and writes are completed")]
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -61,8 +64,7 @@ internal class SlicStream : IMultiplexedStream
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-    private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
-    private Task? _sendStreamConsumedFrameTask;
+    private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -108,11 +110,13 @@ internal class SlicStream : IMultiplexedStream
     {
         if (TrySetReadsClosed())
         {
-            _inputPipeReader?.Abort(completeException);
+            Debug.Assert(_inputPipeReader is not null);
+            _inputPipeReader.Abort(completeException);
         }
         if (TrySetWritesClosed())
         {
-            _outputPipeWriter?.Abort(completeException);
+            Debug.Assert(_outputPipeWriter is not null);
+            _outputPipeWriter.Abort(completeException);
         }
     }
 
@@ -224,7 +228,7 @@ internal class SlicStream : IMultiplexedStream
         // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
         // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
         // additional data and _sendCredit can be used to figure out the size of the next packet to send.
-        await _sendCreditSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         return _sendCredit;
     }
 
@@ -291,7 +295,7 @@ internal class SlicStream : IMultiplexedStream
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
         {
-            Debug.Assert(_sendCreditSemaphore.Count == 0);
+            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
             _sendCreditSemaphore.Release();
         }
         else if (newValue > _connection.PeerPauseWriterThreshold)
@@ -363,17 +367,13 @@ internal class SlicStream : IMultiplexedStream
 
     internal void SendStreamConsumed(int size)
     {
-        Task previousSendStreamConsumedFrameTask = _sendStreamConsumedFrameTask ?? Task.CompletedTask;
-        _sendStreamConsumedFrameTask = SendStreamLastFrameAsync();
+        _ = SendStreamConsumedFrameAsync();
 
-        async Task SendStreamLastFrameAsync()
+        async Task SendStreamConsumedFrameAsync()
         {
             try
             {
-                // First wait for the sending of the previous stream consumed task to complete.
-                await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
-
-                // Send the stream consumed frame.
+                // Send the stream consumed frame. The connection write semaphore ensures that previous frame was sent.
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamConsumed,
@@ -462,6 +462,7 @@ internal class SlicStream : IMultiplexedStream
                 // The stream reads and writes are completed, it's time to release the stream.
                 if (IsStarted)
                 {
+                    _sendCreditSemaphore.Dispose();
                     _connection.ReleaseStream(this);
                 }
             }

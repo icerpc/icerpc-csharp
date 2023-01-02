@@ -223,8 +223,8 @@ public class ServerTests
 
         try
         {
-            await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
-            await serverConnectionContext!.ShutdownComplete.ConfigureAwait(false);
+            await clientConnection.ShutdownAsync().ConfigureAwait(false);
+            await serverConnectionContext!.Closed.ConfigureAwait(false);
         }
         catch (TimeoutException)
         {
@@ -243,7 +243,7 @@ public class ServerTests
         await disposeTask;
 
         // Prevent unobserved task exception.
-        Assert.That(async() => await invokeTask, Throws.InstanceOf<IceRpcException>());
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<IceRpcException>());
     }
 
     private sealed class HoldServerTransport : IDuplexServerTransport

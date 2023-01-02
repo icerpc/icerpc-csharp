@@ -15,7 +15,7 @@ internal static class IncomingFrameExtensions
     /// <param name="templateProxy">The template proxy.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="activator">The activator.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The decode value.</returns>
     internal static ValueTask<T> DecodeValueAsync<T>(
         this IncomingFrame frame,
@@ -65,7 +65,7 @@ internal static class IncomingFrameExtensions
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="feature">The Slice feature.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal static ValueTask DecodeVoidAsync(
         this IncomingFrame frame,
         SliceEncoding encoding,

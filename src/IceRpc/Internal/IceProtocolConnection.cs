@@ -147,7 +147,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
-            // Cancel dispatches and invocations for a speedy shutdown.
+            // Cancel dispatches and invocations for an abortive shutdown.
             _dispatchesAndInvocationsCts.Cancel();
 
             lock (_mutex)
@@ -450,7 +450,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // The request was canceled by speedy-shutdown or graceful closure by the peer.
+            // The request was canceled by abortive-shutdown or graceful closure by the peer.
             Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && ConnectionClosedException is not null);
             lock (_mutex)
             {
