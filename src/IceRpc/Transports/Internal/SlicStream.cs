@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -13,7 +12,7 @@ namespace IceRpc.Transports.Internal;
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Design",
     "CA1001:Types that own disposable fields should be disposable",
-    Justification = "The _sendCreditSemaphore is disposed by TrySetWritesClosed")]
+    Justification = "The _sendCreditSemaphore is disposed by TrySetState when read and writes are completed")]
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -66,7 +65,6 @@ internal class SlicStream : IMultiplexedStream
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
-    private Task? _sendStreamConsumedFrameTask;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -112,11 +110,13 @@ internal class SlicStream : IMultiplexedStream
     {
         if (TrySetReadsClosed())
         {
-            _inputPipeReader?.Abort(completeException);
+            Debug.Assert(_inputPipeReader is not null);
+            _inputPipeReader.Abort(completeException);
         }
         if (TrySetWritesClosed())
         {
-            _outputPipeWriter?.Abort(completeException);
+            Debug.Assert(_outputPipeWriter is not null);
+            _outputPipeWriter.Abort(completeException);
         }
     }
 
@@ -367,17 +367,13 @@ internal class SlicStream : IMultiplexedStream
 
     internal void SendStreamConsumed(int size)
     {
-        Task previousSendStreamConsumedFrameTask = _sendStreamConsumedFrameTask ?? Task.CompletedTask;
-        _sendStreamConsumedFrameTask = SendStreamLastFrameAsync();
+        _ = SendStreamConsumedFrameAsync();
 
-        async Task SendStreamLastFrameAsync()
+        async Task SendStreamConsumedFrameAsync()
         {
             try
             {
-                // First wait for the sending of the previous stream consumed task to complete.
-                await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
-
-                // Send the stream consumed frame.
+                // Send the stream consumed frame. The connection write semaphore ensures that previous frame was sent.
                 await _connection.SendFrameAsync(
                     stream: this,
                     FrameType.StreamConsumed,
@@ -418,7 +414,6 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.WritesCompleted))
         {
             _writesClosedTcs.TrySetResult();
-            _sendCreditSemaphore.Dispose();
             return true;
         }
         else
@@ -467,6 +462,7 @@ internal class SlicStream : IMultiplexedStream
                 // The stream reads and writes are completed, it's time to release the stream.
                 if (IsStarted)
                 {
+                    _sendCreditSemaphore.Dispose();
                     _connection.ReleaseStream(this);
                 }
             }

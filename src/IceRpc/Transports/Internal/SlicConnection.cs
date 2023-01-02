@@ -678,9 +678,6 @@ internal class SlicConnection : IMultiplexedConnection
                     stream.TrySetWritesClosed();
                 }
 
-                // Make sure the previous stream frame write completed successfully.
-                await _writeStreamFrameTask.ConfigureAwait(false);
-
                 EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
             }
             catch

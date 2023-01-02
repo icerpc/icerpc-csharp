@@ -43,10 +43,8 @@ public class DeadlineMiddleware : IDispatcher
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
         {
-            using var timeoutTokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                timeoutTokenSource);
+            using var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutTokenSource.CancelAfter(timeout);
 
             try
             {

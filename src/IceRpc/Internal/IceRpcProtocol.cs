@@ -15,6 +15,7 @@ internal sealed class IceRpcProtocol : Protocol
             hasFields: true,
             hasFragment: false,
             supportsPayloadContinuation: true,
+            supportsPayloadWriterInterceptors: true,
             byteValue: 2)
     {
     }

@@ -373,16 +373,26 @@ public sealed class ProtocolConnectionTests
         bool isOneway)
     {
         // Arrange
-
         // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
         // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
         // client transport connection to be closed because it's idle.
-        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
+        TimeSpan idleTimeout = protocol == Protocol.Ice ? TimeSpan.FromMilliseconds(800) : TimeSpan.FromSeconds(60);
+        ConnectionOptions? serverConnectionOptions =
             new ConnectionOptions
             {
-                IdleTimeout = TimeSpan.FromMilliseconds(800),
-            } :
-            null;
+                IdleTimeout = idleTimeout,
+                Dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
+                {
+                    ReadResult result;
+                    do
+                    {
+                        result = await request.Payload.ReadAsync(cancellationToken);
+                        request.Payload.AdvanceTo(result.Buffer.End);
+                    }
+                    while (!result.IsCompleted && !result.IsCanceled);
+                    return new OutgoingResponse(request);
+                })
+            };
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
@@ -390,24 +400,25 @@ public sealed class ProtocolConnectionTests
                 clientConnectionOptions: new ConnectionOptions
                 {
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
-                    Dispatcher = ServiceNotFoundDispatcher.Instance
                 },
                 serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
-        long startTime = Environment.TickCount64;
-
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
+        var pipe = new Pipe();
+        using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
-            using var request = new OutgoingRequest(new ServiceAddress(protocol))
-            {
-                IsOneway = isOneway,
-            };
-            request.Use(writer => new DelayPipeWriter(writer, TimeSpan.FromMilliseconds(520)));
-            _ = await sut.Client.InvokeAsync(request);
-        }
+            Payload = pipe.Reader,
+            IsOneway = isOneway
+        };
+        await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[10]));
+        long startTime = Environment.TickCount64;
+        var invokeTask = sut.Client.InvokeAsync(request);
+        await Task.Delay(TimeSpan.FromMilliseconds(550));
+        pipe.Writer.Complete();
+        await invokeTask;
 
         // Act
         await sut.Client.ShutdownRequested;
@@ -696,72 +707,6 @@ public sealed class ProtocolConnectionTests
 
         // Cleanup
         _ = await responseTask;
-    }
-
-    /// <summary>Ensures that the request payload writer is completed on valid request.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task PayloadWriter_completed_with_valid_request(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        using var request = new OutgoingRequest(new ServiceAddress(protocol));
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-        request.Use(writer =>
-            {
-                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                payloadWriterSource.SetResult(payloadWriterDecorator);
-                return payloadWriterDecorator;
-            });
-
-        // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
-
-        // Cleanup
-        await responseTask;
-    }
-
-    /// <summary>Ensures that the request payload writer is completed on valid response.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task PayloadWriter_completed_with_valid_response(Protocol protocol)
-    {
-        // Arrange
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-            {
-                var response = new OutgoingResponse(request);
-                response.Use(writer =>
-                    {
-                        var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                        payloadWriterSource.SetResult(payloadWriterDecorator);
-                        return payloadWriterDecorator;
-                    });
-                return new(response);
-            });
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        using var request = new OutgoingRequest(new ServiceAddress(protocol));
-
-        // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
-
-        // Cleanup
-        await responseTask;
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
@@ -1177,33 +1122,5 @@ public sealed class ProtocolConnectionTests
         }
 
         internal DelayPipeReader(TimeSpan delay) => _delay = delay;
-    }
-
-    private sealed class DelayPipeWriter : PipeWriter
-    {
-        private readonly PipeWriter _decoratee;
-        private readonly TimeSpan _delay;
-
-        public override void Advance(int bytes) => _decoratee.Advance(bytes);
-
-        public override void CancelPendingFlush() => _decoratee.CancelPendingFlush();
-
-        public override void Complete(Exception? exception) => _decoratee.Complete(exception);
-
-        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
-        {
-            await Task.Delay(_delay, cancellationToken);
-            return await _decoratee.FlushAsync(cancellationToken);
-        }
-
-        public override Memory<byte> GetMemory(int sizeHint) => _decoratee.GetMemory(sizeHint);
-
-        public override Span<byte> GetSpan(int sizeHint) => _decoratee.GetSpan(sizeHint);
-
-        internal DelayPipeWriter(PipeWriter decoratee, TimeSpan delay)
-        {
-            _decoratee = decoratee;
-            _delay = delay;
-        }
     }
 }
