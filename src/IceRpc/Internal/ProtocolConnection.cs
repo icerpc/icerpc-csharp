@@ -36,7 +36,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private Task? _disposeTask;
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
-    private bool _isShutDown;
+    private bool _isShutdown;
     private readonly object _mutex = new();
 
     // The thread that completes this TCS can run the continuations.
@@ -56,7 +56,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
 
             // The connection can be closed only if disposed (and we check _disposedTask above).
-            Debug.Assert(!_isShutDown);
+            Debug.Assert(!_isShutdown);
             Debug.Assert(ConnectionClosedException is null);
 
             _connectTask = PerformConnectAsync();
@@ -155,7 +155,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     // ignore any ConnectAsync exception
                 }
 
-                if (_isShutDown)
+                if (_isShutdown)
                 {
                     CancelDispatchesAndInvocations(); // speed up shutdown
                     _ = await Closed.ConfigureAwait(false);
@@ -216,7 +216,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
             }
-            if (_isShutDown)
+            if (_isShutdown)
             {
                 throw new InvalidOperationException("Cannot call shutdown more than once.");
             }
@@ -225,7 +225,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
             }
 
-            _isShutDown = true;
+            _isShutdown = true;
             ConnectionClosedException ??= new(IceRpcError.ConnectionClosed, "The connection was shut down.");
 
             if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)

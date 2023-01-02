@@ -22,8 +22,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The underlying protocol connection
     private IProtocolConnection _connection;
 
-    // The task that shuts down _connection (if requested) and disposes the _connection. This task is never faulted
-    // and is no-op once this ClientConnection is shutdown or disposed.
+    // The task that shuts down _connection (if requested) and disposes _connection. This task is never faulted and is
+    // no-op once this ClientConnection is shutdown or disposed.
     private Task _connectionCleanupTask;
 
     private readonly Func<IProtocolConnection> _connectionFactory;

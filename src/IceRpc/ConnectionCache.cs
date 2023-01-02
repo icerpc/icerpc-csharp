@@ -304,6 +304,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
 
+            // We make a copy of _shutdownCts.Token with the mutex locked. This copy remains usable after we release
+            // the lock unlike _shutdownCts.Token that throws ObjectDisposedException once _shutdownCts is disposed.
             shutdownCancellationToken = _shutdownCts.Token;
 
             if (shutdownCancellationToken.IsCancellationRequested)
