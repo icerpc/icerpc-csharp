@@ -148,47 +148,6 @@ public sealed class IceProtocolConnectionTests
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
     }
 
-    /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
-    [Test]
-    public async Task Payload_completed_on_invalid_response_payload_writer()
-    {
-        // Arrange
-        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
-        {
-            var response = new OutgoingResponse(request)
-            {
-                Payload = payloadDecorator
-            };
-            response.Use(writer => InvalidPipeWriter.Instance);
-            return new(response);
-        });
-        var tcs = new TaskCompletionSource<Exception>();
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(
-                Protocol.Ice,
-                dispatcher,
-                serverConnectionOptions: new()
-                {
-                    FaultedTaskAction = tcs.SetResult
-                })
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-
-        // Act
-
-        // If the response payload writer is bogus the ice connection cannot write any response, the request
-        // will be canceled by the timeout.
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
-        Assert.That(
-            async () => await sut.Client.InvokeAsync(request, cts.Token),
-            Throws.InstanceOf<OperationCanceledException>());
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
-        Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
-    }
-
     [Test]
     public async Task Receiving_a_frame_larger_than_max_ice_frame_size_aborts_the_connection()
     {

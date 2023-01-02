@@ -64,6 +64,7 @@ internal sealed class IceProtocol : Protocol
             hasFields: false,
             hasFragment: true,
             supportsPayloadContinuation: false,
+            supportsPayloadWriterInterceptors: false,
             byteValue: 1)
     {
     }
