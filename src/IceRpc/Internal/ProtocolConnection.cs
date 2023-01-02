@@ -220,7 +220,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 throw new InvalidOperationException("Cannot call shutdown more than once.");
             }
-            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
+            if (_connectTask is null)
             {
                 throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
             }
