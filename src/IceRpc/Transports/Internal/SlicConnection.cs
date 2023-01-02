@@ -610,19 +610,9 @@ internal class SlicConnection : IMultiplexedConnection
         await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Allocate stream ID if the stream isn't started. Thread-safety is provided by the write semaphore.
             if (!stream.IsStarted)
             {
-                if (stream.IsBidirectional)
-                {
-                    AddStream(_nextBidirectionalId, stream);
-                    _nextBidirectionalId += 4;
-                }
-                else
-                {
-                    AddStream(_nextUnidirectionalId, stream);
-                    _nextUnidirectionalId += 4;
-                }
+                StartStream(stream);
             }
 
             await WriteFrameAsync(
@@ -691,19 +681,9 @@ internal class SlicConnection : IMultiplexedConnection
             await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                // Allocate stream ID if the stream isn't started. Thread-safety is provided by the write semaphore.
                 if (!stream.IsStarted)
                 {
-                    if (stream.IsBidirectional)
-                    {
-                        AddStream(_nextBidirectionalId, stream);
-                        _nextBidirectionalId += 4;
-                    }
-                    else
-                    {
-                        AddStream(_nextUnidirectionalId, stream);
-                        _nextUnidirectionalId += 4;
-                    }
+                    StartStream(stream);
                 }
 
                 // Notify the stream that we're consuming sendSize credit. It's important to call this before
@@ -1135,6 +1115,18 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         stream.ReceivedConsumedFrame((int)consumed.Size);
                     }
+                    else
+                    {
+                        lock (_mutex)
+                        {
+                            if (_exception is null)
+                            {
+                                throw new IceRpcException(
+                                    IceRpcError.IceRpcError,
+                                    "Received Slic stream consumed frame for unknown stream.");
+                            }
+                        }
+                    }
                     break;
                 }
                 case FrameType.StreamReset:
@@ -1163,9 +1155,15 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"Received Slic stream reset frame for unknown stream with ID: {streamId}");
+                        lock (_mutex)
+                        {
+                            if (_exception is null)
+                            {
+                                throw new IceRpcException(
+                                    IceRpcError.IceRpcError,
+                                    "Received Slic stream reset frame for unknown stream.");
+                            }
+                        }
                     }
                     break;
                 }
@@ -1195,9 +1193,15 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"Received Slic stream stop sending frame for unknown stream with ID: {streamId}");
+                        lock (_mutex)
+                        {
+                            if (_exception is null)
+                            {
+                                throw new IceRpcException(
+                                    IceRpcError.IceRpcError,
+                                    "Received Slic stream stop sending frame for unknown stream.");
+                            }
+                        }
                     }
                     break;
                 }
@@ -1217,9 +1221,15 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"Received Slic stream reads completed frame for unknown stream with ID: {streamId}");
+                        lock (_mutex)
+                        {
+                            if (_exception is null)
+                            {
+                                throw new IceRpcException(
+                                    IceRpcError.IceRpcError,
+                                    "Received Slic stream reads completed frame for unknown stream.");
+                            }
+                        }
                     }
                     break;
                 }
@@ -1261,62 +1271,6 @@ internal class SlicConnection : IMultiplexedConnection
                     await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
-        }
-
-        SlicStream? GetStream(ulong streamId)
-        {
-            bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
-            bool isBidirectional = streamId % 4 < 2;
-
-            if (_streams.TryGetValue(streamId, out SlicStream? stream))
-            {
-                return stream;
-            }
-            else if (isRemote && !IsKnownRemoteStream(streamId, isBidirectional))
-            {
-                // Create a new stream if the remote stream is unknown.
-
-                if (isBidirectional)
-                {
-                    if (_bidirectionalStreamCount == _maxBidirectionalStreams)
-                    {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"The maximum bidirectional stream count {_maxBidirectionalStreams} was reached.");
-                    }
-                    Interlocked.Increment(ref _bidirectionalStreamCount);
-                }
-                else
-                {
-                    if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
-                    {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached");
-                    }
-                    Interlocked.Increment(ref _unidirectionalStreamCount);
-                }
-
-                // Accept the new remote stream.
-                // TODO: Cache SliceMultiplexedStream
-                stream = new SlicStream(this, isBidirectional, remote: true);
-                try
-                {
-                    AddStream(streamId, stream);
-                    return stream;
-                }
-                catch
-                {
-                    stream.Input.Complete();
-                    if (isBidirectional)
-                    {
-                        stream.Output.Complete();
-                    }
-                    Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
-                }
-            }
-
-            return null;
         }
 
         bool IsKnownRemoteStream(ulong streamId, bool bidirectional)
@@ -1400,6 +1354,31 @@ internal class SlicConnection : IMultiplexedConnection
                 new ReadOnlySequence<byte>((byte[])buffer),
                 (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
             return checked((int)value);
+        }
+    }
+
+    private void StartStream(SlicStream stream)
+    {
+        if (stream.WritesCompleted)
+        {
+            throw new InvalidOperationException("Cannot start a stream whose writes are already completed");
+        }
+
+        if (stream.IsBidirectional)
+        {
+            if (stream.ReadsCompleted)
+            {
+                throw new InvalidOperationException(
+                    "Cannot start a bidirectional stream whose reads are already completed");
+            }
+
+            AddStream(_nextBidirectionalId, stream);
+            _nextBidirectionalId += 4;
+        }
+        else
+        {
+            AddStream(_nextUnidirectionalId, stream);
+            _nextUnidirectionalId += 4;
         }
     }
 

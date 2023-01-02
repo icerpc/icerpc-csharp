@@ -169,6 +169,7 @@ public abstract class MultiplexedStreamConformanceTests
     /// <param name="segments">The number of segments to write to each stream.</param>
     /// <param name="payloadSize">The payload size to write with each write call.</param>
     [Test]
+    [Repeat(100)]
     public async Task Stream_full_duplex_communication(
         [Values(0, 5)] int delay,
         [Values(1, 16)] int streamCount,
@@ -185,7 +186,6 @@ public abstract class MultiplexedStreamConformanceTests
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         var streams = new LocalAndRemoteStreams[streamCount];
-
         for (int i = 0; i < streamCount; ++i)
         {
             streams[i] = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
@@ -231,25 +231,29 @@ public abstract class MultiplexedStreamConformanceTests
 
         async Task<byte[]> ReadAsync(IMultiplexedStream stream, long size)
         {
+            ReadResult result = default;
             while (true)
             {
-                // wait for delay
-                ReadResult result = await stream.Input.ReadAsync();
+                result = await stream.Input.ReadAsync();
+
                 if (delay > 0)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay));
                 }
-                if (result.Buffer.Length == size)
+
+                if (result.IsCompleted)
                 {
-                    byte[] buffer = result.Buffer.ToArray();
-                    stream.Input.AdvanceTo(result.Buffer.End);
-                    return buffer;
+                    break;
                 }
                 else
                 {
                     stream.Input.AdvanceTo(result.Buffer.Start, result.Buffer.End);
                 }
             }
+
+            byte[] buffer = result.Buffer.ToArray();
+            stream.Input.AdvanceTo(result.Buffer.End);
+            return buffer;
         }
 
         async Task WriteAsync(IMultiplexedStream stream, int segments, ReadOnlyMemory<byte> payload)
@@ -260,7 +264,9 @@ public abstract class MultiplexedStreamConformanceTests
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay));
                 }
-                await stream.Output.WriteAsync(payload, default);
+
+                FlushResult flushResult = await stream.Output.WriteAsync(payload, default);
+                Assert.That(flushResult.IsCompleted, Is.False);
             }
             stream.Output.Complete();
         }

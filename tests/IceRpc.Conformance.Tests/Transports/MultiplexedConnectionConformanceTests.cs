@@ -207,13 +207,10 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Consume the last stream frame. This will trigger the serverStream1 reads completion and allow a new
         // stream to be opened by the client.
-        Console.Error.WriteLine("XXXX");
         readResult = await serverStream1.Input.ReadAsync();
-        Console.Error.WriteLine("XXXX2");
         Assert.That(readResult.IsCompleted, Is.True);
 
         Assert.That(async () => await clientStream2Task, Throws.Nothing);
-        Console.Error.WriteLine("XXXX3");
         serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
         MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
@@ -705,12 +702,11 @@ public abstract class MultiplexedConnectionConformanceTests
             while (true)
             {
                 ReadResult readResult = await stream.Input.ReadAsync();
+                stream.Input.AdvanceTo(readResult.Buffer.End);
                 if (readResult.IsCompleted)
                 {
-                    stream.Input.AdvanceTo(readResult.Buffer.End);
                     break;
                 }
-                stream.Input.AdvanceTo(readResult.Buffer.End);
             }
             stream.Input.Complete();
         }
@@ -720,12 +716,11 @@ public abstract class MultiplexedConnectionConformanceTests
             while (true)
             {
                 ReadResult readResult = await stream.Input.ReadAsync();
+                stream.Input.AdvanceTo(readResult.Buffer.End);
                 if (readResult.IsCompleted)
                 {
-                    stream.Input.AdvanceTo(readResult.Buffer.End);
                     break;
                 }
-                stream.Input.AdvanceTo(readResult.Buffer.End);
             }
             stream.Input.Complete();
 
