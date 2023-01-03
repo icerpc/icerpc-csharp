@@ -165,8 +165,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
     [Test]
     public async Task After_reach_max_stream_count_end_of_stream_allows_accepting_a_new_one(
-        // [Values(true, false)] bool bidirectional)
-        [Values(true)] bool bidirectional)
+        [Values(true, false)] bool bidirectional)
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();

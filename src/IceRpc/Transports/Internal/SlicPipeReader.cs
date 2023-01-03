@@ -51,11 +51,10 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // If ReadAsync or TryRead didn't complete reads on the stream already, complete them now. This will
-            // send a stop sending frame if reads are not completed already.
+            // If ReadAsync or TryRead didn't complete reads on the stream already, complete them now.
             if (!_completedReads)
             {
-                // If the peer is not done writing, send a stop sending frame.
+                // We don't use the application error code, it's irrelevant.
                 _stream.CompleteReads(errorCode: 0ul);
             }
 

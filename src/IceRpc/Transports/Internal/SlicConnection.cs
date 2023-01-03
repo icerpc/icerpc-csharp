@@ -708,10 +708,10 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (lastStreamFrame)
             {
+                // Notify the stream that the last stream frame is considered sent at this point. This will complete
+                // writes on the stream and allow the stream to be released if reads are also completed.
                 stream.SentLastStreamFrame();
             }
-
-            // Writes will be completed when the peer's sends the stop sending or reads completed frame.
 
             // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
             // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
