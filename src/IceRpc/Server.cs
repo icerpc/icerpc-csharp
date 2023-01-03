@@ -11,13 +11,27 @@ using System.Security.Authentication;
 
 namespace IceRpc;
 
-/// <summary>A server serves clients by listening for the requests they send, processing these requests and sending the
-/// corresponding responses.</summary>
+/// <summary>A server accepts connections from clients and dispatches the requests it receives over these connections.
+/// </summary>
 public sealed class Server : IAsyncDisposable
 {
+    // Protocol connection's ShutdownAsync and DisposeAsync wait for the dispatches started by the connection to
+    // complete: this way, if a dispatcher misbehaves (does not complete promptly after its cancellation token is
+    // canceled), ShutdownAsync will timeout and DisposeAsync will hang. This timeout or hang alerts the application of
+    // this bug in the dispatcher code (which is application code).
+    // Before the application calls ShutdownAsync or DisposeAsync on Server, a connection can be shut down or disposed
+    // for various reasons, such as client shutdown. We want ShutdownAsync/DisposeAsync to wait for any connection
+    // shutdown/dispose that started in the background beforehand; otherwise, a misbehaving dispatcher that hangs would
+    // only cause ShutdownAsync/DisposeAsync to timeout or hang if it's associated with an active connection.
+    // We use _backgroundConnectionDisposeCount, _backgroundConnectionShutdownCount etc. for this purpose.
     private int _backgroundConnectionDisposeCount;
 
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private int _backgroundConnectionShutdownCount;
+
+    private readonly TaskCompletionSource _backgroundConnectionShutdownTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly HashSet<IProtocolConnection> _connections = new();
@@ -250,14 +264,17 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask())
-                .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
+            await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
+                .ConfigureAwait(false);
+
+            await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
 
             _shutdownCts.Dispose();
         }
     }
 
-    /// <summary>Starts listening on the configured server address and dispatching requests from clients.</summary>
+    /// <summary>Starts accepting connections on the configured server address. Requests received over these connections
+    /// are then dispatched by the configured dispatcher.</summary>
     /// <returns>The server address this server is listening on and that a client would connect to. This address is the
     /// same as <see cref="ServerOptions.ServerAddress" /> except its <see cref="ServerAddress.Transport" /> property is
     /// always non-null and its port number is never 0 when the host is an IP address.</returns>
@@ -265,12 +282,12 @@ public sealed class Server : IAsyncDisposable
     /// </exception>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or shutting
     /// down.</exception>
+    /// <exception cref="ObjectDisposedException">Throw when the server is disposed.</exception>
     public ServerAddress Listen()
     {
         CancellationToken shutdownCancellationToken;
         IConnectorListener listener;
 
-        // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -439,6 +456,10 @@ public sealed class Server : IAsyncDisposable
                     {
                         _ = _connections.Remove(connection);
                         _backgroundConnectionDisposeCount++;
+                        if (shutdownRequested)
+                        {
+                            _backgroundConnectionShutdownCount++;
+                        }
                     }
                 }
 
@@ -461,6 +482,17 @@ public sealed class Server : IAsyncDisposable
                         Debug.Fail($"Unexpected connection shutdown exception: {exception}");
                         throw;
                     }
+                    finally
+                    {
+                        lock (_mutex)
+                        {
+                            if (--_backgroundConnectionShutdownCount == 0 &&
+                                shutdownCancellationToken.IsCancellationRequested)
+                            {
+                                _backgroundConnectionShutdownTcs.SetResult();
+                            }
+                        }
+                    }
                 }
 
                 await connection.DisposeAsync().ConfigureAwait(false);
@@ -477,9 +509,20 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
-    /// existing connections.</summary>
+    /// connections.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes successfully once the shutdown is complete.</returns>
+    /// <returns>A task that completes successfully once the shutdown is complete. This task can also complete with one
+    /// of the following exceptions:
+    /// <list type="bullet">
+    /// <item><description><see cref="IceRpcException" />if the shutdown of a connection failed.</description>
+    /// </item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// cancellation token.</description></item>
+    /// <item><description><see cref="TimeoutException" />if the shutdown timed out.</description></item>
+    /// </list>
+    /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
@@ -496,6 +539,12 @@ public sealed class Server : IAsyncDisposable
             // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
             // does not change.
             _shutdownCts.Cancel();
+
+            if (_backgroundConnectionShutdownCount == 0)
+            {
+                // There is no outstanding background shutdown.
+                _ = _backgroundConnectionShutdownTcs.TrySetResult();
+            }
         }
 
         return PerformShutdownAsync();
@@ -522,6 +571,8 @@ public sealed class Server : IAsyncDisposable
                 // Note: this throws the first exception, not all of them.
                 await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cts.Token)))
                     .ConfigureAwait(false);
+
+                await _backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
