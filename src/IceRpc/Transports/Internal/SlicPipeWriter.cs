@@ -232,15 +232,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
         if (sendCredit > 0)
         {
-            try
-            {
-                _sendCreditSemaphore.Release();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the writer has been completed.
-                Debug.Assert(_state.HasFlag(State.Completed));
-            }
+            _sendCreditSemaphore.Release();
         }
         Debug.Assert(sendCredit >= 0);
     }
@@ -250,8 +242,16 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
         {
-            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
-            _sendCreditSemaphore.Release();
+            try
+            {
+                Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
+                _sendCreditSemaphore.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the writer has been completed.
+                Debug.Assert(_state.HasFlag(State.Completed));
+            }
         }
         return newValue;
     }

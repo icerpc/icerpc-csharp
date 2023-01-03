@@ -122,8 +122,6 @@ internal class SlicStream : IMultiplexedStream
             {
                 TrySetReadsCompleted();
             }
-
-            _readsClosedTcs.TrySetResult();
         }
 
         async Task SendCompleteReadsFrameAsync(ulong? errorCode)
@@ -155,7 +153,7 @@ internal class SlicStream : IMultiplexedStream
                         default).ConfigureAwait(false);
                 }
                 // When completing reads for a local stream, there's no need to notify the peer. The peer already
-                // completed writes writes after sending the last stream frame.
+                // completed writes after sending the last stream frame.
 
                 if (!IsRemote)
                 {
@@ -189,8 +187,6 @@ internal class SlicStream : IMultiplexedStream
             {
                 TrySetWritesCompleted();
             }
-
-            _writesClosedTcs.TrySetResult();
         }
 
         async Task SendCompleteWritesFrameAsync(ulong? errorCode)
@@ -212,6 +208,9 @@ internal class SlicStream : IMultiplexedStream
                         ReadOnlySequence<byte>.Empty,
                         endStream: true,
                         default).ConfigureAwait(false);
+
+                    // If the stream is a local stream, writes are not completed until the stream reads completed frame
+                    // or stop sending frame is received from the peer.
                 }
                 else
                 {
@@ -274,8 +273,8 @@ internal class SlicStream : IMultiplexedStream
 
         TrySetWritesCompleted();
 
-        // Ensure writes operations are completed first. Write operations will return a completed flush result
-        // regardless of wether or not the peer aborted reads with the 0ul error code or completed reads.
+        // Write operations will return a completed flush result regardless of wether or not the peer aborted reads with
+        // the 0ul error code or completed reads.
         _outputPipeWriter?.Abort(exception: null);
     }
 

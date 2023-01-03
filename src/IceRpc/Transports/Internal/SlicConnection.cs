@@ -1189,7 +1189,7 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         throw new IceRpcException(
                             IceRpcError.IceRpcError,
-                            "Received invalid Slic stream reads closed frame, frame too large.");
+                            "Received invalid Slic stream reads completed frame, frame too large.");
                     }
 
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
