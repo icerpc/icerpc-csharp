@@ -645,8 +645,12 @@ internal class SlicConnection : IMultiplexedConnection
         {
             // Next, ensure send credit is available. If not, this will block until the receiver allows sending
             // additional data.
-            int sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
-            Debug.Assert(sendCredit > 0);
+            int sendCredit = 0;
+            if (!source1.IsEmpty || !source2.IsEmpty)
+            {
+                sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
+                Debug.Assert(sendCredit > 0);
+            }
 
             // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
             int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
@@ -686,10 +690,13 @@ internal class SlicConnection : IMultiplexedConnection
                     StartStream(stream);
                 }
 
-                // Notify the stream that we're consuming sendSize credit. It's important to call this before
-                // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
-                // received before the send credit was updated.
-                stream.ConsumeSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
+                // the stream frame to avoid race conditions where the StreamConsumed frame could be received before the
+                // send credit was updated.
+                if (sendCredit > 0)
+                {
+                    stream.ConsumeSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                }
 
                 // Make sure the previous stream frame write completed successfully.
                 await _writeStreamFrameTask.ConfigureAwait(false);
@@ -702,9 +709,16 @@ internal class SlicConnection : IMultiplexedConnection
                 throw;
             }
 
-            // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream
-            // is canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to
-            // ensure exceptions from the WriteStreamFrameAsync task are always observed.
+            if (lastStreamFrame)
+            {
+                stream.SentLastStreamFrame();
+            }
+
+            // Writes will be completed when the peer's sends the stop sending or reads completed frame.
+
+            // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
+            // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
+            // exceptions from the WriteStreamFrameAsync task are always observed.
 
             // WriteStreamFrameAsync is responsible for releasing the write semaphore.
             _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
@@ -913,6 +927,7 @@ internal class SlicConnection : IMultiplexedConnection
         while (true)
         {
             (FrameType, int, ulong?)? header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
+
             if (header is null)
             {
                 lock (_mutex)
@@ -1115,18 +1130,7 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         stream.ReceivedConsumedFrame((int)consumed.Size);
                     }
-                    else
-                    {
-                        lock (_mutex)
-                        {
-                            if (_exception is null)
-                            {
-                                throw new IceRpcException(
-                                    IceRpcError.IceRpcError,
-                                    "Received Slic stream consumed frame for unknown stream.");
-                            }
-                        }
-                    }
+                    // Ignore, it's possible for the stream to be terminated.
                     break;
                 }
                 case FrameType.StreamReset:
@@ -1151,19 +1155,7 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedWritesCompletedFrame(streamReset.ApplicationErrorCode);
-                    }
-                    else
-                    {
-                        lock (_mutex)
-                        {
-                            if (_exception is null)
-                            {
-                                throw new IceRpcException(
-                                    IceRpcError.IceRpcError,
-                                    "Received Slic stream reset frame for unknown stream.");
-                            }
-                        }
+                        stream.ReceivedResetFrame(streamReset.ApplicationErrorCode);
                     }
                     break;
                 }
@@ -1189,19 +1181,7 @@ internal class SlicConnection : IMultiplexedConnection
                         cancellationToken).ConfigureAwait(false);
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedReadsCompletedFrame(streamStopSending.ApplicationErrorCode);
-                    }
-                    else
-                    {
-                        lock (_mutex)
-                        {
-                            if (_exception is null)
-                            {
-                                throw new IceRpcException(
-                                    IceRpcError.IceRpcError,
-                                    "Received Slic stream stop sending frame for unknown stream.");
-                            }
-                        }
+                        stream.ReceivedStopSendingFrame(streamStopSending.ApplicationErrorCode);
                     }
                     break;
                 }
@@ -1217,19 +1197,7 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
                     {
-                        stream.ReceivedReadsCompletedFrame(errorCode: null);
-                    }
-                    else
-                    {
-                        lock (_mutex)
-                        {
-                            if (_exception is null)
-                            {
-                                throw new IceRpcException(
-                                    IceRpcError.IceRpcError,
-                                    "Received Slic stream reads completed frame for unknown stream.");
-                            }
-                        }
+                        stream.ReceivedReadsCompletedFrame();
                     }
                     break;
                 }

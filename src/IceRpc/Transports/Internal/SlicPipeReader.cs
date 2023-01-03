@@ -51,18 +51,12 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // If ReadAsync or TryRead didn't complete reads on the stream already, we complete reads.
+            // If ReadAsync or TryRead didn't complete reads on the stream already, complete them now. This will
+            // send a stop sending frame if reads are not completed already.
             if (!_completedReads)
             {
-                if (exception is null)
-                {
-                    _stream.CompleteReads();
-                }
-                else
-                {
-                    // We don't use the application error code, it's irrelevant.
-                    _stream.CompleteReads(errorCode: 0ul);
-                }
+                // If the peer is not done writing, send a stop sending frame.
+                _stream.CompleteReads(errorCode: 0ul);
             }
 
             if (_state.TrySetFlag(State.PipeWriterCompleted))
@@ -94,7 +88,7 @@ internal class SlicPipeReader : PipeReader
 
         // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
         // will send the StreamReadsCompleted to the peer and allow it to release the stream semaphore.
-        if (result.IsCompleted)
+        if (result.IsCompleted && !_completedReads)
         {
             _completedReads = true;
             _stream.CompleteReads();
@@ -127,7 +121,7 @@ internal class SlicPipeReader : PipeReader
 
             // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
             // This will send the StreamReadsCompleted to the peer and allow it to release the stream semaphore.
-            if (result.IsCompleted)
+            if (result.IsCompleted && !_completedReads)
             {
                 _completedReads = true;
                 _stream.CompleteReads();
@@ -220,6 +214,13 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
+                // If it's not a remote stream and the peer is done sending data, we can complete reads right away to
+                // allow a new stream to be opened. There's no need to wait for the buffered data or end of stream to be
+                // consumed. This will prevent the sending of a stop sending frame when this reader is completed.
+                if (!_stream.IsRemote && dataSize == 0)
+                {
+                    _stream.TrySetReadsCompleted();
+                }
                 _pipe.Writer.Complete();
             }
             else

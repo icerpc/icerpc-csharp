@@ -286,10 +286,7 @@ public abstract class MultiplexedConnectionConformanceTests
                 while (true)
                 {
                     FlushResult result = await peerStream.Output.WriteAsync(_oneBytePayload);
-                    if (result.IsCompleted)
-                    {
-                        return;
-                    }
+                    Assert.That(result.IsCompleted, Is.False);
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });

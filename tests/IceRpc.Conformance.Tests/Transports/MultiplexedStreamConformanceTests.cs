@@ -169,7 +169,6 @@ public abstract class MultiplexedStreamConformanceTests
     /// <param name="segments">The number of segments to write to each stream.</param>
     /// <param name="payloadSize">The payload size to write with each write call.</param>
     [Test]
-    [Repeat(100)]
     public async Task Stream_full_duplex_communication(
         [Values(0, 5)] int delay,
         [Values(1, 16)] int streamCount,

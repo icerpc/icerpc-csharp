@@ -62,7 +62,6 @@ internal class SlicStream : IMultiplexedStream
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
-    private Task? _sendStreamConsumedFrameTask;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -106,6 +105,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void Abort(IceRpcException completeException)
     {
+        Console.Error.WriteLine($"stream aborted {(IsStarted ? Id : -1)}-{IsRemote} ReadsCompleted={ReadsCompleted} WriteCompleted={WritesCompleted} {completeException.IceRpcError}");
         if (TrySetReadsCompleted())
         {
             _inputPipeReader?.Abort(completeException);
@@ -128,54 +128,53 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteReads(ulong? errorCode = null)
     {
-        // Console.Error.WriteLine($"sending complete reads {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} {errorCode ?? 255}");
+        Console.Error.WriteLine($"complete reads {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} {errorCode}");
         if (!ReadsCompleted)
         {
-            if (IsRemote || !IsStarted)
-            {
-                // If it's a remote stream, we complete reads before sending the stop sending or reads completed frame
-                // to ensure the stream max count is decreased before the peer receives the frame.
-                TrySetReadsCompleted();
-            }
-            // Reads will be completed when the stop sending or reads completed frame is sent.
-
-            if (IsStarted)
+            if (IsStarted && (errorCode is not null || IsRemote))
             {
                 _ = SendCompleteReadsFrameAsync(errorCode);
             }
+            else
+            {
+                TrySetReadsCompleted();
+            }
 
-            // Locally, reads are considered closed even if they will really only be closed once the peer's sends the
-            // reset or last stream frame.
             _readsClosedTcs.TrySetResult();
         }
 
         async Task SendCompleteReadsFrameAsync(ulong? errorCode)
         {
-            // First wait for the sending of the stream consumed task to complete to ensure the peer receives it before
-            // the stop sending or reads complete frame.
-            if (_sendStreamConsumedFrameTask is not null)
-            {
-                await _sendStreamConsumedFrameTask.ConfigureAwait(false);
-            }
-
             try
             {
-                if (errorCode is null)
+                if (IsRemote)
                 {
-                    await _connection.SendStreamFrameAsync(
-                        stream: this,
-                        FrameType.StreamReadsCompleted,
-                        encode: null,
-                        default).ConfigureAwait(false);
+                    // If it's a remote stream, we complete reads before sending the reads completed or stop sending
+                    // frame. This ensures that the stream max count is decreased before the peer receives the frame.
+                    TrySetReadsCompleted();
                 }
-                else
+
+                if (errorCode is not null)
                 {
+                    Console.Error.WriteLine($"sending stop sending frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamStopSending,
                         new StreamStopSendingBody(errorCode.Value).Encode,
                         default).ConfigureAwait(false);
                 }
+                else if (IsRemote)
+                {
+                    // The stream reads completed frame is only sent for remote streams.
+                    Console.Error.WriteLine($"sending reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
+                    await _connection.SendStreamFrameAsync(
+                        stream: this,
+                        FrameType.StreamReadsCompleted,
+                        encode: null,
+                        default).ConfigureAwait(false);
+                }
+                // When completing reads for a local stream, there's no need to notify the peer. The peer already
+                // completed writes writes after sending the last stream frame.
 
                 if (!IsRemote)
                 {
@@ -199,22 +198,18 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteWrites(ulong? errorCode = null)
     {
-        // Console.Error.WriteLine($"sending complete writes {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} WritesCompleted={WritesCompleted} {errorCode ?? 255}");
+        Console.Error.WriteLine($"complete writes {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} WritesCompleted={WritesCompleted} {errorCode}");
         if (!WritesCompleted)
         {
-            if (!IsStarted)
-            {
-                TrySetWritesCompleted();
-            }
-            // Writes will be completed when the peer's sends the stop sending or reads completed frame.
-
             if (IsStarted)
             {
                 _ = SendCompleteWritesFrameAsync(errorCode);
             }
+            else
+            {
+                TrySetWritesCompleted();
+            }
 
-            // Locally, writes are considered closed even if they will really only be closed once the peer's sends the
-            // stop sending or reads completed frame.
             _writesClosedTcs.TrySetResult();
         }
 
@@ -222,8 +217,16 @@ internal class SlicStream : IMultiplexedStream
         {
             try
             {
+                if (IsRemote)
+                {
+                    // If it's a remote stream, we complete writes before sending the stream last frame or reset frame
+                    // to ensure the stream max count is decreased before the peer receives the frame.
+                    TrySetWritesCompleted();
+                }
+
                 if (errorCode is null)
                 {
+                    Console.Error.WriteLine($"sending last stream frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted} SendCredit={_sendCredit}");
                     await _connection.SendStreamFrameAsync(
                         this,
                         ReadOnlySequence<byte>.Empty,
@@ -233,11 +236,19 @@ internal class SlicStream : IMultiplexedStream
                 }
                 else
                 {
+                    Console.Error.WriteLine($"sending reset frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReset,
                         new StreamResetBody(applicationErrorCode: 0).Encode,
                         default).ConfigureAwait(false);
+
+                    if (!IsRemote)
+                    {
+                        // We can now complete writes to permit a new stream to be started. The peer will receive the
+                        // last stream frame or reset frame before the new stream sends a stream frame.
+                        TrySetWritesCompleted();
+                    }
                 }
             }
             catch (IceRpcException)
@@ -274,7 +285,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReceivedConsumedFrame(int size)
     {
-        // Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
+        Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
 
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
@@ -291,14 +302,51 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void ReceivedReadsCompletedFrame(ulong? errorCode)
+    internal void ReceivedReadsCompletedFrame()
     {
-        // Console.Error.WriteLine($"received reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {errorCode ?? 255}");
+        Console.Error.WriteLine($"received reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted}");
 
-        // When peer reads are completed, we can complete writes if not already completed.
+        if (IsRemote)
+        {
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                "Received invalid Slic stream reads completed frame, the stream is a remote stream.");
+        }
 
-        // Ensure writes operations are completed first.
-        if (errorCode is null or 0ul)
+        TrySetWritesCompleted();
+
+        // Ensure writes operations are completed first. Write operations will return a completed flush result
+        // regardless of wether or not the peer aborted reads with the 0ul error code or completed reads.
+        _outputPipeWriter?.Abort(exception: null);
+    }
+
+    internal void ReceivedResetFrame(ulong errorCode)
+    {
+        Console.Error.WriteLine($"received reset frame {(IsStarted ? Id : -1)}-{IsRemote} ReadsCompleted={ReadsCompleted} {errorCode}");
+
+        TrySetReadsCompleted();
+
+        if (errorCode == 0ul)
+        {
+            // Read operations will return a TruncatedData if the peer aborted writes.
+            _inputPipeReader?.Abort(new IceRpcException(IceRpcError.TruncatedData));
+        }
+        else
+        {
+            // The peer aborted writes with unknown application error code.
+            _inputPipeReader?.Abort(new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The peer aborted stream writes with an unknown application error code: '{errorCode}'"));
+        }
+    }
+
+    internal void ReceivedStopSendingFrame(ulong errorCode)
+    {
+        Console.Error.WriteLine($"received stop sending frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted} {errorCode}");
+
+        TrySetWritesCompleted();
+
+        if (errorCode == 0ul)
         {
             // Write operations will return a completed flush result regardless of wether or not the peer aborted
             // reads with the 0ul error code or completed reads.
@@ -311,63 +359,24 @@ internal class SlicStream : IMultiplexedStream
                 IceRpcError.IceRpcError,
                 $"The peer aborted stream reads with an unknown application error code: '{errorCode}'"));
         }
-
-        TrySetWritesCompleted();
     }
 
     internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
+        Console.Error.WriteLine($"received stream frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted} ReadsCompleted={ReadsCompleted} Size={size} EndStream={endStream}");
+
         Debug.Assert(_inputPipeReader is not null);
         return ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
     }
 
-    internal void ReceivedWritesCompletedFrame(ulong? errorCode)
-    {
-        // Console.Error.WriteLine($"received writes completed frame {(IsStarted ? Id : -1)}-{IsRemote} {ReadsCompleted} {errorCode ?? 255}");
-
-        // When peer writes are completed, we can complete reads if not already completed.
-
-        // Ensure reads operations are completed first.
-        if (errorCode is null)
-        {
-            // Read operations will return a completed ReadResult.
-            _inputPipeReader?.Abort(exception: null);
-        }
-        else if (errorCode == 0ul)
-        {
-            // Read operations will return a TruncatedData if the peer aborted writes.
-            _inputPipeReader?.Abort(new IceRpcException(IceRpcError.TruncatedData));
-        }
-        else
-        {
-            // The peer aborted writes with unknown application error code.
-            _outputPipeWriter?.Abort(new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The peer aborted stream writes with an unknown application error code: '{errorCode}'"));
-        }
-
-        TrySetReadsCompleted();
-    }
-
     internal void SendStreamConsumed(int size)
     {
-        Task previousSendStreamConsumedFrameTask = _sendStreamConsumedFrameTask ?? Task.CompletedTask;
-        _sendStreamConsumedFrameTask = SendStreamConsumedFrameAsync();
+        _ = SendStreamConsumedFrameAsync();
 
         async Task SendStreamConsumedFrameAsync()
         {
             try
             {
-                // First wait for the sending of the previous stream consumed task to complete.
-                await previousSendStreamConsumedFrameTask.ConfigureAwait(false);
-
-                // If reads completed, there's no need to send the stream consumed frame since the peer already
-                // completed writes on its side.
-                if (ReadsCompleted)
-                {
-                    return;
-                }
-
                 // Send the stream consumed frame.
                 await _connection.SendStreamFrameAsync(
                     stream: this,
@@ -393,21 +402,19 @@ internal class SlicStream : IMultiplexedStream
         bool endStream,
         CancellationToken cancellationToken)
     {
-        if (WritesCompleted)
-        {
-            return new(new FlushResult(isCanceled: false, isCompleted: true));
-        }
-        else
-        {
-            if (endStream)
-            {
-                // Locally, writes are considered closed even if they will really only be closed once the peer's sends
-                // the stop sending or reads completed frame.
-                _writesClosedTcs.TrySetResult();
-            }
+        Console.Error.WriteLine($"sending stream frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted} Length={source1.Length} EndStream={endStream} CREDIT={_sendCredit}");
+        return _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+    }
 
-            return _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+    internal void SentLastStreamFrame()
+    {
+        if (IsRemote)
+        {
+            TrySetWritesCompleted();
         }
+        // Writes will be completed when the peer's sends the stop sending or reads completed frame.
+
+        _writesClosedTcs.TrySetResult();
     }
 
     internal bool TrySetReadsCompleted()

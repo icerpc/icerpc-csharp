@@ -12,6 +12,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
     private readonly CancellationTokenSource _abortCts = new(); // Disposed by Complete
+    private bool _completedWrites;
     private IceRpcException? _exception;
     private readonly Pipe _pipe;
     private int _state;
@@ -31,14 +32,15 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            if (!_stream.WritesCompleted)
+            if (!_stream.WritesCompleted && exception is null && _pipe.Writer.UnflushedBytes > 0)
             {
-                if (exception is null && _pipe.Writer.UnflushedBytes > 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
-                }
+                throw new InvalidOperationException(
+                    $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
+            }
 
+            // If WriteAsync didn't complete writes on the stream already, complete them now.
+            if (!_completedWrites)
+            {
                 if (exception is null)
                 {
                     _stream.CompleteWrites();
@@ -129,6 +131,11 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 // WriteAsync is called with an empty buffer, typically by a call to FlushAsync. Some payload writers
                 // such as the deflate compressor might do this.
                 return new FlushResult(isCanceled: false, isCompleted: false);
+            }
+
+            if (endStream)
+            {
+                _completedWrites = true;
             }
 
             return await _stream.SendStreamFrameAsync(
