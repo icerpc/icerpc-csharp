@@ -134,20 +134,15 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    internal SlicPipeReader(
-        SlicStream stream,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        int resumeThreshold,
-        int pauseThreshold)
+    internal SlicPipeReader(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _resumeThreshold = resumeThreshold;
-        _receiveCredit = pauseThreshold;
+        _resumeThreshold = connection.ResumeWriterThreshold;
+        _receiveCredit = connection.PauseWriterThreshold;
         _pipe = new(new PipeOptions(
-            pool: pool,
+            pool: connection.Pool,
             pauseWriterThreshold: 0,
-            minimumSegmentSize: minimumSegmentSize,
+            minimumSegmentSize: connection.MinSegmentSize,
             writerScheduler: PipeScheduler.Inline));
     }
 

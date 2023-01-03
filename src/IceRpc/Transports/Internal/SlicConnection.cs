@@ -695,7 +695,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // send credit was updated.
                 if (sendCredit > 0)
                 {
-                    stream.ConsumeSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                    stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
                 }
 
                 EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);

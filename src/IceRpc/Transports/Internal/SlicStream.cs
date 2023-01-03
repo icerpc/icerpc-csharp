@@ -9,10 +9,6 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
 /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design",
-    "CA1001:Types that own disposable fields should be disposable",
-    Justification = "The _sendCreditSemaphore is disposed by TrySetState when read and writes are completed")]
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -62,16 +58,12 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicPipeReader? _inputPipeReader;
     private readonly SlicPipeWriter? _outputPipeWriter;
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private volatile int _sendCredit = int.MaxValue;
-    // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-    private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
         _connection = connection;
-        _sendCredit = _connection.PeerPauseWriterThreshold;
 
         IsBidirectional = bidirectional;
         IsRemote = remote;
@@ -92,17 +84,12 @@ internal class SlicStream : IMultiplexedStream
 
         if (IsRemote || IsBidirectional)
         {
-            _inputPipeReader = new SlicPipeReader(
-                this,
-                _connection.Pool,
-                _connection.MinSegmentSize,
-                _connection.ResumeWriterThreshold,
-                _connection.PauseWriterThreshold);
+            _inputPipeReader = new SlicPipeReader(this, _connection);
         }
 
         if (!IsRemote || IsBidirectional)
         {
-            _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinSegmentSize);
+            _outputPipeWriter = new SlicPipeWriter(this, _connection);
         }
     }
 
@@ -121,15 +108,8 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
-    {
-        // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire the
-        // semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send additional data
-        // (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send additional data and
-        // _sendCredit can be used to figure out the size of the next packet to send.
-        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return _sendCredit;
-    }
+    internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
+        _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
     internal void CompleteReads(ulong? errorCode = null)
     {
@@ -269,18 +249,7 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void ConsumeSendCredit(int consumed)
-    {
-        // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed,
-        // _sendCredit will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be
-        // released once the stream receives a StreamConsumed frame.
-        int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
-        if (sendCredit > 0)
-        {
-            _sendCreditSemaphore.Release();
-        }
-        Debug.Assert(sendCredit >= 0);
-    }
+    internal void ConsumedSendCredit(int consumed) => _outputPipeWriter!.ConsumedSendCredit(consumed);
 
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
@@ -290,17 +259,11 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReceivedConsumedFrame(int size)
     {
-        // Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
+        int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame(size);
 
-        int newValue = Interlocked.Add(ref _sendCredit, size);
-        if (newValue == size)
+        // Ensure the peer is not trying to increase the credit to a value which is larger than what it is allowed to.
+        if (newSendCredit > _connection.PeerPauseWriterThreshold)
         {
-            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
-            _sendCreditSemaphore.Release();
-        }
-        else if (newValue > _connection.PeerPauseWriterThreshold)
-        {
-            // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
                 "The consumed frame size is trying to increase the credit to a value larger than allowed.");
@@ -460,7 +423,6 @@ internal class SlicStream : IMultiplexedStream
                 {
                     _connection.ReleaseStream(this);
                 }
-                _sendCreditSemaphore.Dispose();
             }
             return true;
         }

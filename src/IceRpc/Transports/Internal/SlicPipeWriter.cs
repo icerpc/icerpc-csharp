@@ -15,6 +15,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private bool _completedWrites;
     private IceRpcException? _exception;
     private readonly Pipe _pipe;
+    private volatile int _sendCredit = int.MaxValue;
+    // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
+    private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private int _state;
     private readonly SlicStream _stream;
 
@@ -57,6 +60,11 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             {
                 _pipe.Reader.Complete();
             }
+
+            // Make sure that ReceivedConsumeFrame won't try releasing the semaphore after being disposed.
+            _sendCredit = -1;
+
+            _sendCreditSemaphore.Dispose();
             _abortCts.Dispose();
         }
     }
@@ -173,16 +181,17 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal SlicPipeWriter(SlicStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
+    internal SlicPipeWriter(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
+        _sendCredit = connection.PeerPauseWriterThreshold;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
         // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
         // avoid thread context switches when FlushAsync is called on the internal pipe writer.
         _pipe = new(new PipeOptions(
-            pool: pool,
-            minimumSegmentSize: minimumSegmentSize,
+            pool: connection.Pool,
+            minimumSegmentSize: connection.MinSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
     }
@@ -206,6 +215,42 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 _pipe.Reader.Complete(exception);
             }
         }
+    }
+
+    internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
+    {
+        // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire the
+        // semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send additional data
+        // (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send additional data and
+        // _sendCredit can be used to figure out the size of the next packet to send.
+        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return _sendCredit;
+    }
+
+    internal void ConsumedSendCredit(int consumed)
+    {
+        // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed, _sendCredit
+        // will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be released once
+        // the stream receives a StreamConsumed frame.
+        int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
+        if (sendCredit > 0)
+        {
+            _sendCreditSemaphore.Release();
+        }
+        Debug.Assert(sendCredit >= 0);
+    }
+
+    internal int ReceivedConsumedFrame(int size)
+    {
+        // Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
+
+        int newValue = Interlocked.Add(ref _sendCredit, size);
+        if (newValue == size)
+        {
+            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
+            _sendCreditSemaphore.Release();
+        }
+        return newValue;
     }
 
     private void CheckIfCompleted()
