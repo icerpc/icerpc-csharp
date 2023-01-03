@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,39 @@ public class SlicTransportTests
 
         // Act/Assert
         Assert.That(async () => await sut.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
+    /// duplex connection hangs.</summary>
+    [Test]
+    [Ignore("See #2404")]
+    public async Task Close_canceled_when_duplex_server_connection_shutdown_hangs()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        serverTransport.ReleaseConnect();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddSingleton(colocTransport.ClientTransport)
+            .AddSingleton<IDuplexServerTransport>(serverTransport)
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var serverConnection = (SlicConnection)await acceptTask;
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        // Act
+        Task closeTask = clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, cts.Token);
+
+        // Assert
+        Assert.That(async () => await closeTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Cleanup
+        serverTransport.Release();
     }
 
     /// <summary>Verifies that close fails if called before connect.</summary>

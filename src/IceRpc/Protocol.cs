@@ -40,6 +40,11 @@ public class Protocol
     /// <see langword="false" />.</returns>
     internal bool SupportsPayloadContinuation { get; }
 
+    /// <summary>Gets a value indicating whether or not this protocol supports payload writer interceptors.</summary>
+    /// <returns><see langword="true" /> if the protocol supports payload writer interceptors; otherwise,
+    /// <see langword="false" />.</returns>
+    internal bool SupportsPayloadWriterInterceptors { get; }
+
     /// <summary>Parses a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
     /// <returns>A protocol with the given name in lowercase.</returns>
@@ -94,6 +99,7 @@ public class Protocol
         bool hasFields,
         bool hasFragment,
         bool supportsPayloadContinuation,
+        bool supportsPayloadWriterInterceptors,
         byte byteValue)
     {
         Name = name;
@@ -101,6 +107,7 @@ public class Protocol
         HasFields = hasFields;
         HasFragment = hasFragment;
         SupportsPayloadContinuation = supportsPayloadContinuation;
+        SupportsPayloadWriterInterceptors = supportsPayloadWriterInterceptors;
         ByteValue = byteValue;
     }
 }

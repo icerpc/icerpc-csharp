@@ -76,10 +76,8 @@ public class DeadlineInterceptor : IInvoker
 
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
-            using var timeoutTokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenRegistration? _ = cancellationToken.CanBeCanceled ?
-                cancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), timeoutTokenSource) :
-                null;
+            using var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutTokenSource.CancelAfter(timeout);
 
             try
             {

@@ -46,6 +46,70 @@ public class ClientConnectionTests
     }
 
     [Test]
+    public async Task Connect_times_out_after_connect_timeout()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        server.Listen();
+        ClientConnection sut = provider.GetRequiredService<ClientConnection>();
+
+        // Act/Assert
+        Assert.That(async() => await sut.ConnectAsync(), Throws.InstanceOf<TimeoutException>());
+
+        // Cleanup
+        serverTransport.Release();
+    }
+
+    /// <summary>Verifies that ConnectAsync can be canceled via its cancellation token.</summary>
+    [Test]
+    public async Task Connect_can_be_canceled()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        server.Listen();
+        ClientConnection sut = provider.GetRequiredService<ClientConnection>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+        Task connectTask = sut.ConnectAsync(cts.Token);
+
+        // Act/Assert
+        Assert.That(async() => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Cleanup
+        serverTransport.Release();
+    }
+
+    [Test]
     public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange
@@ -71,17 +135,7 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
-
-        try
-        {
-            // Cancel shutdown and dispose to abort the connection.
-            await server.ShutdownAsync(new CancellationToken(true));
-        }
-        catch
-        {
-        }
         await server.DisposeAsync();
-
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
@@ -99,6 +153,8 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(10)); // TODO: temporary workaround for #2386
+        await server.ShutdownAsync();
         await server.DisposeAsync();
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
         server.Listen();
@@ -136,6 +192,38 @@ public class ClientConnectionTests
             Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
         server.Listen();
         Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
+    }
+
+    /// <summary>Verifies that ClientConnection can dispatch a request sent by the server during the client's first
+    /// request.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Connection_can_dispatch_callbacks(Protocol protocol)
+    {
+        // Arrange
+        using var callbackDispatcher = new TestDispatcher(holdDispatchCount: 0);
+
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(options => options.Dispatcher = callbackDispatcher);
+
+        await using ServiceProvider provider =
+            services.AddClientServerColocTest(
+                new InlineDispatcher(
+                    async (incomingRequest, cancellationToken) =>
+                    {
+                        using var outgoingRequest = new OutgoingRequest(new ServiceAddress(protocol));
+                        await incomingRequest.ConnectionContext.Invoker.InvokeAsync(outgoingRequest, cancellationToken);
+                        return new OutgoingResponse(incomingRequest);
+                    }),
+                protocol)
+            .BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+
+        // Act
+        await provider.GetRequiredService<ClientConnection>().InvokeAsync(request);
+        await callbackDispatcher.DispatchStart;
     }
 
     /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>
@@ -223,5 +311,116 @@ public class ClientConnectionTests
         Assert.That(
             async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
             Throws.TypeOf<InvalidOperationException>());
+    }
+
+    /// <summary>Verifies that disposing the client connection aborts an outstanding Connect.</summary>
+    [Test]
+    public async Task Dispose_aborts_connect()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+
+        server.Listen();
+
+        Task connectTask = connection.ConnectAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+        // Act
+        await connection.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+
+        // Cleanup
+        serverTransport.Release();
+    }
+
+    [Test]
+    [Ignore("See #2404")]
+    public async Task Shutdown_times_out_after_shutdown_timeout()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+        server.Listen();
+        serverTransport.ReleaseConnect();
+        await connection.ConnectAsync();
+
+        Task shutdownTask = connection.ShutdownAsync();
+
+        // Act/Assert
+        Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
+
+        // Cleanup
+        serverTransport.Release();
+    }
+
+    [Test]
+    [Ignore("See #2404")]
+    public async Task Shutdown_can_be_canceled()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
+
+        // We use our own decorated server transport
+        var colocTransport = new ColocTransport();
+        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddSingleton(colocTransport.ClientTransport) // overwrite
+                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
+        server.Listen();
+        serverTransport.ReleaseConnect();
+        await connection.ConnectAsync();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Task shutdownTask = connection.ShutdownAsync(cts.Token);
+
+        // Act/Assert
+        Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // Cleanup
+        serverTransport.Release();
     }
 }

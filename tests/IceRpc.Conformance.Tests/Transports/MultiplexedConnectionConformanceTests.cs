@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -171,10 +170,10 @@ public abstract class MultiplexedConnectionConformanceTests
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                bidirectional ?
-                    options => options.MaxBidirectionalStreams = 1 :
-                    options => options.MaxUnidirectionalStreams = 1);
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+            bidirectional ?
+                options => options.MaxBidirectionalStreams = 1 :
+                options => options.MaxUnidirectionalStreams = 1);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
@@ -508,7 +507,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // TODO: check error codes, see #2382
         Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Input.ReadAsync());
-        Assert.ThrowsAsync<IceRpcException>(async() => await disposedStream.Output.WriteAsync(_oneBytePayload));
+        Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
         Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Input.ReadAsync());
         Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));

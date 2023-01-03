@@ -12,7 +12,7 @@ internal static class PipeReaderExtensions
     /// <param name="reader">The pipe reader.</param>
     /// <param name="encoding">The encoding.</param>
     /// <param name="maxSize">The maximum size of this segment.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled" /> is
     /// <see langword="true" />.</returns>
     /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size

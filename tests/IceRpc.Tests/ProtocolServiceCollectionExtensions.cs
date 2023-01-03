@@ -128,6 +128,7 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Client.DisposeAsync();
+
         if (_server is not null)
         {
             await _server.DisposeAsync();
