@@ -363,16 +363,15 @@ public sealed class Server : IAsyncDisposable
             {
                 using var cts = new CancellationTokenSource(_connectTimeout);
 
-                // Connect the transport connection first. This connection establishment can be interrupted by the
-                // shutdown timeout or the shutdown of the connection.
-                TransportConnectionInformation transportConnectionInformation;
                 IProtocolConnection? protocolConnection = null;
                 bool serverBusy = false;
 
                 using (CancellationTokenRegistration tokenRegistration =
                     shutdownCancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), cts))
                 {
-                    transportConnectionInformation =
+                    // Connect the transport connection first. This connection establishment can be interrupted by the
+                    // shutdown timeout or the shutdown of the connection.
+                    TransportConnectionInformation transportConnectionInformation =
                         await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
 
                     // Create the protocol connection if the server is not being shutdown and if the max connection
