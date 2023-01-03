@@ -341,11 +341,6 @@ public abstract class MultiplexedStreamConformanceTests
         sut.RemoteStream.Output.Complete(abort ? new Exception() : null);
 
         // Assert
-        if (!abort)
-        {
-            // The stream read side only completes once the data or EOS is consumed.
-            _ = await sut.LocalStream.Input.ReadAsync();
-        }
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
