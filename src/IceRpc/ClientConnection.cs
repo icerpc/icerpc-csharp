@@ -150,7 +150,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     // This can happen if a previous ConnectAsync failed and this failed connection was disposed.
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationRefused)
                 {
                     // Same as above except the connection is not disposed yet.
                 }
@@ -229,7 +229,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     // This can happen if a previous ConnectAsync or InvokeAsync failed and this failed connection was
                     // disposed.
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosed)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationRefused)
                 {
                     // Same as above except the connection is not disposed yet.
                 }
@@ -365,7 +365,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             if (_shutdownCts.IsCancellationRequested)
             {
-                throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
+                throw new IceRpcException(IceRpcError.OperationRefused, "The client connection is shut down.");
             }
             return _connection;
         }
@@ -382,7 +382,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
             if (_shutdownCts.IsCancellationRequested)
             {
-                throw new IceRpcException(IceRpcError.ConnectionClosed, "The client connection is shut down.");
+                throw new IceRpcException(IceRpcError.OperationAborted, "The client connection is shut down.");
             }
 
             // We only create a new connection and assign it to _connection if it matches the connection we just tried.
@@ -499,7 +499,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     // If a previous ConnectAsync on this connection failed, we want this connection to be discarded
                     // and replaced.
-                    throw new IceRpcException(IceRpcError.ConnectionClosed);
+                    throw new IceRpcException(IceRpcError.OperationRefused);
                 }
             }
             return WaitForConnectAsync(_connectTask);
