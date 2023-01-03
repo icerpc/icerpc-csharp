@@ -108,7 +108,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void Abort(IceRpcException completeException)
     {
-        Console.Error.WriteLine($"stream aborted {(IsStarted ? Id : -1)}-{IsRemote} ReadsCompleted={ReadsCompleted} WriteCompleted={WritesCompleted} {completeException.IceRpcError}");
+        // Console.Error.WriteLine($"stream aborted {(IsStarted ? Id : -1)}-{IsRemote} ReadsCompleted={ReadsCompleted} WriteCompleted={WritesCompleted} {completeException.IceRpcError}");
         if (TrySetReadsCompleted())
         {
             Debug.Assert(_inputPipeReader is not null);
@@ -133,7 +133,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteReads(ulong? errorCode = null)
     {
-        Console.Error.WriteLine($"complete reads {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} {errorCode}");
+        // Console.Error.WriteLine($"complete reads {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} {errorCode}");
         if (!ReadsCompleted)
         {
             if (IsStarted && (errorCode is not null || IsRemote))
@@ -161,7 +161,7 @@ internal class SlicStream : IMultiplexedStream
 
                 if (errorCode is not null)
                 {
-                    Console.Error.WriteLine($"sending stop sending frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
+                    // Console.Error.WriteLine($"sending stop sending frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamStopSending,
@@ -171,7 +171,7 @@ internal class SlicStream : IMultiplexedStream
                 else if (IsRemote)
                 {
                     // The stream reads completed frame is only sent for remote streams.
-                    Console.Error.WriteLine($"sending reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
+                    // Console.Error.WriteLine($"sending reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReadsCompleted,
@@ -203,7 +203,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteWrites(ulong? errorCode = null)
     {
-        Console.Error.WriteLine($"complete writes {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} WritesCompleted={WritesCompleted} {errorCode}");
+        // Console.Error.WriteLine($"complete writes {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} WritesCompleted={WritesCompleted} {errorCode}");
         if (!WritesCompleted)
         {
             if (IsStarted)
@@ -231,7 +231,7 @@ internal class SlicStream : IMultiplexedStream
 
                 if (errorCode is null)
                 {
-                    Console.Error.WriteLine($"sending last stream frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted} SendCredit={_sendCredit}");
+                    // Console.Error.WriteLine($"sending last stream frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted} SendCredit={_sendCredit}");
                     await _connection.SendStreamFrameAsync(
                         this,
                         ReadOnlySequence<byte>.Empty,
@@ -241,7 +241,7 @@ internal class SlicStream : IMultiplexedStream
                 }
                 else
                 {
-                    Console.Error.WriteLine($"sending reset frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
+                    // Console.Error.WriteLine($"sending reset frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted}");
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReset,
@@ -290,7 +290,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReceivedConsumedFrame(int size)
     {
-        Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
+        // Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
 
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
@@ -309,7 +309,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReceivedReadsCompletedFrame()
     {
-        Console.Error.WriteLine($"received reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted}");
+        // Console.Error.WriteLine($"received reads completed frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted}");
 
         if (IsRemote)
         {
@@ -327,7 +327,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReceivedResetFrame(ulong errorCode)
     {
-        Console.Error.WriteLine($"received reset frame {(IsStarted ? Id : -1)}-{IsRemote} ReadsCompleted={ReadsCompleted} {errorCode}");
+        // Console.Error.WriteLine($"received reset frame {(IsStarted ? Id : -1)}-{IsRemote} ReadsCompleted={ReadsCompleted} {errorCode}");
 
         TrySetReadsCompleted();
 
@@ -347,7 +347,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ReceivedStopSendingFrame(ulong errorCode)
     {
-        Console.Error.WriteLine($"received stop sending frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted} {errorCode}");
+        // Console.Error.WriteLine($"received stop sending frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted} {errorCode}");
 
         TrySetWritesCompleted();
 
@@ -368,7 +368,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
-        Console.Error.WriteLine($"received stream frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted} ReadsCompleted={ReadsCompleted} Size={size} EndStream={endStream}");
+        // Console.Error.WriteLine($"received stream frame {(IsStarted ? Id : -1)}-{IsRemote} WritesCompleted={WritesCompleted} ReadsCompleted={ReadsCompleted} Size={size} EndStream={endStream}");
 
         Debug.Assert(_inputPipeReader is not null);
         return ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
@@ -407,7 +407,7 @@ internal class SlicStream : IMultiplexedStream
         bool endStream,
         CancellationToken cancellationToken)
     {
-        Console.Error.WriteLine($"sending stream frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted} Length={source1.Length} EndStream={endStream} CREDIT={_sendCredit}");
+        // Console.Error.WriteLine($"sending stream frame {(IsStarted ? Id : -1)}-{IsRemote} IsStarted={IsStarted} ReadsCompleted={ReadsCompleted} WritesCompleted={WritesCompleted} Length={source1.Length} EndStream={endStream} CREDIT={_sendCredit}");
         return _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
     }
 
@@ -458,9 +458,9 @@ internal class SlicStream : IMultiplexedStream
                 // The stream reads and writes are completed, it's time to release the stream.
                 if (IsStarted)
                 {
-                    _sendCreditSemaphore.Dispose();
                     _connection.ReleaseStream(this);
                 }
+                _sendCreditSemaphore.Dispose();
             }
             return true;
         }
