@@ -61,9 +61,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 _pipe.Reader.Complete();
             }
 
-            // Make sure that ReceivedConsumeFrame won't try releasing the semaphore after being disposed.
-            _sendCredit = -1;
-
             _sendCreditSemaphore.Dispose();
             _abortCts.Dispose();
         }
@@ -235,7 +232,15 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
         if (sendCredit > 0)
         {
-            _sendCreditSemaphore.Release();
+            try
+            {
+                _sendCreditSemaphore.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the writer has been completed.
+                Debug.Assert(_state.HasFlag(State.Completed));
+            }
         }
         Debug.Assert(sendCredit >= 0);
     }
