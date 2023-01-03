@@ -115,6 +115,44 @@ public sealed class IceProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
+    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
+    /// Requests that are not dispatched by the server should complete with a OperationRefused error code.</summary>
+    [Test]
+    public async Task Not_dispatched_twoway_request_gets_connection_exception_on_server_connection_shutdown()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher,
+                serverConnectionOptions: new ConnectionOptions
+                {
+                    MaxDispatches = 1
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        var invokeTask1 = sut.Client.InvokeAsync(request1);
+
+        // Act
+        await dispatcher.DispatchStart;
+        var shutdownTask = sut.Server.ShutdownAsync();
+
+        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        var invokeTask2 = sut.Client.InvokeAsync(request2);
+        dispatcher.ReleaseDispatch();
+
+        // Assert
+        Assert.That(async () => await invokeTask1, Throws.Nothing);
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
+    }
+
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
     [Test]
     public async Task Payload_completed_on_invalid_response_payload()

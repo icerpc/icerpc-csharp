@@ -18,26 +18,26 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     // Derived classes need to be able to set this exception with their mutex locked. We use an atomic
     // CompareExchange to avoid locking _mutex and to ensure we only set a single exception, the first one.
-    private protected IceRpcException? ConnectionClosedException
+    private protected IceRpcException? OperationRefusedException
     {
-        get => Volatile.Read(ref _connectionClosedException);
+        get => Volatile.Read(ref _operationRefusedException);
         set
         {
-            Debug.Assert(value is not null && value.IceRpcError == IceRpcError.ConnectionClosed);
-            Interlocked.CompareExchange(ref _connectionClosedException, value, null);
+            Debug.Assert(value is not null && value.IceRpcError == IceRpcError.OperationRefused);
+            Interlocked.CompareExchange(ref _operationRefusedException, value, null);
         }
     }
 
     private readonly TaskCompletionSource<Exception?> _closedTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private IceRpcException? _connectionClosedException;
     private Task<TransportConnectionInformation>? _connectTask;
     private Task? _disposeTask;
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private bool _isShutdown;
     private readonly object _mutex = new();
+    private IceRpcException? _operationRefusedException;
 
     // The thread that completes this TCS can run the continuations.
     private readonly TaskCompletionSource _shutdownRequestedTcs = new();
@@ -57,7 +57,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             // The connection can be closed only if disposed (and we check _disposedTask above).
             Debug.Assert(!_isShutdown);
-            Debug.Assert(ConnectionClosedException is null);
+            Debug.Assert(OperationRefusedException is null);
 
             _connectTask = PerformConnectAsync();
         }
@@ -79,32 +79,32 @@ internal abstract class ProtocolConnection : IProtocolConnection
                 }
                 catch (OperationCanceledException)
                 {
-                    ConnectionClosedException = new(
-                        IceRpcError.ConnectionClosed,
+                    OperationRefusedException = new(
+                        IceRpcError.OperationRefused,
                         "The connection establishment was canceled.");
 
                     throw;
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionRefused)
                 {
-                    ConnectionClosedException = new(
-                        IceRpcError.ConnectionClosed,
+                    OperationRefusedException = new(
+                        IceRpcError.OperationRefused,
                         "The connection was refused.",
                         exception);
                     throw;
                 }
                 catch (IceRpcException exception)
                 {
-                    ConnectionClosedException = new(
-                        IceRpcError.ConnectionClosed,
+                    OperationRefusedException = new(
+                        IceRpcError.OperationRefused,
                         "The connection establishment failed.",
                         exception);
                     throw;
                 }
                 catch (Exception exception)
                 {
-                    ConnectionClosedException = new(
-                        IceRpcError.ConnectionClosed,
+                    OperationRefusedException = new(
+                        IceRpcError.OperationRefused,
                         "The connection establishment failed.",
                         exception);
                     throw new IceRpcException(IceRpcError.IceRpcError, exception);
@@ -112,8 +112,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
             catch
             {
-                Debug.Assert(ConnectionClosedException is not null);
-                _closedTcs.TrySetResult(ConnectionClosedException); // TODO: this is not correct
+                Debug.Assert(OperationRefusedException is not null);
+                _closedTcs.TrySetResult(OperationRefusedException); // TODO: this is not correct
                 throw;
             }
         }
@@ -133,7 +133,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task PerformDisposeAsync()
         {
-            ConnectionClosedException = new(IceRpcError.ConnectionClosed, "The connection was disposed.");
+            OperationRefusedException = new(IceRpcError.OperationRefused, "The connection was disposed.");
 
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
@@ -186,12 +186,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                Debug.Assert(ConnectionClosedException is not null);
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", ConnectionClosedException);
+                Debug.Assert(OperationRefusedException is not null);
+                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}", OperationRefusedException);
             }
-            if (ConnectionClosedException is not null)
+            if (OperationRefusedException is not null)
             {
-                throw ConnectionClosedException;
+                throw OperationRefusedException;
             }
             if (_connectTask is null)
             {
@@ -226,7 +226,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
             }
 
             _isShutdown = true;
-            ConnectionClosedException ??= new(IceRpcError.ConnectionClosed, "The connection was shut down.");
+            OperationRefusedException ??= new(IceRpcError.OperationRefused, "The connection was shut down.");
 
             if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)
             {
@@ -324,7 +324,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
     private protected void RequestShutdown(string message)
     {
-        ConnectionClosedException ??= new(IceRpcError.ConnectionClosed, message);
+        OperationRefusedException ??= new(IceRpcError.OperationRefused, message);
         _shutdownRequestedTcs.TrySetResult();
     }
 

@@ -143,7 +143,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override void CancelDispatchesAndInvocations()
     {
-        Debug.Assert(ConnectionClosedException is not null);
+        Debug.Assert(OperationRefusedException is not null);
 
         if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
         {
@@ -301,10 +301,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             // Nothing prevents InvokeAsync to be called on a connection which is no longer accepting invocations. We
-            // check for this condition here and throw ConnectionClosedException.
-            if (ConnectionClosedException is not null)
+            // check for this condition here and throw OperationRefusedException.
+            if (OperationRefusedException is not null)
             {
-                throw ConnectionClosedException;
+                throw OperationRefusedException;
             }
 
             if (_invocationCount == 0 && _dispatchCount == 0)
@@ -344,9 +344,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // canceled request to allocate a request ID that won't be used.
                 lock (_mutex)
                 {
-                    if (ConnectionClosedException is not null)
+                    if (OperationRefusedException is not null)
                     {
-                        throw ConnectionClosedException;
+                        throw OperationRefusedException;
                     }
 
                     if (!request.IsOneway)
@@ -387,8 +387,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
 
                         // The transport connection was disposed while sending the request.
-                        Debug.Assert(ConnectionClosedException is not null);
-                        throw ConnectionClosedException;
+                        Debug.Assert(OperationRefusedException is not null);
+                        throw OperationRefusedException;
                     }
                     else
                     {
@@ -451,7 +451,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             cancellationToken.ThrowIfCancellationRequested();
 
             // The request was canceled by abortive-shutdown or graceful closure by the peer.
-            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && ConnectionClosedException is not null);
+            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && OperationRefusedException is not null);
             lock (_mutex)
             {
                 if (_isClosedByPeer)
@@ -461,7 +461,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Invocations are not aborted if canceled after the graceful connection closure. The peer didn't
                     // dispatch the request since the CloseConnection frame was received.
-                    throw ConnectionClosedException;
+                    throw OperationRefusedException;
                 }
                 else
                 {
@@ -482,7 +482,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 --_invocationCount;
                 if (_invocationCount == 0 && _dispatchCount == 0)
                 {
-                    if (ConnectionClosedException is null)
+                    if (OperationRefusedException is null)
                     {
                         EnableIdleCheck();
                     }
@@ -624,7 +624,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
-            Debug.Assert(ConnectionClosedException is not null);
+            Debug.Assert(OperationRefusedException is not null);
             if (_invocationCount == 0 && _dispatchCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -721,11 +721,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     /// dispatches and invocations.</summary>
     private void DisposeTransport(string? message = null, Exception? exception = null)
     {
-        // ConnectionClosedException might already be set if the connection is being shutdown or disposed. In this
+        // OperationRefusedException might already be set if the connection is being shutdown or disposed. In this
         // case the connection shutdown or disposal is responsible for calling the connection closed callback.
-        if (ConnectionClosedException is null)
+        if (OperationRefusedException is null)
         {
-            ConnectionClosedException = new IceRpcException(IceRpcError.ConnectionClosed, message, exception);
+            OperationRefusedException = new IceRpcException(IceRpcError.OperationRefused, message, exception);
             var rpcException = exception as IceRpcException;
             if (exception is not null && rpcException is null)
             {
@@ -931,14 +931,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (OperationCanceledException)
                     {
-                        Debug.Assert(ConnectionClosedException is not null);
+                        Debug.Assert(OperationRefusedException is not null);
                         // and return below
                     }
                 }
 
                 lock (_mutex)
                 {
-                    if (ConnectionClosedException is not null)
+                    if (OperationRefusedException is not null)
                     {
                         // We're shutting down and we discard this request before any processing. For a graceful
                         // shutdown, we want the invocation in the peer to throw an IceRpcException(
@@ -1132,7 +1132,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         --_dispatchCount;
                         if (_invocationCount == 0 && _dispatchCount == 0)
                         {
-                            if (ConnectionClosedException is null)
+                            if (OperationRefusedException is null)
                             {
                                 EnableIdleCheck();
                             }
