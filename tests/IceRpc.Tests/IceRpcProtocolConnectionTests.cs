@@ -374,7 +374,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
@@ -418,7 +418,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
