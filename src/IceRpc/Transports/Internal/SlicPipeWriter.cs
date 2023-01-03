@@ -242,8 +242,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     internal int ReceivedConsumedFrame(int size)
     {
-        // Console.Error.WriteLine($"received consumed frame {(IsStarted ? Id : -1)}-{IsRemote} {WritesCompleted} {ReadsCompleted} {size}");
-
         int newValue = Interlocked.Add(ref _sendCredit, size);
         if (newValue == size)
         {
