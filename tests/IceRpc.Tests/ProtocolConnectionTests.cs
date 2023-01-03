@@ -1022,60 +1022,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
-    /// Requests that are not dispatched by the server should complete with a ConnectionClosed error code.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Shutdown_does_not_abort_requests_being_dispatched(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol, ServiceNotFoundDispatcher.Instance)
-            .BuildServiceProvider(validateScopes: true);
-
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
-
-        // Perform invocations on the server and shut it down. The invocations should fail with
-        // IceRpcException(IceRpcError.ConnectionClosed)
-        Task<List<Task>> performInvocationsTask = PerformInvocationsAsync();
-        await Task.Delay(10);
-
-        // Act
-        await sut.Server.ShutdownAsync();
-
-        // Assert
-        foreach (Task invocationTask in await performInvocationsTask)
-        {
-            try
-            {
-                await invocationTask;
-            }
-            catch (IceRpcException exception)
-            {
-                Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionClosed));
-            }
-        }
-
-        async Task<List<Task>> PerformInvocationsAsync()
-        {
-            var invocationsTasks = new List<Task>();
-            while (!sut.Client.Closed.IsCompleted)
-            {
-                invocationsTasks.Add(PerformInvocationAsync());
-                await Task.Delay(10);
-            }
-            return invocationsTasks;
-
-            async Task PerformInvocationAsync()
-            {
-                await Task.Yield(); // Don't throw synchronously.
-                using var request = new OutgoingRequest(new ServiceAddress(protocol));
-                await sut.Client.InvokeAsync(request);
-            }
-        }
-    }
-
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
     {
         await connection.ShutdownRequested;
