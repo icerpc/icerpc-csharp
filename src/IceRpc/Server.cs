@@ -361,24 +361,35 @@ public sealed class Server : IAsyncDisposable
 
             async Task ConnectAsync(IConnector connector)
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellationToken);
-                cts.CancelAfter(_connectTimeout);
+                using var cts = new CancellationTokenSource(_connectTimeout);
 
-                // Connect the transport connection first.
-                TransportConnectionInformation transportConnectionInformation =
-                    await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
-
-                // Create the protocol connection if the server is not being shutdown and if the max connection count is
-                // not reached.
+                // Connect the transport connection first. This connection establishment can be interrupted by the
+                // shutdown timeout or the shutdown of the connection.
+                TransportConnectionInformation transportConnectionInformation;
                 IProtocolConnection? protocolConnection = null;
-                lock (_mutex)
+                bool serverBusy = false;
+
+                using (CancellationTokenRegistration tokenRegistration =
+                    shutdownCancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), cts))
                 {
-                    if (!cts.IsCancellationRequested && (_maxConnections == 0 || _connections.Count < _maxConnections))
+                    transportConnectionInformation =
+                        await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
+
+                    // Create the protocol connection if the server is not being shutdown and if the max connection
+                    // count is not reached.
+                    lock (_mutex)
                     {
-                        // The protocol connection adopts the transport connection from the connector and it's not
-                        // responsible for disposing of it.
-                        protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
-                        _connections.Add(protocolConnection);
+                        if (_maxConnections > 0 && _connections.Count == _maxConnections)
+                        {
+                            serverBusy = true;
+                        }
+                        else if (!cts.IsCancellationRequested)
+                        {
+                            // The protocol connection adopts the transport connection from the connector and it's now
+                            // responsible for disposing of it.
+                            protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
+                            _connections.Add(protocolConnection);
+                        }
                     }
                 }
 
@@ -387,10 +398,10 @@ public sealed class Server : IAsyncDisposable
                     // Schedule removal after addition, outside mutex lock.
                     _ = RemoveFromCollectionAsync(protocolConnection, shutdownCancellationToken);
 
-                    // Connect the connection.
+                    // Connect the connection. This connection establishment is not interrupted by the server shutdown.
                     _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
                 }
-                else if (!cts.IsCancellationRequested)
+                else if (serverBusy)
                 {
                     // If the max connection count is reached, we refuse the transport connection. We don't pass a
                     // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the
@@ -404,7 +415,8 @@ public sealed class Server : IAsyncDisposable
                         // ignore and continue
                     }
                 }
-                // else the transport-level connection establishment timed out or the server is shutting down.
+                // else the server is shutting down or the connect timeout expired after connecting the transport
+                // connection.
                 // The transport connection is disposed by the disposal of the connector if the protocol connection
                 // didn't adopt it above.
             }

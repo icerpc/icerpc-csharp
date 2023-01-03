@@ -153,7 +153,6 @@ public class ClientConnectionTests
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
-        await Task.Delay(TimeSpan.FromMilliseconds(10)); // TODO: temporary workaround for #2386
         await server.ShutdownAsync();
         await server.DisposeAsync();
         server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
