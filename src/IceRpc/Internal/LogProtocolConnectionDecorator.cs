@@ -17,11 +17,12 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private bool IsServer => _remoteNetworkAddress is not null;
 
-    private readonly TaskCompletionSource<TransportConnectionInformation?> _connectionInformationTcs = new();
     private readonly IProtocolConnection _decoratee;
 
     private readonly ILogger _logger;
-    private readonly Task _logShutdownTask;
+
+    private volatile Task? _logShutdownTask;
+
     private readonly EndPoint? _remoteNetworkAddress;
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -32,17 +33,17 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                 .ConfigureAwait(false);
 
             _logger.LogConnectionConnected(
-                    IsServer,
-                    connectionInformation.LocalNetworkAddress,
-                    connectionInformation.RemoteNetworkAddress);
+                IsServer,
+                connectionInformation.LocalNetworkAddress,
+                connectionInformation.RemoteNetworkAddress);
 
-            _connectionInformationTcs.SetResult(connectionInformation);
+            // We only log the shutdown or completion of the connection after a successful ConnectAsync.
+            _logShutdownTask = LogShutdownAsync(connectionInformation);
+
             return connectionInformation;
         }
         catch (Exception exception)
         {
-            _connectionInformationTcs.TrySetResult(null);
-
             if (_remoteNetworkAddress is null)
             {
                 _logger.LogConnectionConnectFailed(ServerAddress, exception);
@@ -53,15 +54,35 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             }
             throw;
         }
+
+        async Task LogShutdownAsync(TransportConnectionInformation connectionInformation)
+        {
+            if (await Closed.ConfigureAwait(false) is Exception exception)
+            {
+                _logger.LogConnectionFailed(
+                    IsServer,
+                    connectionInformation.LocalNetworkAddress,
+                    connectionInformation.RemoteNetworkAddress,
+                    exception);
+            }
+            else
+            {
+                _logger.LogConnectionShutdown(
+                    IsServer,
+                    connectionInformation.LocalNetworkAddress,
+                    connectionInformation.RemoteNetworkAddress);
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
 
-        // If the application did not call ConnectASync at all, we mark ConnectAsync as unsuccessful:
-        _connectionInformationTcs.TrySetResult(null);
-        await _logShutdownTask.ConfigureAwait(false);
+        if (_logShutdownTask is Task logShutdownTask)
+        {
+            await logShutdownTask.ConfigureAwait(false);
+        }
     }
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -77,32 +98,5 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         _decoratee = decoratee;
         _logger = logger;
         _remoteNetworkAddress = remoteNetworkAddress;
-
-        _logShutdownTask = LogShutdownAsync();
-
-        // This task executes once per decorated connection.
-        async Task LogShutdownAsync()
-        {
-            if (await _connectionInformationTcs.Task.ConfigureAwait(false) is
-                TransportConnectionInformation connectionInformation)
-            {
-                // We only log a shutdown message after ConnectAsync completed successfully.
-                if (await Closed.ConfigureAwait(false) is Exception exception)
-                {
-                    _logger.LogConnectionFailed(
-                        IsServer,
-                        connectionInformation.LocalNetworkAddress,
-                        connectionInformation.RemoteNetworkAddress,
-                        exception);
-                }
-                else
-                {
-                    _logger.LogConnectionShutdown(
-                        IsServer,
-                        connectionInformation.LocalNetworkAddress,
-                        connectionInformation.RemoteNetworkAddress);
-                }
-            }
-        }
     }
 }
