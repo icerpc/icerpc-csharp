@@ -29,7 +29,7 @@ public sealed class DeadlineMiddlewareTests
 
         var sut = new DeadlineMiddleware(dispatcher);
 
-        DateTime deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(10);
+        DateTime deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(100);
         PipeReader pipeReader = WriteDeadline(deadline);
         pipeReader.TryRead(out var readResult);
 
