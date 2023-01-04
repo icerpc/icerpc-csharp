@@ -577,26 +577,20 @@ public sealed class Server : IAsyncDisposable
                     await _listenTask.WaitAsync(cts.Token).ConfigureAwait(false);
                 }
 
-                try
-                {
-                    await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cts.Token)))
-                        .ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch
-                {
-                    // Ignore connection shutdown failures
-                }
-
-                await _backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                await Task.WhenAll(
+                    _connections
+                        .Select(entry => entry.ShutdownAsync(cts.Token))
+                        .Append(_backgroundConnectionShutdownTcs.Task))
+                    .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 throw new TimeoutException($"The server shutdown timed out after {_shutdownTimeout.TotalSeconds} s.");
+            }
+            catch
+            {
+                // Ignore connection shutdown failures
             }
         }
     }
