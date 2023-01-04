@@ -12,7 +12,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
     private readonly CancellationTokenSource _abortCts = new(); // Disposed by Complete
-    private bool _completedWrites;
+    private bool _calledCompletedWrites;
     private IceRpcException? _exception;
     private readonly Pipe _pipe;
     private volatile int _sendCredit = int.MaxValue;
@@ -42,7 +42,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
 
             // If WriteAsync didn't complete writes on the stream already, complete them now.
-            if (!_completedWrites)
+            if (!_calledCompletedWrites)
             {
                 if (exception is null)
                 {
@@ -140,7 +140,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
             if (endStream)
             {
-                _completedWrites = true;
+                _calledCompletedWrites = true;
             }
 
             return await _stream.SendStreamFrameAsync(
