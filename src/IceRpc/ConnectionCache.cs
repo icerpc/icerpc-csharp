@@ -21,6 +21,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private int _backgroundConnectionShutdownCount;
+
+    private readonly TaskCompletionSource _backgroundConnectionShutdownTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly IClientProtocolConnectionFactory _connectionFactory;
 
     private readonly TimeSpan _connectTimeout;
@@ -70,20 +75,33 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Releases all resources allocated by this connection cache.</summary>
-    /// <returns>A value task that completes when all connections managed by this cache are disposed.</returns>
+    /// <summary>Releases all resources allocated by this cache. The cache disposes all the the connections it created.
+    /// </summary>
+    /// <returns>A value task that completes when the disposal of all connections created by this cache has completed.
+    /// This includes connections that were active when this method is called and connections whose disposal was
+    /// initiated prior to this call.</returns>
+    /// <remarks>The disposal of a connection waits for the completion of all dispatch tasks created by this connection.
+    /// If the configured dispatcher does not complete promptly when its cancellation token is canceled, the disposal of
+    /// a connection and indirectly of the connection cache as a whole can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)
         {
             if (_disposeTask is null)
             {
+                // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
+                // does not change.
                 _shutdownCts.Cancel();
+
+                // Once _shutdownCts is canceled, we no longer perform any background dispose or shutdown.
                 if (_backgroundConnectionDisposeCount == 0)
                 {
                     // There is no outstanding background dispose.
                     _ = _backgroundConnectionDisposeTcs.TrySetResult();
                 }
+                // _backgroundConnectionShutdown is only relevant to ShutdownAsync, which can't be called after
+                // DisposeAsync.
+
                 _disposeTask = PerformDisposeAsync();
             }
             return new(_disposeTask);
@@ -96,8 +114,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
-            await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask())
-                .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
+            await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
+                .ConfigureAwait(false);
+
+            await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
 
             _shutdownCts.Dispose();
         }
@@ -241,9 +261,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down all connections managed by this cache.</summary>
+    /// <summary>Gracefully shuts down all connections created by this cache.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes when the shutdown is complete.</returns>
+    /// <returns>A task that completes successfully once the shutdown of all connections created by this cache has
+    /// completed. This includes connections that were active when this method is called and connections whose shutdown
+    /// was initiated prior to this call. This task can also complete with one of the following exceptions:
+    /// <list type="bullet">
+    /// <item><description><see cref="IceRpcException" />if the shutdown of a connection failed.</description>
+    /// </item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// cancellation token.</description></item>
+    /// <item><description><see cref="TimeoutException" />if the shutdown timed out.</description></item>
+    /// </list>
+    /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)
@@ -260,6 +292,14 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             // We always cancel _shutdownCts with _mutex locked. This way, when _mutex is locked, _shutdownCts.Token
             // does not change.
             _shutdownCts.Cancel();
+
+            // Once _shutdownCts is canceled, we no longer perform any background dispose or shutdown.
+            if (_backgroundConnectionShutdownCount == 0)
+            {
+                // There is no outstanding background connection shutdown.
+                _ = _backgroundConnectionShutdownTcs.TrySetResult();
+            }
+            // _backgroundConnectionDispose is only relevant to DisposeAsync
         }
 
         return PerformShutdownAsync();
@@ -277,6 +317,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // Note: this throws the first exception, not all of them.
                 await Task.WhenAll(allConnections.Select(connection => connection.ShutdownAsync(cts.Token)))
                     .ConfigureAwait(false);
+
+                await _backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -425,6 +467,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     bool removed = _activeConnections.Remove(connection.ServerAddress);
                     Debug.Assert(removed);
                     _backgroundConnectionDisposeCount++;
+
+                    if (shutdownRequested)
+                    {
+                        _backgroundConnectionShutdownCount++;
+                    }
                 }
             }
 
@@ -446,6 +493,17 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     Debug.Fail($"Unexpected connection shutdown exception: {exception}");
                     throw;
+                }
+                finally
+                {
+                    lock (_mutex)
+                    {
+                        if (--_backgroundConnectionShutdownCount == 0 &&
+                            shutdownCancellationToken.IsCancellationRequested)
+                        {
+                            _backgroundConnectionShutdownTcs.SetResult();
+                        }
+                    }
                 }
             }
 
