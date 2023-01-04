@@ -370,7 +370,7 @@ public sealed class Server : IAsyncDisposable
                     shutdownCancellationToken.UnsafeRegister(cts => ((CancellationTokenSource)cts!).Cancel(), cts))
                 {
                     // Connect the transport connection first. This connection establishment can be interrupted by the
-                    // shutdown timeout or the shutdown of the connection.
+                    // connect timeout or the cancellation of shutdownCancellationToken.
                     TransportConnectionInformation transportConnectionInformation =
                         await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
 
@@ -378,6 +378,7 @@ public sealed class Server : IAsyncDisposable
                     // count is not reached.
                     lock (_mutex)
                     {
+                        Debug.Assert(_maxConnections == 0 || _connections.Count <= _maxConnections);
                         if (_maxConnections > 0 && _connections.Count == _maxConnections)
                         {
                             serverBusy = true;
