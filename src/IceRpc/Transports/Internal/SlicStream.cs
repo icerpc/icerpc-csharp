@@ -116,7 +116,7 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted && (errorCode is not null || IsRemote))
             {
-                _ = SendCompleteReadsFrameAsync(errorCode);
+                _ = PerformCompleteReadsAsync(errorCode);
             }
             else
             {
@@ -124,7 +124,7 @@ internal class SlicStream : IMultiplexedStream
             }
         }
 
-        async Task SendCompleteReadsFrameAsync(ulong? errorCode)
+        async Task PerformCompleteReadsAsync(ulong? errorCode)
         {
             try
             {
@@ -168,8 +168,7 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (Exception exception)
             {
-                Debug.Fail(
-                    $"Failed to send Slic stream complete reads frame due to an unhandled exception: {exception}");
+                Debug.Fail($"Failed to send frame from CompleteReads due to an unhandled exception: {exception}");
                 throw;
             }
         }
@@ -181,7 +180,7 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted)
             {
-                _ = SendCompleteWritesFrameAsync(errorCode);
+                _ = PerformCompleteWritesAsync(errorCode);
             }
             else
             {
@@ -189,7 +188,7 @@ internal class SlicStream : IMultiplexedStream
             }
         }
 
-        async Task SendCompleteWritesFrameAsync(ulong? errorCode)
+        async Task PerformCompleteWritesAsync(ulong? errorCode)
         {
             try
             {
@@ -223,7 +222,7 @@ internal class SlicStream : IMultiplexedStream
                     if (!IsRemote)
                     {
                         // We can now complete writes to permit a new stream to be started. The peer will receive the
-                        // last stream frame or reset frame before the new stream sends a stream frame.
+                        // reset frame before the new stream sends a stream frame.
                         TrySetWritesCompleted();
                     }
                 }
@@ -234,8 +233,7 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (Exception exception)
             {
-                Debug.Fail(
-                    $"Failed to send Slic stream complete writes frame due to an unhandled exception: {exception}");
+                Debug.Fail($"Failed to send frame from CompleteWrites due to an unhandled exception: {exception}");
                 throw;
             }
         }
