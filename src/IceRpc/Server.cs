@@ -15,15 +15,6 @@ namespace IceRpc;
 /// </summary>
 public sealed class Server : IAsyncDisposable
 {
-    // Protocol connection's ShutdownAsync and DisposeAsync wait for the dispatches started by the connection to
-    // complete: this way, if a dispatcher misbehaves (does not complete promptly after its cancellation token is
-    // canceled), ShutdownAsync will timeout and DisposeAsync will hang. This timeout or hang alerts the application of
-    // this bug in the dispatcher code (which is application code).
-    // Before the application calls ShutdownAsync or DisposeAsync on Server, a connection can be shut down or disposed
-    // for various reasons, such as client shutdown. We want ShutdownAsync/DisposeAsync to wait for any connection
-    // shutdown/dispose that started in the background beforehand; otherwise, a misbehaving dispatcher that hangs would
-    // only cause ShutdownAsync/DisposeAsync to timeout or hang if it's associated with an active connection.
-    // We use _backgroundConnectionDisposeCount, _backgroundConnectionShutdownCount etc. for this purpose.
     private int _backgroundConnectionDisposeCount;
 
     private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
@@ -223,7 +214,14 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
-    /// <inheritdoc/>
+    /// <summary>Releases all resources allocated by this server. The server stops listening for new connections and
+    /// disposes the connections it accepted from clients.</summary>
+    /// <returns>A value task that completes when the disposal of all connections accepted by the server has completed.
+    /// This includes connections that were active when this method is called and connections whose disposal was
+    /// initiated prior to this call.</returns>
+    /// <remarks>The disposal of a connection waits for the completion of all dispatch tasks created by this connection.
+    /// If the configured dispatcher does not complete promptly when its cancellation token is canceled, the disposal of
+    /// a connection and indirectly of the server as a whole can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)
@@ -520,11 +518,12 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
-    /// connections.</summary>
+    /// <summary>Gracefully shuts down this server: the server stops accepting new connections and shuts down gracefully
+    /// all its connections.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes successfully once the shutdown is complete. This task can also complete with one
-    /// of the following exceptions:
+    /// <returns>A task that completes successfully once the shutdown of all connections accepted by the server has
+    /// completed. This includes connections that were active when this method is called and connections whose shutdown
+    /// was initiated prior to this call. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" />if the shutdown of a connection failed.</description>
     /// </item>
@@ -554,7 +553,7 @@ public sealed class Server : IAsyncDisposable
 
             if (_backgroundConnectionShutdownCount == 0)
             {
-                // There is no outstanding background shutdown.
+                // There is no outstanding background connection shutdown.
                 _ = _backgroundConnectionShutdownTcs.TrySetResult();
             }
         }
