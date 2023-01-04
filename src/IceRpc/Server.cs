@@ -869,8 +869,11 @@ public sealed class Server : IAsyncDisposable
             return new();
         }
 
-        public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
-            _transportConnection!.ShutdownAsync(cancel);
+        public Task RefuseTransportConnectionAsync(CancellationToken cancel)
+        {
+            _transportConnection!.Dispose();
+            return Task.CompletedTask;
+        }
 
         internal IceConnector(IDuplexConnection transportConnection, ConnectionOptions options)
         {

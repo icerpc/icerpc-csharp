@@ -34,17 +34,18 @@ public class ServerTests
     }
 
     [Test]
-    public async Task Connection_refused_after_max_connections_is_reached()
+    public async Task Connection_refused_after_max_connections_is_reached(
+        [Values("icerpc://127.0.0.1:0", "ice://127.0.0.1:0")] Uri serverAddressUri)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
-        // var colocTransport = new ColocTransport();
+
         await using var server = new Server(
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 MaxConnections = 1,
-                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+                ServerAddress = new ServerAddress(serverAddressUri),
             });
 
         ServerAddress serverAddress = server.Listen();
@@ -63,7 +64,9 @@ public class ServerTests
 
         await connection1.ConnectAsync();
 
-        Assert.That(() => connection2.ConnectAsync(), Throws.Exception);
+        var exception = Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
+        Assert.That(exception!.IceRpcError, Is.EqualTo(
+            serverAddress.Protocol == Protocol.Ice ? IceRpcError.ConnectionAborted : IceRpcError.ServerBusy));
     }
 
     [Test]
@@ -138,6 +141,7 @@ public class ServerTests
 
         var serverTransport = new DelayDisposeMultiplexServerTransport(
             new SlicServerTransport(colocTransport.ServerTransport));
+        var clientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
            new ServerOptions
@@ -155,15 +159,15 @@ public class ServerTests
 
         await using var clientConnection1 = new ClientConnection(
             new ClientConnectionOptions { ServerAddress = serverAddress },
-            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+            multiplexedClientTransport: clientTransport);
 
         await using var clientConnection2 = new ClientConnection(
             new ClientConnectionOptions { ServerAddress = serverAddress },
-            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+            multiplexedClientTransport: clientTransport);
 
         await using var clientConnection3 = new ClientConnection(
             new ClientConnectionOptions { ServerAddress = serverAddress },
-            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+            multiplexedClientTransport: clientTransport);
 
         await clientConnection1.ConnectAsync();
         DelayDisposeMultiplexedConnection serverConnection1 = serverListener.FirstConnection!;
