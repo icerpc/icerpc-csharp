@@ -525,8 +525,6 @@ public sealed class Server : IAsyncDisposable
     /// completed. This includes connections that were active when this method is called and connections whose shutdown
     /// was initiated prior to this call. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" />if the shutdown of a connection failed.</description>
-    /// </item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" />if the shutdown timed out.</description></item>
@@ -579,9 +577,19 @@ public sealed class Server : IAsyncDisposable
                     await _listenTask.WaitAsync(cts.Token).ConfigureAwait(false);
                 }
 
-                // Note: this throws the first exception, not all of them.
-                await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cts.Token)))
-                    .ConfigureAwait(false);
+                try
+                {
+                    await Task.WhenAll(_connections.Select(entry => entry.ShutdownAsync(cts.Token)))
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Ignore connection shutdown failures
+                }
 
                 await _backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
