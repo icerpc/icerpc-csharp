@@ -329,7 +329,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    public async Task Close_connection_on_both_sides()
+    public async Task Close_connection_simultaneously_on_both_sides()
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
