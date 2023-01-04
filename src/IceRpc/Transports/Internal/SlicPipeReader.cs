@@ -8,7 +8,6 @@ namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeReader : PipeReader
 {
-    private bool _calledCompleteReads;
     private int _examined;
     private IceRpcException? _exception;
     private long _lastExaminedOffset;
@@ -51,12 +50,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // If ReadAsync or TryRead didn't complete reads on the stream already, complete them now.
-            if (!_calledCompleteReads)
-            {
-                // We don't use the application error code, it's irrelevant.
-                _stream.CompleteReads(errorCode: 0ul);
-            }
+            // We don't use the application error code, it's irrelevant.
+            _stream.CompleteReads(errorCode: 0ul);
 
             if (_state.TrySetFlag(State.PipeWriterCompleted))
             {
@@ -87,9 +82,8 @@ internal class SlicPipeReader : PipeReader
 
         // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
         // will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
-        if (result.IsCompleted && !_calledCompleteReads)
+        if (result.IsCompleted)
         {
-            _calledCompleteReads = true;
             _stream.CompleteReads();
         }
 
@@ -120,9 +114,8 @@ internal class SlicPipeReader : PipeReader
 
             // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
             // This will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
-            if (result.IsCompleted && !_calledCompleteReads)
+            if (result.IsCompleted)
             {
-                _calledCompleteReads = true;
                 _stream.CompleteReads();
             }
             return true;

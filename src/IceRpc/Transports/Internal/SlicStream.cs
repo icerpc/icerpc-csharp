@@ -58,8 +58,10 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicPipeReader? _inputPipeReader;
     private readonly SlicPipeWriter? _outputPipeWriter;
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool _readsCompletionPending;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool _writesCompletionPending;
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -112,10 +114,11 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteReads(ulong? errorCode = null)
     {
-        if (!ReadsCompleted)
+        if (!ReadsCompleted || _readsCompletionPending)
         {
             if (IsStarted && (errorCode is not null || IsRemote))
             {
+                _readsCompletionPending = true;
                 _ = PerformCompleteReadsAsync(errorCode);
             }
             else
@@ -176,10 +179,11 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteWrites(ulong? errorCode = null)
     {
-        if (!WritesCompleted)
+        if (!WritesCompleted && !_writesCompletionPending)
         {
             if (IsStarted)
             {
+                _writesCompletionPending = true;
                 _ = PerformCompleteWritesAsync(errorCode);
             }
             else
@@ -350,8 +354,14 @@ internal class SlicStream : IMultiplexedStream
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        CancellationToken cancellationToken) =>
-        _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        if (endStream)
+        {
+            _writesCompletionPending = true;
+        }
+        return _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+    }
 
     internal void SentLastStreamFrame()
     {
@@ -369,6 +379,7 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.ReadsCompleted))
         {
             _readsClosedTcs.TrySetResult();
+            _readsCompletionPending = false;
             return true;
         }
         else
@@ -382,6 +393,7 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.WritesCompleted))
         {
             _writesClosedTcs.TrySetResult();
+            _writesCompletionPending = false;
             return true;
         }
         else
