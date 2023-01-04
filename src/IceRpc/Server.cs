@@ -580,7 +580,7 @@ public sealed class Server : IAsyncDisposable
                 await Task.WhenAll(
                     _connections
                         .Select(entry => entry.ShutdownAsync(cts.Token))
-                        .Append(_backgroundConnectionShutdownTcs.Task))
+                        .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)

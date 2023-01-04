@@ -315,7 +315,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 await Task.WhenAll(
                     allConnections
                         .Select(connection => connection.ShutdownAsync(cts.Token))
-                        .Append(_backgroundConnectionShutdownTcs.Task))
+                        .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
