@@ -228,7 +228,16 @@ public sealed class ProtocolConnectionTests
         // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync will hang.
         await sut.Server.DisposeAsync();
 
-        Assert.That(() => Task.WhenAll(invokeTask1, invokeTask2), Throws.InstanceOf<IceRpcException>());
+        Assert.That(
+            async () => await invokeTask1,
+            Throws.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+        Assert.That(
+            async () => await invokeTask2,
+            Throws.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Verifies that when a exception other than a DispatchException is thrown
