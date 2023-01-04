@@ -1036,11 +1036,9 @@ internal class SlicConnection : IMultiplexedConnection
 
                         // Accept the new remote stream.
                         // TODO: Cache SliceMultiplexedStream
-#pragma warning disable CA2000
                         // The stream is queued on the channel reader. The caller of AcceptStreamAsync is responsible
                         // for disposing the stream
                         stream = new SlicStream(this, isBidirectional, remote: true);
-#pragma warning restore CA2000
 
                         try
                         {
