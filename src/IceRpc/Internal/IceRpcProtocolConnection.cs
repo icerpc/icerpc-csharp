@@ -179,7 +179,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             _remoteControlStream.Input.AdvanceTo(readResult.Buffer.End);
                         }
 
-                        RefuseNewInvocations("The connection was shut down because it received a GoAway frame from the peer.");
+                        RefuseNewInvocations(
+                            "The connection was shut down because it received a GoAway frame from the peer.");
                         _shutdownRequestedTcs.TrySetResult();
 
                         return goAwayFrame;
@@ -432,6 +433,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // It's safe to complete the input since read operations have been completed by the connection disposal.
             _remoteControlStream?.Input.Complete();
 
+            foreach (CancellationTokenSource cts in _pendingInvocations.Values)
+            {
+                cts.Dispose();
+            }
+
             _dispatchesAndInvocationsCts.Dispose();
             _acceptStreamCts.Dispose();
             _dispatchSemaphore?.Dispose();
@@ -477,8 +483,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
-                _dispatchesAndInvocationsCts.Token);
+            var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_dispatchesAndInvocationsCts.Token);
             CancellationToken invocationCancellationToken = invocationCts.Token;
 
             // We unregister this cancellationToken when this async method completes (it completes successfully when we
@@ -771,14 +776,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             stream.Id >= (stream.IsBidirectional ?
                                 peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
                         {
-                            try
-                            {
-                                cts.Cancel();
-                            }
-                            catch (ObjectDisposedException)
-                            {
-                                // Expected if already disposed.
-                            }
+                            cts.Cancel();
                         }
                     }
 
