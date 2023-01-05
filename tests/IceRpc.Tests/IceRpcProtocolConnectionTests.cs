@@ -543,7 +543,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// PipeReader.</summary>
     [Test]
     public async Task PayloadContinuation_of_outgoing_request_completed_when_not_read_by_dispatcher(
-        [Values] bool isOneway)
+        [Values(false, true)] bool isOneway)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));

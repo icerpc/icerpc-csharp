@@ -31,12 +31,11 @@ internal class QuicPipeReader : PipeReader
         {
             _isCompleted = true;
 
-            // This does not call _stream.Dispose since leaveOpen is set to true. The current implementation of
-            // StreamPipeReader doesn't use the exception and it's unclear how it could use it.
-            _pipeReader.Complete(exception);
-
-            // Tell the remote writer we're done reading. The error code is irrelevant.
+            // We don't use the application error code, it's irrelevant.
             _stream.Abort(QuicAbortDirection.Read, errorCode: 0);
+
+            // This does not call _stream.Dispose since leaveOpen is set to true.
+            _pipeReader.Complete();
 
             _completeCallback();
         }

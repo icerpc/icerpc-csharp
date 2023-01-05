@@ -185,7 +185,6 @@ public abstract class MultiplexedStreamConformanceTests
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         var streams = new LocalAndRemoteStreams[streamCount];
-
         for (int i = 0; i < streamCount; ++i)
         {
             streams[i] = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
@@ -203,9 +202,9 @@ public abstract class MultiplexedStreamConformanceTests
         for (int i = 0; i < streamCount; ++i)
         {
             writeTasks.Add(WriteAsync(streams[i].LocalStream, segments, payload));
-            readTasks.Add(ReadAsync(streams[i].RemoteStream, payloadSize * segments));
+            readTasks.Add(ReadAsync(streams[i].RemoteStream));
             writeTasks.Add(WriteAsync(streams[i].RemoteStream, segments, payload));
-            readTasks.Add(ReadAsync(streams[i].LocalStream, payloadSize * segments));
+            readTasks.Add(ReadAsync(streams[i].LocalStream));
         }
 
         // Assert
@@ -229,29 +228,36 @@ public abstract class MultiplexedStreamConformanceTests
             streams[i].Dispose();
         }
 
-        async Task<byte[]> ReadAsync(IMultiplexedStream stream, long size)
+        // Read the all the data from the stream. Once we reached the end of the stream, the data is returned as byte
+        // array.
+        async Task<byte[]> ReadAsync(IMultiplexedStream stream)
         {
+            ReadResult result = default;
             while (true)
             {
-                // wait for delay
-                ReadResult result = await stream.Input.ReadAsync();
+                result = await stream.Input.ReadAsync();
+
                 if (delay > 0)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay));
                 }
-                if (result.Buffer.Length == size)
+
+                if (result.IsCompleted)
                 {
-                    byte[] buffer = result.Buffer.ToArray();
-                    stream.Input.AdvanceTo(result.Buffer.End);
-                    return buffer;
+                    break;
                 }
                 else
                 {
                     stream.Input.AdvanceTo(result.Buffer.Start, result.Buffer.End);
                 }
             }
+
+            byte[] buffer = result.Buffer.ToArray();
+            stream.Input.AdvanceTo(result.Buffer.End);
+            return buffer;
         }
 
+        // Write data on the stream in multiple segments.
         async Task WriteAsync(IMultiplexedStream stream, int segments, ReadOnlyMemory<byte> payload)
         {
             for (int i = 0; i < segments; ++i)
@@ -260,7 +266,9 @@ public abstract class MultiplexedStreamConformanceTests
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay));
                 }
-                await stream.Output.WriteAsync(payload, default);
+
+                FlushResult flushResult = await stream.Output.WriteAsync(payload, default);
+                Assert.That(flushResult.IsCompleted, Is.False);
             }
             stream.Output.Complete();
         }
@@ -268,7 +276,8 @@ public abstract class MultiplexedStreamConformanceTests
 
     [Test]
     public async Task Stream_local_writes_are_closed_when_remote_input_is_completed(
-        [Values(false, true)] bool isBidirectional)
+        [Values(false, true)] bool isBidirectional,
+        [Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -284,7 +293,7 @@ public abstract class MultiplexedStreamConformanceTests
             isBidirectional);
 
         // Act
-        sut.RemoteStream.Input.Complete();
+        sut.RemoteStream.Input.Complete(abort ? new Exception() : null);
 
         // Assert
         Assert.That(async () => await sut.LocalStream.WritesClosed, Throws.Nothing);
@@ -292,7 +301,8 @@ public abstract class MultiplexedStreamConformanceTests
 
     [Test]
     public async Task Stream_local_writes_are_closed_when_local_output_completed(
-        [Values(false, true)] bool isBidirectional)
+        [Values(false, true)] bool isBidirectional,
+        [Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -308,14 +318,14 @@ public abstract class MultiplexedStreamConformanceTests
             isBidirectional);
 
         // Act
-        sut.LocalStream.Output.Complete();
+        sut.LocalStream.Output.Complete(abort ? new Exception() : null);
 
         // Assert
         Assert.That(async () => await sut.LocalStream.WritesClosed, Throws.Nothing);
     }
 
     [Test]
-    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed()
+    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed([Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -331,18 +341,19 @@ public abstract class MultiplexedStreamConformanceTests
             true);
 
         // Act
-        sut.RemoteStream.Output.Complete();
-
-        // The stream read side only completes once the data or EOS is consumed.
-        ReadResult result = await sut.LocalStream.Input.ReadAsync();
-        Assert.That(result.IsCompleted, Is.True);
+        sut.RemoteStream.Output.Complete(abort ? new Exception() : null);
 
         // Assert
+        if (!abort)
+        {
+            // The stream read side only completes once the data or EOS is consumed.
+            _ = await sut.LocalStream.Input.ReadAsync();
+        }
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
     [Test]
-    public async Task Stream_local_reads_are_closed_when_local_input_completed()
+    public async Task Stream_local_reads_are_closed_when_local_input_completed([Values(false, true)] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -358,7 +369,7 @@ public abstract class MultiplexedStreamConformanceTests
             true);
 
         // Act
-        sut.LocalStream.Input.Complete();
+        sut.LocalStream.Input.Complete(abort ? new Exception() : null);
 
         // Assert
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
