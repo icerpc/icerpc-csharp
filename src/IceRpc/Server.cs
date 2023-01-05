@@ -418,12 +418,10 @@ public sealed class Server : IAsyncDisposable
                 }
                 else if (serverBusy)
                 {
-                    // If the max connection count is reached, we refuse the transport connection. We don't pass a
-                    // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the
-                    // peer doesn't acknowledge the failure.
+                    // If the max connection count is reached, we refuse the transport connection.
                     try
                     {
-                        await connector.RefuseTransportConnectionAsync(CancellationToken.None).ConfigureAwait(false);
+                        await connector.RefuseTransportConnectionAsync(cts.Token).ConfigureAwait(false);
                     }
                     catch
                     {
