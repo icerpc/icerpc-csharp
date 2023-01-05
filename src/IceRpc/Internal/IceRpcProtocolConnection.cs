@@ -396,6 +396,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             await DisposeTransportAsync().ConfigureAwait(false);
 
+            _acceptStreamCts.Cancel();
             try
             {
                 await Task.WhenAll(
@@ -407,8 +408,20 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
             }
 
+            lock (_mutex)
+            {
+                if (_streamCount == 0)
+                {
+                    _streamsClosed.TrySetResult();
+                }
+                if (_dispatchCount == 0)
+                {
+                    _dispatchesCompleted.TrySetResult();
+                }
+            }
+
             // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
-            // (with _streamClosed.Task). It should be complete since we've disposed the underlying transport
+            // (with _streamsClosed.Task). It should be complete since we've disposed the underlying transport
             // connection.
             await _dispatchesCompleted.Task.ConfigureAwait(false);
 
