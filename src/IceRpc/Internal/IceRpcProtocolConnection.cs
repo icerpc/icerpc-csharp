@@ -382,7 +382,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     // ShutdownAsync will complete Closed and we wait for Closed completion.
 
-                    CancelDispatchesAndInvocations(); // speed up shutdown
+                    _dispatchesAndInvocationsCts.Cancel(); // speed up shutdown
                     _ = await Closed.ConfigureAwait(false);
                 }
                 else
@@ -950,26 +950,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         return (fields, pipeReader);
     }
 
-    private void CancelDispatchesAndInvocations()
-    {
-        if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
-        {
-            _dispatchesAndInvocationsCts.Cancel();
-
-            lock (_mutex)
-            {
-                if (_streamCount == 0)
-                {
-                    _streamsClosed.TrySetResult();
-                }
-                if (_dispatchCount == 0)
-                {
-                    _dispatchesCompleted.TrySetResult();
-                }
-            }
-        }
-    }
-
     private void CheckPeerHeaderSize(int headerSize)
     {
         if (headerSize > _peerMaxHeaderSize)
@@ -1165,7 +1145,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
         // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
-        CancelDispatchesAndInvocations();
+        _dispatchesAndInvocationsCts.Cancel();
     }
 
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
