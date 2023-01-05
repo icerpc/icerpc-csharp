@@ -202,9 +202,9 @@ public abstract class MultiplexedStreamConformanceTests
         for (int i = 0; i < streamCount; ++i)
         {
             writeTasks.Add(WriteAsync(streams[i].LocalStream, segments, payload));
-            readTasks.Add(ReadAsync(streams[i].RemoteStream, payloadSize * segments));
+            readTasks.Add(ReadAsync(streams[i].RemoteStream));
             writeTasks.Add(WriteAsync(streams[i].RemoteStream, segments, payload));
-            readTasks.Add(ReadAsync(streams[i].LocalStream, payloadSize * segments));
+            readTasks.Add(ReadAsync(streams[i].LocalStream));
         }
 
         // Assert
