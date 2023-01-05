@@ -100,72 +100,11 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(ex.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
-    /// <summary>Verifies that after reaching the stream max count, new streams are not accepted until a
-    /// stream is closed.</summary>
-    /// <param name="streamMaxCount">The max stream count limit to use for the test.</param>
-    /// <param name="bidirectional">Whether to test with bidirectional or unidirectional streams.</param>
     [Test]
-    public async Task After_reach_max_stream_count_completing_a_stream_allows_accepting_a_new_one(
-       [Values(1, 1024)] int streamMaxCount,
-       [Values(true, false)] bool bidirectional)
-    {
-        // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
-        if (bidirectional)
-        {
-            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = streamMaxCount);
-        }
-        else
-        {
-            serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxUnidirectionalStreams = streamMaxCount);
-        }
-        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        List<IMultiplexedStream> streams = await CreateStreamsAsync(streamMaxCount, bidirectional);
-
-        ValueTask<IMultiplexedStream> lastStreamTask = clientConnection.CreateStreamAsync(bidirectional, default);
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-        if (bidirectional)
-        {
-            serverStream.Output.Complete(new OperationCanceledException()); // exception does not matter
-        }
-        bool isCompleted = lastStreamTask.IsCompleted;
-
-        // Act
-        serverStream.Input.Complete();
-
-        // Assert
-        Assert.That(isCompleted, Is.False);
-        Assert.That(async () => await lastStreamTask, Throws.Nothing);
-
-        MultiplexedConformanceTestsHelper.CleanupStreams(streams.ToArray());
-        MultiplexedConformanceTestsHelper.CleanupStreams(await lastStreamTask);
-
-        async Task<List<IMultiplexedStream>> CreateStreamsAsync(int count, bool bidirectional)
-        {
-            var streams = new List<IMultiplexedStream>();
-            for (int i = 0; i < count; i++)
-            {
-                IMultiplexedStream stream = await clientConnection.CreateStreamAsync(
-                    bidirectional,
-                    default).ConfigureAwait(false);
-                streams.Add(stream);
-                await stream.Output.WriteAsync(_oneBytePayload, default);
-            }
-            return streams;
-        }
-    }
-
-    [Test]
-    public async Task After_reach_max_stream_count_end_of_stream_allows_accepting_a_new_one(
-        [Values(true, false)] bool bidirectional)
+    public async Task Completing_a_local_or_remote_stream_allows_accepting_a_new_one(
+        [Values(true, false)] bool bidirectional,
+        [Values(true, false)] bool abort,
+        [Values(true, false)] bool remote)
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
@@ -182,43 +121,48 @@ public abstract class MultiplexedConnectionConformanceTests
 
         IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional, default);
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
-        ValueTask<IMultiplexedStream> stream2Task = clientConnection.CreateStreamAsync(bidirectional, default);
 
         IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
         ReadResult readResult = await serverStream1.Input.ReadAsync();
         serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
+        ValueTask<IMultiplexedStream> clientStream2Task = clientConnection.CreateStreamAsync(bidirectional, default);
         if (bidirectional)
         {
             serverStream1.Output.Complete();
             clientStream1.Input.Complete();
         }
+        await Task.Delay(50);
 
         // Act
-        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
-        bool stream2TaskIsCompleted = stream2Task.IsCompleted;
-        clientStream1.Output.Complete();
+        bool stream2TaskIsCompleted = clientStream2Task.IsCompleted;
+        if (remote)
+        {
+            serverStream1.Input.Complete(abort ? new Exception() : null);
+        }
+        else
+        {
+            clientStream1.Output.Complete(abort ? new Exception() : null);
+
+            if (!abort)
+            {
+                // Consume the last stream frame. This will trigger the serverStream1 reads completion and allow the
+                // second stream to be accepted.
+                readResult = await serverStream1.Input.ReadAsync();
+                serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+            }
+        }
 
         // Assert
 
+        // The second stream wasn't accepted before the first stream completion.
         Assert.That(stream2TaskIsCompleted, Is.False);
 
-        // Reading is necessary to trigger the closing of reads for serverStream1 and allow a new stream to be accepted.
-        readResult = await serverStream1.Input.ReadAsync();
-        if (!readResult.IsCompleted)
-        {
-            serverStream1.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-
-            // The end of stream is sent in a separate stream frame. Depending on timeout, the Input pipe reader might
-            // process the two frame separately so a second read is needed to get the end of stream.
-            readResult = await serverStream1.Input.ReadAsync();
-            Assert.That(readResult.IsCompleted, Is.True);
-        }
-        Assert.That(async () => await stream2Task, Throws.Nothing);
-        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+        // The second stream is accepted after the first stream completion.
+        Assert.That(async () => await clientStream2Task, Throws.Nothing);
 
         MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
-        MultiplexedConformanceTestsHelper.CleanupStreams(await stream2Task);
+        MultiplexedConformanceTestsHelper.CleanupStreams(await clientStream2Task);
     }
 
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
@@ -290,10 +234,7 @@ public abstract class MultiplexedConnectionConformanceTests
                 while (true)
                 {
                     FlushResult result = await peerStream.Output.WriteAsync(_oneBytePayload);
-                    if (result.IsCompleted)
-                    {
-                        return;
-                    }
+                    Assert.That(result.IsCompleted, Is.False);
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });
@@ -706,12 +647,11 @@ public abstract class MultiplexedConnectionConformanceTests
             while (true)
             {
                 ReadResult readResult = await stream.Input.ReadAsync();
+                stream.Input.AdvanceTo(readResult.Buffer.End);
                 if (readResult.IsCompleted)
                 {
-                    stream.Input.AdvanceTo(readResult.Buffer.End);
                     break;
                 }
-                stream.Input.AdvanceTo(readResult.Buffer.End);
             }
             stream.Input.Complete();
         }
@@ -721,12 +661,11 @@ public abstract class MultiplexedConnectionConformanceTests
             while (true)
             {
                 ReadResult readResult = await stream.Input.ReadAsync();
+                stream.Input.AdvanceTo(readResult.Buffer.End);
                 if (readResult.IsCompleted)
                 {
-                    stream.Input.AdvanceTo(readResult.Buffer.End);
                     break;
                 }
-                stream.Input.AdvanceTo(readResult.Buffer.End);
             }
             stream.Input.Complete();
 

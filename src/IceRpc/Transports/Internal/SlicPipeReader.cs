@@ -50,8 +50,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // Abort reads to send a stream stop sending frame to the peer to notify it shouldn't send additional data.
-            _stream.AbortRead();
+            // We don't use the application error code, it's irrelevant.
+            _stream.CompleteReads(errorCode: 0ul);
 
             if (_state.TrySetFlag(State.PipeWriterCompleted))
             {
@@ -80,10 +80,11 @@ internal class SlicPipeReader : PipeReader
         // and consumed.
         _readResult = result;
 
-        // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
+        // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
+        // will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
         if (result.IsCompleted)
         {
-            _stream.TrySetReadsClosed();
+            _stream.CompleteReads();
         }
 
         return result;
@@ -111,10 +112,11 @@ internal class SlicPipeReader : PipeReader
             // examined and consumed.
             _readResult = result;
 
-            // If reads are completed we complete reads on the stream even if the buffered data wasn't consumed.
+            // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
+            // This will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
             if (result.IsCompleted)
             {
-                _stream.TrySetReadsClosed();
+                _stream.CompleteReads();
             }
             return true;
         }
@@ -124,20 +126,15 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    internal SlicPipeReader(
-        SlicStream stream,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        int resumeThreshold,
-        int pauseThreshold)
+    internal SlicPipeReader(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _resumeThreshold = resumeThreshold;
-        _receiveCredit = pauseThreshold;
+        _resumeThreshold = connection.ResumeWriterThreshold;
+        _receiveCredit = connection.PauseWriterThreshold;
         _pipe = new(new PipeOptions(
-            pool: pool,
+            pool: connection.Pool,
             pauseWriterThreshold: 0,
-            minimumSegmentSize: minimumSegmentSize,
+            minimumSegmentSize: connection.MinSegmentSize,
             writerScheduler: PipeScheduler.Inline));
     }
 
@@ -204,6 +201,13 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
+                // If it's not a remote stream and the peer is done sending data, we can complete reads right away to
+                // allow a new stream to be opened. There's no need to wait for the buffered data or end of stream to be
+                // consumed. This will prevent the sending of a stop sending frame when this reader is completed.
+                if (!_stream.IsRemote && dataSize == 0)
+                {
+                    _stream.TrySetReadsCompleted();
+                }
                 _pipe.Writer.Complete();
             }
             else
