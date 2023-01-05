@@ -12,7 +12,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
     internal Task Closed { get; }
 
     private bool _isCompleted;
-    private Action _completeCallback;
+    private readonly Action _completeCallback;
     private readonly int _minSegmentSize;
 
     // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
@@ -46,7 +46,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                // The error code is irrelevant.
+                // We don't use the application error code, it's irrelevant.
                 _stream.Abort(QuicAbortDirection.Write, errorCode: 0);
             }
 
@@ -162,7 +162,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                var enumerator = sequence.GetEnumerator();
+                ReadOnlySequence<byte>.Enumerator enumerator = sequence.GetEnumerator();
                 bool hasMore = enumerator.MoveNext();
                 Debug.Assert(hasMore);
                 do
