@@ -36,8 +36,8 @@ public sealed class Server : IAsyncDisposable
 
     private bool _isShutdown;
 
-    // A cancellation token source that is canceled when ShutdownAsync or DisposeAsync is called.
-    private readonly CancellationTokenSource _lameDuckCts = new();
+    // A cancellation token source we cancel when we want to stop listening.
+    private readonly CancellationTokenSource _listenCts = new();
 
     private IConnectorListener? _listener;
 
@@ -234,7 +234,7 @@ public sealed class Server : IAsyncDisposable
         {
             if (_disposeTask is null)
             {
-                _lameDuckCts.Cancel();
+                _listenCts.Cancel();
                 _disposedCts.Cancel();
 
                 _disposeTask = PerformDisposeAsync();
@@ -276,7 +276,7 @@ public sealed class Server : IAsyncDisposable
 
             await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
 
-            _lameDuckCts.Dispose();
+            _listenCts.Dispose();
             _disposedCts.Dispose();
         }
     }
@@ -293,7 +293,6 @@ public sealed class Server : IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Throw when the server is disposed.</exception>
     public ServerAddress Listen()
     {
-        CancellationToken lameDuckCancellationToken;
         CancellationToken disposedCancellationToken;
         IConnectorListener listener;
 
@@ -315,14 +314,13 @@ public sealed class Server : IAsyncDisposable
             listener = _listenerFactory();
             _listener = listener;
 
-            lameDuckCancellationToken = _lameDuckCts.Token;
             disposedCancellationToken = _disposedCts.Token;
-            _listenTask = Task.Run(ListenAsync);
+            _listenTask = Task.Run(() => ListenAsync(_listenCts.Token));
         }
 
         return listener.ServerAddress;
 
-        async Task ListenAsync()
+        async Task ListenAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -330,11 +328,11 @@ public sealed class Server : IAsyncDisposable
                     _maxPendingConnections,
                     _maxPendingConnections);
 
-                while (!lameDuckCancellationToken.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    await pendingConnectionSemaphore.WaitAsync(lameDuckCancellationToken).ConfigureAwait(false);
+                    await pendingConnectionSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-                    (IConnector connector, _) = await listener.AcceptAsync(lameDuckCancellationToken)
+                    (IConnector connector, _) = await listener.AcceptAsync(cancellationToken)
                         .ConfigureAwait(false);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
@@ -370,7 +368,8 @@ public sealed class Server : IAsyncDisposable
                                     }
                                 }
                             }
-                        });
+                        },
+                        CancellationToken.None);
                 }
             }
             catch (ObjectDisposedException)
@@ -425,7 +424,7 @@ public sealed class Server : IAsyncDisposable
                 if (protocolConnection is not null)
                 {
                     // Schedule removal after addition, outside mutex lock.
-                    _ = RemoveFromCollectionAsync(protocolConnection, lameDuckCancellationToken);
+                    _ = RemoveFromCollectionAsync(protocolConnection);
 
                     // Connect the connection..
                     _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
@@ -451,22 +450,11 @@ public sealed class Server : IAsyncDisposable
             }
 
             // Remove the connection from _connections
-            async Task RemoveFromCollectionAsync(
-                IProtocolConnection connection,
-                CancellationToken lameDuckCancellationToken)
+            async Task RemoveFromCollectionAsync(IProtocolConnection connection)
             {
-                bool shutdownRequested;
-
-                try
-                {
-                    shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed)
-                        .WaitAsync(lameDuckCancellationToken).ConfigureAwait(false) == connection.ShutdownRequested;
-                }
-                catch (OperationCanceledException)
-                {
-                    // The server is being shut down or disposed. We handle it below with the mutex locked.
-                    shutdownRequested = false;
-                }
+                bool shutdownRequested =
+                    await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
+                        connection.ShutdownRequested;
 
                 lock (_mutex)
                 {
@@ -564,7 +552,7 @@ public sealed class Server : IAsyncDisposable
             }
 
             _isShutdown = true;
-            _lameDuckCts.Cancel();
+            _listenCts.Cancel();
 
             if (_backgroundConnectionShutdownCount == 0)
             {

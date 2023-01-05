@@ -37,9 +37,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private bool _isShutdown;
 
-    // A task completion source that is completed when ShutdownAsync or DisposeAsync is called.
-    private readonly TaskCompletionSource _lameDuckTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     private readonly object _mutex = new();
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
@@ -96,8 +93,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             if (_disposeTask is null)
             {
                 _disposedCts.Cancel();
-                _lameDuckTcs.TrySetResult();
-
                 _disposeTask = PerformDisposeAsync();
 
                 // Once _disposeTask is not null, we no longer perform any background dispose or shutdown.
@@ -295,9 +290,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 throw new InvalidOperationException($"The connection cache is already shut down or shutting down.");
             }
-
             _isShutdown = true;
-            _lameDuckTcs.TrySetResult();
 
             // Once _isShutdown is true, we no longer perform any background dispose or shutdown.
             if (_backgroundConnectionShutdownCount == 0)
@@ -454,8 +447,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         async Task RemoveFromActiveAsync(IProtocolConnection connection, CancellationToken disposedCancellationToken)
         {
             bool shutdownRequested =
-                await Task.WhenAny(connection.ShutdownRequested, connection.Closed, _lameDuckTcs.Task)
-                    .ConfigureAwait(false) == connection.ShutdownRequested;
+                await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
+                    connection.ShutdownRequested;
 
             lock (_mutex)
             {

@@ -33,9 +33,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     private bool _isDisposed;
     private bool _isShutdown;
 
-    // A task completion source that is completed when ShutdownAsync or DisposeAsync is called.
-    private readonly TaskCompletionSource _lameDuckTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     // Protects _connection, _isDisposed and _isShutdown.
     private readonly object _mutex = new();
 
@@ -172,8 +169,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (!_isDisposed)
             {
                 _isDisposed = true;
-                _lameDuckTcs.TrySetResult();
-
                 _disposedCts.Cancel();
                 _disposedCts.Dispose();
             }
@@ -279,7 +274,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
 
             _isShutdown = true;
-            _lameDuckTcs.TrySetResult();
 
             disposedCancellationToken = _disposedCts.Token;
         }
@@ -324,8 +318,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         await Task.Yield(); // exit mutex lock
 
-        bool shutdownRequested = await Task.WhenAny(connection.ShutdownRequested, connection.Closed, _lameDuckTcs.Task)
-                .ConfigureAwait(false) == connection.ShutdownRequested;
+        bool shutdownRequested =
+            await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
+                connection.ShutdownRequested;
 
         lock (_mutex)
         {
