@@ -46,7 +46,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
 
     // A connection is a lame duck when it's disposed, shut down, shutting down or merely "shutdown requested".
-    // See https://grpc.io/blog/principles/#lameducking
     private bool _isLameDuck;
 
     private readonly bool _isServer;
@@ -67,15 +66,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
     // by the peer yet.
     private readonly Dictionary<IMultiplexedStream, CancellationTokenSource> _pendingInvocations = new();
-    private readonly IMultiplexedConnection _transportConnection;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
 
-    // The thread that completes this TCS can run the continuations.
+    // The thread that completes this TCS can run the continuations, and as a result its result must be set without
+    // holding a lock on _mutex.
     private readonly TaskCompletionSource _shutdownRequestedTcs = new();
 
     private int _streamCount;
     private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly IMultiplexedConnection _transportConnection;
+
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
 
@@ -89,7 +90,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             if (_connectTask is not null)
             {
-                throw new InvalidOperationException("The connect operation can be called only once.");
+                throw new InvalidOperationException("Cannot call connect more than once.");
             }
 
             _connectTask = PerformConnectAsync();
@@ -110,9 +111,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Server.
                 transportConnectionInformation = _transportConnectionInformation ??
                     await _transportConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-
-                // This needs to be set before starting the accept requests task bellow.
-                _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
                 _controlStream = await _transportConnection.CreateStreamAsync(
                     false,
@@ -159,8 +157,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             IceRpcControlFrameType.GoAway,
                             CancellationToken.None).ConfigureAwait(false);
 
-                        PipeReader input = _remoteControlStream!.Input;
-                        ReadResult readResult = await input.ReadSegmentAsync(
+                        Debug.Assert(_remoteControlStream.Input is not null);
+                        ReadResult readResult = await _remoteControlStream.Input.ReadSegmentAsync(
                             SliceEncoding.Slice2,
                             MaxGoAwayFrameBodySize,
                             CancellationToken.None).ConfigureAwait(false);
@@ -177,7 +175,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         }
                         finally
                         {
-                            input.AdvanceTo(readResult.Buffer.End);
+                            _remoteControlStream.Input.AdvanceTo(readResult.Buffer.End);
                         }
 
                         MakeLameDuck("The connection was shut down because it received a GoAway frame from the peer.");
@@ -200,6 +198,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 },
                 CancellationToken.None);
 
+            // This needs to be set before starting the accept requests task below.
+            _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+
             // Start a task that accepts requests (the "accept requests loop")
             _acceptRequestsTask = Task.Run(
                 async () =>
@@ -207,8 +208,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     try
                     {
                         // We check the cancellation token for each iteration because we want to exit the accept
-                        // requests loop as soon as ShutdownAsyncCore requests this cancellation, even when one or more
-                        // streams can be accepted without waiting.
+                        // requests loop as soon as ShutdownAsync requests this cancellation, even when more streams can
+                        // be accepted without waiting.
                         while (!_acceptStreamCts.Token.IsCancellationRequested)
                         {
                             // When _dispatcher is null, the multiplexed connection MaxUnidirectionalStreams and
@@ -246,6 +247,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                 _ = UnregisterOnInputAndOutputCompletedAsync(stream);
                             }
 
+                            // Start a task to dispatch the request.
                             _ = Task.Run(
                                 async () =>
                                 {
@@ -346,13 +348,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     public ValueTask DisposeAsync()
     {
-        // DisposeAsync can be called concurrently. For example, Server can dispose a connection because the client is
-        // shutting down and at the same time or shortly after dispose the same connection because of its own disposal.
-        // We want to second disposal to "hang" if there is (for example) a bug in the dispatch code that causes the
-        // DisposeAsync to hang.
         lock (_mutex)
         {
-            MakeLameDuck();
+            MakeLameDuck("The connection was disposed.");
             _disposeTask ??= PerformDisposeAsync();
         }
         return new(_disposeTask);
@@ -362,7 +360,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
-            // We don't lock _mutex since once _disposeTask is not null, _connectTask, _shutdownTask etc are immutable.
+            // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
             if (_connectTask is null)
             {
@@ -381,13 +379,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 if (_isShutdown)
                 {
+                    // ShutdownAsync will complete Closed and we wait for Closed completion.
+
                     CancelDispatchesAndInvocations(); // speed up shutdown
                     _ = await Closed.ConfigureAwait(false);
                 }
                 else
                 {
+                    // Abortive disposal.
+
                     _ = _closedTcs.TrySetResult(
-                        new IceRpcException(IceRpcError.OperationAborted, "The connection was disposed."));
+                        new IceRpcException(IceRpcError.ConnectionAborted, "The connection was disposed."));
                 }
             }
 
@@ -409,17 +411,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // connection.
             await _dispatchesCompleted.Task.ConfigureAwait(false);
 
-            if (_controlStream is not null)
-            {
-                // It's safe to complete the output since write operations have been completed by the connection
-                // disposal.
-                _controlStream.Output.Complete();
-            }
-            if (_remoteControlStream is not null)
-            {
-                // It's safe to complete the input since read operations have been completed by the connection disposal.
-                _remoteControlStream.Input.Complete();
-            }
+            // It's safe to complete the output since write operations have been completed by the connection
+            // disposal.
+            _controlStream?.Output.Complete();
+
+            // It's safe to complete the input since read operations have been completed by the connection disposal.
+            _remoteControlStream?.Input.Complete();
 
             _dispatchesAndInvocationsCts.Dispose();
             _acceptStreamCts.Dispose();
@@ -455,6 +452,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException(
                     "Cannot invoke on a client connection that is not fully established.");
             }
+            if (request.ServiceAddress.Fragment.Length > 0)
+            {
+                throw new NotSupportedException("The icerpc protocol does not support fragments.");
+            }
             // It's possible but rare to invoke on a server connection that is still connecting.
         }
 
@@ -462,19 +463,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            if (request.ServiceAddress.Fragment.Length > 0)
-            {
-                throw new NotSupportedException("The icerpc protocol does not support fragments.");
-            }
-
             var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
                 _dispatchesAndInvocationsCts.Token);
             CancellationToken invocationCancellationToken = invocationCts.Token;
 
             // We unregister this cancellationToken when this async method completes (it completes successfully when we
-            // receive a response  (for twoway) or the request Payload is sent (oneway)).
-            // This way, the background sending of the payload continuation is detached from cancellationToken once this
-            // async method completes.
+            // receive a response (for twoway) or the request Payload is sent (oneway)).
+            // This way, the sending of the payload continuation can continue in the background after this async method
+            // completes independently of cancellationToken.
             using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
                 invocationCts);
@@ -523,11 +519,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch
             {
-                if (stream is not null)
-                {
-                    stream.Output.CompleteOutput(success: false);
-                    streamInput?.Complete();
-                }
+                stream?.Output.CompleteOutput(success: false);
+                streamInput?.Complete();
                 throw;
             }
             finally
@@ -708,13 +701,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
-                // Once _acceptRequestsTask completes, _lastRemoteBidirectionalStreamId and
-                // _lastRemoteUnidirectionalStreamId are immutable.
                 Debug.Assert(_acceptRequestsTask is not null);
                 _acceptStreamCts.Cancel();
                 await _acceptRequestsTask.ConfigureAwait(false);
 
-                IceRpcGoAway goAwayFrame;
                 lock (_mutex)
                 {
                     if (_streamCount == 0)
@@ -725,13 +715,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     {
                         _dispatchesCompleted.TrySetResult();
                     }
-
-                    // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
-                    // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
-                    goAwayFrame = new(
-                        _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (_isServer ? 0ul : 1ul),
-                        (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
                 }
+
+                // Once _acceptRequestsTask completes, _lastRemoteBidirectionalStreamId and
+                // _lastRemoteUnidirectionalStreamId are immutable.
+
+                // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
+                // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
+                IceRpcGoAway goAwayFrame = new(
+                     _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (_isServer ? 0ul : 1ul),
+                     (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
 
                 try
                 {
@@ -877,20 +870,23 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         _idleTimeout = options.IdleTimeout;
         _idleTimeoutTimer = new Timer(_ =>
         {
-            bool isIdle = false;
+            bool requestShutdown = false;
 
             lock (_mutex)
             {
-                isIdle = _dispatchCount == 0 && _streamCount == 0;
+                if (_dispatchCount == 0 && _streamCount == 0)
+                {
+                    requestShutdown = true;
+                    MakeLameDuck(
+                        $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                    DisableIdleCheck();
+                }
             }
 
-            if (isIdle)
+            if (requestShutdown)
             {
-                MakeLameDuck(
-                    $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                // TrySetResult must be called outside the mutex lock
                 _shutdownRequestedTcs.TrySetResult();
-
-                DisableIdleCheck();
             }
         });
     }
