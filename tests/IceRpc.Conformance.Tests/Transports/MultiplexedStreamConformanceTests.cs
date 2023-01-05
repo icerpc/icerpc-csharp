@@ -228,7 +228,9 @@ public abstract class MultiplexedStreamConformanceTests
             streams[i].Dispose();
         }
 
-        async Task<byte[]> ReadAsync(IMultiplexedStream stream, long size)
+        // Read the all the data from the stream. Once we reached the end of the stream, the data is returned as byte
+        // array.
+        async Task<byte[]> ReadAsync(IMultiplexedStream stream)
         {
             ReadResult result = default;
             while (true)
@@ -255,6 +257,7 @@ public abstract class MultiplexedStreamConformanceTests
             return buffer;
         }
 
+        // Write data on the stream in multiple segments.
         async Task WriteAsync(IMultiplexedStream stream, int segments, ReadOnlyMemory<byte> payload)
         {
             for (int i = 0; i < segments; ++i)
