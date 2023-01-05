@@ -45,9 +45,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
 
-    // A connection is a lame duck when it's disposed, shut down, shutting down or merely "shutdown requested".
-    private bool _isLameDuck;
-
     private readonly bool _isServer;
     private bool _isShutdown;
 
@@ -67,6 +64,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // by the peer yet.
     private readonly Dictionary<IMultiplexedStream, CancellationTokenSource> _pendingInvocations = new();
     private Task<IceRpcGoAway>? _readGoAwayTask;
+
+    // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
+    private bool _refuseInvocations;
+
     private IMultiplexedStream? _remoteControlStream;
 
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
@@ -142,7 +143,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             catch (Exception exception)
             {
                 _closedTcs.SetResult(exception);
-                MakeLameDuck("The connection establishment failed.");
+                RefuseNewInvocations("The connection establishment failed.");
                 throw;
             }
 
@@ -178,7 +179,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             _remoteControlStream.Input.AdvanceTo(readResult.Buffer.End);
                         }
 
-                        MakeLameDuck("The connection was shut down because it received a GoAway frame from the peer.");
+                        RefuseNewInvocations("The connection was shut down because it received a GoAway frame from the peer.");
                         _shutdownRequestedTcs.TrySetResult();
 
                         return goAwayFrame;
@@ -308,7 +309,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     {
                                         lock (_mutex)
                                         {
-                                            if (--_dispatchCount == 0 && _isLameDuck)
+                                            if (--_dispatchCount == 0 && _acceptRequestsTask!.IsCompleted)
                                             {
                                                 _ = _dispatchesCompleted.TrySetResult();
                                             }
@@ -350,7 +351,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            MakeLameDuck("The connection was disposed.");
+            RefuseNewInvocations("The connection was disposed.");
             _disposeTask ??= PerformDisposeAsync();
         }
         return new(_disposeTask);
@@ -439,7 +440,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
-            if (_isLameDuck)
+            if (_refuseInvocations)
             {
                 throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
             }
@@ -490,7 +491,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     lock (_mutex)
                     {
-                        Debug.Assert(_isLameDuck);
+                        Debug.Assert(_refuseInvocations);
                         throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
                     }
                 }
@@ -499,9 +500,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    if (_isLameDuck)
+                    if (_refuseInvocations)
                     {
-                        // Don't process the invocation if the connection is a lame duck.
                         throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
                     }
 
@@ -599,7 +599,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // Shutdown canceled the request because the peer didn't dispatch it.
                     lock (_mutex)
                     {
-                        Debug.Assert(_isLameDuck);
+                        Debug.Assert(_refuseInvocations);
                         throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
                     }
                 }
@@ -667,7 +667,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             _isShutdown = true;
-            MakeLameDuck("The connection was shut down.");
+            RefuseNewInvocations("The connection was shut down.");
 
             if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)
             {
@@ -750,7 +750,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         .ConfigureAwait(false);
 
                     // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will
-                    // throw IceRpcException(OperationRefused) which can be retried. Since _isLameDuck is true,
+                    // throw IceRpcException(OperationRefused) which can be retried. Since _isShutdown is true,
                     // _pendingInvocations is immutable at this point.
                     foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocations)
                     {
@@ -877,7 +877,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 if (_dispatchCount == 0 && _streamCount == 0)
                 {
                     requestShutdown = true;
-                    MakeLameDuck(
+                    RefuseNewInvocations(
                         $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
                     DisableIdleCheck();
                 }
@@ -1132,13 +1132,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     /// dispatches and invocations.</summary>
     private async Task DisposeTransportAsync(string? message = null, Exception? exception = null)
     {
-        // The connection can already be a lame duck if being shutdown or disposed. In this case the connection
+        // The connection can already be refusing invocations if being shutdown or disposed. In this case the connection
         // shutdown or disposal is responsible for completing _closedTcs.
         lock (_mutex)
         {
-            if (!_isLameDuck)
+            if (!_refuseInvocations)
             {
-                MakeLameDuck(message);
+                RefuseNewInvocations(message);
                 var rpcException = exception as IceRpcException;
                 if (exception is not null && rpcException is null)
                 {
@@ -1156,15 +1156,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     }
 
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-
-    private void MakeLameDuck(string? message = null)
-    {
-        lock (_mutex)
-        {
-            _isLameDuck = true;
-            _operationRefusedMessage ??= message;
-        }
-    }
 
     private async ValueTask ReceiveControlFrameHeaderAsync(
         IceRpcControlFrameType expectedFrameType,
@@ -1248,6 +1239,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         finally
         {
             input.AdvanceTo(readResult.Buffer.End);
+        }
+    }
+
+    private void RefuseNewInvocations(string? message)
+    {
+        lock (_mutex)
+        {
+            _refuseInvocations = true;
+            _operationRefusedMessage ??= message;
         }
     }
 
@@ -1462,9 +1462,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
 
+        // TODO: check use of _refuseInvocations below. It does not seem correct.
+
         lock (_mutex)
         {
-            if (!stream.IsRemote && !_isLameDuck)
+            if (!stream.IsRemote && _refuseInvocations)
             {
                 if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
                 {
@@ -1478,7 +1480,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (--_streamCount == 0)
             {
-                if (_isLameDuck)
+                if (_refuseInvocations)
                 {
                     _streamsClosed.TrySetResult();
                 }
