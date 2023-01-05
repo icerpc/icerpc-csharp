@@ -314,6 +314,7 @@ public sealed class Server : IAsyncDisposable
             listener = _listenerFactory();
             _listener = listener;
 
+            // disposedCancellationToken remains valid even after _disposedCts is disposed.
             disposedCancellationToken = _disposedCts.Token;
             _listenTask = Task.Run(() => ListenAsync(_listenCts.Token));
         }
