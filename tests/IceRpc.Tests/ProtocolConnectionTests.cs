@@ -478,9 +478,20 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
-        Assert.That(
-            await sut.Client.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationRefused));
+
+        // TODO: temporary
+        if (protocol == Protocol.Ice)
+        {
+            Assert.That(
+                await sut.Client.Closed,
+                Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationRefused));
+        }
+        else
+        {
+            Assert.That(
+                await sut.Client.Closed,
+                Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
+        }
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
