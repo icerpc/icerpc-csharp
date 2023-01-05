@@ -1475,11 +1475,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
 
-        // TODO: check use of _refuseInvocations below. It does not seem correct.
-
         lock (_mutex)
         {
-            if (!stream.IsRemote && _refuseInvocations)
+            if (!stream.IsRemote && _disposeTask is null && !_isShutdown)
             {
                 if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
                 {
@@ -1493,7 +1491,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (--_streamCount == 0)
             {
-                if (_refuseInvocations)
+                if (_acceptRequestsTask!.IsCompleted)
                 {
                     _streamsClosed.TrySetResult();
                 }
