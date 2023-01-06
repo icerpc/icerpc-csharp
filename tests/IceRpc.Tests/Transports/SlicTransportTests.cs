@@ -69,7 +69,7 @@ public class SlicTransportTests
         var colocTransport = new ColocTransport();
         var serverTransport = new TestDuplexServerTransportDecorator(
             colocTransport.ServerTransport,
-            holdShutdown: true);
+            holdOperation: DuplexTransportOperation.Shutdown);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
@@ -88,9 +88,6 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(async () => await closeTask, Throws.InstanceOf<OperationCanceledException>());
-
-        // Cleanup
-        serverTransport.LastConnection.Release();
     }
 
     /// <summary>Verifies that close fails if called before connect.</summary>

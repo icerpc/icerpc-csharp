@@ -68,37 +68,30 @@ public class ServerTests
             serverAddress.Protocol == Protocol.Ice ? IceRpcError.ConnectionAborted : IceRpcError.ServerBusy));
     }
 
-    // [Test]
-    static public async Task Connection_refused_after_max_connections_is_reached2(
-        [Values("icerpc://127.0.0.1:0", "ice://127.0.0.1:0")] Uri serverAddressUri,
-        [Values(true, false)] bool holdConnect)
+    [Test]
+    public async Task Connection_establishment_aborts_if_connection_is_refused_and_close_hangs_or_fails(
+        [Values(true, false)] bool failure)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
 
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
-        var duplexServerTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdConnect: holdConnect,
-            holdShutdown: !holdConnect);
-        IDuplexClientTransport duplexClientTransport = colocTransport.ClientTransport;
-        var multiplexedServerTransport = new SlicServerTransport(duplexServerTransport);
-        var multiplexedClientTransport = new SlicClientTransport(duplexClientTransport);
+        var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport));
+        var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions
                     {
-                        ConnectTimeout = holdConnect ? TimeSpan.FromMilliseconds(300) : Timeout.InfiniteTimeSpan,
-                        ShutdownTimeout = holdConnect ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(300),
+                        ConnectTimeout = TimeSpan.FromMilliseconds(300),
                         Dispatcher = dispatcher
                     },
                 MaxConnections = 1,
-                ServerAddress = new ServerAddress(serverAddressUri),
+                ServerAddress = new ServerAddress(new Uri("icerpc://server")),
             },
-            duplexServerTransport,
-            multiplexedServerTransport);
+            multiplexedServerTransport: multiplexedServerTransport);
 
         ServerAddress serverAddress = server.Listen();
 
@@ -107,23 +100,32 @@ public class ServerTests
             {
                 ServerAddress = serverAddress,
             },
-            duplexClientTransport,
-            multiplexedClientTransport);
+            multiplexedClientTransport: multiplexedClientTransport);
 
         await using var connection2 = new ClientConnection(
             new ClientConnectionOptions
             {
                 ServerAddress = serverAddress,
             },
-            duplexClientTransport,
-            multiplexedClientTransport);
+            multiplexedClientTransport: multiplexedClientTransport);
 
         Assert.That(async () => await connection1.ConnectAsync(), Throws.Nothing);
 
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(
-            serverAddress.Protocol == Protocol.Ice ? IceRpcError.ConnectionAborted : IceRpcError.ConnectionAborted));
+        // Make sure the connection refusal is aborted if the server side transport CloseAsync call hangs or fails.
+        if (failure)
+        {
+            multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.Close;
+        }
+        else
+        {
+            multiplexedServerTransport.HoldOperation = MultiplexedTransportOperation.Close;
+        }
 
+        // Act
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
+
+        // Assert
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(async () => await connection2.DisposeAsync(), Throws.Nothing);
     }
 
@@ -136,7 +138,7 @@ public class ServerTests
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
         var serverTransport = new SlicServerTransport(new TestDuplexServerTransportDecorator(
             colocTransport.ServerTransport,
-            holdConnect: true));
+            holdOperation: DuplexTransportOperation.Connect));
         var clientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(

@@ -255,7 +255,7 @@ public sealed class IceProtocolConnectionTests
         var colocTransport = new ColocTransport();
         var serverTransport = new TestDuplexServerTransportDecorator(
             colocTransport.ServerTransport,
-            holdShutdown: true);
+            holdOperation: DuplexTransportOperation.Shutdown);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
