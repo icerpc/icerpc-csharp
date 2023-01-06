@@ -11,9 +11,13 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
-internal sealed class IceProtocolConnection : ProtocolConnection
+internal sealed class IceProtocolConnection : IProtocolConnection
 {
-    public override ServerAddress ServerAddress => _duplexConnection.ServerAddress;
+    public Task<Exception?> Closed => _closedTcs.Task;
+
+    public ServerAddress ServerAddress => _duplexConnection.ServerAddress;
+
+    public Task ShutdownRequested => _shutdownRequestedTcs.Task;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -21,8 +25,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    private readonly TaskCompletionSource _closeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool IsServer => _transportConnectionInformation is not null;
+
+    private readonly TaskCompletionSource<Exception?> _closedTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private IConnectionContext? _connectionContext; // non-null once the connection is established
+    private Task<TransportConnectionInformation>? _connectTask;
     private readonly IDispatcher _dispatcher;
     private int _dispatchCount;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
@@ -30,31 +39,726 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
     private readonly SemaphoreSlim? _dispatchSemaphore;
+    private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
+    private readonly Timer _idleTimeoutTimer;
     private int _invocationCount;
     private bool _isClosedByPeer;
+    private bool _isShutdown;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private int _nextRequestId;
+    private string? _operationRefusedMessage;
     private readonly IcePayloadPipeWriter _payloadWriter;
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
+
+    // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
+    private bool _refuseInvocations;
+
+    // The thread that completes this TCS can run the continuations, and as a result its result must be set without
+    // holding a lock on _mutex.
+    private readonly TaskCompletionSource _shutdownRequestedTcs = new();
+
+    private readonly TaskCompletionSource _transportConnectionDisposedTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _twowayInvocations = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    {
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
+            }
+            if (_connectTask is not null)
+            {
+                throw new InvalidOperationException("Cannot call connect more than once.");
+            }
+
+            _connectTask = PerformConnectAsync();
+        }
+        return _connectTask;
+
+        async Task<TransportConnectionInformation> PerformConnectAsync()
+        {
+            // Make sure we execute the function without holding the connection mutex lock.
+            await Task.Yield();
+
+            TransportConnectionInformation transportConnectionInformation;
+
+            try
+            {
+                // If the transport connection information is null, we need to connect the transport connection. It's
+                // null for client connections. The transport connection of a server connection is established by
+                // Server.
+                transportConnectionInformation = _transportConnectionInformation ??
+                    await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+
+                if (IsServer)
+                {
+                    EncodeValidateConnectionFrame(_duplexConnectionWriter);
+                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
+                        IceDefinitions.PrologueSize,
+                        cancellationToken).ConfigureAwait(false);
+
+                    (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                    _duplexConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                    IceDefinitions.CheckPrologue(validateConnectionFrame);
+                    if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                    {
+                        throw new InvalidDataException(
+                            $"Received ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
+                    }
+                    if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+                    {
+                        throw new InvalidDataException(
+                            $"Expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'.");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _closedTcs.SetResult(exception);
+                RefuseNewInvocations("The connection establishment failed.");
+                throw;
+            }
+
+            // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
+            // messages requires the connection to be established.
+            _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
+            _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
+
+            // This needs to be set before starting the read frames task below.
+            _connectionContext = new ConnectionContext(this, transportConnectionInformation);
+
+            _readFramesTask = Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        // Read frames until the CloseConnection frame is received.
+                        await ReadFramesAsync().ConfigureAwait(false);
+
+                        // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations
+                        // and dispatches. Canceled invocations should not be aborted if the connection is gracefully
+                        // closed.
+                        lock (_mutex)
+                        {
+                            _isClosedByPeer = true;
+                        }
+
+                        // The peer expects the connection to be closed once the CloseConnection frame is received.
+                        DisposeTransport("The connection was closed by the peer.");
+                    }
+                    catch (InvalidDataException exception)
+                    {
+                        DisposeTransport("Invalid data was received from the peer.", exception);
+                    }
+                    catch (NotSupportedException exception)
+                    {
+                        DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
+                    }
+                    catch (IceRpcException exception)
+                    {
+                        DisposeTransport("The connection was lost.", exception);
+                    }
+                    catch (ObjectDisposedException exception)
+                    {
+                        DisposeTransport("The connection was disposed.", exception);
+                    }
+                    catch (Exception exception)
+                    {
+                        DisposeTransport("The connection failed due to an unhandled exception.", exception);
+                        Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
+                        throw;
+                    }
+                },
+                CancellationToken.None);
+
+            EnableIdleCheck();
+            return transportConnectionInformation;
+
+            static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+
+            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                return (new IcePrologue(ref decoder), decoder.Consumed);
+            }
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        lock (_mutex)
+        {
+            if (_disposeTask is null)
+            {
+                RefuseNewInvocations("The connection was disposed.");
+
+                _dispatchesAndInvocationsCts.Cancel();
+                if (_invocationCount == 0 && _dispatchCount == 0)
+                {
+                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                }
+
+                _disposeTask = PerformDisposeAsync();
+            }
+        }
+        return new(_disposeTask);
+
+        async Task PerformDisposeAsync()
+        {
+            // Make sure we execute the code below without holding the mutex lock.
+            await Task.Yield();
+
+            // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
+
+            if (_connectTask is null)
+            {
+                _ = _closedTcs.TrySetResult(null); // disposing non-connected connection
+            }
+            else
+            {
+                try
+                {
+                    _ = await _connectTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignore any ConnectAsync exception
+                }
+
+                if (_isShutdown)
+                {
+                    // ShutdownAsync will complete Closed and we wait for Closed completion.
+                    _ = await Closed.ConfigureAwait(false);
+                }
+                else
+                {
+                    // Abortive disposal.
+                    _ = _closedTcs.TrySetResult(
+                        new IceRpcException(IceRpcError.ConnectionAborted, "The connection was disposed."));
+                }
+            }
+
+            DisposeTransport();
+
+            // Wait for the read frames and ping tasks to complete.
+            await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
+
+            if (_readFramesTask is not null)
+            {
+                // Wait for dispatches and invocations to complete if the connection was connected.
+                await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
+            }
+
+            // It's safe to dispose of the reader/writer since no more threads are sending/receiving data.
+            _duplexConnectionReader.Dispose();
+            _duplexConnectionWriter.Dispose();
+
+            _dispatchesAndInvocationsCts.Dispose();
+            _dispatchSemaphore?.Dispose();
+            await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.Protocol != ServerAddress.Protocol)
+        {
+            throw new InvalidOperationException(
+                $"Cannot send {request.Protocol} request on {ServerAddress.Protocol} connection.");
+        }
+
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
+            }
+            if (_refuseInvocations)
+            {
+                throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+            }
+            if (_connectTask is null)
+            {
+                throw new InvalidOperationException("Cannot invoke on a connection before connecting it.");
+            }
+            if (!IsServer && !_connectTask.IsCompletedSuccessfully)
+            {
+                throw new InvalidOperationException(
+                    "Cannot invoke on a client connection that is not fully established.");
+            }
+            // It's possible but rare to invoke on a server connection that is still connecting.
+        }
+
+        return PerformInvokeAsync();
+
+        async Task<IncomingResponse> PerformInvokeAsync()
+        {
+            CancellationTokenSource cts;
+
+            lock (_mutex)
+            {
+                if (_refuseInvocations)
+                {
+                    throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                }
+
+                if (_invocationCount == 0 && _dispatchCount == 0)
+                {
+                    DisableIdleCheck();
+                }
+                ++_invocationCount;
+
+                // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
+                // linked source if the connection is not disposed.
+                cts = CancellationTokenSource.CreateLinkedTokenSource(
+                    _dispatchesAndInvocationsCts.Token,
+                    cancellationToken);
+            }
+
+            PipeReader? frameReader = null;
+            int requestId = 0;
+            try
+            {
+                // Read the full payload. This can take some time so this needs to be done before acquiring the write
+                // semaphore.
+                ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
+                    request.Payload,
+                    cts.Token).ConfigureAwait(false);
+                int payloadSize = checked((int)payload.Length);
+
+                // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
+                // serialize the writing of frames.
+                await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
+                PipeWriter payloadWriter = _payloadWriter;
+                TaskCompletionSource<PipeReader>? responseCompletionSource = null;
+
+                try
+                {
+                    // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+                    // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
+                    // canceled request to allocate a request ID that won't be used.
+                    lock (_mutex)
+                    {
+                        if (_refuseInvocations)
+                        {
+                            throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                        }
+
+                        if (!request.IsOneway)
+                        {
+                            requestId = ++_nextRequestId;
+                            responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                            _twowayInvocations[requestId] = responseCompletionSource;
+                        }
+                    }
+
+                    EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
+
+                    payloadWriter = request.GetPayloadWriter(payloadWriter);
+
+                    FlushResult flushResult = await payloadWriter.WriteAsync(
+                        payload,
+                        endStream: false,
+                        CancellationToken.None).ConfigureAwait(false);
+
+                    // If a payload writer decorator returns a canceled or completed flush result, we have to throw
+                    // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
+                    // payload to be sent over the connection.
+                    if (flushResult.IsCanceled || flushResult.IsCompleted)
+                    {
+                        throw new NotSupportedException(
+                            "Payload writer cancellation or completion is not supported with the ice protocol.");
+                    }
+
+                    request.Payload.Complete();
+                }
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                {
+                    lock (_mutex)
+                    {
+                        if (_isClosedByPeer)
+                        {
+                            // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                            // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
+                            // The transport connection was disposed while sending the request.
+                            Debug.Assert(_refuseInvocations);
+                            throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
+                finally
+                {
+                    payloadWriter.Complete();
+                    _writeSemaphore.Release();
+                }
+
+                if (request.IsOneway)
+                {
+                    // We're done, there's no response for oneway requests.
+                    return new IncomingResponse(request, _connectionContext!);
+                }
+
+                // Wait to receive the response.
+
+                Debug.Assert(responseCompletionSource is not null);
+                try
+                {
+                    frameReader = await responseCompletionSource.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (responseCompletionSource.Task.IsCompleted)
+                {
+                    // If the connection is closed, the WaitAsync might be canceled shortly after the response is received
+                    // and before the task completion source continuation is run.
+                    frameReader = await responseCompletionSource.Task.ConfigureAwait(false);
+                }
+
+                if (!frameReader.TryRead(out ReadResult readResult))
+                {
+                    throw new InvalidDataException($"Received empty response frame for request with id '{requestId}'.");
+                }
+
+                Debug.Assert(readResult.IsCompleted);
+
+                (StatusCode statusCode, string? errorMessage, SequencePosition consumed) =
+                    DecodeResponseHeader(readResult.Buffer, requestId);
+
+                frameReader.AdvanceTo(consumed);
+
+                var response = new IncomingResponse(
+                    request,
+                    _connectionContext!,
+                    statusCode,
+                    errorMessage)
+                {
+                    Payload = frameReader
+                };
+
+                frameReader = null; // response now owns frameReader
+                return response;
+            }
+            catch (OperationCanceledException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // The request was canceled by abortive-shutdown or graceful closure by the peer.
+                lock (_mutex)
+                {
+                    if (_isClosedByPeer)
+                    {
+                        // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
+                        // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
+
+                        // Invocations are not aborted if canceled after the graceful connection closure. The peer
+                        // didn't dispatch the request since the CloseConnection frame was received.
+                        Debug.Assert(_refuseInvocations);
+                        throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                    }
+                    else
+                    {
+                        throw new IceRpcException(IceRpcError.OperationAborted);
+                    }
+                }
+            }
+            finally
+            {
+                lock (_mutex)
+                {
+                    // If registered, unregister the twoway invocation.
+                    if (requestId != 0)
+                    {
+                        _twowayInvocations.Remove(requestId);
+                    }
+
+                    --_invocationCount;
+                    if (_invocationCount == 0 && _dispatchCount == 0)
+                    {
+                        if (_isShutdown || _disposeTask is not null)
+                        {
+                            _dispatchesAndInvocationsCompleted.TrySetResult();
+                        }
+                        else
+                        {
+                            EnableIdleCheck();
+                        }
+                    }
+                }
+
+                frameReader?.Complete();
+                cts.Dispose();
+            }
+
+            static (StatusCode StatusCode, string? ErrorMessage, SequencePosition Consumed) DecodeResponseHeader(
+                ReadOnlySequence<byte> buffer,
+                int requestId)
+            {
+                ReplyStatus replyStatus = ((int)buffer.FirstSpan[0]).AsReplyStatus();
+
+                if (replyStatus <= ReplyStatus.UserException)
+                {
+                    const int headerSize = 7; // reply status byte + encapsulation header
+
+                    // read and check encapsulation header (6 bytes long)
+
+                    if (buffer.Length < headerSize)
+                    {
+                        throw new InvalidDataException(
+                            $"Received invalid frame header for request with id '{requestId}'.");
+                    }
+
+                    EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
+                        buffer.Slice(1, 6),
+                        (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+
+                    // Sanity check
+                    int payloadSize = encapsulationHeader.EncapsulationSize - 6;
+                    if (payloadSize != buffer.Length - headerSize)
+                    {
+                        throw new InvalidDataException(
+                            $"Response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {buffer.Length - headerSize} bytes left.");
+                    }
+
+                    SequencePosition consumed = buffer.GetPosition(headerSize);
+
+                    return replyStatus == ReplyStatus.Ok ? (StatusCode.Success, null, consumed) :
+                        // Set the error message to the empty string. We will convert this empty string to null when we
+                        // decode the exception.
+                        (StatusCode.ApplicationError, "", consumed);
+                }
+                else
+                {
+                    // An ice system exception.
+
+                    StatusCode statusCode = replyStatus switch
+                    {
+                        ReplyStatus.ObjectNotExistException => StatusCode.ServiceNotFound,
+                        ReplyStatus.FacetNotExistException => StatusCode.ServiceNotFound,
+                        ReplyStatus.OperationNotExistException => StatusCode.OperationNotFound,
+                        _ => StatusCode.UnhandledException
+                    };
+
+                    var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
+
+                    string message;
+                    switch (replyStatus)
+                    {
+                        case ReplyStatus.FacetNotExistException:
+                        case ReplyStatus.ObjectNotExistException:
+                        case ReplyStatus.OperationNotExistException:
+
+                            var requestFailed = new RequestFailedExceptionData(ref decoder);
+
+                            string target = requestFailed.Fragment.Length > 0 ?
+                                $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+
+                            message =
+                                $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
+                            break;
+                        default:
+                            message = decoder.DecodeString();
+                            break;
+                    }
+
+                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                    return (statusCode, message, buffer.End);
+                }
+            }
+
+            static void EncodeRequestHeader(
+                DuplexConnectionWriter output,
+                OutgoingRequest request,
+                int requestId,
+                int payloadSize)
+            {
+                var encoder = new SliceEncoder(output, SliceEncoding.Slice1);
+
+                // Write the request header.
+                encoder.WriteByteSpan(IceDefinitions.FramePrologue);
+                encoder.EncodeIceFrameType(IceFrameType.Request);
+                encoder.EncodeUInt8(0); // compression status
+
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+
+                encoder.EncodeInt32(requestId);
+
+                byte encodingMajor = 1;
+                byte encodingMinor = 1;
+
+                // Request header.
+                var requestHeader = new IceRequestHeader(
+                    request.ServiceAddress.Path,
+                    request.ServiceAddress.Fragment,
+                    request.Operation,
+                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
+                        OperationMode.Idempotent : OperationMode.Normal);
+                requestHeader.Encode(ref encoder);
+                if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
+                {
+                    requestField.Encode(ref encoder);
+                }
+                else
+                {
+                    encoder.EncodeSize(0);
+                }
+
+                // We ignore all other fields. They can't be sent over ice.
+
+                new EncapsulationHeader(
+                    encapsulationSize: payloadSize + 6,
+                    encodingMajor,
+                    encodingMinor).Encode(ref encoder);
+
+                int frameSize = checked(encoder.EncodedByteCount + payloadSize);
+                SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
+            }
+        }
+    }
+
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
+            }
+            if (_isShutdown)
+            {
+                throw new InvalidOperationException("Cannot call shutdown more than once.");
+            }
+            if (_connectTask is null)
+            {
+                throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
+            }
+
+            _isShutdown = true;
+            RefuseNewInvocations("The connection was shut down.");
+
+            if (_invocationCount == 0 && _dispatchCount == 0)
+            {
+                _dispatchesAndInvocationsCompleted.TrySetResult();
+            }
+
+            if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)
+            {
+                throw new IceRpcException(
+                    IceRpcError.OperationRefused,
+                    _connectTask.IsFaulted ? "The connection establishment failed." : "The connection was aborted.",
+                    abortException);
+            }
+        }
+
+        return PerformShutdownAsync();
+
+        async Task PerformShutdownAsync()
+        {
+            try
+            {
+                // Wait for connect to complete first.
+                if (_connectTask is not null)
+                {
+                    try
+                    {
+                        _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException exception) when (
+                        exception.CancellationToken != cancellationToken)
+                    {
+                        // ConnectAsync was canceled.
+                        throw new IceRpcException(
+                            IceRpcError.OperationAborted,
+                            "The shutdown was aborted because the connection establishment was canceled.");
+                    }
+                }
+
+                // Wait for dispatches and invocations to complete.
+                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                // Encode and write the CloseConnection frame once all the dispatches are done.
+                try
+                {
+                    await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        EncodeCloseConnectionFrame(_duplexConnectionWriter);
+                        await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _writeSemaphore.Release();
+                    }
+                }
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                {
+                    // Expected if the flush operation is aborted by connection closure.
+                }
+
+                // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+                // connection closure here. We can't just return and close the underlying transport since this could
+                // abort the receive of the responses and close connection frame by the peer.
+                await _transportConnectionDisposedTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                _closedTcs.SetResult(null);
+            }
+            catch (OperationCanceledException)
+            {
+                _ = _closedTcs.TrySetResult(
+                    new IceRpcException(IceRpcError.OperationAborted, "The shutdown was canceled."));
+                throw;
+            }
+            catch (IceRpcException exception)
+            {
+                _ = _closedTcs.TrySetResult(exception);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                var newException = new IceRpcException(IceRpcError.IceRpcError, exception);
+                _ = _closedTcs.TrySetResult(newException);
+                throw newException;
+            }
+
+            static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
+            }
+        }
+    }
+
     internal IceProtocolConnection(
         IDuplexConnection duplexConnection,
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
-        : base(isServer: transportConnectionInformation is not null, options)
     {
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
@@ -98,6 +802,28 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         _payloadWriter = new IcePayloadPipeWriter(_duplexConnectionWriter);
 
+        _idleTimeoutTimer = new Timer(_ =>
+        {
+            bool requestShutdown = false;
+
+            lock (_mutex)
+            {
+                if (_dispatchCount == 0 && _invocationCount == 0)
+                {
+                    requestShutdown = true;
+                    RefuseNewInvocations(
+                        $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                }
+            }
+
+            if (requestShutdown)
+            {
+                // TrySetResult must be called outside the mutex lock
+                _shutdownRequestedTcs.TrySetResult();
+                DisableIdleCheck();
+            }
+        });
+
         async Task PingAsync()
         {
             Debug.Assert(_duplexConnectionWriter is not null);
@@ -138,530 +864,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
-        }
-    }
-
-    private protected override void CancelDispatchesAndInvocations()
-    {
-        Debug.Assert(OperationRefusedException is not null);
-
-        if (!_dispatchesAndInvocationsCts.IsCancellationRequested)
-        {
-            // Cancel dispatches and invocations for an abortive shutdown.
-            _dispatchesAndInvocationsCts.Cancel();
-
-            lock (_mutex)
-            {
-                if (_invocationCount == 0 && _dispatchCount == 0)
-                {
-                    _dispatchesAndInvocationsCompleted.TrySetResult();
-                }
-            }
-        }
-    }
-
-    private protected override bool CheckIfIdle()
-    {
-        // CheckForIdle only checks if the connection is idle. It's the caller that takes action.
-        lock (_mutex)
-        {
-            return _invocationCount == 0 && _dispatchCount == 0;
-        }
-    }
-
-    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
-        CancellationToken cancellationToken)
-    {
-        // If the transport connection information is null, we need to connect the transport connection. It's null for
-        // client connections. The transport connection of a server connection is established by Server.
-        TransportConnectionInformation transportConnectionInformation =
-            _transportConnectionInformation ??
-            await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
-
-        // This needs to be set before starting the read frames task below.
-        _connectionContext = new ConnectionContext(this, transportConnectionInformation);
-
-        if (IsServer)
-        {
-            EncodeValidateConnectionFrame(_duplexConnectionWriter);
-            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
-                IceDefinitions.PrologueSize,
-                cancellationToken).ConfigureAwait(false);
-
-            (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-            _duplexConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-            IceDefinitions.CheckPrologue(validateConnectionFrame);
-            if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
-            {
-                throw new InvalidDataException(
-                    $"Received ice frame with only '{validateConnectionFrame.FrameSize}' bytes.");
-            }
-            if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-            {
-                throw new InvalidDataException(
-                    $"Expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'.");
-            }
-        }
-
-        // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
-        // messages requires the connection to be established.
-        _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
-        _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
-
-        _readFramesTask = Task.Run(
-            async () =>
-            {
-                try
-                {
-                    // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync().ConfigureAwait(false);
-
-                    // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations and
-                    // dispatches. Canceled invocations should not be aborted if the connection is gracefully closed.
-                    lock (_mutex)
-                    {
-                        _isClosedByPeer = true;
-                    }
-
-                    // The peer expects the connection to be closed once the CloseConnection frame is received.
-                    DisposeTransport("The connection was closed by the peer.");
-                }
-                catch (InvalidDataException exception)
-                {
-                    DisposeTransport("Invalid data was received from the peer.", exception);
-                }
-                catch (NotSupportedException exception)
-                {
-                    DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
-                }
-                catch (IceRpcException exception)
-                {
-                    DisposeTransport("The connection was lost.", exception);
-                }
-                catch (ObjectDisposedException exception)
-                {
-                    DisposeTransport("The connection was disposed.", exception);
-                }
-                catch (Exception exception)
-                {
-                    DisposeTransport("The connection failed due to an unhandled exception.", exception);
-                    Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
-                    throw;
-                }
-            },
-            CancellationToken.None);
-
-        return transportConnectionInformation;
-
-        static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
-        {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-            IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-        }
-
-        static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
-        {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
-            return (new IcePrologue(ref decoder), decoder.Consumed);
-        }
-    }
-
-    private protected override async ValueTask DisposeAsyncCore()
-    {
-        DisposeTransport();
-
-        // Wait for the read frames and ping tasks to complete.
-        await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
-
-        if (_readFramesTask is not null)
-        {
-            // Wait for dispatches and invocations to complete if the connection is connected.
-            await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-        }
-
-        // It's safe to dispose of the reader/writer since no more threads are sending/receiving data.
-        _duplexConnectionReader.Dispose();
-        _duplexConnectionWriter.Dispose();
-
-        _dispatchesAndInvocationsCts.Dispose();
-        _dispatchSemaphore?.Dispose();
-    }
-
-    private protected override async Task<IncomingResponse> InvokeAsyncCore(
-        OutgoingRequest request,
-        CancellationToken cancellationToken)
-    {
-        CancellationTokenSource cts;
-
-        lock (_mutex)
-        {
-            // Nothing prevents InvokeAsync to be called on a connection which is no longer accepting invocations. We
-            // check for this condition here and throw OperationRefusedException.
-            if (OperationRefusedException is not null)
-            {
-                throw OperationRefusedException;
-            }
-
-            if (_invocationCount == 0 && _dispatchCount == 0)
-            {
-                DisableIdleCheck();
-            }
-            ++_invocationCount;
-
-            // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
-            // linked source if the connection is not disposed.
-            cts = CancellationTokenSource.CreateLinkedTokenSource(
-                _dispatchesAndInvocationsCts.Token,
-                cancellationToken);
-        }
-
-        PipeReader? frameReader = null;
-        int requestId = 0;
-        try
-        {
-            // Read the full payload. This can take some time so this needs to be done before acquiring the write
-            // semaphore.
-            ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                request.Payload,
-                cts.Token).ConfigureAwait(false);
-            int payloadSize = checked((int)payload.Length);
-
-            // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
-            // serialize the writing of frames.
-            await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
-            PipeWriter payloadWriter = _payloadWriter;
-            TaskCompletionSource<PipeReader>? responseCompletionSource = null;
-
-            try
-            {
-                // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
-                // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
-                // canceled request to allocate a request ID that won't be used.
-                lock (_mutex)
-                {
-                    if (OperationRefusedException is not null)
-                    {
-                        throw OperationRefusedException;
-                    }
-
-                    if (!request.IsOneway)
-                    {
-                        requestId = ++_nextRequestId;
-                        responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                        _twowayInvocations[requestId] = responseCompletionSource;
-                    }
-                }
-
-                EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
-
-                payloadWriter = request.GetPayloadWriter(payloadWriter);
-
-                FlushResult flushResult = await payloadWriter.WriteAsync(
-                    payload,
-                    endStream: false,
-                    CancellationToken.None).ConfigureAwait(false);
-
-                // If a payload writer decorator returns a canceled or completed flush result, we have to throw
-                // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
-                // payload to be sent over the connection.
-                if (flushResult.IsCanceled || flushResult.IsCompleted)
-                {
-                    throw new NotSupportedException(
-                        "Payload writer cancellation or completion is not supported with the ice protocol.");
-                }
-
-                request.Payload.Complete();
-            }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-            {
-                lock (_mutex)
-                {
-                    if (_isClosedByPeer)
-                    {
-                        // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
-                        // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
-
-                        // The transport connection was disposed while sending the request.
-                        Debug.Assert(OperationRefusedException is not null);
-                        throw OperationRefusedException;
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-            }
-            finally
-            {
-                payloadWriter.Complete();
-                _writeSemaphore.Release();
-            }
-
-            if (request.IsOneway)
-            {
-                // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request, _connectionContext!);
-            }
-
-            // Wait to receive the response.
-
-            Debug.Assert(responseCompletionSource is not null);
-            try
-            {
-                frameReader = await responseCompletionSource.Task.WaitAsync(cts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (responseCompletionSource.Task.IsCompleted)
-            {
-                // If the connection is closed, the WaitAsync might be canceled shortly after the response is received
-                // and before the task completion source continuation is run.
-                frameReader = await responseCompletionSource.Task.ConfigureAwait(false);
-            }
-
-            if (!frameReader.TryRead(out ReadResult readResult))
-            {
-                throw new InvalidDataException($"Received empty response frame for request with id '{requestId}'.");
-            }
-
-            Debug.Assert(readResult.IsCompleted);
-
-            (StatusCode statusCode, string? errorMessage, SequencePosition consumed) =
-                DecodeResponseHeader(readResult.Buffer, requestId);
-
-            frameReader.AdvanceTo(consumed);
-
-            var response = new IncomingResponse(
-                request,
-                _connectionContext!,
-                statusCode,
-                errorMessage)
-            {
-                Payload = frameReader
-            };
-
-            frameReader = null; // response now owns frameReader
-            return response;
-        }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            // The request was canceled by abortive-shutdown or graceful closure by the peer.
-            Debug.Assert(_dispatchesAndInvocationsCts.IsCancellationRequested && OperationRefusedException is not null);
-            lock (_mutex)
-            {
-                if (_isClosedByPeer)
-                {
-                    // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
-                    // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
-
-                    // Invocations are not aborted if canceled after the graceful connection closure. The peer didn't
-                    // dispatch the request since the CloseConnection frame was received.
-                    throw OperationRefusedException;
-                }
-                else
-                {
-                    throw new IceRpcException(IceRpcError.OperationAborted);
-                }
-            }
-        }
-        finally
-        {
-            lock (_mutex)
-            {
-                // If registered, unregister the twoway invocation.
-                if (requestId != 0)
-                {
-                    _twowayInvocations.Remove(requestId);
-                }
-
-                --_invocationCount;
-                if (_invocationCount == 0 && _dispatchCount == 0)
-                {
-                    if (OperationRefusedException is null)
-                    {
-                        EnableIdleCheck();
-                    }
-                    else
-                    {
-                        _dispatchesAndInvocationsCompleted.TrySetResult();
-                    }
-                }
-            }
-
-            frameReader?.Complete();
-            cts.Dispose();
-        }
-
-        static (StatusCode StatusCode, string? ErrorMessage, SequencePosition Consumed) DecodeResponseHeader(
-            ReadOnlySequence<byte> buffer,
-            int requestId)
-        {
-            ReplyStatus replyStatus = ((int)buffer.FirstSpan[0]).AsReplyStatus();
-
-            if (replyStatus <= ReplyStatus.UserException)
-            {
-                const int headerSize = 7; // reply status byte + encapsulation header
-
-                // read and check encapsulation header (6 bytes long)
-
-                if (buffer.Length < headerSize)
-                {
-                    throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
-                }
-
-                EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
-                    buffer.Slice(1, 6),
-                    (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
-
-                // Sanity check
-                int payloadSize = encapsulationHeader.EncapsulationSize - 6;
-                if (payloadSize != buffer.Length - headerSize)
-                {
-                    throw new InvalidDataException(
-                        $"Response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {buffer.Length - headerSize} bytes left.");
-                }
-
-                SequencePosition consumed = buffer.GetPosition(headerSize);
-
-                return replyStatus == ReplyStatus.Ok ? (StatusCode.Success, null, consumed) :
-                    // Set the error message to the empty string. We will convert this empty string to null when we
-                    // decode the exception.
-                    (StatusCode.ApplicationError, "", consumed);
-            }
-            else
-            {
-                // An ice system exception.
-
-                StatusCode statusCode = replyStatus switch
-                {
-                    ReplyStatus.ObjectNotExistException => StatusCode.ServiceNotFound,
-                    ReplyStatus.FacetNotExistException => StatusCode.ServiceNotFound,
-                    ReplyStatus.OperationNotExistException => StatusCode.OperationNotFound,
-                    _ => StatusCode.UnhandledException
-                };
-
-                var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
-
-                string message;
-                switch (replyStatus)
-                {
-                    case ReplyStatus.FacetNotExistException:
-                    case ReplyStatus.ObjectNotExistException:
-                    case ReplyStatus.OperationNotExistException:
-
-                        var requestFailed = new RequestFailedExceptionData(ref decoder);
-
-                        string target = requestFailed.Fragment.Length > 0 ?
-                            $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
-
-                        message = $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
-                        break;
-                    default:
-                        message = decoder.DecodeString();
-                        break;
-                }
-
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return (statusCode, message, buffer.End);
-            }
-        }
-
-        static void EncodeRequestHeader(
-            DuplexConnectionWriter output,
-            OutgoingRequest request,
-            int requestId,
-            int payloadSize)
-        {
-            var encoder = new SliceEncoder(output, SliceEncoding.Slice1);
-
-            // Write the request header.
-            encoder.WriteByteSpan(IceDefinitions.FramePrologue);
-            encoder.EncodeIceFrameType(IceFrameType.Request);
-            encoder.EncodeUInt8(0); // compression status
-
-            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-
-            encoder.EncodeInt32(requestId);
-
-            byte encodingMajor = 1;
-            byte encodingMinor = 1;
-
-            // Request header.
-            var requestHeader = new IceRequestHeader(
-                request.ServiceAddress.Path,
-                request.ServiceAddress.Fragment,
-                request.Operation,
-                request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
-                    OperationMode.Idempotent : OperationMode.Normal);
-            requestHeader.Encode(ref encoder);
-            if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
-            {
-                requestField.Encode(ref encoder);
-            }
-            else
-            {
-                encoder.EncodeSize(0);
-            }
-
-            // We ignore all other fields. They can't be sent over ice.
-
-            new EncapsulationHeader(
-                encapsulationSize: payloadSize + 6,
-                encodingMajor,
-                encodingMinor).Encode(ref encoder);
-
-            int frameSize = checked(encoder.EncodedByteCount + payloadSize);
-            SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
-        }
-    }
-
-    private protected override async Task ShutdownAsyncCore(CancellationToken cancellationToken)
-    {
-        lock (_mutex)
-        {
-            Debug.Assert(OperationRefusedException is not null);
-            if (_invocationCount == 0 && _dispatchCount == 0)
-            {
-                _dispatchesAndInvocationsCompleted.TrySetResult();
-            }
-        }
-
-        // Wait for dispatches and invocations to complete.
-        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        // Encode and write the CloseConnection frame once all the dispatches are done.
-        try
-        {
-            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                EncodeCloseConnectionFrame(_duplexConnectionWriter);
-                await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
-        }
-        catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-        {
-            // Expected if the flush operation is aborted by connection closure.
-        }
-
-        // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
-        // closure here. We can't just return and close the underlying transport since this could abort the receive of
-        // the responses and close connection frame by the peer.
-        await _closeTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
-        {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-            IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
         }
     }
 
@@ -717,32 +919,39 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
+    private void DisableIdleCheck() => _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+
     /// <summary>Marks the protocol connection as closed, disposes the transport connection and cancels pending
     /// dispatches and invocations.</summary>
     private void DisposeTransport(string? message = null, Exception? exception = null)
     {
-        // OperationRefusedException might already be set if the connection is being shutdown or disposed. In this
-        // case the connection shutdown or disposal is responsible for calling the connection closed callback.
-        if (OperationRefusedException is null)
+        // The connection can already be refusing invocations if being shutdown or disposed. In this case the connection
+        // shutdown or disposal is responsible for completing _closedTcs.
+        lock (_mutex)
         {
-            OperationRefusedException = new IceRpcException(IceRpcError.OperationRefused, message, exception);
-            var rpcException = exception as IceRpcException;
-            if (exception is not null && rpcException is null)
+            if (!_refuseInvocations)
             {
-                rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
+                RefuseNewInvocations(message);
+                var rpcException = exception as IceRpcException;
+                if (exception is not null && rpcException is null)
+                {
+                    rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
+                }
+                _closedTcs.TrySetResult(rpcException);
             }
-            ConnectionClosed(rpcException);
         }
 
         // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
         _duplexConnection.Dispose();
 
         // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
-        CancelDispatchesAndInvocations();
+        _dispatchesAndInvocationsCts.Cancel();
 
         // Make sure to unblock ShutdownAsync if it's waiting for the connection closure.
-        _closeTcs.TrySetResult();
+        _transportConnectionDisposedTcs.TrySetResult();
     }
+
+    private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
     private async ValueTask ReadFramesAsync()
@@ -931,14 +1140,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     }
                     catch (OperationCanceledException)
                     {
-                        Debug.Assert(OperationRefusedException is not null);
                         // and return below
                     }
                 }
 
                 lock (_mutex)
                 {
-                    if (OperationRefusedException is not null)
+                    if (_isShutdown || _disposeTask is not null)
                     {
                         // We're shutting down and we discard this request before any processing. For a graceful
                         // shutdown, we want the invocation in the peer to throw an IceRpcException(
@@ -1132,13 +1340,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         --_dispatchCount;
                         if (_invocationCount == 0 && _dispatchCount == 0)
                         {
-                            if (OperationRefusedException is null)
+                            if (_isShutdown || _disposeTask is not null)
                             {
-                                EnableIdleCheck();
+                                _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
                             else
                             {
-                                _dispatchesAndInvocationsCompleted.TrySetResult();
+                                EnableIdleCheck();
                             }
                         }
                     }
@@ -1249,6 +1457,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 int frameSize = encoder.EncodedByteCount + payloadSize;
                 SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
             }
+        }
+    }
+
+    private void RefuseNewInvocations(string? message)
+    {
+        lock (_mutex)
+        {
+            _refuseInvocations = true;
+            _operationRefusedMessage ??= message;
         }
     }
 }

@@ -266,7 +266,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing a connection that was not connected completes the
-    /// <see cref="ProtocolConnection.Closed" /> task.</summary>
+    /// <see cref="IProtocolConnection.Closed" /> task.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Closed_completes_when_disposing_not_connected_connection(Protocol protocol)
     {
@@ -479,19 +479,9 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
 
-        // TODO: temporary
-        if (protocol == Protocol.Ice)
-        {
-            Assert.That(
-                await sut.Client.Closed,
-                Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationRefused));
-        }
-        else
-        {
-            Assert.That(
-                await sut.Client.Closed,
-                Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-        }
+        Assert.That(
+            await sut.Client.Closed,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
