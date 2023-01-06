@@ -67,7 +67,10 @@ impl CommentPatcher {
             replace_selection(&mut comment.overview, "{@link ", "}", |s| {
                 let identifier = match ast.find_element_with_scope::<dyn Entity>(s, entity.module_scope()) {
                     Ok(e) => e.escape_scoped_identifier(&entity.namespace()),
-                    Err(_) => s.to_owned(), // TODO log a warning
+                    // slicec verifies that the link is valid and issues a warning if
+                    // the entity can't be found. In this case we just use the original
+                    // string.
+                    Err(_) => s.to_owned(),
                 };
 
                 format!("<see cref=\"{identifier}\" />")
