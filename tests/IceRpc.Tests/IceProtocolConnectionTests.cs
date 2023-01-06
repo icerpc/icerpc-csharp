@@ -244,7 +244,7 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.IsCompleted, Is.True);
     }
 
-    /// <summary>Verifies that a shutdown succeeds event if the server transport connection ShutdownAsync is hung. The
+    /// <summary>Verifies that a shutdown succeeds even if the server transport connection ShutdownAsync is hung. The
     /// ice protocol connection implementation does not call ShutdownAsync on the duplex connection.</summary>
     [Test]
     public async Task Shutdown_succeeds_with_hung_server_transport()

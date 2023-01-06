@@ -80,9 +80,12 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
             throw new InvalidOperationException("Test server transport doesn't support multiple listeners.");
         }
         _listener = new TestDuplexListenerDecorator(
-            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions));
-        _listener.HoldOperation = _holdOperation;
-        _listener.FailOperation = _failOperation;
+            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions))
+            {
+                HoldOperation = _holdOperation,
+                FailOperation = _failOperation
+            };
+
         return _listener;
     }
 
@@ -107,9 +110,11 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         {
             (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            LastConnection = new TestDuplexConnectionDecorator(connection);
-            LastConnection.HoldOperation = HoldOperation;
-            LastConnection.FailOperation = FailOperation;
+            LastConnection = new TestDuplexConnectionDecorator(connection)
+                {
+                    HoldOperation = HoldOperation,
+                    FailOperation = FailOperation
+                };
             return (LastConnection, remoteNetworkAddress);
         }
 

@@ -43,9 +43,11 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
         var connection = new TestMultiplexedConnectionDecorator(_decoratee.CreateConnection(
             serverAddress,
             options,
-            clientAuthenticationOptions));
-        connection.HoldOperation = _holdOperation;
-        connection.FailOperation = _failOperation;
+            clientAuthenticationOptions))
+            {
+                HoldOperation = _holdOperation,
+                FailOperation = _failOperation
+            };
         _lastConnection = connection;
         return connection;
     }
@@ -125,9 +127,11 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             throw new InvalidOperationException("Test server transport doesn't support multiple listeners.");
         }
         _listener = new TestMultiplexedListenerDecorator(
-            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions));
-        _listener.HoldOperation = _holdOperation;
-        _listener.FailOperation = _failOperation;
+            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions))
+            {
+                HoldOperation = _holdOperation,
+                FailOperation = _failOperation
+            };
         return _listener;
     }
 
