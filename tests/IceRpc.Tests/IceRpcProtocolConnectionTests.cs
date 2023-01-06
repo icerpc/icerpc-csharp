@@ -338,7 +338,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await tcs.Task, Is.EqualTo(exception));
     }
 
-    // TODO: see #xxx
+    // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2444
     // [TestCase(false, MultiplexedTransportOperation.CreateStream)]
     // [TestCase(true, MultiplexedTransportOperation.CreateStream)]
     [TestCase(false, MultiplexedTransportOperation.AcceptStream)]
