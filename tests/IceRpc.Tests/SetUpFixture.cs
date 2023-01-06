@@ -26,5 +26,5 @@ public sealed class SetUpFixture
     }
 
     private static void HandleUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) =>
-        Assert.Fail($"Unobserved task exception {sender}\n: {e.Exception.InnerException}");
+         Assert.Fail($"Unobserved task exception {sender}\n: {e.Exception.InnerException}");
 }

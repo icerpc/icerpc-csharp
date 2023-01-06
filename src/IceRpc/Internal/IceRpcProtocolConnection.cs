@@ -21,6 +21,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private const int MaxGoAwayFrameBodySize = 16;
     private const int MaxSettingsFrameBodySize = 1024;
 
+    private bool IsServer => _transportConnectionInformation is not null;
+
     private Task? _acceptRequestsTask;
     private readonly CancellationTokenSource _acceptStreamCts = new();
     private readonly TaskCompletionSource<Exception?> _closedTcs =
@@ -44,8 +46,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
-
-    private readonly bool _isServer;
     private bool _isShutdown;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
@@ -87,7 +87,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
             if (_connectTask is not null)
             {
@@ -476,16 +476,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 throw new InvalidOperationException("Cannot invoke on a connection before connecting it.");
             }
-            if (!_isServer && !_connectTask.IsCompletedSuccessfully)
+            if (!IsServer && !_connectTask.IsCompletedSuccessfully)
             {
                 throw new InvalidOperationException(
                     "Cannot invoke on a client connection that is not fully established.");
             }
+            // It's possible but rare to invoke on a server connection that is still connecting.
+
             if (request.ServiceAddress.Fragment.Length > 0)
             {
                 throw new NotSupportedException("The icerpc protocol does not support fragments.");
             }
-            // It's possible but rare to invoke on a server connection that is still connecting.
         }
 
         return PerformInvokeAsync();
@@ -682,7 +683,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ProtocolConnection)}");
+                throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
             if (_isShutdown)
             {
@@ -749,7 +750,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
                 // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
                 IceRpcGoAway goAwayFrame = new(
-                     _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (_isServer ? 0ul : 1ul),
+                     _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
                      (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
 
                 try
@@ -872,7 +873,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
     {
-        _isServer = transportConnectionInformation is not null;
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
         _faultedTaskAction = options.FaultedTaskAction;
