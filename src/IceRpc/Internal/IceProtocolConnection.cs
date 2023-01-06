@@ -1320,7 +1320,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                                 "A payload writer must not return a completed or canceled FlushResult with the ice protocol.");
                         }
                     }
-                    catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                    catch (IceRpcException exception) when (
+                        exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.OperationAborted)
                     {
                         // The transport connection was disposed, which is ok.
                     }
