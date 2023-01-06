@@ -365,7 +365,13 @@ public sealed class Server : IAsyncDisposable
                                 {
                                     if (_disposeTask is null && !_isShutdown)
                                     {
-                                        pendingConnectionSemaphore.Release();
+                                        try
+                                        {
+                                            pendingConnectionSemaphore.Release();
+                                        }
+                                        catch (ObjectDisposedException)
+                                        {
+                                        }
                                     }
                                 }
                             }
