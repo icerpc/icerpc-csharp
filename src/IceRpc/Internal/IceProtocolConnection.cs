@@ -333,8 +333,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 ++_invocationCount;
 
-                // _dispatchesAndInvocationsCts token can throw ObjectDisposedException so only create the
-                // linked source if the connection is not disposed.
+                // Since _refuseInvocations is false, the connection and its _dispatchesAndInvocationsCts token are not
+                // disposed.
                 cts = CancellationTokenSource.CreateLinkedTokenSource(
                     _dispatchesAndInvocationsCts.Token,
                     cancellationToken);
