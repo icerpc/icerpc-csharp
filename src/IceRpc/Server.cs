@@ -364,7 +364,15 @@ public sealed class Server : IAsyncDisposable
                                 {
                                     if (_disposeTask is null && !_isShutdown)
                                     {
-                                        pendingConnectionSemaphore.Release();
+                                        try
+                                        {
+                                            pendingConnectionSemaphore.Release();
+                                        }
+                                        catch (ObjectDisposedException)
+                                        {
+                                            // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2448 why this
+                                            // is needed.
+                                        }
                                     }
                                 }
                             }
