@@ -25,9 +25,13 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          ~/.cargo
-          tools/slicec-cs/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          Cargo.lock
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
         restore-keys: |
           ${{ runner.os }}-cargo-
     - name: 🔗 Setup .NET

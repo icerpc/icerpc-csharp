@@ -202,14 +202,12 @@ impl Visitor for CsValidator<'_> {
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for (attribute, ..) in &cs_attributes(&type_alias.attributes(false)) {
             match attribute {
-                CsAttributeKind::Identifier { .. } => Warning::new(
-                    WarningKind::InconsequentialUseOfAttribute {
-                        attribute: cs_attributes::IDENTIFIER.to_owned(),
-                        kind: "typealias".to_owned(),
-                    },
-                    type_alias.span(),
-                )
-                .report(self.diagnostic_reporter, type_alias),
+                CsAttributeKind::Identifier { .. } => Warning::new(WarningKind::InconsequentialUseOfAttribute {
+                    attribute: cs_attributes::IDENTIFIER.to_owned(),
+                    kind: "typealias".to_owned(),
+                })
+                .set_span(type_alias.span())
+                .report(self.diagnostic_reporter, Some(type_alias)),
                 _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
             }
         }
