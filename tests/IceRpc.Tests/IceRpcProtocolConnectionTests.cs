@@ -367,9 +367,6 @@ public sealed class IceRpcProtocolConnectionTests
                 serverConnectionOptions: new() { Dispatcher = dispatcher })
             .BuildServiceProvider(validateScopes: true);
 
-        var tcs = new TaskCompletionSource();
-        tcs.SetException(new Exception());
-
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         _ = FulfillShutdownRequestAsync(sut.Client);
