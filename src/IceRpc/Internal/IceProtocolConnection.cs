@@ -506,7 +506,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
-                        else
+                        else if (!ShutdownRequested.IsCompleted)
                         {
                             EnableIdleCheck();
                         }
@@ -808,11 +808,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _invocationCount == 0)
+                if (_dispatchCount == 0 && _invocationCount == 0 && !_isShutdown && _disposeTask is null)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
                         $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                    DisableIdleCheck();
                 }
             }
 
@@ -820,7 +821,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 // TrySetResult must be called outside the mutex lock
                 _shutdownRequestedTcs.TrySetResult();
-                DisableIdleCheck();
             }
         });
 
@@ -1344,7 +1344,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             {
                                 _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
-                            else
+                            else if (!ShutdownRequested.IsCompleted)
                             {
                                 EnableIdleCheck();
                             }
