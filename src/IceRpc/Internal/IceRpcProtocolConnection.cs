@@ -187,13 +187,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                     catch (IceRpcException exception)
                     {
-                        await DisposeTransportAsync("The connection was lost.", exception).ConfigureAwait(false);
+                        RefuseNewInvocations("The connection was lost.");
+                        _closedTcs.TrySetResult(exception);
+                        await _transportConnection.DisposeAsync().ConfigureAwait(false);
                         throw;
                     }
                     catch (Exception exception)
                     {
-                        await DisposeTransportAsync("The connection failed due to an unhandled exception.", exception)
-                            .ConfigureAwait(false);
+                        RefuseNewInvocations("The connection failed due to an unexpected exception.");
+                        _closedTcs.TrySetResult(exception);
+                        await _transportConnection.DisposeAsync().ConfigureAwait(false);
                         Debug.Fail($"The read go away task completed due to an unhandled exception: {exception}");
                         throw;
                     }
@@ -331,18 +334,22 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     {
                         // Expected if the connection is being shutdown.
                     }
+                    catch (ObjectDisposedException)
+                    {
+                        // Expected if the connection was aborted by another thread.
+                    }
                     catch (IceRpcException exception)
                     {
-                        await DisposeTransportAsync("The connection was lost.", exception).ConfigureAwait(false);
-                    }
-                    catch (ObjectDisposedException exception)
-                    {
-                        await DisposeTransportAsync("The connection was disposed.", exception).ConfigureAwait(false);
+                        RefuseNewInvocations("The connection was lost.");
+                        _closedTcs.TrySetResult(exception);
+                        await _transportConnection.DisposeAsync().ConfigureAwait(false);
+                        throw;
                     }
                     catch (Exception exception)
                     {
-                        await DisposeTransportAsync("The connection failed due to an unhandled exception.", exception)
-                            .ConfigureAwait(false);
+                        RefuseNewInvocations("The connection failed due to an unexpected exception.");
+                        _closedTcs.TrySetResult(exception);
+                        await _transportConnection.DisposeAsync().ConfigureAwait(false);
                         Debug.Fail($"The accept stream task completed due to an unhandled exception: {exception}");
                         throw;
                     }
@@ -417,7 +424,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
             }
 
-            await DisposeTransportAsync().ConfigureAwait(false);
+            await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
             try
             {
@@ -742,7 +749,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
 
                 Debug.Assert(_acceptRequestsTask is not null);
-                await _acceptRequestsTask.ConfigureAwait(false);
+                await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 // Once _acceptRequestsTask completes, _lastRemoteBidirectionalStreamId and
                 // _lastRemoteUnidirectionalStreamId are immutable.
@@ -1127,33 +1134,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    /// <summary>Marks the protocol connection as closed, disposes the transport connection and cancels pending
-    /// dispatches and invocations.</summary>
-    private async Task DisposeTransportAsync(string? message = null, Exception? exception = null)
-    {
-        // The connection can already be refusing invocations if being shutdown or disposed. In this case the connection
-        // shutdown or disposal is responsible for completing _closedTcs.
-        lock (_mutex)
-        {
-            if (!_refuseInvocations)
-            {
-                RefuseNewInvocations(message);
-                var rpcException = exception as IceRpcException;
-                if (exception is not null && rpcException is null)
-                {
-                    rpcException = new IceRpcException(IceRpcError.IceRpcError, exception);
-                }
-                _closedTcs.TrySetResult(rpcException);
-            }
-        }
-
-        // Dispose the transport connection. This will trigger the failure of tasks waiting on transport operations.
-        await _transportConnection.DisposeAsync().ConfigureAwait(false);
-
-        // Cancel dispatches and invocations, there's no point in letting them continue once the connection is closed.
-        _dispatchesAndInvocationsCts.Cancel();
-    }
-
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     private async ValueTask ReceiveControlFrameHeaderAsync(
@@ -1241,7 +1221,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void RefuseNewInvocations(string? message)
+    private void RefuseNewInvocations(string message)
     {
         lock (_mutex)
         {
