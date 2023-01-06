@@ -217,7 +217,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
                 {
                     throw new IceRpcException(IceRpcError.IceRpcError, "Test transport read failure");
                 }
-                await _decoratee.ShutdownAsync(cancellationToken);
+                await _holdReadTcs.Task.WaitAsync(cancellationToken);
             }
         }
 
