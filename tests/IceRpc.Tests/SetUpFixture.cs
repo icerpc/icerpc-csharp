@@ -8,13 +8,13 @@ namespace IceRpc.Tests;
 [SetUpFixture]
 public sealed class SetUpFixture
 {
-    // private static readonly EventHandler<UnobservedTaskExceptionEventArgs> _handler = HandleUnobservedTaskException;
+    private static readonly EventHandler<UnobservedTaskExceptionEventArgs> _handler = HandleUnobservedTaskException;
 
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
         AssertTraceListener.Setup();
-       // TaskScheduler.UnobservedTaskException += _handler;
+        TaskScheduler.UnobservedTaskException += _handler;
     }
 
     [OneTimeTearDown]
@@ -22,9 +22,9 @@ public sealed class SetUpFixture
     {
         GC.Collect();
         GC.WaitForPendingFinalizers();
-        // TaskScheduler.UnobservedTaskException -= _handler;
+        TaskScheduler.UnobservedTaskException -= _handler;
     }
 
-   // private static void HandleUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) =>
-   //     Assert.Fail($"Unobserved task exception {sender}\n: {e.Exception.InnerException}");
+    private static void HandleUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) =>
+         Assert.Fail($"Unobserved task exception {sender}\n: {e.Exception.InnerException}");
 }
