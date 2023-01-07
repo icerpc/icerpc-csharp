@@ -234,9 +234,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             CancellationToken cancellationToken = default;
                             lock (_mutex)
                             {
-                                // We don't want to increment _dispatchCount or _streamCount when
-                                // acceptStreamCancellationToken is canceled.
-                                acceptStreamCancellationToken.ThrowIfCancellationRequested();
+                                // We don't want to increment _dispatchCount or _streamCount when the connection is
+                                // shutting down or being disposed.
+                                if (_disposeTask is not null || _isShutdown)
+                                {
+                                    // Note that acceptStreamCancellationToken may not be canceled yet at this point.
+                                    throw new OperationCanceledException();
+                                }
 
                                 // The multiplexed connection guarantees that the IDs of accepted streams of a given
                                 // type have ever increasing values.
@@ -323,8 +327,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     {
                                         lock (_mutex)
                                         {
-                                            if (--_dispatchCount == 0 &&
-                                                acceptStreamCancellationToken.IsCancellationRequested)
+                                            if (--_dispatchCount == 0 && (_disposeTask is not null || _isShutdown))
                                             {
                                                 _ = _dispatchesCompleted.TrySetResult();
                                             }
@@ -334,8 +337,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                 CancellationToken.None);
                         }
                     }
-                    catch (OperationCanceledException exception) when (
-                        exception.CancellationToken == acceptStreamCancellationToken)
+                    catch (OperationCanceledException)
                     {
                         // Expected if the connection is being shutdown.
                     }
@@ -372,13 +374,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             if (_disposeTask is null)
             {
-                _disposedCts.Cancel();
-                _disposedCts.Dispose();
-
                 RefuseNewInvocations("The connection was disposed.");
-
-                // We must cancel within the mutex locked.
-                _acceptStreamCts.Cancel();
 
                 if (_streamCount == 0)
                 {
@@ -398,6 +394,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
+
+            _disposedCts.Cancel();
+            _disposedCts.Dispose();
+
+            _acceptStreamCts.Cancel();
+            _acceptStreamCts.Dispose();
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
@@ -460,7 +462,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 cts.Dispose();
             }
 
-            _acceptStreamCts.Dispose();
             _dispatchSemaphore?.Dispose();
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
@@ -632,7 +633,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 if (disposedCancellationToken.IsCancellationRequested)
                 {
-                    // Abortive-shutdown canceled the request.
+                    // DisposeAsync aborted request.
                     throw new IceRpcException(IceRpcError.OperationAborted);
                 }
                 else
@@ -713,9 +714,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             _isShutdown = true;
             RefuseNewInvocations("The connection was shut down.");
 
-            // We must cancel with the mutex locked.
-            _acceptStreamCts.Cancel();
-
             if (_streamCount == 0)
             {
                 _streamsClosed.TrySetResult();
@@ -734,6 +732,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
         }
 
+        _acceptStreamCts.Cancel();
         return PerformShutdownAsync();
 
         async Task PerformShutdownAsync()
@@ -1466,7 +1465,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (--_streamCount == 0)
             {
-                if (_disposeTask is not null || _acceptStreamCts.Token.IsCancellationRequested)
+                if (_disposeTask is not null || _isShutdown)
                 {
                     _streamsClosed.TrySetResult();
                 }
