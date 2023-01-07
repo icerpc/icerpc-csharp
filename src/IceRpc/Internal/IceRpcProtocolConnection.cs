@@ -381,6 +381,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     _dispatchesCompleted.TrySetResult();
                 }
 
+                _dispatchesAndInvocationsCts.Cancel();
                 _disposeTask = PerformDisposeAsync();
             }
         }
@@ -411,8 +412,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 if (_isShutdown)
                 {
                     // ShutdownAsync will complete Closed and we wait for Closed completion.
-
-                    _dispatchesAndInvocationsCts.Cancel(); // speed up shutdown
                     _ = await Closed.ConfigureAwait(false);
                 }
                 else
