@@ -915,10 +915,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     requestShutdown = true;
                     RefuseNewInvocations(
                         $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
-                }
-
-                if (requestShutdown || (ShutdownRequested.IsCompleted && !IsDisposed))
-                {
                     DisableIdleCheck();
                 }
             }
@@ -1476,8 +1472,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     _streamsClosed.TrySetResult();
                 }
-                else if (!ShutdownRequested.IsCompleted)
+                else if (!_refuseInvocations)
                 {
+                    // We enable the idle check in order to complete ShutdownRequested when idle for too long.
+                    // _refuseInvocations is true when the connection is either about to be "shutdown requested", or
+                    // shut down / disposed, or aborted (with Closed completed). We don't need to complete
+                    // ShutdownRequested any of these situations.
                     EnableIdleCheck();
                 }
             }
