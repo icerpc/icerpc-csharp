@@ -21,6 +21,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private const int MaxGoAwayFrameBodySize = 16;
     private const int MaxSettingsFrameBodySize = 1024;
 
+    private bool IsDisposed => _disposeTask is not null; // must be called with _mutex locked
+
     private bool IsServer => _transportConnectionInformation is not null;
 
     private Task? _acceptRequestsTask;
@@ -88,7 +90,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
+            if (IsDisposed)
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
@@ -236,7 +238,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             {
                                 // We don't want to increment _dispatchCount or _streamCount when the connection is
                                 // shutting down or being disposed.
-                                if (_disposeTask is not null || _isShutdown)
+                                if (IsDisposed || _isShutdown)
                                 {
                                     // Note that acceptStreamCancellationToken may not be canceled yet at this point.
                                     throw new OperationCanceledException();
@@ -327,7 +329,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     {
                                         lock (_mutex)
                                         {
-                                            if (--_dispatchCount == 0 && (_disposeTask is not null || _isShutdown))
+                                            if (--_dispatchCount == 0 && (IsDisposed || _isShutdown))
                                             {
                                                 _ = _dispatchesCompleted.TrySetResult();
                                             }
@@ -479,7 +481,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
+            if (IsDisposed)
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
@@ -698,7 +700,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
+            if (IsDisposed)
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
@@ -908,11 +910,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _streamCount == 0)
+                if (_dispatchCount == 0 && _streamCount == 0 && !_isShutdown && !IsDisposed)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
                         $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                }
+
+                if (requestShutdown || (ShutdownRequested.IsCompleted && !IsDisposed))
+                {
+                    DisableIdleCheck();
                 }
             }
 
@@ -920,7 +927,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 // TrySetResult must be called outside the mutex lock
                 _shutdownRequestedTcs.TrySetResult();
-                DisableIdleCheck();
             }
         });
     }
@@ -1142,6 +1148,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
+    // TODO: why is the period InfiniteTimeSpan and not _idleTimeout?
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     private async ValueTask ReceiveControlFrameHeaderAsync(
@@ -1451,7 +1458,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && _disposeTask is null && !_isShutdown)
+            if (!stream.IsRemote && !IsDisposed && !_isShutdown)
             {
                 if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
                 {
@@ -1465,11 +1472,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (--_streamCount == 0)
             {
-                if (_disposeTask is not null || _isShutdown)
+                if (IsDisposed || _isShutdown)
                 {
                     _streamsClosed.TrySetResult();
                 }
-                else
+                else if (!ShutdownRequested.IsCompleted)
                 {
                     EnableIdleCheck();
                 }
