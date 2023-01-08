@@ -1477,7 +1477,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // We enable the idle check in order to complete ShutdownRequested when idle for too long.
                     // _refuseInvocations is true when the connection is either about to be "shutdown requested", or
                     // shut down / disposed, or aborted (with Closed completed). We don't need to complete
-                    // ShutdownRequested any of these situations.
+                    // ShutdownRequested in any of these situations.
                     EnableIdleCheck();
                 }
             }
