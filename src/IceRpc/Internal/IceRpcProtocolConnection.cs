@@ -912,7 +912,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     requestShutdown = true;
                     RefuseNewInvocations(
                         $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
-                    DisableIdleCheck();
                 }
             }
 
@@ -1141,7 +1140,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    // TODO: why is the period InfiniteTimeSpan and not _idleTimeout?
+    // The idle check executes once in _idleTimeout. By then either:
+    // - the connection is no longer idle (and DisableIdleCheck was called or is being called)
+    // - the connection is still idle and we request shutdown
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     private async ValueTask ReceiveControlFrameHeaderAsync(
