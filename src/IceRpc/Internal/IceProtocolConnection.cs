@@ -354,7 +354,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the writing of frames.
                 await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
-                PipeWriter payloadWriter = _payloadWriter;
                 TaskCompletionSource<PipeReader>? responseCompletionSource = null;
 
                 try
@@ -379,9 +378,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
-                    payloadWriter = request.GetPayloadWriter(payloadWriter);
-
-                    FlushResult flushResult = await payloadWriter.WriteAsync(
+                    FlushResult flushResult = await _payloadWriter.WriteAsync(
                         payload,
                         endStream: false,
                         CancellationToken.None).ConfigureAwait(false);
@@ -418,7 +415,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 finally
                 {
-                    payloadWriter.Complete();
+                    _payloadWriter.Complete();
                     _writeSemaphore.Release();
                 }
 
@@ -1253,7 +1250,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                 }
 
-                PipeWriter payloadWriter = _payloadWriter;
                 bool acquiredSemaphore = false;
 
                 try
@@ -1301,12 +1297,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     acquiredSemaphore = true;
 
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
-                    payloadWriter = response.GetPayloadWriter(payloadWriter);
 
                     try
                     {
                         // Write the payload and complete the source.
-                        FlushResult flushResult = await payloadWriter.WriteAsync(
+                        FlushResult flushResult = await _payloadWriter.WriteAsync(
                             payload,
                             endStream: false,
                             CancellationToken.None).ConfigureAwait(false);
@@ -1328,7 +1323,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 finally
                 {
-                    payloadWriter.Complete();
+                    _payloadWriter.Complete();
 
                     if (acquiredSemaphore)
                     {
