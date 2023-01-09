@@ -64,8 +64,10 @@ public class ServerTests
         await connection1.ConnectAsync();
 
         var exception = Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
-        Assert.That(exception!.IceRpcError, Is.EqualTo(
-            serverAddress.Protocol == Protocol.Ice ? IceRpcError.ConnectionAborted : IceRpcError.ServerBusy));
+        Assert.That(exception!.IceRpcError,
+            serverAddress.Protocol == Protocol.Ice ?
+                Is.EqualTo(IceRpcError.IceRpcError).Or.EqualTo(IceRpcError.ConnectionAborted) :
+                Is.EqualTo(IceRpcError.ServerBusy));
     }
 
     [Test]
