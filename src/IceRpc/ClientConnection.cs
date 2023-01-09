@@ -131,7 +131,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" />if this connection attempt or a previous attempt exceeded
-    /// <see cref="ConnectionOptions.ConnectTimeout" />.</description></item>
+    /// <see cref="ClientConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
@@ -251,7 +251,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
     /// cancellation token.</description></item>
     /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded <see
-    /// cref="ConnectionOptions.ShutdownTimeout" />.</description></item>
+    /// cref="ClientConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>

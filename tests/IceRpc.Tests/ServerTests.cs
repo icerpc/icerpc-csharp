@@ -83,11 +83,8 @@ public class ServerTests
         await using var server = new Server(
             new ServerOptions
             {
-                ConnectionOptions = new ConnectionOptions
-                    {
-                        ConnectTimeout = TimeSpan.FromMilliseconds(300),
-                        Dispatcher = dispatcher
-                    },
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ConnectTimeout = TimeSpan.FromMilliseconds(300),
                 MaxConnections = 1,
                 ServerAddress = new ServerAddress(new Uri("icerpc://server")),
             },
@@ -258,12 +255,9 @@ public class ServerTests
         await using var server = new Server(
             new ServerOptions
             {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    Dispatcher = dispatcher,
-                    ShutdownTimeout = TimeSpan.FromMilliseconds(500),
-                },
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
+                ShutdownTimeout = TimeSpan.FromMilliseconds(500),
             });
 
         ServerAddress serverAddress = server.Listen();
