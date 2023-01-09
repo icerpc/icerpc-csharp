@@ -21,8 +21,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private const int MaxGoAwayFrameBodySize = 16;
     private const int MaxSettingsFrameBodySize = 1024;
 
-    private bool IsDisposed => _disposeTask is not null; // must be called with _mutex locked
-
     private bool IsServer => _transportConnectionInformation is not null;
 
     private Task? _acceptRequestsTask;
@@ -51,6 +49,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
+
+    // _isShutdown is true once ShutdownAsync or DisposeAsync is called.
     private bool _isShutdown;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
@@ -90,7 +90,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (IsDisposed)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
@@ -238,7 +238,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             {
                                 // We don't want to increment _dispatchCount or _streamCount when the connection is
                                 // shutting down or being disposed.
-                                if (IsDisposed || _isShutdown)
+                                if (_isShutdown)
                                 {
                                     // Note that acceptStreamCancellationToken may not be canceled yet at this point.
                                     throw new OperationCanceledException();
@@ -329,7 +329,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     {
                                         lock (_mutex)
                                         {
-                                            if (--_dispatchCount == 0 && (IsDisposed || _isShutdown))
+                                            if (--_dispatchCount == 0 && _isShutdown)
                                             {
                                                 _ = _dispatchesCompleted.TrySetResult();
                                             }
@@ -387,21 +387,23 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     _dispatchesCompleted.TrySetResult();
                 }
 
-                _disposeTask = PerformDisposeAsync();
+                // If ShutdownAsync was called (i.e. _isShutdown is true while _disposeTask is null), we want to wait
+                // for its completion in PerformDisposeAsync below.
+                bool waitForClosed = _isShutdown;
+                _isShutdown = true;
+
+                _disposeTask = PerformDisposeAsync(waitForClosed);
             }
         }
         return new(_disposeTask);
 
-        async Task PerformDisposeAsync()
+        async Task PerformDisposeAsync(bool waitForClosed)
         {
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
             _disposedCts.Cancel();
-            _disposedCts.Dispose();
-
             _acceptStreamCts.Cancel();
-            _acceptStreamCts.Dispose();
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
@@ -420,15 +422,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // ignore any ConnectAsync exception
                 }
 
-                if (_isShutdown)
+                if (waitForClosed)
                 {
-                    // ShutdownAsync will complete Closed and we wait for Closed completion.
+                    // We wait for ShutdownAsync's completion.
                     _ = await Closed.ConfigureAwait(false);
                 }
                 else
                 {
                     // Abortive disposal.
-
                     _ = _closedTcs.TrySetResult(
                         new IceRpcException(IceRpcError.ConnectionAborted, "The connection was disposed."));
                 }
@@ -465,6 +466,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             _dispatchSemaphore?.Dispose();
+            _disposedCts.Dispose();
+            _acceptStreamCts.Dispose();
+
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
     }
@@ -481,7 +485,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (IsDisposed)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
@@ -700,7 +704,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (IsDisposed)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
             }
@@ -907,7 +911,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _streamCount == 0 && !_isShutdown && !IsDisposed)
+                if (_dispatchCount == 0 && _streamCount == 0 && !_isShutdown)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -1452,7 +1456,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && !IsDisposed && !_isShutdown)
+            if (!stream.IsRemote && !_isShutdown)
             {
                 if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
                 {
@@ -1466,7 +1470,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (--_streamCount == 0)
             {
-                if (IsDisposed || _isShutdown)
+                if (_isShutdown)
                 {
                     _streamsClosed.TrySetResult();
                 }
