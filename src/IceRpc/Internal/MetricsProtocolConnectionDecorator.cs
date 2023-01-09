@@ -14,7 +14,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
     private readonly IProtocolConnection _decoratee;
-    private readonly Task _shutdownAsync;
+    private readonly Task _stopTask;
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -35,7 +35,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
-        await _shutdownAsync.ConfigureAwait(false);
+        await _stopTask.ConfigureAwait(false);
     }
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -48,10 +48,10 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         ClientMetrics.Instance.ConnectionStart();
 
         _decoratee = decoratee;
-        _shutdownAsync = ShutdownAsync();
+        _stopTask = WaitForClosedAsync();
 
         // This task executes exactly once per decorated connection.
-        async Task ShutdownAsync()
+        async Task WaitForClosedAsync()
         {
             if (await Closed.ConfigureAwait(false) is not null)
             {
