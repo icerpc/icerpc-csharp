@@ -47,6 +47,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private int _invocationCount;
+    private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
     private bool _isShutdown;
     private readonly int _maxFrameSize;
@@ -54,7 +55,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private int _nextRequestId;
-    private string? _operationRefusedMessage;
     private readonly IcePayloadPipeWriter _payloadWriter;
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
@@ -300,7 +300,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             if (_refuseInvocations)
             {
-                throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
             }
             if (_connectTask is null)
             {
@@ -324,7 +324,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 if (_refuseInvocations)
                 {
-                    throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                    throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                 }
 
                 if (_invocationCount == 0 && _dispatchCount == 0)
@@ -366,7 +366,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         if (_refuseInvocations)
                         {
-                            throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                            // It's InvocationCanceled and not InvocationRefused because we've read the payload.
+                            throw new IceRpcException(
+                                IceRpcError.InvocationCanceled,
+                                _invocationRefusedMessage);
                         }
 
                         if (!request.IsOneway)
@@ -397,24 +400,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     request.Payload.Complete();
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                catch (IceRpcException exception)
                 {
-                    lock (_mutex)
-                    {
-                        if (_isClosedByPeer)
-                        {
-                            // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
-                            // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
-
-                            // The transport connection was disposed while sending the request.
-                            Debug.Assert(_refuseInvocations);
-                            throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
+                    // Since we could not send the request, the server cannot dispatch it and it's safe to retry.
+                    throw new IceRpcException(
+                        IceRpcError.InvocationCanceled,
+                        "Failed to send ice request.",
+                        exception);
                 }
                 finally
                 {
@@ -475,13 +467,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     if (_isClosedByPeer)
                     {
-                        // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
-                        // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
-
-                        // Invocations are not aborted if canceled after the graceful connection closure. The peer
-                        // didn't dispatch the request since the CloseConnection frame was received.
-                        Debug.Assert(_refuseInvocations);
-                        throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                        throw new IceRpcException(
+                            IceRpcError.InvocationCanceled,
+                            "The connection was shut down by the peer.");
                     }
                     else
                     {
@@ -668,12 +656,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
 
-            if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)
+            if (Closed.IsCompletedSuccessfully && Closed.Result is Exception closedException)
             {
                 throw new IceRpcException(
-                    IceRpcError.OperationRefused,
-                    _connectTask.IsFaulted ? "The connection establishment failed." : "The connection was aborted.",
-                    abortException);
+                    IceRpcError.ConnectionAborted,
+                    _connectTask.IsFaulted || _connectTask.IsCanceled ?
+                        "The shutdown failed because the connection establishment failed." :
+                        "The shutdown failed because the connection was aborted.",
+                    closedException);
             }
         }
 
@@ -1466,7 +1456,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         lock (_mutex)
         {
             _refuseInvocations = true;
-            _operationRefusedMessage ??= message;
+            _invocationRefusedMessage ??= message;
         }
     }
 }
