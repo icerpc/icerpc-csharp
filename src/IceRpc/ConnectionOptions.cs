@@ -26,7 +26,7 @@ public record class ConnectionOptions
     /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
     /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
     /// in progress.</summary>
-    /// <value>The connection idle timeout value. The default is 60s.</value>
+    /// <value>Defaults to <c>60</c> seconds.</value>
     public TimeSpan IdleTimeout
     {
         get => _idleTimeout;
@@ -76,6 +76,15 @@ public record class ConnectionOptions
                 nameof(value));
     }
 
+    /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
+    /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The
+    /// default value is 16,383, and the range of this value is 63 to 1,048,575.</value>
+    public int MaxIceRpcHeaderSize
+    {
+        get => _maxIceRpcHeaderSize;
+        set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
+    }
+
     /// <summary>Gets or sets the maximum allowed number of simultaneous remote unidirectional streams that can be
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// unidirectional stream. Since an unidirectional stream is opened for each one-way invocation, the sending of the
@@ -89,15 +98,6 @@ public record class ConnectionOptions
             throw new ArgumentException(
                 $"{nameof(MaxIceRpcUnidirectionalStreams)} can't be less than 1",
                 nameof(value));
-    }
-
-    /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
-    /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The
-    /// default value is 16,383, and the range of this value is 63 to 1,048,575.</value>
-    public int MaxIceRpcHeaderSize
-    {
-        get => _maxIceRpcHeaderSize;
-        set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
     }
 
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
