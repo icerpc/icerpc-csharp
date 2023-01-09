@@ -289,9 +289,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     }
                                     catch (IceRpcException exception) when (
                                         exception.IceRpcError is
+                                            IceRpcError.ConnectionAborted or
                                             IceRpcError.OperationAborted or
                                             IceRpcError.TruncatedData)
                                     {
+                                        // ConnectionAborted is expected when the peer aborts the connection.
                                         // OperationAborted is expected when the connection is disposed (and aborted)
                                         // while we're receiving a request header or sending a response.
                                         // TruncatedData is expected when reading a request header. It can also be
@@ -299,7 +301,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     }
                                     catch (InvalidDataException)
                                     {
-                                        // This occurs when we can't decode the request header.
+                                        // This occurs when we can't decode the request header or encode the response
+                                        // header.
                                     }
                                     catch (OperationCanceledException exception) when (
                                         exception.CancellationToken == cancellationToken)
@@ -1329,9 +1332,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // Expected when the connection is shut down.
                     }
                     catch (IceRpcException exception) when (
-                        exception.IceRpcError is IceRpcError.ConnectionAborted or
-                        IceRpcError.OperationAborted or
-                        IceRpcError.TruncatedData)
+                        exception.IceRpcError is
+                            IceRpcError.ConnectionAborted or
+                            IceRpcError.OperationAborted or
+                            IceRpcError.TruncatedData)
                     {
                         // ConnectionAborted is expected when the peer aborts the connection.
                         // OperationAborted is expected when the local application disposes the connection.
