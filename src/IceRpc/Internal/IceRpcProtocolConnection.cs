@@ -758,11 +758,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
-                Debug.Assert(_acceptRequestsTask is not null);
-                await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                // Once _acceptRequestsTask completes, _lastRemoteBidirectionalStreamId and
-                // _lastRemoteUnidirectionalStreamId are immutable.
+                // Once _isShutdown is true, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are
+                // immutable.
 
                 // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
                 // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
