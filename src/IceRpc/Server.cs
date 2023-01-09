@@ -333,8 +333,7 @@ public sealed class Server : IAsyncDisposable
                 {
                     await pendingConnectionSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-                    (IConnector connector, _) = await listener.AcceptAsync(cancellationToken)
-                        .ConfigureAwait(false);
+                    (IConnector connector, _) = await listener.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
                     // transports such as TLS based transports where the handshake requires few round trips between the
@@ -365,7 +364,15 @@ public sealed class Server : IAsyncDisposable
                                 {
                                     if (_disposeTask is null && !_isShutdown)
                                     {
-                                        pendingConnectionSemaphore.Release();
+                                        try
+                                        {
+                                            pendingConnectionSemaphore.Release();
+                                        }
+                                        catch (ObjectDisposedException)
+                                        {
+                                            // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2448 why this
+                                            // is needed.
+                                        }
                                     }
                                 }
                             }
@@ -432,12 +439,10 @@ public sealed class Server : IAsyncDisposable
                 }
                 else if (serverBusy)
                 {
-                    // If the max connection count is reached, we refuse the transport connection. We don't pass a
-                    // cancellation token here. The transport is responsible for ensuring that CloseAsync fails if the
-                    // peer doesn't acknowledge the failure.
+                    // If the max connection count is reached, we refuse the transport connection.
                     try
                     {
-                        await connector.RefuseTransportConnectionAsync(CancellationToken.None).ConfigureAwait(false);
+                        await connector.RefuseTransportConnectionAsync(cts.Token).ConfigureAwait(false);
                     }
                     catch
                     {

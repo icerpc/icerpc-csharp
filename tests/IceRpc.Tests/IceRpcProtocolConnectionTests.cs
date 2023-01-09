@@ -338,62 +338,28 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await tcs.Task, Is.EqualTo(exception));
     }
 
-    [Test]
-    public async Task Not_dispatched_twoway_request_gets_connection_exception_on_server_connection_shutdown()
+    // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2444
+    // [TestCase(false, MultiplexedTransportOperation.CreateStream)]
+    // [TestCase(true, MultiplexedTransportOperation.CreateStream)]
+    [TestCase(false, MultiplexedTransportOperation.AcceptStream)]
+    [TestCase(false, MultiplexedTransportOperation.StreamWrite)]
+    [TestCase(true, MultiplexedTransportOperation.StreamWrite)]
+    public async Task Not_dispatched_request_gets_connection_exception_on_server_connection_shutdown(
+        bool isOneway,
+        MultiplexedTransportOperation holdOperation)
     {
         // Arrange
-        HoldMultiplexedServerTransport? serverTransport = null;
+        TestMultiplexedClientTransportDecorator? clientTransport = null;
+        TestMultiplexedServerTransportDecorator? serverTransport = null;
         using var dispatcher = new TestDispatcher();
 
-        await using var provider = new ServiceCollection()
+        await using ServiceProvider provider = new ServiceCollection()
             .AddColocTransport()
-            .AddSlicTransport()
             .AddSingleton<IMultiplexedServerTransport>(
-                provider => serverTransport = new HoldMultiplexedServerTransport(
-                    new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>())))
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest(
-                clientConnectionOptions: new(),
-                serverConnectionOptions: new() { Dispatcher = dispatcher })
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
-        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var invokeTask = sut.Client.InvokeAsync(request1);
-        await dispatcher.DispatchStart; // Wait for the dispatch to start
-
-        serverTransport!.Hold(HoldOperation.AcceptStream); // Don't accept the next stream.
-        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var invokeTask2 = sut.Client.InvokeAsync(request2);
-
-        // Act
-        Task shutdownTask = sut.Server.ShutdownAsync();
-
-        // Assert
-        Assert.That(invokeTask.IsCompleted, Is.False);
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
-        dispatcher.ReleaseDispatch();
-        Assert.That(() => invokeTask, Throws.Nothing);
-        request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
-        Assert.That(() => shutdownTask, Throws.Nothing);
-    }
-
-    [Test]
-    public async Task Not_sent_request_gets_connection_exception_on_server_connection_shutdown(
-        [Values(false, true)] bool isOneway)
-    {
-        // Arrange
-        HoldMultiplexedClientTransport? clientTransport = null;
-        using var dispatcher = new TestDispatcher();
-
-        await using var provider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSlicTransport()
+                provider => serverTransport = new TestMultiplexedServerTransportDecorator(
+                        new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>())))
             .AddSingleton<IMultiplexedClientTransport>(
-                provider => clientTransport = new HoldMultiplexedClientTransport(
+                provider => clientTransport = new TestMultiplexedClientTransportDecorator(
                     new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>())))
             .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
             .AddIceRpcProtocolTest(
@@ -408,7 +374,19 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
-        clientTransport!.Hold(HoldOperation.Write); // Hold writes to prevent the sending of the request.
+        // Don't accept the next stream.
+        switch (holdOperation)
+        {
+            case MultiplexedTransportOperation.AcceptStream:
+            case MultiplexedTransportOperation.StreamRead:
+                serverTransport!.LastAcceptedConnection.HoldOperation = holdOperation;
+                break;
+            case MultiplexedTransportOperation.CreateStream:
+            case MultiplexedTransportOperation.StreamWrite:
+                clientTransport!.LastConnection.HoldOperation = holdOperation;
+                break;
+        }
+
         using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { IsOneway = isOneway };
         var invokeTask2 = sut.Client.InvokeAsync(request2);
 
@@ -417,7 +395,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await invokeTask2);
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
@@ -974,7 +952,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        var serverTransport = new TestDuplexServerTransportDecorator(
+            colocTransport.ServerTransport,
+            holdOperation: DuplexTransportOperation.Shutdown);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
@@ -982,7 +962,6 @@ public sealed class IceRpcProtocolConnectionTests
             .AddSingleton<IDuplexServerTransport>(serverTransport)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        serverTransport.ReleaseConnect();
         await sut.ConnectAsync();
         _ = FulfillShutdownRequestAsync(sut.Server);
 
@@ -992,9 +971,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.ShutdownAsync(cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
-
-        // Cleanup
-        serverTransport.Release();
     }
 
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
@@ -1014,204 +990,6 @@ public sealed class IceRpcProtocolConnectionTests
     {
         var dispatchException = new DispatchException(statusCode);
         return $"{dispatchException.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
-    }
-
-    [Flags]
-    private enum HoldOperation
-    {
-        None,
-        AcceptStream,
-        Write,
-    }
-
-    private sealed class HoldMultiplexedServerTransport : IMultiplexedServerTransport, IAsyncDisposable
-    {
-        private readonly IMultiplexedServerTransport _decoratee;
-        private HoldMultiplexedListener? _listener;
-
-        public string Name => _decoratee.Name;
-
-        public ValueTask DisposeAsync() => _listener?.DisposeAsync() ?? new();
-
-        public IListener<IMultiplexedConnection> Listen(
-            ServerAddress serverAddress,
-            MultiplexedConnectionOptions options,
-            SslServerAuthenticationOptions? serverAuthenticationOptions) =>
-            _listener = new HoldMultiplexedListener(
-                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions));
-
-        internal HoldMultiplexedServerTransport(IMultiplexedServerTransport decoratee) => _decoratee = decoratee;
-
-        internal void Hold(HoldOperation operation) => _listener?.Hold(operation);
-    }
-
-    private sealed class HoldMultiplexedClientTransport : IMultiplexedClientTransport, IAsyncDisposable
-    {
-        private readonly IMultiplexedClientTransport _decoratee;
-        private HoldMultiplexedConnection? _connection;
-
-        public string Name => _decoratee.Name;
-
-        public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
-
-        public IMultiplexedConnection CreateConnection(
-            ServerAddress serverAddress,
-            MultiplexedConnectionOptions options,
-            SslClientAuthenticationOptions? clientAuthenticationOptions)
-        {
-            Debug.Assert(_connection is null);
-            _connection = new HoldMultiplexedConnection(
-                _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions));
-            return _connection;
-        }
-
-        public ValueTask DisposeAsync() => _connection?.DisposeAsync() ?? new();
-
-        internal HoldMultiplexedClientTransport(IMultiplexedClientTransport decoratee) => _decoratee = decoratee;
-
-        internal void Hold(HoldOperation operation) => _connection!.Hold(operation);
-    }
-
-    private sealed class HoldMultiplexedListener : IListener<IMultiplexedConnection>
-    {
-        private readonly IListener<IMultiplexedConnection> _decoratee;
-        private HoldMultiplexedConnection? _connection;
-
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
-        public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
-        {
-            Debug.Assert(_connection is null);
-            (IMultiplexedConnection connection, EndPoint address) = await _decoratee.AcceptAsync(cancellationToken);
-            _connection = new HoldMultiplexedConnection(connection!);
-            return (_connection, address);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _connection!.DisposeAsync();
-            await _decoratee.DisposeAsync();
-        }
-
-        internal HoldMultiplexedListener(IListener<IMultiplexedConnection> decoratee) => _decoratee = decoratee;
-
-        internal void Hold(HoldOperation operation) => _connection!.Hold(operation);
-    }
-
-    private sealed class HoldMultiplexedConnection : IMultiplexedConnection
-    {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-        internal HoldOperation HoldOperation { get; private set; }
-
-        private readonly IMultiplexedConnection _decoratee;
-
-        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
-        {
-            var stream = new HoldMultiplexedStream(this, await _decoratee.AcceptStreamAsync(cancellationToken));
-            if (HoldOperation.HasFlag(HoldOperation.AcceptStream))
-            {
-                await Task.Delay(-1, cancellationToken);
-            }
-            return stream;
-        }
-
-        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
-            _decoratee.ConnectAsync(cancellationToken);
-
-        public async ValueTask<IMultiplexedStream> CreateStreamAsync(
-            bool bidirectional,
-            CancellationToken cancellationToken) =>
-            new HoldMultiplexedStream(
-                this,
-                await _decoratee.CreateStreamAsync(bidirectional, cancellationToken).ConfigureAwait(false));
-
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
-
-        public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
-            _decoratee.CloseAsync(closeError, cancellationToken);
-
-        internal HoldMultiplexedConnection(IMultiplexedConnection decoratee) => _decoratee = decoratee;
-
-        internal void Hold(HoldOperation operation) => HoldOperation |= operation;
-    }
-
-    private sealed class HoldMultiplexedStream : IMultiplexedStream
-    {
-        public ulong Id => _decoratee.Id;
-
-        public PipeReader Input => _decoratee.Input;
-
-        public bool IsBidirectional => _decoratee.IsBidirectional;
-
-        public bool IsRemote => _decoratee.IsRemote;
-
-        public bool IsStarted => _decoratee.IsStarted;
-
-        public PipeWriter Output => _output ?? _decoratee.Output;
-
-        public HoldOperation HoldOperation =>
-            // Don't hold operations for the icerpc control stream
-            (IsBidirectional || !IsStarted || Id >= 4) ? _connection.HoldOperation : HoldOperation.None;
-
-        public Task ReadsClosed => _decoratee.ReadsClosed;
-
-        public Task WritesClosed => _decoratee.WritesClosed;
-
-        private readonly HoldMultiplexedConnection _connection;
-        private readonly IMultiplexedStream _decoratee;
-        private readonly HoldPipeWriter? _output;
-
-        internal HoldMultiplexedStream(HoldMultiplexedConnection connection, IMultiplexedStream decoratee)
-        {
-            _connection = connection;
-            _decoratee = decoratee;
-            if (!IsRemote || IsBidirectional)
-            {
-                _output = new HoldPipeWriter(this, decoratee.Output);
-            }
-        }
-    }
-
-    private sealed class HoldPipeWriter : PipeWriter
-    {
-        private readonly HoldMultiplexedStream _stream;
-        private readonly PipeWriter _decoratee;
-
-        public override void Advance(int bytes) => _decoratee.Advance(bytes);
-
-        public override void CancelPendingFlush() => _decoratee.CancelPendingFlush();
-
-        public override void Complete(Exception? exception) => _decoratee.Complete(exception);
-
-        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
-        {
-            if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
-            {
-                await Task.Delay(-1, cancellationToken);
-            }
-            return await _decoratee.FlushAsync(cancellationToken);
-        }
-
-        public override Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
-
-        public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
-
-        public override async ValueTask<FlushResult> WriteAsync(
-            ReadOnlyMemory<byte> source,
-            CancellationToken cancellationToken)
-        {
-            if (_stream.HoldOperation.HasFlag(HoldOperation.Write))
-            {
-                await Task.Delay(-1, cancellationToken);
-            }
-            return await _decoratee.WriteAsync(source, cancellationToken);
-        }
-
-        internal HoldPipeWriter(HoldMultiplexedStream stream, PipeWriter decoratee)
-        {
-            _stream = stream;
-            _decoratee = decoratee;
-        }
     }
 
     private sealed class HoldPipeReader : PipeReader

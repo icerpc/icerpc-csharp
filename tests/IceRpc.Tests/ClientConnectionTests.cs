@@ -55,7 +55,9 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        var serverTransport = new TestDuplexServerTransportDecorator(
+            colocTransport.ServerTransport,
+            holdOperation: DuplexTransportOperation.Connect);
 
         await using ServiceProvider provider =
             services
@@ -70,9 +72,6 @@ public class ClientConnectionTests
 
         // Act/Assert
         Assert.That(async() => await sut.ConnectAsync(), Throws.InstanceOf<TimeoutException>());
-
-        // Cleanup
-        serverTransport.Release();
     }
 
     /// <summary>Verifies that ConnectAsync can be canceled via its cancellation token.</summary>
@@ -86,7 +85,9 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        var serverTransport = new TestDuplexServerTransportDecorator(
+            colocTransport.ServerTransport,
+            holdOperation: DuplexTransportOperation.Connect);
 
         await using ServiceProvider provider =
             services
@@ -104,9 +105,6 @@ public class ClientConnectionTests
 
         // Act/Assert
         Assert.That(async() => await connectTask, Throws.InstanceOf<OperationCanceledException>());
-
-        // Cleanup
-        serverTransport.Release();
     }
 
     [Test]
@@ -187,10 +185,9 @@ public class ClientConnectionTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act/Assert
-        IceRpcException exception =
-            Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await connection.ConnectAsync());
         server.Listen();
-        Assert.That(async () => await connection.ConnectAsync(), Throws.Nothing);
+        Assert.That(async () => await connection!.ConnectAsync(), Throws.Nothing);
     }
 
     /// <summary>Verifies that ClientConnection can dispatch a request sent by the server during the client's first
@@ -323,7 +320,9 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        var serverTransport = new TestDuplexServerTransportDecorator(
+            colocTransport.ServerTransport,
+            holdOperation: DuplexTransportOperation.Connect);
 
         await using ServiceProvider provider =
             services
@@ -347,9 +346,6 @@ public class ClientConnectionTests
         Assert.That(
             async () => await connectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-
-        // Cleanup
-        serverTransport.Release();
     }
 
     [Test]
@@ -363,7 +359,9 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        var serverTransport = new TestDuplexServerTransportDecorator(
+            colocTransport.ServerTransport,
+            holdOperation: DuplexTransportOperation.Shutdown);
 
         await using ServiceProvider provider =
             services
@@ -375,16 +373,12 @@ public class ClientConnectionTests
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
-        serverTransport.ReleaseConnect();
         await connection.ConnectAsync();
 
         Task shutdownTask = connection.ShutdownAsync();
 
         // Act/Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
-
-        // Cleanup
-        serverTransport.Release();
     }
 
     [Test]
@@ -398,7 +392,9 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new HoldDuplexServerTransportDecorator(colocTransport.ServerTransport);
+        var serverTransport = new TestDuplexServerTransportDecorator(
+            colocTransport.ServerTransport,
+            holdOperation: DuplexTransportOperation.Shutdown);
 
         await using ServiceProvider provider =
             services
@@ -410,7 +406,6 @@ public class ClientConnectionTests
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
-        serverTransport.ReleaseConnect();
         await connection.ConnectAsync();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -418,8 +413,5 @@ public class ClientConnectionTests
 
         // Act/Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
-
-        // Cleanup
-        serverTransport.Release();
     }
 }
