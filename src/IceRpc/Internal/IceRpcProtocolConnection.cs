@@ -99,13 +99,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot call connect more than once.");
             }
 
-            _connectTask = PerformConnectAsync(_acceptStreamCts.Token, _disposedCts.Token);
+            _connectTask = PerformConnectAsync();
         }
         return _connectTask;
 
-        async Task<TransportConnectionInformation> PerformConnectAsync(
-            CancellationToken acceptStreamCancellationToken,
-            CancellationToken disposedCancellationToken)
+        async Task<TransportConnectionInformation> PerformConnectAsync()
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
@@ -219,6 +217,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     try
                     {
+                        CancellationToken acceptStreamCancellationToken = _acceptStreamCts.Token;
+                        CancellationToken disposedCancellationToken = _disposedCts.Token;
+
                         // We check the cancellation token for each iteration because we want to exit the accept
                         // requests loop as soon as ShutdownAsync requests this cancellation, even when more streams can
                         // be accepted without waiting.
