@@ -400,7 +400,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     request.Payload.Complete();
                 }
-                catch (IceRpcException exception)
+                catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.InvocationCanceled)
                 {
                     // Since we could not send the request, the server cannot dispatch it and it's safe to retry.
                     throw new IceRpcException(
