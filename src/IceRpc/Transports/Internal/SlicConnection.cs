@@ -33,7 +33,9 @@ internal class SlicConnection : IMultiplexedConnection
 
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
-    private AsyncSemaphore? _bidirectionalStreamSemaphore;
+    private SemaphoreSlim? _bidirectionalStreamSemaphore;
+    private Task? _closeTask;
+    private readonly CancellationTokenSource _closeCts = new();
     private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
@@ -54,13 +56,12 @@ internal class SlicConnection : IMultiplexedConnection
     private Task _pingTask = Task.CompletedTask;
     private Task _pongTask = Task.CompletedTask;
     private Task? _readFramesTask;
-    private Task? _closeTask;
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
     private readonly CancellationTokenSource _tasksCts = new();
     private int _unidirectionalStreamCount;
-    private AsyncSemaphore? _unidirectionalStreamSemaphore;
+    private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private Task _writeStreamFrameTask = Task.CompletedTask;
-    private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
@@ -375,13 +376,30 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        AsyncSemaphore streamCountSemaphore = bidirectional ?
-            _bidirectionalStreamSemaphore! :
-            _unidirectionalStreamSemaphore!;
-        await streamCountSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        using var createStreamCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
 
-        // TODO: Cache SlicStream
-        return new SlicStream(this, bidirectional, remote: false);
+        try
+        {
+            SemaphoreSlim streamCountSemaphore = bidirectional ?
+                _bidirectionalStreamSemaphore! :
+                _unidirectionalStreamSemaphore!;
+            await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
+            lock (_mutex)
+            {
+                if (_exception is not null)
+                {
+                    throw ExceptionUtil.Throw(_exception);
+                }
+            }
+            // TODO: Cache SlicStream
+            return new SlicStream(this, bidirectional, remote: false);
+        }
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
+        }
     }
 
     public ValueTask DisposeAsync()
@@ -467,6 +485,10 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             _tasksCts.Dispose();
+            _writeSemaphore.Dispose();
+            _bidirectionalStreamSemaphore?.Dispose();
+            _unidirectionalStreamSemaphore?.Dispose();
+            _closeCts.Dispose();
         }
     }
 
@@ -584,18 +606,28 @@ internal class SlicConnection : IMultiplexedConnection
         EncodeAction? encode,
         CancellationToken cancellationToken)
     {
-        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
         try
         {
-            await WriteFrameAsync(
-                frameType,
-                streamId: null,
-                encode,
-                cancellationToken).ConfigureAwait(false);
+            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
+            try
+            {
+                await WriteFrameAsync(
+                    frameType,
+                    streamId: null,
+                    encode,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
         }
-        finally
+        catch (OperationCanceledException)
         {
-            _writeSemaphore.Release();
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
         }
     }
 
@@ -607,23 +639,33 @@ internal class SlicConnection : IMultiplexedConnection
     {
         Debug.Assert(frameType >= FrameType.StreamReset);
 
-        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
         try
         {
-            if (!stream.IsStarted)
+            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
+            try
             {
-                StartStream(stream);
-            }
+                if (!stream.IsStarted)
+                {
+                    StartStream(stream);
+                }
 
-            await WriteFrameAsync(
-                frameType,
-                stream.Id,
-                encode,
-                cancellationToken).ConfigureAwait(false);
+                await WriteFrameAsync(
+                    frameType,
+                    stream.Id,
+                    encode,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
         }
-        finally
+        catch (OperationCanceledException)
         {
-            _writeSemaphore.Release();
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
         }
     }
 
@@ -641,87 +683,97 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
         }
 
-        do
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
+        try
         {
-            // Next, ensure send credit is available. If not, this will block until the receiver allows sending
-            // additional data.
-            int sendCredit = 0;
-            if (!source1.IsEmpty || !source2.IsEmpty)
+            do
             {
-                sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
-                Debug.Assert(sendCredit > 0);
-            }
-
-            // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
-            int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
-            ReadOnlySequence<byte> sendSource1;
-            ReadOnlySequence<byte> sendSource2;
-            if (!source1.IsEmpty)
-            {
-                int length = Math.Min((int)source1.Length, sendMaxSize);
-                sendSource1 = source1.Slice(0, length);
-                source1 = source1.Slice(length);
-            }
-            else
-            {
-                sendSource1 = ReadOnlySequence<byte>.Empty;
-            }
-
-            if (source1.IsEmpty && !source2.IsEmpty)
-            {
-                int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
-                sendSource2 = source2.Slice(0, length);
-                source2 = source2.Slice(length);
-            }
-            else
-            {
-                sendSource2 = ReadOnlySequence<byte>.Empty;
-            }
-
-            // If there's no data left to send and endStream is true, it's the last stream frame.
-            bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
-
-            // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                if (!stream.IsStarted)
+                // Next, ensure send credit is available. If not, this will block until the receiver allows sending
+                // additional data.
+                int sendCredit = 0;
+                if (!source1.IsEmpty || !source2.IsEmpty)
                 {
-                    StartStream(stream);
+                    sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
+                    Debug.Assert(sendCredit > 0);
                 }
 
-                // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
-                // the stream frame to avoid race conditions where the StreamConsumed frame could be received before the
-                // send credit was updated.
-                if (sendCredit > 0)
+                // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
+                int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+                ReadOnlySequence<byte> sendSource1;
+                ReadOnlySequence<byte> sendSource2;
+                if (!source1.IsEmpty)
                 {
-                    stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                    int length = Math.Min((int)source1.Length, sendMaxSize);
+                    sendSource1 = source1.Slice(0, length);
+                    source1 = source1.Slice(length);
+                }
+                else
+                {
+                    sendSource1 = ReadOnlySequence<byte>.Empty;
                 }
 
-                EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
-            }
-            catch
-            {
-                _writeSemaphore.Release();
-                throw;
-            }
+                if (source1.IsEmpty && !source2.IsEmpty)
+                {
+                    int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
+                    sendSource2 = source2.Slice(0, length);
+                    source2 = source2.Slice(length);
+                }
+                else
+                {
+                    sendSource2 = ReadOnlySequence<byte>.Empty;
+                }
 
-            if (lastStreamFrame)
-            {
-                // Notify the stream that the last stream frame is considered sent at this point. This will complete
-                // writes on the stream and allow the stream to be released if reads are also completed.
-                stream.SentLastStreamFrame();
+                // If there's no data left to send and endStream is true, it's the last stream frame.
+                bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
+
+                // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
+                await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
+                try
+                {
+                    if (!stream.IsStarted)
+                    {
+                        StartStream(stream);
+                    }
+
+                    // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
+                    // the stream frame to avoid race conditions where the StreamConsumed frame could be received before the
+                    // send credit was updated.
+                    if (sendCredit > 0)
+                    {
+                        stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                    }
+
+                    EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
+                }
+                catch
+                {
+                    _writeSemaphore.Release();
+                    throw;
+                }
+
+                if (lastStreamFrame)
+                {
+                    // Notify the stream that the last stream frame is considered sent at this point. This will complete
+                    // writes on the stream and allow the stream to be released if reads are also completed.
+                    stream.SentLastStreamFrame();
+                }
+
+                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
+                // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
+                // exceptions from the WriteStreamFrameAsync task are always observed.
+
+                // WriteStreamFrameAsync is responsible for releasing the write semaphore.
+                _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
+                await _writeStreamFrameTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
-
-            // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
-            // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
-            // exceptions from the WriteStreamFrameAsync task are always observed.
-
-            // WriteStreamFrameAsync is responsible for releasing the write semaphore.
-            _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
-            await _writeStreamFrameTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
         }
-        while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
+        }
 
         return new FlushResult(isCanceled: false, isCompleted: false);
 
@@ -766,16 +818,14 @@ internal class SlicConnection : IMultiplexedConnection
 
         // Unblock requests waiting on the semaphores first. This must be done before aborting started streams.
         // Otherwise CreateStreamAsync calls waiting on the semaphores would succeed instead of failing.
-        _bidirectionalStreamSemaphore?.Complete(exception);
-        _unidirectionalStreamSemaphore?.Complete(exception);
+        _closeCts.Cancel();
 
         foreach (SlicStream stream in _streams.Values)
         {
             stream.Abort(exception);
         }
 
-        await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
+        await _writeSemaphore.WaitAsync().ConfigureAwait(false);
         return true;
     }
 
@@ -947,7 +997,6 @@ internal class SlicConnection : IMultiplexedConnection
                         dataSize,
                         (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                         cancellationToken).ConfigureAwait(false);
-
                     lock (_mutex)
                     {
                         // If close is not already in progress initiate the closure.
@@ -1258,13 +1307,15 @@ internal class SlicConnection : IMultiplexedConnection
                 case ParameterKey.MaxBidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
-                    _bidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
+                    // Max count must be greater than 0
+                    _bidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
                     break;
                 }
                 case ParameterKey.MaxUnidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
-                    _unidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
+                    // Max count must be greater than 0
+                    _unidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
                     break;
                 }
                 case ParameterKey.IdleTimeout:
