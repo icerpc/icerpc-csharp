@@ -384,13 +384,6 @@ internal class SlicConnection : IMultiplexedConnection
                 _bidirectionalStreamSemaphore! :
                 _unidirectionalStreamSemaphore!;
             await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
-            lock (_mutex)
-            {
-                if (_exception is not null)
-                {
-                    throw ExceptionUtil.Throw(_exception);
-                }
-            }
             // TODO: Cache SlicStream
             return new SlicStream(this, bidirectional, remote: false);
         }
@@ -576,6 +569,15 @@ internal class SlicConnection : IMultiplexedConnection
         Debug.Assert(stream.IsStarted);
 
         _streams.Remove(stream.Id, out SlicStream? _);
+
+        lock (_mutex)
+        {
+            // Nothing to do, the connection is already closing or closed.
+            if (_exception is not null)
+            {
+                return;
+            }
+        }
 
         if (stream.IsRemote)
         {
