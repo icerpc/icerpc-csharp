@@ -256,12 +256,12 @@ internal class SlicConnection : IMultiplexedConnection
                 catch (IceRpcException exception)
                 {
                     // Unexpected transport exception.
-                    await CloseAsyncCore(exception).ConfigureAwait(false);
+                    CloseCore(exception);
                 }
                 catch (Exception exception)
                 {
                     // Unexpected exception.
-                    await CloseAsyncCore(new IceRpcException(IceRpcError.IceRpcError, exception)).ConfigureAwait(false);
+                    CloseCore(new IceRpcException(IceRpcError.IceRpcError, exception));
                 }
                 finally
                 {
@@ -335,8 +335,10 @@ internal class SlicConnection : IMultiplexedConnection
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
-            if (await CloseAsyncCore(exception).ConfigureAwait(false))
+            if (CloseCore(exception))
             {
+                // Acquire the write semaphore.
+                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 // Send the close frame.
                 await WriteFrameAsync(
                     FrameType.Close,
@@ -405,7 +407,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            await CloseAsyncCore(new IceRpcException(IceRpcError.OperationAborted)).ConfigureAwait(false);
+            CloseCore(new IceRpcException(IceRpcError.OperationAborted));
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -608,28 +610,18 @@ internal class SlicConnection : IMultiplexedConnection
         EncodeAction? encode,
         CancellationToken cancellationToken)
     {
-        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
+        await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
-            try
-            {
-                await WriteFrameAsync(
-                    frameType,
-                    streamId: null,
-                    encode,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
+            await WriteFrameAsync(
+                frameType,
+                streamId: null,
+                encode,
+                cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        finally
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            Debug.Assert(_exception is not null);
-            throw ExceptionUtil.Throw(_exception);
+            _writeSemaphore.Release();
         }
     }
 
@@ -641,33 +633,23 @@ internal class SlicConnection : IMultiplexedConnection
     {
         Debug.Assert(frameType >= FrameType.StreamReset);
 
-        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
+        await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
-            try
+            if (!stream.IsStarted)
             {
-                if (!stream.IsStarted)
-                {
-                    StartStream(stream);
-                }
+                StartStream(stream);
+            }
 
-                await WriteFrameAsync(
-                    frameType,
-                    stream.Id,
-                    encode,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
+            await WriteFrameAsync(
+                frameType,
+                stream.Id,
+                encode,
+                cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        finally
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            Debug.Assert(_exception is not null);
-            throw ExceptionUtil.Throw(_exception);
+            _writeSemaphore.Release();
         }
     }
 
@@ -686,96 +668,88 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
-        try
+
+        do
         {
-            do
+            // Next, ensure send credit is available. If not, this will block until the receiver allows sending
+            // additional data.
+            int sendCredit = 0;
+            if (!source1.IsEmpty || !source2.IsEmpty)
             {
-                // Next, ensure send credit is available. If not, this will block until the receiver allows sending
-                // additional data.
-                int sendCredit = 0;
-                if (!source1.IsEmpty || !source2.IsEmpty)
-                {
-                    sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
-                    Debug.Assert(sendCredit > 0);
-                }
-
-                // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
-                int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
-                ReadOnlySequence<byte> sendSource1;
-                ReadOnlySequence<byte> sendSource2;
-                if (!source1.IsEmpty)
-                {
-                    int length = Math.Min((int)source1.Length, sendMaxSize);
-                    sendSource1 = source1.Slice(0, length);
-                    source1 = source1.Slice(length);
-                }
-                else
-                {
-                    sendSource1 = ReadOnlySequence<byte>.Empty;
-                }
-
-                if (source1.IsEmpty && !source2.IsEmpty)
-                {
-                    int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
-                    sendSource2 = source2.Slice(0, length);
-                    source2 = source2.Slice(length);
-                }
-                else
-                {
-                    sendSource2 = ReadOnlySequence<byte>.Empty;
-                }
-
-                // If there's no data left to send and endStream is true, it's the last stream frame.
-                bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
-
-                // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-                await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
-                try
-                {
-                    if (!stream.IsStarted)
-                    {
-                        StartStream(stream);
-                    }
-
-                    // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
-                    // the stream frame to avoid race conditions where the StreamConsumed frame could be received before the
-                    // send credit was updated.
-                    if (sendCredit > 0)
-                    {
-                        stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
-                    }
-
-                    EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
-                }
-                catch
-                {
-                    _writeSemaphore.Release();
-                    throw;
-                }
-
-                if (lastStreamFrame)
-                {
-                    // Notify the stream that the last stream frame is considered sent at this point. This will complete
-                    // writes on the stream and allow the stream to be released if reads are also completed.
-                    stream.SentLastStreamFrame();
-                }
-
-                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
-                // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
-                // exceptions from the WriteStreamFrameAsync task are always observed.
-
-                // WriteStreamFrameAsync is responsible for releasing the write semaphore.
-                _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
-                await _writeStreamFrameTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
+                Debug.Assert(sendCredit > 0);
             }
-            while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
+
+            // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
+            int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+            ReadOnlySequence<byte> sendSource1;
+            ReadOnlySequence<byte> sendSource2;
+            if (!source1.IsEmpty)
+            {
+                int length = Math.Min((int)source1.Length, sendMaxSize);
+                sendSource1 = source1.Slice(0, length);
+                source1 = source1.Slice(length);
+            }
+            else
+            {
+                sendSource1 = ReadOnlySequence<byte>.Empty;
+            }
+
+            if (source1.IsEmpty && !source2.IsEmpty)
+            {
+                int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
+                sendSource2 = source2.Slice(0, length);
+                source2 = source2.Slice(length);
+            }
+            else
+            {
+                sendSource2 = ReadOnlySequence<byte>.Empty;
+            }
+
+            // If there's no data left to send and endStream is true, it's the last stream frame.
+            bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
+
+            // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
+            await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (!stream.IsStarted)
+                {
+                    StartStream(stream);
+                }
+
+                // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
+                // the stream frame to avoid race conditions where the StreamConsumed frame could be received before the
+                // send credit was updated.
+                if (sendCredit > 0)
+                {
+                    stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
+                }
+
+                EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
+            }
+            catch
+            {
+                _writeSemaphore.Release();
+                throw;
+            }
+
+            if (lastStreamFrame)
+            {
+                // Notify the stream that the last stream frame is considered sent at this point. This will complete
+                // writes on the stream and allow the stream to be released if reads are also completed.
+                stream.SentLastStreamFrame();
+            }
+
+            // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
+            // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
+            // exceptions from the WriteStreamFrameAsync task are always observed.
+
+            // WriteStreamFrameAsync is responsible for releasing the write semaphore.
+            _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
+            await _writeStreamFrameTask.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Debug.Assert(_exception is not null);
-            throw ExceptionUtil.Throw(_exception);
-        }
+        while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
 
         return new FlushResult(isCanceled: false, isCompleted: false);
 
@@ -807,7 +781,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private async ValueTask<bool> CloseAsyncCore(IceRpcException exception)
+    private bool CloseCore(IceRpcException exception)
     {
         lock (_mutex)
         {
@@ -826,8 +800,6 @@ internal class SlicConnection : IMultiplexedConnection
         {
             stream.Abort(exception);
         }
-
-        await _writeSemaphore.WaitAsync().ConfigureAwait(false);
         return true;
     }
 
@@ -1271,7 +1243,7 @@ internal class SlicConnection : IMultiplexedConnection
                     $"The connection was closed by the peer with an unknown application error code: '{errorCode}'")
             };
 
-            if (await CloseAsyncCore(exception).ConfigureAwait(false))
+            if (CloseCore(exception))
             {
                 if (IsServer)
                 {
@@ -1395,6 +1367,21 @@ internal class SlicConnection : IMultiplexedConnection
         {
             AddStream(_nextUnidirectionalId, stream);
             _nextUnidirectionalId += 4;
+        }
+    }
+
+    private async ValueTask WaitWriteSemaphoreAsync(CancellationToken cancellationToken)
+    {
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
+        try
+        {
+            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
         }
     }
 
