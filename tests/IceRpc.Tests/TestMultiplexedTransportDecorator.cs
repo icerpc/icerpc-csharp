@@ -99,8 +99,8 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     public string Name => _decoratee.Name;
 
-    public TestMultiplexedConnectionDecorator LastConnection =>
-        _listener?.LastConnection ?? throw new InvalidOperationException("Call Listen first.");
+    public TestMultiplexedConnectionDecorator LastAcceptedConnection =>
+        _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
 
     private readonly IMultiplexedServerTransport _decoratee;
     private readonly MultiplexedTransportOperation _failOperation;
@@ -142,14 +142,14 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         internal MultiplexedTransportOperation HoldOperation { get; set; }
         internal MultiplexedTransportOperation FailOperation { get; set; }
 
-        internal TestMultiplexedConnectionDecorator LastConnection
+        internal TestMultiplexedConnectionDecorator LastAcceptedConnection
         {
-            get => _lastConnection ?? throw new InvalidOperationException("Call AcceptAsync first.");
-            private set => _lastConnection = value;
+            get => _lastAcceptedConnection ?? throw new InvalidOperationException("Call AcceptAsync first.");
+            private set => _lastAcceptedConnection = value;
         }
 
         private readonly IListener<IMultiplexedConnection> _decoratee;
-        private TestMultiplexedConnectionDecorator? _lastConnection;
+        private TestMultiplexedConnectionDecorator? _lastAcceptedConnection;
 
         public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
@@ -160,7 +160,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             var testConnection = new TestMultiplexedConnectionDecorator(connection);
             testConnection.HoldOperation = HoldOperation;
             testConnection.FailOperation = FailOperation;
-            LastConnection = testConnection;
+            LastAcceptedConnection = testConnection;
             return (testConnection, remoteNetworkAddress);
         }
 

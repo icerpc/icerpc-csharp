@@ -52,8 +52,8 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 
     public string Name => _decoratee.Name;
 
-    public TestDuplexConnectionDecorator LastConnection =>
-        _listener?.LastConnection ?? throw new InvalidOperationException("Call Listen first.");
+    public TestDuplexConnectionDecorator LastAcceptedConnection =>
+        _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
 
     private readonly IDuplexServerTransport _decoratee;
     private readonly DuplexTransportOperation _failOperation;
@@ -96,26 +96,26 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         internal DuplexTransportOperation HoldOperation { get; set; }
         internal DuplexTransportOperation FailOperation { get; set; }
 
-        internal TestDuplexConnectionDecorator LastConnection
+        internal TestDuplexConnectionDecorator LastAcceptedConnection
         {
-            get => _lastConnection ?? throw new InvalidOperationException("Call AcceptAsync first.");
-            private set => _lastConnection = value;
+            get => _lastAcceptedConnection ?? throw new InvalidOperationException("Call AcceptAsync first.");
+            private set => _lastAcceptedConnection = value;
         }
 
         private readonly IListener<IDuplexConnection> _decoratee;
-        private TestDuplexConnectionDecorator? _lastConnection;
+        private TestDuplexConnectionDecorator? _lastAcceptedConnection;
 
         public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
             (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            LastConnection = new TestDuplexConnectionDecorator(connection)
+            LastAcceptedConnection = new TestDuplexConnectionDecorator(connection)
                 {
                     HoldOperation = HoldOperation,
                     FailOperation = FailOperation
                 };
-            return (LastConnection, remoteNetworkAddress);
+            return (LastAcceptedConnection, remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();

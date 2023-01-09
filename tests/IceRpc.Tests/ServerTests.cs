@@ -121,11 +121,10 @@ public class ServerTests
             multiplexedServerTransport.HoldOperation = MultiplexedTransportOperation.Close;
         }
 
-        // Act
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => connection2.ConnectAsync());
-
-        // Assert
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        // Act / Assert
+        Assert.That(
+            () => connection2.ConnectAsync(),
+            Throws.TypeOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(async () => await connection2.DisposeAsync(), Throws.Nothing);
     }
 
@@ -228,7 +227,7 @@ public class ServerTests
             multiplexedClientTransport: clientTransport);
 
         await clientConnection1.ConnectAsync();
-        var testConnection = testDuplexServerTransport.LastConnection;
+        var testConnection = testDuplexServerTransport.LastAcceptedConnection;
 
         // Act/Assert
         Assert.That(

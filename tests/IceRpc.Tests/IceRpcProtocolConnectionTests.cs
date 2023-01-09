@@ -378,16 +378,12 @@ public sealed class IceRpcProtocolConnectionTests
         switch (holdOperation)
         {
             case MultiplexedTransportOperation.AcceptStream:
-                serverTransport!.LastConnection.HoldOperation = MultiplexedTransportOperation.AcceptStream;
+            case MultiplexedTransportOperation.StreamRead:
+                serverTransport!.LastAcceptedConnection.HoldOperation = holdOperation;
                 break;
             case MultiplexedTransportOperation.CreateStream:
-                clientTransport!.LastConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
-                break;
-            case MultiplexedTransportOperation.StreamRead:
-                serverTransport!.LastConnection.HoldOperation = MultiplexedTransportOperation.StreamRead;
-                break;
             case MultiplexedTransportOperation.StreamWrite:
-                clientTransport!.LastConnection.HoldOperation = MultiplexedTransportOperation.StreamWrite;
+                clientTransport!.LastConnection.HoldOperation = holdOperation;
                 break;
         }
 
