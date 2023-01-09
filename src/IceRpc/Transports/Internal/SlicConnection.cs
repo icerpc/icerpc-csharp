@@ -256,12 +256,12 @@ internal class SlicConnection : IMultiplexedConnection
                 catch (IceRpcException exception)
                 {
                     // Unexpected transport exception.
-                    CloseCore(exception);
+                    await CloseAsyncCore(exception).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
                     // Unexpected exception.
-                    CloseCore(new IceRpcException(IceRpcError.IceRpcError, exception));
+                    await CloseAsyncCore(new IceRpcException(IceRpcError.IceRpcError, exception)).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -335,10 +335,8 @@ internal class SlicConnection : IMultiplexedConnection
 
             // Send close frame if the connection is connected or if it's a server connection (to reject the connection
             // establishment from the client).
-            if (CloseCore(exception))
+            if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
-                // Acquire the write semaphore.
-                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 // Send the close frame.
                 await WriteFrameAsync(
                     FrameType.Close,
@@ -407,7 +405,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformDisposeAsync()
         {
-            CloseCore(new IceRpcException(IceRpcError.OperationAborted));
+            await CloseAsyncCore(new IceRpcException(IceRpcError.OperationAborted)).ConfigureAwait(false);
 
             // Cancel tasks which are using the transport connection before disposing the transport connection.
             _tasksCts.Cancel();
@@ -667,8 +665,6 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
         }
 
-        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
-
         do
         {
             // Next, ensure send credit is available. If not, this will block until the receiver allows sending
@@ -781,7 +777,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private bool CloseCore(IceRpcException exception)
+    private async ValueTask<bool> CloseAsyncCore(IceRpcException exception)
     {
         lock (_mutex)
         {
@@ -800,6 +796,8 @@ internal class SlicConnection : IMultiplexedConnection
         {
             stream.Abort(exception);
         }
+        // TODO explain wait is this still required
+        await _writeSemaphore.WaitAsync().ConfigureAwait(false);
         return true;
     }
 
@@ -1243,7 +1241,7 @@ internal class SlicConnection : IMultiplexedConnection
                     $"The connection was closed by the peer with an unknown application error code: '{errorCode}'")
             };
 
-            if (CloseCore(exception))
+            if (await CloseAsyncCore(exception).ConfigureAwait(false))
             {
                 if (IsServer)
                 {
