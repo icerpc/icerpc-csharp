@@ -169,10 +169,19 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (!_isDisposed)
             {
                 _isDisposed = true;
-                _disposedCts.Cancel();
-                _disposedCts.Dispose();
             }
         }
+
+        try
+        {
+            _disposedCts.Cancel();
+            _disposedCts.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // This can happen if dispose has been already called and we don't want to call Cancel with the mutex locked
+        }
+
         return _connection.DisposeAsync();
     }
 

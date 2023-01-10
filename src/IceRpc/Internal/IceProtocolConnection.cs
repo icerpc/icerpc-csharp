@@ -217,7 +217,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 RefuseNewInvocations("The connection was disposed.");
 
-                _dispatchesAndInvocationsCts.Cancel();
                 if (_invocationCount == 0 && _dispatchCount == 0)
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -232,6 +231,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
+
+            _dispatchesAndInvocationsCts.Cancel();
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
