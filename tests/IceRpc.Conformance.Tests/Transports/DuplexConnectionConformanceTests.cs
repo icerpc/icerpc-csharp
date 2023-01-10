@@ -62,6 +62,59 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
+    public async Task Connect_succeeds_or_fails_with_connection_aborted_if_the_peer_disposes_the_connection_after_connect(
+        [Values(true, false)] bool serverDispose)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var transport = provider.GetRequiredService<IDuplexClientTransport>().Name;
+
+        // Act
+        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+
+        Task<(IDuplexConnection, EndPoint)> acceptTask = listener.AcceptAsync(default);
+        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        (IDuplexConnection serverConnection, EndPoint _) = await acceptTask;
+        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+
+        await (serverDispose ? serverConnectTask : clientConnectTask);
+
+        // Act
+        if (serverDispose)
+        {
+            serverConnection.Dispose();
+        }
+        else
+        {
+            clientConnection.Dispose();
+        }
+
+        // Assert
+        IceRpcException? exception = null;
+        try
+        {
+            await (serverDispose ? clientConnectTask : serverConnectTask);
+        }
+        catch (IceRpcException ex)
+        {
+            exception = ex;
+        }
+
+        // On some platforms (Linux and macOS), the connection establishment can fail on the client side.
+        if (serverDispose)
+        {
+            Assert.That(
+                exception?.IceRpcError,
+                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
+        }
+        else
+        {
+            Assert.That(exception?.IceRpcError, Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted));
+        }
+    }
+
+    [Test]
     public async Task Connection_server_address_transport_property_is_set()
     {
         // Arrange
@@ -100,7 +153,8 @@ public abstract class DuplexConnectionConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<ArgumentException>(() => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.Throws<ArgumentException>(
+            () => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
     }
 
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and
