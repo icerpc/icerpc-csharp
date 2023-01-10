@@ -66,8 +66,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             multiplexedClientTransport,
             logger);
 
-        _connectTimeout = options.ConnectionOptions.ConnectTimeout;
-        _shutdownTimeout = options.ConnectionOptions.ShutdownTimeout;
+        _connectTimeout = options.ConnectTimeout;
+        _shutdownTimeout = options.ShutdownTimeout;
 
         _preferExistingConnection = options.PreferExistingConnection;
     }
