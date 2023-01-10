@@ -125,10 +125,9 @@ public sealed class IceRpcProtocolConnectionTests
         pipe.Writer.Complete();
     }
 
-    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail with <see
-    /// cref="IceRpcError.TruncatedData" />.</summary>
+    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail.</summary>
     [Test]
-    public async Task Abortive_server_connection_shutdown_triggers_payload_read_with_truncated_data()
+    public async Task Abortive_server_connection_shutdown_triggers_payload_read_failure()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -151,9 +150,12 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.That(
             async () => await invokeTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData).Or
+                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        Assert.That(
+            async () => await shutdownTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     [Test]
