@@ -13,6 +13,27 @@ public sealed record class ClientConnectionOptions : ConnectionOptions
     /// fail.</value>
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
+    /// <summary>Gets or sets the connection establishment timeout.</summary>
+    /// <value>Defaults to <c>10</c> seconds.</value>
+    public TimeSpan ConnectTimeout
+    {
+        get => _connectTimeout;
+        set => _connectTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
+    }
+
     /// <summary>Gets or sets the connection's server address.</summary>
     public ServerAddress? ServerAddress { get; set; }
+
+    /// <summary>Gets or sets the shutdown timeout.</summary>
+    /// <value>Defaults to <c>10</c> seconds.</value>
+    public TimeSpan ShutdownTimeout
+    {
+        get => _shutdownTimeout;
+        set => _shutdownTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
+    }
+
+    private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+    private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 }

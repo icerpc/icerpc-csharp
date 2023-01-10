@@ -60,15 +60,14 @@ public class RetryInterceptor : IInvoker
 
                         response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-                        if (response.StatusCode == StatusCode.Success ||
-                            (response.Protocol == Protocol.IceRpc && response.StatusCode != StatusCode.Unavailable) ||
-                            (response.Protocol == Protocol.Ice && response.StatusCode != StatusCode.ServiceNotFound))
+                        if (response.StatusCode == StatusCode.Unavailable ||
+                            (response.Protocol == Protocol.Ice && response.StatusCode == StatusCode.ServiceNotFound))
                         {
-                            return response;
+                            retryWithOtherReplica = true;
                         }
                         else
                         {
-                            retryWithOtherReplica = true;
+                            return response;
                         }
                     }
                     catch (IceRpcException iceRpcException) when (
@@ -88,8 +87,7 @@ public class RetryInterceptor : IInvoker
                         exception = otherException;
                     }
 
-                    // We have an exception (possibly encoded in response) and the associated retry policy.
-                    Debug.Assert(response is not null || exception is not null);
+                    Debug.Assert(retryWithOtherReplica || exception is not null);
 
                     // Check if we can retry
                     tryAgain = false;
@@ -107,7 +105,10 @@ public class RetryInterceptor : IInvoker
                             }
                             // else there is no replica to retry with
                         }
-                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) || !decorator.IsRead)
+                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
+                            (exception is IceRpcException rpcException &&
+                                rpcException.IceRpcError == IceRpcError.InvocationCanceled) ||
+                            !decorator.IsRead)
                         {
                             tryAgain = true;
                         }

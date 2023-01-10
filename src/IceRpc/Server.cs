@@ -79,8 +79,8 @@ public sealed class Server : IAsyncDisposable
         _maxConnections = options.MaxConnections;
         _maxPendingConnections = options.MaxPendingConnections;
 
-        _connectTimeout = options.ConnectionOptions.ConnectTimeout;
-        _shutdownTimeout = options.ConnectionOptions.ShutdownTimeout;
+        _connectTimeout = options.ConnectTimeout;
+        _shutdownTimeout = options.ShutdownTimeout;
 
         _serverAddress = options.ServerAddress;
         if (_serverAddress.Transport is null)

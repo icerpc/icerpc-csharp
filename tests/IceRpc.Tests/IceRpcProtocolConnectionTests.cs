@@ -344,7 +344,7 @@ public sealed class IceRpcProtocolConnectionTests
     [TestCase(false, MultiplexedTransportOperation.AcceptStream)]
     [TestCase(false, MultiplexedTransportOperation.StreamWrite)]
     [TestCase(true, MultiplexedTransportOperation.StreamWrite)]
-    public async Task Not_dispatched_request_gets_connection_exception_on_server_connection_shutdown(
+    public async Task Not_dispatched_request_gets_invocation_canceled_on_server_connection_shutdown(
         bool isOneway,
         MultiplexedTransportOperation holdOperation)
     {
@@ -396,7 +396,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationCanceled));
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.

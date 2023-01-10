@@ -66,8 +66,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             multiplexedClientTransport,
             logger);
 
-        _connectTimeout = options.ConnectionOptions.ConnectTimeout;
-        _shutdownTimeout = options.ConnectionOptions.ShutdownTimeout;
+        _connectTimeout = options.ConnectTimeout;
+        _shutdownTimeout = options.ShutdownTimeout;
 
         _preferExistingConnection = options.PreferExistingConnection;
     }
@@ -254,9 +254,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     // This can occasionally happen if we find a connection that was just closed and then automatically
                     // disposed by this connection cache.
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationRefused)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.InvocationRefused)
                 {
-                    // Same as above, except DisposeAsync was not called yet on this connection.
+                    // The connection is refusing new invocations.
                 }
             }
         }
