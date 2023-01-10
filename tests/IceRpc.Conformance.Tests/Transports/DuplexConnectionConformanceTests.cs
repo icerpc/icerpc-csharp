@@ -91,12 +91,12 @@ public abstract class DuplexConnectionConformanceTests
         }
 
         // Assert
-        Exception? exception = null;
+        IceRpcException? exception = null;
         try
         {
             await (serverDispose ? clientConnectTask : serverConnectTask);
         }
-        catch (Exception ex)
+        catch (IceRpcException ex)
         {
             exception = ex;
         }
@@ -105,21 +105,12 @@ public abstract class DuplexConnectionConformanceTests
         if (serverDispose)
         {
             Assert.That(
-                exception,
-                Is.Null
-                .Or
-                .InstanceOf<IceRpcException>().With.Property("IceRpcError")
-                    .EqualTo(IceRpcError.ConnectionAborted)
-                    .Or
-                    .EqualTo(IceRpcError.IceRpcError));
+                exception?.IceRpcError,
+                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
         }
         else
         {
-            Assert.That(
-                exception,
-                Is.Null
-                .Or
-                .InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            Assert.That(exception?.IceRpcError, Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted));
         }
     }
 
