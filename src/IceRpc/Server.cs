@@ -566,7 +566,7 @@ public sealed class Server : IAsyncDisposable
         }
         catch (ObjectDisposedException)
         {
-            // This can happen if dispose has been already called and we don't want to call Cancel with the mutex locked
+            // This can happen if dispose has been already called. We don't want to call Cancel with the mutex locked.
         }
 
         return PerformShutdownAsync();

@@ -166,10 +166,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (!_isDisposed)
-            {
-                _isDisposed = true;
-            }
+            _isDisposed = true;
         }
 
         try
@@ -179,7 +176,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         catch (ObjectDisposedException)
         {
-            // This can happen if dispose has been already called and we don't want to call Cancel with the mutex locked
+            // This can happen if dispose has been already called. We don't want to call Cancel with the mutex locked.
         }
 
         return _connection.DisposeAsync();
