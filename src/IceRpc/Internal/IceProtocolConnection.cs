@@ -55,7 +55,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly object _mutex = new();
     private int _nextRequestId;
     private string? _operationRefusedMessage;
-    private readonly IcePayloadPipeWriter _payloadWriter;
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
 
@@ -355,7 +354,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the writing of frames.
                 await _writeSemaphore.WaitAsync(cts.Token).ConfigureAwait(false);
-                PipeWriter payloadWriter = _payloadWriter;
                 TaskCompletionSource<PipeReader>? responseCompletionSource = null;
 
                 try
@@ -380,21 +378,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
-                    payloadWriter = request.GetPayloadWriter(payloadWriter);
-
-                    FlushResult flushResult = await payloadWriter.WriteAsync(
-                        payload,
-                        endStream: false,
-                        CancellationToken.None).ConfigureAwait(false);
-
-                    // If a payload writer decorator returns a canceled or completed flush result, we have to throw
-                    // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
-                    // payload to be sent over the connection.
-                    if (flushResult.IsCanceled || flushResult.IsCompleted)
-                    {
-                        throw new NotSupportedException(
-                            "Payload writer cancellation or completion is not supported with the ice protocol.");
-                    }
+                    await _duplexConnectionWriter.WriteAsync(payload, CancellationToken.None).ConfigureAwait(false);
 
                     request.Payload.Complete();
                 }
@@ -419,7 +403,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 finally
                 {
-                    payloadWriter.Complete();
                     _writeSemaphore.Release();
                 }
 
@@ -800,8 +783,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _memoryPool,
             _minSegmentSize,
             connectionLostAction: exception => DisposeTransport("The connection was lost.", exception));
-
-        _payloadWriter = new IcePayloadPipeWriter(_duplexConnectionWriter);
 
         _idleTimeoutTimer = new Timer(_ =>
         {
@@ -1254,7 +1235,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                 }
 
-                PipeWriter payloadWriter = _payloadWriter;
                 bool acquiredSemaphore = false;
 
                 try
@@ -1302,24 +1282,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     acquiredSemaphore = true;
 
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
-                    payloadWriter = response.GetPayloadWriter(payloadWriter);
 
                     try
                     {
                         // Write the payload and complete the source.
-                        FlushResult flushResult = await payloadWriter.WriteAsync(
-                            payload,
-                            endStream: false,
-                            CancellationToken.None).ConfigureAwait(false);
-
-                        // If a payload writer decorator returns a canceled or completed flush result, we have to throw
-                        // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a
-                        // bogus payload to be sent over the connection.
-                        if (flushResult.IsCanceled || flushResult.IsCompleted)
-                        {
-                            throw new NotSupportedException(
-                                "A payload writer must not return a completed or canceled FlushResult with the ice protocol.");
-                        }
+                        await _duplexConnectionWriter.WriteAsync(payload, CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (IceRpcException exception) when (
                         exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.OperationAborted)
@@ -1329,8 +1296,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 finally
                 {
-                    payloadWriter.Complete();
-
                     if (acquiredSemaphore)
                     {
                         _writeSemaphore.Release();
