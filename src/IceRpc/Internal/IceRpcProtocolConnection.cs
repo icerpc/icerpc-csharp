@@ -724,16 +724,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 _dispatchesCompleted.TrySetResult();
             }
-
-            if (Closed.IsCompletedSuccessfully && Closed.Result is Exception closedException)
-            {
-                throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
-                    _connectTask.IsFaulted || _connectTask.IsCanceled ?
-                        "The shutdown failed because the connection establishment failed." :
-                        "The shutdown failed because the connection was aborted.",
-                    closedException);
-            }
         }
 
         _acceptStreamCts.Cancel();
@@ -743,21 +733,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             try
             {
-                // Wait for connect to complete first.
-                if (_connectTask is not null)
+                // Wait for connect to complete.
+                try
                 {
-                    try
-                    {
-                        _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException exception) when (
-                        exception.CancellationToken != cancellationToken)
-                    {
-                        // ConnectAsync was canceled.
-                        throw new IceRpcException(
-                            IceRpcError.OperationAborted,
-                            "The shutdown was aborted because the connection establishment was canceled.");
-                    }
+                    _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException exception) when (
+                    exception.CancellationToken != cancellationToken)
+                {
+                    // ConnectAsync was canceled.
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The shutdown was aborted because the connection establishment was canceled.");
                 }
 
                 // Once _isShutdown is true, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are

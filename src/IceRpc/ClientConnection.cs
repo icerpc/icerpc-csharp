@@ -134,6 +134,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ClientConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown if this client connection is shut down or shutting down.
+    /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
@@ -163,7 +165,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    // This can happen if a previous ConnectAsync failed and this failed connection was disposed.
+                    // This can happen if a previous ConnectAsync failed and this failed connection was disposed or
+                    // about to the disposed.
                 }
 
                 connection = RefreshConnection(connection);
@@ -502,7 +505,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             lock (_mutex)
             {
-                if (_isDisposed)
+                // If a previous ConnectAsync already failed, we throw ObjectDisposedException even through the
+                // connection is not disposed yet. That's because we know the caller catches ObjectDisposedException and
+                // tries again with a refreshed connection.
+                // Note: this works fine because ClientConnection does not use ObjectDisposedException to mean "there is
+                // no need to dispose this connection".
+                if (_isDisposed || (_connectTask is not null && (_connectTask.IsFaulted || _connectTask.IsCanceled)))
                 {
                     throw new ObjectDisposedException($"{typeof(ConnectProtocolConnectionDecorator)}");
                 }
@@ -511,13 +519,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     _connectTask = PerformConnectAsync();
                     return _connectTask;
-                }
-                else if (_connectTask.IsFaulted || _connectTask.IsCanceled)
-                {
-                    // If a previous ConnectAsync on this connection failed, we want this connection to be disregarded
-                    // and replaced as if it was already disposed.
-                    // TODO: should we use instead an IceRpcException with a specific IceRpcError?
-                    throw new ObjectDisposedException($"{typeof(ConnectProtocolConnectionDecorator)}");
                 }
             }
             return WaitForConnectAsync(_connectTask);

@@ -925,7 +925,7 @@ public sealed class ProtocolConnectionTests
 
         Assert.That(
             async () => await sut.Client.ShutdownAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
     }
 
     /// <summary>Ensure that ShutdownAsync waits when ConnectAsync is in progress.</summary>
@@ -970,7 +970,7 @@ public sealed class ProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>());
         Assert.That(
             async () => await sut.Client.ShutdownAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Verifies that the cancellation of a shutdown does not abort invocations.</summary>

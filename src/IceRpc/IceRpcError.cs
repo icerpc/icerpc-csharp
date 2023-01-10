@@ -24,13 +24,13 @@ public enum IceRpcError
     /// <summary>The peer refused the connection.</summary>
     ConnectionRefused,
 
-    /// <summary>The invocation was canceled: its payload was probably read but the request was not dispatched at all by
-    /// the server. It's safe to retry provided the payload can be reset.</summary>
+    /// <summary>The invocation was canceled: the invoker read the payload of the request but the request was not
+    /// dispatched at all by the server.</summary>
     InvocationCanceled,
 
-    /// <summary>The invocation was refused because the target resource (for example a connection) is closed or shutting
-    /// down or no longer available prior to the start of this invocation. The payload of this invocation was not read.
-    /// and can be used as-is when retrying.</summary>
+    /// <summary>The invocation was refused because the invoker (for example a connection) is closed or shutting down or
+    /// no longer available prior to the start of this invocation. The payload of the request was not read at all by
+    /// the invoker.</summary>
     InvocationRefused,
 
     /// <summary>A limit was exceeded, such as the <see cref="ConnectionOptions.MaxIceRpcHeaderSize" /> sent by the peer

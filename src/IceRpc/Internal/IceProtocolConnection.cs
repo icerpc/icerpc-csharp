@@ -366,9 +366,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         if (_refuseInvocations)
                         {
                             // It's InvocationCanceled and not InvocationRefused because we've read the payload.
-                            throw new IceRpcException(
-                                IceRpcError.InvocationCanceled,
-                                _invocationRefusedMessage);
+                            throw new IceRpcException(IceRpcError.InvocationCanceled, _invocationRefusedMessage);
                         }
 
                         if (!request.IsOneway)
@@ -638,16 +636,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             if (_invocationCount == 0 && _dispatchCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
-            }
-
-            if (Closed.IsCompletedSuccessfully && Closed.Result is Exception closedException)
-            {
-                throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
-                    _connectTask.IsFaulted || _connectTask.IsCanceled ?
-                        "The shutdown failed because the connection establishment failed." :
-                        "The shutdown failed because the connection was aborted.",
-                    closedException);
             }
         }
 
