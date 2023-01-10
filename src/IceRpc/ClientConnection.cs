@@ -134,10 +134,26 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ClientConnectionOptions.ConnectTimeout" />.</description></item>
     /// </list>
     /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown if this client connection is shut down or shutting down.
+    /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
-        return PerformConnectAsync(GetCurrentProtocolConnection());
+        IProtocolConnection connection;
+        lock (_mutex)
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+            }
+            if (_isShutdown)
+            {
+                throw new InvalidOperationException("Cannot connect a client connection after shutting it down.");
+            }
+            connection = _connection;
+        }
+
+        return PerformConnectAsync(connection);
 
         async Task<TransportConnectionInformation> PerformConnectAsync(IProtocolConnection connection)
         {
@@ -149,11 +165,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
                 catch (ObjectDisposedException)
                 {
-                    // This can happen if a previous ConnectAsync failed and this failed connection was disposed.
-                }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationRefused)
-                {
-                    // Same as above except the connection is not disposed yet.
+                    // This can happen if a previous ConnectAsync failed and this failed connection was disposed or
+                    // about to the disposed.
                 }
 
                 connection = RefreshConnection(connection);
@@ -194,7 +207,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         // It's ok if the request has no server address at all.
 
-        return PerformInvokeAsync(GetCurrentProtocolConnection());
+        IProtocolConnection connection;
+        lock (_mutex)
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+            }
+            if (_isShutdown)
+            {
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The client connection is shut down.");
+            }
+            connection = _connection;
+        }
+
+        return PerformInvokeAsync(connection);
 
         void CheckRequestServerAddresses(
             ServerAddress mainServerAddress,
@@ -230,9 +257,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     // This can happen if a previous ConnectAsync or InvokeAsync failed and this failed connection was
                     // disposed.
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationRefused)
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.InvocationRefused)
                 {
-                    // Same as above except the connection is not disposed yet.
+                    // The connection is refusing new invocations.
                 }
                 // let other exceptions through
 
@@ -364,22 +391,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         await connection.DisposeAsync().ConfigureAwait(false);
     }
 
-    private IProtocolConnection GetCurrentProtocolConnection()
-    {
-        lock (_mutex)
-        {
-            if (_isDisposed)
-            {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-            }
-            if (_isShutdown)
-            {
-                throw new IceRpcException(IceRpcError.OperationRefused, "The client connection is shut down.");
-            }
-            return _connection;
-        }
-    }
-
     /// <summary>Refreshes _connection and _connectionCleanupTask and returns the latest _connection.</summary>
     private IProtocolConnection RefreshConnection(IProtocolConnection connection)
     {
@@ -494,7 +505,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             lock (_mutex)
             {
-                if (_isDisposed)
+                // If a previous ConnectAsync already failed, we throw ObjectDisposedException even through the
+                // connection is not disposed yet. That's because we know the caller catches ObjectDisposedException and
+                // tries again with a refreshed connection.
+                // Note: this works fine because ClientConnection does not use ObjectDisposedException to mean "there is
+                // no need to dispose this connection".
+                if (_isDisposed || (_connectTask is not null && (_connectTask.IsFaulted || _connectTask.IsCanceled)))
                 {
                     throw new ObjectDisposedException($"{typeof(ConnectProtocolConnectionDecorator)}");
                 }
@@ -503,12 +519,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     _connectTask = PerformConnectAsync();
                     return _connectTask;
-                }
-                else if (_connectTask.IsFaulted || _connectTask.IsCanceled)
-                {
-                    // If a previous ConnectAsync on this connection failed, we want this connection to be discarded
-                    // and replaced.
-                    throw new IceRpcException(IceRpcError.OperationRefused);
                 }
             }
             return WaitForConnectAsync(_connectTask);

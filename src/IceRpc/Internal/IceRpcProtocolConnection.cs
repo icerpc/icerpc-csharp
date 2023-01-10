@@ -49,6 +49,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
+    private string? _invocationRefusedMessage;
 
     // _isShutdown is true once ShutdownAsync or DisposeAsync is called.
     private bool _isShutdown;
@@ -62,7 +63,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly int _maxLocalHeaderSize;
     private readonly object _mutex = new();
-    private string? _operationRefusedMessage;
     private int _peerMaxHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
     // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
@@ -495,7 +495,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             if (_refuseInvocations)
             {
-                throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
             }
             if (_connectTask is null)
             {
@@ -547,7 +547,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     lock (_mutex)
                     {
                         Debug.Assert(_refuseInvocations);
-                        throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                        throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                     }
                 }
 
@@ -557,7 +557,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     if (_refuseInvocations)
                     {
-                        throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
+                        throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                     }
 
                     if (++_streamCount == 1)
@@ -648,15 +648,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 else
                 {
-                    // TODO: Add IceRpcError.OperationCanceledByShutdown and throw
-                    // IceRpcException(IceRpcError.OperationCanceledByShutdown) instead?
-
-                    // Shutdown canceled the request because the peer didn't dispatch it.
-                    lock (_mutex)
-                    {
-                        Debug.Assert(_refuseInvocations);
-                        throw new IceRpcException(IceRpcError.OperationRefused, _operationRefusedMessage);
-                    }
+                    throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
                 }
             }
             finally
@@ -732,14 +724,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 _dispatchesCompleted.TrySetResult();
             }
-
-            if (_closedTcs.Task.IsCompletedSuccessfully && _closedTcs.Task.Result is Exception abortException)
-            {
-                throw new IceRpcException(
-                    IceRpcError.OperationRefused,
-                    _connectTask.IsFaulted ? "The connection establishment failed." : "The connection was aborted.",
-                    abortException);
-            }
         }
 
         _acceptStreamCts.Cancel();
@@ -749,21 +733,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             try
             {
-                // Wait for connect to complete first.
-                if (_connectTask is not null)
+                // Wait for connect to complete.
+                try
                 {
-                    try
-                    {
-                        _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException exception) when (
-                        exception.CancellationToken != cancellationToken)
-                    {
-                        // ConnectAsync was canceled.
-                        throw new IceRpcException(
-                            IceRpcError.OperationAborted,
-                            "The shutdown was aborted because the connection establishment was canceled.");
-                    }
+                    _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException exception) when (
+                    exception.CancellationToken != cancellationToken)
+                {
+                    // ConnectAsync was canceled.
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The shutdown was aborted because the connection establishment was canceled.");
                 }
 
                 // Once _isShutdown is true, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are
@@ -799,7 +780,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         .ConfigureAwait(false);
 
                     // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will
-                    // throw IceRpcException(OperationRefused) which can be retried. Since _isShutdown is true,
+                    // throw IceRpcException(InvocationCanceled) which can be retried. Since _isShutdown is true,
                     // _pendingInvocations is immutable at this point.
                     foreach ((IMultiplexedStream stream, CancellationTokenSource cts) in _pendingInvocations)
                     {
@@ -1243,7 +1224,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         lock (_mutex)
         {
             _refuseInvocations = true;
-            _operationRefusedMessage ??= message;
+            _invocationRefusedMessage ??= message;
         }
     }
 

@@ -24,6 +24,15 @@ public enum IceRpcError
     /// <summary>The peer refused the connection.</summary>
     ConnectionRefused,
 
+    /// <summary>The invocation was canceled: the invoker read the payload of the request but the request was not
+    /// dispatched at all by the server.</summary>
+    InvocationCanceled,
+
+    /// <summary>The invocation was refused because the invoker (for example a connection) is closed or shutting down or
+    /// no longer available prior to the start of this invocation. The payload of the request was not read at all by
+    /// the invoker.</summary>
+    InvocationRefused,
+
     /// <summary>A limit was exceeded, such as the <see cref="ConnectionOptions.MaxIceRpcHeaderSize" /> sent by the peer
     /// during connection establishment.</summary>
     LimitExceeded,
@@ -34,10 +43,6 @@ public enum IceRpcError
     /// <summary>The operation was aborted because an underlying resource (connection, stream) was disposed while this
     /// operation was running.</summary>
     OperationAborted,
-
-    /// <summary>The operation was refused because the target resource (for example a connection) is closed or shutting
-    /// down or no longer available prior to the start of this operation.</summary>
-    OperationRefused,
 
     /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
     /// </summary>

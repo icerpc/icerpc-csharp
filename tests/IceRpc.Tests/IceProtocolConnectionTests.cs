@@ -116,9 +116,9 @@ public sealed class IceProtocolConnectionTests
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
-    /// Requests that are not dispatched by the server should complete with a OperationRefused error code.</summary>
+    /// Requests that are not dispatched by the server should complete with a InvocationCanceled error code.</summary>
     [Test]
-    public async Task Not_dispatched_twoway_request_gets_connection_exception_on_server_connection_shutdown()
+    public async Task Not_dispatched_twoway_request_gets_invocation_canceled_on_server_connection_shutdown()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -150,7 +150,7 @@ public sealed class IceProtocolConnectionTests
         Assert.That(async () => await invokeTask1, Throws.Nothing);
         Assert.That(async () => await shutdownTask, Throws.Nothing);
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationRefused));
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationCanceled));
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
