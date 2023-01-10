@@ -71,7 +71,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _twowayInvocations = new();
-    private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -279,6 +279,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             _dispatchesAndInvocationsCts.Dispose();
             _dispatchSemaphore?.Dispose();
+            _writeSemaphore.Dispose();
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
     }
@@ -352,7 +353,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the writing of frames.
-                await _writeSemaphore.EnterAsync(cts.Token).ConfigureAwait(false);
+                await _writeSemaphore.WaitAsync(cts.Token).ConfigureAwait(false);
                 TaskCompletionSource<PipeReader>? responseCompletionSource = null;
 
                 try
@@ -689,7 +690,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Encode and write the CloseConnection frame once all the dispatches are done.
                 try
                 {
-                    await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+                    await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                     try
                     {
                         EncodeCloseConnectionFrame(_duplexConnectionWriter);
@@ -814,7 +815,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             try
             {
-                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                 try
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
@@ -1277,7 +1278,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // even when we're shutting down and cancellationToken is canceled. This can't take forever since
                     // the closure of the transport connection causes the holder of this semaphore to fail and
                     // release it.
-                    await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                     acquiredSemaphore = true;
 
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);

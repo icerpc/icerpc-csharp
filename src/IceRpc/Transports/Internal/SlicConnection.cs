@@ -33,7 +33,9 @@ internal class SlicConnection : IMultiplexedConnection
 
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
-    private AsyncSemaphore? _bidirectionalStreamSemaphore;
+    private SemaphoreSlim? _bidirectionalStreamSemaphore;
+    private Task? _closeTask;
+    private readonly CancellationTokenSource _closeCts = new();
     private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
@@ -54,13 +56,12 @@ internal class SlicConnection : IMultiplexedConnection
     private Task _pingTask = Task.CompletedTask;
     private Task _pongTask = Task.CompletedTask;
     private Task? _readFramesTask;
-    private Task? _closeTask;
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
     private readonly CancellationTokenSource _tasksCts = new();
     private int _unidirectionalStreamCount;
-    private AsyncSemaphore? _unidirectionalStreamSemaphore;
+    private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private Task _writeStreamFrameTask = Task.CompletedTask;
-    private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
@@ -375,13 +376,23 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        AsyncSemaphore streamCountSemaphore = bidirectional ?
-            _bidirectionalStreamSemaphore! :
-            _unidirectionalStreamSemaphore!;
-        await streamCountSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        using var createStreamCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
 
-        // TODO: Cache SlicStream
-        return new SlicStream(this, bidirectional, remote: false);
+        try
+        {
+            SemaphoreSlim streamCountSemaphore = bidirectional ?
+                _bidirectionalStreamSemaphore! :
+                _unidirectionalStreamSemaphore!;
+            await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
+            // TODO: Cache SlicStream
+            return new SlicStream(this, bidirectional, remote: false);
+        }
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
+        }
     }
 
     public ValueTask DisposeAsync()
@@ -467,6 +478,10 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             _tasksCts.Dispose();
+            _writeSemaphore.Dispose();
+            _bidirectionalStreamSemaphore?.Dispose();
+            _unidirectionalStreamSemaphore?.Dispose();
+            _closeCts.Dispose();
         }
     }
 
@@ -555,6 +570,15 @@ internal class SlicConnection : IMultiplexedConnection
 
         _streams.Remove(stream.Id, out SlicStream? _);
 
+        lock (_mutex)
+        {
+            // Nothing to do, the connection is already closing or closed.
+            if (_exception is not null)
+            {
+                return;
+            }
+        }
+
         if (stream.IsRemote)
         {
             if (stream.IsBidirectional)
@@ -584,7 +608,7 @@ internal class SlicConnection : IMultiplexedConnection
         EncodeAction? encode,
         CancellationToken cancellationToken)
     {
-        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await WriteFrameAsync(
@@ -607,7 +631,7 @@ internal class SlicConnection : IMultiplexedConnection
     {
         Debug.Assert(frameType >= FrameType.StreamReset);
 
-        await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+        await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (!stream.IsStarted)
@@ -682,7 +706,7 @@ internal class SlicConnection : IMultiplexedConnection
             bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
             // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-            await _writeSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false);
+            await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (!stream.IsStarted)
@@ -766,16 +790,14 @@ internal class SlicConnection : IMultiplexedConnection
 
         // Unblock requests waiting on the semaphores first. This must be done before aborting started streams.
         // Otherwise CreateStreamAsync calls waiting on the semaphores would succeed instead of failing.
-        _bidirectionalStreamSemaphore?.Complete(exception);
-        _unidirectionalStreamSemaphore?.Complete(exception);
+        _closeCts.Cancel();
 
         foreach (SlicStream stream in _streams.Values)
         {
             stream.Abort(exception);
         }
-
-        await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
+        // TODO explain wait is this still required
+        await _writeSemaphore.WaitAsync().ConfigureAwait(false);
         return true;
     }
 
@@ -947,7 +969,6 @@ internal class SlicConnection : IMultiplexedConnection
                         dataSize,
                         (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                         cancellationToken).ConfigureAwait(false);
-
                     lock (_mutex)
                     {
                         // If close is not already in progress initiate the closure.
@@ -1258,13 +1279,15 @@ internal class SlicConnection : IMultiplexedConnection
                 case ParameterKey.MaxBidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
-                    _bidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
+                    // Max count must be greater than 0
+                    _bidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
                     break;
                 }
                 case ParameterKey.MaxUnidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
-                    _unidirectionalStreamSemaphore = new AsyncSemaphore(value, value);
+                    // Max count must be greater than 0
+                    _unidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
                     break;
                 }
                 case ParameterKey.IdleTimeout:
@@ -1342,6 +1365,21 @@ internal class SlicConnection : IMultiplexedConnection
         {
             AddStream(_nextUnidirectionalId, stream);
             _nextUnidirectionalId += 4;
+        }
+    }
+
+    private async ValueTask WaitWriteSemaphoreAsync(CancellationToken cancellationToken)
+    {
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
+        try
+        {
+            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Debug.Assert(_exception is not null);
+            throw ExceptionUtil.Throw(_exception);
         }
     }
 
