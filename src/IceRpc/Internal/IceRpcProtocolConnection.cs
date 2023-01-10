@@ -265,7 +265,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     DisableIdleCheck();
                                 }
 
-                                _ = UnregisterOnInputAndOutputCompletedAsync(stream);
+                                _ = UnregisterOnReadsAndWritesClosedAsync(stream);
                             }
 
                             // Start a task to dispatch the request.
@@ -567,9 +567,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     // Keep track of the invocation cancellation token source for the shutdown logic.
                     _pendingInvocations.Add(stream, invocationCts);
-                    invocationCts = null; // invocationCts is disposed by UnregisterOnInputAndOutputCompletedAsync
+                    invocationCts = null; // invocationCts is disposed by UnregisterOnReadsAndWritesClosedAsync
 
-                    _ = UnregisterOnInputAndOutputCompletedAsync(stream);
+                    _ = UnregisterOnReadsAndWritesClosedAsync(stream);
                 }
             }
             catch
@@ -1448,7 +1448,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private async Task UnregisterOnInputAndOutputCompletedAsync(IMultiplexedStream stream)
+    private async Task UnregisterOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
     {
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
@@ -1463,7 +1463,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 else
                 {
-                    Debug.Assert(false);
+                    Debug.Fail("Did not find multiplexed stream in pending invocations");
                 }
             }
 

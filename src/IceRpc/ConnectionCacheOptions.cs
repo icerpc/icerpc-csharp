@@ -12,7 +12,17 @@ public record class ConnectionCacheOptions
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
     /// <summary>Gets or sets the connection options used for connections created by the connection cache.</summary>
-    public ClientConnectionOptions ConnectionOptions { get; set; } = new();
+    public ConnectionOptions ConnectionOptions { get; set; } = new();
+
+    /// <summary>Gets or sets the connection establishment timeout for connections created by the connection cache.
+    /// </summary>
+    /// <value>Defaults to <c>10</c> seconds.</value>
+    public TimeSpan ConnectTimeout
+    {
+        get => _connectTimeout;
+        set => _connectTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
+    }
 
     /// <summary>Gets or sets a value indicating whether or not the connection cache prefers an active connection over
     /// creating a new one.</summary>
@@ -21,4 +31,17 @@ public record class ConnectionCacheOptions
     /// does not check connections being connected. When <see langword="false" />, the connection cache does not prefer
     /// existing connections.</value>
     public bool PreferExistingConnection { get; set; } = true;
+
+    /// <summary>Gets or sets the shutdown timeout. This timeout is used when gracefully shutting down a connection
+    /// managed by the connection cache.</summary>
+    /// <value>Defaults to <c>10</c> seconds.</value>
+    public TimeSpan ShutdownTimeout
+    {
+        get => _shutdownTimeout;
+        set => _shutdownTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
+    }
+
+    private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+    private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 }

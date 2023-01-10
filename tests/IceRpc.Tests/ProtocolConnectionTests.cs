@@ -862,9 +862,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(
-                protocol,
-                clientConnectionOptions: new ConnectionOptions { ConnectTimeout = TimeSpan.FromSeconds(1) })
+            .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
@@ -877,9 +875,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(
-                protocol,
-                clientConnectionOptions: new ConnectionOptions { ConnectTimeout = TimeSpan.FromSeconds(1) })
+            .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
