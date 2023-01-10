@@ -596,7 +596,15 @@ public sealed class ProtocolConnectionTests
         Assert.That(disposeTask.IsCompleted, Is.False);
         Assert.That(connectTask.IsCompleted, Is.False);
 
-        await sut.AcceptAsync();
+        try
+        {
+            await sut.AcceptAsync();
+        }
+        catch (IceRpcException)
+        {
+            // The server connection establishment can fail if the client transport connection is disposed before than
+            // the server connection establishment finishes.
+        }
 
         Assert.That(async () => await connectTask, Throws.Nothing);
         Assert.That(async () => await disposeTask, Throws.Nothing);
