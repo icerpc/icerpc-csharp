@@ -244,14 +244,14 @@ public class ServerTests
     public async Task Dispose_waits_for_background_connection_dispose()
     {
         // Arrange
-        using var dispatchSemaphore = new SemaphoreSlim(0);
-        using var connectSemaphore = new SemaphoreSlim(0);
+        using var dispatchHoldSemaphore = new SemaphoreSlim(0);
+        using var dispatchStartedSemaphore = new SemaphoreSlim(0);
         IConnectionContext? serverConnectionContext = null;
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
             serverConnectionContext = request.ConnectionContext;
-            connectSemaphore.Release();
-            await dispatchSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            dispatchStartedSemaphore.Release();
+            await dispatchHoldSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             return new OutgoingResponse(request);
         });
         await using var server = new Server(
@@ -259,47 +259,51 @@ public class ServerTests
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-                ShutdownTimeout = TimeSpan.FromMilliseconds(500),
+                ShutdownTimeout = TimeSpan.FromMilliseconds(10),
             });
 
         ServerAddress serverAddress = server.Listen();
 
-        await using var clientConnection = new ClientConnection(
-           new ClientConnectionOptions
-           {
-               ShutdownTimeout = TimeSpan.FromMilliseconds(500),
-               ServerAddress = serverAddress,
-           });
+        await using var clientConnection = new ClientConnection(serverAddress);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         Task<IncomingResponse> invokeTask = clientConnection.InvokeAsync(request);
 
-        // Wait for invocation to be dispatched. Then shutdown the client and server connections.
-        // Since the dispatch is blocking we wait for shutdown to timeout (We use a 500ms timeout).
-        await connectSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-        try
-        {
-            await clientConnection.ShutdownAsync().ConfigureAwait(false);
-            await serverConnectionContext!.Closed.ConfigureAwait(false);
-        }
-        catch (TimeoutException)
-        {
-        }
+        // Wait for invocation to be dispatched.
+        await dispatchStartedSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
         // Act
+        Exception? exception = null;
+        try
+        {
+            // Shutdown the client connection.
+            await clientConnection.ShutdownAsync().ConfigureAwait(false);
+        }
+        catch (IceRpcException ex)
+        {
+            // Expected. The server shutdown timed out and aborted the connection.
+            exception = ex;
+        }
+
+        // Ensure the server connection shutdown timed out. At this point, Server should have called DisposeAsync on the
+        // connection (which completes the Closed task).
+        await serverConnectionContext!.Closed.ConfigureAwait(false);
 
         // Dispose the server. This will wait for the background connection dispose to complete.
         ValueTask disposeTask = server.DisposeAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         // Assert
-        await Task.Delay(TimeSpan.FromSeconds(1));
         Assert.That(disposeTask.IsCompleted, Is.False);
+        Assert.That(exception, Is.Not.Null.And.With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
         // Release the dispatch semaphore, allowing the background connection dispose to complete.
-        dispatchSemaphore.Release();
+        dispatchHoldSemaphore.Release();
+
         await disposeTask;
 
-        // Prevent unobserved task exception.
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<IceRpcException>());
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 }
