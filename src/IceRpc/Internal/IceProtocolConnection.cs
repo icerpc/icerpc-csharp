@@ -751,9 +751,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 lock (_mutex)
                 {
-                    if (_pingTask.IsCompletedSuccessfully)
+                    if (_pingTask.IsCompletedSuccessfully && !_isShutdown && _disposeTask is null)
                     {
-                        _pingTask = PingAsync();
+                        _pingTask = PingAsync(_dispatchesAndInvocationsCts.Token);
                     }
                 }
             });
@@ -785,7 +785,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
         });
 
-        async Task PingAsync()
+        async Task PingAsync(CancellationToken cancellationToken)
         {
             Debug.Assert(_duplexConnectionWriter is not null);
 
@@ -794,7 +794,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             try
             {
-                await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
@@ -809,9 +809,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     _writeSemaphore.Release();
                 }
             }
-            catch (IceRpcException exception)
+            catch (OperationCanceledException)
             {
-                DisposeTransport("The connection was lost.", exception);
+                // Ignore, the connection is already closing or closed.
             }
             catch (Exception exception)
             {
