@@ -196,7 +196,7 @@ public sealed class ProtocolConnectionTests
         // Arrange
 
         var protocol = Protocol.Parse(protocolString);
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using var provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
@@ -519,7 +519,7 @@ public sealed class ProtocolConnectionTests
     public async Task Abortive_shutdown_cancels_dispatches(Protocol protocol)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -560,7 +560,7 @@ public sealed class ProtocolConnectionTests
     public async Task Dispose_aborts_pending_invocations(Protocol protocol)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
@@ -978,7 +978,7 @@ public sealed class ProtocolConnectionTests
     public async Task Shutdown_cancellation_does_not_abort_invocations(Protocol protocol, bool closeClientSide)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol, dispatcher);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -1010,7 +1010,7 @@ public sealed class ProtocolConnectionTests
         bool closeClientSide)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)

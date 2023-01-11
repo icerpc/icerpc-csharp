@@ -11,7 +11,7 @@ public sealed class LoggerMiddlewareTests
     [Test]
     public async Task Log_successful_request()
     {
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher();
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
         using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/path", Operation = "doIt" };

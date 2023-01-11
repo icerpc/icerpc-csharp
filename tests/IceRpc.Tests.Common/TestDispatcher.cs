@@ -74,7 +74,7 @@ public sealed class TestDispatcher : IDispatcher, IDisposable
 
     public int ReleaseDispatch() => _hold.Release();
 
-    public TestDispatcher(byte[]? responsePayload = null, int holdDispatchCount = 1)
+    public TestDispatcher(byte[]? responsePayload = null, int holdDispatchCount = 0)
     {
         _responsePayload = responsePayload;
         _holdDispatchCount = holdDispatchCount;

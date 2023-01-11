@@ -16,7 +16,7 @@ public class InvocationTests
     public async Task Connection_without_dispatcher_throws_ServiceNotFound_with_ice()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher, Protocol.Ice)
             .BuildServiceProvider(validateScopes: true);
@@ -42,7 +42,7 @@ public class InvocationTests
     public async Task Connection_without_dispatcher_does_not_accept_requests_with_icerpc()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher)
             .BuildServiceProvider(validateScopes: true);

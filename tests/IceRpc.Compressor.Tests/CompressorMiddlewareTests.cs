@@ -55,7 +55,7 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Compressor_middleware_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher();
         var sut = new CompressorMiddleware(dispatcher, CompressionFormat.Brotli);
         using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
 
@@ -97,7 +97,7 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Compressor_middleware_lets_requests_with_unsupported_compression_format_pass_through()
     {
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher();
         var sut = new CompressorMiddleware(dispatcher, CompressionFormat.Brotli);
         using IncomingRequest request = CreateRequestWitCompressionFormat((CompressionFormat)255);
         PipeReader requestPayload = request.Payload;
@@ -112,7 +112,7 @@ public class CompressorMiddlewareTests
     public async Task Decompress_request_payload(
         [Values(CompressionFormat.Brotli, CompressionFormat.Deflate)] CompressionFormat compressionFormat)
     {
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher();
         var sut = new CompressorMiddleware(dispatcher, compressionFormat);
         using IncomingRequest request = CreateRequestWitCompressionFormat(compressionFormat);
         request.Payload = PipeReader.Create(CreateCompressedPayload(_payload, compressionFormat));
