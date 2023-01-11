@@ -92,7 +92,7 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Dispose_server_connection_aborts_non_completed_incoming_request_stream()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
@@ -130,7 +130,7 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Abortive_server_connection_shutdown_triggers_payload_read_failure()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
@@ -162,7 +162,7 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Invocation_cancellation_triggers_dispatch_cancellation()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
@@ -353,7 +353,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         TestMultiplexedClientTransportDecorator? clientTransport = null;
         TestMultiplexedServerTransportDecorator? serverTransport = null;
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTransport()
@@ -526,7 +526,7 @@ public sealed class IceRpcProtocolConnectionTests
         [Values(false, true)] bool isOneway)
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher();
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -558,7 +558,7 @@ public sealed class IceRpcProtocolConnectionTests
         [Values(false, true)] bool isOneway)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);

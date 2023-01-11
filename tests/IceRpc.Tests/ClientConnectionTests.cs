@@ -196,7 +196,7 @@ public class ClientConnectionTests
     public async Task Connection_can_dispatch_callbacks(Protocol protocol)
     {
         // Arrange
-        using var callbackDispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var callbackDispatcher = new TestDispatcher();
 
         var services = new ServiceCollection();
         services.AddOptions<ClientConnectionOptions>().Configure(options => options.Dispatcher = callbackDispatcher);
@@ -243,13 +243,10 @@ public class ClientConnectionTests
     public async Task InvokeAsync_succeeds_with_a_compatible_server_address(ServiceAddress serviceAddress)
     {
         // Arrange
-        await using ServiceProvider provider =
-            new ServiceCollection()
-                .AddClientServerColocTest(
-                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
-                    serviceAddress.Protocol!,
-                    host: "testhost.com")
-                .BuildServiceProvider(validateScopes: true);
+        using var dispatcher = new TestDispatcher();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher, serviceAddress.Protocol!, host: "testhost.com")
+            .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
@@ -290,13 +287,10 @@ public class ClientConnectionTests
         ServiceAddress serviceAddress)
     {
         // Arrange
-        await using ServiceProvider provider =
-            new ServiceCollection()
-                .AddClientServerColocTest(
-                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
-                    serverAddress.Protocol,
-                    host: serverAddress.Host)
-                .BuildServiceProvider(validateScopes: true);
+        using var dispatcher = new TestDispatcher();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher, serverAddress.Protocol, host: serverAddress.Host)
+            .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();

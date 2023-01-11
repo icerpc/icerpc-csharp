@@ -92,7 +92,7 @@ public sealed class IceProtocolConnectionTests
     public async Task Abortive_server_connection_shutdown_triggers_dispatch_exception()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -121,7 +121,7 @@ public sealed class IceProtocolConnectionTests
     public async Task Not_dispatched_twoway_request_gets_invocation_canceled_on_server_connection_shutdown()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 Protocol.Ice,

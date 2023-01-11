@@ -16,15 +16,9 @@ public class InvocationTests
     public async Task Connection_without_dispatcher_throws_ServiceNotFound_with_ice()
     {
         // Arrange
-        IInvoker? callbackInvoker = null;
+        using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new InlineDispatcher(
-                (request, cancellationToken) =>
-                {
-                    callbackInvoker = request.ConnectionContext.Invoker;
-                    return new(new OutgoingResponse(request));
-                }),
-                Protocol.Ice)
+            .AddClientServerColocTest(dispatcher, Protocol.Ice)
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -35,7 +29,8 @@ public class InvocationTests
         using var callback = new OutgoingRequest(new ServiceAddress(new Uri("ice:/callback")));
 
         // Act
-        IncomingResponse response = await callbackInvoker!.InvokeAsync(request);
+        var incomingRequest = await dispatcher.DispatchStart;
+        IncomingResponse response = await incomingRequest.ConnectionContext.Invoker!.InvokeAsync(request);
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
@@ -47,15 +42,9 @@ public class InvocationTests
     public async Task Connection_without_dispatcher_does_not_accept_requests_with_icerpc()
     {
         // Arrange
-        IInvoker? callbackInvoker = null;
-
+        using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new InlineDispatcher(
-                (request, cancellationToken) =>
-                {
-                    callbackInvoker = request.ConnectionContext.Invoker;
-                    return new(new OutgoingResponse(request));
-                }))
+            .AddClientServerColocTest(dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -66,9 +55,10 @@ public class InvocationTests
         using var callback = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/callback")));
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
-        // Act and Assert
+        // Act/Assert
+        var incomingRequest = await dispatcher.DispatchStart;
         Assert.That(
-            async () => await callbackInvoker!.InvokeAsync(request, cts.Token),
+            async () => await incomingRequest.ConnectionContext!.Invoker.InvokeAsync(request, cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
     }
 

@@ -37,7 +37,7 @@ public class ServerTests
         [Values("icerpc://127.0.0.1:0", "ice://127.0.0.1:0")] Uri serverAddressUri)
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher();
 
         await using var server = new Server(
             new ServerOptions
@@ -75,7 +75,7 @@ public class ServerTests
         [Values(true, false)] bool failure)
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher();
 
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
         var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
@@ -131,7 +131,7 @@ public class ServerTests
     public async Task Connection_refused_after_max_pending_connections_is_reached()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher();
 
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
         var serverTransport = new SlicServerTransport(new TestDuplexServerTransportDecorator(
@@ -196,7 +196,7 @@ public class ServerTests
     public async Task Connection_accepted_when_max_connections_is_reached_then_decremented()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher();
         var colocTransport = new ColocTransport();
         var testDuplexServerTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
         var serverTransport = new SlicServerTransport(testDuplexServerTransport);
