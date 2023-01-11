@@ -52,7 +52,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
     private int _invocationCount;
     private string? _invocationRefusedMessage;
-    private bool _isClosedByPeer;
     private bool _isShutdown;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -61,6 +60,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private int _nextRequestId;
     private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
+    private volatile bool _receivedCloseConnection;
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
@@ -159,14 +159,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // Read frames until the CloseConnection frame is received.
                         await ReadFramesAsync(_disposedCts.Token).ConfigureAwait(false);
 
-                        // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations
-                        // and dispatches. Canceled invocations should not be aborted if the connection is gracefully
-                        // closed.
-                        lock (_mutex)
-                        {
-                            _isClosedByPeer = true;
-                        }
-
+                        _receivedCloseConnection = true;
                         RefuseNewInvocations(
                             "The connection was shut down because it received a CloseConnection frame from the peer.");
                         _shutdownRequestedTcs.TrySetResult();
@@ -174,18 +167,22 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     catch (InvalidDataException exception)
                     {
                         DisposeTransport("Invalid data was received from the peer.", exception);
+                        throw;
                     }
                     catch (NotSupportedException exception)
                     {
                         DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
+                        throw;
                     }
                     catch (IceRpcException exception)
                     {
                         DisposeTransport("The connection was lost.", exception);
+                        throw;
                     }
                     catch (ObjectDisposedException exception)
                     {
                         DisposeTransport("The connection was disposed.", exception);
+                        throw;
                     }
                     catch (Exception exception)
                     {
@@ -272,7 +269,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             DisposeTransport();
 
             // Wait for the read frames and ping tasks to complete.
-            await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
+            try
+            {
+                await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Excepted if any of these tasks failed or was canceled. Each task takes care of handling
+                // unexpected exceptions so there's no need to handle them here.
+            }
 
             if (_readFramesTask is not null)
             {
@@ -453,18 +458,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // The request was canceled by abortive-shutdown or graceful closure by the peer.
-                lock (_mutex)
+                if (_receivedCloseConnection)
                 {
-                    if (_isClosedByPeer)
-                    {
-                        throw new IceRpcException(
-                            IceRpcError.InvocationCanceled,
-                            "The connection was shut down by the peer.");
-                    }
-                    else
-                    {
-                        throw new IceRpcException(IceRpcError.OperationAborted);
-                    }
+                    throw new IceRpcException(
+                        IceRpcError.InvocationCanceled,
+                        "The connection was shut down by the peer.");
+                }
+                else
+                {
+                    throw new IceRpcException(IceRpcError.OperationAborted);
                 }
             }
             finally
@@ -623,8 +625,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        bool receivedCloseConnection;
-
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -647,8 +647,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
-
-            receivedCloseConnection = _isClosedByPeer;
         }
 
         return PerformShutdownAsync();
@@ -658,23 +656,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             try
             {
                 // Wait for connect to complete first.
-                if (_connectTask is not null)
+                try
                 {
-                    try
-                    {
-                        _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException exception) when (
-                        exception.CancellationToken != cancellationToken)
-                    {
-                        // ConnectAsync was canceled.
-                        throw new IceRpcException(
-                            IceRpcError.OperationAborted,
-                            "The shutdown was aborted because the connection establishment was canceled.");
-                    }
+                    _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+                {
+                    // ConnectAsync was canceled.
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The shutdown was aborted because the connection establishment was canceled.");
                 }
 
-                if (receivedCloseConnection)
+                if (_receivedCloseConnection)
                 {
                     DisposeTransport();
 
@@ -937,6 +931,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
+    /// <remarks>ShutdownAsync does not (and cannot) cancel or otherwise interrupt / await the _readFramesTask.
+    /// </remarks>
     private async Task ReadFramesAsync(CancellationToken cancellationToken)
     {
         while (true)
@@ -1138,6 +1134,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // shutdown, we want the invocation in the peer to throw an IceRpcException(
                         // OperationCanceledByShutdown) (meaning no dispatch at all), not a DispatchException (which
                         //  means at least part of the dispatch executed).
+
+                        _dispatchSemaphore?.Release();
                         return;
                     }
 
