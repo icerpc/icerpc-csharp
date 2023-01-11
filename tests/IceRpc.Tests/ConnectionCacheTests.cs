@@ -67,7 +67,7 @@ public sealed class ConnectionCacheTests
     public async Task Get_connection_for_alt_server()
     {
         // Arrange
-        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             new ServerOptions
