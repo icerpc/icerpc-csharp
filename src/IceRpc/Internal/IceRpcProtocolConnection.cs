@@ -111,11 +111,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             await Task.Yield();
 
             // _disposedCts is not disposed at this point because DisposeAsync waits for the completion of _connectTask.
-            CancellationToken disposedCancellationToken = _disposedCts.Token;
-
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
-                disposedCancellationToken);
+                _disposedCts.Token);
 
             TransportConnectionInformation transportConnectionInformation;
 
@@ -185,7 +183,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
             // We assign _readGoAwayTask and _acceptRequestsTask with _mutex locked to make sure this assignment
-            // occurs before the connection is disposed. Once _disposeTask is not null, _readGoAwayTask etc are
+            // occurs before the start of DisposeAsync. Once _disposeTask is not null, _readGoAwayTask etc are
             // immutable.
             lock (_mutex)
             {
@@ -197,6 +195,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
 
                 // Start a task to read the go away frame from the control stream and initiate shutdown.
+                CancellationToken disposedCancellationToken = _disposedCts.Token;
                 _readGoAwayTask = Task.Run(() => ReadGoAwayAsync(disposedCancellationToken), disposedCancellationToken);
 
                 // Start a task that accepts requests (the "accept requests loop")
@@ -261,6 +260,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                             // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
                             // to Task.Run because DispatchRequestAsync must clean-up the stream.
+                            CancellationToken disposedCancellationToken = _disposedCts.Token;
                             _ = Task.Run(
                                 () => DispatchRequestAsync(stream, disposedCancellationToken),
                                 CancellationToken.None);
@@ -644,8 +644,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        CancellationToken disposedCancellationToken;
-
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -672,8 +670,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 _dispatchesCompleted.TrySetResult();
             }
-
-            disposedCancellationToken = _disposedCts.Token;
 
             _shutdownTask = PerformShutdownAsync();
         }
@@ -709,9 +705,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Once _isShutdown is true, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are
                 // immutable.
 
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    disposedCancellationToken);
+                // Since DisposeAsync waits for _shutdownTask completion, _disposedCts is not disposed at this point.
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
 
                 // When this peer is the server endpoint, the first accepted bidirectional stream ID is 0. When this
                 // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
