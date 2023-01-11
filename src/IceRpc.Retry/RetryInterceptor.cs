@@ -45,7 +45,7 @@ public class RetryInterceptor : IInvoker
             {
                 int attempt = 1;
                 IncomingResponse? response = null;
-                Exception? exception = null;
+                IceRpcException? exception = null;
                 bool tryAgain;
 
                 do
@@ -60,8 +60,7 @@ public class RetryInterceptor : IInvoker
 
                         response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-                        if (response.StatusCode == StatusCode.Unavailable ||
-                            (response.Protocol == Protocol.Ice && response.StatusCode == StatusCode.ServiceNotFound))
+                        if (response.Protocol == Protocol.Ice && response.StatusCode == StatusCode.ServiceNotFound)
                         {
                             retryWithOtherReplica = true;
                         }
@@ -77,14 +76,13 @@ public class RetryInterceptor : IInvoker
                         // removed server addresses from serverAddressFeature.
                         return response ?? throw RethrowException(exception ?? iceRpcException);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
-                    catch (Exception otherException)
+                    catch (IceRpcException otherException)
                     {
                         response = null;
                         exception = otherException;
+                        retryWithOtherReplica =
+                            otherException.IceRpcError == IceRpcError.ServerBusy ||
+                            otherException.IceRpcError == IceRpcError.ConnectionRefused;
                     }
 
                     Debug.Assert(retryWithOtherReplica || exception is not null);
@@ -105,10 +103,13 @@ public class RetryInterceptor : IInvoker
                             }
                             // else there is no replica to retry with
                         }
-                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
-                            (exception is IceRpcException rpcException &&
-                                rpcException.IceRpcError == IceRpcError.InvocationCanceled) ||
-                            !decorator.IsRead)
+                        else if (exception!.IceRpcError == IceRpcError.InvocationCanceled)
+                        {
+                            tryAgain = true;
+                        }
+                        else if (
+                            request.Fields.ContainsKey(RequestFieldKey.Idempotent) &&
+                            exception!.IceRpcError == IceRpcError.ConnectionAborted)
                         {
                             tryAgain = true;
                         }
