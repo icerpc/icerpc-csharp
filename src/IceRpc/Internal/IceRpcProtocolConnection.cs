@@ -110,7 +110,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
-            // _disposedCts is not disposed at this point before DisposeAsync waits for the completion of _connectTask.
+            // _disposedCts is not disposed at this point because DisposeAsync waits for the completion of _connectTask.
             CancellationToken disposedCancellationToken = _disposedCts.Token;
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
