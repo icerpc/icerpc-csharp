@@ -104,7 +104,7 @@ public sealed class ConnectionCacheTests
     public async Task Get_connection_for_main_server_address()
     {
         // Arrange
-        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -151,7 +151,7 @@ public sealed class ConnectionCacheTests
     public async Task Prefer_existing_connection()
     {
         // Arrange
-        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -199,7 +199,7 @@ public sealed class ConnectionCacheTests
     public async Task Dispose_waits_for_background_connection_dispose()
     {
         // Arrange
-        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
 
         var colocTransport = new ColocTransport();
         var clientTransport = new SlowDisposeClientTransport(new SlicClientTransport(colocTransport.ClientTransport));
