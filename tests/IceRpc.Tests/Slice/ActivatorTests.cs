@@ -23,18 +23,6 @@ public class ActivatorTests
             yield return "4";
         }
     }
-
-    private static IEnumerable<string> ReferencedAssembliesExceptionTypeIds
-    {
-        get
-        {
-            yield return ExceptionA.SliceTypeId;
-            yield return ExceptionB.SliceTypeId;
-            yield return ExceptionC.SliceTypeId;
-            yield return ExceptionD.SliceTypeId;
-        }
-    }
-
     public static IEnumerable<TestCaseData> ReferencedAssembliesClassTypeIdsWithType
     {
         get
