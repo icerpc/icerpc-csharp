@@ -151,47 +151,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // This needs to be set before starting the read frames task below.
             _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-            _readFramesTask = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        // Read frames until the CloseConnection frame is received.
-                        await ReadFramesAsync(_disposedCts.Token).ConfigureAwait(false);
-
-                        _receivedCloseConnection = true;
-                        RefuseNewInvocations(
-                            "The connection was shut down because it received a CloseConnection frame from the peer.");
-                        _shutdownRequestedTcs.TrySetResult();
-                    }
-                    catch (InvalidDataException exception)
-                    {
-                        DisposeTransport("Invalid data was received from the peer.", exception);
-                        throw;
-                    }
-                    catch (NotSupportedException exception)
-                    {
-                        DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
-                        throw;
-                    }
-                    catch (IceRpcException exception)
-                    {
-                        DisposeTransport("The connection was lost.", exception);
-                        throw;
-                    }
-                    catch (ObjectDisposedException exception)
-                    {
-                        DisposeTransport("The connection was disposed.", exception);
-                        throw;
-                    }
-                    catch (Exception exception)
-                    {
-                        DisposeTransport("The connection failed due to an unhandled exception.", exception);
-                        Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
-                        throw;
-                    }
-                },
-                CancellationToken.None);
+            _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
             EnableIdleCheck();
             return transportConnectionInformation;
@@ -269,15 +229,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             DisposeTransport();
 
             // Wait for the read frames and ping tasks to complete.
-            try
-            {
-                await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Excepted if any of these tasks failed or was canceled. Each task takes care of handling
-                // unexpected exceptions so there's no need to handle them here.
-            }
+            await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
 
             if (_readFramesTask is not null)
             {
@@ -930,88 +882,123 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
-    /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
+    /// <summary>Reads incoming frames and returns when a CloseConnection frame is received or when the connection is
+    /// disposed.</summary>
     /// <remarks>ShutdownAsync does not (and cannot) cancel or otherwise interrupt / await the _readFramesTask.
     /// </remarks>
     private async Task ReadFramesAsync(CancellationToken cancellationToken)
     {
-        while (true)
+        await Task.Yield(); // exit mutex lock
+
+        try
         {
-            ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
-                IceDefinitions.PrologueSize,
-                cancellationToken).ConfigureAwait(false);
-
-            // First decode and check the prologue.
-
-            ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
-
-            IcePrologue prologue = SliceEncoding.Slice1.DecodeBuffer(
-                prologueBuffer,
-                (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
-
-            _duplexConnectionReader.AdvanceTo(prologueBuffer.End);
-
-            IceDefinitions.CheckPrologue(prologue);
-            if (prologue.FrameSize > _maxFrameSize)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                throw new InvalidDataException(
-                    $"Received frame with size ({prologue.FrameSize}) greater than max frame size.");
-            }
+                ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancellationToken).ConfigureAwait(false);
 
-            if (prologue.CompressionStatus == 2)
-            {
-                throw new NotSupportedException("The ice protocol compression is not supported by IceRpc.");
-            }
+                // First decode and check the prologue.
 
-            // Then process the frame based on its type.
-            switch (prologue.FrameType)
-            {
-                case IceFrameType.CloseConnection:
-                {
-                    if (prologue.FrameSize != IceDefinitions.PrologueSize)
-                    {
-                        throw new InvalidDataException(
-                            $"Received {nameof(IceFrameType.CloseConnection)} frame with unexpected data.");
-                    }
-                    return;
-                }
+                ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
 
-                case IceFrameType.Request:
-                    await ReadRequestAsync(prologue.FrameSize).ConfigureAwait(false);
-                    break;
+                IcePrologue prologue = SliceEncoding.Slice1.DecodeBuffer(
+                    prologueBuffer,
+                    (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
 
-                case IceFrameType.RequestBatch:
-                    // Read and ignore
-                    PipeReader batchRequestReader = await CreateFrameReaderAsync(
-                        prologue.FrameSize - IceDefinitions.PrologueSize,
-                        _duplexConnectionReader,
-                        _memoryPool,
-                        _minSegmentSize,
-                        cancellationToken).ConfigureAwait(false);
-                    batchRequestReader.Complete();
-                    break;
+                _duplexConnectionReader.AdvanceTo(prologueBuffer.End);
 
-                case IceFrameType.Reply:
-                    await ReadReplyAsync(prologue.FrameSize).ConfigureAwait(false);
-                    break;
-
-                case IceFrameType.ValidateConnection:
-                {
-                    if (prologue.FrameSize != IceDefinitions.PrologueSize)
-                    {
-                        throw new InvalidDataException(
-                            $"Received {nameof(IceFrameType.ValidateConnection)} frame with unexpected data.");
-                    }
-                    break;
-                }
-
-                default:
+                IceDefinitions.CheckPrologue(prologue);
+                if (prologue.FrameSize > _maxFrameSize)
                 {
                     throw new InvalidDataException(
-                        $"Received Ice frame with unknown frame type '{prologue.FrameType}'.");
+                        $"Received frame with size ({prologue.FrameSize}) greater than max frame size.");
                 }
-            }
-        } // while
+
+                if (prologue.CompressionStatus == 2)
+                {
+                    throw new NotSupportedException("The ice protocol compression is not supported by IceRpc.");
+                }
+
+                // Then process the frame based on its type.
+                switch (prologue.FrameType)
+                {
+                    case IceFrameType.CloseConnection:
+                    {
+                        if (prologue.FrameSize != IceDefinitions.PrologueSize)
+                        {
+                            throw new InvalidDataException(
+                                $"Received {nameof(IceFrameType.CloseConnection)} frame with unexpected data.");
+                        }
+                        _receivedCloseConnection = true;
+                        RefuseNewInvocations(
+                            "The connection was shut down because it received a CloseConnection frame from the peer.");
+                        _shutdownRequestedTcs.TrySetResult();
+                        return;
+                    }
+
+                    case IceFrameType.Request:
+                        await ReadRequestAsync(prologue.FrameSize).ConfigureAwait(false);
+                        break;
+
+                    case IceFrameType.RequestBatch:
+                        // Read and ignore
+                        PipeReader batchRequestReader = await CreateFrameReaderAsync(
+                            prologue.FrameSize - IceDefinitions.PrologueSize,
+                            _duplexConnectionReader,
+                            _memoryPool,
+                            _minSegmentSize,
+                            cancellationToken).ConfigureAwait(false);
+                        batchRequestReader.Complete();
+                        break;
+
+                    case IceFrameType.Reply:
+                        await ReadReplyAsync(prologue.FrameSize).ConfigureAwait(false);
+                        break;
+
+                    case IceFrameType.ValidateConnection:
+                    {
+                        if (prologue.FrameSize != IceDefinitions.PrologueSize)
+                        {
+                            throw new InvalidDataException(
+                                $"Received {nameof(IceFrameType.ValidateConnection)} frame with unexpected data.");
+                        }
+                        break;
+                    }
+
+                    default:
+                    {
+                        throw new InvalidDataException(
+                            $"Received Ice frame with unknown frame type '{prologue.FrameType}'.");
+                    }
+                }
+            } // while
+        }
+        catch (OperationCanceledException)
+        {
+            // expected
+        }
+        catch (InvalidDataException exception)
+        {
+            DisposeTransport("Invalid data was received from the peer.", exception);
+        }
+        catch (NotSupportedException exception)
+        {
+            DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
+        }
+        catch (IceRpcException exception)
+        {
+            DisposeTransport("The connection was lost.", exception);
+        }
+        catch (ObjectDisposedException exception)
+        {
+            DisposeTransport("The connection was disposed.", exception);
+        }
+        catch (Exception exception)
+        {
+            DisposeTransport("The connection failed due to an unhandled exception.", exception);
+            Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
+        }
 
         async Task ReadReplyAsync(int replyFrameSize)
         {
@@ -1111,6 +1098,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
 
+                bool releaseDispatchSemaphore = false;
                 if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
                 {
                     // This prevents us from receiving any new frames if we're already dispatching the maximum number
@@ -1119,6 +1107,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     try
                     {
                         await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                        releaseDispatchSemaphore = true;
                     }
                     catch (OperationCanceledException)
                     {
@@ -1135,7 +1124,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // OperationCanceledByShutdown) (meaning no dispatch at all), not a DispatchException (which
                         //  means at least part of the dispatch executed).
 
-                        _dispatchSemaphore?.Release();
+                        if (releaseDispatchSemaphore)
+                        {
+                            _dispatchSemaphore!.Release();
+                        }
                         return;
                     }
 
