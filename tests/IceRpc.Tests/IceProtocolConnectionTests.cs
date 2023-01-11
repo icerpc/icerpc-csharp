@@ -99,6 +99,8 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client);
+
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
@@ -134,6 +136,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -264,9 +267,23 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Server);
 
         // Act/Assert
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Nothing);
+    }
+
+    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
+    {
+        await connection.ShutdownRequested;
+        try
+        {
+            await connection.ShutdownAsync();
+        }
+        catch
+        {
+            // ignore all exceptions
+        }
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>

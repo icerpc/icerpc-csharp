@@ -39,6 +39,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
     private readonly SemaphoreSlim? _dispatchSemaphore;
+
+    // This cancellation token source is canceled when the connection is disposed.
+    private readonly CancellationTokenSource _disposedCts = new();
+
     private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
@@ -153,7 +157,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     try
                     {
                         // Read frames until the CloseConnection frame is received.
-                        await ReadFramesAsync().ConfigureAwait(false);
+                        await ReadFramesAsync(_disposedCts.Token).ConfigureAwait(false);
 
                         // Setting _isClosedByPeer to true must be done before calling Close. Close cancels invocations
                         // and dispatches. Canceled invocations should not be aborted if the connection is gracefully
@@ -163,8 +167,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             _isClosedByPeer = true;
                         }
 
-                        // The peer expects the connection to be closed once the CloseConnection frame is received.
-                        DisposeTransport("The connection was closed by the peer.");
+                        RefuseNewInvocations(
+                            "The connection was shut down because it received a CloseConnection frame from the peer.");
+                        _shutdownRequestedTcs.TrySetResult();
                     }
                     catch (InvalidDataException exception)
                     {
@@ -231,6 +236,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
+           // _disposedCts.Cancel();
             _dispatchesAndInvocationsCts.Cancel();
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
@@ -278,6 +284,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnectionReader.Dispose();
             _duplexConnectionWriter.Dispose();
 
+            _disposedCts.Dispose();
             _dispatchesAndInvocationsCts.Dispose();
             _dispatchSemaphore?.Dispose();
             _writeSemaphore.Dispose();
@@ -616,6 +623,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
+        bool receivedCloseConnection;
+
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -638,6 +647,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
+
+            receivedCloseConnection = _isClosedByPeer;
         }
 
         return PerformShutdownAsync();
@@ -663,32 +674,42 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
 
-                // Wait for dispatches and invocations to complete.
-                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                // Encode and write the CloseConnection frame once all the dispatches are done.
-                try
+                if (receivedCloseConnection)
                 {
-                    await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    DisposeTransport();
+
+                    // Wait for dispatches and invocations to complete.
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Wait for dispatches and invocations to complete.
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                    // Encode and write the CloseConnection frame once all the dispatches are done.
                     try
                     {
-                        EncodeCloseConnectionFrame(_duplexConnectionWriter);
-                        await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        _writeSemaphore.Release();
-                    }
-                }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-                {
-                    // Expected if the flush operation is aborted by connection closure.
-                }
+                        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        try
+                        {
+                            EncodeCloseConnectionFrame(_duplexConnectionWriter);
+                            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _writeSemaphore.Release();
+                        }
 
-                // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
-                // connection closure here. We can't just return and close the underlying transport since this could
-                // abort the receive of the responses and close connection frame by the peer.
-                await _transportConnectionDisposedTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+                        // connection closure here. We can't just return and close the underlying transport since this could
+                        // abort the receive of the responses and close connection frame by the peer.
+                        await _transportConnectionDisposedTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                    {
+                        // Expected if the flush operation is aborted by connection closure.
+                    }
+                }
 
                 _closedTcs.SetResult(null);
             }
@@ -828,13 +849,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
-    /// fully and buffered into an internal pipe.</summary>
+    /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully
+    /// and buffered into an internal pipe.</summary>
     private static async ValueTask<PipeReader> CreateFrameReaderAsync(
         int size,
         DuplexConnectionReader transportConnectionReader,
         MemoryPool<byte> pool,
-        int minimumSegmentSize)
+        int minimumSegmentSize,
+        CancellationToken cancellationToken)
     {
         var pipe = new Pipe(new PipeOptions(
             pool: pool,
@@ -847,7 +869,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             await transportConnectionReader.FillBufferWriterAsync(
                 pipe.Writer,
                 size,
-                CancellationToken.None).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -915,13 +937,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
-    private async ValueTask ReadFramesAsync()
+    private async Task ReadFramesAsync(CancellationToken cancellationToken)
     {
         while (true)
         {
             ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
                 IceDefinitions.PrologueSize,
-                CancellationToken.None).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             // First decode and check the prologue.
 
@@ -968,7 +990,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         prologue.FrameSize - IceDefinitions.PrologueSize,
                         _duplexConnectionReader,
                         _memoryPool,
-                        _minSegmentSize).ConfigureAwait(false);
+                        _minSegmentSize,
+                        cancellationToken).ConfigureAwait(false);
                     batchRequestReader.Complete();
                     break;
 
@@ -1001,7 +1024,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 replyFrameSize - IceDefinitions.PrologueSize,
                 _duplexConnectionReader,
                 _memoryPool,
-                _minSegmentSize).ConfigureAwait(false);
+                _minSegmentSize,
+                cancellationToken).ConfigureAwait(false);
 
             bool completeFrameReader = true;
 
@@ -1048,7 +1072,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 requestFrameSize - IceDefinitions.PrologueSize,
                 _duplexConnectionReader,
                 _memoryPool,
-                _minSegmentSize).ConfigureAwait(false);
+                _minSegmentSize,
+                cancellationToken).ConfigureAwait(false);
 
             // Decode its header.
             int requestId;
@@ -1414,4 +1439,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _invocationRefusedMessage ??= message;
         }
     }
+
+    /*
+    private void TryCompleteClosed(Exception exception, string invocationRefusedMessage)
+    {
+        if (_closedTcs.TrySetResult(exception))
+        {
+            RefuseNewInvocations(invocationRefusedMessage);
+        }
+    }
+    */
 }
