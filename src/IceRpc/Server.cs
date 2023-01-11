@@ -234,9 +234,6 @@ public sealed class Server : IAsyncDisposable
         {
             if (_disposeTask is null)
             {
-                _listenCts.Cancel();
-                _disposedCts.Cancel();
-
                 _disposeTask = PerformDisposeAsync();
 
                 if (_backgroundConnectionDisposeCount == 0)
@@ -251,6 +248,9 @@ public sealed class Server : IAsyncDisposable
         async Task PerformDisposeAsync()
         {
             await Task.Yield(); // exit mutex lock
+
+            _listenCts.Cancel();
+            _disposedCts.Cancel();
 
             // _listener, _listenTask etc are immutable when _disposeTask is not null.
 
@@ -364,15 +364,7 @@ public sealed class Server : IAsyncDisposable
                                 {
                                     if (_disposeTask is null && !_isShutdown)
                                     {
-                                        try
-                                        {
-                                            pendingConnectionSemaphore.Release();
-                                        }
-                                        catch (ObjectDisposedException)
-                                        {
-                                            // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2448 why this
-                                            // is needed.
-                                        }
+                                        pendingConnectionSemaphore.Release();
                                     }
                                 }
                             }
@@ -558,7 +550,6 @@ public sealed class Server : IAsyncDisposable
             }
 
             _isShutdown = true;
-            _listenCts.Cancel();
 
             if (_backgroundConnectionShutdownCount == 0)
             {
@@ -567,6 +558,15 @@ public sealed class Server : IAsyncDisposable
             }
 
             disposedCancellationToken = _disposedCts.Token;
+        }
+
+        try
+        {
+            _listenCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // This can happen if dispose has been already called. We don't want to call Cancel with the mutex locked.
         }
 
         return PerformShutdownAsync();

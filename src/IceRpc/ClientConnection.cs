@@ -30,7 +30,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     // A cancellation token source that is canceled when DisposeAsync is called.
     private readonly CancellationTokenSource _disposedCts = new();
-    private bool _isDisposed;
+    private Task? _disposeTask;
     private bool _isShutdown;
 
     // Protects _connection, _isDisposed and _isShutdown.
@@ -142,7 +142,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IProtocolConnection connection;
         lock (_mutex)
         {
-            if (_isDisposed)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(ClientConnection)}");
             }
@@ -179,14 +179,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (!_isDisposed)
-            {
-                _isDisposed = true;
-                _disposedCts.Cancel();
-                _disposedCts.Dispose();
-            }
+            _disposeTask ??= PerformDisposeAsync();
         }
-        return _connection.DisposeAsync();
+        return new(_disposeTask);
+
+        async Task PerformDisposeAsync()
+        {
+            await Task.Yield(); // Exit mutex lock
+            _disposedCts.Cancel();
+            _disposedCts.Dispose();
+            await _connection.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <inheritdoc/>
@@ -210,7 +213,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IProtocolConnection connection;
         lock (_mutex)
         {
-            if (_isDisposed)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(ClientConnection)}");
             }
@@ -291,7 +294,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_isDisposed)
+            if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(ClientConnection)}");
             }
@@ -353,7 +356,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (connection == _connection)
             {
-                if (_isDisposed || _isShutdown)
+                if (_disposeTask is not null || _isShutdown)
                 {
                     // The client connection is being shut down or disposed. Its ShutdownAsync/DisposeAsync will
                     // shutdown/dispose _connection.
@@ -396,7 +399,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_isDisposed)
+            if (_disposeTask is not null)
             {
                 throw new IceRpcException(IceRpcError.OperationAborted, "The client connection is disposed.");
             }

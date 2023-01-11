@@ -92,7 +92,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is null)
             {
-                _disposedCts.Cancel();
                 _disposeTask = PerformDisposeAsync();
 
                 // Once _disposeTask is not null, we no longer perform any background dispose or shutdown.
@@ -110,6 +109,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         async Task PerformDisposeAsync()
         {
             await Task.Yield(); // exit mutex lock
+
+            _disposedCts.Cancel();
 
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
