@@ -195,14 +195,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
 
                 // Start a task to read the go away frame from the control stream and initiate shutdown.
-                CancellationToken disposedCancellationToken = _disposedCts.Token;
-                _readGoAwayTask = Task.Run(() => ReadGoAwayAsync(disposedCancellationToken), disposedCancellationToken);
+                _readGoAwayTask = Task.Run(() => ReadGoAwayAsync(_disposedCts.Token), _disposedCts.Token);
 
                 // Start a task that accepts requests (the "accept requests loop")
-                CancellationToken acceptStreamCancellationToken = _acceptStreamCts.Token;
                 _acceptRequestsTask = Task.Run(
-                    () => AcceptRequestsAsync(acceptStreamCancellationToken),
-                    acceptStreamCancellationToken);
+                    () => AcceptRequestsAsync(_acceptStreamCts.Token),
+                    _acceptStreamCts.Token);
             }
 
             EnableIdleCheck();
@@ -683,8 +681,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                // Wait for connect to complete. _connectTask can itself get canceled by disposedCancellationToken or
-                // because ConnectAsync was canceled.
+                // Wait for connect to complete. _connectTask can itself get canceled through _disposedCts or because
+                // ConnectAsync was canceled.
                 _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 if (_acceptRequestsTask is not null)
