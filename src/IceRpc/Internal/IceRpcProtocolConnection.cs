@@ -101,16 +101,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot call connect more than once.");
             }
 
-            _connectTask = PerformConnectAsync();
+            _connectTask = PerformConnectAsync(_disposedCts.Token);
         }
         return _connectTask;
 
-        async Task<TransportConnectionInformation> PerformConnectAsync()
+        async Task<TransportConnectionInformation> PerformConnectAsync(CancellationToken disposedCancellationToken)
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                disposedCancellationToken);
 
             TransportConnectionInformation transportConnectionInformation;
 
@@ -192,7 +194,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
 
                 // Start a task to read the go away frame from the control stream and initiate shutdown.
-                CancellationToken disposedCancellationToken = _disposedCts.Token;
                 _readGoAwayTask = Task.Run(() => ReadGoAwayAsync(disposedCancellationToken), disposedCancellationToken);
 
                 // Start a task that accepts requests (the "accept requests loop")
@@ -257,7 +258,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                             // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
                             // to Task.Run because DispatchRequestAsync must clean-up the stream.
-                            CancellationToken disposedCancellationToken = _disposedCts.Token;
                             _ = Task.Run(
                                 () => DispatchRequestAsync(stream, disposedCancellationToken),
                                 CancellationToken.None);
