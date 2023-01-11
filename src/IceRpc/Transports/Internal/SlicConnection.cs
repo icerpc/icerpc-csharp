@@ -1230,6 +1230,8 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 (ulong)MultiplexedConnectionCloseError.NoError =>
                     new IceRpcException(IceRpcError.ConnectionClosedByPeer),
+                (ulong)MultiplexedConnectionCloseError.Refused =>
+                    new IceRpcException(IceRpcError.ConnectionRefused),
                 (ulong)MultiplexedConnectionCloseError.ServerBusy =>
                     new IceRpcException(IceRpcError.ServerBusy),
                 (ulong)MultiplexedConnectionCloseError.Aborted =>

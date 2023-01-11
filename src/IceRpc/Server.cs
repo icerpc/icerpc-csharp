@@ -400,6 +400,7 @@ public sealed class Server : IAsyncDisposable
                     await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
 
                 IProtocolConnection? protocolConnection = null;
+                bool refuseConnection = false;
                 bool serverBusy = false;
 
                 // Create the protocol connection if the server is not being disposed and if the max connection
@@ -407,9 +408,13 @@ public sealed class Server : IAsyncDisposable
                 lock (_mutex)
                 {
                     Debug.Assert(_maxConnections == 0 || _connections.Count <= _maxConnections);
-                    if (_isShutdown || (_maxConnections > 0 && _connections.Count == _maxConnections))
+                    if (_isShutdown)
                     {
-                        // TODO: not quite correct for _isShutdown
+                        refuseConnection = true;
+                    }
+                    else if (_maxConnections > 0 && _connections.Count == _maxConnections)
+                    {
+                        refuseConnection = true;
                         serverBusy = true;
                     }
                     else if (_disposeTask is null)
@@ -429,12 +434,11 @@ public sealed class Server : IAsyncDisposable
                     // Connect the connection..
                     _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
                 }
-                else if (serverBusy)
+                else if (refuseConnection)
                 {
-                    // If the max connection count is reached, we refuse the transport connection.
                     try
                     {
-                        await connector.RefuseTransportConnectionAsync(cts.Token).ConfigureAwait(false);
+                        await connector.RefuseTransportConnectionAsync(serverBusy, cts.Token).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -744,8 +748,8 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
-            _decoratee.RefuseTransportConnectionAsync(cancel);
+        public Task RefuseTransportConnectionAsync(bool serverBusy, CancellationToken cancel) =>
+            _decoratee.RefuseTransportConnectionAsync(serverBusy, cancel);
 
         internal LogConnectorDecorator(
             IConnector decoratee,
@@ -809,11 +813,11 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        public async Task RefuseTransportConnectionAsync(CancellationToken cancel)
+        public async Task RefuseTransportConnectionAsync(bool serverBusy, CancellationToken cancel)
         {
             try
             {
-                await _decoratee.RefuseTransportConnectionAsync(cancel).ConfigureAwait(false);
+                await _decoratee.RefuseTransportConnectionAsync(serverBusy, cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -907,7 +911,7 @@ public sealed class Server : IAsyncDisposable
 
         IProtocolConnection CreateProtocolConnection(TransportConnectionInformation transportConnectionInformation);
 
-        Task RefuseTransportConnectionAsync(CancellationToken cancel);
+        Task RefuseTransportConnectionAsync(bool serverBusy, CancellationToken cancel);
     }
 
     private class IceConnectorListener : IConnectorListener
@@ -960,7 +964,7 @@ public sealed class Server : IAsyncDisposable
             return new();
         }
 
-        public Task RefuseTransportConnectionAsync(CancellationToken cancel)
+        public Task RefuseTransportConnectionAsync(bool serverBusy, CancellationToken cancellationToken)
         {
             _transportConnection!.Dispose();
             return Task.CompletedTask;
@@ -1019,8 +1023,10 @@ public sealed class Server : IAsyncDisposable
 
         public ValueTask DisposeAsync() => _transportConnection?.DisposeAsync() ?? new();
 
-        public Task RefuseTransportConnectionAsync(CancellationToken cancel) =>
-            _transportConnection!.CloseAsync(MultiplexedConnectionCloseError.ServerBusy, cancel);
+        public Task RefuseTransportConnectionAsync(bool serverBusy, CancellationToken cancellationToken) =>
+            _transportConnection!.CloseAsync(
+                serverBusy ? MultiplexedConnectionCloseError.ServerBusy : MultiplexedConnectionCloseError.Refused,
+                cancellationToken);
 
         internal IceRpcConnector(
             IMultiplexedConnection transportConnection,
