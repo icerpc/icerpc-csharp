@@ -267,36 +267,41 @@ public class ServerTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         Task<IncomingResponse> invokeTask = clientConnection.InvokeAsync(request);
 
-        // Wait for invocation to be dispatched. Then shutdown the client connection.
+        // Wait for invocation to be dispatched.
         await dispatchStartedSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
+        // Act
+        Exception? exception = null;
         try
         {
+            // Shutdown the client connection.
             await clientConnection.ShutdownAsync().ConfigureAwait(false);
-            Assert.Fail();
         }
-        catch (IceRpcException)
+        catch (IceRpcException ex)
         {
             // Expected. The server shutdown timed out and aborted the connection.
+            exception = ex;
         }
 
         // Ensure the server connection shutdown timed out. At this point, Server should have called DisposeAsync on the
         // connection (which completes the Closed task).
         await serverConnectionContext!.Closed.ConfigureAwait(false);
 
-        // Act
-
         // Dispose the server. This will wait for the background connection dispose to complete.
         ValueTask disposeTask = server.DisposeAsync();
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
         Assert.That(disposeTask.IsCompleted, Is.False);
+        Assert.That(exception, Is.Not.Null.And.With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
         // Release the dispatch semaphore, allowing the background connection dispose to complete.
         dispatchHoldSemaphore.Release();
+
         await disposeTask;
 
-        // Prevent unobserved task exception.
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<IceRpcException>());
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 }
