@@ -555,7 +555,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing the client connection aborts pending invocations, the invocations will fail
-    /// with <see cref="ObjectDisposedException" />.</summary>
+    /// with <see cref="IceRpcError.OperationAborted" />.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_aborts_pending_invocations(Protocol protocol)
     {

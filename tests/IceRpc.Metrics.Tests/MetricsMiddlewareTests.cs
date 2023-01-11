@@ -133,7 +133,7 @@ public sealed class MetricsMiddlewareTests
             });
 
         using var dispatchMetrics = new DispatchMetrics(meterName);
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 

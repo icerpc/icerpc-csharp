@@ -243,13 +243,10 @@ public class ClientConnectionTests
     public async Task InvokeAsync_succeeds_with_a_compatible_server_address(ServiceAddress serviceAddress)
     {
         // Arrange
-        await using ServiceProvider provider =
-            new ServiceCollection()
-                .AddClientServerColocTest(
-                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
-                    serviceAddress.Protocol!,
-                    host: "testhost.com")
-                .BuildServiceProvider(validateScopes: true);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher, serviceAddress.Protocol!, host: "testhost.com")
+            .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
@@ -290,13 +287,10 @@ public class ClientConnectionTests
         ServiceAddress serviceAddress)
     {
         // Arrange
-        await using ServiceProvider provider =
-            new ServiceCollection()
-                .AddClientServerColocTest(
-                    new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request))),
-                    serverAddress.Protocol,
-                    host: serverAddress.Host)
-                .BuildServiceProvider(validateScopes: true);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher, serverAddress.Protocol, host: serverAddress.Host)
+            .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();

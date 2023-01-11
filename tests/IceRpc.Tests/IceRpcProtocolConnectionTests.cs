@@ -524,7 +524,7 @@ public sealed class IceRpcProtocolConnectionTests
         [Values(false, true)] bool isOneway)
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, response) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);

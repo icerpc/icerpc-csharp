@@ -28,8 +28,7 @@ public class RouterTests
         Router router = await CreateRouterAndCallDispatchAsync();
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(
-            () => router.Map("/foo", new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)))));
+        Assert.Throws<InvalidOperationException>(() => router.Map("/foo", ServiceNotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that a dispatcher cannot be mounted after a request has been dispatched.</summary>
@@ -40,8 +39,7 @@ public class RouterTests
         Router router = await CreateRouterAndCallDispatchAsync();
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(
-            () => router.Mount("/foo", new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)))));
+        Assert.Throws<InvalidOperationException>(() => router.Mount("/foo", ServiceNotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that creating a <see cref="Router" /> with an invalid prefix fails.</summary>

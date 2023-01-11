@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Net.Security;
@@ -16,7 +17,7 @@ public sealed class ConnectionCacheTests
     public async Task Do_not_prefer_existing_connection()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -66,7 +67,7 @@ public sealed class ConnectionCacheTests
     public async Task Get_connection_for_alt_server()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             new ServerOptions
@@ -103,7 +104,7 @@ public sealed class ConnectionCacheTests
     public async Task Get_connection_for_main_server_address()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -150,7 +151,7 @@ public sealed class ConnectionCacheTests
     public async Task Prefer_existing_connection()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions
@@ -198,7 +199,7 @@ public sealed class ConnectionCacheTests
     public async Task Dispose_waits_for_background_connection_dispose()
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+        var dispatcher = new TestDispatcher(holdDispatchCount: 0);
 
         var colocTransport = new ColocTransport();
         var clientTransport = new SlowDisposeClientTransport(new SlicClientTransport(colocTransport.ClientTransport));
