@@ -734,8 +734,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     // Wait for the peer to send back a GoAway frame. The task should already be completed if the
                     // shutdown was initiated by the peer.
-                    IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cts.Token)
-                        .ConfigureAwait(false);
+                    IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cts.Token).ConfigureAwait(false);
 
                     // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will
                     // throw IceRpcException(InvocationCanceled) which can be retried. Since _isShutdown is true,
