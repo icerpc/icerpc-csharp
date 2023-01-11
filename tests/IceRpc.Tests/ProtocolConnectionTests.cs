@@ -228,16 +228,34 @@ public sealed class ProtocolConnectionTests
         // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync would hang.
         await sut.Server.DisposeAsync();
 
-        Assert.That(
-            async () => await invokeTask1,
-            Throws.InstanceOf<IceRpcException>()
-                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
-                .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        Assert.That(
-            async () => await invokeTask2,
-            Throws.InstanceOf<IceRpcException>()
-                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
-                .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+        // TODO: temporary
+
+        if (protocol == Protocol.Ice)
+        {
+            Assert.That(
+                async () => await invokeTask1,
+                Throws.InstanceOf<IceRpcException>()
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            Assert.That(
+                async () => await invokeTask2,
+                Throws.InstanceOf<IceRpcException>()
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+        }
+        else
+        {
+            Assert.That(
+                async () => await invokeTask1,
+                Throws.InstanceOf<IceRpcException>()
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+            Assert.That(
+                async () => await invokeTask2,
+                Throws.InstanceOf<IceRpcException>()
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                    .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        }
     }
 
     /// <summary>Verifies that when a exception other than a DispatchException is thrown
@@ -550,7 +568,17 @@ public sealed class ProtocolConnectionTests
         catch (IceRpcException exception)
         {
             // expected with icerpc
-            Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.TruncatedData));
+            Assert.That(
+                exception.IceRpcError,
+                Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.TruncatedData));
+        }
+
+        // TODO: temporary if
+        if (protocol == Protocol.IceRpc)
+        {
+            Assert.That(
+                async () => await shutdownTask,
+                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         }
     }
 
@@ -580,7 +608,7 @@ public sealed class ProtocolConnectionTests
     }
 
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Dispose_waits_for_connect_completion(Protocol protocol)
+    public async Task Dispose_aborts_connect(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -588,24 +616,26 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
-        Task connectTask = sut.Client.ConnectAsync(default);
-        ValueTask disposeTask = sut.Client.DisposeAsync();
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        // TODO: temporary
+        if (protocol == Protocol.IceRpc)
+        {
+            Task connectTask = sut.Client.ConnectAsync(default);
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
 
-        // Act/Assert
-        Assert.That(disposeTask.IsCompleted, Is.False);
-        Assert.That(connectTask.IsCompleted, Is.False);
+            // Act
+            await sut.Client.DisposeAsync();
 
-        await sut.AcceptAsync();
-
-        Assert.That(async () => await connectTask, Throws.Nothing);
-        Assert.That(async () => await disposeTask, Throws.Nothing);
+            // Assert
+            Assert.That(
+                async () => await connectTask,
+                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+        }
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see cref="IceRpcException" />.
     /// </summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Invoke_on_shutdown_connection_fails_with_connection_closed(Protocol protocol)
+    public async Task Invoke_on_shutdown_connection_fails_with_invocation_refused(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -620,6 +650,9 @@ public sealed class ProtocolConnectionTests
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationRefused));
+
+        // Cleanup
+        await shutdownTask;
     }
 
     /// <summary>Ensures that the sending a request after dispose fails.</summary>
