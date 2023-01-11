@@ -101,14 +101,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot call connect more than once.");
             }
 
-            _connectTask = PerformConnectAsync(_disposedCts.Token);
+            _connectTask = PerformConnectAsync();
         }
         return _connectTask;
 
-        async Task<TransportConnectionInformation> PerformConnectAsync(CancellationToken disposedCancellationToken)
+        async Task<TransportConnectionInformation> PerformConnectAsync()
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
+
+            // _disposedCts is not disposed at this point before DisposeAsync waits for the completion of _connectTask.
+            CancellationToken disposedCancellationToken = _disposedCts.Token;
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
